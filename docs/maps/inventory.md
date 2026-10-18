@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 516 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1199 types in 31 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 518 types in 61 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1202 types in 31 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -761,7 +761,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrSpikeScreen` | internal class | The one screen the probe uses, pushed BOTH ways so the measurement compares mechanisms rather than screens. |
 | `CrSpikeState` | public class | The spike's game state: deliberately empty, it exists only to be pushed so a screen binds to it. |
 
-### CalradiaRemembers.Verbs (24)
+### CalradiaRemembers.Verbs (26)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -780,6 +780,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LendTroopsVerb` | public class | lend_troops (RP with teeth, increment 1): an NPC leading their own party gives the player some of their own soldiers to keep. |
 | `MakeAmendsVerb` | public class | make_amends: the player sincerely apologises or offers, in words, to set right a grievance this NPC KNOWINGLY holds against them. |
 | `PayForSilenceVerb` | public class | pay_for_silence: the player pays a lord who holds their secret-lover identity to buy his silence. |
+| `PressForWarBehavior` | public class | The pressings under way: a persuaded lord's house files the game's own war proposal when he reaches court, if the game still allows it then (a peace made meanwhile, another proposal, an emptied treasury of influence each... |
+| `PressForWarVerb` | public class | press_for_war: a lord, truly persuaded by the player, resolves to press his realm's court toward war against a named realm. |
 | `PrisonerRansomExecutor` | internal static class | Settles a prisoner ransom (a lord buys a captive the player holds) outside the chat verb path. |
 | `ReinforceGarrisonVerb` | public class | reinforce_garrison (fkasad, Nexus, 01/10/2026: "Works for garrison reinforcement too"): the player hands over the men a governor or lord asked for, and they go straight onto the walls of the place named in the task. |
 | `ReleasePrisonerVerb` | public class | release_prisoner (RP with teeth, increment 1): the player intercedes for a THIRD-PARTY hero prisoner the NPC's own clan holds (not the player's own captive, that is free_prisoner). |
@@ -872,7 +874,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (725)
+### CalradiaRemembers.Logic (728)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1148,6 +1150,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HistoryKnowledgeFacts` | public class | One observer's ties to one long-term event, filled by the engine; read to decide whether he knows it. |
 | `HolderGearLedger` | public class | Serializable ledger of every holder's accumulated gear stock. |
 | `HolderGearStock` | public class | Everything a single holder Hero has accumulated from the player's escapes, additive across however many times the player has fled that holder's hold. |
+| `HouseLeaning` | public enum | How the lord's house stands on the war, by the game's own support for it. |
 | `HouseholdKinPolicy` | public static class | Decides who in the player's house is family, and therefore never a retainer to be given away. |
 | `HuntMode` | public enum | How the realm comes after an outlaw. |
 | `HushMoneyPolicy` | public static class | The numeric contract for hush money paid to a lord who holds the player's secret-lover identity. |
@@ -1354,6 +1357,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PregnancyNotePolicy` | public static class | Turns a mother's pregnancy facts into the second-person line the NPC identity prompt renders, so she is AWARE of her own pregnancy and never denies it (see file header for the bug this fixes). |
 | `PregnancyPolicy` | public static class | Pure gates around a pregnancy's whole lifecycle when the campaign's Life/Death Cycle option is disabled (Bannerlord's own "no aging / no death" creation option, which also silently disables vanilla's offspring delivery -... |
 | `PresentWitness` | public class | A witness in the room, as the privacy rule sees them. |
+| `PressForWarFacts` | public class | The facts one lord's pressing for war against one realm rests on, read from the game. |
+| `PressForWarPolicy` | public static class | Whether and how a lord may press his realm toward war at the player's word. |
 | `PrisonerBuyerCandidate` | public class | One lord who might want the captive. |
 | `PrisonerBuyerPolicy` | public static class | Orders who may send an envoy about a captive, and says what each wants. |
 | `PrisonerBuyerRole` | public enum | What a prospective buyer is to the captive. |

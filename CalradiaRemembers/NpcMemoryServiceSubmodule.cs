@@ -248,6 +248,7 @@ namespace CalradiaRemembers
          // reads from it) and GrudgeBehavior (this listener only ever calls its TryPlant); no backfill (a
          // LIVE-only source, mirroring ExecutedKinGrudgeBehavior). Console: cr.grudge_sway_test.
          campaignStarter.AddBehavior(new SwayExposureBehavior());
+         campaignStarter.AddBehavior(new Verbs.PressForWarBehavior());
 
          campaignStarter.AddBehavior(new NemesisBehavior());
          // Nemesis pillar increment 2 (resolution layer): closes out a tracked nemesis on

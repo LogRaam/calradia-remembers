@@ -555,6 +555,13 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - "(No rival by that name is known to pledge against.)"
   - $"({npcHero.Name} will not move against their own kin.)"
 
+### press_for_war
+
+- executor: `Execute`
+- taught in: no prompt section names it
+- taught when: no gate found
+- the bridge refuses: never
+
 ### reassure_companion
 
 - executor: `ExecuteReassureCompanion`

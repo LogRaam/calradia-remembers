@@ -4,6 +4,20 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.16.. open
 
+### New
+- **Press a lord toward war** (Gabriel, 18/10: "qu'on puisse influencer en chat pour la guerre"; any lord; the cost
+  is the risk the target realm learns of it; the player sees nothing special). `press_for_war`
+  (`PressForWarVerb`, `PressForWarPolicy`): a lord truly persuaded resolves to carry the case for war on a named
+  realm to his court. Taught only with the realms his house could really propose a war against (the game's own
+  rules: not at war, not allied, peace older than 20 days, no war proposal pending, the influence to pay), each
+  with how his house leans by the game's own `DeclareWarDecision.CalculateSupport`. Three days later
+  (`PressForWarBehavior`, save key `CalradiaRemembers_PressForWar_v1bytes`) his house files the game's own
+  `DeclareWarDecision`, paying its influence: the clans vote, the ruler decides; the mod declares nothing (rule
+  of 02/07: only the ruler declares). The talk is `WarLooming` gossip, watched for the target realm's house
+  heads by `SwayExposureBehavior` (new `Cause`); one it reaches keeps a hidden grudge. The case must name the
+  realm (`PlayerSpokeOfRealm`). SDK `d6fedbe`: catalogue entry, bench phrasings, Lean description cut 90 -> 88
+  to keep the Compact interpreter head under 28,000. testall `press_for_war`.
+
 ### Fixed
 - **An enemy lord no longer asks the player's business on his lands, nor rides up outnumbered** (LapitaPolata, Nexus
   18/10). `InterceptionPolicy.Choose`: `TerritorialPatrol` now fires only for a realm wary of the player but not at war

@@ -427,6 +427,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("rp_give_troops", Severity.Heavy, "lord w/ under-strength party -> give_troops -> assert rosters moved + marker + appreciation planted", TestRpGiveTroops),
          new SelfTest("rp_spend_influence", Severity.Light, "needy lord's clan -> spend_influence -> assert clan influence moved + marker + appreciation planted + cooldown refuses repeat", TestRpSpendInfluence),
          new SelfTest("rp_sway", Severity.Light, "NPC + 3rd hero -> a sway the player never argued (no name said) is REFUSED with nothing moved (Maifailun, 01/10/2026); then a case naming the target -> sway_opinion(against) -> relation dropped + cooldown stamped with no marker in the memory text + world event + cooldown refuses repeat", TestRpSway),
+         new SelfTest("press_for_war", Severity.Light, "Gabriel (18/10/2026): influence a lord in conversation toward war; any lord; the cost is the risk that the target realm learns the player spoke against it; the player sees nothing special beyond a war more likely. On a real lord whose house can propose a war (lent the influence when none can, restored after): the verb is taught with the realm; a case that never names the realm is refused; a real case queues his house's pressing without any war; the talk is recorded as gossip and watched for the target realm's house heads; the game's own war proposal is prepared, never filed (an AI realm votes at once). Forgets the pressing, the gossip, the watch and the memory", TestPressForWar),
          new SelfTest("rp_release", Severity.Heavy, "seed 3rd-party captive on a lord's party -> release_prisoner -> assert freed + relation bump", TestRpRelease),
          new SelfTest("commitment_is_memory_only", Severity.Light, "fire a real pledge_against -> assert the vow is REMEMBERED but not tracked as a quest: no ledger entry, no journal mirror, no relation change (2026-08-22: an NPC's vow is not a player quest)", TestCommitmentIsMemoryOnly),
          new SelfTest("divorce_process", Severity.Heavy, "married couple -> end_marriage -> force endDay -> tick -> assert dissolved + exSpouses + no one clanless + scandal + relation hits", TestDivorceProcess),
@@ -15285,6 +15286,77 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("markerStamped", marked, true);
          t.Expect("worldEventRecorded", eventsAfter > eventsBefore, true);
          t.Expect("repeatRefused", again == null || !again.IsPositive, true);
+
+         return t.Line();
+      }
+
+      private static string TestPressForWar(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("press_for_war");
+         if (t.Abort(WorldEventStore.Instance == null || Verbs.PressForWarBehavior.Instance == null || Grudges.SwayExposureBehavior.Instance == null, "the war pressing, the world events or the exposure watch is not active")) return t.Line();
+
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h.IsLord && h != Hero.MainHero && h.Clan != null && h.Clan != Clan.PlayerClan && h.Clan.Kingdom != null
+                                                           && Mapping.HeroPresence.IsInTheWorld(h) && !Verbs.PressForWarBehavior.Instance.IsPressing(h.Clan.StringId)).ToList();
+         Hero lord = lords.FirstOrDefault(h => Verbs.PressForWarVerb.Targets(h).Count > 0);
+         float lent = 0f;
+         if (lord == null)
+         {
+            // Arranged (GABRIEL'S RULE 13/10/2026): a house short of influence is lent what a proposal costs, restored after.
+            lord = lords.FirstOrDefault(h => Kingdom.All.Any(k => k != h.Clan.Kingdom && !k.IsEliminated && !FactionManager.IsAtWarAgainstFaction(k, h.Clan.Kingdom)));
+            if (t.Skip(lord == null, "every realm is at war with every other; no war is left to press")) return t.Line();
+            lent = Campaign.Current.Models.DiplomacyModel.GetInfluenceCostOfProposingWar(lord.Clan) + 10f;
+            ChangeClanInfluenceAction.Apply(lord.Clan, lent);
+            t.Note($"{lord.Clan.Name} was lent {lent:0} influence");
+         }
+
+         NpcProfile profile = GetOrCreate(behavior, lord);
+         string rumourId = null;
+         int eventsBefore = profile.Events.Count;
+         try
+         {
+            List<(Kingdom Realm, Logic.HouseLeaning Leaning)> targets = Verbs.PressForWarVerb.Targets(lord);
+            if (t.Skip(targets.Count == 0, $"{lord.Name}'s house can press no war even with influence (fresh peace or a proposal pending)")) return t.Line();
+            Kingdom target = targets[0].Realm;
+            t.Note($"{lord.Name} of {lord.Clan.Kingdom.Name} against {target.Name} ({targets[0].Leaning})");
+
+            // STAKE: declared before the lord speaks: the realms he could press, with how his house leans.
+            string teachings = VerbRegistry.Instance.ComposeTeachings(new VerbContext(lord, profile, behavior.GameStateBridge, null, null)) ?? "";
+            t.Expect("taughtWithTheRealm", teachings.Contains("type: press_for_war") && teachings.Contains(target.Name.ToString()), true);
+
+            var press = new GameAction {Type = "press_for_war", Parameters = new Dictionary<string, string> {{"target", target.Name.ToString()}}};
+            // STAKE: a case for war names the realm; small talk moves nothing.
+            ActionOutcome unargued = behavior.GameStateBridge.ExecuteAction(press, lord, new ActionContext(profile, null) {PlayerWordsThisConversation = "A fine morning, my lord."});
+            t.Expect("unarguedRefused", unargued != null && !unargued.IsPositive && !Verbs.PressForWarBehavior.Instance.IsPressing(lord.Clan.StringId), true);
+
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(press, lord, new ActionContext(profile, null) {PlayerWordsThisConversation = $"{target.Name} grows fat on your borders; strike first."});
+            t.Expect("persuaded", outcome?.IsPositive, true);
+            // STAKE: nothing is declared at once; the house carries it to court days later.
+            Verbs.PressForWarBehavior.PendingPress pending = Verbs.PressForWarBehavior.Instance.Pending.FirstOrDefault(p => p.ClanId == lord.Clan.StringId);
+            t.Expect("theHouseWillPressIt", pending != null && pending.TargetId == target.StringId, true);
+            t.Expect("notAtWarYet", FactionManager.IsAtWarAgainstFaction(lord.Clan.Kingdom, target), false);
+
+            // STAKE: Gabriel's cost: the talk is gossip, watched for the target realm's heads.
+            rumourId = Verbs.PressForWarVerb.DebugLastRumourId;
+            WorldEvent rumour = WorldEventStore.Instance.GetById(rumourId);
+            t.Expect("theTalkIsGossip", rumour?.Type, WorldEventType.WarLooming);
+            t.Expect("theTargetsHeadsMayLearnOfIt", Grudges.SwayExposureBehavior.Instance.Pending.Any(p => p.RumourEventId == rumourId && p.TargetId == target.Leader?.StringId && p.Cause != null), true);
+
+            // STAKE: on the day, the game's own proposal is what is filed (prepared here, never filed: an AI realm votes at once).
+            TaleWorlds.CampaignSystem.Election.DeclareWarDecision decision = Verbs.PressForWarBehavior.Instance.Prepare(pending, out string whyNot);
+            if (whyNot != null) t.Note($"not filed: {whyNot}");
+            t.Expect("theGamesOwnProposal", decision != null && decision.ProposerClan == lord.Clan && decision.FactionToDeclareWarOn == target, true);
+         }
+         finally
+         {
+            Verbs.PressForWarBehavior.Instance.DebugForget(lord.Clan.StringId);
+            if (rumourId != null)
+            {
+               Grudges.SwayExposureBehavior.Instance.DebugDrop(rumourId);
+               WorldEventStore.Instance.Remove(rumourId);
+            }
+            while (profile.Events.Count > eventsBefore) profile.Events.RemoveAt(profile.Events.Count - 1);
+            if (lent > 0f) ChangeClanInfluenceAction.Apply(lord.Clan, -lent);
+         }
 
          return t.Line();
       }

@@ -75,6 +75,9 @@ namespace CalradiaRemembers.Grudges
                 : $"{target.Name}'s SwayExposed grudge was refused (anti-noise guardrail, or a full, stronger house).";
         }
 
+        /// <summary>cr.testall seam: drops every watch on this rumour, so a test leaves nothing to reveal.</summary>
+        internal int DebugDrop(string rumourEventId) => _pending.RemoveAll(p => p.RumourEventId == rumourEventId);
+
         /// <summary>
         ///   Queues <paramref name="target" />'s exposure watch for a sway just recorded as
         ///   <paramref name="rumourEventId" /> in the world-event store. Call only for a sway AGAINST the
@@ -82,7 +85,7 @@ namespace CalradiaRemembers.Grudges
         ///   that direction. A null/empty <paramref name="rumourEventId" /> (e.g. WorldEventStore inactive)
         ///   is a safe no-op: there is nothing to watch for.
         /// </summary>
-        public void QueueExposure(Hero target, string rumourEventId, int swayMagnitude, int today, string swayedName = null)
+        public void QueueExposure(Hero target, string rumourEventId, int swayMagnitude, int today, string swayedName = null, string cause = null)
         {
             if (target == null || string.IsNullOrEmpty(rumourEventId)) return;
 
@@ -91,7 +94,8 @@ namespace CalradiaRemembers.Grudges
                 RumourEventId = rumourEventId,
                 SwayMagnitude = swayMagnitude,
                 CreatedDay = today,
-                SwayedName = swayedName // 5.6: named in the grudge cause when it forms
+                SwayedName = swayedName, // 5.6: named in the grudge cause when it forms
+                Cause = cause
             });
         }
 
@@ -156,6 +160,12 @@ namespace CalradiaRemembers.Grudges
 
             /// <summary>5.6 (regard audit): the name of the NPC the player swayed, so the grudge cause names them instead of "someone". Null on old saves.</summary>
             public string SwayedName { get; set; }
+
+            /// <summary>
+            ///   The grudge's cause when the talk was not a sway of one person's opinion: press_for_war (Gabriel, 18/10/2026)
+            ///   watches its talk of war the same way. Null for a sway and on old saves.
+            /// </summary>
+            public string Cause { get; set; }
         }
 
         #region private
@@ -218,7 +228,7 @@ namespace CalradiaRemembers.Grudges
             // 5.6: name the swayed party when we recorded it (old saves fall back to "someone").
             string swayed = string.IsNullOrWhiteSpace(pending.SwayedName) ? "someone" : pending.SwayedName;
             bool planted = GrudgeBehavior.Instance.TryPlant(target, Hero.MainHero, GrudgeSource.SwayExposed,
-                $"Word reached them that the player had turned {swayed}'s opinion against them.",
+                pending.Cause ?? $"Word reached them that the player had turned {swayed}'s opinion against them.",
                 proposal.Magnitude, proposal.KnownToPlayer, today);
 
             if (planted)

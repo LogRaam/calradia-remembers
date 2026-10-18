@@ -107,6 +107,7 @@ namespace CalradiaRemembers.Logic
             case "make_amends": return "Amends made";
             case "hear_account": return "A grievance answered";
             case "pledge_against": return "Pledged against a foe";
+            case "press_for_war": return "Resolved to press for war";
             case "grant_blessing": return "A blessing given";
             case "mediate_peace": return "Peace brokered";
 

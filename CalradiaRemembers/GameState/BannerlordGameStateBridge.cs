@@ -231,7 +231,7 @@ namespace CalradiaRemembers.GameState
          "revoke_fief", "expel_from_clan", "grant_stipend", "swear_oath", "harm_prisoner", "impregnation_risk",
          "gather_news", "reassure_companion", "recall_companion", "follow_me", "dismiss_escort", "ride_with_me",
          "part_ways", "give_influence", "lend_troops", "give_troops", "spend_influence", "sway_opinion",
-         "release_prisoner", "buy_prisoner", "sell_prisoner", "exchange_prisoners", "end_marriage", "make_amends", "grudge_terms", "hear_account", "pledge_against",
+         "release_prisoner", "buy_prisoner", "sell_prisoner", "exchange_prisoners", "end_marriage", "make_amends", "grudge_terms", "hear_account", "pledge_against", "press_for_war",
          "accept_divorce", "decline_divorce", "end_own_marriage", "teach_skill", "admit_secret_lover", "pay_for_silence",
          "rob_npc", "assault_npc", "kill_npc", "reinforce_garrison", "share_intel", "deliver_recruits", "arrange_match",
          // ChatViewModel chat-flow controls: real LLM-emittable actions, never dispatched by the switch below.
@@ -392,6 +392,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteSwayOpinion(action, npcHero, context);
             case "pledge_against":
                return ExecutePledgeAgainst(action, npcHero, context);
+            case "press_for_war":
+               return VerbRegistry.Instance.Execute(action, new VerbContext(npcHero, context?.Profile, this, null, context));
             case "accept_divorce":
                return ExecuteAcceptDivorce(npcHero);
             case "decline_divorce":

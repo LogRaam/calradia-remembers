@@ -95,6 +95,7 @@ namespace CalradiaRemembers.Verbs
          registry.Register(new ArrangeMatchVerb());
          registry.Register(new SpendInfluenceVerb());
          registry.Register(new SwayOpinionVerb());
+         registry.Register(new PressForWarVerb());
          registry.Register(new ReleasePrisonerVerb());
          registry.Register(new BuyPrisonerVerb());
          registry.Register(new SellPrisonerVerb());
