@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.7.14.. open
+## v2.7.14.. 2026-10-17
 
 ### Fixed
 - **Characters speak your language from their first line** (RaveN017Mod, 17/10: French game, Reply Language French,

@@ -526,6 +526,13 @@ MUST = [
     ("mod",   "gossip_once_per_news".encode("utf-16-le")),
     ("mod",   "close_leaves_meeting".encode("utf-16-le")),
     ("sdk",   b"PastOnMentionBlock"),
+    # 2.7.14
+    ("logic", b"ReplyLanguagePolicy"),
+    ("logic", b"CompanionRumourFreshnessPolicy"),
+    ("mod",   b"FreshnessFacts"),
+    ("mod",   "reply_language_everywhere".encode("utf-16-le")),
+    ("mod",   "companion_news_fresh".encode("utf-16-le")),
+    ("sdk",   "LANGUAGE OF THE SCENE:".encode("utf-16-le")),
 ]
 MUST_NOT = [
     ("mod",   "patrol_spike".encode("utf-16-le")),   # 2.7.13: the patrol engine spike's console command, removed before release
