@@ -36,7 +36,7 @@ namespace CalradiaRemembers.Logic
         /// <summary>No reason to intercept right now.</summary>
         None,
 
-        /// <summary>A hostile-realm lord challenges a notorious traveller crossing their land.</summary>
+        /// <summary>A lord of a realm wary of the player, but not at war with them, challenges a notorious traveller crossing their land.</summary>
         TerritorialPatrol,
 
         /// <summary>A lord who has heard of a recent deed of the player's rides out to react while it is fresh.</summary>
@@ -123,6 +123,15 @@ namespace CalradiaRemembers.Logic
         ///   (<c>WarDutyLadder.CallsThePlayerIn</c>): summoned, or owing the levy without ever having come.
         /// </summary>
         public bool HoldsWarDutyReckoning { get; set; }
+
+        /// <summary>
+        ///   This lord's realm is at open war with the player's (personal dislike alone is not war). A lord at war has no
+        ///   business to ask of the player on his lands: the war is the answer (LapitaPolata, 18/10/2026).
+        /// </summary>
+        public bool RealmAtWarWithPlayer { get; set; }
+
+        /// <summary>This lord's party is weaker than the player's force (see <see cref="InterceptionPolicy.IsOutnumbered" />).</summary>
+        public bool LordOutnumbered { get; set; }
     }
 
     /// <summary>
@@ -164,6 +173,15 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>The same "worth a whole audience" floor, mirrored for a felt kindness. See <see cref="MinGrudgeMagnitudeForInterception" />.</summary>
         public const int MinAppreciationMagnitudeForInterception = 40;
+
+        /// <summary>
+        ///   Whether a lord's party is outnumbered by the player's force, by the engine's strength estimates: the player's
+        ///   army when the player leads one, else the player's party. LapitaPolata (18/10/2026): an enemy lord rode up to
+        ///   the player's host to talk when, in the game itself, an outnumbered lord flees. An unknown player strength (0
+        ///   or less) never counts as outnumbering anyone.
+        /// </summary>
+        public static bool IsOutnumbered(float lordStrength, float playerStrength)
+            => playerStrength > 0f && lordStrength < playerStrength;
 
         /// <summary>
         ///   Whether a forced meeting can physically happen right now. A land party cannot ride out to a
@@ -312,8 +330,9 @@ namespace CalradiaRemembers.Logic
         ///   The reason this lord would intercept the player now, or <see cref="InterceptionTrigger.None"/>.
         ///   Priority, after the guards: <see cref="InterceptionTrigger.WarDutySummons"/> (a liege calling in
         ///   his vassal: the one matter the player is bound to answer, and the ruler of the player's own realm is
-        ///   never the hostile lord of the next one) &gt; <see cref="InterceptionTrigger.TerritorialPatrol"/> (a hostile
-        ///   realm defending its own land outranks everything else) &gt;
+        ///   never the hostile lord of the next one) &gt; <see cref="InterceptionTrigger.TerritorialPatrol"/> (a wary
+        ///   realm, not at war, defending its own land outranks everything else; an enemy lord outnumbered by the player never
+        ///   rides out at all) &gt;
         ///   <see cref="InterceptionTrigger.Grudge"/> (a wrong pressed) &gt;
         ///   <see cref="InterceptionTrigger.NemesisBounty"/> (a lord asking for the player's help against a
         ///   real, named threat still outranks generic news, but a personal grudge against the PLAYER comes
@@ -329,7 +348,12 @@ namespace CalradiaRemembers.Logic
             if (f.HoldsWarDutyReckoning)
                 return InterceptionTrigger.WarDutySummons;
 
-            if (f.FactionHostileToPlayer && f.PlayerInOwnTerritory && f.PlayerNotoriety >= NotorietyThreshold)
+            // LapitaPolata (18/10/2026): an enemy never rides up to a force that outnumbers his; the game has him flee.
+            if (f.RealmAtWarWithPlayer && f.LordOutnumbered)
+                return InterceptionTrigger.None;
+
+            // At war, "your business on our lands" is plain; the game's own war (attack or flight) answers it.
+            if (f.FactionHostileToPlayer && !f.RealmAtWarWithPlayer && f.PlayerInOwnTerritory && f.PlayerNotoriety >= NotorietyThreshold)
                 return InterceptionTrigger.TerritorialPatrol;
 
             if (f.HoldsLiveGrudgeAgainstPlayer)

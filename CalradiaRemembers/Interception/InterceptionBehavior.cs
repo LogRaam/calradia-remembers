@@ -1526,6 +1526,45 @@ namespace CalradiaRemembers.Interception
          catch { return false; }
       }
 
+      /// <summary>
+      ///   Whether this lord's party is outnumbered by the player's force (the army the player leads, else the player's
+      ///   party), by the engine's own strength estimates (LapitaPolata, 18/10/2026).
+      /// </summary>
+      private static bool LordOutnumbered(MobileParty lordParty)
+      {
+         try
+         {
+            MobileParty main = MobileParty.MainParty;
+            if (lordParty?.Party == null || main?.Party == null) return false;
+
+            float player = main.Army != null && main.Army.LeaderParty == main ? main.Army.EstimatedStrength : main.Party.EstimatedStrength;
+
+            return InterceptionPolicy.IsOutnumbered(lordParty.Party.EstimatedStrength, player);
+         }
+         catch { return false; }
+      }
+
+      /// <summary>
+      ///   cr.testall seam: the reason this lord would ride out for, with the player on his realm's land and notorious,
+      ///   his war and his strength read from the live world (<paramref name="atWar" /> overrides the war when the world
+      ///   holds no enemy), and every other matter (grudge, news) set by the caller.
+      /// </summary>
+      internal static InterceptionTrigger DebugChooseOnHisLand(Hero lord, bool atWar, bool holdsGrudge)
+         => InterceptionPolicy.Choose(new InterceptionFacts {
+            PlayerInOwnTerritory = true,
+            FactionHostileToPlayer = true,
+            PlayerNotoriety = InterceptionPolicy.NotorietyThreshold,
+            HoldsLiveGrudgeAgainstPlayer = holdsGrudge,
+            RealmAtWarWithPlayer = atWar,
+            LordOutnumbered = LordOutnumbered(lord?.PartyBelongedTo)
+         });
+
+      /// <summary>cr.testall seam: whether this lord's realm is at war with the player's.</summary>
+      internal static bool DebugAtWarWithPlayer(Hero lord) => AtWarWithPlayer(lord);
+
+      /// <summary>cr.testall seam: whether this lord's party is outnumbered by the player's force.</summary>
+      internal static bool DebugLordOutnumbered(Hero lord) => LordOutnumbered(lord?.PartyBelongedTo);
+
       /// <summary>cr.testall seam: whether this lord, reaching the player for this reason, would ask first.</summary>
       internal static bool DebugAsksBeforeMeeting(Hero lord, InterceptionTrigger trigger)
          => InterceptionPolicy.AsksBeforeMeeting(trigger, AtWarWithPlayer(lord));
@@ -1792,7 +1831,9 @@ namespace CalradiaRemembers.Interception
                HoldsLiveGrudgeAgainstPlayer = holdsGrudge,
                HoldsSignificantAppreciation = holdsAppreciation,
                HasNemesisBountyToOffer = hasNemesisBounty,
-               HoldsWarDutyReckoning = lord == summoner
+               HoldsWarDutyReckoning = lord == summoner,
+               RealmAtWarWithPlayer = AtWarWithPlayer(lord),
+               LordOutnumbered = LordOutnumbered(p)
             };
 
             InterceptionTrigger trigger = InterceptionPolicy.Choose(facts);

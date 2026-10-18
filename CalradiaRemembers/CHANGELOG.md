@@ -4,6 +4,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.16.. open
 
+### Fixed
+- **An enemy lord no longer asks the player's business on his lands, nor rides up outnumbered** (LapitaPolata, Nexus
+  18/10). `InterceptionPolicy.Choose`: `TerritorialPatrol` now fires only for a realm wary of the player but not at war
+  (`InterceptionFacts.RealmAtWarWithPlayer`); at war the crossing is plain and the game's own war (attack or flight)
+  answers it. A lord of a realm at war whose party is outnumbered by the player's force
+  (`InterceptionPolicy.IsOutnumbered`, the engine's `EstimatedStrength`, the player's army when they lead one) never
+  rides out at all, for any reason, as the game has such a lord flee. A stronger enemy still presses a grudge (and asks
+  first, 2.7.12). testall `enemy_no_border_challenge`.
+
 ## v2.7.15.. 2026-10-17
 
 ### New

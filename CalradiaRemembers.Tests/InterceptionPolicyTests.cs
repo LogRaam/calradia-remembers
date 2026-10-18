@@ -454,6 +454,53 @@ namespace CalradiaRemembers.Tests
          InterceptionPolicy.ShouldWriteMissedMeetingLetter(AbandonReason.WentToSea, pursuerAlive: true).Should().BeFalse();
       }
 
+      // ── LapitaPolata, 18/10/2026: enemies at the border ─────────────────────
+
+      // STAKE: the report. A lord of a realm at war asked the player why they crossed the border with their troops,
+      // when the war made it plain; the challenge is for a realm wary but at peace.
+      [Test]
+      public void GIVEN_a_realm_at_war_WHEN_the_player_crosses_its_land_THEN_no_lord_rides_out_to_ask_their_business()
+      {
+         InterceptionPolicy.Choose(Facts(true, true, 90, atWar: true))
+                           .Should().NotBe(InterceptionTrigger.TerritorialPatrol);
+      }
+
+      // STAKE: the report's second half. In the game an outnumbered lord flees; riding up to the player's host to talk,
+      // for any reason, reads as goofy, whatever he holds against them.
+      [Test]
+      public void GIVEN_an_enemy_lord_outnumbered_by_the_player_WHEN_choosing_THEN_he_does_not_ride_out_for_any_reason()
+      {
+         InterceptionPolicy.Choose(Facts(true, true, 90, true, holdsGrudge: true, hasNemesisBounty: true, atWar: true, outnumbered: true))
+                           .Should().Be(InterceptionTrigger.None);
+      }
+
+      // STAKE: a stronger enemy with a wrong to press still comes (and asks first, AsksBeforeMeeting), so the grudge
+      // feature does not vanish in every war.
+      [Test]
+      public void GIVEN_an_enemy_lord_stronger_than_the_player_with_a_grudge_WHEN_choosing_THEN_he_still_rides_out_over_it()
+      {
+         InterceptionPolicy.Choose(Facts(true, true, 90, holdsGrudge: true, atWar: true))
+                           .Should().Be(InterceptionTrigger.Grudge);
+      }
+
+      // STAKE: being outnumbered only stops an ENEMY; a friendly lord with a small retinue still comes to thank the player.
+      [Test]
+      public void GIVEN_a_lord_at_peace_with_a_smaller_party_WHEN_choosing_THEN_his_matter_still_brings_him()
+      {
+         InterceptionPolicy.Choose(Facts(holdsAppreciation: true, outnumbered: true))
+                           .Should().Be(InterceptionTrigger.AppreciationOwed);
+      }
+
+      // STAKE: the strength test itself: weaker is outnumbered, equal is not, and an unknown player strength never
+      // keeps a lord home.
+      [Test]
+      public void GIVEN_party_strengths_WHEN_judging_outnumbered_THEN_only_the_weaker_side_is()
+      {
+         InterceptionPolicy.IsOutnumbered(40f, 300f).Should().BeTrue();
+         InterceptionPolicy.IsOutnumbered(300f, 300f).Should().BeFalse();
+         InterceptionPolicy.IsOutnumbered(40f, 0f).Should().BeFalse();
+      }
+
       #region private
 
       private static InterceptionFacts Facts(
@@ -465,7 +512,9 @@ namespace CalradiaRemembers.Tests
          bool anotherActive = false,
          bool holdsGrudge = false,
          bool holdsAppreciation = false,
-         bool hasNemesisBounty = false)
+         bool hasNemesisBounty = false,
+         bool atWar = false,
+         bool outnumbered = false)
          => new() {
             FactionHostileToPlayer = hostile,
             PlayerInOwnTerritory = inTerritory,
@@ -475,7 +524,9 @@ namespace CalradiaRemembers.Tests
             AnotherPursuerActive = anotherActive,
             HoldsLiveGrudgeAgainstPlayer = holdsGrudge,
             HoldsSignificantAppreciation = holdsAppreciation,
-            HasNemesisBountyToOffer = hasNemesisBounty
+            HasNemesisBountyToOffer = hasNemesisBounty,
+            RealmAtWarWithPlayer = atWar,
+            LordOutnumbered = outnumbered
          };
 
       #endregion

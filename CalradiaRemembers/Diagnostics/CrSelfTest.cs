@@ -292,6 +292,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_temperature", Severity.Light, "fkasad (Nexus, 17/10/2026) asked whether the mod tunes the temperature; the conversation value was fixed at 0.7, and Gabriel asked for a setting. Moves the Chat Temperature setting and asserts the live chat service sends the new value, and that an out-of-range value is held in range; restores the setting", TestChatTemperature),
          new SelfTest("companion_patrol", Severity.Light, "jaserms1 (Nexus, 16/10/2026): a council's patrol order did nothing; Gabriel's rulings 16-17/10 (the player's own men, chosen on the game's troop screen, until told to stop) and his spike at Ebereth (a free AI patrol drifts off its post). Arranges a companion and men, confirms a 5-man patrol of the nearest village through the same handler the troop screen calls, and asserts the men really left the main party, the patrol is anchored on the village with the AI free; then drags it away and runs the hourly leash, which must re-anchor it; then brings it home and asserts every man is back. Cleans up", TestCompanionPatrol),
          new SelfTest("enemy_meeting_offer", Severity.Light, "fkasad (Nexus, 16/10/2026): an enemy lord rode up as the player was about to attack him, the chat opened by force and a local model reasoned for half a minute over an opener nobody read; Gabriel the same day: a popup for hostile lords only. On real lords: one at peace with the player, holding a grudge, still opens the meeting at once; the same lord defending his land asks first; a lord of a realm at war with the player asks first whatever his reason (when such a lord exists). Changes nothing", TestEnemyMeetingOffer),
+         new SelfTest("enemy_no_border_challenge", Severity.Light, "LapitaPolata (Nexus, 18/10/2026): lords of a realm at war with the player rode up to ask why they crossed the border with their troops, the war making it plain, and did so outnumbered, when the game has an outnumbered lord flee. On real lords' parties and their live strengths against the player's: a weaker party reads outnumbered and its lord never rides out, even over a grudge; a stronger one is not, never challenges the player's passage at war, still presses a grudge, and a realm at peace still challenges. A missing war is set on the facts. Changes nothing", TestEnemyNoBorderChallenge),
          new SelfTest("war_duty_audience", Severity.Light, "Gabriel's ladder (15/10/2026): the summoned vassal is called in by the ruler himself, at his hall (never on the road: Gabriel, 16/10/2026), and no longer only by letter. With the switch on for the test, a reckoning is opened for a real ruler (one standing in a town when there is one); the duty names him as the one calling the player in; the REAL fief-audience scan of his town picks him with the war duty reason although he has a field party; his opener holds the vassal to the war and leaves the amounts to the terms; once the player has stood before him he no longer sends for them. No letter is written. Restores the ledger, the switch, the audience cooldown and the ruler's memories", TestWarDutyAudience),
          new SelfTest("war_duty_levy", Severity.Light, "Gabriel's ladder (15/10/2026): the levy is paid face to face in coin, horses, weapons or soldiers, and is no gift. With the switch on for the test, a reckoning is opened for a real ruler leading a party and answered in person; his conversation's terms name what is owed; then the REAL bridge (the path an LLM emission takes) runs take_gold, give_item with a horse, and give_troops with recruits arranged into the player's party, and each counts toward the levy until it is settled. No letter is written. Restores the player's and the ruler's gold, the soldiers, the ledger, the switch and the ruler's memories", TestWarDutyLevy),
          new SelfTest("war_duty_reckoning", Severity.Light, "Maifailun (Nexus, 15/10/2026) and Gabriel's ladder: a summons, a levy in coin or goods, a fief. With the switch on for the test and the letters not written (no model call), a reckoning is opened for a real ruler of a realm: he holds the war duty's aim in CrAims; a conversation with him moves it to the levy demanded in person and he remembers it; two hand-overs that meet the levy settle it, he remembers that, and his aim is withdrawn. A second reckoning, never answered, past its deadline brings the levy by letter; riding to war settles it. Restores the ledger, the switch and the ruler's memories; no fief is ever touched", TestWarDutyReckoning),
@@ -16651,6 +16652,46 @@ namespace CalradiaRemembers.Diagnostics
          Hero enemy = lords.FirstOrDefault(AtWar);
          if (enemy != null)
             t.Expect("anEnemyAsksFirst", InterceptionBehavior.DebugAsksBeforeMeeting(enemy, InterceptionTrigger.HeardOfDeed), true);
+
+         return t.Line();
+      }
+
+      private static string TestEnemyNoBorderChallenge(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("enemy_no_border_challenge");
+         MobileParty main = MobileParty.MainParty;
+         if (t.Skip(main?.Party == null, "the player has no party on the map")) return t.Line();
+
+         List<Hero> leaders = MobileParty.All.Where(p => p != null && p != main && !p.IsBandit && p.LeaderHero is {IsLord: true} && p.Army == null)
+                                             .Select(p => p.LeaderHero).Where(h => h != Hero.MainHero).ToList();
+         float mine = main.Army != null && main.Army.LeaderParty == main ? main.Army.EstimatedStrength : main.Party.EstimatedStrength;
+         Hero weaker = leaders.Where(h => h.PartyBelongedTo.Party.EstimatedStrength < mine)
+                              .OrderBy(h => InterceptionBehavior.DebugAtWarWithPlayer(h) ? 0 : 1).FirstOrDefault();
+         Hero stronger = leaders.Where(h => h.PartyBelongedTo.Party.EstimatedStrength >= mine)
+                                .OrderBy(h => InterceptionBehavior.DebugAtWarWithPlayer(h) ? 0 : 1).FirstOrDefault();
+         if (t.Skip(weaker == null && stronger == null, "no lord leads a party of his own on the map")) return t.Line();
+
+         if (weaker != null)
+         {
+            // When the world holds no enemy that weak, the war is set on the facts; the strength is always the live one.
+            bool atWar = InterceptionBehavior.DebugAtWarWithPlayer(weaker);
+            if (!atWar) t.Note($"{weaker.Name} is not at war with the player; the war is set on the facts");
+            // STAKE: the report: the game has an outnumbered enemy flee; he never rides up to talk, even over a grudge.
+            t.Expect("aWeakerPartyIsOutnumbered", InterceptionBehavior.DebugLordOutnumbered(weaker), true);
+            t.Expect("anOutnumberedEnemyStaysAway", InterceptionBehavior.DebugChooseOnHisLand(weaker, true, true), InterceptionTrigger.None);
+         }
+         else t.Note("every lord's party outnumbers the player's; the outnumbered half is covered by the unit tests");
+
+         if (stronger != null)
+         {
+            // STAKE: at war, "your business on our lands" is plain; a stronger enemy rides out only over a matter of his own.
+            t.Expect("aStrongerPartyIsNotOutnumbered", InterceptionBehavior.DebugLordOutnumbered(stronger), false);
+            t.Expect("noBorderChallengeAtWar", InterceptionBehavior.DebugChooseOnHisLand(stronger, true, false), InterceptionTrigger.None);
+            t.Expect("aStrongerEnemyStillPressesHisGrudge", InterceptionBehavior.DebugChooseOnHisLand(stronger, true, true), InterceptionTrigger.Grudge);
+            // STAKE: a realm wary but at peace still challenges a notorious traveller on its land.
+            t.Expect("aWaryRealmAtPeaceStillChallenges", InterceptionBehavior.DebugChooseOnHisLand(stronger, false, false), InterceptionTrigger.TerritorialPatrol);
+         }
+         else t.Note("no lord's party is as strong as the player's; the stronger half is covered by the unit tests");
 
          return t.Line();
       }
