@@ -120,7 +120,7 @@ namespace CalradiaRemembers.Tests
 
          Walked(q, "meet_again", "refuse").EndingId.Should().Be("refused");
          Walked(q, "meet_again", "tell_the_king").EndingId.Should().Be("told");
-         Walked(q, "decline_early").EndingId.Should().Be("refused");
+         Walked(q, "decline_early").EndingId.Should().Be("declined");
          Walked(q, "the_feast_ends").EndingId.Should().Be("no_answer");
       }
 

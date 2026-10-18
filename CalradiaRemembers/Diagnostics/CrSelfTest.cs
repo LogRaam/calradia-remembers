@@ -349,7 +349,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("battle_memory_wording", Severity.Light, "tashmetu (Nexus, 13/10/2026, via cr.prompt_dump): a witness line read 'I saw you cut down 168 of them yourself at at the siege of Thorios Castle', doubling the preposition and addressing the player as 'you'. Builds the same siege place WorldEventFeeders builds and drives the REAL BattleFeatReporter the way it now wires it (the engagement noun phrase, not the already-shaped place clause), expecting exactly one 'at', no 'you', and the player named. Mutates nothing.", TestBattleMemoryWording),
          new SelfTest("realm_faces", Severity.Light, "Queens with a chosen face (Gabriel, 12/10/2026: one queen per realm, made in the character editor; CR dresses the ruler's wife). Reports the faces files read and their problems; on a real ruler's wife, dresses her in a face (the first one read, else a test face) and expects her face to be exactly that one, expects the chat to show her realm's portrait when the faces file names one (Gabriel, 12/10/2026, unless the player dropped their own), then gives it back and expects her own face and usual portrait again, then lets the daily pass dress whom it should. Changes no one for good.", TestRealmFaces),
          new SelfTest("tale_world_exits", Severity.Light, "Ways out the world takes (Gabriel, 12/10 and 18/10/2026, the Troy-inspired tale: the war ends some other way, she dies, the player weds her; one tale at a time, so a war stage nothing could leave would block every tale). A tale written into this test (never a shipped file) is taken on with a real lord; the real daily tick moves nothing while that lord lives, is unwed and at peace. Rebound to a lord of a realm at war with the player, the war is seen; rebound to a lord at peace, the war has ended and the tale ends on peace. Taken on again and rebound to a dead hero, it ends on mourning. Reads what the world exits read of the player's spouse. Abandons and forgets the tale after.", TestTaleWorldExits),
-         new SelfTest("tale_realm", Severity.Light, "Gabriel (18/10/2026): the queens' tale is offered only in the realms whose queen has her face and pictures, and the three empires share one culture, so a tale may name its giver's realm. A tale written into this test names one real realm: a lord of that realm is not refused for his realm, a lord of another realm is, with a line naming both. Forgets the tale after.", TestTaleRealm),
+         new SelfTest("tale_realm", Severity.Light, "Gabriel (18/10/2026): the queens' tale is offered only in the realms whose queen has her face and pictures, and the three empires share one culture, so a tale may name its giver's realm. Two tales written into this test, twins but for the realm: among lords the twin with no realm accepts (so nothing else refuses them), a lord of the named realm still binds and a lord of another realm is refused, with a line naming both realms. Forgets both tales after.", TestTaleRealm),
          new SelfTest("tale_scenario_bridge", Severity.Light, "The tale-scenario bridge (Gabriel, 12/10/2026: a queen leaves with the player and her husband's realm answers). In a runtime of its own, fires ON_TALE for a made-up tale's ending with a real lady and her husband as roles: a rule naming the whole tale and one naming that ending both play, one naming another ending or another tale does not, the news names the husband (never '{husband}'), and PRESS_FOR_WAR between his realm and the player's applies exactly when they are two realms at peace. Declares nothing; the news it wrote is removed.", TestTaleScenarioBridge),
          new SelfTest("tale_on_enter", Severity.Heavy, "tashmetu (15/10/2026): consequences ran only at an ending, so a lady could not leave midway and be given back later in the same tale; and other mods asked to hear a tale's progress (CrTales) with what was really carried out. On a real married lady of another realm, a test tale is offered and accepted; the player's choice enters a stage whose on_enter elopes: asserts she rides with the player, CrTales.StageReached reports the stage, the flag and the elopement as Done, the tale is still under way after a day, and giving her back ends it with CrTales.Ended reporting the return as Done and her wed to him again. Restores everything.", TestTaleOnEnter),
          new SelfTest("tale_elopement", Severity.Heavy, "The Troy-inspired tale (Gabriel, 12/10/2026: she leaves with the player as a guest who may be married; her return to her husband is the condition of peace). On a real married lady of another realm: 'elope' ends her marriage, puts her in the player's party, plants her husband's StolenSpouse grudge and marks her free to marry the player; 'return_spouse' weds them again and takes her out of the party. Restores her house, takes back the grudge and the marker.", TestTaleElopement),
@@ -10714,30 +10714,34 @@ namespace CalradiaRemembers.Diagnostics
          Quests.AuthoredQuestBehavior b = Quests.AuthoredQuestBehavior.Instance;
          if (t.Skip(b == null, "authored quests are not active")) return t.Line();
 
-         Hero inRealm = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h.Clan?.Kingdom != null);
-         if (t.Skip(inRealm == null, "no lord serves a realm")) return t.Line();
-         Kingdom realm = inRealm.Clan.Kingdom;
-         Hero elsewhere = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h.Clan?.Kingdom != null && h.Clan.Kingdom != realm);
-         if (t.Skip(elsewhere == null, "only one realm stands")) return t.Line();
-
-         const string id = "cr_selftest_realm";
-         string json = @"{ ""id"": ""cr_selftest_realm"", ""title"": ""[SELFTEST] One Realm"",
-            ""requires"": { ""giver"": { ""role"": ""lord"", ""min_regard"": -100, ""not_at_war_with_player"": false, ""realm"": """ + realm.StringId + @""" } },
+         // A twin with no realm named: a lord it accepts was refused by nothing else, so a refusal of the realm tale is the
+         // realm's alone (a lord refused for his regard or his role would make this test red for the wrong reason).
+         const string id = "cr_selftest_realm", twinId = "cr_selftest_realm_twin";
+         string Tale(string taleId, string realmLine) => @"{ ""id"": """ + taleId + @""", ""title"": ""[SELFTEST] One Realm"",
+            ""requires"": { ""giver"": { ""role"": ""lord"", ""min_regard"": -100, ""not_at_war_with_player"": false" + realmLine + @" } },
             ""binds"": { ""giver"": ""a lord"" },
             ""stages"": [ { ""id"": ""ask"", ""journal"": ""[SELFTEST]"", ""objective"": { ""type"": ""talk_to"", ""hero"": ""{giver}"" }, ""on_complete"": { ""next"": ""reward"" } } ],
             ""reward"": { } }";
-         IReadOnlyList<string> problems = b.DebugLoadTale(json, "selftest.json");
-         t.Expect("theTaleLoadsClean", string.Join(" | ", problems), "");
+         t.Expect("theTwinLoadsClean", string.Join(" | ", b.DebugLoadTale(Tale(twinId, ""), "selftest.json")), "");
          try
          {
-            string mine = b.DebugEligibility(inRealm, id) ?? "";
-            t.Expect("aLordOfThatRealmIsNotRefusedForHisRealm", mine.Contains("of the realm"), false);
+            bool Binds(Hero h, string taleId) => !(b.DebugEligibility(h, taleId) ?? "no").StartsWith("no:");
+            List<Hero> bindable = Hero.AllAliveHeroes.Where(h => h.IsLord && h != Hero.MainHero && h.Clan?.Kingdom != null && Binds(h, twinId)).ToList();
+            Hero inRealm = bindable.FirstOrDefault();
+            if (t.Skip(inRealm == null, "no lord of a realm could give a tale at all")) return t.Line();
+            Kingdom realm = inRealm.Clan.Kingdom;
+            Hero elsewhere = bindable.FirstOrDefault(h => h.Clan.Kingdom != realm);
+            if (t.Skip(elsewhere == null, "no lord of another realm could give a tale at all")) return t.Line();
+
+            t.Expect("theTaleLoadsClean", string.Join(" | ", b.DebugLoadTale(Tale(id, @", ""realm"": """ + realm.StringId + @""""), "selftest.json")), "");
+            t.Expect("aLordOfThatRealmStillBinds", Binds(inRealm, id), true);
             string other = b.DebugEligibility(elsewhere, id) ?? "";
-            t.Expect("aLordOfAnotherRealmIsRefusedForIt", other.Contains("of the realm " + realm.StringId) && other.Contains(elsewhere.Clan.Kingdom.StringId), true);
+            t.Expect("aLordOfAnotherRealmIsRefusedForItAlone", other.StartsWith("no:") && other.Contains("of the realm " + realm.StringId) && other.Contains(elsewhere.Clan.Kingdom.StringId), true);
          }
          finally
          {
             b.DebugForgetTale(id);
+            b.DebugForgetTale(twinId);
          }
 
          return t.Line();

@@ -62,7 +62,7 @@
           "next": "the_walls" },
         { "id": "decline_early", "label": "Take your leave courteously",
           "said": { "to": "{giver}", "meaning": "the player declines to meet {giver} alone again and takes leave of her" },
-          "next": "end:refused" },
+          "next": "end:declined" },
         { "id": "the_feast_ends", "label": "Let the feast end without an answer",
           "objective": { "type": "wait", "days": 5 }, "next": "end:no_answer" }
       ]
@@ -144,6 +144,10 @@
     }
   ],
   "endings": {
+    "declined": {
+      "memory": "I asked {player} to meet me again, alone, and {player} took leave of me with every courtesy. Perhaps it is better so.",
+      "journal": "You took your leave of {giver} courteously, and the feast went on without you."
+    },
     "refused": {
       "regard": 3,
       "memory": "I asked {player} to take me away from {husband}'s court, and {player} would not betray the roof that sheltered them. I think the better of {player} for it, and I am still here.",

@@ -10,6 +10,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   choice, read once a day (`AuthoredQuestEngine.WorldNow`, `TaleRoleState`, run field `WarsSeen`, additive). A war
   stage waits for its war before reading peace as its end. Loader, Tale Editor, HOWTO_Quests. cr.testall
   `tale_world_exits` (`0e2de23`).
+- **A tale may name its giver's realm** (Gabriel, 18/10: the queens' tale only where the queen has a face; the three
+  empires share one culture). `requires.giver.realm`, one or a list, id or name, through the culture's own
+  id-or-name rule (`AuthoredCulturePolicy.Matches`). Tale Editor, HOWTO_Quests. cr.testall `tale_realm` (`1831b03`).
+
+### Held back (Extras/RealmQueens, not shipped)
+- **The Guest of the King's Hall**, the Troy-inspired reference tale, and its scenario pack (war when the queen
+  leaves, peace when she is returned, the king's gratitude when told). makezip skips the pack, verifyzip refuses it
+  (`a66cd46`).
 
 ## v2.7.16.. 2026-10-18
 
