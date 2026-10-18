@@ -10809,9 +10809,11 @@ namespace CalradiaRemembers.Diagnostics
             string companion = b.DebugEligibility(arranged.Companion, id) ?? "";
             t.Expect("aCompanionAlongBinds", companion.StartsWith("no:") ? companion : "binds", "binds");
 
-            Hero notCompanion = Hero.MainHero.Spouse is { } spouse && Mapping.HeroPresence.IsInTheWorld(spouse)
-               ? spouse
-               : Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && !h.IsPlayerCompanion);
+            // Only someone free to take part, so the refusal is the role's and not "cannot take part right now".
+            bool Free(Hero h) => h != null && Mapping.ActionGate.Allows(h, Logic.ActionKind.Witness);
+            Hero notCompanion = Free(Hero.MainHero.Spouse)
+               ? Hero.MainHero.Spouse
+               : Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && !h.IsPlayerCompanion && Free(h));
             if (t.Skip(notCompanion == null, "no spouse nor lord to refuse")) return t.Line();
             string other = b.DebugEligibility(notCompanion, id) ?? "";
             t.Note($"refused: {notCompanion.Name}");

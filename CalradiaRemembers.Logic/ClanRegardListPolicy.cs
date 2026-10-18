@@ -59,6 +59,7 @@ namespace CalradiaRemembers.Logic
         {
             var odds = new List<(int Rank, string Reason, string House)>();
             var affinity = new List<(int Rank, string Reason, string House)>();
+            // A house named through its lord carries no reason of its own (Reason null).
 
             foreach (ClanRegardCandidate c in houses ?? Array.Empty<ClanRegardCandidate>())
             {
@@ -70,8 +71,8 @@ namespace CalradiaRemembers.Logic
                     if (c.DerivedReason == null) continue; // a reason the player may not read lists the house nowhere
 
                     // A derived verdict outranks any vanilla number: it has a story.
-                    string reason = string.IsNullOrWhiteSpace(c.Through) ? c.DerivedReason : $"through {c.Through}";
-                    (c.Derived == PairRegardVerdict.Enemy ? odds : affinity).Add((1000, reason, house));
+                    bool through = !string.IsNullOrWhiteSpace(c.Through);
+                    (c.Derived == PairRegardVerdict.Enemy ? odds : affinity).Add((1000, through ? null : c.DerivedReason, through ? $"{house}, through {c.Through}" : house));
                 }
                 else if (c.VanillaRelation <= global::NpcMemoryService.Core.Standing.VanillaRelation.EnemyTier)
                     odds.Add((-c.VanillaRelation, $"{ThirdPartyDescriptor.DescribeRelation(c.VanillaRelation)} between their lords", house));
@@ -82,11 +83,21 @@ namespace CalradiaRemembers.Logic
             return (Grouped(odds), Grouped(affinity));
         }
 
-        // The six strongest houses (design 8.2), then one line per reason, ordered by its strongest house.
+        // The six strongest houses (design 8.2), then one line per reason, ordered by its strongest house; the houses
+        // named through their lord close the last line, as tashmetu laid it out ("...: Dvarroving, Rungniring;
+        // Skylfing, through Hertogi Gornlautir").
         private static IReadOnlyList<string> Grouped(IEnumerable<(int Rank, string Reason, string House)> side)
-            => side.OrderByDescending(x => x.Rank).Take(MaxPerList)
-                   .GroupBy(x => x.Reason)
-                   .Select(g => $"{g.Key}: {string.Join(", ", g.Select(x => x.House))}")
-                   .ToList();
+        {
+            var top = side.OrderByDescending(x => x.Rank).Take(MaxPerList).ToList();
+            List<string> lines = top.Where(x => x.Reason != null).GroupBy(x => x.Reason)
+                                    .Select(g => $"{g.Key}: {string.Join(", ", g.Select(x => x.House))}").ToList();
+            string through = string.Join("; ", top.Where(x => x.Reason == null).Select(x => x.House));
+            if (through.Length == 0) return lines;
+            if (lines.Count == 0) return new[] {through};
+
+            lines[lines.Count - 1] += "; " + through;
+
+            return lines;
+        }
     }
 }

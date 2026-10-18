@@ -611,7 +611,8 @@ namespace CalradiaRemembers.Letters
          bool onPatrol = Missions.CompanionPatrolBehavior.Instance?.IsPatrolling(profile.Id) == true;
          string message = LetterPromptBuilder.BuildReplyLetterMessage(
             profile, originalLetter.PlayerReply ?? "", replyReason, playerName, WhereaboutsFor(profile), PlayerSituationFor(profile), writtenBy,
-            Mapping.DayMoodReader.Draw(giverHero).Mood, onPatrol);
+            Mapping.DayMoodReader.Draw(giverHero).Mood, onPatrol,
+            originalLetter.Reason == LetterReason.FromAnotherMod ? originalLetter.Content : null);
 
          string raw = await CallLlmForLetterAsync(llmServices, profile, message);
 

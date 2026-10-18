@@ -7,6 +7,7 @@
 
 #region
 
+using System.Linq;
 using CalradiaRemembers.Logic;
 using FluentAssertions;
 using NUnit.Framework;
@@ -142,6 +143,7 @@ namespace CalradiaRemembers.Tests
 
          r.Verdict.Should().Be(PairRegardVerdict.Enemy);
          r.Points.Should().Be(PairRegardPolicy.KinExecuted() + PairRegardPolicy.OutsideCap);
+         r.Reasons.Where(t => t.Line != "had your brother executed").Should().OnlyContain(t => t.Weight == PairRegardPolicy.OutsideCap);
       }
 
       // STAKE: when another mod's reason weighs as much as one of ours, ours is said first.

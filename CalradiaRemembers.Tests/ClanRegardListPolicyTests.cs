@@ -94,10 +94,11 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_house_whose_lord_is_explained_under_why_WHEN_listed_THEN_it_is_named_through_him_without_the_reason_again()
       {
          var lists = ClanRegardListPolicy.Lists(new[] {
+            new ClanRegardCandidate {Name = "Kjolding", VanillaRelation = 50},
             new ClanRegardCandidate {Name = "Skylfing", Derived = PairRegardVerdict.Friend, DerivedReason = "rode together against raiders", Through = "Hertogi Gornlautir"}
          });
 
-         lists.Affinity.Should().Equal("through Hertogi Gornlautir: Skylfing");
+         lists.Affinity.Should().Equal("deep trust between their lords: Kjolding; Skylfing, through Hertogi Gornlautir");
       }
    }
 }

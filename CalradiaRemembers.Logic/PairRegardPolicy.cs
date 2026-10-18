@@ -149,10 +149,14 @@ namespace CalradiaRemembers.Logic
             if (f == null) return new PairRegard();
 
             IReadOnlyList<PairRegardTrace> own = f.Traces ?? Array.Empty<PairRegardTrace>();
-            IReadOnlyList<PairRegardTrace> outside = (f.OutsideTraces ?? Array.Empty<PairRegardTrace>()).Where(t => t != null).ToList();
+            // Each outside trace is read at no more than the cap, so every reader of the reasons (the chat's counter-
+            // reason included) sees the weight that counted; together they count no more than the cap either.
+            List<PairRegardTrace> outside = (f.OutsideTraces ?? Array.Empty<PairRegardTrace>()).Where(t => t != null)
+                .Select(t => new PairRegardTrace {Weight = Math.Max(-OutsideCap, Math.Min(OutsideCap, t.Weight)), Line = t.Line, PageLine = t.PageLine, KnownToPlayer = t.KnownToPlayer})
+                .ToList();
             var ownSet = new HashSet<PairRegardTrace>(own);
             List<PairRegardTrace> traces = own.Concat(outside).ToList();
-            int outsideSum = Math.Max(-OutsideCap, Math.Min(OutsideCap, outside.Sum(t => Math.Max(-OutsideCap, Math.Min(OutsideCap, t.Weight)))));
+            int outsideSum = Math.Max(-OutsideCap, Math.Min(OutsideCap, outside.Sum(t => t.Weight)));
 
             int ties = f.IsSpouse ? SpouseWeight
                      : f.IsParentOrChild || f.IsSibling ? KinWeight
@@ -170,7 +174,7 @@ namespace CalradiaRemembers.Logic
             int sign = verdict == PairRegardVerdict.Enemy ? -1 : 1;
             List<PairRegardTrace> reasons = traces.Where(t => t.Weight != 0 && !string.IsNullOrWhiteSpace(t.Line))
                                                   .OrderByDescending(t => Math.Sign(t.Weight) == sign)
-                                                  .ThenByDescending(t => Math.Min(Math.Abs(t.Weight), ownSet.Contains(t) ? int.MaxValue : OutsideCap))
+                                                  .ThenByDescending(t => Math.Abs(t.Weight))
                                                   .ThenByDescending(t => ownSet.Contains(t))
                                                   .ToList();
 
