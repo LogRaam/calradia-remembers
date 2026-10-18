@@ -555,6 +555,7 @@ MUST = [
     ("mod",   "tale_quiet_village".encode("utf-16-le")),
     ("mod",   "press_for_war".encode("utf-16-le")),
     ("sdk",   "press_for_war".encode("utf-16-le")),
+    ("mod",   "captive_dungeon_bargain".encode("utf-16-le")),
 ]
 MUST_NOT = [
     ("mod",   "patrol_spike".encode("utf-16-le")),   # 2.7.13: the patrol engine spike's console command, removed before release
