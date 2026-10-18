@@ -301,6 +301,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("authored_quest_branches", Severity.Light, "Branching tales (docs/design/quest-editor/goal.md). A small tale written into this test (never a shipped file) loads through the real loader; a real lord is bound to it and it is taken on. At the crossroads the journal shows the stage and its open ways, not the closed one; meeting the lord takes the first OPEN way (the one under an unset flag is passed over). In the scene, the chat would list only the open ways; a marker for a closed way changes nothing; a finding sets its flag, the way it opened is listed and its marker is taken; closing the scene follows it to its own ending (no regard, gold or memory, so nothing is left behind). Abandons and forgets the tale after.", TestAuthoredQuestBranches),
          new SelfTest("authored_quest_said_choice", Severity.Light, "Branching tales, choices by words. A tale written into this test loads and a real lord takes it on. At its last stage the action interpreter of a conversation with that lord is taught the open choice by words and not the one closed by its flag; another lord's interpreter is taught nothing. Through the REAL bridge (story_choice, the path an LLM report takes): the closed choice is refused and changes nothing, the open one is taken and ends the tale on its own ending (no regard, gold or memory). Abandons and forgets the tale after.", TestAuthoredQuestSaidChoice),
          new SelfTest("audience_not_spent_unheard", Severity.Light, "EnjoyingHydra (Nexus, 03/10/2026): companion audiences accepted and never opened were spent anyway (grievance count reset, topics used), and a companion left. Promises a change for a real companion, sends the audience through the real open with no profile so it fails: nothing may be spent, nothing left waiting. Opens no window.", TestAudienceNotSpentUnheard),
+         new SelfTest("companion_news_fresh", Severity.Light, "LapitaPolata (Nexus, 17/10/2026): a companion told of a castle being besieged after it had fallen, and of a war breaking out while the player was already riding to a siege in it. Records test news and reads it through the real glue (CompanionAudienceTopicResolver.FreshnessFacts): a siege fight at a place recorded as fallen since is overtaken; a war naming the player's own realm or clan is theirs; news ten days old is too old; fresh news of two other realms may still be brought. Removes the test news.", TestCompanionNewsFresh),
          new SelfTest("reply_language_everywhere", Severity.Light, "RaveN017Mod (Nexus, 17/10/2026): French game, Reply Language French, yet a character who came to him on the map and every council opened in English; he asked whether the mod could read the game's language. With the setting blank, the language resolved is the game's (none for an English game); with it set to Spanish, an opening cue ends naming Spanish and the council prompt carries Spanish. Restores the setting.", TestReplyLanguageEverywhere),
          new SelfTest("gossip_once_per_news", Severity.Light, "froggyluv (Nexus, 17/10/2026): with NPCs Raise World News on, notable after notable stopped him to ask what he knew of the same war, then the same capture. Turns the option on, records a great piece of news of two lords' realm, and drives the real candidate gathering (BuildRecentMatters): both lords could ask about it; once the first has offered it (an invitation naming it), the second no longer can, and the first still can, for when the player accepts. Restores the option, the news and the ledger.", TestGossipOncePerNews),
          new SelfTest("history_on_mention", Severity.Light, "Gabriel (17/10/2026): the long-term memory serves conversations about the past, and the authored history file stages events from before the campaign. Without touching the author's file, syncs one secret test event naming two real lords, nine years before the start. Drives the real conversation path (EncounterContextBuilder.ResolvePastOnMention): the first lord, asked about the second by name, gets the event with its age, the secret tag and that he was part of it; a lord of another house and realm asked the same gets nothing; the first lord asked about a battle yesterday, naming no one, gets nothing. Then the author's file alone is synced back.", TestHistoryOnMention),
@@ -5001,6 +5002,49 @@ namespace CalradiaRemembers.Diagnostics
             Feed.Retract(placedId);
             Feed.Retract(bogusId);
             Feed.Retract(namedId);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestCompanionNewsFresh(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("companion_news_fresh");
+
+         WorldEventStore store = WorldEventStore.Instance;
+         if (t.Abort(store == null, "the world-event store is not active")) return t.Line();
+
+         Settlement place = Settlement.All.FirstOrDefault(s => s != null && s.IsCastle);
+         List<Kingdom> others = Kingdom.All.Where(k => k != null && !k.IsEliminated && k != Hero.MainHero?.MapFaction).Take(2).ToList();
+         if (t.Skip(place == null || others.Count < 2, "no castle, or fewer than two realms other than the player's")) return t.Line();
+
+         int today = (int) CampaignTime.Now.ToDays;
+         string suffix = Guid.NewGuid().ToString("N");
+         string mine = Hero.MainHero?.MapFaction?.StringId ?? Clan.PlayerClan?.StringId;
+         var siege = new WorldEvent {Id = "selftest_news_siege_" + suffix, Type = WorldEventType.Battle, IsSiege = true, PlaceId = place.StringId, Day = today - 2, Magnitude = 60, Summary = "[SELFTEST] a siege fight."};
+         var fell = new WorldEvent {Id = "selftest_news_fell_" + suffix, Type = WorldEventType.SettlementCaptured, PlaceId = place.StringId, Day = today - 1, Magnitude = 60, Summary = "[SELFTEST] the castle fell."};
+         var ownWar = new WorldEvent {Id = "selftest_news_war_" + suffix, Type = WorldEventType.WarDeclared, Day = today, Magnitude = 75, Summary = "[SELFTEST] war.",
+            FactionIds = new List<string> {mine, others[0].StringId}};
+         var old = new WorldEvent {Id = "selftest_news_old_" + suffix, Type = WorldEventType.Other, Day = today - 10, Magnitude = 70, Summary = "[SELFTEST] old news."};
+         var fresh = new WorldEvent {Id = "selftest_news_fresh_" + suffix, Type = WorldEventType.Other, Day = today, Magnitude = 70, Summary = "[SELFTEST] fresh news.",
+            FactionIds = new List<string> {others[0].StringId, others[1].StringId}};
+
+         try
+         {
+            store.Record(siege);
+            store.Record(fell);
+
+            string Why(WorldEvent e) => Logic.CompanionRumourFreshnessPolicy.WhyNotNews(CompanionAudienceTopicResolver.FreshnessFacts(e, today));
+
+            t.Expect("aSiegeFightOvertakenByTheFall", Why(siege) != null, true);
+            t.Expect("thePlayersOwnWarIsNoNews", mine != null && Why(ownWar) != null, true);
+            t.Expect("tenDayOldNewsIsTooOld", Why(old) != null, true);
+            t.Expect("freshNewsOfOtherRealmsMayCome", Why(fresh), null);
+         }
+         finally
+         {
+            store.Remove(siege.Id);
+            store.Remove(fell.Id);
          }
 
          return t.Line();

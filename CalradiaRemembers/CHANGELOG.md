@@ -13,6 +13,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   message). And "Reply Language" left blank now means the game's own language (`BannerlordConfig.Language`, mapped to
   a name the model knows); an English game keeps the old mirror of whatever you write. cr.testall
   `reply_language_everywhere`.
+- **A companion's news is fresh, and not yours** (LapitaPolata, 17/10: a companion told of a castle being besieged
+  after it had fallen, and of a war breaking out while the player was already riding to a siege in it, "like they
+  were not in my team witnessing everything with me"). The news a companion comes to bring was anything they could
+  have heard, up to about three weeks old for a war, never checked when spoken. It is now only news that is a week old
+  at most, that the player did not take part in, that is not a war or peace of the player's own realm or clan, that a
+  later event has not overtaken (a siege fight at a place that has since fallen), and that is still true (a war not
+  since made peace). The topic says how long ago, and the companion is told to tell it as past, heard on the road with
+  the player. `CompanionRumourFreshnessPolicy`, `CompanionAudienceTopicResolver.FreshnessFacts`; cr.testall
+  `companion_news_fresh`. Letters and what a character has heard keep the 40-day window.
 
 ## v2.7.13.. 2026-10-17
 

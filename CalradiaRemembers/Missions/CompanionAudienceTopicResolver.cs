@@ -314,16 +314,55 @@ namespace CalradiaRemembers.Missions
             if (ev.KnownOnlyToThoseInvolved) continue; // a secret is not a rumour to report (Gabriel, 17/10/2026)
             if (alreadyReported != null && alreadyReported.Contains(ev.Id)) continue;
 
+            // LapitaPolata (17/10/2026): news brought late, overtaken, or of the player's own war. A companion rides with
+            // the player; only what is fresh, still true and not the player's own is news to them.
+            if (CompanionRumourFreshnessPolicy.WhyNotNews(FreshnessFacts(ev, today)) != null) continue;
+
             int strength = CompanionRumourPolicy.Strength(ev.Magnitude, confidence);
             if (strength <= 0) continue;
 
             return new CompanionAudienceTopicScan {
-               Topic = CompanionAudienceReason.RumourReport, Holds = true, Strength = strength, Detail = ev.Summary, Key = ev.Id
+               Topic = CompanionAudienceReason.RumourReport, Holds = true, Strength = strength, Key = ev.Id,
+               Detail = $"{ev.Summary?.Trim().TrimEnd('.')} ({CompanionRumourFreshnessPolicy.AgeWords(today - ev.Day)})."
             };
          }
 
          return NotHeld(CompanionAudienceReason.RumourReport, "no un-reported rumour this companion could plausibly have heard");
       }
+
+      /// <summary>The news against the world as it is now (CompanionRumourFreshnessPolicy). Internal for cr.testall.</summary>
+      internal static CompanionRumourFreshnessFacts FreshnessFacts(WorldEvent ev, int today)
+      {
+         bool warOrPeace = ev.Type == WorldEventType.WarDeclared || ev.Type == WorldEventType.PeaceDeclared;
+         string playerRealm = Hero.MainHero?.MapFaction?.StringId;
+         string playerClan = Clan.PlayerClan?.StringId;
+         IFaction[] sides = warOrPeace ? (ev.FactionIds ?? new List<string>()).Select(FindFaction).Where(f => f != null).ToArray() : Array.Empty<IFaction>();
+
+         bool overtaken = false;
+         if (ev.IsSiege && !string.IsNullOrEmpty(ev.PlaceId))
+            overtaken = WorldEventStore.Instance?.MostRecentMatching(WorldEventType.SettlementCaptured, e => e.PlaceId == ev.PlaceId && e.Day >= ev.Day) != null;
+
+         bool noLongerTrue = false;
+         if (sides.Length == 2)
+         {
+            bool atWar = FactionManager.IsAtWarAgainstFaction(sides[0], sides[1]);
+            noLongerTrue = ev.Type == WorldEventType.WarDeclared ? !atWar : atWar;
+         }
+
+         return new CompanionRumourFreshnessFacts {
+            AgeDays = today - ev.Day,
+            InvolvesThePlayer = ev.InvolvesPlayer,
+            IsThePlayersOwnWarOrPeace = warOrPeace && ev.FactionIds != null
+                                        && (playerRealm != null && ev.FactionIds.Contains(playerRealm) || playerClan != null && ev.FactionIds.Contains(playerClan)),
+            OvertakenSince = overtaken,
+            NoLongerTrue = noLongerTrue
+         };
+      }
+
+      private static IFaction FindFaction(string id)
+         => string.IsNullOrEmpty(id)
+            ? null
+            : (IFaction) Kingdom.All.FirstOrDefault(k => k.StringId == id) ?? Clan.All.FirstOrDefault(c => c.StringId == id);
 
       #endregion
 

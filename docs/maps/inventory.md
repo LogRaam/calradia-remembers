@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 509 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1183 types in 31 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1185 types in 31 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -865,7 +865,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (711)
+### CalradiaRemembers.Logic (713)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1003,6 +1003,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CompanionRapport` | public static class | Pure camp-life arithmetic: the trait COMPATIBILITY that nudges two companions toward bonding or clashing, the band their accumulated relation falls into, whether the feeling is strong enough to raise with the player, and... |
 | `CompanionRescuePolicy` | public static class | Whether (and how likely) the player's companions mount a rescue of their captive lord. |
 | `CompanionRetentionPolicy` | public static class | Pure rules for the unhappy-companion retention loop: whether to ask for an audience, how a refusal or a granted audience moves the count, and when patience finally runs out into a farewell. |
+| `CompanionRumourFreshnessFacts` | public class | One piece of news a companion travelling with the player might bring, against the world as it is now. |
+| `CompanionRumourFreshnessPolicy` | public static class | Whether a companion still brings a piece of news to the player, and how its age is said. |
 | `CompanionRumourPolicy` | public static class | Pure rules for scoring a rumour candidate's strength once the engine has already resolved awareness. |
 | `CompanionSceneKind` | public enum | The shape of a companion-victim captive scene. |
 | `CompanionScenePolicy` | public static class | Whether a captive encounter targets a held companion, and which way it plays out. |

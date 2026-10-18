@@ -1583,7 +1583,9 @@ namespace CalradiaRemembers.Chat
                $"to you unbidden, and you want to speak of it, in your own voice: {topicDetail}]",
             CompanionAudienceReason.RumourReport =>
                "[You asked the player for a private word. Open the conversation yourself: you have word of the world " +
-               $"to bring the player, in your own voice: {topicDetail}]",
+               "to bring the player, in your own voice. It happened when it says, so tell it as what happened, not as " +
+               "something still under way; you have been travelling with the player, so you heard it on the road, not " +
+               $"from afar: {topicDetail}]",
             CompanionAudienceReason.SchemeWarning =>
                "[You asked the player for a private word. Open the conversation yourself: warn them urgently and " +
                $"protectively, in your own voice, of a secret plot against them that you have learned of: {topicDetail}]",
