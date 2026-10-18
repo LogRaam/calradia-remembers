@@ -118,5 +118,18 @@ namespace CalradiaRemembers.Tests
          PairRegardPolicy.Assess(new PairRegardFacts {Traces = new[] {Trace(PairRegardPolicy.BeatenInBattle(6), "beat you in battle (6 years ago)")}}).Verdict
                          .Should().Be(PairRegardVerdict.Neither);
       }
+
+      // STAKE: tashmetu (18/10/2026, Halthdar's page): "Hertogi Gornlautir, friend: Halthdar and Hertogi Gornlautir rode
+      // together" names the page's lord again; the pair opening is cut, and only that, so who wronged whom still reads.
+      [Test]
+      public void GIVEN_a_reason_opening_on_both_names_WHEN_shown_on_the_page_THEN_the_pair_is_not_named_again_but_a_deed_keeps_its_doer()
+      {
+         PairRegardPolicy.WithoutThePair("Halthdar and Hertogi rode together against raiders near Thronderlag (8 years ago)", "Halthdar", "Hertogi")
+                         .Should().Be("rode together against raiders near Thronderlag (8 years ago)");
+         PairRegardPolicy.WithoutThePair("Hertogi and Halthdar have been friends since they were young", "Halthdar", "Hertogi")
+                         .Should().Be("have been friends since they were young");
+         PairRegardPolicy.WithoutThePair("Hertogi insulted Halthdar at a feast, and Halthdar never forgot it", "Halthdar", "Hertogi")
+                         .Should().Be("Hertogi insulted Halthdar at a feast, and Halthdar never forgot it");
+      }
    }
 }

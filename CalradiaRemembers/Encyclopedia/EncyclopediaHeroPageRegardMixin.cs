@@ -57,6 +57,9 @@ namespace CalradiaRemembers.Encyclopedia
       private string _housesLabel;
       private string _housesItems;
 
+      // The characters whose reason the Why block gives, so their house is named through them rather than said twice.
+      private readonly HashSet<Hero> _explained = new();
+
       public EncyclopediaHeroPageRegardMixin(EncyclopediaHeroPageVM vm) : base(vm)
       {
          Refresh();
@@ -143,6 +146,7 @@ namespace CalradiaRemembers.Encyclopedia
          CalradiaRegardWhyItems = "";
          CalradiaRegardHousesLabel = "";
          CalradiaRegardHousesItems = "";
+         _explained.Clear();
 
          try
          {
@@ -236,15 +240,15 @@ namespace CalradiaRemembers.Encyclopedia
 
             PairRegard r = PairRegardReader.Assess(lord, other);
             houses.Add(new ClanRegardCandidate {
-               Name = c.Name?.ToString(), Derived = r.Verdict, DerivedReason = PairRegardPolicy.PageReason(r),
-               VanillaRelation = CharacterRelationManager.GetHeroRelation(lord, other), AtWar = atWar
+               Name = c.Name?.ToString(), Derived = r.Verdict,
+               DerivedReason = PairRegardPolicy.WithoutThePair(PairRegardPolicy.PageReason(r), lord.Name?.ToString(), other.Name?.ToString()),
+               VanillaRelation = CharacterRelationManager.GetHeroRelation(lord, other), AtWar = atWar,
+               Through = lord == hero && _explained.Contains(other) ? other.Name?.ToString() : null
             });
          }
 
          (IReadOnlyList<string> odds, IReadOnlyList<string> affinity) = ClanRegardListPolicy.Lists(houses);
-         var lines = new List<string>();
-         if (odds.Count > 0) lines.Add("At odds: " + string.Join("; ", odds));
-         if (affinity.Count > 0) lines.Add("Of affinity: " + string.Join("; ", affinity));
+         List<string> lines = odds.Select(l => "At odds, " + l).Concat(affinity.Select(l => "Of affinity, " + l)).ToList();
          if (lines.Count == 0) return;
 
          CalradiaRegardHousesLabel = "Houses:";
@@ -284,9 +288,9 @@ namespace CalradiaRemembers.Encyclopedia
          List<Hero> enemies = derivedEnemies.Select(x => x.Hero).Concat(vanillaEnemies.Where(h => !turned.Contains(h))).ToList();
          Fill(friends, enemies);
 
-         Show(derivedEnemies.Select(x => $"• {x.Hero.Name} (enemy): {x.Why}")
-                            .Concat(derivedFriends.Select(x => $"• {x.Hero.Name} (friend): {x.Why}"))
-                            .Take(MaxReasons).ToList());
+         var shown = derivedEnemies.Select(x => (x.Hero, x.Why, Word: "enemy")).Concat(derivedFriends.Select(x => (x.Hero, x.Why, Word: "friend"))).Take(MaxReasons).ToList();
+         foreach (var s in shown) _explained.Add(s.Hero);
+         Show(shown.Select(x => $"• {x.Hero.Name}, {x.Word}: {PairRegardPolicy.WithoutThePair(x.Why, hero.Name?.ToString(), x.Hero.Name?.ToString())}").ToList());
       }
 
       // The other house lords of the hero's realm: the people a lord would have crossed before the campaign.

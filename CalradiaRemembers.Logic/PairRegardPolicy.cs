@@ -175,6 +175,23 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
+        ///   The page reason without the pair named again when it opens on both of them ("Halthdar and Hertogi rode
+        ///   together against raiders" reads "rode together against raiders" after "Hertogi, friend:"). tashmetu
+        ///   (18/10/2026): the page's own lord need not be named again. Only that opening is cut: a reason where one of
+        ///   them acts on the other ("Hertogi insulted Halthdar at a feast") keeps both names, since who did what matters.
+        /// </summary>
+        public static string WithoutThePair(string reason, string oneName, string otherName)
+        {
+            if (string.IsNullOrWhiteSpace(reason) || string.IsNullOrWhiteSpace(oneName) || string.IsNullOrWhiteSpace(otherName)) return reason;
+
+            foreach (string opening in new[] {$"{oneName} and {otherName} ", $"{otherName} and {oneName} "})
+                if (reason.StartsWith(opening, StringComparison.Ordinal) && reason.Length > opening.Length)
+                    return reason.Substring(opening.Length);
+
+            return reason;
+        }
+
+        /// <summary>
         ///   How the speaker is told of it, or null when there is no verdict: "an enemy, for what lies between you: had
         ///   your brother Garios executed (9 years ago)", with the strongest opposite reason when it is at least half as
         ///   strong, and a note when the player could not know the main reason. The speaker knows his own grudges; he

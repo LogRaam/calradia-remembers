@@ -18,6 +18,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (`Hero.IsPlayerCompanion`, `GiverFacts.IsPlayersCompanion`). Tale Editor, HOWTO_Quests. cr.testall
   `tale_companion_giver`.
 
+### Changed
+- **The encyclopedia's houses and reasons read more easily** (tashmetu, 18/10, with screenshots of Halthdar's and
+  Svorni's pages: one dense block, "resentment between their lords" five or six times, a shared past said twice).
+  `ClanRegardListPolicy.Lists` gives one line per reason with the houses sharing it ("At odds, resentment between
+  their lords: Osticos, dey Meroc (at war)"); a house whose lord is already explained under Why reads "through
+  <lord>" (`ClanRegardCandidate.Through`); Why reads "<name>, friend: <reason>" and a reason opening on both names
+  drops them (`PairRegardPolicy.WithoutThePair`). Still six houses a side; the regard words unchanged (the chat uses
+  the same ones).
+
 ### For modders
 - **Companion patrols, public and read-only** (tashmetu, 18/10: R&S read `CompanionPatrolBehavior._patrols` by
   reflection). `CrPatrols.Current` (copies, `CrPatrolInfo`), `CrPatrols.Fought` (`CrPatrolBattle`) and

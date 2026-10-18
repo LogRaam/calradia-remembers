@@ -2,7 +2,9 @@
 // ClanRegardListPolicy sorts the other houses into at odds and of affinity on a character's encyclopedia page. Gabriel
 // (17/10/2026), question 1 of NPC_REGARD.md: "les deux": a house is listed by its leader's regard, and a house of a
 // realm at war is marked. If this is wrong, a house whose lord had the page's lord's brother executed reads as a friend,
-// a war hides behind a friendly number, or a secret reason leaks through the house list.
+// a war hides behind a friendly number, or a secret reason leaks through the house list. tashmetu (18/10/2026, with
+// screenshots): on a lord with many ties the list was one dense block, the same "resentment between their lords" five
+// or six times, and a shared past said twice; so one line per reason, and a lord already explained is named instead.
 
 #region
 
@@ -25,7 +27,7 @@ namespace CalradiaRemembers.Tests
             new ClanRegardCandidate {Name = "dey Meroc", Derived = PairRegardVerdict.Enemy, DerivedReason = "had his brother executed", VanillaRelation = 40}
          });
 
-         lists.AtOdds.Should().Equal("dey Meroc: had his brother executed");
+         lists.AtOdds.Should().Equal("had his brother executed: dey Meroc");
          lists.Affinity.Should().BeEmpty();
       }
 
@@ -68,8 +70,34 @@ namespace CalradiaRemembers.Tests
 
          var lists = ClanRegardListPolicy.Lists(houses);
 
-         lists.AtOdds.Should().HaveCount(ClanRegardListPolicy.MaxPerList);
-         lists.AtOdds[0].Should().StartWith("story:");
+         lists.AtOdds.Should().Equal("a feud: story", "resentment between their lords: h0, h1, h2, h3, h4");
+      }
+
+      // STAKE: tashmetu's Halthdar: five houses of the same resentment read as one line, not five repeats, and a house
+      // at war keeps its mark beside its own name.
+      [Test]
+      public void GIVEN_houses_sharing_a_reason_WHEN_listed_THEN_one_line_names_them_all_and_the_war_stays_on_its_house()
+      {
+         var lists = ClanRegardListPolicy.Lists(new[] {
+            new ClanRegardCandidate {Name = "Osticos", VanillaRelation = -50},
+            new ClanRegardCandidate {Name = "dey Sargot-Meroc", VanillaRelation = -50, AtWar = true},
+            new ClanRegardCandidate {Name = "Kjolding", VanillaRelation = 50}
+         });
+
+         lists.AtOdds.Should().Equal("resentment between their lords: Osticos, dey Sargot-Meroc (at war)");
+         lists.Affinity.Should().ContainSingle().Which.Should().EndWith(": Kjolding");
+      }
+
+      // STAKE: tashmetu: the same shared past showed under Why and again under the house; a house whose lord is already
+      // explained is named through him.
+      [Test]
+      public void GIVEN_a_house_whose_lord_is_explained_under_why_WHEN_listed_THEN_it_is_named_through_him_without_the_reason_again()
+      {
+         var lists = ClanRegardListPolicy.Lists(new[] {
+            new ClanRegardCandidate {Name = "Skylfing", Derived = PairRegardVerdict.Friend, DerivedReason = "rode together against raiders", Through = "Hertogi Gornlautir"}
+         });
+
+         lists.Affinity.Should().Equal("through Hertogi Gornlautir: Skylfing");
       }
    }
 }

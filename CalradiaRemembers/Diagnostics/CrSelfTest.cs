@@ -5107,7 +5107,7 @@ namespace CalradiaRemembers.Diagnostics
                new Logic.ClanRegardCandidate {Name = betrayer.Clan.Name.ToString(), Derived = house.Verdict, DerivedReason = PairRegardPolicy.PageReason(house),
                   VanillaRelation = CharacterRelationManager.GetHeroRelation(wronged, betrayer)}
             });
-            t.Expect("theBetrayersHouseIsAtOdds", houses.AtOdds.Any(l => l.StartsWith(betrayer.Clan.Name.ToString()) && l.Contains("[SELFTEST]")), true);
+            t.Expect("theBetrayersHouseIsAtOdds", houses.AtOdds.Any(l => l.Contains(betrayer.Clan.Name.ToString()) && l.Contains("[SELFTEST]")), true);
 
             // The encyclopedia (design section 8, route b): the wronged lord's page lists the betrayer among his
             // enemies, after the page is built and after it refreshes again (the mixin must run after vanilla's fill).
