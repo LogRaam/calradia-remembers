@@ -39,6 +39,22 @@ namespace CalradiaRemembers.Encyclopedia
         public EncyclopediaHeroPagePersonalRelationMixin(EncyclopediaHeroPageVM vm) : base(vm)
         {
             Refresh();
+
+            // A later vanilla refresh runs OnRefresh BEFORE it rebuilds Stats, which undid the "Clan Relation" label
+            // (found 17/10/2026 with the friends lists, EncyclopediaHeroPageRegardMixin). The page's Refresh ends with
+            // IsLoadingOver = true: the label is set again then.
+            if (vm != null) vm.PropertyChangedWithBoolValue += OnPagePropertyChanged;
+        }
+
+        public override void OnFinalize()
+        {
+            if (ViewModel != null) ViewModel.PropertyChangedWithBoolValue -= OnPagePropertyChanged;
+            base.OnFinalize();
+        }
+
+        private void OnPagePropertyChanged(object sender, PropertyChangedWithBoolValueEventArgs e)
+        {
+            if (e.PropertyName == nameof(EncyclopediaHeroPageVM.IsLoadingOver) && e.Value) Refresh();
         }
 
         /// <summary>Gold value, e.g. "neutral (-5)" — description then the score in parentheses.</summary>

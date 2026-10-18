@@ -5115,6 +5115,9 @@ namespace CalradiaRemembers.Diagnostics
                t.Expect("notAsAFriend", Lists(page.Allies, page.AdditionalAllies), false);
                page.RefreshValues();
                t.Expect("stillAfterTheVanillaRefresh", Lists(page.Enemies, page.AdditionalEnemies), true);
+               string vanillaRelation = TaleWorlds.Core.GameTexts.FindText("str_enc_sf_relation")?.ToString();
+               if (page.Stats.Any(s => s.Definition == "Clan Relation" || s.Definition == vanillaRelation))
+                  t.Expect("theClanRelationLabelSurvivesTheRefresh", page.Stats.Any(s => s.Definition == "Clan Relation"), true);
             }
             catch (Exception ex) { t.Note("the encyclopedia page could not be built here: " + ex.GetType().Name + ": " + ex.Message); }
             finally { try { page?.OnFinalize(); } catch { /* the page held nothing of the game's */ } }
