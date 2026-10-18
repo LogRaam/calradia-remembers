@@ -13,6 +13,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 - **A tale may name its giver's realm** (Gabriel, 18/10: the queens' tale only where the queen has a face; the three
   empires share one culture). `requires.giver.realm`, one or a list, id or name, through the culture's own
   id-or-name rule (`AuthoredCulturePolicy.Matches`). Tale Editor, HOWTO_Quests. cr.testall `tale_realm` (`1831b03`).
+- **A companion may give a tale** (tashmetu, 18/10: a road tale of "someone who rides with the player" used `any`
+  with `with_player`, which let in the spouse or a child along). `requires.giver.role` `companion`
+  (`Hero.IsPlayerCompanion`, `GiverFacts.IsPlayersCompanion`). Tale Editor, HOWTO_Quests. cr.testall
+  `tale_companion_giver`.
+
+### For modders
+- **Companion patrols, public and read-only** (tashmetu, 18/10: R&S read `CompanionPatrolBehavior._patrols` by
+  reflection). `CrPatrols.Current` (copies, `CrPatrolInfo`), `CrPatrols.Fought` (`CrPatrolBattle`) and
+  `CrPatrols.Ended` (`CrPatrolEnd`, `How`: Back, Scattered, Captured, Killed). EXTENSION_API. cr.testall
+  `companion_patrol` extended.
 
 ### Held back (Extras/RealmQueens, not shipped)
 - **The Guest of the King's Hall**, the Troy-inspired reference tale, and its scenario pack (war when the queen

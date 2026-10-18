@@ -117,8 +117,8 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
    public sealed class GiverRequirement
    {
-      /// <summary>"lord", "notable", "gang_leader", "spouse", "any" (Gabriel: any character may offer a quest).</summary>
-      [QuestField("lord, notable, gang_leader, spouse (the player's own husband or wife), or any.", ClosedList = nameof(AuthoredQuestLoader.GiverRoles))]
+      /// <summary>"lord", "notable", "gang_leader", "spouse", "companion", "any" (Gabriel: any character may offer a quest).</summary>
+      [QuestField("lord, notable, gang_leader, spouse (the player's own husband or wife), companion (one of the player's companions), or any.", ClosedList = nameof(AuthoredQuestLoader.GiverRoles))]
       [JsonProperty("role")] public string Role { get; set; } = "lord";
 
       /// <summary>A role the giver must hold (a village of theirs), e.g. "{village}".</summary>

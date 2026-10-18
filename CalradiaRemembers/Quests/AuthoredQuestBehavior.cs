@@ -378,7 +378,7 @@ namespace CalradiaRemembers.Quests
          GiverRequirement g = q.Requires?.Giver ?? new GiverRequirement();
          whyNot = AuthoredGiverPolicy.WhyNot(g, new GiverFacts {
             IsLord = giver.IsLord, IsNotable = giver.IsNotable, IsGangLeader = giver.IsGangLeader,
-            IsPlayersSpouse = Hero.MainHero?.Spouse == giver, IsFemale = giver.IsFemale,
+            IsPlayersSpouse = Hero.MainHero?.Spouse == giver, IsPlayersCompanion = giver.IsPlayerCompanion, IsFemale = giver.IsFemale,
             InPlayersParty = giver.PartyBelongedTo != null && giver.PartyBelongedTo == MobileParty.MainParty, IsPregnant = giver.IsPregnant,
             // The Troy-inspired tale (Gabriel, 12/10/2026): a married giver of another realm who could leave her house.
             IsMarriedToAnother = giver.Spouse != null && giver.Spouse != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(giver.Spouse),

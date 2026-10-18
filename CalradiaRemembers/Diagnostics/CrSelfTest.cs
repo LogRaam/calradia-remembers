@@ -290,7 +290,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("aims_conversation", Severity.Light, "CrAims (tashmetu, 14/10/2026: lords with aims of their own; 'the real risk is a lord who brings up Lakonon in every conversation'). A test aim is registered on a real lord not at war with the player; a conversation opening with him gives him leave to raise it and the encounter context carries his want; a second conversation the same day does not give it again; the leave ends with the conversation. An aim Calradia Remembers seeds for its own mechanics is not voiced by the generic section. Retracts both aims", TestAimsConversation),
          new SelfTest("player_named_on_screen", Severity.Light, "Gabriel (17/10/2026): a grievance read 'over The marriage was ended by the player's own choice'; never 'the player' in the game, the character by name. Passes a stored cause saying 'the player' through the real grievance line and the real chat message line, and asserts both show the player's name, never 'the player', and that a sentence cause follows a colon. Changes nothing", TestPlayerNamedOnScreen),
          new SelfTest("chat_temperature", Severity.Light, "fkasad (Nexus, 17/10/2026) asked whether the mod tunes the temperature; the conversation value was fixed at 0.7, and Gabriel asked for a setting. Moves the Chat Temperature setting and asserts the live chat service sends the new value, and that an out-of-range value is held in range; restores the setting", TestChatTemperature),
-         new SelfTest("companion_patrol", Severity.Light, "jaserms1 (Nexus, 16/10/2026): a council's patrol order did nothing; Gabriel's rulings 16-17/10 (the player's own men, chosen on the game's troop screen, until told to stop) and his spike at Ebereth (a free AI patrol drifts off its post). Arranges a companion and men, confirms a 5-man patrol of the nearest village through the same handler the troop screen calls, and asserts the men really left the main party, the patrol is anchored on the village with the AI free; then drags it away and runs the hourly leash, which must re-anchor it; then brings it home and asserts every man is back. Cleans up", TestCompanionPatrol),
+         new SelfTest("companion_patrol", Severity.Light, "jaserms1 (Nexus, 16/10/2026): a council's patrol order did nothing; Gabriel's rulings 16-17/10 (the player's own men, chosen on the game's troop screen, until told to stop) and his spike at Ebereth (a free AI patrol drifts off its post). Arranges a companion and men, confirms a 5-man patrol of the nearest village through the same handler the troop screen calls, and asserts the men really left the main party, the patrol is anchored on the village with the AI free; then drags it away and runs the hourly leash, which must re-anchor it; then brings it home and asserts every man is back. tashmetu (18/10/2026): another mod reads the patrol through CrPatrols.Current and hears its end through CrPatrols.Ended, as Back. Cleans up", TestCompanionPatrol),
          new SelfTest("enemy_meeting_offer", Severity.Light, "fkasad (Nexus, 16/10/2026): an enemy lord rode up as the player was about to attack him, the chat opened by force and a local model reasoned for half a minute over an opener nobody read; Gabriel the same day: a popup for hostile lords only. On real lords: one at peace with the player, holding a grudge, still opens the meeting at once; the same lord defending his land asks first; a lord of a realm at war with the player asks first whatever his reason (when such a lord exists). Changes nothing", TestEnemyMeetingOffer),
          new SelfTest("enemy_no_border_challenge", Severity.Light, "LapitaPolata (Nexus, 18/10/2026): lords of a realm at war with the player rode up to ask why they crossed the border with their troops, the war making it plain, and did so outnumbered, when the game has an outnumbered lord flee. On real lords' parties and their live strengths against the player's: a weaker party reads outnumbered and its lord never rides out, even over a grudge; a stronger one is not, never challenges the player's passage at war, still presses a grudge, and a realm at peace still challenges. A missing war is set on the facts. Changes nothing", TestEnemyNoBorderChallenge),
          new SelfTest("war_duty_audience", Severity.Light, "Gabriel's ladder (15/10/2026): the summoned vassal is called in by the ruler himself, at his hall (never on the road: Gabriel, 16/10/2026), and no longer only by letter. With the switch on for the test, a reckoning is opened for a real ruler (one standing in a town when there is one); the duty names him as the one calling the player in; the REAL fief-audience scan of his town picks him with the war duty reason although he has a field party; his opener holds the vassal to the war and leaves the amounts to the terms; once the player has stood before him he no longer sends for them. No letter is written. Restores the ledger, the switch, the audience cooldown and the ruler's memories", TestWarDutyAudience),
@@ -349,6 +349,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("battle_memory_wording", Severity.Light, "tashmetu (Nexus, 13/10/2026, via cr.prompt_dump): a witness line read 'I saw you cut down 168 of them yourself at at the siege of Thorios Castle', doubling the preposition and addressing the player as 'you'. Builds the same siege place WorldEventFeeders builds and drives the REAL BattleFeatReporter the way it now wires it (the engagement noun phrase, not the already-shaped place clause), expecting exactly one 'at', no 'you', and the player named. Mutates nothing.", TestBattleMemoryWording),
          new SelfTest("realm_faces", Severity.Light, "Queens with a chosen face (Gabriel, 12/10/2026: one queen per realm, made in the character editor; CR dresses the ruler's wife). Reports the faces files read and their problems; on a real ruler's wife, dresses her in a face (the first one read, else a test face) and expects her face to be exactly that one, expects the chat to show her realm's portrait when the faces file names one (Gabriel, 12/10/2026, unless the player dropped their own), then gives it back and expects her own face and usual portrait again, then lets the daily pass dress whom it should. Changes no one for good.", TestRealmFaces),
          new SelfTest("tale_world_exits", Severity.Light, "Ways out the world takes (Gabriel, 12/10 and 18/10/2026, the Troy-inspired tale: the war ends some other way, she dies, the player weds her; one tale at a time, so a war stage nothing could leave would block every tale). A tale written into this test (never a shipped file) is taken on with a real lord; the real daily tick moves nothing while that lord lives, is unwed and at peace. Rebound to a lord of a realm at war with the player, the war is seen; rebound to a lord at peace, the war has ended and the tale ends on peace. Taken on again and rebound to a dead hero, it ends on mourning. Reads what the world exits read of the player's spouse. Abandons and forgets the tale after.", TestTaleWorldExits),
+         new SelfTest("tale_companion_giver", Severity.Light, "tashmetu (18/10/2026): a road tale told by someone who rides with the player wants a companion, not the player's spouse or a child along. A tale written into this test asks role companion with with_player: a companion in the main party (arranged when none rides along) binds, and the player's spouse or a lord is refused with a line naming the companions. Forgets the tale after.", TestTaleCompanionGiver),
          new SelfTest("tale_realm", Severity.Light, "Gabriel (18/10/2026): the queens' tale is offered only in the realms whose queen has her face and pictures, and the three empires share one culture, so a tale may name its giver's realm. Two tales written into this test, twins but for the realm: among lords the twin with no realm accepts (so nothing else refuses them), a lord of the named realm still binds and a lord of another realm is refused, with a line naming both realms. Forgets both tales after.", TestTaleRealm),
          new SelfTest("tale_scenario_bridge", Severity.Light, "The tale-scenario bridge (Gabriel, 12/10/2026: a queen leaves with the player and her husband's realm answers). In a runtime of its own, fires ON_TALE for a made-up tale's ending with a real lady and her husband as roles: a rule naming the whole tale and one naming that ending both play, one naming another ending or another tale does not, the news names the husband (never '{husband}'), and PRESS_FOR_WAR between his realm and the player's applies exactly when they are two realms at peace. Declares nothing; the news it wrote is removed.", TestTaleScenarioBridge),
          new SelfTest("tale_on_enter", Severity.Heavy, "tashmetu (15/10/2026): consequences ran only at an ending, so a lady could not leave midway and be given back later in the same tale; and other mods asked to hear a tale's progress (CrTales) with what was really carried out. On a real married lady of another realm, a test tale is offered and accepted; the player's choice enters a stage whose on_enter elopes: asserts she rides with the player, CrTales.StageReached reports the stage, the flag and the elopement as Done, the tale is still under way after a day, and giving her back ends it with CrTales.Ended reporting the return as Done and her wed to him again. Restores everything.", TestTaleOnEnter),
@@ -10707,6 +10708,43 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      private static string TestTaleCompanionGiver(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tale_companion_giver");
+
+         Quests.AuthoredQuestBehavior b = Quests.AuthoredQuestBehavior.Instance;
+         if (t.Skip(b == null, "authored quests are not active")) return t.Line();
+
+         const string id = "cr_selftest_companion_giver";
+         t.Expect("theTaleLoadsClean", string.Join(" | ", b.DebugLoadTale(@"{ ""id"": """ + id + @""", ""title"": ""[SELFTEST] The Road Home"",
+            ""requires"": { ""giver"": { ""role"": ""companion"", ""with_player"": true, ""min_regard"": -100, ""not_at_war_with_player"": false } },
+            ""binds"": { ""giver"": ""a companion"" },
+            ""stages"": [ { ""id"": ""ask"", ""journal"": ""[SELFTEST]"", ""objective"": { ""type"": ""talk_to"", ""hero"": ""{giver}"" }, ""on_complete"": { ""next"": ""reward"" } } ],
+            ""reward"": { } }", "selftest.json")), "");
+         try
+         {
+            using var arranged = ArrangedCompanion.Get(behavior, mustBeInMainParty: true);
+            if (t.Skip(arranged?.Companion == null, "no companion could be arranged")) return t.Line();
+
+            string companion = b.DebugEligibility(arranged.Companion, id) ?? "";
+            t.Expect("aCompanionAlongBinds", companion.StartsWith("no:") ? companion : "binds", "binds");
+
+            Hero notCompanion = Hero.MainHero.Spouse is { } spouse && Mapping.HeroPresence.IsInTheWorld(spouse)
+               ? spouse
+               : Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && !h.IsPlayerCompanion);
+            if (t.Skip(notCompanion == null, "no spouse nor lord to refuse")) return t.Line();
+            string other = b.DebugEligibility(notCompanion, id) ?? "";
+            t.Note($"refused: {notCompanion.Name}");
+            t.Expect("theSpouseOrALordIsRefused", other.StartsWith("no:") && other.Contains("companions"), true);
+         }
+         finally
+         {
+            b.DebugForgetTale(id);
+         }
+
+         return t.Line();
+      }
+
       private static string TestTaleRealm(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("tale_realm");
@@ -16823,6 +16861,13 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          int totalBefore = MobileParty.MainParty.MemberRoster.TotalManCount;
+         CrPatrolEnd heardEnd = null;
+         void OnEnded(CrPatrolEnd e)
+         {
+            if (e.Patrol.CompanionId == companion.StringId) heardEnd = e;
+         }
+
+         CrPatrols.Ended += OnEnded;
          try
          {
             string notice = patrols.DebugConfirm(companion, village, 5);
@@ -16836,6 +16881,8 @@ namespace CalradiaRemembers.Diagnostics
             // STAKE: the spike: with the AI locked a patrol only watches bandits pass.
             t.Expect("anchoredOnTheVillage", party.TargetSettlement == village && party.DefaultBehavior == AiBehavior.PatrolAroundPoint, true);
             t.Expect("theAiIsFree", party.Ai.DoNotMakeNewDecisions, false);
+            // STAKE: tashmetu read the patrols by reflection; the public copy lists this one with its place.
+            t.Expect("anotherModReadsThePatrol", CrPatrols.Current.Any(p => p.CompanionId == companion.StringId && p.SettlementId == village.StringId), true);
 
             // STAKE: the spike's drift: dragged off its post, the hourly leash sends it back.
             party.SetMoveGoToPoint(new CampaignVec2(village.GatePosition.ToVec2() + new TaleWorlds.Library.Vec2(40f, 40f), true), MobileParty.NavigationType.Default);
@@ -16859,9 +16906,13 @@ namespace CalradiaRemembers.Diagnostics
             patrols.DebugBringHomeNow(companion);
             t.Expect("everyManIsBack", MobileParty.MainParty.MemberRoster.TotalManCount, totalBefore);
             t.Expect("noLongerOnPatrol", patrols.IsPatrolling(companion.StringId), false);
+            // STAKE: another mod hears the patrol end, and how: home with the men.
+            t.Expect("anotherModHearsItCameBack", heardEnd?.How, CrPatrolEndKind.Back);
+            t.Expect("andItIsNoLongerListed", CrPatrols.Current.Any(p => p.CompanionId == companion.StringId), false);
          }
          finally
          {
+            CrPatrols.Ended -= OnEnded;
             CompanionPatrolBehavior.DebugSuppressLetters = false;
             if (patrols.IsPatrolling(companion.StringId)) patrols.DebugBringHomeNow(companion);
             if (added > 0) MobileParty.MainParty.MemberRoster.AddToCounts(recruit, -added);

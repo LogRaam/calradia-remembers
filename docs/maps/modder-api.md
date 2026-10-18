@@ -127,6 +127,59 @@ _The public NPC-memory API. A caller identifies the NPC by its hero StringId (ne
 - `static int RemoveMemory(CrMemoryRemoval removal)`
 - `static int? GetRegard(string npcId)`
 
+### CrPatrolBattle
+
+_One battle a patrol fought, for CrPatrols.Fought._
+
+- `CrPatrolInfo Patrol { get; }`
+- `bool Won { get; }`
+- `int FoeMen { get; }`
+- `int GameDay { get; }`
+- `string FoeName { get; }`
+
+### CrPatrolEnd
+
+_A patrol's end, for CrPatrols.Ended._
+
+- `CrPatrolEndKind How { get; }`
+- `CrPatrolInfo Patrol { get; }`
+- `int GameDay { get; }`
+- `int MenBack { get; }`
+
+### CrPatrolEndKind
+
+_How a patrol ended._
+
+- `Back`
+- `Captured`
+- `Killed`
+- `Scattered`
+
+### CrPatrolInfo
+
+_A patrol as it stood when copied._
+
+- `bool RidingHome { get; }`
+- `int BattlesLost { get; }`
+- `int BattlesWon { get; }`
+- `int FoesBeaten { get; }`
+- `int MenAtDeparture { get; }`
+- `int StartDay { get; }`
+- `string CompanionId { get; }`
+- `string CompanionName { get; }`
+- `string Id { get; }`
+- `string PartyId { get; }`
+- `string SettlementId { get; }`
+- `string SettlementName { get; }`
+
+### CrPatrols
+
+_The companion patrols, read-only, and their public events._
+
+- `static IReadOnlyList<CrPatrolInfo> Current { get; }`
+- `static event Action<CrPatrolBattle> Fought`
+- `static event Action<CrPatrolEnd> Ended`
+
 ### CrPrompt
 
 _The public facade a third-party mod calls to register (or unregister) one live prompt variable._

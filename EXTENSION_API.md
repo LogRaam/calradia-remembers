@@ -188,6 +188,20 @@ decider lost the say over her (a new head of house: register again with the new 
 of the player by letter is taught first. Kept in memory only and forgotten when the game is left: register again when a
 game is loaded.
 
+### Companion patrols (`CalradiaRemembers.CrPatrols`, since 2.7.17)
+
+Read the patrols the player's companions lead, and hear their battles and their end:
+
+```csharp
+foreach (CrPatrolInfo p in CrPatrols.Current) { /* p.CompanionId, p.SettlementId, p.BattlesWon, p.RidingHome... */ }
+CrPatrols.Fought += b => { /* b.Won, b.FoeName, b.FoeMen; b.Patrol already counts this battle */ };
+CrPatrols.Ended += e => { /* e.How: Back, Scattered, Captured or Killed; e.MenBack when Back */ };
+```
+
+Every `CrPatrolInfo` is a copy taken when you asked or when the event fired: changing it changes nothing. `Ended` fires
+after the patrol left `Current`. A patrol leaves only through one of the four ends, so each one you saw in `Current`
+ends with exactly one `Ended`.
+
 ### Queens with a chosen face (`ModuleData/cr_faces.json`, since 2.7.10)
 
 `{ "queens": { "<realm id>": "<BodyProperties version=... key=... />" } }`: the line the face editor copies with

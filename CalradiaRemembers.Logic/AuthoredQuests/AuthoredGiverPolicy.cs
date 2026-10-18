@@ -18,6 +18,9 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>The player's own husband or wife.</summary>
       public bool IsPlayersSpouse { get; init; }
 
+      /// <summary>A companion of the player's house (hired, not kin by blood or marriage).</summary>
+      public bool IsPlayersCompanion { get; init; }
+
       public bool IsFemale { get; init; }
 
       /// <summary>Travelling in the player's own party.</summary>
@@ -78,9 +81,14 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             "notable" => f.IsNotable,
             "gang_leader" => f.IsGangLeader,
             "spouse" => f.IsPlayersSpouse,
+            "companion" => f.IsPlayersCompanion,
             _ => true
          };
-         if (!roleOk) return g.Role == "spouse" ? "the quest wants the player's own spouse" : $"the quest wants a giver who is a {g.Role}";
+         if (!roleOk) return g.Role switch {
+            "spouse" => "the quest wants the player's own spouse",
+            "companion" => "the quest wants one of the player's companions",
+            _ => $"the quest wants a giver who is a {g.Role}"
+         };
 
          string gender = g.Gender?.Trim().ToLowerInvariant();
          if (gender == "female" && !f.IsFemale) return "the quest wants a woman to give it";

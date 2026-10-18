@@ -49,7 +49,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       public static readonly IReadOnlyList<string> ConsequenceTypes = new[] {"memory", "world_event", "grudge", "conception", "elope", "return_spouse"};
 
       /// <summary>Who may give a tale (anything else is read as "any").</summary>
-      public static readonly IReadOnlyList<string> GiverRoles = new[] {"lord", "notable", "gang_leader", "spouse", "any"};
+      public static readonly IReadOnlyList<string> GiverRoles = new[] {"lord", "notable", "gang_leader", "spouse", "companion", "any"};
 
       /// <summary>The sexes a tale may ask its giver to be (empty for either).</summary>
       public static readonly IReadOnlyList<string> GiverGenders = new[] {"female", "male"};

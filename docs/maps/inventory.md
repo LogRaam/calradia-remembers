@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 518 types in 61 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 523 types in 61 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1203 types in 31 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
@@ -43,7 +43,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (41)
+### CalradiaRemembers (46)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -60,6 +60,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrMemoryRecord` | public class | One memory CR already holds for an NPC, as read back through CrNpcMemory.GetMemories. |
 | `CrMemoryRemoval` | public class | A memory a mod takes back (philip0105, Vivid World, 10/10/2026: rumors forgotten or corrected later). |
 | `CrNpcMemory` | public static class | The public NPC-memory API. A caller identifies the NPC by its hero StringId (never a display name), reads its stored memories, and injects new ones. |
+| `CrPatrolBattle` | public class | One battle a patrol fought, for CrPatrols.Fought. |
+| `CrPatrolEnd` | public class | A patrol's end, for CrPatrols.Ended. |
+| `CrPatrolEndKind` | public enum | How a patrol ended. |
+| `CrPatrolInfo` | public class | A patrol as it stood when copied. |
+| `CrPatrols` | public static class | The companion patrols, read-only, and their public events. |
 | `CrPrompt` | public static class | The public facade a third-party mod calls to register (or unregister) one live prompt variable. |
 | `CrRegardChange` | public class | One change of a character's personal regard for the player (see CrNpcMemory.RegardChanged). |
 | `CrRomance` | public static class | Reads and records intimacy with the player, held to the bar CR's own chat holds. |

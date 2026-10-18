@@ -94,6 +94,19 @@ namespace CalradiaRemembers.Tests
          AuthoredGiverPolicy.WhyNot(new GiverRequirement {Role = "spouse"}, husband).Should().BeNull();
       }
 
+      // STAKE: tashmetu (18/10/2026): a road tale told by "someone who rides with the player" ("I was born on the farm down
+      // there") used role "any" with with_player, which also let in the player's spouse or a noble child riding along.
+      // The companion role takes only a companion of the player's house.
+      [Test]
+      public void GIVEN_a_companion_tale_WHEN_a_companion_or_the_spouse_rides_along_THEN_only_the_companion_may_give_it()
+      {
+         var wants = new GiverRequirement {Role = "companion", WithPlayer = true};
+
+         AuthoredGiverPolicy.WhyNot(wants, new GiverFacts {IsPlayersCompanion = true, InPlayersParty = true}).Should().BeNull();
+         AuthoredGiverPolicy.WhyNot(wants, new GiverFacts {IsLord = true, IsPlayersSpouse = true, InPlayersParty = true}).Should().Contain("companions");
+         AuthoredGiverPolicy.WhyNot(wants, new GiverFacts {IsLord = true, InPlayersParty = true}).Should().Contain("companions");
+      }
+
       // ── A married giver (the Troy-inspired tale, Gabriel 12/10/2026: docs/design/tale-scenario-bridge) ──
 
       private static GiverRequirement Queen() => new() {Role = "lord", Gender = "female", Married = true, NotClanLeader = true, NotOfPlayersRealm = true};

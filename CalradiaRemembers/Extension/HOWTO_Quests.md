@@ -130,7 +130,7 @@ The rules around every offer:
 
 | Field | Meaning |
 |---|---|
-| `giver.role` | `lord`, `notable`, `gang_leader`, `spouse` (the player's own husband or wife), or `any`. |
+| `giver.role` | `lord`, `notable`, `gang_leader`, `spouse` (the player's own husband or wife), `companion` (one of the player's companions, never kin; since 2.7.17), or `any`. A tale of someone riding with the player who "left their father's farm" wants `companion` with `with_player`, so a spouse or a child in the party is not asked. |
 | `giver.holds` | `"{village}"`: the village is picked among the giver's clan villages. Without it, the giver's home settlement is used, when it is a village. |
 | `giver.min_regard` | The giver's regard for the player on Calradia Remembers' own ledger (the one built in conversation, not the game's relation). |
 | `giver.not_at_war_with_player` | Default `true`. |

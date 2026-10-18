@@ -63,6 +63,9 @@ namespace CalradiaRemembers.Missions
       /// <summary>The companions leading a patrol.</summary>
       public IEnumerable<string> PatrollingIds => _patrols.Select(p => p.CompanionId).ToList();
 
+      /// <summary>The patrols as copies, for <see cref="CrPatrols.Current" />.</summary>
+      internal IReadOnlyList<CrPatrolInfo> Snapshot() => _patrols.Select(p => new CrPatrolInfo(p)).ToList();
+
       /// <summary>One line per patrol, for the console and the errands listing.</summary>
       public IEnumerable<string> DescribeLines()
          => _patrols.Select(p => $"- {p.CompanionName}: {(p.State == CompanionPatrolState.Patrolling ? "patrols" : "rides home from")} {p.SettlementName} "
@@ -438,6 +441,7 @@ namespace CalradiaRemembers.Missions
             }
 
             CompanionPatrolQuest.Of(p.Id)?.Log($"Day {(int) CampaignTime.Now.ToDays}: {(won ? "beat" : "was beaten by")} {foe?.LeaderParty?.Name?.ToString() ?? "a band"} ({foe?.HealthyTroopCountAtMapEventStart ?? 0} men) near {p.SettlementName}.");
+            CrPatrols.RaiseFought(new CrPatrolBattle(new CrPatrolInfo(p), won, foe?.LeaderParty?.Name?.ToString() ?? "a band", foe?.HealthyTroopCountAtMapEventStart ?? 0, Today));
             ModLog.Info($"[PATROL] {p.CompanionName} {(won ? "won" : "lost")} against {foe?.LeaderParty?.Name} ({foe?.HealthyTroopCountAtMapEventStart} men) near {p.SettlementName}; {party.MemberRoster.TotalHealthyCount} fit.");
          }
       }
@@ -461,6 +465,7 @@ namespace CalradiaRemembers.Missions
             string taken = $"{p.CompanionName} was taken prisoner by {capturer?.Name?.ToString() ?? "the enemy"} near {p.SettlementName}; the patrol is broken.";
             Notify(taken, prisoner);
             CompanionPatrolQuest.Of(p.Id)?.CloseLost(taken);
+            CrPatrols.RaiseEnded(new CrPatrolEnd(new CrPatrolInfo(p), CrPatrolEndKind.Captured, 0, Today));
             ModLog.Info($"[PATROL] {p.CompanionName} captured by {capturer?.Name} near {p.SettlementName}; patrol closed.");
          }
       }
@@ -475,6 +480,7 @@ namespace CalradiaRemembers.Missions
          string fell = $"{p.CompanionName} fell while patrolling around {p.SettlementName}; the patrol is no more.";
          Notify(fell, null);
          CompanionPatrolQuest.Of(p.Id)?.CloseLost(fell);
+         CrPatrols.RaiseEnded(new CrPatrolEnd(new CrPatrolInfo(p), CrPatrolEndKind.Killed, 0, Today));
          ModLog.Info($"[PATROL] {p.CompanionName} killed near {p.SettlementName}; patrol closed.");
       }
 
@@ -495,6 +501,7 @@ namespace CalradiaRemembers.Missions
             : $"{p.CompanionName}'s patrol around {p.SettlementName} is no more.";
          Notify(end, companion);
          CompanionPatrolQuest.Of(p.Id)?.CloseLost(end);
+         CrPatrols.RaiseEnded(new CrPatrolEnd(new CrPatrolInfo(p), CrPatrolEndKind.Scattered, 0, Today));
          ModLog.Info($"[PATROL] {p.CompanionName}'s patrol party is gone; closed (came back {cameBack}).");
       }
 
@@ -555,6 +562,7 @@ namespace CalradiaRemembers.Missions
          string back = $"{p.CompanionName} is back from {p.SettlementName} with {men} men, {record}.";
          Notify(back, companion);
          CompanionPatrolQuest.Of(p.Id)?.CloseHome(back);
+         CrPatrols.RaiseEnded(new CrPatrolEnd(new CrPatrolInfo(p), CrPatrolEndKind.Back, men, Today));
          ModLog.Info($"[PATROL] {p.CompanionName} home: {men} men handed over; won {p.BattlesWon}, lost {p.BattlesLost}, foes beaten {p.FoesBeaten}.");
       }
 
