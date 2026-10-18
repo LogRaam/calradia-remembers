@@ -221,7 +221,21 @@ namespace CalradiaRemembers.Mapping
          return sb.ToString().TrimEnd();
       }
 
+      // What lies between the speaker and the person named, with its reason, wins over the vanilla number when it
+      // gives a verdict (NPC_REGARD.md section 9; Gabriel, 17/10/2026: every friend or enemy carries its reason). Kin
+      // keep their word and gain the reason; a pair with nothing between them reads as before.
       private static string Categorize(Hero npc, Hero other)
+      {
+         string label = VanillaCategory(npc, other);
+         string derived = PairRegardPolicy.Describe(PairRegardReader.Assess(npc, other));
+         if (derived == null) return label;
+
+         bool kin = npc.Spouse == other || npc.Father == other || npc.Mother == other || npc.Children != null && npc.Children.Any(c => c == other);
+
+         return kin ? $"{label}, and {derived}" : derived;
+      }
+
+      private static string VanillaCategory(Hero npc, Hero other)
          => ThirdPartyDescriptor.Categorize(new ThirdPartyFacts {
             Relation = CharacterRelationManager.GetHeroRelation(npc, other),
             IsSpouse = npc.Spouse == other,

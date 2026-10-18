@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 509 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1185 types in 31 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 510 types in 61 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1190 types in 31 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -498,7 +498,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (28)
+### CalradiaRemembers.Mapping (29)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -515,6 +515,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroSeats` | public static class | The places a character answers for, closest first. |
 | `IntimacyBargainEligibility` | public static class | Resolves the adult-gated, archetype-filtered eligibility for the intimacy-as-currency dynamic. |
 | `NarrativeLoader` | public static class | Loads narrative text files from the mod's ModuleData folder at session launch. |
+| `PairRegardReader` | internal static class | Reads what lies between two characters into PairRegardFacts, and assesses it. |
 | `PlayerDressResolver` | public static class | Resolves the player's live PlayerDressBand from Hero.MainHero's equipment. |
 | `PlayerPrisonBreakPatch` | public static class | Who the player is breaking out of prison right now, for the listeners of that release. |
 | `PromptProfileService` | internal static class | The prompt profile in use, and the layout each kind of character gets from it. |
@@ -865,7 +866,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (713)
+### CalradiaRemembers.Logic (718)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1290,6 +1291,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `OutlawPolicy` | public static class | The rules of outlawry, bounties and amnesty. |
 | `OverdueOutcome` | public enum | What the daily overdue sweep should do once a commitment's deadline lapses. |
 | `OverlayNeighbour` | public class | One layer beside the chat, as the arbiter needs to see it. |
+| `PairRegard` | public class | The speaker's regard for the other: points on the regard scale, the verdict, and the reasons, strongest first. |
+| `PairRegardFacts` | public class | What ties the speaker to the other, and what happened between them. |
+| `PairRegardPolicy` | public static class | Weighs what lies between two characters into a verdict with its reason. |
+| `PairRegardTrace` | public class | One thing that happened between the speaker and the other, already weighed and aged. |
+| `PairRegardVerdict` | public enum | Friend, enemy, or neither, by what lies between two characters. |
 | `PanelTickSuppressionCounter` | public class | A reference count of how many CR panels currently need the vanilla settlement-visual tick suppressed (the mod wires this to a Harmony guard: while the count is above zero, SettlementVisualManager.OnTick is skipped so its... |
 | `PartnerFacts` | public class | One other partner of the player, as a partner sees them. |
 | `PartnerStanding` | public class | One partner's standing as the competition pass sees it (engine-gathered, pure to reason over). |

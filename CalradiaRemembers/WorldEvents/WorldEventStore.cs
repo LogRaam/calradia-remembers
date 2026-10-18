@@ -240,6 +240,17 @@ namespace CalradiaRemembers.WorldEvents
          return found;
       }
 
+      /// <summary>
+      ///   The events of both tiers (news and long-term memory, authored included) naming both heroes among their actors
+      ///   or those harmed, oldest first: what lies between two characters (PairRegardReader).
+      /// </summary>
+      public IReadOnlyList<WorldEvent> EventsNamingBoth(string heroA, string heroB)
+      {
+         if (string.IsNullOrEmpty(heroA) || string.IsNullOrEmpty(heroB)) return Array.Empty<WorldEvent>();
+
+         return _events.Concat(_history).Where(e => Names(e, heroA) && Names(e, heroB)).GroupBy(e => e.Id).Select(g => g.First()).OrderBy(e => e.Day).ToList();
+      }
+
       /// <summary>Every id a long-term event names: its actors, those it harmed, its realms and its place.</summary>
       public static IReadOnlyCollection<string> NamedIdsOf(WorldEvent e)
       {

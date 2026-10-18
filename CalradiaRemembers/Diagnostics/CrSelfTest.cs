@@ -301,6 +301,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("authored_quest_branches", Severity.Light, "Branching tales (docs/design/quest-editor/goal.md). A small tale written into this test (never a shipped file) loads through the real loader; a real lord is bound to it and it is taken on. At the crossroads the journal shows the stage and its open ways, not the closed one; meeting the lord takes the first OPEN way (the one under an unset flag is passed over). In the scene, the chat would list only the open ways; a marker for a closed way changes nothing; a finding sets its flag, the way it opened is listed and its marker is taken; closing the scene follows it to its own ending (no regard, gold or memory, so nothing is left behind). Abandons and forgets the tale after.", TestAuthoredQuestBranches),
          new SelfTest("authored_quest_said_choice", Severity.Light, "Branching tales, choices by words. A tale written into this test loads and a real lord takes it on. At its last stage the action interpreter of a conversation with that lord is taught the open choice by words and not the one closed by its flag; another lord's interpreter is taught nothing. Through the REAL bridge (story_choice, the path an LLM report takes): the closed choice is refused and changes nothing, the open one is taken and ends the tale on its own ending (no regard, gold or memory). Abandons and forgets the tale after.", TestAuthoredQuestSaidChoice),
          new SelfTest("audience_not_spent_unheard", Severity.Light, "EnjoyingHydra (Nexus, 03/10/2026): companion audiences accepted and never opened were spent anyway (grievance count reset, topics used), and a companion left. Promises a change for a real companion, sends the audience through the real open with no profile so it fails: nothing may be spent, nothing left waiting. Opens no window.", TestAudienceNotSpentUnheard),
+         new SelfTest("npc_regard_reason", Severity.Light, "Gabriel (17/10/2026): every friend or enemy carries its reason (docs/design/NPC_REGARD.md section 9). Without touching the author's file, syncs a test betrayal of the past in which one lord wronged another, and drives the real name resolution (ContextualNameResolver.Resolve) on a message naming the betrayer: the wronged lord is told the betrayer is an enemy, for what lies between them, with the betrayal and how long ago; a lord of another house and realm asked the same is told nothing of it. Then the author's file alone is synced back.", TestNpcRegardReason),
          new SelfTest("companion_news_fresh", Severity.Light, "LapitaPolata (Nexus, 17/10/2026): a companion told of a castle being besieged after it had fallen, and of a war breaking out while the player was already riding to a siege in it. Records test news and reads it through the real glue (CompanionAudienceTopicResolver.FreshnessFacts): a siege fight at a place recorded as fallen since is overtaken; a war naming the player's own realm or clan is theirs; news ten days old is too old; fresh news of two other realms may still be brought. Removes the test news.", TestCompanionNewsFresh),
          new SelfTest("reply_language_everywhere", Severity.Light, "RaveN017Mod (Nexus, 17/10/2026): French game, Reply Language French, yet a character who came to him on the map and every council opened in English; he asked whether the mod could read the game's language. With the setting blank, the language resolved is the game's (none for an English game); with it set to Spanish, an opening cue ends naming Spanish and the council prompt carries Spanish. Restores the setting.", TestReplyLanguageEverywhere),
          new SelfTest("gossip_once_per_news", Severity.Light, "froggyluv (Nexus, 17/10/2026): with NPCs Raise World News on, notable after notable stopped him to ask what he knew of the same war, then the same capture. Turns the option on, records a great piece of news of two lords' realm, and drives the real candidate gathering (BuildRecentMatters): both lords could ask about it; once the first has offered it (an invitation naming it), the second no longer can, and the first still can, for when the player accepts. Restores the option, the news and the ledger.", TestGossipOncePerNews),
@@ -5003,6 +5004,55 @@ namespace CalradiaRemembers.Diagnostics
             Feed.Retract(bogusId);
             Feed.Retract(namedId);
          }
+
+         return t.Line();
+      }
+
+      private static string TestNpcRegardReason(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("npc_regard_reason");
+
+         AuthoredHistoryBehavior history = AuthoredHistoryBehavior.Instance;
+         if (t.Abort(history == null || WorldEventStore.Instance == null, "authored history or the world-event store is not active")) return t.Line();
+
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h != Hero.MainHero && h.IsLord && h.Clan != null && h.MapFaction != null && !h.MapFaction.IsBanditFaction
+                                                          && h.BirthDay.GetYear < Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.GetYear - 20).ToList();
+         Hero wronged = lords.FirstOrDefault();
+         Hero betrayer = lords.FirstOrDefault(h => wronged != null && h.MapFaction != wronged.MapFaction && h.Clan != wronged.Clan);
+         Hero stranger = lords.FirstOrDefault(h => wronged != null && betrayer != null && h.Clan != wronged.Clan && h.Clan != betrayer.Clan
+                                                   && h.MapFaction != wronged.MapFaction && h.MapFaction != betrayer.MapFaction);
+         if (t.Skip(wronged == null || betrayer == null || stranger == null, "no three adult lords of three houses and realms")) return t.Line();
+
+         string authorText = null;
+         try { if (System.IO.File.Exists(AuthoredHistoryBehavior.HistoryPath)) authorText = System.IO.File.ReadAllText(AuthoredHistoryBehavior.HistoryPath); }
+         catch (Exception ex) { t.Note("the author's file could not be read: " + ex.Message); }
+
+         var doc = Logic.AuthoredHistory.AuthoredHistoryLoader.Parse(authorText, new List<string>()) ?? new Logic.AuthoredHistory.AuthoredHistoryDocument();
+         string id = "selftest_" + Guid.NewGuid().ToString("N");
+         doc.Events.Add(new Logic.AuthoredHistory.AuthoredHistoryEvent {
+            Id = id, Year = Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.GetYear - 3, Season = "spring", Kind = "betrayal",
+            Summary = "[SELFTEST] " + betrayer.Name + " betrayed " + wronged.Name + " at the ford.", Actors = new List<string> {betrayer.StringId},
+            Harmed = new List<string> {wronged.StringId}, Importance = 100
+         });
+
+         try
+         {
+            t.Note("sync: " + history.SyncFrom(Newtonsoft.Json.JsonConvert.SerializeObject(doc)));
+
+            string asked = "What do you think of " + betrayer.Name + "?";
+            string block = ContextualNameResolver.Resolve(wronged, asked) ?? "";
+            string line = block.Split((char) 10).FirstOrDefault(l => l.Contains("[SELFTEST]")) ?? "";
+            t.Note("line: " + line);
+            t.Expect("theWrongedLordCallsHimAnEnemyAndSaysWhy", line.Contains("an enemy, for what lies between you"), true);
+            t.Expect("theReasonSaysHowLongAgo", line.Contains("years ago"), true);
+            t.Expect("aStrangerIsToldNothingOfIt", (ContextualNameResolver.Resolve(stranger, asked) ?? "").Contains("[SELFTEST]"), false);
+         }
+         finally
+         {
+            history.SyncFrom(authorText);
+         }
+
+         t.Expect("theTestEventIsGoneAfter", WorldEventStore.Instance.GetHistoryById("authored:" + id) == null, true);
 
          return t.Line();
       }

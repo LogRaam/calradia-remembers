@@ -80,6 +80,7 @@ namespace CalradiaRemembers.Mapping
                                     .Select(h => (h, rel: CharacterRelationManager.GetHeroRelation(hero, h)))
                                     .Where(x => x.rel <= EnemyThreshold)
                                     .OrderBy(x => x.rel)
+                                    .Where(x => PairRegardReader.Assess(hero, x.h).Verdict != PairRegardVerdict.Friend)
                                     .Take(MaxEntries)
                                     .Select(x => x.h))
             enemies.Add(hero1);
@@ -199,6 +200,8 @@ namespace CalradiaRemembers.Mapping
          var friends = new List<Hero>();
          foreach (Hero hero1 in Hero.AllAliveHeroes.Where(h => h != hero && !h.IsHumanPlayerCharacter && CharacterRelationManager.GetHeroRelation(hero, h) >= FriendThreshold)
                                     .OrderByDescending(h => CharacterRelationManager.GetHeroRelation(hero, h))
+                                    // A derived enemy, with a reason, is no friend (NPC_REGARD.md section 9, 17/10/2026)
+                                    .Where(h => PairRegardReader.Assess(hero, h).Verdict != PairRegardVerdict.Enemy)
                                     .Take(MaxEntries)) friends.Add(hero1);
 
          if (friends.Count > 0)

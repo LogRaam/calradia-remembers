@@ -428,6 +428,12 @@ Change:
   Lean drops it already, so `LeanPromptPolicyTests` (budget 7400 at
   `LLM Roleplay Service/NpcMemoryServiceTests/LeanPromptPolicyTests.cs:120`; the 6950 in `MOD/CLAUDE.md` is stale)
   is not affected. The Compact budget tests must still be run.
+- **Built 17/10/2026 (conversation first):** `PairRegardPolicy` and `PairRegardReader` with the sources whose sides
+  the code makes clear (kin killed by death mark, grudges and appreciations, authored actors and harmed, the game's
+  captures and battles by actor order); `ContextualNameResolver.Categorize` takes the derived verdict and its reason
+  when there is one and keeps the vanilla label otherwise (vanilla stays a fallback, not a source, so a pair with no
+  trace does not drop to "not personally known"); `RelationshipsBuilder` drops a derived enemy from Friends and a
+  derived friend from Enemies. Schemes and the shared past are not read yet.
 - The companion camp note (`ResolveCompanionCampNote`, trace `EncounterContextBuilder.cs:1464-1485`) stays on vanilla
   relation for now: companions earn vanilla relation through real campaign events, and that is a mechanic, not a
   page. Listed as Q9.

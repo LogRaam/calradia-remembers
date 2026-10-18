@@ -4,6 +4,20 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.15.. open
 
+### New
+- **A lord says why he holds someone friend or enemy** (NPC regard, design `NPC_REGARD.md` sections 5 and 9;
+  Gabriel, 17/10: every friend or enemy carries its reason). When the player names someone, the speaker is told what
+  lies between them, from things that happened: a kinsman the other had executed or killed in battle (the engine's
+  death mark), his own grudges and debts of gratitude to them, the campaign's written past (a betrayal, a feud, a
+  rescue, by its actors and those harmed), a capture or a defeat in battle the game recorded. Weighed and aged
+  (`PairRegardPolicy`: an execution never fades, a wrong halves every 10 years, a defeat every 5), it gives "an enemy,
+  for what lies between you: had your brother Garios executed (9 years ago)", with a strong reason the other way
+  ("though ...") and, when the player could not know the main one, that the speaker may keep it to himself. Kin keep
+  their word and gain the reason; a pair with nothing between them reads as before (vanilla relation is not a
+  source, it has no reason). The friends and enemies listed in the prompt drop anyone the derived regard says is the
+  opposite. `PairRegardReader`, `WorldEventStore.EventsNamingBoth`; cr.testall `npc_regard_reason`. Not yet: the
+  encyclopedia pages, the clan lists, the generated past.
+
 ## v2.7.14.. 2026-10-17
 
 ### Fixed
