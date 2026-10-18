@@ -135,6 +135,7 @@ The rules around every offer:
 | `giver.min_regard` | The giver's regard for the player on Calradia Remembers' own ledger (the one built in conversation, not the game's relation). |
 | `giver.not_at_war_with_player` | Default `true`. |
 | `giver.culture` | The giver's culture: one id (`"battania"`) or a list (`["battania", "sturgia"]`). The culture's name works too, in any case. Omit it for any culture. |
+| `giver.realm` | The giver's realm: one id (`"vlandia"`) or a list, or the realm's name, in any case. The three empires share one culture, so only this tells them apart: `empire` (north), `empire_w` (west), `empire_s` (south). A giver with no realm never matches. Omit it for any realm. Since 2.7.17. |
 | `giver.gender` | `female` or `male`: the giver must be a woman, or a man. Omit it for either. A tale for "the player's wife" is `"role": "spouse", "gender": "female"`, whatever the player's own sex. |
 | `giver.with_player` | `true`: the giver must be travelling in the player's own party. |
 | `giver.not_pregnant` | `true`: never while the giver is with child. |

@@ -137,6 +137,15 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [JsonConverter(typeof(OneOrManyConverter))]
       public List<string> Culture { get; set; } = new();
 
+      /// <summary>
+      ///   Gabriel (18/10/2026): the queens' tale is offered only in the realms whose queen has her face and pictures; the
+      ///   three empires share one culture, so only the realm tells them apart. Empty for any.
+      /// </summary>
+      [QuestField("The giver's realm, one or a list, by its id or name (\"vlandia\", or [\"empire\", \"empire_w\"]); empty for any.")]
+      [JsonProperty("realm")]
+      [JsonConverter(typeof(OneOrManyConverter))]
+      public List<string> Realm { get; set; } = new();
+
       /// <summary>Gabriel (10/10/2026): a tale of intimacy with the player's wife, whatever the player's sex; see AuthoredGiverPolicy.</summary>
       [QuestField("female or male: the giver must be a woman, or a man; empty for either.", ClosedList = nameof(AuthoredQuestLoader.GiverGenders))]
       [JsonProperty("gender")] public string Gender { get; set; }

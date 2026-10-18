@@ -394,6 +394,14 @@ namespace CalradiaRemembers.Quests
             return false;
          }
 
+         Kingdom giversRealm = giver.Clan?.Kingdom;
+         if (!AuthoredCulturePolicy.Matches(g.Realm, giversRealm?.StringId ?? "", giversRealm?.Name?.ToString() ?? ""))
+         {
+            whyNot = $"the quest wants a giver of the realm {AuthoredCulturePolicy.Describe(g.Realm)}, and they are of {(giversRealm != null ? $"{giversRealm.Name} ({giversRealm.StringId})" : "no realm")}";
+
+            return false;
+         }
+
          if (g.NotAtWarWithPlayer && giver.MapFaction != null && Hero.MainHero?.MapFaction != null
              && FactionManager.IsAtWarAgainstFaction(giver.MapFaction, Hero.MainHero.MapFaction))
          {

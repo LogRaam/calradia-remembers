@@ -928,6 +928,12 @@ input[type="number"] { max-width: 160px; }
           "description": "The giver's culture, one or a list (\"battania\", or [\"battania\", \"sturgia\"]); empty for any.",
           "x-default-empty": true
         },
+        "realm": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "The giver's realm, one or a list, by its id or name (\"vlandia\", or [\"empire\", \"empire_w\"]); empty for any.",
+          "x-default-empty": true
+        },
         "gender": {
           "type": [
             "string",
@@ -3987,7 +3993,7 @@ input[type="number"] { max-width: 160px; }
     AuthoredQuest: ['id', 'title', 'author', 'unique', 'repeat_cooldown_days', 'weight', 'requires', 'on_map', 'binds', 'stages', 'reward', 'endings', 'failure'],
     AuthoredMapTrigger: ['still_hours', 'by_day', 'in_givers_lands', 'chance_per_day', 'invitation', 'accept', 'decline'],
     AuthoredRequires: ['giver', 'village', 'rival', 'husband', 'player', 'content'],
-    GiverRequirement: ['role', 'holds', 'min_regard', 'not_at_war_with_player', 'culture', 'gender', 'with_player', 'not_pregnant', 'married', 'not_clan_leader', 'not_of_players_realm'],
+    GiverRequirement: ['role', 'holds', 'min_regard', 'not_at_war_with_player', 'culture', 'realm', 'gender', 'with_player', 'not_pregnant', 'married', 'not_clan_leader', 'not_of_players_realm'],
     HusbandRequirement: ['role', 'rules_a_realm'],
     PlaceRequirement: ['type', 'near', 'culture'],
     RivalRequirement: ['role', 'same_realm_as'],
@@ -4830,6 +4836,7 @@ input[type="number"] { max-width: 160px; }
       numberField('tale/requires.giver.min_regard', 'Least regard for the player', 'GiverRequirement', 'min_regard', giver, {min: -100, max: 100}),
       boolField('tale/requires.giver.not_at_war_with_player', 'Never while at war with the player', 'GiverRequirement', 'not_at_war_with_player', giver),
       flagsField('tale/requires.giver.culture', 'Of the culture', 'GiverRequirement', 'culture', giver, {placeholder: 'any (battania, sturgia)'}),
+      flagsField('tale/requires.giver.realm', 'Of the realm', 'GiverRequirement', 'realm', giver, {placeholder: 'any (vlandia, empire_w)'}),
       selectField('tale/requires.giver.gender', 'A woman or a man', 'GiverRequirement', 'gender', giver, list('GiverGenders'), {empty: 'either'}),
       boolField('tale/requires.giver.with_player', "Travelling in the player's party", 'GiverRequirement', 'with_player', giver),
       boolField('tale/requires.giver.not_pregnant', 'Never while with child', 'GiverRequirement', 'not_pregnant', giver),

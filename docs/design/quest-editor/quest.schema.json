@@ -519,6 +519,12 @@
           "description": "The giver's culture, one or a list (\"battania\", or [\"battania\", \"sturgia\"]); empty for any.",
           "x-default-empty": true
         },
+        "realm": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "The giver's realm, one or a list, by its id or name (\"vlandia\", or [\"empire\", \"empire_w\"]); empty for any.",
+          "x-default-empty": true
+        },
         "gender": {
           "type": [
             "string",

@@ -13,7 +13,10 @@ using System.Linq;
 
 namespace CalradiaRemembers.Logic.AuthoredQuests
 {
-   /// <summary>Whether a giver or a village is of the culture a tale asks for (id or name, any case; none asked is any).</summary>
+   /// <summary>
+   ///   Whether a giver or a village is of the culture a tale asks for (id or name, any case; none asked is any). The
+   ///   giver's realm is matched the same way (Gabriel, 18/10/2026): one id-or-name rule for both, so they cannot drift.
+   /// </summary>
    public static class AuthoredCulturePolicy
    {
       public static bool Matches(IReadOnlyList<string> wanted, string cultureId, string cultureName)
