@@ -1,0 +1,21 @@
+Version 2.7.16
+
+Press a lord toward war in conversation, and fixes to enemies at the border and to written tales.
+
+New
+
+- Press a lord toward war. In conversation, you can argue that a lord's realm should make war on another, and if the case truly persuades him, he resolves to carry it to his court. A few days later his house puts the war to the realm's vote, as the game's own houses do, at the cost of its influence: the houses vote and the ruler decides, so the war is more likely, never certain. Any lord can be pressed, of your realm or another. He knows beforehand which wars his house could propose and how it leans on each, so he never promises what the realm cannot do. Your case has to name the realm. There is a risk: talk of war travels, and a lord of the realm you spoke against who hears of it will hold it against you.
+
+Fixed
+
+- An enemy lord no longer rides out to ask your business on his lands. At war it is plain enough; that challenge is now kept for a realm wary of you but at peace. And an enemy lord whose party is outnumbered by yours no longer rides up to you to talk, whatever he holds against you, as the game has such a lord flee. (Thank you, LapitaPolata.)
+- A written tale is set in a quiet village. A tale used to take the first village of its giver, even one being raided, looted, or whose town was under siege, so its people could not be found. It now picks a quiet one, and when none is, the tale waits for another day. If the giver loses the village while the tale runs (its town falls), the tale ends without reward or penalty, and the journal says who holds it now. (Thank you, fkasad.)
+- A lord raising a tale no longer sets you a second errand beside it. The Drowned Bridge's lord could also hand out a task of his own about the same bridge, at another village, which showed as the purple line "That deed finds no purchase in the world here". (Thank you, fkasad.)
+
+Developer tools
+
+- New cr.testall tests: enemy_no_border_challenge, tale_quiet_village, press_for_war; authored_quest_opening checks that a lord raising a tale sets no other errand.
+
+Notes
+
+- Your existing saves load as they are.

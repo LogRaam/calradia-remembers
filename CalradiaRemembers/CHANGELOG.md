@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.7.16.. open
+## v2.7.16.. 2026-10-18
 
 ### New
 - **Press a lord toward war** (Gabriel, 18/10: "qu'on puisse influencer en chat pour la guerre"; any lord; the cost

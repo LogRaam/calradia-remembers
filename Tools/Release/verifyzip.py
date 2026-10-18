@@ -543,6 +543,18 @@ MUST = [
     ("mod",   b"OnPagePropertyChanged"),
     ("mod",   "npc_regard_reason".encode("utf-16-le")),
     ("mod",   "shared_past_draw".encode("utf-16-le")),
+    # 2.7.16
+    ("logic", b"IsOutnumbered"),
+    ("logic", b"RealmAtWarWithPlayer"),
+    ("logic", b"TaleVillagePolicy"),
+    ("logic", b"PressForWarPolicy"),
+    ("mod",   b"PressForWarVerb"),
+    ("mod",   b"PressForWarBehavior"),
+    ("mod",   b"StopIfVillageLost"),
+    ("mod",   "enemy_no_border_challenge".encode("utf-16-le")),
+    ("mod",   "tale_quiet_village".encode("utf-16-le")),
+    ("mod",   "press_for_war".encode("utf-16-le")),
+    ("sdk",   "press_for_war".encode("utf-16-le")),
 ]
 MUST_NOT = [
     ("mod",   "patrol_spike".encode("utf-16-le")),   # 2.7.13: the patrol engine spike's console command, removed before release
