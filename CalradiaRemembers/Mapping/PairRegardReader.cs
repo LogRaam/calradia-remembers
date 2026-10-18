@@ -88,9 +88,11 @@ namespace CalradiaRemembers.Mapping
             int years = dated ? (today - deathDay) / Math.Max(1, age.DaysInYear) : 0;
             string when = dated ? $" ({PastOnMentionPolicy.AgeOf(deathDay, age)})" : "";
 
+            string their = speaker.IsFemale ? "her" : "his";
             traces.Add(new PairRegardTrace {
                Weight = executed ? PairRegardPolicy.KinExecuted() : PairRegardPolicy.KinKilledInBattle(years),
                Line = executed ? $"had your {word} {kin.Name} executed{when}" : $"killed your {word} {kin.Name}{when}",
+               PageLine = executed ? $"had {their} {word} {kin.Name} executed{when}" : $"killed {their} {word} {kin.Name}{when}",
                KnownToPlayer = true
             });
          }
@@ -120,7 +122,8 @@ namespace CalradiaRemembers.Mapping
             Logic.Grudges.TraitFacts traits = GrudgeBridge.BuildTraitFacts(speaker);
             foreach (Grudge g in GrudgeBehavior.Instance.LiveGrudgesFor(speaker, today).Where(g => g.TargetId == other.StringId))
                traces.Add(new PairRegardTrace {
-                  Weight = -GrudgePolicy.EffectiveMagnitude(g, today, traits), Line = $"your grudge: {g.CauseSummary}", KnownToPlayer = g.KnownToPlayer
+                  Weight = -GrudgePolicy.EffectiveMagnitude(g, today, traits), Line = $"your grudge: {g.CauseSummary}", KnownToPlayer = g.KnownToPlayer,
+                  PageLine = $"a grudge: {ShownText.Of(g.CauseSummary)}"
                });
          }
 
@@ -129,7 +132,8 @@ namespace CalradiaRemembers.Mapping
             Logic.Appreciations.TraitFacts traits = AppreciationBridge.BuildTraitFacts(speaker);
             foreach (Appreciation a in AppreciationBehavior.Instance.LiveAppreciationsFor(speaker, today).Where(a => a.TargetId == other.StringId))
                traces.Add(new PairRegardTrace {
-                  Weight = AppreciationPolicy.EffectiveMagnitude(a, today, traits), Line = $"you owe them: {a.CauseSummary}", KnownToPlayer = a.KnownToPlayer
+                  Weight = AppreciationPolicy.EffectiveMagnitude(a, today, traits), Line = $"you owe them: {a.CauseSummary}", KnownToPlayer = a.KnownToPlayer,
+                  PageLine = $"a debt of gratitude: {ShownText.Of(a.CauseSummary)}"
                });
          }
       }
@@ -171,6 +175,42 @@ namespace CalradiaRemembers.Mapping
 
             if (weight != 0) traces.Add(new PairRegardTrace {Weight = weight, Line = line, KnownToPlayer = known});
          }
+      }
+
+      /// <summary>
+      ///   Everyone something real ties to <paramref name="hero" />: the killers of his kin, the targets of his grudges and
+      ///   appreciations, and those named with him in the world's events (news and long-term memory). The people whose
+      ///   regard his encyclopedia page weighs beyond the vanilla lists. In the world, adult lords and wanderers only,
+      ///   never the player (whose own page is read from personal regard).
+      /// </summary>
+      public static IReadOnlyList<Hero> TiedTo(Hero hero)
+      {
+         var ids = new HashSet<string>();
+         if (hero == null) return Array.Empty<Hero>();
+
+         try
+         {
+            foreach ((Hero kin, string _) in Kin(hero))
+               if (kin?.DeathMarkKillerHero != null) ids.Add(kin.DeathMarkKillerHero.StringId);
+
+            int today = (int) CampaignTime.Now.ToDays;
+            if (GrudgeBehavior.Instance != null) ids.UnionWith(GrudgeBehavior.Instance.LiveGrudgesFor(hero, today).Select(g => g.TargetId));
+            if (AppreciationBehavior.Instance != null) ids.UnionWith(AppreciationBehavior.Instance.LiveAppreciationsFor(hero, today).Select(a => a.TargetId));
+
+            foreach (WorldEvent e in WorldEventStore.Instance?.EventsNaming(hero.StringId) ?? Array.Empty<WorldEvent>())
+            {
+               if (e.ActorIds != null) ids.UnionWith(e.ActorIds);
+               if (e.AggrievedActorIds != null) ids.UnionWith(e.AggrievedActorIds);
+            }
+         }
+         catch (Exception ex) { ModLog.Error($"[REGARD] could not gather who is tied to {hero.Name}: {ex.Message}"); }
+
+         ids.Remove(hero.StringId);
+
+         return ids.Where(id => !string.IsNullOrEmpty(id))
+                   .Select(id => Hero.FindFirst(h => h.StringId == id))
+                   .Where(h => h != null && h != Hero.MainHero && HeroPresence.IsInTheWorld(h) && !h.IsChild && (h.IsLord || h.IsWanderer))
+                   .ToList();
       }
 
       // The authored kind back from the world event AuthoredHistoryBehavior.ToWorldEvent made of it.

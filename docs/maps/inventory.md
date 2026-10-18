@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 510 types in 61 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 513 types in 61 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1190 types in 31 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
@@ -319,7 +319,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `SuccessionBehavior` | public class | Reframes all stored NPC memories through the lens of the new heir on player death. |
 
-### CalradiaRemembers.Encyclopedia (27)
+### CalradiaRemembers.Encyclopedia (30)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -333,6 +333,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EncyclopediaHeroPageLettersMixin` | public class | UIExtenderEx mixin adding a per-contact "Letters" button to the hero encyclopedia page. |
 | `EncyclopediaHeroPageNemesisMixin` | public class | UIExtenderEx mixin that displays the shared history the player has with a nemesis they have ALREADY ENCOUNTERED, on that nemesis's own encyclopedia hero page. |
 | `EncyclopediaHeroPagePersonalRelationMixin` | public class | UIExtenderEx mixin that surfaces the NPC's PERSONAL regard for the player (our per-hero score, independent of the clan-level relation Bannerlord shows) on the hero's encyclopedia page. |
+| `EncyclopediaHeroPageRegardMixin` | public class | Refills a hero page's Friends and Enemies from real regard, and says why in a "Why" block. |
 | `EncyclopediaHeroPageStandingAccordsMixin` | public class | UIExtenderEx mixin that displays this hero's still-standing council accords with the player (a tribute they owe, a stipend they receive, a non-aggression pact, a hostage held or given, a ward bond) on their encyclopedia... |
 | `HeroPageAppearancePatch` | internal class | Inserts the appearance panel (composed look + inline editable note) into the hero encyclopedia page's info block. |
 | `HeroPageBearingPatch` | internal class | Inserts a single line into the hero encyclopedia page, alongside the personal-relation line, showing the NPC's Bearing (Trust/Respect/Fear, numberless) toward the player. |
@@ -348,6 +349,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroPageNemesisPatchA` | internal class | Appends the nemesis dossier bullet list to the hero encyclopedia page. |
 | `HeroPageNemesisPatchB` | internal class | Appends the "Nemesis:" header line to the hero encyclopedia page. |
 | `HeroPagePersonalRelationPatch` | internal class | Inserts a single line into the hero encyclopedia page, just after the vanilla Info block, showing the NPC's personal regard for the player. |
+| `HeroPageRegardWhyPatchA` | internal class | Appends the friends-and-enemies reasons to the hero encyclopedia page. |
+| `HeroPageRegardWhyPatchB` | internal class | Appends the "Why:" header line to the hero encyclopedia page. |
 | `HeroPageStandingAccordsPatchA` | internal class | Appends the standing-accords bullet list to the hero encyclopedia page. |
 | `HeroPageStandingAccordsPatchB` | internal class | Appends the "Standing accords:" header line to the hero encyclopedia page. |
 

@@ -91,6 +91,26 @@ namespace CalradiaRemembers.Tests
          PairRegardPolicy.KinExecuted().Should().Be(PairRegardPolicy.KinExecutedWeight);
       }
 
+      // STAKE: the encyclopedia never lists an enemy whose only reason the player could not know (NPC_REGARD.md 5.3).
+      [Test]
+      public void GIVEN_an_enemy_whose_only_reason_is_secret_WHEN_his_page_is_built_THEN_he_is_not_listed()
+      {
+         PairRegard r = PairRegardPolicy.Assess(new PairRegardFacts {Traces = new[] {Trace(-60, "betrayed you", known: false)}});
+
+         PairRegardPolicy.PageReason(r).Should().BeNull();
+      }
+
+      // STAKE: the page is read by the player: it shows the line told about the lord, never one that says "you" of him.
+      [Test]
+      public void GIVEN_a_known_reason_WHEN_his_page_is_built_THEN_the_page_line_is_shown()
+      {
+         PairRegard r = PairRegardPolicy.Assess(new PairRegardFacts {
+            Traces = new[] {new PairRegardTrace {Weight = -70, Line = "had your brother Garios executed", PageLine = "had his brother Garios executed", KnownToPlayer = true}}
+         });
+
+         PairRegardPolicy.PageReason(r).Should().Be("had his brother Garios executed");
+      }
+
       // STAKE: a small trace with ties tips nothing on its own: no verdict, the caller keeps the old label.
       [Test]
       public void GIVEN_a_small_trace_WHEN_regard_is_read_THEN_there_is_no_verdict()

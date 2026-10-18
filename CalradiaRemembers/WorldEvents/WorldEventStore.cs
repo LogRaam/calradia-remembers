@@ -251,6 +251,12 @@ namespace CalradiaRemembers.WorldEvents
          return _events.Concat(_history).Where(e => Names(e, heroA) && Names(e, heroB)).GroupBy(e => e.Id).Select(g => g.First()).OrderBy(e => e.Day).ToList();
       }
 
+      /// <summary>The events of both tiers naming this hero among their actors or those harmed (PairRegardReader.TiedTo).</summary>
+      public IReadOnlyList<WorldEvent> EventsNaming(string heroId)
+         => string.IsNullOrEmpty(heroId)
+            ? Array.Empty<WorldEvent>()
+            : _events.Concat(_history).Where(e => Names(e, heroId)).ToList();
+
       /// <summary>Every id a long-term event names: its actors, those it harmed, its realms and its place.</summary>
       public static IReadOnlyCollection<string> NamedIdsOf(WorldEvent e)
       {

@@ -434,6 +434,10 @@ Change:
   when there is one and keeps the vanilla label otherwise (vanilla stays a fallback, not a source, so a pair with no
   trace does not drop to "not personally known"); `RelationshipsBuilder` drops a derived enemy from Friends and a
   derived friend from Enemies. Schemes and the shared past are not read yet.
+- **Built 17/10/2026, encyclopedia (section 8, route b):** the player's page from personal regard ("Hold you dear" /
+  "Hold you in contempt"); a character's page keeps vanilla's lists corrected by derived verdicts (same fallback rule
+  as the conversation, so a page with no trace is untouched) and lists only pairs with a reason the player may know;
+  a "Why:" block in InfoContainer. Not built: the clan lists (8.2), the reason on the "Personal regard" row (Q2).
 - The companion camp note (`ResolveCompanionCampNote`, trace `EncounterContextBuilder.cs:1464-1485`) stays on vanilla
   relation for now: companions earn vanilla relation through real campaign events, and that is a mechanic, not a
   page. Listed as Q9.

@@ -17,6 +17,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   source, it has no reason). The friends and enemies listed in the prompt drop anyone the derived regard says is the
   opposite. `PairRegardReader`, `WorldEventStore.EventsNamingBoth`; cr.testall `npc_regard_reason`. Not yet: the
   encyclopedia pages, the clan lists, the generated past.
+- **The encyclopedia's Friends and Enemies say why** (NPC regard, design section 8, route b). Your own page lists who
+  holds you dear and who holds you in contempt, by each character's personal regard (the mod's own ledger, the case
+  Gabriel saw on 17/10: a vanilla "friend" bearing a bitter grudge), with the strongest known grudge or kindness
+  toward you, else the regard in words. A character's page keeps vanilla's lists, less anyone what really happened
+  makes the opposite, plus anyone it makes a friend or enemy with a reason you could know (`PairRegardPolicy.
+  PageReason`: a secret reason lists the pair nowhere); a page where nothing applies stays exactly as vanilla built
+  it. The reasons sit in a "Why:" block, written about the character ("had his brother Garios executed (9 years
+  ago)"). `EncyclopediaHeroPageRegardMixin` refills the vanilla lists from its refresh (portraits, tooltips and links
+  stay vanilla's); `PairRegardReader.TiedTo`, `WorldEventStore.EventsNaming`. cr.testall `npc_regard_reason` now also
+  builds the wronged lord's page and checks it before and after a refresh.
 
 ## v2.7.14.. 2026-10-17
 

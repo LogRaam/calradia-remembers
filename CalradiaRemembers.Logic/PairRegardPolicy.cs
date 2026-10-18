@@ -38,6 +38,12 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>The player could know of it. When false, the speaker knows it and may keep it to himself.</summary>
         public bool KnownToPlayer { get; init; }
+
+        /// <summary>
+        ///   The same thing told about the speaker, for his encyclopedia page ("had Garios, his brother, executed (9 years
+        ///   ago)"): the page is read by the player, so it never says "you" of the speaker. Falls back to Line when null.
+        /// </summary>
+        public string PageLine { get; init; }
     }
 
     /// <summary>What ties the speaker to the other, and what happened between them.</summary>
@@ -151,6 +157,21 @@ namespace CalradiaRemembers.Logic
                                                   .ToList();
 
             return new PairRegard {Points = points, Verdict = verdict, Reasons = reasons};
+        }
+
+        /// <summary>
+        ///   The reason an encyclopedia page may show for this verdict, or null when the page must not list the pair:
+        ///   only a reason the player could know is shown, the strongest that agrees with the verdict (NPC_REGARD.md
+        ///   5.3: listing an enemy with a reason the player may not read is a leak or an unverifiable claim).
+        /// </summary>
+        public static string PageReason(PairRegard r)
+        {
+            if (r == null || r.Verdict == PairRegardVerdict.Neither) return null;
+
+            int sign = r.Verdict == PairRegardVerdict.Enemy ? -1 : 1;
+            PairRegardTrace shown = r.Reasons.FirstOrDefault(t => t.KnownToPlayer && Math.Sign(t.Weight) == sign);
+
+            return shown == null ? null : (shown.PageLine ?? shown.Line).Trim().TrimEnd('.');
         }
 
         /// <summary>
