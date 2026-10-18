@@ -493,9 +493,9 @@ namespace CalradiaRemembers.Settings
          new(new[] {"Grounded", "Warm", "Storyteller"}, 0); // default: Grounded (= Normal)
 
       [SettingPropertyText("Reply Language", RequireRestart = false, Order = 3,
-         HintText = "Leave blank to auto-detect and mirror whatever language you write in. Name a language " +
-                    "(e.g. Spanish) to force every reply, letter, memory, and the illuminated chronicle into " +
-                    "it, no matter what you write.")]
+         HintText = "Leave blank to use the game's language (an English game mirrors whatever language you write " +
+                    "in). Name a language (e.g. Spanish) to force every reply, letter, memory, and the illuminated " +
+                    "chronicle into it, no matter what you write.")]
       [SettingPropertyGroup("Content", GroupOrder = 4)]
       public string ReplyLanguage { get; set; } = "";
 

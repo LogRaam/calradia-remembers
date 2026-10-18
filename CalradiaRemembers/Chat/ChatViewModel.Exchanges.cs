@@ -695,6 +695,11 @@ namespace CalradiaRemembers.Chat
          // recap left dangling by an early return (a witness exchange, a scene pause) never fires on a later turn.
          if (!isOutcomeReaction && !suppressGroupTail) _pendingOutcomeRecap = null;
 
+         // A line the character speaks first (an opening, a voice in the ensemble, a reaction) has no player message to
+         // set the language, only an English stage direction: the direction names it (RaveN017Mod, 17/10/2026: whoever
+         // came to him on the map opened in English).
+         if (suppressPlayerLine) playerMessage = ReplyLanguagePolicy.WithLanguage(playerMessage, ModSettings.ReplyLanguage);
+
          // suppressGroupTail: this turn is ONE voice inside an ensemble turn (RunEnsembleTurnAsync). It still
          // renders its reply and applies its own actions/events/memory (a full participant), but skips the group
          // machinery that must run ONCE per player turn, not once per active voice: passive-witness reactions,

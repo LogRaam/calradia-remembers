@@ -2,6 +2,18 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.7.14.. open
+
+### Fixed
+- **Characters speak your language from their first line** (RaveN017Mod, 17/10: French game, Reply Language French,
+  yet whoever came to him on the map, and every council, opened in English until asked to repeat in French). The
+  council builds its own prompt (`CouncilPromptBuilder`) and never carried the language; it now does, last in the
+  prompt (SDK `989492b`). An opening the character speaks first had only an English stage direction to go on; the
+  direction now ends naming the language (`ReplyLanguagePolicy.WithLanguage`, every line spoken without a player
+  message). And "Reply Language" left blank now means the game's own language (`BannerlordConfig.Language`, mapped to
+  a name the model knows); an English game keeps the old mirror of whatever you write. cr.testall
+  `reply_language_everywhere`.
+
 ## v2.7.13.. 2026-10-17
 
 ### New

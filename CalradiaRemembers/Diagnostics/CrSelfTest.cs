@@ -301,6 +301,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("authored_quest_branches", Severity.Light, "Branching tales (docs/design/quest-editor/goal.md). A small tale written into this test (never a shipped file) loads through the real loader; a real lord is bound to it and it is taken on. At the crossroads the journal shows the stage and its open ways, not the closed one; meeting the lord takes the first OPEN way (the one under an unset flag is passed over). In the scene, the chat would list only the open ways; a marker for a closed way changes nothing; a finding sets its flag, the way it opened is listed and its marker is taken; closing the scene follows it to its own ending (no regard, gold or memory, so nothing is left behind). Abandons and forgets the tale after.", TestAuthoredQuestBranches),
          new SelfTest("authored_quest_said_choice", Severity.Light, "Branching tales, choices by words. A tale written into this test loads and a real lord takes it on. At its last stage the action interpreter of a conversation with that lord is taught the open choice by words and not the one closed by its flag; another lord's interpreter is taught nothing. Through the REAL bridge (story_choice, the path an LLM report takes): the closed choice is refused and changes nothing, the open one is taken and ends the tale on its own ending (no regard, gold or memory). Abandons and forgets the tale after.", TestAuthoredQuestSaidChoice),
          new SelfTest("audience_not_spent_unheard", Severity.Light, "EnjoyingHydra (Nexus, 03/10/2026): companion audiences accepted and never opened were spent anyway (grievance count reset, topics used), and a companion left. Promises a change for a real companion, sends the audience through the real open with no profile so it fails: nothing may be spent, nothing left waiting. Opens no window.", TestAudienceNotSpentUnheard),
+         new SelfTest("reply_language_everywhere", Severity.Light, "RaveN017Mod (Nexus, 17/10/2026): French game, Reply Language French, yet a character who came to him on the map and every council opened in English; he asked whether the mod could read the game's language. With the setting blank, the language resolved is the game's (none for an English game); with it set to Spanish, an opening cue ends naming Spanish and the council prompt carries Spanish. Restores the setting.", TestReplyLanguageEverywhere),
          new SelfTest("gossip_once_per_news", Severity.Light, "froggyluv (Nexus, 17/10/2026): with NPCs Raise World News on, notable after notable stopped him to ask what he knew of the same war, then the same capture. Turns the option on, records a great piece of news of two lords' realm, and drives the real candidate gathering (BuildRecentMatters): both lords could ask about it; once the first has offered it (an invitation naming it), the second no longer can, and the first still can, for when the player accepts. Restores the option, the news and the ledger.", TestGossipOncePerNews),
          new SelfTest("history_on_mention", Severity.Light, "Gabriel (17/10/2026): the long-term memory serves conversations about the past, and the authored history file stages events from before the campaign. Without touching the author's file, syncs one secret test event naming two real lords, nine years before the start. Drives the real conversation path (EncounterContextBuilder.ResolvePastOnMention): the first lord, asked about the second by name, gets the event with its age, the secret tag and that he was part of it; a lord of another house and realm asked the same gets nothing; the first lord asked about a battle yesterday, naming no one, gets nothing. Then the author's file alone is synced back.", TestHistoryOnMention),
          new SelfTest("authored_history", Severity.Light, "Gabriel (17/10/2026): a file per campaign of events from before it began, which can set a starting vanilla relation (docs/design/AUTHORED_HISTORY.md). Without touching the author's file, drives the real sync on the file's text plus one test event naming two real lords, dated ten years before the start, with a relation change of -15: the event is in the long-term memory as authored, the first lord knows it and a stranger does not, the pair's relation moved by exactly -15. Synced again: nothing moves (no stacking). An event dated inside the campaign is set aside. Then the author's file alone is synced back: the test event is gone and the relation is restored.", TestAuthoredHistory),
@@ -5000,6 +5001,40 @@ namespace CalradiaRemembers.Diagnostics
             Feed.Retract(placedId);
             Feed.Retract(bogusId);
             Feed.Retract(namedId);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestReplyLanguageEverywhere(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("reply_language_everywhere");
+
+         CrSettings s = CrSettings.Instance;
+         if (t.Abort(s == null, "MCM is not ready")) return t.Line();
+
+         string prior = s.ReplyLanguage;
+         try
+         {
+            string game = "";
+            try { game = TaleWorlds.MountAndBlade.BannerlordConfig.Language; }
+            catch (Exception ex) { t.Note("the game's language could not be read: " + ex.Message); }
+
+            s.ReplyLanguage = "";
+            string resolved = ModSettings.ReplyLanguage;
+            t.Note($"game language '{game}' -> '{resolved}'");
+            t.Expect("blankUsesTheGamesLanguage", resolved, Logic.ReplyLanguagePolicy.Resolve("", game));
+
+            s.ReplyLanguage = "Spanish";
+            t.Expect("anOpeningNamesTheLanguage", Logic.ReplyLanguagePolicy.WithLanguage("[Open the conversation yourself.]", ModSettings.ReplyLanguage).Contains("Spanish"), true);
+            string council = NpcMemoryService.Core.Prompts.CouncilPromptBuilder.Build(new NpcMemoryService.Core.Prompts.CouncilPromptInput {
+               Roster = new[] {new NpcMemoryService.Core.Prompts.CouncilMemberInput {Name = "Test"}}, ReplyLanguage = ModSettings.ReplyLanguage
+            });
+            t.Expect("theCouncilSpeaksIt", council.Contains("in Spanish, from the very first line"), true);
+         }
+         finally
+         {
+            s.ReplyLanguage = prior;
          }
 
          return t.Line();

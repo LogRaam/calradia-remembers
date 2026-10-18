@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-531 rules read 412 facts.
+532 rules read 412 facts.
 
 ## Facts read by more than one rule
 
@@ -237,6 +237,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.LeanPrompt` (2) | `ConversationCompressionPolicy.ThresholdFor`, `TranscriptFold` |
 | `ModSettings.LettersFromNpcs` (2) | `LetterMailboxPolicy.SelectNext`, `LetterPacingRules.BudgetFor` |
 | `ModSettings.MarriageRegardThreshold` (2) | `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion` |
+| `ModSettings.ReplyLanguage` (2) | `PendingSummaryJob`, `ReplyLanguagePolicy.WithLanguage` |
 | `ModSettings.RoleplayProviderSelection` (2) | `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.SelfEsteemClimb` (2) | `SelfEsteemClimb`, `SelfEsteemPolicy.Record` |
 | `ModSettings.WarDutyWindowDays` (2) | `WarDutyLive`, `WarDutyPolicy.Decide` |
@@ -669,6 +670,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `ReleaseFacts`: `Clan.IsBanditFaction`, `Hero.Clan`, `Hero.IsLord`
 - `ReleaseLineFacts`: `Hero.IsFemale`
 - `ReliefSeat`: `Settlement.IsStarving`, `Town.FoodChange`, `Town.FoodStocks`
+- `ReplyLanguagePolicy.WithLanguage`: `ModSettings.ReplyLanguage`
 - `RescueCaptorFacts`: `IFaction.Leader`, `OwnerClan.Leader`, `PartyBase.LeaderHero`, `PartyBase.MapFaction`
 - `RescueEligibilityPolicy.CanBeARescue`: `EndCaptivityDetail.ReleasedAfterBattle`, `EndCaptivityDetail.ReleasedByChoice`
 - `RescueGratitudePolicy.CanFeelTheDebt`: `Hero.IsChild`

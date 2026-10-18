@@ -687,7 +687,15 @@ namespace CalradiaRemembers
       ///   goes unfollowed by a weaker model, or a language absent from its worked examples, when the rest of
       ///   an English prompt outweighs it, so naming the language explicitly removes the guesswork.
       /// </summary>
-      public static string ReplyLanguage => CrSettings.Instance?.ReplyLanguage?.Trim() ?? "";
+      // Blank means the game's own language since 2.7.14 (RaveN017Mod, 17/10/2026: "Is there a way for your mod to
+      // detect the base language that the user has selected for Bannerlord?"); an English game keeps the mirror.
+      public static string ReplyLanguage => Logic.ReplyLanguagePolicy.Resolve(CrSettings.Instance?.ReplyLanguage, GameLanguage());
+
+      private static string GameLanguage()
+      {
+         try { return TaleWorlds.MountAndBlade.BannerlordConfig.Language; }
+         catch { return ""; }
+      }
 
       /// <summary>
       ///   Sound event path played when a negative relation change occurs.

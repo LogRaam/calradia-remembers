@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 509 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1182 types in 31 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1183 types in 31 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 20000+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 20500+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4000+ | Mod | `Chat/ChatViewModel.cs` |
@@ -865,7 +865,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (710)
+### CalradiaRemembers.Logic (711)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1412,6 +1412,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ReliefSeat` | public class | A place a character answers for, as a destination for the grain he asked for. |
 | `ReplyCourierBlock` | public enum | Why no reply courier may ride to the player right now (None = the road is open). |
 | `ReplyCourierGatePolicy` | public static class | Single source of truth for the reply-courier road gate. |
+| `ReplyLanguagePolicy` | public static class | Which language the characters speak, and how an opening line is told so. |
 | `RescueEvidence` | public static class | The evidence line of a completed rescue task. |
 | `RetainerLeavePolicy` | public static class | Pure end-condition gate for an ACTIVE retainer arrangement (a foreign lord riding in the player's party). |
 | `RetentionStep` | public enum | What the engine should do this tick for an unhappy companion. |

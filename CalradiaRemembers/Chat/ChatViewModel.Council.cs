@@ -1227,6 +1227,8 @@ namespace CalradiaRemembers.Chat
             Roster = roster,
             PlayerLine = isOpener ? string.Empty : playerMessage,
             OpeningCue = isOpener ? playerMessage : null,
+            // RaveN017Mod (17/10/2026): the council never carried the Reply Language and opened in English.
+            ReplyLanguage = ModSettings.ReplyLanguage,
             PlayerName = Hero.MainHero?.Name?.ToString(),
             Day = bridge?.GetCurrentGameDay(),
             Season = bridge?.GetSeasonName(),
