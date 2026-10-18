@@ -4,6 +4,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.17.. open
 
+### For tale authors
+- **Ways out the world takes** (Gabriel, 12/10 and 18/10, the Troy-inspired tale: the war ends some other way, she or
+  the king dies, the player weds her). Objectives `war_ends`, `dies`, `weds_player` (`hero`: a role), on a stage or a
+  choice, read once a day (`AuthoredQuestEngine.WorldNow`, `TaleRoleState`, run field `WarsSeen`, additive). A war
+  stage waits for its war before reading peace as its end. Loader, Tale Editor, HOWTO_Quests. cr.testall
+  `tale_world_exits` (`0e2de23`).
+
 ## v2.7.16.. 2026-10-18
 
 ### New
