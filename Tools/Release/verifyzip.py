@@ -533,6 +533,16 @@ MUST = [
     ("mod",   "reply_language_everywhere".encode("utf-16-le")),
     ("mod",   "companion_news_fresh".encode("utf-16-le")),
     ("sdk",   "LANGUAGE OF THE SCENE:".encode("utf-16-le")),
+    # 2.7.15
+    ("logic", b"PairRegardPolicy"),
+    ("logic", b"ClanRegardListPolicy"),
+    ("logic", b"SharedPastPolicy"),
+    ("mod",   b"PairRegardReader"),
+    ("mod",   b"EncyclopediaHeroPageRegardMixin"),
+    ("mod",   b"SharedPastBehavior"),
+    ("mod",   b"OnPagePropertyChanged"),
+    ("mod",   "npc_regard_reason".encode("utf-16-le")),
+    ("mod",   "shared_past_draw".encode("utf-16-le")),
 ]
 MUST_NOT = [
     ("mod",   "patrol_spike".encode("utf-16-le")),   # 2.7.13: the patrol engine spike's console command, removed before release
@@ -605,7 +615,10 @@ for path, needle in [("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf
                      ("CalradiaRemembers/Docs/EXTENSION_API.md", "RemoveMemory"),
                      ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersChat_Manuscript.xml", "ExecuteVideoLoop"),
                      ("CalradiaRemembers/ModuleData/Quests/the_drowned_bridge/the_drowned_bridge.json", '"image"'),
-                     ("CalradiaRemembers/ModuleData/scenarios/rhagaea_marriage.json", "rhagaea_marriage")]:
+                     ("CalradiaRemembers/ModuleData/scenarios/rhagaea_marriage.json", "rhagaea_marriage"),
+                     # 2.7.15
+                     ("CalradiaRemembers/GUI/Prefabs/CR_HeroRegardWhyItems.xml", "CalradiaRegardWhyItems"),
+                     ("CalradiaRemembers/GUI/Prefabs/CR_HeroRegardHousesItems.xml", "CalradiaRegardHousesItems")]:
     found = path in names and needle in zn.read(path).decode("utf-8", "ignore")
     ok &= found
     print("  %-70s %s" % (path[18:], "YES" if found else "*** MISSING ***"))

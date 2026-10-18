@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.7.15.. open
+## v2.7.15.. 2026-10-17
 
 ### New
 - **A lord says why he holds someone friend or enemy** (NPC regard, design `NPC_REGARD.md` sections 5 and 9;

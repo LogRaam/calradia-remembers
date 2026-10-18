@@ -1,0 +1,19 @@
+Version 2.7.15
+
+Friends and enemies with a reason: lords say why they hold someone dear or in contempt, the encyclopedia shows it, and lords with no story may have shared a past before the campaign.
+
+New
+
+- Lords say why. When you name someone, the one you speak with knows what lies between them and can say why they count that person a friend or an enemy: a kinsman the other had executed or killed in battle, a grudge or a debt of gratitude, a betrayal or a rescue from your campaign's written history, a capture or a defeat in battle. Each weighs less as the years pass, though an execution is never forgiven. A reason you could not know of, they may keep to themselves. Two lords with nothing between them speak of each other as before.
+- The encyclopedia's Friends and Enemies say why. Your own page now lists who holds you dear and who holds you in contempt, by what each character really thinks of you, and no longer by the game's own number; a lord bearing you a grudge is no longer shown as your friend. A character's page keeps the game's lists, corrected by what really happened, and a "Why:" block gives the reason for each. Only reasons you could know are shown.
+- Houses at odds and of affinity. A character's page lists the houses at odds with theirs and those of affinity, with the reason, and marks a house whose realm is at war with theirs. On your own page, by what each house's lord thinks of you.
+- The "Personal regard" line on a character's page now gives its main reason, when you know it.
+- Lords may have shared a past. When you open a lord's page, a few of the lords it shows who have no story with them draw, once and for good, what passed between them before the campaign: a quarrel over land, an insult never forgiven, an old friendship, riding together against raiders, a rescue, a debt never repaid, a rivalry in the lists, a refused suit. About two pairs in three draw nothing. It only fits what the game holds (neighbouring lands, alike or opposed characters, the same realm and culture), never claims a death, a marriage, a child or a conquest, and a pair already friendly or hostile in the game draws nothing that would contradict it. From then on it is part of the world's memory: the two lords and their houses remember it, their friends and enemies lists weigh it, and they speak of it when you name them.
+
+Developer tools
+
+- New cr.testall tests: npc_regard_reason, shared_past_draw.
+
+Notes
+
+- Your existing saves load as they are. An older save starts with no shared past; it is drawn as you open the encyclopedia.
