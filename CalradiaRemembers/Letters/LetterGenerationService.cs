@@ -407,7 +407,7 @@ namespace CalradiaRemembers.Letters
          }
       }
 
-      private static int ComputeDeliveryDays(Hero giver)
+      internal static int ComputeDeliveryDays(Hero giver)
       {
          float days = TravelDaysTo(giver);
 

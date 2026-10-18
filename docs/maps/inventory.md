@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 525 types in 61 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 526 types in 61 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1203 types in 31 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
@@ -43,7 +43,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (48)
+### CalradiaRemembers (49)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -53,6 +53,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrConversationInfo` | public class | The identity of a conversation as it OPENS, delivered by CrConversation.Started. |
 | `CrConversationLog` | public class | A whole conversation as it CLOSES, delivered by CrConversation.Ended. |
 | `CrCultures` | public static class | Read-only readings of the cultures CR plays by (its ModuleData jealousy_cultures.json, or a Custom copy). |
+| `CrLetters` | public static class | Another mod's letters, delivered through CR's courier and letter window. |
 | `CrMatchOutcome` | public class | What came of a registered match when its decider was asked in the chat. |
 | `CrMatchRequest` | public class | A match offered to CrMatches.Register, its people named by hero StringId. |
 | `CrMatches` | public static class | Lets another mod hand the player a match to broker; CR teaches it to the one who decides and settles it. |

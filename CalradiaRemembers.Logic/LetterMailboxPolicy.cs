@@ -48,7 +48,9 @@ namespace CalradiaRemembers.Logic
                 || reason == LetterReason.WarSummons
                 || reason == LetterReason.WarLevyDemand
                 // The patrol's monthly letter (Gabriel, 16/10/2026): the player decides on it whether the men come home.
-                || reason == LetterReason.PatrolReport;
+                || reason == LetterReason.PatrolReport
+                // A letter another mod wrote and paces itself (CrLetters.Deliver, 18/10/2026): never ours to hold back.
+                || reason == LetterReason.FromAnotherMod;
         }
 
         /// <summary>

@@ -60,6 +60,13 @@ _Read-only readings of the cultures CR plays by (its ModuleData jealousy_culture
 
 - `static MarriageCustomReading MarriageCustom(string cultureName, int clanTier)`
 
+### CrLetters
+
+_Another mod's letters, delivered through CR's courier and letter window._
+
+- `const int MaxBodyLength = 4000`
+- `static bool Deliver(Hero sender, string body, string sourceMod)`
+
 ### CrMatchOutcome
 
 _What came of a registered match when its decider was asked in the chat._

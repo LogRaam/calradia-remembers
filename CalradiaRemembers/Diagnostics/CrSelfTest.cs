@@ -304,6 +304,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("authored_quest_said_choice", Severity.Light, "Branching tales, choices by words. A tale written into this test loads and a real lord takes it on. At its last stage the action interpreter of a conversation with that lord is taught the open choice by words and not the one closed by its flag; another lord's interpreter is taught nothing. Through the REAL bridge (story_choice, the path an LLM report takes): the closed choice is refused and changes nothing, the open one is taken and ends the tale on its own ending (no regard, gold or memory). Abandons and forgets the tale after.", TestAuthoredQuestSaidChoice),
          new SelfTest("audience_not_spent_unheard", Severity.Light, "EnjoyingHydra (Nexus, 03/10/2026): companion audiences accepted and never opened were spent anyway (grievance count reset, topics used), and a companion left. Promises a change for a real companion, sends the audience through the real open with no profile so it fails: nothing may be spent, nothing left waiting. Opens no window.", TestAudienceNotSpentUnheard),
          new SelfTest("shared_past_draw", Severity.Light, "Gabriel's rulings on the generated shared past (NPC_REGARD.md section 7, 17/10/2026): drawn once and never re-rolled, written into the world's long-term memory before the campaign began, both adults then, a good share get nothing. Picks lords never drawn with a lord of their realm, drives the real draw (SharedPastBehavior.DrawFor) for up to six pairs: each is marked drawn; each past drawn is in the long-term memory, dated before the start, with both of age then; a second draw changes nothing. Forgets the pairs and their pasts after.", TestSharedPastDraw),
+         new SelfTest("letter_from_another_mod", Severity.Light, "tashmetu (18/10/2026): R&S's tournament invitations, written as the lord's own letter, opened in the game's plain popup. CrLetters.Deliver from a lord CR knows queues the letter with its body as given and a courier riding out today, as CR's own letters ride; the player as sender and an empty body are refused. Removes the letter after.", TestLetterFromAnotherMod),
          new SelfTest("pair_regard_source", Severity.Light, "tashmetu (18/10/2026): two lords R&S made close showed as neither on the page, beside its own tooltip. A source registered through CrPairRegard, for two lords of different houses with nothing between them here, makes the first a friend of the second with its reason, leaves the other way round untouched, counts at most PairRegardPolicy.OutsideCap however much it claims, and is gone once unregistered.", TestPairRegardSource),
          new SelfTest("npc_regard_reason", Severity.Light, "Gabriel (17/10/2026): every friend or enemy carries its reason (docs/design/NPC_REGARD.md section 9). Without touching the author's file, syncs a test betrayal of the past in which one lord wronged another, and drives the real name resolution (ContextualNameResolver.Resolve) on a message naming the betrayer: the wronged lord is told the betrayer is an enemy, for what lies between them, with the betrayal and how long ago; a lord of another house and realm asked the same is told nothing of it. The wronged lord's encyclopedia page (built here, then refreshed) lists the betrayer among his enemies and not his friends. Then the author's file alone is synced back.", TestNpcRegardReason),
          new SelfTest("companion_news_fresh", Severity.Light, "LapitaPolata (Nexus, 17/10/2026): a companion told of a castle being besieged after it had fallen, and of a war breaking out while the player was already riding to a siege in it. Records test news and reads it through the real glue (CompanionAudienceTopicResolver.FreshnessFacts): a siege fight at a place recorded as fallen since is overtaken; a war naming the player's own realm or clan is theirs; news ten days old is too old; fresh news of two other realms may still be brought. Removes the test news.", TestCompanionNewsFresh),
@@ -5072,6 +5073,38 @@ namespace CalradiaRemembers.Diagnostics
             if (speaker?.StringId == SpeakerId && other?.StringId == OtherId)
                yield return new Logic.PairRegardTrace {Weight = Weight, Line = "[SELFTEST] years of battles side by side", PageLine = "[SELFTEST] years of battles side by side", KnownToPlayer = true};
          }
+      }
+
+      private static string TestLetterFromAnotherMod(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("letter_from_another_mod");
+         var store = behavior?.Store;
+         if (t.Skip(store == null, "no profile store")) return t.Line();
+
+         // A lord CR already knows, so nothing is created for the test; free to write.
+         Hero sender = store.ListIds().Select(id => Hero.FindFirst(h => h.StringId == id))
+                            .FirstOrDefault(h => h != null && h.IsLord && h != Hero.MainHero && Mapping.ActionGate.Allows(h, Logic.ActionKind.Letter));
+         if (t.Skip(sender == null, "no lord with a profile is free to write")) return t.Line();
+         t.Note(sender.Name.ToString());
+
+         const string body = "[SELFTEST] You are invited to the tournament in my town. Come if you can.";
+         PendingLetter sent = null;
+         try
+         {
+            t.Expect("theLetterIsAccepted", CrLetters.Deliver(sender, body, "selftest"), true);
+            sent = store.Get(sender.StringId)?.SentLetters.LastOrDefault(l => l.Content == body);
+            // STAKE: it rides like CR's own letters: a courier out today, its body as given, never regenerated.
+            t.Expect("itWaitsForItsCourier", sent != null && !sent.IsDelivered && sent.DispatchDay == (int) CampaignTime.Now.ToDays && sent.Reason == LetterReason.FromAnotherMod, true);
+            t.Expect("thePlayerCannotSendOne", CrLetters.Deliver(Hero.MainHero, body, "selftest"), false);
+            t.Expect("noBodyNoLetter", CrLetters.Deliver(sender, "  ", "selftest"), false);
+         }
+         finally
+         {
+            NpcProfile p = store.Get(sender.StringId);
+            if (p != null && p.SentLetters.RemoveAll(l => l.Content == body) > 0) store.Set(p);
+         }
+
+         return t.Line();
       }
 
       private static string TestPairRegardSource(NpcMemoryCampaignBehavior behavior)
