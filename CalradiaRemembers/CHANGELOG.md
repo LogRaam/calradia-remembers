@@ -27,6 +27,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   ago)"). `EncyclopediaHeroPageRegardMixin` refills the vanilla lists from its refresh (portraits, tooltips and links
   stay vanilla's); `PairRegardReader.TiedTo`, `WorldEventStore.EventsNaming`. cr.testall `npc_regard_reason` now also
   builds the wronged lord's page and checks it before and after a refresh.
+- **Houses at odds and of affinity** (NPC regard, design 5.4 and 8.2; Gabriel's answer to question 1, 17/10: "les
+  deux"). A character's page lists, in a "Houses:" block, the houses at odds with theirs and those of affinity, at
+  most six each: by what really happened between the two house lords, with its reason, else by the vanilla relation
+  between them; a house of a realm at war is marked "(at war)". On your own page, by each house lord's personal
+  regard for you. `ClanRegardListPolicy`; cr.testall `npc_regard_reason` checks the betrayer's house is at odds.
+- **The "Personal regard" row gives its reason** (design Q2, proposed and taken as the default): "bitter grudge
+  (-80): ..." with the strongest known grudge (for a low regard) or kindness (for a high one).
 
 ## v2.7.14.. 2026-10-17
 

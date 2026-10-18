@@ -54,6 +54,8 @@ namespace CalradiaRemembers.Encyclopedia
 
       private string _label;
       private string _items;
+      private string _housesLabel;
+      private string _housesItems;
 
       public EncyclopediaHeroPageRegardMixin(EncyclopediaHeroPageVM vm) : base(vm)
       {
@@ -86,6 +88,32 @@ namespace CalradiaRemembers.Encyclopedia
          }
       }
 
+      /// <summary>Cream header, "Houses:" or empty (auto-hides).</summary>
+      [DataSourceProperty]
+      public string CalradiaRegardHousesLabel
+      {
+         get => _housesLabel;
+         set
+         {
+            if (_housesLabel == value) return;
+            _housesLabel = value;
+            ViewModel?.OnPropertyChanged();
+         }
+      }
+
+      /// <summary>Gold lines: the houses at odds, then those of affinity, each with its reason and the war mark.</summary>
+      [DataSourceProperty]
+      public string CalradiaRegardHousesItems
+      {
+         get => _housesItems;
+         set
+         {
+            if (_housesItems == value) return;
+            _housesItems = value;
+            ViewModel?.OnPropertyChanged();
+         }
+      }
+
       public override void OnRefresh()
       {
          Refresh();
@@ -97,6 +125,8 @@ namespace CalradiaRemembers.Encyclopedia
       {
          CalradiaRegardWhyLabel = "";
          CalradiaRegardWhyItems = "";
+         CalradiaRegardHousesLabel = "";
+         CalradiaRegardHousesItems = "";
 
          try
          {
@@ -105,6 +135,8 @@ namespace CalradiaRemembers.Encyclopedia
 
             if (hero == Hero.MainHero) RefillThePlayersPage();
             else RefillACharactersPage(hero);
+
+            ShowHouses(hero);
          }
          catch (Exception ex)
          {
@@ -138,22 +170,69 @@ namespace CalradiaRemembers.Encyclopedia
 
          var lines = new List<string>();
          foreach ((Hero h, int regard) in contempt.OrderBy(x => x.Regard).Concat(dear.OrderByDescending(x => x.Regard)).Take(MaxReasons))
-            lines.Add($"• {h.Name}: {WhyTowardThePlayer(h) ?? $"{RegardBands.Describe(regard)} ({regard:+#;-#;0})"}");
+            lines.Add($"• {h.Name}: {WhyTowardThePlayer(h, regard) ?? $"{RegardBands.Describe(regard)} ({regard:+#;-#;0})"}");
 
          Show(lines);
       }
 
-      // The strongest grudge or kindness toward the player that the player knows of.
-      private static string WhyTowardThePlayer(Hero h)
+      // The strongest grudge or kindness toward the player that the player knows of, the one that agrees with the regard
+      // first (a grudge for a low regard, a kindness for a high one). Also the reason on the "Personal regard" row.
+      internal static string WhyTowardThePlayer(Hero h, int regard)
       {
          int today = (int) CampaignTime.Now.ToDays;
          string main = Hero.MainHero?.StringId;
          var grudge = GrudgeBehavior.Instance?.KnownGrudgesFor(h.StringId, today).FirstOrDefault(g => g.TargetId == main);
-         if (grudge != null) return ShownText.Of(grudge.CauseSummary);
-
          var kindness = AppreciationBehavior.Instance?.KnownAppreciationsFor(h.StringId, today).FirstOrDefault(a => a.TargetId == main);
+         string g = grudge == null ? null : ShownText.Of(grudge.CauseSummary);
+         string k = kindness == null ? null : ShownText.Of(kindness.CauseSummary);
 
-         return kindness == null ? null : ShownText.Of(kindness.CauseSummary);
+         return regard < Regard.NeutralTier ? g ?? k : k ?? g;
+      }
+
+      // The other houses, by their lord as this house's lord sees them (design 5.4; Gabriel's answer to Q1: listed by
+      // regard, a war marked). On the player's page, by each lord's personal regard for the player.
+      private void ShowHouses(Hero hero)
+      {
+         Hero lord = hero.Clan?.Leader ?? hero;
+         var store = NpcMemoryCampaignBehavior.Instance?.Store;
+         var houses = new List<ClanRegardCandidate>();
+
+         foreach (Clan c in Clan.All)
+         {
+            Hero other = c?.Leader;
+            if (c == null || c.IsEliminated || c.IsBanditFaction || c == hero.Clan || other == null || other == lord || !HeroPresence.IsInTheWorld(other)) continue;
+
+            bool atWar = hero.MapFaction != null && c.MapFaction != null && FactionManager.IsAtWarAgainstFaction(hero.MapFaction, c.MapFaction);
+            if (hero == Hero.MainHero)
+            {
+               NpcProfile p = store?.Get(other.StringId);
+               if (p == null) continue;
+               PairRegardVerdict v = p.ReputationWithPlayer >= Regard.WarmTier ? PairRegardVerdict.Friend
+                                   : p.ReputationWithPlayer <= Regard.WaryTier ? PairRegardVerdict.Enemy
+                                   : PairRegardVerdict.Neither;
+               if (v == PairRegardVerdict.Neither) continue;
+               houses.Add(new ClanRegardCandidate {
+                  Name = c.Name?.ToString(), Derived = v, AtWar = atWar,
+                  DerivedReason = WhyTowardThePlayer(other, p.ReputationWithPlayer) ?? $"{RegardBands.Describe(p.ReputationWithPlayer)} ({p.ReputationWithPlayer:+#;-#;0})"
+               });
+               continue;
+            }
+
+            PairRegard r = PairRegardReader.Assess(lord, other);
+            houses.Add(new ClanRegardCandidate {
+               Name = c.Name?.ToString(), Derived = r.Verdict, DerivedReason = PairRegardPolicy.PageReason(r),
+               VanillaRelation = CharacterRelationManager.GetHeroRelation(lord, other), AtWar = atWar
+            });
+         }
+
+         (IReadOnlyList<string> odds, IReadOnlyList<string> affinity) = ClanRegardListPolicy.Lists(houses);
+         var lines = new List<string>();
+         if (odds.Count > 0) lines.Add("At odds: " + string.Join("; ", odds));
+         if (affinity.Count > 0) lines.Add("Of affinity: " + string.Join("; ", affinity));
+         if (lines.Count == 0) return;
+
+         CalradiaRegardHousesLabel = "Houses:";
+         CalradiaRegardHousesItems = string.Join("\n", lines);
       }
 
       // A character's page: vanilla's lists, corrected by what really happened, with the reasons.

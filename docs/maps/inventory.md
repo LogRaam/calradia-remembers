@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 513 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1190 types in 31 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 515 types in 61 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1192 types in 31 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -319,7 +319,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `SuccessionBehavior` | public class | Reframes all stored NPC memories through the lens of the new heir on player death. |
 
-### CalradiaRemembers.Encyclopedia (30)
+### CalradiaRemembers.Encyclopedia (32)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -349,6 +349,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroPageNemesisPatchA` | internal class | Appends the nemesis dossier bullet list to the hero encyclopedia page. |
 | `HeroPageNemesisPatchB` | internal class | Appends the "Nemesis:" header line to the hero encyclopedia page. |
 | `HeroPagePersonalRelationPatch` | internal class | Inserts a single line into the hero encyclopedia page, just after the vanilla Info block, showing the NPC's personal regard for the player. |
+| `HeroPageRegardHousesPatchA` | internal class | Appends the houses at odds and of affinity to the hero encyclopedia page. |
+| `HeroPageRegardHousesPatchB` | internal class | Appends the "Houses:" header line to the hero encyclopedia page. |
 | `HeroPageRegardWhyPatchA` | internal class | Appends the friends-and-enemies reasons to the hero encyclopedia page. |
 | `HeroPageRegardWhyPatchB` | internal class | Appends the "Why:" header line to the hero encyclopedia page. |
 | `HeroPageStandingAccordsPatchA` | internal class | Appends the standing-accords bullet list to the hero encyclopedia page. |
@@ -869,7 +871,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 
-### CalradiaRemembers.Logic (718)
+### CalradiaRemembers.Logic (720)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -968,6 +970,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatTitleText` | public static class | The chat window's title. |
 | `ChatWindowLivenessPolicy` | public static class | Whether a recorded chat window is genuinely live, or a leftover that must not block the next one. |
 | `ChronicleCalendar` | public static class | The shared calendar constants and year math for the player chronicle and letter archive. |
+| `ClanRegardCandidate` | public class | One other house, as the page's house sees it. |
+| `ClanRegardListPolicy` | public static class | Sorts other houses into at odds and of affinity, each line with its reason and the war mark. |
 | `ClanStandingSeed` | public struct | What the clan's standing does to one character's regard. |
 | `ClanStandingSeedFacts` | public class | The facts the seed is decided on. |
 | `ClanStandingSeedPolicy` | public static class | Decides the one-time warm start a friendly clan gives. |

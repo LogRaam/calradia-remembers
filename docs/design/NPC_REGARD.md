@@ -437,7 +437,9 @@ Change:
 - **Built 17/10/2026, encyclopedia (section 8, route b):** the player's page from personal regard ("Hold you dear" /
   "Hold you in contempt"); a character's page keeps vanilla's lists corrected by derived verdicts (same fallback rule
   as the conversation, so a page with no trace is untouched) and lists only pairs with a reason the player may know;
-  a "Why:" block in InfoContainer. Not built: the clan lists (8.2), the reason on the "Personal regard" row (Q2).
+  a "Why:" block in InfoContainer. Clan lists built the same day (`ClanRegardListPolicy`, a "Houses:" block: the page
+  house lord's derived regard toward each house lord, else vanilla, "(at war)" marked; the player's page by personal
+  regard). Q2 taken as proposed (no answer, "continu"): the "Personal regard" row appends the dominant known reason.
 - The companion camp note (`ResolveCompanionCampNote`, trace `EncounterContextBuilder.cs:1464-1485`) stays on vanilla
   relation for now: companions earn vanilla relation through real campaign events, and that is a mechanic, not a
   page. Listed as Q9.

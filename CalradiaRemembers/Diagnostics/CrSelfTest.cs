@@ -5017,11 +5017,12 @@ namespace CalradiaRemembers.Diagnostics
 
          List<Hero> lords = Hero.AllAliveHeroes.Where(h => h != Hero.MainHero && h.IsLord && h.Clan != null && h.MapFaction != null && !h.MapFaction.IsBanditFaction
                                                           && h.BirthDay.GetYear < Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.GetYear - 20).ToList();
-         Hero wronged = lords.FirstOrDefault();
-         Hero betrayer = lords.FirstOrDefault(h => wronged != null && h.MapFaction != wronged.MapFaction && h.Clan != wronged.Clan);
+         // Two house heads, so the houses check reads the same pair a house list does (lord to lord).
+         Hero wronged = lords.FirstOrDefault(h => h.Clan.Leader == h);
+         Hero betrayer = lords.FirstOrDefault(h => wronged != null && h.Clan.Leader == h && h.MapFaction != wronged.MapFaction && h.Clan != wronged.Clan);
          Hero stranger = lords.FirstOrDefault(h => wronged != null && betrayer != null && h.Clan != wronged.Clan && h.Clan != betrayer.Clan
                                                    && h.MapFaction != wronged.MapFaction && h.MapFaction != betrayer.MapFaction);
-         if (t.Skip(wronged == null || betrayer == null || stranger == null, "no three adult lords of three houses and realms")) return t.Line();
+         if (t.Skip(wronged == null || betrayer == null || stranger == null, "no two house heads and a third lord of three houses and realms")) return t.Line();
 
          string authorText = null;
          try { if (System.IO.File.Exists(AuthoredHistoryBehavior.HistoryPath)) authorText = System.IO.File.ReadAllText(AuthoredHistoryBehavior.HistoryPath); }
@@ -5046,6 +5047,14 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("theWrongedLordCallsHimAnEnemyAndSaysWhy", line.Contains("an enemy, for what lies between you"), true);
             t.Expect("theReasonSaysHowLongAgo", line.Contains("years ago"), true);
             t.Expect("aStrangerIsToldNothingOfIt", (ContextualNameResolver.Resolve(stranger, asked) ?? "").Contains("[SELFTEST]"), false);
+
+            // The houses (design 5.4): the betrayer's house is at odds with the wronged lord's, with the betrayal as reason.
+            PairRegard house = PairRegardReader.Assess(wronged, betrayer);
+            var houses = Logic.ClanRegardListPolicy.Lists(new[] {
+               new Logic.ClanRegardCandidate {Name = betrayer.Clan.Name.ToString(), Derived = house.Verdict, DerivedReason = PairRegardPolicy.PageReason(house),
+                  VanillaRelation = CharacterRelationManager.GetHeroRelation(wronged, betrayer)}
+            });
+            t.Expect("theBetrayersHouseIsAtOdds", houses.AtOdds.Any(l => l.StartsWith(betrayer.Clan.Name.ToString()) && l.Contains("[SELFTEST]")), true);
 
             // The encyclopedia (design section 8, route b): the wronged lord's page lists the betrayer among his
             // enemies, after the page is built and after it refreshes again (the mixin must run after vanilla's fill).
