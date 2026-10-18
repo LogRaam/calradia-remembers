@@ -24,7 +24,9 @@ SKIP_PATHS = {os.path.join("ModuleData", "Custom", "Prompts"),
               # Extras/RealmQueens. Skipped here too, so a copy left in an older deploy can never ship.
               os.path.join("ModuleData", "QueenPortraits"),
               os.path.join("ModuleData", "Quests", "the_kings_hall")}
-SKIP_FILES = {os.path.join("ModuleData", "faces.json")}
+SKIP_FILES = {os.path.join("ModuleData", "faces.json"),
+              # The queens' tale answers itself through a scenario pack, held back with it (Gabriel, 18/10/2026).
+              os.path.join("ModuleData", "scenarios", "the_kings_hall.json")}
 
 if os.path.exists(OUT):
     os.remove(OUT)

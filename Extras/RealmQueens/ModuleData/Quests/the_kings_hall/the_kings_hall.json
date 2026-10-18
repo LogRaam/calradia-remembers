@@ -1,0 +1,194 @@
+{
+  "id": "the_kings_hall",
+  "title": "The Guest of the King's Hall",
+  "author": "Calradia Remembers",
+  "unique": true,
+  "weight": 10,
+  "requires": {
+    "giver": {
+      "role": "lord",
+      "gender": "female",
+      "min_regard": 0,
+      "married": true,
+      "not_clan_leader": true,
+      "not_of_players_realm": true,
+      "realm": [ "aserai", "vlandia", "sturgia", "empire", "khuzait", "battania" ]
+    },
+    "husband": { "role": "spouse_of_giver", "rules_a_realm": true },
+    "content": "mature"
+  },
+  "binds": {
+    "giver": "the queen, wife of the ruler of a realm that is not the player's",
+    "husband": "her husband, the ruler of that realm"
+  },
+  "stages": [
+    {
+      "id": "the_feast",
+      "journal": "At the feast in {husband}'s hall, {giver}, queen of {giver_realm}, asked to speak with you away from the tables.",
+      "objective": { "type": "talk_to", "hero": "{giver}" },
+      "image": "queen_{giver_realm}.jpg",
+      "canvas": [
+        "The feast is loud behind her. She has chosen a quiet place, and she speaks low, as one who is rarely alone.",
+        "She is the queen, and she carries it well; what she asks for is only a little of the guest's time, and she does not say why."
+      ],
+      "facts": [
+        "She asks {player} to walk with her in the palace garden once the feast has thinned.",
+        "She is married to {husband}, who rules {giver_realm}."
+      ],
+      "on_complete": { "next": "the_garden" }
+    },
+    {
+      "id": "the_garden",
+      "journal": "Walk with {giver} in the palace garden, away from the feast.",
+      "image": "queen_{giver_realm}.jpg",
+      "canvas": [
+        "The garden is dark and fragrant, the feast a murmur beyond the wall. She walks slowly, and for a while she speaks of nothing that matters.",
+        "Then, carefully, she speaks of her marriage: a crown chosen for her, a husband who rules well and does not see her. She does not complain; she describes."
+      ],
+      "facts": [
+        "She is unhappy in her marriage to {husband}, though she never says a word against his rule.",
+        "She would meet {player} again, on the walls, when the hall is asleep, if {player} is willing."
+      ],
+      "knowers": {
+        "{giver}": [
+          "You asked {player} to walk with you in the garden, away from your husband's feast.",
+          "You have told no one else what you feel; you are not sure yet why you are telling this guest."
+        ],
+        "{husband}": [ "{player} is a guest at your feast. You have noticed nothing out of the ordinary." ]
+      },
+      "choices": [
+        { "id": "meet_again", "label": "Agree to meet her on the walls tonight",
+          "said": { "to": "{giver}", "meaning": "the player agrees to meet {giver} again, alone, on the walls tonight" },
+          "next": "the_walls" },
+        { "id": "decline_early", "label": "Take your leave courteously",
+          "said": { "to": "{giver}", "meaning": "the player declines to meet {giver} alone again and takes leave of her" },
+          "next": "end:refused" },
+        { "id": "the_feast_ends", "label": "Let the feast end without an answer",
+          "objective": { "type": "wait", "days": 5 }, "next": "end:no_answer" }
+      ]
+    },
+    {
+      "id": "the_walls",
+      "journal": "{giver} waits for you on the walls of the palace, at night.",
+      "image": "queen_{giver_realm}.jpg",
+      "canvas": [
+        "The walls at night, wind off the plain, the city asleep below. She came alone and she is cold, and she does not pretend otherwise.",
+        "She tells it plainly now: she would leave. Not for a crown, nor for gold. For a life of her own choosing, if the guest would take her away with them."
+      ],
+      "facts": [
+        "She asks {player} to take her away from {husband}'s court.",
+        "She knows what it would mean: her husband would hold it as the gravest insult, and his realm would go to war over it.",
+        "A servant crossed the far end of the wall while they spoke; she cannot tell if he saw them."
+      ],
+      "knowers": {
+        "{giver}": [
+          "You met {player} alone on the walls at night and asked to be taken away from {husband}.",
+          "You know that if you leave, {husband} will go to war to have you back. You have weighed it, and you would still go."
+        ],
+        "{husband}": [ "{player} is a guest at your feast. You know nothing of any meeting on the walls." ]
+      },
+      "choices": [
+        { "id": "take_her", "label": "Take her away with you", "sets": "with_her",
+          "said": { "to": "{giver}", "meaning": "the player agrees to take {giver} away from {husband} and leave with her" },
+          "next": "the_war" },
+        { "id": "refuse", "label": "Refuse, and honour your host",
+          "said": { "to": "{giver}", "meaning": "the player refuses to take {giver} away, out of respect for {husband}'s hospitality" },
+          "next": "end:refused" },
+        { "id": "tell_the_king", "label": "Tell the king what his queen intends",
+          "said": { "to": "{husband}", "meaning": "the player tells {husband} that his queen {giver} means to leave him" },
+          "canvas": "He hears it without a word at first. A king is told many things; this one he believes, and it costs him.",
+          "knowers": { "{husband}": [ "{player}, a guest in your hall, has just told you that your queen {giver} means to leave you." ] },
+          "next": "end:told" },
+        { "id": "the_feast_ends", "label": "Leave her answer unspoken",
+          "objective": { "type": "wait", "days": 5 }, "next": "end:no_answer" }
+      ]
+    },
+    {
+      "id": "the_war",
+      "journal": "You left {husband}'s court with {giver}, and {giver_realm} takes up arms. Her return is the price of peace.",
+      "image": "queen_{giver_realm}.jpg",
+      "on_enter": [
+        { "type": "elope", "if": "with_her" },
+        { "type": "world_event", "summary": "{giver}, queen of {giver_realm}, has left {husband} and rides with {player}. The king calls it an insult that only war can answer.", "magnitude": 80 },
+        { "type": "memory", "who": "{husband}", "text": "My queen {giver} left my court with {player}, a guest I had fed at my own table. I will have her back, or I will have war." },
+        { "type": "memory", "who": "{giver}", "text": "I left {husband} and my crown and rode away with {player}. I chose it, and I knew the price." }
+      ],
+      "canvas": [
+        "She rides with you now, no longer a queen and not yet anything else. She knows what follows her: her husband's army, and the talk of every hall.",
+        { "text": "She does not regret it, and she does not pretend the war is nothing.", "if": "with_her" }
+      ],
+      "facts": [
+        "{husband}'s realm is at war with {player}'s because {giver} left with {player}.",
+        "{husband} will make peace if {giver} is given back to him."
+      ],
+      "knowers": {
+        "{giver}": [
+          "You left {husband} and rode away with {player}. Your husband's realm is at war with {player}'s because of it.",
+          "You know that your return to {husband} is the price of peace."
+        ],
+        "{husband}": [
+          "Your queen {giver} left your court with {player}. Your realm is at war with {player}'s over it.",
+          "You will make peace the day {giver} is given back to you, and not before."
+        ]
+      },
+      "choices": [
+        { "id": "give_her_back", "label": "Give her back to {husband}",
+          "journal": "{husband} will make peace if {giver} is returned to him.",
+          "said": { "to": "{husband}", "meaning": "the player agrees to give {giver} back to {husband} in exchange for peace" },
+          "next": "end:returned" },
+        { "id": "she_died", "label": "{giver} dies", "objective": { "type": "dies", "hero": "{giver}" }, "next": "end:she_died" },
+        { "id": "he_died", "label": "{husband} dies", "objective": { "type": "dies", "hero": "{husband}" }, "next": "end:he_died" },
+        { "id": "wed", "label": "You wed {giver}", "objective": { "type": "weds_player", "hero": "{giver}" }, "next": "end:wed" },
+        { "id": "peace", "label": "The war ends some other way", "objective": { "type": "war_ends", "hero": "{husband}" }, "next": "end:peace_otherwise" }
+      ]
+    }
+  ],
+  "endings": {
+    "refused": {
+      "regard": 3,
+      "memory": "I asked {player} to take me away from {husband}'s court, and {player} would not betray the roof that sheltered them. I think the better of {player} for it, and I am still here.",
+      "journal": "You honoured your host. {giver} stays with her husband, and {husband} never knows what was asked."
+    },
+    "no_answer": {
+      "memory": "I opened my heart to {player} at my husband's feast, and {player} rode away without an answer.",
+      "journal": "The feast ended, and you left {husband}'s court without giving {giver} an answer."
+    },
+    "told": {
+      "regard": -20,
+      "memory": "{player} carried what I said in the night to my husband. I will not forget it.",
+      "journal": "You told {husband} what his queen intended. He is grateful; she is not.",
+      "consequences": [
+        { "type": "grudge", "who": "{giver}", "against": "{player}", "text": "betrayed to my husband what I confided on the walls", "magnitude": 50 },
+        { "type": "memory", "who": "{husband}", "text": "{player}, a guest in my hall, warned me that my queen {giver} meant to leave me. I owe {player} for it." }
+      ]
+    },
+    "returned": {
+      "memory": "{player} gave me back to {husband} so the war would end. I understood it. I have not forgiven it.",
+      "journal": "You gave {giver} back to {husband}. The war over her ends with her return.",
+      "consequences": [
+        { "type": "return_spouse" },
+        { "type": "world_event", "summary": "{giver} has been returned to {husband}, and the war fought over her ends.", "magnitude": 60 },
+        { "type": "memory", "who": "{husband}", "text": "{player} gave my queen {giver} back to me, and I made peace as I had sworn to." }
+      ]
+    },
+    "she_died": {
+      "journal": "{giver} is dead. The war fought over her has lost its cause, if not its anger.",
+      "consequences": [
+        { "type": "memory", "who": "{husband}", "text": "My queen {giver} died far from my court, beside {player}. I hold {player} to account for it." }
+      ]
+    },
+    "he_died": {
+      "memory": "{husband} is dead. No one now can ask for my return; I am free of that crown at last.",
+      "journal": "{husband} is dead. Nobody is left to claim {giver} back."
+    },
+    "wed": {
+      "regard": 10,
+      "memory": "I married {player}. The way back to {husband}'s court is closed, and I closed it myself.",
+      "journal": "You married {giver}. There is no going back to {husband} now."
+    },
+    "peace_otherwise": {
+      "memory": "The war over me ended without my return. I am still with {player}, and {husband} still remembers.",
+      "journal": "The war with {husband}'s realm is over, and {giver} was never given back."
+    }
+  }
+}

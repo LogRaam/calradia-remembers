@@ -1,0 +1,28 @@
+{
+  "_comment": "The realm answers The Guest of the King's Hall (Gabriel, 12/10/2026: the war is declared because of the player's act and everyone knows it; the queen's return to her husband is the condition of peace). The tale names the king as {husband}; where a realm is meant, a role stands for the realm that hero belongs to. A rule plays only when all it does can happen: no war between realms already at war, no peace between realms at peace. Held back with the queens (Extras/RealmQueens, Gabriel 18/10/2026).",
+  "rules": [
+    {
+      "id": "the_kings_hall_war",
+      "trigger": "ON_TALE:the_kings_hall:the_war",
+      "guards": [ "IF_RULES:{husband}", "IF_AT_PEACE:{husband},{player}" ],
+      "consequences": [ "DECLARE_WAR:{husband},{player}" ],
+      "message": "{husband} declares war on {player}, who has taken his queen {giver} from his court.",
+      "fireOnce": true
+    },
+    {
+      "id": "the_kings_hall_peace",
+      "trigger": "ON_TALE:the_kings_hall:end:returned",
+      "guards": [ "IF_AT_WAR:{husband},{player}" ],
+      "consequences": [ "MAKE_PEACE:{husband},{player}" ],
+      "message": "{giver} is returned to {husband}, and the king makes peace as he swore he would.",
+      "fireOnce": true
+    },
+    {
+      "id": "the_kings_hall_gratitude",
+      "trigger": "ON_TALE:the_kings_hall:end:told",
+      "guards": [ "IF_ALIVE:{husband}" ],
+      "consequences": [ "CHANGE_RELATION:{husband}:+10" ],
+      "fireOnce": true
+    }
+  ]
+}

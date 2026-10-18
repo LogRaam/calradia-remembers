@@ -638,7 +638,8 @@ for path, needle in [("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf
 wolf_pictures = [n for n in names if n.startswith("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/") and n.endswith(".jpg")]
 ok &= len(wolf_pictures) == 13
 print("  wolf pictures:", len(wolf_pictures))
-queens = [n for n in names if n.endswith("ModuleData/faces.json") or "/QueenPortraits/" in n or "/the_kings_hall/" in n]
+queens = [n for n in names if n.endswith("ModuleData/faces.json") or "/QueenPortraits/" in n or "/the_kings_hall/" in n
+          or n.endswith("/scenarios/the_kings_hall.json")]
 ok &= not queens
 print("  queens held back (2.7.10):", "yes" if not queens else "*** NO: %s ***" % queens[:3])
 portraits = [n for n in names if "/ChatPortraits/" in n]
