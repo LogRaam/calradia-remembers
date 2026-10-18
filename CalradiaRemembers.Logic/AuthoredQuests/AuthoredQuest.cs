@@ -346,7 +346,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [QuestField("What the game checks.", ClosedList = nameof(AuthoredQuestLoader.ObjectiveTypes))]
       [JsonProperty("type")] public string Type { get; set; }
 
-      [QuestField("talk_to: the character, as a role (\"{giver}\").")]
+      [QuestField("talk_to: the character, as a role (\"{giver}\"). war_ends, dies, weds_player: the person the world is watched for.")]
       [JsonProperty("hero")] public string Hero { get; set; }
 
       [QuestField("The place, as a role (\"{village}\").")]

@@ -34,13 +34,13 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
    public static class AuthoredQuestLoader
    {
       /// <summary>The objectives the game can verify.</summary>
-      public static readonly IReadOnlyList<string> ObjectiveTypes = new[] {"talk_to", "talk_to_locals", "be_at", "keep_watch", "explore", "defeat_party", "return", "wait"};
+      public static readonly IReadOnlyList<string> ObjectiveTypes = new[] {"talk_to", "talk_to_locals", "be_at", "keep_watch", "explore", "defeat_party", "return", "wait", "war_ends", "dies", "weds_player"};
 
       /// <summary>
       ///   The objectives a CHOICE may carry. keep_watch and explore open a scene of the stage that follows, so they are
       ///   that stage's own objective, never one way out among several.
       /// </summary>
-      public static readonly IReadOnlyList<string> ChoiceObjectiveTypes = new[] {"talk_to", "return", "talk_to_locals", "be_at", "defeat_party", "wait"};
+      public static readonly IReadOnlyList<string> ChoiceObjectiveTypes = new[] {"talk_to", "return", "talk_to_locals", "be_at", "defeat_party", "wait", "war_ends", "dies", "weds_player"};
 
       /// <summary>The hazard effects the game carries out.</summary>
       public static readonly IReadOnlyList<string> HazardEffects = new[] {"injure", "alert", "lose_time"};
@@ -557,6 +557,11 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
                break;
             case "wait":
                if (o.Days < 1) blocking.Add($"{where}: wait needs \"days\" of at least 1.");
+               break;
+            case "war_ends":
+            case "dies":
+            case "weds_player":
+               if (string.IsNullOrWhiteSpace(o.Hero)) blocking.Add($"{where}: {o.Type} needs \"hero\".");
                break;
          }
       }

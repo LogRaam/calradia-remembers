@@ -1,0 +1,2 @@
+blocking_world_exit_without_hero.json: quest 'fx_tale': stage 'watch', choice 'dies': dies needs "hero". The quest is not loaded.
+blocking_world_exit_without_hero.json: quest 'fx_tale': stage 'watch', choice 'peace': war_ends needs "hero". The quest is not loaded.

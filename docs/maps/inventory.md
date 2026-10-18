@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 518 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1202 types in 31 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1203 types in 31 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -25,11 +25,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 2500+ | Mod | `Chat/ChatViewModel.Exchanges.cs` |
 | 2500+ | Mod | `Chat/CouncilLift.cs` |
 | 2000+ | Sdk | `Models/EncounterContext.cs` |
+| 2000+ | Mod | `Quests/AuthoredQuestBehavior.cs` |
 | 1500+ | Sdk | `Actions/ActionBenchCatalog.cs` |
 | 1500+ | Mod | `Chat/ChatManager.cs` |
 | 1500+ | Mod | `GameState/CourtActionResolver.cs` |
 | 1500+ | Mod | `Interception/InterceptionBehavior.cs` |
-| 1500+ | Mod | `Quests/AuthoredQuestBehavior.cs` |
 | 1000+ | Sdk | `Actions/GameActionCatalog.cs` |
 | 1000+ | Logic | `Assemblies/ResolutionCatalog.cs` |
 | 1000+ | Mod | `Chat/ChatViewModel.Council.cs` |
@@ -1801,7 +1801,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HistoryRelationStep` | public class | One relation move to make now. |
 | `HistoryWorldFacts` | public class | The campaign as the validation sees it. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (83)
+### CalradiaRemembers.Logic.AuthoredQuests (84)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1886,6 +1886,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TaleJournalPolicy` | public static class | tashmetu (07/10/2026): "a finished tale stays listed twice, under Old Quests and still under Active Quests". |
 | `TaleJournalVerdict` | public enum | What becomes of a tale's journal entry. |
 | `TaleModuleFolder` | public class | Another mod's tales folder. |
+| `TaleRoleState` | public class | What the game reads of one of the tale's people, for the ways out the world takes (war_ends, dies, weds_player). |
 | `TaleVillageFacts` | public class | The state of one village a tale could be about. |
 | `TaleVillagePolicy` | public static class | Which village a tale may be about, and when the giver has lost it. |
 

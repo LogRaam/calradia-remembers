@@ -1,1 +1,1 @@
-blocking_objective_unknown.json: quest 'fx_tale': stage 'go' asks for 'fly_to', which the game cannot check yet (known: talk_to, talk_to_locals, be_at, keep_watch, explore, defeat_party, return, wait). The quest is not loaded.
+blocking_objective_unknown.json: quest 'fx_tale': stage 'go' asks for 'fly_to', which the game cannot check yet (known: talk_to, talk_to_locals, be_at, keep_watch, explore, defeat_party, return, wait, war_ends, dies, weds_player). The quest is not loaded.

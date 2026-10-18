@@ -348,6 +348,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("close_settled_battle", Severity.Light, "Wallace1067 (Nexus, 13/10/2026): a friendly lord with no battle anywhere still left him on the vanilla encounter menu after every chat, because a MapEvent merely attached (already finalized, or already with a winner) read as a battle under way. Drives MapEncounterClosePolicy.IsLive on a live sighting, a finalized one and one with a winner, and MayFinish with BattleUnderWay computed from each, expecting a live fight kept and a settled one finished. Notes the real MapEvent on the player's own party if one is attached. Changes no game state.", TestCloseSettledBattle),
          new SelfTest("battle_memory_wording", Severity.Light, "tashmetu (Nexus, 13/10/2026, via cr.prompt_dump): a witness line read 'I saw you cut down 168 of them yourself at at the siege of Thorios Castle', doubling the preposition and addressing the player as 'you'. Builds the same siege place WorldEventFeeders builds and drives the REAL BattleFeatReporter the way it now wires it (the engagement noun phrase, not the already-shaped place clause), expecting exactly one 'at', no 'you', and the player named. Mutates nothing.", TestBattleMemoryWording),
          new SelfTest("realm_faces", Severity.Light, "Queens with a chosen face (Gabriel, 12/10/2026: one queen per realm, made in the character editor; CR dresses the ruler's wife). Reports the faces files read and their problems; on a real ruler's wife, dresses her in a face (the first one read, else a test face) and expects her face to be exactly that one, expects the chat to show her realm's portrait when the faces file names one (Gabriel, 12/10/2026, unless the player dropped their own), then gives it back and expects her own face and usual portrait again, then lets the daily pass dress whom it should. Changes no one for good.", TestRealmFaces),
+         new SelfTest("tale_world_exits", Severity.Light, "Ways out the world takes (Gabriel, 12/10 and 18/10/2026, the Troy-inspired tale: the war ends some other way, she dies, the player weds her; one tale at a time, so a war stage nothing could leave would block every tale). A tale written into this test (never a shipped file) is taken on with a real lord; the real daily tick moves nothing while that lord lives, is unwed and at peace. Rebound to a lord of a realm at war with the player, the war is seen; rebound to a lord at peace, the war has ended and the tale ends on peace. Taken on again and rebound to a dead hero, it ends on mourning. Reads what the world exits read of the player's spouse. Abandons and forgets the tale after.", TestTaleWorldExits),
          new SelfTest("tale_scenario_bridge", Severity.Light, "The tale-scenario bridge (Gabriel, 12/10/2026: a queen leaves with the player and her husband's realm answers). In a runtime of its own, fires ON_TALE for a made-up tale's ending with a real lady and her husband as roles: a rule naming the whole tale and one naming that ending both play, one naming another ending or another tale does not, the news names the husband (never '{husband}'), and PRESS_FOR_WAR between his realm and the player's applies exactly when they are two realms at peace. Declares nothing; the news it wrote is removed.", TestTaleScenarioBridge),
          new SelfTest("tale_on_enter", Severity.Heavy, "tashmetu (15/10/2026): consequences ran only at an ending, so a lady could not leave midway and be given back later in the same tale; and other mods asked to hear a tale's progress (CrTales) with what was really carried out. On a real married lady of another realm, a test tale is offered and accepted; the player's choice enters a stage whose on_enter elopes: asserts she rides with the player, CrTales.StageReached reports the stage, the flag and the elopement as Done, the tale is still under way after a day, and giving her back ends it with CrTales.Ended reporting the return as Done and her wed to him again. Restores everything.", TestTaleOnEnter),
          new SelfTest("tale_elopement", Severity.Heavy, "The Troy-inspired tale (Gabriel, 12/10/2026: she leaves with the player as a guest who may be married; her return to her husband is the condition of peace). On a real married lady of another realm: 'elope' ends her marriage, puts her in the player's party, plants her husband's StolenSpouse grudge and marks her free to marry the player; 'return_spouse' weds them again and takes her out of the party. Restores her house, takes back the grudge and the marker.", TestTaleElopement),
@@ -10694,6 +10695,88 @@ namespace CalradiaRemembers.Diagnostics
 
             b.DebugCloseScene();
             t.Expect("closingFollowsItToItsEnding", $"{b.ActiveRun.Status}/{b.ActiveRun.EndingId}", "Completed/secret");
+         }
+         finally
+         {
+            b.Abandon("Self-test.");
+            b.ForgetPlayed(id);
+            b.DebugForgetTale(id);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>The tale tale_world_exits walks: one stage left only by what the world does (Gabriel, 18/10/2026).</summary>
+      private const string WorldExitsSelfTestTale = @"{
+        ""id"": ""cr_selftest_world_exits"", ""title"": ""[SELFTEST] The Long War"", ""unique"": false,
+        ""requires"": { ""giver"": { ""role"": ""lord"", ""min_regard"": -100 } },
+        ""binds"": { ""giver"": ""a lord"" },
+        ""stages"": [
+          { ""id"": ""ask"", ""journal"": ""[SELFTEST] {giver} asks a favour."", ""objective"": { ""type"": ""talk_to"", ""hero"": ""{giver}"" },
+            ""on_complete"": { ""next"": ""watch"" } },
+          { ""id"": ""watch"", ""journal"": ""[SELFTEST] The world turns."",
+            ""choices"": [
+              { ""id"": ""dies"", ""label"": ""{giver} dies"", ""objective"": { ""type"": ""dies"", ""hero"": ""{giver}"" }, ""next"": ""end:mourned"" },
+              { ""id"": ""wed"", ""label"": ""You wed {giver}"", ""objective"": { ""type"": ""weds_player"", ""hero"": ""{giver}"" }, ""next"": ""end:wed"" },
+              { ""id"": ""peace"", ""label"": ""The war ends"", ""objective"": { ""type"": ""war_ends"", ""hero"": ""{giver}"" }, ""next"": ""end:peace"" } ] }
+        ],
+        ""endings"": { ""mourned"": { }, ""wed"": { }, ""peace"": { } }
+      }";
+
+      private static string TestTaleWorldExits(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tale_world_exits");
+
+         Quests.AuthoredQuestBehavior b = Quests.AuthoredQuestBehavior.Instance;
+         if (t.Skip(b == null, "authored quests are not active")) return t.Line();
+         if (t.Skip(b.ActiveRun is {Status: Logic.AuthoredQuests.AuthoredQuestStatus.Active}, "a real tale is under way; not disturbing it")) return t.Line();
+
+         const string id = "cr_selftest_world_exits";
+         IReadOnlyList<string> problems = b.DebugLoadTale(WorldExitsSelfTestTale, "selftest.json");
+         t.Expect("theTaleLoadsClean", string.Join(" | ", problems), "");
+         Logic.AuthoredQuests.AuthoredQuest tale = b.Quests.FirstOrDefault(q => q.Id == id);
+         if (t.Abort(tale == null, "the tale did not load")) return t.Line();
+
+         try
+         {
+            var today = (int) CampaignTime.Now.ToDays;
+            Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h.Spouse != Hero.MainHero && b.TryOffer(h, today, 0, id));
+            if (t.Skip(giver == null, "no lord at peace with the player could give it")) return t.Line();
+
+            b.Accept(tale, b.Offer);
+            t.Expect("acceptingLeadsToTheWatch", b.ActiveRun.StageId, "watch");
+            b.DebugDailyTick();
+            t.Expect("aLivingUnwedLordAtPeaceMovesNothing", $"{b.ActiveRun.Status}/{b.ActiveRun.StageId}", "Active/watch");
+
+            IFaction mine = Hero.MainHero.MapFaction;
+            Hero enemy = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.MapFaction != null && h.MapFaction != mine && FactionManager.IsAtWarAgainstFaction(h.MapFaction, mine));
+            if (enemy != null)
+            {
+               b.ActiveRun.BoundIds["giver"] = enemy.StringId;
+               b.DebugDailyTick();
+               t.Expect("aLordAtWarIsSeenAtWar", $"{b.ActiveRun.StageId}/{string.Join(",", b.ActiveRun.WarsSeen)}", "watch/{giver}");
+               b.ActiveRun.BoundIds["giver"] = giver.StringId;
+               b.DebugDailyTick();
+               t.Expect("thatWarOverTheTaleEndsOnPeace", $"{b.ActiveRun.Status}/{b.ActiveRun.EndingId}", "Completed/peace");
+               b.ForgetPlayed(id);
+               if (t.Abort(!b.TryOffer(giver, today, 0, id), "the tale could not be taken on a second time")) return t.Line();
+               b.Accept(tale, b.Offer);
+            }
+            else t.Note("no realm is at war with the player; the war's end was not walked (the unit tests pin it).");
+
+            Hero dead = Hero.DeadOrDisabledHeroes.FirstOrDefault(h => h.IsDead);
+            if (dead != null)
+            {
+               t.Expect("theDeadAreGone", Quests.AuthoredQuestBehavior.DebugRoleState(dead).Gone, true);
+               b.ActiveRun.BoundIds["giver"] = dead.StringId;
+               b.DebugDailyTick();
+               t.Expect("theGiverDeadTheTaleEndsOnMourning", $"{b.ActiveRun.Status}/{b.ActiveRun.EndingId}", "Completed/mourned");
+            }
+            else t.Note("nobody has died yet in this campaign; the death was not walked (the unit tests pin it).");
+
+            Hero spouse = Hero.MainHero.Spouse;
+            if (spouse != null) t.Expect("thePlayersSpouseReadsWedToThePlayer", Quests.AuthoredQuestBehavior.DebugRoleState(spouse).WedToPlayer, true);
+            t.Expect("aLordWhoIsNotTheSpouseDoesNot", Quests.AuthoredQuestBehavior.DebugRoleState(giver).WedToPlayer, false);
          }
          finally
          {

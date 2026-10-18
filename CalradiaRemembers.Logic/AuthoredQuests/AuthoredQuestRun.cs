@@ -95,6 +95,13 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// </summary>
       public List<string> DefeatsTold { get; set; } = new();
 
+      /// <summary>
+      ///   war_ends: the roles whose realm was seen at war with the player's during this stage (Gabriel, 18/10/2026): the
+      ///   stage's own war is the one whose end it waits for, so a stage begun before its war is declared never reads the
+      ///   peace of its first day as the war's end. Added 18/10/2026: absent in older saves, where none was seen.
+      /// </summary>
+      public List<string> WarsSeen { get; set; } = new();
+
       /// <summary>explore: the choice the narration took in the scene, carried out when the scene closes.</summary>
       public string SceneChoiceId { get; set; }
 
@@ -164,6 +171,19 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       /// <summary>Null for the stage's own objective.</summary>
       public AuthoredChoice Choice { get; init; }
+   }
+
+   /// <summary>What the game reads of one of the tale's people, for the ways out the world takes (war_ends, dies, weds_player).</summary>
+   public sealed class TaleRoleState
+   {
+      /// <summary>No longer in the world: dead, or gone from it (a hero the game could not find counts as gone).</summary>
+      public bool Gone { get; init; }
+
+      /// <summary>Married to the player.</summary>
+      public bool WedToPlayer { get; init; }
+
+      /// <summary>This person's realm (or house, when it has none) is at war with the player's.</summary>
+      public bool AtWarWithPlayer { get; init; }
    }
 
    /// <summary>The stage machine. Pure: the engine reports facts, this says what they do.</summary>
@@ -498,6 +518,45 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          return waited != null ? GoTo(run, q, s, waited.Choice, waited.Next, today) : AuthoredStep.Nothing;
       }
 
+      /// <summary>The ways out the world takes rather than the player (Gabriel, 18/10/2026, the Troy-inspired tale's war).</summary>
+      public static readonly IReadOnlyList<string> WorldTypes = new[] {"war_ends", "dies", "weds_player"};
+
+      /// <summary>The roles the current stage's world exits name, as written ("{giver}"): the ones the game must read.</summary>
+      public static IReadOnlyList<string> RolesWatched(AuthoredQuestRun run, AuthoredQuest q)
+         => Ways(run, q).Where(w => WorldTypes.Contains(w.Objective.Type) && !string.IsNullOrWhiteSpace(w.Objective.Hero))
+                        .Select(w => w.Objective.Hero).Distinct().ToList();
+
+      /// <summary>
+      ///   The world as the game reads it now, by role: the first world exit of the current stage that holds is taken, in
+      ///   the file's order. dies: the person is gone from the world. weds_player: married to the player. war_ends: their
+      ///   realm was at war with the player's during this stage and is no longer. A role the game did not read moves nothing.
+      /// </summary>
+      public static AuthoredStep WorldNow(AuthoredQuestRun run, AuthoredQuest q, IReadOnlyDictionary<string, TaleRoleState> roles, int today)
+      {
+         AuthoredStage s = Active(run, q);
+         if (s == null || roles == null) return AuthoredStep.Nothing;
+
+         List<AuthoredWay> ways = Ways(run, q).Where(w => WorldTypes.Contains(w.Objective.Type) && !string.IsNullOrWhiteSpace(w.Objective.Hero)).ToList();
+         foreach (AuthoredWay w in ways.Where(w => w.Objective.Type == "war_ends"))
+            if (roles.TryGetValue(w.Objective.Hero, out TaleRoleState st) && st != null && st.AtWarWithPlayer && !run.WarsSeen.Contains(w.Objective.Hero))
+               run.WarsSeen.Add(w.Objective.Hero);
+
+         foreach (AuthoredWay w in ways)
+         {
+            if (!roles.TryGetValue(w.Objective.Hero, out TaleRoleState st) || st == null) continue;
+            bool holds = w.Objective.Type switch
+            {
+               "dies" => st.Gone,
+               "weds_player" => st.WedToPlayer,
+               "war_ends" => !st.AtWarWithPlayer && run.WarsSeen.Contains(w.Objective.Hero),
+               _ => false
+            };
+            if (holds) return GoTo(run, q, s, w.Choice, w.Next, today);
+         }
+
+         return AuthoredStep.Nothing;
+      }
+
       /// <summary>
       ///   A test lever only (cr.story_step): completes the active stage as though its objective were met; a stage
       ///   with no objective is left by its first open choice.
@@ -633,6 +692,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          run.TalkedThisStage.Clear();
          run.LocalsHeard.Clear();
          run.ChoiceBands.Clear();
+         run.WarsSeen.Clear();
          run.SceneChoiceId = null;
          run.NightsWatched = 0;
          run.LastNightDay = -1;

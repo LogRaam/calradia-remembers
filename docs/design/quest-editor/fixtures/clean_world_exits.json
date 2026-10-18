@@ -1,0 +1,64 @@
+{
+  "id": "fx_tale",
+  "title": "A Fixture",
+  "binds": {
+    "giver": "a lord"
+  },
+  "stages": [
+    {
+      "id": "ask",
+      "journal": "Talk to {giver}.",
+      "objective": {
+        "type": "talk_to",
+        "hero": "{giver}"
+      },
+      "on_complete": {
+        "next": "watch"
+      }
+    },
+    {
+      "id": "watch",
+      "journal": "The world turns.",
+      "choices": [
+        {
+          "id": "dies",
+          "label": "{giver} dies",
+          "objective": {
+            "type": "dies",
+            "hero": "{giver}"
+          },
+          "next": "end:mourned"
+        },
+        {
+          "id": "wed",
+          "label": "You wed {giver}",
+          "objective": {
+            "type": "weds_player",
+            "hero": "{giver}"
+          },
+          "next": "end:wed"
+        },
+        {
+          "id": "peace",
+          "label": "The war ends",
+          "objective": {
+            "type": "war_ends",
+            "hero": "{giver}"
+          },
+          "next": "end:peace"
+        }
+      ]
+    }
+  ],
+  "endings": {
+    "mourned": {
+      "regard": 0
+    },
+    "wed": {
+      "regard": 0
+    },
+    "peace": {
+      "regard": 0
+    }
+  }
+}

@@ -432,7 +432,10 @@ input[type="number"] { max-width: 160px; }
       "explore",
       "defeat_party",
       "return",
-      "wait"
+      "wait",
+      "war_ends",
+      "dies",
+      "weds_player"
     ],
     "ChoiceObjectiveTypes": [
       "talk_to",
@@ -440,7 +443,10 @@ input[type="number"] { max-width: 160px; }
       "talk_to_locals",
       "be_at",
       "defeat_party",
-      "wait"
+      "wait",
+      "war_ends",
+      "dies",
+      "weds_player"
     ],
     "HazardEffects": [
       "injure",
@@ -1095,7 +1101,10 @@ input[type="number"] { max-width: 160px; }
             "explore",
             "defeat_party",
             "return",
-            "wait"
+            "wait",
+            "war_ends",
+            "dies",
+            "weds_player"
           ],
           "x-closed-list": "ObjectiveTypes"
         },
@@ -1105,7 +1114,7 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "talk_to: the character, as a role (\"{giver}\")."
+          "description": "talk_to: the character, as a role (\"{giver}\"). war_ends, dies, weds_player: the person the world is watched for."
         },
         "place": {
           "type": [
@@ -3124,6 +3133,11 @@ input[type="number"] { max-width: 160px; }
       case 'wait':
         if (o.days < 1) blocking.push(where + ': wait needs "days" of at least 1.');
         break;
+      case 'war_ends':
+      case 'dies':
+      case 'weds_player':
+        if (blank(o.hero)) blocking.push(where + ': ' + o.type + ' needs "hero".');
+        break;
     }
   }
 
@@ -4004,7 +4018,10 @@ input[type="number"] { max-width: 160px; }
       keep_watch: ['place', 'radius', 'nights', 'chance'],
       explore: ['scene'],
       defeat_party: ['spawn'],
-      wait: ['days']
+      wait: ['days'],
+      war_ends: ['hero'],
+      dies: ['hero'],
+      weds_player: ['hero']
     },
 
     /** Which fields of a consequence each type uses. */
@@ -4909,7 +4926,8 @@ input[type="number"] { max-width: 160px; }
     var o = lazy(holder, 'objective');
     var types = ofChoice ? list('ChoiceObjectiveTypes') : list('ObjectiveTypes');
     var labels = {talk_to: 'talk to someone', 'return': 'return to the giver', talk_to_locals: 'question the locals', be_at: 'be at a place',
-      keep_watch: 'keep watch at night', explore: 'a scene in the chat', defeat_party: 'defeat a band', wait: 'let days pass'};
+      keep_watch: 'keep watch at night', explore: 'a scene in the chat', defeat_party: 'defeat a band', wait: 'let days pass',
+      war_ends: 'the war with them ends', dies: 'they die', weds_player: 'they wed the player'};
     var box = h('div');
     box.appendChild(h('div.grid', selectField(key + '/objective.type', 'What the game checks', 'AuthoredObjective', 'type', o,
       types.map(function (t) { return {value: t, label: t + ' (' + labels[t] + ')'}; }), {empty: o.type ? undefined : '(choose)'})));
@@ -5341,6 +5359,9 @@ input[type="number"] { max-width: 160px; }
       case 'explore': return 'the scene closes';
       case 'defeat_party': return 'defeat ' + ((o.spawn && (o.spawn.name || o.spawn.id)) || 'the band');
       case 'wait': return 'wait ' + (o.days || '?') + ' days';
+      case 'war_ends': return 'the war with ' + (o.hero || '?') + ' ends';
+      case 'dies': return (o.hero || '?') + ' dies';
+      case 'weds_player': return (o.hero || '?') + ' weds you';
       default: return o.type;
     }
   }

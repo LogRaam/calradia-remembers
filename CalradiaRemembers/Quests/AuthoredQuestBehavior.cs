@@ -567,7 +567,32 @@ namespace CalradiaRemembers.Quests
          if (StopIfContentLowered(q)) return;
          if (StopIfVillageLost(q)) return;
          Apply(q, AuthoredQuestEngine.Day(_run, q, (int) CampaignTime.Now.ToDays));
+         if (_run is {Status: AuthoredQuestStatus.Active}) Apply(q, ReadWorld(q));
       }
+
+      /// <summary>
+      ///   Gabriel (18/10/2026, the Troy-inspired tale): the ways out the world takes rather than the player (the war
+      ///   ends, someone dies, the player weds her), read once a day for the people the current stage names.
+      /// </summary>
+      private AuthoredStep ReadWorld(AuthoredQuest q)
+      {
+         var roles = new Dictionary<string, TaleRoleState>();
+         foreach (string role in AuthoredQuestEngine.RolesWatched(_run, q)) roles[role] = RoleState(Find(AuthoredQuestEngine.Bound(_run, role)));
+
+         return AuthoredQuestEngine.WorldNow(_run, q, roles, (int) CampaignTime.Now.ToDays);
+      }
+
+      /// <summary>What the world exits read of one of the tale's people. A captive is still in the world; the dead are not.</summary>
+      private static TaleRoleState RoleState(Hero h)
+         => new() {
+            Gone = !Mapping.HeroPresence.IsInTheWorld(h),
+            WedToPlayer = h != null && Hero.MainHero != null && h.Spouse == Hero.MainHero,
+            AtWarWithPlayer = h?.MapFaction != null && Hero.MainHero?.MapFaction != null && h.MapFaction != Hero.MainHero.MapFaction
+                              && FactionManager.IsAtWarAgainstFaction(h.MapFaction, Hero.MainHero.MapFaction)
+         };
+
+      /// <summary>cr.testall seam: what the world exits read of this hero.</summary>
+      internal static TaleRoleState DebugRoleState(Hero h) => RoleState(h);
 
       /// <summary>
       ///   Gabriel (10/10/2026): a tale whose content level is now above the player's setting (they lowered it) stops,

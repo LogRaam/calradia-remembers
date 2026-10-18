@@ -23,7 +23,10 @@
       "explore",
       "defeat_party",
       "return",
-      "wait"
+      "wait",
+      "war_ends",
+      "dies",
+      "weds_player"
     ],
     "ChoiceObjectiveTypes": [
       "talk_to",
@@ -31,7 +34,10 @@
       "talk_to_locals",
       "be_at",
       "defeat_party",
-      "wait"
+      "wait",
+      "war_ends",
+      "dies",
+      "weds_player"
     ],
     "HazardEffects": [
       "injure",
@@ -686,7 +692,10 @@
             "explore",
             "defeat_party",
             "return",
-            "wait"
+            "wait",
+            "war_ends",
+            "dies",
+            "weds_player"
           ],
           "x-closed-list": "ObjectiveTypes"
         },
@@ -696,7 +705,7 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "talk_to: the character, as a role (\"{giver}\")."
+          "description": "talk_to: the character, as a role (\"{giver}\"). war_ends, dies, weds_player: the person the world is watched for."
         },
         "place": {
           "type": [

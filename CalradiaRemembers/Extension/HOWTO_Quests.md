@@ -268,6 +268,13 @@ rounds the frame to whole pixels and the picture trembles; zoom with sub-pixel p
 | `explore` | A scene in the chat, with a narrator and no character (section 10). Done when the player closes it. | `scene` |
 | `defeat_party` | A band spawned near the place is destroyed by the player or the player's army. If someone else destroys it, it regroups. | `spawn` |
 | `wait` | That many days pass with no other way out taken. On a choice, it is how "doing nothing" is chosen. | `days` |
+| `war_ends` | The war between that person's realm and the player's is over: it was seen during this stage, and now the two are at peace. A stage begun before its war is declared waits for the war first. | `hero`: a role |
+| `dies` | That person is no longer in the world (dead, or taken out of it by the game). A captive is still in the world. | `hero`: a role |
+| `weds_player` | That person is married to the player. | `hero`: a role |
+
+The last three are ways out the world takes, not the player: read once a day, on a stage or a choice. They let a
+stage with no time limit end however the world turns, which matters since only one tale runs at a time: a war stage
+nothing could leave would block every other tale. Since 2.7.17.
 
 A night counts once, read an hour past midnight, with the player's party inside the radius. Waiting inside the
 village counts; say so in the stage's journal line, since players will wander off into the wood otherwise. The tale's
@@ -347,7 +354,7 @@ ask?" Restate, in each choice stage, what each character there must still know. 
 A choice is taken in one of three ways:
 
 - **By an act**: it carries an `objective`: `talk_to`, `return`, `talk_to_locals`, `be_at`,
-  `defeat_party` or `wait`. The first one met wins. (A choice cannot keep watch or open a scene:
+  `defeat_party` or `wait`, or one the world takes (`war_ends`, `dies`, `weds_player`). The first one met wins. (A choice cannot keep watch or open a scene:
   lead it to a stage that does.) A choice's band does not flee; it stays until the stage ends.
 - **In a scene**: in an `explore` stage, a choice with no objective is a turn the player takes in
   the scene (section 10).
