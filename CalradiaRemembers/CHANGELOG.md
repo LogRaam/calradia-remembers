@@ -32,6 +32,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   passed over for a quiet one, and with none the tale is not offered now. While the tale runs, when the giver's house no
   longer holds the village (`StopIfVillageLost`, daily), the tale ends without reward or penalty and its journal says
   who holds it now (Gabriel, 18/10). testall `tale_quiet_village`.
+- **A lord raising a tale sets no errand of his own beside it** (fkasad, Nexus 18/10, his log: raising the Drowned
+  Bridge on the road, the lord also set an errand about the same bridge at another village, written as an `[ACTION]
+  type: quest` the bridge refused, the purple "That deed finds no purchase" line). `AuthoredTaleRoles.HoldsARole`
+  covered only a tale already accepted; the hero raising one (`_offerHeroId`) now holds its role too, so
+  `InActiveWrittenTale` closes his quest offers while he raises it. testall `authored_quest_opening`
+  (`theRaisingLordSetsNoOtherTask`).
 
 ## v2.7.15.. 2026-10-17
 

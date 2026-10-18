@@ -80,8 +80,11 @@ namespace CalradiaRemembers.Quests
       public IReadOnlyCollection<AuthoredQuest> Quests => _quests.Values;
       public AuthoredQuestRun ActiveRun => _run;
 
-      /// <summary>The hero holds a role in the tale under way, which is then their errand (fkasad, 07/10/2026).</summary>
-      public bool HoldsARole(string heroId) => AuthoredTaleRoles.HoldsARole(_run, heroId);
+      /// <summary>
+      ///   The hero holds a role in the tale under way, which is then their errand (fkasad, 07/10/2026), or is raising a
+      ///   tale with the player now (fkasad, 18/10/2026).
+      /// </summary>
+      public bool HoldsARole(string heroId) => AuthoredTaleRoles.HoldsARole(_run, heroId, _offer != null ? _offerHeroId : null);
 
       public override void RegisterEvents()
       {

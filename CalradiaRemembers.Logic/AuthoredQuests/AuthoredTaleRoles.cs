@@ -23,6 +23,14 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          // The village is bound too, by its settlement id; only people are asked.
          return run.BoundIds.Any(kv => kv.Key != "village" && kv.Value == heroId);
       }
+
+      /// <summary>
+      ///   True when the hero holds a role in the tale under way, or is raising a tale with the player right now. fkasad
+      ///   (Nexus, 18/10/2026): the Drowned Bridge's lord, raising the tale on the road, also set the player an errand of
+      ///   his own about the same bridge, at another village; the tale's errand was his whole matter already.
+      /// </summary>
+      public static bool HoldsARole(AuthoredQuestRun run, string heroId, string raisingHeroId)
+         => HoldsARole(run, heroId) || (!string.IsNullOrEmpty(heroId) && heroId == raisingHeroId);
    }
 
    /// <summary>Whether ending a scene asks first. Pure.</summary>

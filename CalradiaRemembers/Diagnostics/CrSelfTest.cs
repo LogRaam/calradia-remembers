@@ -10550,6 +10550,8 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("thePlayerIsBoundByName", offer.BoundNames.TryGetValue("player", out string playerName) ? playerName : null, Hero.MainHero?.Name?.ToString());
             t.Note($"{giver.Name} would raise it, about {village?.Name}");
             t.Expect("theGiverIsToldToRaiseIt", b.PromptBlockFor(giver)?.Contains("ask for their help") == true, true);
+            // fkasad (18/10/2026): raising the tale, the lord sets no errand of his own beside it.
+            t.Expect("theRaisingLordSetsNoOtherTask", b.HoldsARole(giver.StringId), true);
 
             b.Accept(wolf, offer);
             t.Expect("theJournalShowsATale", Campaign.Current.QuestManager.Quests.OfType<Quests.AuthoredStoryQuest>().Any(q => q.IsOngoing && q.StoryId == wolf.Id), true);

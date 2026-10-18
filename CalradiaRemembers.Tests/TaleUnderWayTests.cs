@@ -46,6 +46,17 @@ namespace CalradiaRemembers.Tests
          AuthoredTaleRoles.HoldsARole(run, AuthoredTales.Giver).Should().BeFalse();
       }
 
+      // STAKE: fkasad (Nexus, 18/10/2026): the Drowned Bridge's lord, raising the tale on the road, also set the player a
+      // second errand about the same bridge at another village (the model wrote it as a deed the game refused, the purple
+      // line). The lord raising a tale holds its errand already; no one else does on that account.
+      [Test]
+      public void GIVEN_a_lord_raising_a_tale_before_it_is_accepted_WHEN_asked_who_holds_a_role_THEN_he_does_and_no_one_else()
+      {
+         AuthoredTaleRoles.HoldsARole(null, "lord_raising", "lord_raising").Should().BeTrue();
+         AuthoredTaleRoles.HoldsARole(null, "lord_elsewhere", "lord_raising").Should().BeFalse();
+         AuthoredTaleRoles.HoldsARole(null, "lord_raising", null).Should().BeFalse();
+      }
+
       // A companion who walked the scene remembers walking it with the player, and what was found there.
       [Test]
       public void GIVEN_a_companion_in_the_scene_WHEN_it_closes_THEN_they_remember_the_search_and_its_findings()
