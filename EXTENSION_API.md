@@ -226,6 +226,36 @@ int? regard = CrNpcMemory.GetRegard(npcId);   // -100..100 on CR's own ledger, o
 The character's own personal regard for the player, built in conversation: never the game's relation. Read-only;
 `RegardChanged` below reports every move of it.
 
+### What lies between two characters (`CrPairRegard`, since 2.7.17)
+
+When the player names someone in the chat, the speaker is told whether that person is a friend or an enemy and why;
+the encyclopedia's friends, enemies and houses read the same weighing. Add what your mod knows to it:
+
+```csharp
+public sealed class MySource : IPairRegardSource
+{
+   public IEnumerable<PairRegardTrace> TracesFor(Hero speaker, Hero other, int today)
+   {
+      // as the SPEAKER sees the other; nothing when nothing lies between them
+      yield return new PairRegardTrace {
+         Weight = 25,                                         // signed, on the -100..100 regard scale
+         Line = "you fought side by side for years",          // told to the speaker in the chat
+         PageLine = "fought side by side for years",          // shown on the speaker's page
+         KnownToPlayer = true                                 // false: the speaker knows it, the page never shows it
+      };
+   }
+}
+
+CrPairRegard.RegisterPairRegardSource(new MySource());
+```
+
+`PairRegardTrace` is in `CalradiaRemembers.Logic.dll`. A friend takes +20 or more, an enemy -20 or less, ties and CR's
+own traces included. What all sources say counts together for at most 40 either way (`PairRegardPolicy.OutsideCap`):
+enough to tip a pair, never enough to drown what happened in CR (a kinsman executed weighs -70). On equal weight CR's
+own reason is said first. `TracesFor` is called for each page opened and each character named in the chat, so keep
+it cheap. A source that throws adds nothing and is logged once. The page weighs the vanilla friends and enemies and
+those CR ties to the character; a source does not add new people to it.
+
 ### Cultures (`CrCultures.MarriageCustom`, since 2.7.5)
 
 ```csharp

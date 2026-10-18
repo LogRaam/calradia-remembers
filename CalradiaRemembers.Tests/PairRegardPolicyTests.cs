@@ -119,6 +119,42 @@ namespace CalradiaRemembers.Tests
                          .Should().Be(PairRegardVerdict.Neither);
       }
 
+      // STAKE: tashmetu (18/10/2026): two lords R&S made close through years of battles side by side showed as "neither"
+      // on the page, beside R&S's own tooltip saying the opposite. What another mod says counts, with its reason.
+      [Test]
+      public void GIVEN_another_mod_saying_two_lords_are_close_WHEN_nothing_here_says_otherwise_THEN_they_are_friends_for_its_reason()
+      {
+         PairRegard r = PairRegardPolicy.Assess(new PairRegardFacts {OutsideTraces = new[] {Trace(30, "fought side by side for years")}});
+
+         r.Verdict.Should().Be(PairRegardVerdict.Friend);
+         PairRegardPolicy.PageReason(r).Should().Be("fought side by side for years");
+      }
+
+      // STAKE: another mod may tip a pair, never drown what happened here: however much it claims, a brother executed
+      // keeps the man who ordered it an enemy (OutsideCap).
+      [Test]
+      public void GIVEN_another_mod_claiming_great_friendship_WHEN_the_other_had_his_brother_executed_THEN_he_stays_an_enemy()
+      {
+         PairRegard r = PairRegardPolicy.Assess(new PairRegardFacts {
+            Traces = new[] {Trace(PairRegardPolicy.KinExecuted(), "had your brother executed")},
+            OutsideTraces = new[] {Trace(100, "a debt of honour"), Trace(100, "a great rapport")}
+         });
+
+         r.Verdict.Should().Be(PairRegardVerdict.Enemy);
+         r.Points.Should().Be(PairRegardPolicy.KinExecuted() + PairRegardPolicy.OutsideCap);
+      }
+
+      // STAKE: when another mod's reason weighs as much as one of ours, ours is said first.
+      [Test]
+      public void GIVEN_an_outside_reason_as_strong_as_ours_WHEN_the_reasons_are_ordered_THEN_ours_comes_first()
+      {
+         PairRegard r = PairRegardPolicy.Assess(new PairRegardFacts {
+            Traces = new[] {Trace(30, "saved your life")}, OutsideTraces = new[] {Trace(30, "an old rapport")}
+         });
+
+         r.Reasons[0].Line.Should().Be("saved your life");
+      }
+
       // STAKE: tashmetu (18/10/2026, Halthdar's page): "Hertogi Gornlautir, friend: Halthdar and Hertogi Gornlautir rode
       // together" names the page's lord again; the pair opening is cut, and only that, so who wronged whom still reads.
       [Test]

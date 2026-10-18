@@ -66,6 +66,12 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>What happened between them, each already weighed (see the weight helpers).</summary>
         public IReadOnlyList<PairRegardTrace> Traces { get; init; } = Array.Empty<PairRegardTrace>();
+
+        /// <summary>
+        ///   What other mods say lies between them (CrRegard sources), weighed by those mods. Counted, but together never
+        ///   more than <see cref="PairRegardPolicy.OutsideCap" /> either way.
+        /// </summary>
+        public IReadOnlyList<PairRegardTrace> OutsideTraces { get; init; } = Array.Empty<PairRegardTrace>();
     }
 
     /// <summary>The speaker's regard for the other: points on the regard scale, the verdict, and the reasons, strongest first.</summary>
@@ -95,6 +101,13 @@ namespace CalradiaRemembers.Logic
         public const int TakenCaptiveWeight = -30;
         public const int BeatenInBattleWeight = -15;
         public const int HelpedInThePastWeight = 30;
+
+        /// <summary>
+        ///   What other mods say counts, together, for at most this much either way: as much as a betrayal written in the
+        ///   past, less than a kinsman executed. tashmetu (18/10/2026): R&amp;S's years of battles side by side showed as
+        ///   "neither" or "enemy" beside its own tooltip; another mod may tip a pair, never drown what happened here.
+        /// </summary>
+        public const int OutsideCap = 40;
 
         /// <summary>A wrong or a kindness weighs half as much after each this many years (an execution never fades).</summary>
         public const int HalfLifeYears = 10;
@@ -135,14 +148,18 @@ namespace CalradiaRemembers.Logic
         {
             if (f == null) return new PairRegard();
 
-            IReadOnlyList<PairRegardTrace> traces = f.Traces ?? Array.Empty<PairRegardTrace>();
+            IReadOnlyList<PairRegardTrace> own = f.Traces ?? Array.Empty<PairRegardTrace>();
+            IReadOnlyList<PairRegardTrace> outside = (f.OutsideTraces ?? Array.Empty<PairRegardTrace>()).Where(t => t != null).ToList();
+            var ownSet = new HashSet<PairRegardTrace>(own);
+            List<PairRegardTrace> traces = own.Concat(outside).ToList();
+            int outsideSum = Math.Max(-OutsideCap, Math.Min(OutsideCap, outside.Sum(t => Math.Max(-OutsideCap, Math.Min(OutsideCap, t.Weight)))));
 
             int ties = f.IsSpouse ? SpouseWeight
                      : f.IsParentOrChild || f.IsSibling ? KinWeight
                      : f.SameClan ? ClanWeight
                      : 0;
 
-            int sum = ties + (f.RealmsAtWar ? AtWarWeight : 0) + traces.Sum(t => t.Weight);
+            int sum = ties + (f.RealmsAtWar ? AtWarWeight : 0) + own.Sum(t => t.Weight) + outsideSum;
             int points = Math.Max(-100, Math.Min(100, sum));
 
             PairRegardVerdict verdict = traces.Count == 0 ? PairRegardVerdict.Neither
@@ -153,7 +170,8 @@ namespace CalradiaRemembers.Logic
             int sign = verdict == PairRegardVerdict.Enemy ? -1 : 1;
             List<PairRegardTrace> reasons = traces.Where(t => t.Weight != 0 && !string.IsNullOrWhiteSpace(t.Line))
                                                   .OrderByDescending(t => Math.Sign(t.Weight) == sign)
-                                                  .ThenByDescending(t => Math.Abs(t.Weight))
+                                                  .ThenByDescending(t => Math.Min(Math.Abs(t.Weight), ownSet.Contains(t) ? int.MaxValue : OutsideCap))
+                                                  .ThenByDescending(t => ownSet.Contains(t))
                                                   .ToList();
 
             return new PairRegard {Points = points, Verdict = verdict, Reasons = reasons};

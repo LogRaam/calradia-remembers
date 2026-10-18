@@ -71,7 +71,8 @@ namespace CalradiaRemembers.Mapping
             IsSibling = sibling,
             SameClan = speaker.Clan != null && speaker.Clan == other.Clan,
             RealmsAtWar = speaker.MapFaction != null && other.MapFaction != null && FactionManager.IsAtWarAgainstFaction(speaker.MapFaction, other.MapFaction),
-            Traces = traces
+            Traces = traces,
+            OutsideTraces = CrPairRegard.TracesFor(speaker, other, today)
          };
       }
 

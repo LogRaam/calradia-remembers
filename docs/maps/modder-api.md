@@ -127,6 +127,13 @@ _The public NPC-memory API. A caller identifies the NPC by its hero StringId (ne
 - `static int RemoveMemory(CrMemoryRemoval removal)`
 - `static int? GetRegard(string npcId)`
 
+### CrPairRegard
+
+_The door through which other mods add to what one character thinks of another._
+
+- `static void RegisterPairRegardSource(IPairRegardSource source)`
+- `static void UnregisterPairRegardSource(IPairRegardSource source)`
+
 ### CrPatrolBattle
 
 _One battle a patrol fought, for CrPatrols.Fought._
@@ -350,6 +357,12 @@ _The outcome of feeding an event through Feed (record / update / retract)._
 - `RejectedThrottled`
 - `Retracted`
 - `Updated`
+
+### IPairRegardSource
+
+_What another mod knows lies between two characters._
+
+- `IEnumerable<PairRegardTrace> TracesFor(Hero speaker, Hero other, int today)`
 
 ### MemoryResult
 

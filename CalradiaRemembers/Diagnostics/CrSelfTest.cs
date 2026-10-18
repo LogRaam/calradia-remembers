@@ -304,6 +304,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("authored_quest_said_choice", Severity.Light, "Branching tales, choices by words. A tale written into this test loads and a real lord takes it on. At its last stage the action interpreter of a conversation with that lord is taught the open choice by words and not the one closed by its flag; another lord's interpreter is taught nothing. Through the REAL bridge (story_choice, the path an LLM report takes): the closed choice is refused and changes nothing, the open one is taken and ends the tale on its own ending (no regard, gold or memory). Abandons and forgets the tale after.", TestAuthoredQuestSaidChoice),
          new SelfTest("audience_not_spent_unheard", Severity.Light, "EnjoyingHydra (Nexus, 03/10/2026): companion audiences accepted and never opened were spent anyway (grievance count reset, topics used), and a companion left. Promises a change for a real companion, sends the audience through the real open with no profile so it fails: nothing may be spent, nothing left waiting. Opens no window.", TestAudienceNotSpentUnheard),
          new SelfTest("shared_past_draw", Severity.Light, "Gabriel's rulings on the generated shared past (NPC_REGARD.md section 7, 17/10/2026): drawn once and never re-rolled, written into the world's long-term memory before the campaign began, both adults then, a good share get nothing. Picks lords never drawn with a lord of their realm, drives the real draw (SharedPastBehavior.DrawFor) for up to six pairs: each is marked drawn; each past drawn is in the long-term memory, dated before the start, with both of age then; a second draw changes nothing. Forgets the pairs and their pasts after.", TestSharedPastDraw),
+         new SelfTest("pair_regard_source", Severity.Light, "tashmetu (18/10/2026): two lords R&S made close showed as neither on the page, beside its own tooltip. A source registered through CrPairRegard, for two lords of different houses with nothing between them here, makes the first a friend of the second with its reason, leaves the other way round untouched, counts at most PairRegardPolicy.OutsideCap however much it claims, and is gone once unregistered.", TestPairRegardSource),
          new SelfTest("npc_regard_reason", Severity.Light, "Gabriel (17/10/2026): every friend or enemy carries its reason (docs/design/NPC_REGARD.md section 9). Without touching the author's file, syncs a test betrayal of the past in which one lord wronged another, and drives the real name resolution (ContextualNameResolver.Resolve) on a message naming the betrayer: the wronged lord is told the betrayer is an enemy, for what lies between them, with the betrayal and how long ago; a lord of another house and realm asked the same is told nothing of it. The wronged lord's encyclopedia page (built here, then refreshed) lists the betrayer among his enemies and not his friends. Then the author's file alone is synced back.", TestNpcRegardReason),
          new SelfTest("companion_news_fresh", Severity.Light, "LapitaPolata (Nexus, 17/10/2026): a companion told of a castle being besieged after it had fallen, and of a war breaking out while the player was already riding to a siege in it. Records test news and reads it through the real glue (CompanionAudienceTopicResolver.FreshnessFacts): a siege fight at a place recorded as fallen since is overtaken; a war naming the player's own realm or clan is theirs; news ten days old is too old; fresh news of two other realms may still be brought. Removes the test news.", TestCompanionNewsFresh),
          new SelfTest("reply_language_everywhere", Severity.Light, "RaveN017Mod (Nexus, 17/10/2026): French game, Reply Language French, yet a character who came to him on the map and every council opened in English; he asked whether the mod could read the game's language. With the setting blank, the language resolved is the game's (none for an English game); with it set to Spanish, an opening cue ends naming Spanish and the council prompt carries Spanish. Restores the setting.", TestReplyLanguageEverywhere),
@@ -5057,6 +5058,52 @@ namespace CalradiaRemembers.Diagnostics
          {
             foreach (Hero o in others) past.DebugForget(hero, o);
          }
+
+         return t.Line();
+      }
+
+      private sealed class SelfTestPairRegardSource : IPairRegardSource
+      {
+         public string SpeakerId, OtherId;
+         public int Weight;
+
+         public IEnumerable<Logic.PairRegardTrace> TracesFor(Hero speaker, Hero other, int today)
+         {
+            if (speaker?.StringId == SpeakerId && other?.StringId == OtherId)
+               yield return new Logic.PairRegardTrace {Weight = Weight, Line = "[SELFTEST] years of battles side by side", PageLine = "[SELFTEST] years of battles side by side", KnownToPlayer = true};
+         }
+      }
+
+      private static string TestPairRegardSource(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("pair_regard_source");
+
+         // Two lords of different houses with nothing between them here: the test's source alone must decide them.
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h.IsLord && h != Hero.MainHero && h.Clan != null && !h.IsChild).Take(200).ToList();
+         (Hero a, Hero b) = lords.SelectMany(x => lords.Where(y => y.Clan != x.Clan).Take(10).Select(y => (x, y)))
+                                 .FirstOrDefault(p => PairRegardReader.Assess(p.x, p.y) is {Verdict: Logic.PairRegardVerdict.Neither, Points: 0}
+                                                      && PairRegardReader.Assess(p.y, p.x) is {Verdict: Logic.PairRegardVerdict.Neither});
+         if (t.Skip(a == null, "no two lords of different houses with nothing between them")) return t.Line();
+         t.Note($"{a.Name} and {b.Name}");
+
+         var source = new SelfTestPairRegardSource {SpeakerId = a.StringId, OtherId = b.StringId, Weight = 30};
+         CrPairRegard.RegisterPairRegardSource(source);
+         try
+         {
+            Logic.PairRegard r = PairRegardReader.Assess(a, b);
+            t.Expect("anotherModsReasonMakesThemFriends", r.Verdict, Logic.PairRegardVerdict.Friend);
+            t.Expect("andThePageGivesItsReason", Logic.PairRegardPolicy.PageReason(r) ?? "", "[SELFTEST] years of battles side by side");
+            t.Expect("theOtherWayRoundIsUntouched", PairRegardReader.Assess(b, a).Verdict, Logic.PairRegardVerdict.Neither);
+
+            source.Weight = 500;
+            t.Expect("howeverMuchItClaimsItCountsAtMostTheCap", PairRegardReader.Assess(a, b).Points, Logic.PairRegardPolicy.OutsideCap);
+         }
+         finally
+         {
+            CrPairRegard.UnregisterPairRegardSource(source);
+         }
+
+         t.Expect("unregisteredItIsGone", PairRegardReader.Assess(a, b).Verdict, Logic.PairRegardVerdict.Neither);
 
          return t.Line();
       }

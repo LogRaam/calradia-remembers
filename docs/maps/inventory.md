@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 523 types in 61 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 525 types in 61 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1203 types in 31 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
 
@@ -43,7 +43,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (46)
+### CalradiaRemembers (48)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -60,6 +60,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrMemoryRecord` | public class | One memory CR already holds for an NPC, as read back through CrNpcMemory.GetMemories. |
 | `CrMemoryRemoval` | public class | A memory a mod takes back (philip0105, Vivid World, 10/10/2026: rumors forgotten or corrected later). |
 | `CrNpcMemory` | public static class | The public NPC-memory API. A caller identifies the NPC by its hero StringId (never a display name), reads its stored memories, and injects new ones. |
+| `CrPairRegard` | public static class | The door through which other mods add to what one character thinks of another. |
 | `CrPatrolBattle` | public class | One battle a patrol fought, for CrPatrols.Fought. |
 | `CrPatrolEnd` | public class | A patrol's end, for CrPatrols.Ended. |
 | `CrPatrolEndKind` | public enum | How a patrol ended. |
@@ -81,6 +82,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ExternalWorldEvent` | public class | One world fact a third-party mod wants CR to know about. |
 | `Feed` | public static class | The public, one-way inbound API: a third-party mod calls Record to feed CR a world fact. |
 | `FeedResult` | public enum | The outcome of feeding an event through Feed (record / update / retract). |
+| `IPairRegardSource` | public interface | What another mod knows lies between two characters. |
 | `InterpretTestRunner` | internal static class | The runner behind cr.interpret_test. |
 | `LocalContextState` | public static class | The session's record of fitting requests to the local model's window. |
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |

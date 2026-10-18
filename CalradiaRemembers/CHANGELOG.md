@@ -28,6 +28,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   the same ones).
 
 ### For modders
+- **Other mods add to what lies between two characters** (tashmetu, 18/10: lords R&S made close through years of
+  battles side by side showed as "neither" or "enemy" beside its own tooltip). `IPairRegardSource`,
+  `CrPairRegard.RegisterPairRegardSource`; `PairRegardFacts.OutsideTraces`, counted together for at most
+  `PairRegardPolicy.OutsideCap` (40) either way; CR's own reason first on equal weight. EXTENSION_API. cr.testall
+  `pair_regard_source`.
 - **Companion patrols, public and read-only** (tashmetu, 18/10: R&S read `CompanionPatrolBehavior._patrols` by
   reflection). `CrPatrols.Current` (copies, `CrPatrolInfo`), `CrPatrols.Fought` (`CrPatrolBattle`) and
   `CrPatrols.Ended` (`CrPatrolEnd`, `How`: Back, Scattered, Captured, Killed). EXTENSION_API. cr.testall
