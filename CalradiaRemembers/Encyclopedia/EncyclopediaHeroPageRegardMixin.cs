@@ -60,6 +60,22 @@ namespace CalradiaRemembers.Encyclopedia
       public EncyclopediaHeroPageRegardMixin(EncyclopediaHeroPageVM vm) : base(vm)
       {
          Refresh();
+
+         // A later vanilla refresh (RefreshValues) runs this mixin's OnRefresh BEFORE it refills the lists, so the
+         // vanilla lists won (cr.testall npc_regard_reason, 17/10/2026: stillAfterTheVanillaRefresh=False). The page
+         // says when its own fill is done: Refresh ends with IsLoadingOver = true. The lists are corrected then.
+         if (vm != null) vm.PropertyChangedWithBoolValue += OnPagePropertyChanged;
+      }
+
+      public override void OnFinalize()
+      {
+         if (ViewModel != null) ViewModel.PropertyChangedWithBoolValue -= OnPagePropertyChanged;
+         base.OnFinalize();
+      }
+
+      private void OnPagePropertyChanged(object sender, PropertyChangedWithBoolValueEventArgs e)
+      {
+         if (e.PropertyName == nameof(EncyclopediaHeroPageVM.IsLoadingOver) && e.Value) Refresh();
       }
 
       /// <summary>Cream header, "Why:" or empty (auto-hides).</summary>
