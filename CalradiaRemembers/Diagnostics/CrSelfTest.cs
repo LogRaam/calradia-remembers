@@ -428,6 +428,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("rp_spend_influence", Severity.Light, "needy lord's clan -> spend_influence -> assert clan influence moved + marker + appreciation planted + cooldown refuses repeat", TestRpSpendInfluence),
          new SelfTest("rp_sway", Severity.Light, "NPC + 3rd hero -> a sway the player never argued (no name said) is REFUSED with nothing moved (Maifailun, 01/10/2026); then a case naming the target -> sway_opinion(against) -> relation dropped + cooldown stamped with no marker in the memory text + world event + cooldown refuses repeat", TestRpSway),
          new SelfTest("press_for_war", Severity.Light, "Gabriel (18/10/2026): influence a lord in conversation toward war; any lord; the cost is the risk that the target realm learns the player spoke against it; the player sees nothing special beyond a war more likely. On a real lord whose house can propose a war (lent the influence when none can, restored after): the verb is taught with the realm; a case that never names the realm is refused; a real case queues his house's pressing without any war; the talk is recorded as gossip and watched for the target realm's house heads; the game's own war proposal is prepared, never filed (an AI realm votes at once). Forgets the pressing, the gossip, the watch and the memory", TestPressForWar),
+         new SelfTest("captive_dungeon_bargain", Severity.Light, "LapitaPolata (Nexus, 18/10/2026): the Sultan's wife and son promised 20K for their freedom, the player agreed, nothing happened: a captive in the dungeon of the player's castle was not counted as the player's, so no terms were offered and the release was refused. Puts a real lord without a party of his own in the dungeon of a fief of the player's house, asserts he reads as the player's captive with terms open, and that an accord (goodwill) settled through the real bridge frees him. Releases him if still held and restores his regard and memory. MANUAL when the player's house holds no town or castle", TestCaptiveDungeonBargain),
          new SelfTest("rp_release", Severity.Heavy, "seed 3rd-party captive on a lord's party -> release_prisoner -> assert freed + relation bump", TestRpRelease),
          new SelfTest("commitment_is_memory_only", Severity.Light, "fire a real pledge_against -> assert the vow is REMEMBERED but not tracked as a quest: no ledger entry, no journal mirror, no relation change (2026-08-22: an NPC's vow is not a player quest)", TestCommitmentIsMemoryOnly),
          new SelfTest("divorce_process", Severity.Heavy, "married couple -> end_marriage -> force endDay -> tick -> assert dissolved + exSpouses + no one clanless + scandal + relation hits", TestDivorceProcess),
@@ -15288,6 +15289,44 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("markerStamped", marked, true);
          t.Expect("worldEventRecorded", eventsAfter > eventsBefore, true);
          t.Expect("repeatRefused", again == null || !again.IsPositive, true);
+
+         return t.Line();
+      }
+
+      private static string TestCaptiveDungeonBargain(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("captive_dungeon_bargain");
+         Settlement fief = Clan.PlayerClan?.Settlements?.FirstOrDefault(s => (s.IsTown || s.IsCastle) && s.Party != null);
+         if (t.Skip(fief == null, "the player's house holds no town or castle, so it has no dungeon")) return t.Line();
+         Hero captive = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h.Clan != null && h.Clan != Clan.PlayerClan && !h.IsPrisoner
+                                                               && h.PartyBelongedTo == null && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(captive == null, "no free lord without a party of his own to hold")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, captive);
+         int eventsBefore = profile.Events.Count, relationBefore = captive.GetRelation(Hero.MainHero);
+         try
+         {
+            // Arranged (GABRIEL'S RULE 13/10/2026): the lord is put in the dungeon of the player's own fief.
+            TakePrisonerAction.Apply(fief.Party, captive);
+            t.Note($"{captive.Name} held in {fief.Name}'s dungeon");
+
+            // STAKE: LapitaPolata's report: a captive in the player's dungeon is the player's captive, offered terms.
+            t.Expect("theDungeonCaptiveIsThePlayers", behavior.GameStateBridge.GetPlayerStatus(captive), PlayerStatusVsNpc.NpcIsCaptive);
+            t.Expect("termsAreOpenToHim", Mapping.EncounterContextBuilder.ResolveCaptiveOffer(captive, profile, PlayerStatusVsNpc.NpcIsCaptive, false) != null, true);
+
+            // STAKE: an accord struck in the conversation frees him, where it used to be refused as "not yours".
+            ActionOutcome deal = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "counter_offer", Parameters = new Dictionary<string, string> {{"terms", "goodwill"}}},
+                                                                        captive, new ActionContext(profile, null));
+            t.Expect("theAccordIsSettled", deal?.IsPositive, true);
+            t.Expect("heWalksFree", captive.IsPrisoner, false);
+         }
+         finally
+         {
+            if (captive.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(captive, Hero.MainHero);
+            while (profile.Events.Count > eventsBefore) profile.Events.RemoveAt(profile.Events.Count - 1);
+            int drift = captive.GetRelation(Hero.MainHero) - relationBefore;
+            if (drift != 0) ChangeRelationAction.ApplyRelationChangeBetweenHeroes(captive, Hero.MainHero, -drift, false);
+         }
 
          return t.Line();
       }

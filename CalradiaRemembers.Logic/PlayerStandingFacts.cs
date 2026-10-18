@@ -20,7 +20,10 @@ namespace CalradiaRemembers.Logic
         /// <summary>The player is held prisoner by this NPC's party.</summary>
         public bool PlayerIsCaptiveOfNpc { get; init; } = false;
 
-        /// <summary>This NPC is held prisoner by the player's party.</summary>
+        /// <summary>
+        ///   This NPC is held prisoner by the player: in the player's party or by the player's house, its dungeons included
+        ///   (Prisoners.PrisonerCustodyPolicy; LapitaPolata, 18/10/2026: a captive in the player's castle could not bargain).
+        /// </summary>
         public bool NpcIsCaptiveOfPlayer { get; init; } = false;
 
         /// <summary>This NPC belongs to the player's own clan.</summary>

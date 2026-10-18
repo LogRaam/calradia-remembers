@@ -38,6 +38,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   covered only a tale already accepted; the hero raising one (`_offerHeroId`) now holds its role too, so
   `InActiveWrittenTale` closes his quest offers while he raises it. testall `authored_quest_opening`
   (`theRaisingLordSetsNoOtherTask`).
+- **A captive in the dungeon of the player's castle can bargain for freedom** (LapitaPolata, Nexus 18/10: the Sultan's
+  wife and son promised 20,000, the player agreed, nothing happened). The player's-captive standing
+  (`PlayerStandingFacts.NpcIsCaptiveOfPlayer`), `counter_offer` and `free_prisoner` read the party only, while
+  `recruit_prisoner` already read the custody rule (`IsHeldByPlayer`, `Prisoners.PrisonerCustodyPolicy`: the
+  player's party or the player's house, dungeons included). All now read it: a dungeon captive is offered terms, and
+  an accord frees him. testall `captive_dungeon_bargain`.
 
 ## v2.7.15.. 2026-10-17
 

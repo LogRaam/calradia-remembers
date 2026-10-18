@@ -657,7 +657,7 @@ namespace CalradiaRemembers.GameState
          Kingdom playerRealm = Clan.PlayerClan?.Kingdom;
          bool sharesRealm = playerRealm != null && npc.Clan?.Kingdom == playerRealm;
 
-         return new PlayerStandingFacts {PlayerIsCaptiveOfNpc = Hero.MainHero.IsPrisoner && Hero.MainHero.PartyBelongedToAsPrisoner?.LeaderHero == npc, NpcIsCaptiveOfPlayer = npc.IsPrisoner && npc.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero, SharesPlayerClan = npc.Clan != null && npc.Clan == Clan.PlayerClan, NpcRulesPlayerRealm = Hero.MainHero.Clan?.Kingdom?.Leader == npc && npc != Hero.MainHero, PlayerRulesNpcRealm = npc.Clan?.Kingdom?.Leader == Hero.MainHero && Hero.MainHero.Clan?.Kingdom != null, PlayerIsMercenaryOfNpcRealm = sharesRealm && (Clan.PlayerClan?.IsUnderMercenaryService ?? false), SharesRealm = sharesRealm, NpcIsMercenaryOfSharedRealm = sharesRealm && (npc.Clan?.IsUnderMercenaryService ?? false)};
+         return new PlayerStandingFacts {PlayerIsCaptiveOfNpc = Hero.MainHero.IsPrisoner && Hero.MainHero.PartyBelongedToAsPrisoner?.LeaderHero == npc, NpcIsCaptiveOfPlayer = IsHeldByPlayer(npc), SharesPlayerClan = npc.Clan != null && npc.Clan == Clan.PlayerClan, NpcRulesPlayerRealm = Hero.MainHero.Clan?.Kingdom?.Leader == npc && npc != Hero.MainHero, PlayerRulesNpcRealm = npc.Clan?.Kingdom?.Leader == Hero.MainHero && Hero.MainHero.Clan?.Kingdom != null, PlayerIsMercenaryOfNpcRealm = sharesRealm && (Clan.PlayerClan?.IsUnderMercenaryService ?? false), SharesRealm = sharesRealm, NpcIsMercenaryOfSharedRealm = sharesRealm && (npc.Clan?.IsUnderMercenaryService ?? false)};
       }
 
       public string GetSeasonName()
@@ -1546,7 +1546,7 @@ namespace CalradiaRemembers.GameState
          try
          {
             if (npcHero == null) return null;
-            if (!npcHero.IsPrisoner || npcHero.PartyBelongedToAsPrisoner?.LeaderHero != Hero.MainHero)
+            if (!IsHeldByPlayer(npcHero))
                return ActionOutcome.Refused($"({npcHero.Name} is not yours to set free.)");
 
             CoercionResult coercion = ResolveFreePrisonerCoercion(npcHero, context);
@@ -1630,7 +1630,7 @@ namespace CalradiaRemembers.GameState
          try
          {
             if (npcHero == null || Hero.MainHero == null || action?.Parameters == null) return null;
-            if (!npcHero.IsPrisoner || npcHero.PartyBelongedToAsPrisoner?.LeaderHero != Hero.MainHero)
+            if (!IsHeldByPlayer(npcHero))
                return new CounterOfferPreview {Refusal = $"({npcHero.Name} is not your prisoner to bargain with.)"};
 
             action.Parameters.TryGetValue("terms", out string termsText);
@@ -4517,8 +4517,10 @@ namespace CalradiaRemembers.GameState
          var captor = prisoner.PartyBelongedToAsPrisoner;
 
          if (captor == null) return false;
+
          if (captor.LeaderHero == Hero.MainHero) return true;
 
+         // LapitaPolata (18/10/2026): the standing, the captive's terms and the release read this same custody.
          Clan captorClan = captor.LeaderHero?.Clan ?? captor.Settlement?.OwnerClan;
 
          return captorClan != null && captorClan == Clan.PlayerClan;
