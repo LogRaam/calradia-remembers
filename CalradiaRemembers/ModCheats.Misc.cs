@@ -430,7 +430,7 @@ namespace CalradiaRemembers
                matched = Hero.AllAliveHeroes.Any(h =>
                   h != null &&
                   ((!string.IsNullOrWhiteSpace(entry?.Id) && string.Equals(h.StringId, entry.Id, StringComparison.OrdinalIgnoreCase)) ||
-                   (!string.IsNullOrWhiteSpace(entry?.Id) && string.Equals(h.Template?.StringId, entry.Id, StringComparison.OrdinalIgnoreCase)) ||
+                   (!string.IsNullOrWhiteSpace(entry?.Id) && string.Equals(CharacterOverrideLoader.TemplateKeyOf(h), entry.Id, StringComparison.OrdinalIgnoreCase)) ||
                    (!string.IsNullOrWhiteSpace(entry?.Hero) && string.Equals(h.Name?.ToString(), entry.Hero, StringComparison.OrdinalIgnoreCase))));
             }
             catch

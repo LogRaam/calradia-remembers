@@ -2,6 +2,10 @@
 // Resolves which authored override applies to a given hero. Pure so the matching rule — id wins over
 // name, name is case-insensitive, and a homonym without an id is reported rather than guessed — stays
 // tested; a silent mis-resolution would hand one lord another lord's authored personality.
+// LapitaPolata (Nexus, 19/10/2026): "a noble of Rhagaea's clan came to talk to me, and I noticed that she has the
+// exactly same backstory as Rhagaea." The game makes a child born in the campaign FROM a parent's character (a
+// daughter from her mother, a son from his father: DefaultHeroCreationModel.GetCharacterTemplateForOffspring), so
+// the child's template IS the parent: an entry keyed on Rhagaea matched her daughters by the template rule.
 
 #region
 
@@ -24,6 +28,15 @@ namespace CalradiaRemembers.Logic
                             .ToList();
 
         public int Count => _overrides.Count;
+
+        /// <summary>
+        ///   The template id a hero may be matched on, or null. A hero born of parents in the campaign was made from
+        ///   a parent's character, so his template is that parent and never a key of his own (LapitaPolata,
+        ///   19/10/2026): an entry written for a mother must not reach her daughter. A hero spawned from a template
+        ///   (a mercenary captain, a wanderer) has no parents, and his template stays the key it was meant to be.
+        /// </summary>
+        public static string TemplateKey(string templateId, bool hasParents)
+            => hasParents ? null : templateId;
 
         /// <summary>All authored entries, in load order. Lets a diagnostic enumerate what was authored.</summary>
         public IReadOnlyList<CharacterOverride> All => _overrides;

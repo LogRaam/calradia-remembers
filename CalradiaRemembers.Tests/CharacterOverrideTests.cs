@@ -243,6 +243,28 @@ namespace CalradiaRemembers.Tests
                .Should().NotBeNull();
         }
 
+        // STAKE (LapitaPolata, 19/10/2026: "she has the exactly same backstory as Rhagaea"): a daughter born in the
+        // campaign is made from her mother's character, so her template is her mother. A pack entry for the mother
+        // must not hand the daughter the mother's whole past, beliefs and tastes.
+        [Test]
+        public void GIVEN_an_entry_for_a_mother_WHEN_her_daughter_born_in_the_campaign_is_resolved_THEN_it_does_not_apply()
+        {
+            var set = new CharacterOverrideSet(new[] { new CharacterOverride { Id = "lord_5_3", Hero = "Rhagaea", Backstory = "Hers alone." } });
+
+            set.Resolve("lord_5_3_child_1", "Ira", CharacterOverrideSet.TemplateKey("lord_5_3", hasParents: true)).Should().BeNull();
+        }
+
+        // STAKE (tashmetu, 26/09/2026): the captain spawned from a template has no parents; his template is still the
+        // key that makes a pack work in every game.
+        [Test]
+        public void GIVEN_a_hero_spawned_from_a_template_WHEN_resolved_THEN_his_template_still_keys_the_entry()
+        {
+            var set = new CharacterOverrideSet(new[] { new CharacterOverride { Id = "spc_skolderbrotva_leader_0", Valor = 2 } });
+
+            set.Resolve("CharacterObject_2526", "Yahya", CharacterOverrideSet.TemplateKey("spc_skolderbrotva_leader_0", hasParents: false))
+               .Should().NotBeNull();
+        }
+
         // The hero's own id is still the unambiguous key: it wins over an entry for the template he came from.
         [Test]
         public void GIVEN_entries_for_both_the_hero_and_his_template_WHEN_resolving_THEN_the_heros_own_wins()

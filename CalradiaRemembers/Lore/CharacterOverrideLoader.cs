@@ -116,7 +116,14 @@ namespace CalradiaRemembers.Lore
       public static CharacterOverride For(Hero hero)
          => hero == null
             ? null
-            : Set.Resolve(hero.StringId, hero.Name?.ToString(), hero.Template?.StringId);
+            : Set.Resolve(hero.StringId, hero.Name?.ToString(), TemplateKeyOf(hero));
+
+      /// <summary>
+      ///   The template id <paramref name="hero" /> may be matched on: none for a hero born of parents, whose template
+      ///   is a parent's own character (see <see cref="CharacterOverrideSet.TemplateKey" />).
+      /// </summary>
+      public static string TemplateKeyOf(Hero hero)
+         => hero == null ? null : CharacterOverrideSet.TemplateKey(hero.Template?.StringId, hero.Mother != null || hero.Father != null);
 
       /// <summary>
       ///   Adds (or replaces) a single override at runtime, keyed by hero id/name, without touching

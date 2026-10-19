@@ -408,6 +408,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("external_action_teaching", Severity.Light, "Extension Surface (tashmetu, 05/10/2026): an external action's TeachingText reached no prompt, because the live prompt composed CR's own verbs by fixed name lists. Registers a dummy action whose TeachingText returns a sentinel, builds a REAL encounter context for a real NPC (EncounterContextBuilder.Build, the chat's own call) and asserts the sentinel is in its action teachings while IsEligible holds, and gone when it does not. Unregisters in a finally", TestExternalActionTeaching),
          new SelfTest("external_action_guidance", Severity.Light, "Extension Surface actions guidance (ExternalActionSpec.Guidance): the fix for the modder report that an ineligible action's NPC roleplayed AGREEING in prose, only for the deed to fail its own eligibility check at execution. Registers a dummy action that is ALWAYS ineligible with a Guidance callback returning a distinctive sentinel -> asserts the REAL VerbRegistry.Instance.ComposeGuidance includes the sentinel despite the ineligibility, while ComposeTeachings for the same context excludes the action entirely (the whole behavioral point); also asserts the guidance context it received carried the real NPC's facts and correctly resolved a hero named in the player's message via CR's own ContextualNameResolver, not a reimplementation. Unregisters in a finally so nothing leaks into a later test or a real prompt", TestExternalActionGuidance),
          new SelfTest("prompt_variable_registration", Severity.Light, "Extension Surface, Prompt Variables volet (increment 4): CrPrompt.RegisterVariable is the PUBLIC door a third-party mod uses to contribute a LIVE {{name}} prompt variable, replacing a Harmony patch on the SDK's own PromptBuilder.BuildPromptVariables. Since PromptVariableRegistry.Compose is SDK-internal (like Clear, visible only to the SDK's own test project), drives the REAL public surface instead: builds a live system prompt (BuildSystemPrompt, the same call the chat pipeline uses) for a real NPC with PostHistoryInstructions referencing a registered token -> asserts the provider's value, keyed off the real NpcId, lands in the actual prompt text; registers a SECOND provider that THROWS in the same prompt build -> asserts building never throws, the other token still resolves, and the throwing token's own {{name}} is left literal (Compose skipped it, never smuggled a stray value in); registers a third provider under a BUILT-IN name (user) -> asserts the real player name still wins and the impostor value never appears, the exact merge guard BuildPromptVariables enforces. Unregisters all three in a finally via CrPrompt.Unregister, the only cleanup surface the mod assembly has", TestPromptVariableRegistration),
+         new SelfTest("override_not_inherited", Severity.Light, "LapitaPolata (19/10/2026): a noble of Rhagaea's clan had Rhagaea's exact backstory. A child born in the campaign is made from a parent's character, so her template is the parent. Finds a living hero born of parents whose template is set, authors an entry at runtime keyed on that template (the parent), and asserts the loader does NOT hand it to the child. Restores the file-backed overrides", TestOverrideNotInherited),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
          new SelfTest("stance_letter", Severity.Heavy, "hostile stance -> weekly eval -> assert a cold StanceHostility letter is queued", TestStanceLetter),
@@ -16818,6 +16819,33 @@ namespace CalradiaRemembers.Diagnostics
       ///   Deliberately calls <see cref="CharacterOverrideLoader.SyncAuthoredProse" />, the same method the chat
       ///   calls each turn, so removing that call from the chat breaks this test instead of passing beside it.
       /// </summary>
+      private static string TestOverrideNotInherited(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("override_not_inherited");
+
+         Hero child = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != Hero.MainHero && (h.Mother != null || h.Father != null)
+                                                              && !string.IsNullOrWhiteSpace(h.Template?.StringId) && h.Template.StringId != h.StringId);
+
+         if (t.Skip(child == null, "no living hero born in the campaign from a parent's character")) return t.Line();
+
+         string parentKey = child.Template.StringId;
+         const string marker = "[SELFTEST] a past written for the parent only.";
+
+         try
+         {
+            CharacterOverrideLoader.InjectRuntimeOverride(new CharacterOverride {Id = parentKey, Hero = "[SELFTEST] parent entry", Backstory = marker});
+
+            t.Note($"{child.Name} ({child.StringId}) was made from {parentKey}; an entry keyed on {parentKey} was authored at runtime");
+            t.Expect("theParentsEntryDoesNotReachTheChild", CharacterOverrideLoader.For(child)?.Backstory == marker, false);
+         }
+         finally
+         {
+            CharacterOverrideLoader.Load();
+         }
+
+         return t.Line();
+      }
+
       private static string TestConviction(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("conviction");

@@ -11,6 +11,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   `PlayerEncounter.Finish` begins with `GameMenu.ExitToLast`, tearing down the siege menu. `MapEncounterCloseFacts.SiegeUnderWay`
   (the player's siege, their party's or army leader's, the settlement they stand in) keeps the encounter; logged
   `[CLOSE] encounter kept: a siege is under way`. Crash report and log asked of Zivkyn. cr.testall `close_settled_battle`.
+- **A character pack's entry no longer reaches the character's children** (LapitaPolata, 19/10, CalradiaRemembersCustomPack:
+  "a noble of Rhagaea's clan ... has the exactly same backstory as Rhagaea"). Proven: the game makes a child born in the
+  campaign from a parent's character (`DefaultHeroCreationModel.GetCharacterTemplateForOffspring`, daughter from mother,
+  son from father; `CharacterObject.CreateFrom` keeps the origin down the line), so `Hero.Template` of Rhagaea's daughter
+  IS Rhagaea, and the template match added for tashmetu's mercenary captains (26/09) handed her Rhagaea's whole entry
+  (backstory, conviction, traits, tastes). `CharacterOverrideSet.TemplateKey`: a hero born of parents is never matched on
+  his template; a hero spawned from a template (captain, wanderer) has no parents and still is. Applied at every resolve
+  site (`CharacterOverrideLoader.TemplateKeyOf`) and in `cr.lore_status`. cr.testall `override_not_inherited`.
 
 ### Changed
 - **The encyclopedia's "Personal regard" row heads the regard block** (tashmetu, 18/10, ask 6: "the player's own regard
