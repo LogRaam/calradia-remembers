@@ -12,7 +12,7 @@ using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.ViewModels;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Letters;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Letters;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ViewModelCollection.Encyclopedia.Pages;

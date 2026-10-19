@@ -13,6 +13,8 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Captivity;
+using CalradiaRemembers.Logic.Providers;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Services;
 using MCM.Common;

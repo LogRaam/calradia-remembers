@@ -4,7 +4,7 @@
 // resolve that string to a real CompanionMissionBehavior errand type before it can call the existing Dispatch
 // API, and it must do so from a STRUCTURED value never prose-parsed at the lift: an unrecognised mission type
 // has to fail cleanly (None), never guess an errand the model did not actually name. CouncilMissionType mirrors
-// CalradiaRemembers.Logic.CompanionMissionType member-for-member (this Logic project has no engine-facing
+// CalradiaRemembers.Logic.Companions.CompanionMissionType member-for-member (this Logic project has no engine-facing
 // CompanionMissionBehavior to reference directly, so CouncilLift maps a None-guarded value across at the lift).
 
 namespace CalradiaRemembers.Logic.Assemblies

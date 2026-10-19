@@ -13,6 +13,7 @@ using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Logic.Romance;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Social;
 using CalradiaRemembers.WorldEvents;

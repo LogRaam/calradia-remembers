@@ -10,6 +10,8 @@ using CalradiaRemembers.Appearance;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Items;
+using CalradiaRemembers.Logic.Witnesses;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;

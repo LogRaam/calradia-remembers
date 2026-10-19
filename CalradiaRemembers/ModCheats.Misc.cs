@@ -15,6 +15,8 @@ using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Providers;
+using CalradiaRemembers.Logic.Romance;
 using CalradiaRemembers.Lore;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Quests;

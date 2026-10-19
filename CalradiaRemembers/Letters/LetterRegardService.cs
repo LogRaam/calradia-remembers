@@ -5,7 +5,7 @@
 #region
 
 using CalradiaRemembers.Foundation;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Letters;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Services;
 

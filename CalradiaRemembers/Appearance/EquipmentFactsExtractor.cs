@@ -10,7 +10,7 @@
 #region
 
 using System.Collections.Generic;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Items;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
 

@@ -4,7 +4,7 @@
 
 using System;
 using CalradiaRemembers.Foundation;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Companions;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Localization;
 using TaleWorlds.SaveSystem;

@@ -4,7 +4,7 @@
 // makes registers by construction. Agreement with QuestFactory is by CONSTRUCTION, not by coincidence: the scan
 // calls the factory's own primitives (NearestTownTo / NearestActiveHideout / HideoutSearchRadius), so a target
 // the menu names is a target the factory will ground. The formatting core is the pure, unit-tested
-// CalradiaRemembers.Logic.QuestMenuComposer; this type is the engine-facing world scan.
+// CalradiaRemembers.Logic.Quests.QuestMenuComposer; this type is the engine-facing world scan.
 
 #region
 
@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Quests;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;

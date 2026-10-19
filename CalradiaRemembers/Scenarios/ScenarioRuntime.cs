@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Scenarios;
 using CalradiaRemembers.WorldEvents;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;

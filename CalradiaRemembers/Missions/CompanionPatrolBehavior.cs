@@ -17,6 +17,7 @@ using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Travel;
 using Helpers;
 using Newtonsoft.Json;

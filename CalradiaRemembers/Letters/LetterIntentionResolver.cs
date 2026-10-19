@@ -12,6 +12,7 @@ using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Logic.Letters;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Stance;
 using NpcMemoryService.Core.Models;

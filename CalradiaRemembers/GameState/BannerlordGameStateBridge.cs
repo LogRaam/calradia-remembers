@@ -18,9 +18,12 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.Logic.Captivity;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Items;
 using CalradiaRemembers.Logic.Marriage;
+using CalradiaRemembers.Logic.Quests;
+using CalradiaRemembers.Logic.Romance;
 using CalradiaRemembers.Logic.WarDuty;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
@@ -592,7 +595,7 @@ namespace CalradiaRemembers.GameState
       ///   INTERNAL on purpose: <see cref="Mapping.EncounterContextBuilder" /> asks the same question when it
       ///   decides whether to TEACH the marry action, and this bridge asks it again before SEALING one. Those
       ///   two must never drift, the same reason
-      ///   <see cref="Logic.MarriageEligibility.MarriageEligibilityThreshold" /> is a shared constant rather
+      ///   <see cref="CalradiaRemembers.Logic.Marriage.MarriageEligibility.MarriageEligibilityThreshold" /> is a shared constant rather
       ///   than a number written twice. It used to be written out three times (here, in the builder, and in
       ///   <see cref="GetDiplomaticStatus" />); identical in every copy, which is precisely how such a thing
       ///   survives until the day one copy changes.
@@ -4073,7 +4076,7 @@ namespace CalradiaRemembers.GameState
       ///   open_relationship (Inc 2): the player and this COMMITTED partner have openly and mutually agreed to
       ///   reciprocal OPEN terms, each free to love another. Sets <c>IsOpenArrangement = true</c> on the
       ///   partner's romantic profile and persists it, so the jealousy system no longer counts her among the
-      ///   aggrieved (see <see cref="Logic.OpenRelationshipPolicy" />). GUARD (the bridge is law): the target
+      ///   aggrieved (see <see cref="CalradiaRemembers.Logic.Romance.OpenRelationshipPolicy" />). GUARD (the bridge is law): the target
       ///   must be the player's spouse, or a committed consort (<c>IsConsort</c> / <c>Status == Committed</c>);
       ///   anything less is refused, never a silent no-op. Mirrors <see cref="ExecuteTakeAsConsort" />'s
       ///   commitment path (mod-tracked only, no engine marriage call), with a hard partner-only guard.
@@ -4082,7 +4085,7 @@ namespace CalradiaRemembers.GameState
       ///   accept_other_partners (22/09/2026, yozakura12): this committed partner accepts that the PLAYER keeps
       ///   other partners, while she herself remains his alone. A CLOSED, one-sided household, and deliberately
       ///   not <see cref="ExecuteOpenRelationship" />, which is reciprocal and suppresses her jealousy outright.
-      ///   This only changes what jealousy COSTS her (<see cref="Logic.JealousyTrackPolicy" />): she keeps her
+      ///   This only changes what jealousy COSTS her (<see cref="CalradiaRemembers.Logic.Romance.JealousyTrackPolicy" />): she keeps her
       ///   anger, her confrontations and her memories, and stops sliding toward hatred over an arrangement she
       ///   agreed to. GUARD (the bridge is law): the same <see cref="PluralAcceptancePolicy" /> the teaching was
       ///   gated on, re-asked here, so a verb the model reached for out of turn is refused in her own words.
@@ -4180,7 +4183,7 @@ namespace CalradiaRemembers.GameState
       /// <summary>
       ///   close_relationship (Inc 3b-b): the player REVOKES the open arrangement with this committed partner.
       ///   Sets <c>IsOpenArrangement = false</c> and persists it, so she takes no NEW lovers and Inc 2's jealousy
-      ///   suppression naturally lifts (<see cref="Logic.OpenRelationshipPolicy" /> stops counting her among the
+      ///   suppression naturally lifts (<see cref="CalradiaRemembers.Logic.Romance.OpenRelationshipPolicy" /> stops counting her among the
       ///   spared). Does NOT touch an existing <c>TakenLoverId</c>: ending the CURRENT affair is the separate
       ///   <see cref="ExecuteEndAffair" />. GUARD (the bridge is law): the target must be the player's spouse or a
       ///   committed consort who IS currently open; anything less is refused, never a silent no-op. The mirror of

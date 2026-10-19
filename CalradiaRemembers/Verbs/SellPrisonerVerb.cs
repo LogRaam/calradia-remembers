@@ -13,7 +13,7 @@ using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Prisoners;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;

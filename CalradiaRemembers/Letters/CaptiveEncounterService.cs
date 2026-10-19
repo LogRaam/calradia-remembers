@@ -7,7 +7,8 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Foundation;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Captivity;
+using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
@@ -37,7 +38,7 @@ namespace CalradiaRemembers.Letters
    public static class CaptiveEncounterService
    {
       // Timing constants (the probability + intent tuning now lives in the pure, unit-tested
-      // CalradiaRemembers.Logic.CaptiveEncounterPolicy).
+      // CalradiaRemembers.Logic.Captivity.CaptiveEncounterPolicy).
       private const int CooldownDays = 1;
       private const int MinDaysBeforeFirstTrigger = 1;
 
@@ -280,7 +281,7 @@ namespace CalradiaRemembers.Letters
          // (PersonalDesire) scene — a captive woman handed to the band — than for a shakedown.
          // But never conjure more brigands than actually survived the capture: the chief is one
          // of the fighters, so extra participants are capped at (members − 1), max 2.
-         // (rolls live in CalradiaRemembers.Logic.CaptiveEncounterPolicy — pure, unit-tested)
+         // (rolls live in CalradiaRemembers.Logic.Captivity.CaptiveEncounterPolicy: pure, unit-tested)
          int extraBandits = CaptiveEncounterPolicy.BanditCollectiveParticipantCap(CountBanditFighters(captorParty));
          bool banditCollective = CaptiveEncounterPolicy.ShouldBanditSceneBeCollective(banditIntent, extraBandits, RollPercent);
          List<WitnessEntry> banditWitnesses = banditCollective

@@ -100,7 +100,7 @@ namespace CalradiaRemembers.Letters
 
                 var summarizer = new LetterMemorySummarizer(behavior.LlmServices.HousekeepingClient);
 
-                await Services.BackgroundCallHold.WhileConversationOpenAsync(Services.LlmServices.RunsLocally(Logic.ServiceRole.Housekeeping), $"letter memory for {npc.Name}");
+                await Services.BackgroundCallHold.WhileConversationOpenAsync(Services.LlmServices.RunsLocally(CalradiaRemembers.Logic.Providers.ServiceRole.Housekeeping), $"letter memory for {npc.Name}");
 
                 string rich;
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(CalradiaRemembers.Logic.BackgroundCallTimeout.Seconds(ModSettings.LlmResponseTimeoutSeconds))))

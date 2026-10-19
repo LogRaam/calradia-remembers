@@ -11,6 +11,8 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Duels;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Captivity;
+using CalradiaRemembers.Logic.Items;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;
 

@@ -20,6 +20,9 @@ a move that removes a link and adds none is worth making; the others are listed 
 | `StoryLog` | `CalradiaRemembers.Foundation` | `CalradiaRemembers.Chat` | several | none | removes nothing, adds `CalradiaRemembers.Marriage` -> `CalradiaRemembers.Chat` |
 | `ActionOutcome` | `CalradiaRemembers.GameState` | `CalradiaRemembers.Verbs` | many | a few | removes nothing, adds `CalradiaRemembers.Quests` -> `CalradiaRemembers.Verbs` |
 | `StanceConsequenceBehavior` | `CalradiaRemembers.Stance` | `CalradiaRemembers` | a few | a few | removes nothing, adds `CalradiaRemembers.Stance` -> `CalradiaRemembers` |
+| `CompanionHappiness` | `CalradiaRemembers.Logic` | `CalradiaRemembers.Logic.Companions` | a few | a few | removes nothing, adds `CalradiaRemembers.Logic` -> `CalradiaRemembers.Logic.Companions` |
+| `HappinessBand` | `CalradiaRemembers.Logic` | `CalradiaRemembers.Logic.Companions` | a few | none | removes nothing, adds nothing |
+| `TranscriptLine` | `CalradiaRemembers.Logic` | `CalradiaRemembers.Logic.Conversation` | a few | a few | removes nothing, adds `CalradiaRemembers.Logic` -> `CalradiaRemembers.Logic.Conversation` |
 | `DiplomaticStatus` | `NpcMemoryService.Core.Models` | `NpcMemoryService.Core.Prompts` | a few | none | removes nothing, adds nothing |
 | `EncounterContext` | `NpcMemoryService.Core.Models` | `NpcMemoryService.Core.Knowledge` | several | none | removes nothing, adds `NpcMemoryService.Core.Services` -> `NpcMemoryService.Core.Knowledge` |
 | `PlayerStatusVsNpc` | `NpcMemoryService.Core.Models` | `NpcMemoryService.Core.Prompts` | a few | none | removes nothing, adds nothing |
@@ -37,8 +40,8 @@ count is what to read: a namespace of many unrelated parts is a folder of things
 
 | Namespace | Types | Parts | Types on their own | Density |
 |---|---|---|---|---|
-| `CalradiaRemembers.Logic` | 672 | 51 | 373 | loose |
-| `CalradiaRemembers.Logic.Assemblies` | 110 | 6 | 69 | loose |
+| `CalradiaRemembers.Logic` | 445 | 37 | 249 | loose |
+| `CalradiaRemembers.Logic.Assemblies` | 113 | 7 | 70 | loose |
 | `NpcMemoryService.Core.Models` | 74 | 4 | 9 | loose |
 | `CalradiaRemembers.Assemblies` | 23 | 4 | 7 | loose |
 | `CalradiaRemembers` | 45 | 3 | 20 | loose |
@@ -46,27 +49,38 @@ count is what to read: a namespace of many unrelated parts is a folder of things
 | `CalradiaRemembers.Diagnostics` | 15 | 3 | 7 | loose |
 | `NpcMemoryService.Core.Actions` | 18 | 3 | 5 | medium |
 | `CalradiaRemembers.Duels` | 15 | 3 | 0 | medium |
+| `CalradiaRemembers.Logic.Companions` | 42 | 2 | 36 | loose |
+| `CalradiaRemembers.Logic.Letters` | 36 | 2 | 25 | loose |
 | `CalradiaRemembers.Logic.Marriage` | 34 | 2 | 25 | loose |
+| `CalradiaRemembers.Logic.Conversation` | 28 | 2 | 22 | loose |
 | `CalradiaRemembers.Logic.Duels` | 25 | 2 | 11 | loose |
 | `CalradiaRemembers.Logic.Grudges` | 29 | 2 | 11 | loose |
+| `CalradiaRemembers.Logic.Items` | 15 | 2 | 7 | loose |
+| `CalradiaRemembers.Logic.Providers` | 12 | 2 | 4 | loose |
 | `CalradiaRemembers.Marriage` | 14 | 2 | 3 | medium |
 | `NpcMemoryService.Core.Services` | 9 | 2 | 3 | medium |
 | `CalradiaRemembers.Appearance` | 7 | 2 | 2 | medium |
+| `CalradiaRemembers.Logic.Battles` | 15 | 2 | 2 | medium |
 | `CalradiaRemembers.Portraits` | 6 | 2 | 1 | medium |
 | `NpcMemoryService.Core.Knowledge` | 64 | 2 | 1 | loose |
-| `CalradiaRemembers.Logic.Battles` | 8 | 2 | 0 | medium |
 | `NpcMemoryService.Core.Extension` | 8 | 2 | 0 | tight |
 | `NpcMemoryService.Core.Mood` | 9 | 2 | 0 | tight |
 | `CalradiaRemembers.Encyclopedia` | 32 | 1 | 30 | loose |
 | `CalradiaRemembers.Logic.AuthoredQuests` | 84 | 1 | 25 | loose |
 | `CalradiaRemembers.Logic.WarDuty` | 24 | 1 | 18 | loose |
+| `CalradiaRemembers.Logic.Captivity` | 20 | 1 | 17 | loose |
 | `CalradiaRemembers.Logic.Actions` | 18 | 1 | 12 | loose |
 | `CalradiaRemembers.Logic.Nemesis` | 14 | 1 | 11 | loose |
 | `CalradiaRemembers.Logic.WorldAlmanac` | 27 | 1 | 11 | medium |
 | `CalradiaRemembers.Logic.Interception` | 13 | 1 | 10 | loose |
+| `CalradiaRemembers.Logic.Prisoners` | 16 | 1 | 10 | loose |
+| `CalradiaRemembers.Logic.Romance` | 17 | 1 | 9 | loose |
+| `CalradiaRemembers.Logic.Scenarios` | 10 | 1 | 7 | loose |
 | `CalradiaRemembers.Chat` | 50 | 1 | 5 | loose |
 | `CalradiaRemembers.Logic.Rescue` | 8 | 1 | 5 | loose |
+| `CalradiaRemembers.Logic.Witnesses` | 7 | 1 | 5 | loose |
 | `CalradiaRemembers.Logic.Diagnostics` | 6 | 1 | 4 | loose |
+| `CalradiaRemembers.Logic.War` | 7 | 1 | 4 | loose |
 | `NpcMemoryService.Core.Parsing` | 10 | 1 | 4 | medium |
 | `CalradiaRemembers.GameState` | 39 | 1 | 3 | loose |
 | `CalradiaRemembers.Logic.Aims` | 13 | 1 | 3 | medium |
@@ -99,12 +113,13 @@ count is what to read: a namespace of many unrelated parts is a folder of things
 | `CalradiaRemembers.Verbs` | 26 | 1 | 0 | medium |
 | `CalradiaRemembers.WorldEvents` | 15 | 1 | 0 | tight |
 | `NpcMemoryService.Core.LlmClient.OpenRouter` | 6 | 1 | 0 | tight |
-| `CalradiaRemembers.Logic.Conversation` | 20 | 0 | 20 | loose |
+| `CalradiaRemembers.Logic.Chat` | 13 | 0 | 13 | loose |
+| `CalradiaRemembers.Logic.Quests` | 12 | 0 | 12 | loose |
 | `CalradiaRemembers.Logic.Bastards` | 9 | 0 | 9 | loose |
+| `CalradiaRemembers.Logic.RealmTidings` | 9 | 0 | 9 | loose |
 | `CalradiaRemembers.Logic.Escort` | 7 | 0 | 7 | loose |
-| `CalradiaRemembers.Logic.Items` | 6 | 0 | 6 | loose |
+| `CalradiaRemembers.Logic.Dynasty` | 5 | 0 | 5 | loose |
 | `CalradiaRemembers.GUI` | 4 | 0 | 4 | loose |
-| `CalradiaRemembers.Logic.Companions` | 4 | 0 | 4 | loose |
 | `CalradiaRemembers.Logic.Video` | 4 | 0 | 4 | loose |
 | `NpcMemoryService.Core.Captivity` | 4 | 0 | 4 | loose |
 | `NpcMemoryService.Core.Standing` | 4 | 0 | 4 | loose |

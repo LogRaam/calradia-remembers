@@ -3,7 +3,7 @@
 #region
 
 using System.Collections.Generic;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Captivity;
 using NpcMemoryService.Core.Models;
 
 #endregion

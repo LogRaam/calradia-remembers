@@ -12,6 +12,7 @@ using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Nemesis;
 using CalradiaRemembers.Mapping;

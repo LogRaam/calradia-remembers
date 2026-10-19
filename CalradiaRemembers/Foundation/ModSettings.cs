@@ -4,7 +4,11 @@
 
 using System;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Chat;
+using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Logic.Marriage;
+using CalradiaRemembers.Logic.Providers;
+using CalradiaRemembers.Logic.Witnesses;
 using NpcMemoryService.Core.Models;
 
 #endregion
@@ -56,7 +60,7 @@ namespace CalradiaRemembers.Foundation
       ///   themselves), as the delivered PRICE of a quest reward (COUNCIL_ACTIONS.md Partie 5, the "Caladog"
       ///   case). Read live from the MCM menu; OFF by default, which keeps the existing "never promise a fief
       ///   or marriage as the price of a task" guardrail fully intact. See
-      ///   <see cref="Logic.QuestRewardGatePolicy" /> for the emission/payout gates this only unlocks, never
+      ///   <see cref="CalradiaRemembers.Logic.Quests.QuestRewardGatePolicy" /> for the emission/payout gates this only unlocks, never
       ///   bypasses.
       /// </summary>
       public static bool AllowFiefAndMarriageQuestRewards => CrSettings.Instance?.AllowFiefAndMarriageQuestRewards ?? false;
@@ -66,7 +70,7 @@ namespace CalradiaRemembers.Foundation
       ///   ever rolled against them (see CourierService.ScanForWaylayers). The total opt-out for a player who
       ///   never wants to lose a letter. Read live from the MCM menu; OFF by default, which keeps today's
       ///   vulnerable-courier behaviour (then subject to the distance-independent
-      ///   <see cref="Logic.CourierWaylayPolicy.MaxWaylayAttemptsPerCourier" /> cap).
+      ///   <see cref="CalradiaRemembers.Logic.Letters.CourierWaylayPolicy.MaxWaylayAttemptsPerCourier" /> cap).
       /// </summary>
       public static bool InvulnerableCouriers => CrSettings.Instance?.InvulnerableCouriers ?? false;
 
@@ -220,7 +224,7 @@ namespace CalradiaRemembers.Foundation
       ///   The regard a candidate must hold for a LOVE-MATCH marriage to be allowed (personal ledger OR vanilla
       ///   relation, whichever is higher), read live from the MCM menu. Lets a player soften the courtship (player
       ///   report 2026-08-25: reaching the shipped bar of 50 by conversation felt impossible). Defaults to and is
-      ///   capped at the shipped bar (<see cref="Logic.MarriageEligibility.MarriageEligibilityThreshold" />, 50) so
+      ///   capped at the shipped bar (<see cref="CalradiaRemembers.Logic.Marriage.MarriageEligibility.MarriageEligibilityThreshold" />, 50) so
       ///   the setting can only make marriage EASIER, never harder (which also keeps the self-test's regard seed
       ///   valid); floored at 10 so a wedding is never entirely free. 50 when MCM has not loaded. The family's
       ///   blessing still opens a match below this bar (a political union), exactly as before.
@@ -523,9 +527,9 @@ namespace CalradiaRemembers.Foundation
 
       /// <summary>
       ///   The temperature a conversation turn is sampled at (the "Chat Temperature" MCM slider, default 0.7), held
-      ///   in range by <see cref="Logic.ChatTemperaturePolicy" />. Read live; the chat service rebuilds when it moves.
+      ///   in range by <see cref="CalradiaRemembers.Logic.Chat.ChatTemperaturePolicy" />. Read live; the chat service rebuilds when it moves.
       /// </summary>
-      public static float ChatTemperature => Logic.ChatTemperaturePolicy.Clamp(CrSettings.Instance?.ChatTemperature ?? Logic.ChatTemperaturePolicy.Default);
+      public static float ChatTemperature => CalradiaRemembers.Logic.Chat.ChatTemperaturePolicy.Clamp(CrSettings.Instance?.ChatTemperature ?? CalradiaRemembers.Logic.Chat.ChatTemperaturePolicy.Default);
 
       /// <summary>
       ///   The model id for consensual-intimate scenes (the "NSFW Consensual model" MCM field). Its stored value
@@ -579,21 +583,21 @@ namespace CalradiaRemembers.Foundation
 
       /// <summary>
       ///   The RAW per-role provider dropdown value for the consensual-intimate role (the "Consensual provider" MCM
-      ///   field), or <see cref="Logic.ProviderRolePolicy.DefaultSelection" /> when MCM has not loaded.
+      ///   field), or <see cref="CalradiaRemembers.Logic.Providers.ProviderRolePolicy.DefaultSelection" /> when MCM has not loaded.
       /// </summary>
       public static string ConsensualProviderSelection =>
          CrSettings.Instance?.ConsensualProvider?.SelectedValue ?? ProviderRolePolicy.DefaultSelection;
 
       /// <summary>
       ///   The RAW per-role provider dropdown value for the CNC / captive role (the "CNC provider" MCM field), or
-      ///   <see cref="Logic.ProviderRolePolicy.DefaultSelection" /> when MCM has not loaded.
+      ///   <see cref="CalradiaRemembers.Logic.Providers.ProviderRolePolicy.DefaultSelection" /> when MCM has not loaded.
       /// </summary>
       public static string CncProviderSelection =>
          CrSettings.Instance?.CncProvider?.SelectedValue ?? ProviderRolePolicy.DefaultSelection;
 
       /// <summary>
       ///   The RAW per-role provider dropdown value for the action-interpreter role (the "Actions Interpreter
-      ///   provider" MCM field), or <see cref="Logic.ProviderRolePolicy.DefaultSelection" /> when MCM has not loaded.
+      ///   provider" MCM field), or <see cref="CalradiaRemembers.Logic.Providers.ProviderRolePolicy.DefaultSelection" /> when MCM has not loaded.
       /// </summary>
       public static string ActionInterpreterProviderSelection =>
          CrSettings.Instance?.ActionInterpreterProvider?.SelectedValue ?? ProviderRolePolicy.DefaultSelection;
@@ -609,8 +613,8 @@ namespace CalradiaRemembers.Foundation
       public static string HousekeepingModel => CrSettings.Instance?.HousekeepingModel ?? "";
 
       /// <summary>
-      ///   How a chat reply is composed: <see cref="Logic.ChatCompositionMode.Standard" /> (one call, today's
-      ///   behaviour) or <see cref="Logic.ChatCompositionMode.Enhanced" /> (prose then a separate action-
+      ///   How a chat reply is composed: <see cref="CalradiaRemembers.Logic.Providers.ChatCompositionMode.Standard" /> (one call, today's
+      ///   behaviour) or <see cref="CalradiaRemembers.Logic.Providers.ChatCompositionMode.Enhanced" /> (prose then a separate action-
       ///   interpreter call). Read live from the MCM menu; defaults to Integrated on anything unexpected.
       /// </summary>
       public static ChatCompositionMode ChatCompositionMode =>
@@ -748,9 +752,9 @@ namespace CalradiaRemembers.Foundation
 
       /// <summary>
       ///   How many ambient hero witnesses a conversation gathers (player complaint: conversations are always
-      ///   crowded). Read live from the MCM menu; falls back to <see cref="Logic.WitnessDensity.Bustling" />
+      ///   crowded). Read live from the MCM menu; falls back to <see cref="CalradiaRemembers.Logic.Witnesses.WitnessDensity.Bustling" />
       ///   when MCM has not loaded, which is an EXACT passthrough (see
-      ///   <see cref="Logic.WitnessPresencePolicy" />) reproducing today's live behaviour unchanged. Applied
+      ///   <see cref="CalradiaRemembers.Logic.Witnesses.WitnessPresencePolicy" />) reproducing today's live behaviour unchanged. Applied
       ///   only to AMBIENT hero witnesses (<see cref="Witnesses.WitnessResolver.ResolveAutoWitnesses" />),
       ///   NEVER to the player's own companions (<see cref="Witnesses.WitnessResolver.ResolveSceneCompanions" />).
       /// </summary>

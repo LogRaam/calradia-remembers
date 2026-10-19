@@ -1,13 +1,13 @@
 // Code written by Gabriel Mailhot, 07/08/2026.
 // The letter archive viewer: a player's whole correspondence with one contact, shown as a dated,
 // scrollable thread (oldest-first). Mirrors ChronicleViewModel's shape; the thread itself is assembled
-// by the pure, tested CalradiaRemembers.Logic.LetterThreadAssembler so this view only binds what that
+// by the pure, tested CalradiaRemembers.Logic.Letters.LetterThreadAssembler so this view only binds what that
 // produces and never re-implements the ordering, dating, or cap.
 
 #region
 
 using System;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Letters;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.Library;
 

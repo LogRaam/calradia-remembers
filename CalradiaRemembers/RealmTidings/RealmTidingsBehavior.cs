@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.RealmTidings;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;

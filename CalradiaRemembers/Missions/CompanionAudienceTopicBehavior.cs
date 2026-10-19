@@ -56,6 +56,7 @@ using CalradiaRemembers.Chat;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;

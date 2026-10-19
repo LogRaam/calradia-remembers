@@ -21,6 +21,7 @@ using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Prisoners;
 using CalradiaRemembers.Verbs;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;

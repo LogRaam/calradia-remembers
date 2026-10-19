@@ -15,6 +15,7 @@ using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.Logic.Chat;
 using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Services;
@@ -1592,7 +1593,7 @@ namespace CalradiaRemembers.Chat
          // Dark Leather paints its End Conversation and Memories labels into its page art, over invisible buttons:
          // without the art the player sees no way out (EmperorHaterius, 04/10/2026). Origin draws its own.
          bool artLoads = skin != ManuscriptSkin || ManuscriptArtLoads();
-         string usable = Logic.ChatSkinFallbackPolicy.Resolve(new Logic.ChatSkinFacts {
+         string usable = CalradiaRemembers.Logic.Chat.ChatSkinFallbackPolicy.Resolve(new CalradiaRemembers.Logic.Chat.ChatSkinFacts {
             Requested = skin, ManuscriptSkin = ManuscriptSkin, ClassicSkin = ClassicSkin, ManuscriptArtLoads = artLoads
          });
          if (usable != skin && skin == ManuscriptSkin && !_artFallbackNoticed)

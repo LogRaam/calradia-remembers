@@ -41,7 +41,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Chat;
 using FluentAssertions;
 using NUnit.Framework;
 

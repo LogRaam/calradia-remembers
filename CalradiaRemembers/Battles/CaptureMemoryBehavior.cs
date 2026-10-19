@@ -9,7 +9,7 @@
 
 using System;
 using CalradiaRemembers.Foundation;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Captivity;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.MapEvents;
 using TaleWorlds.CampaignSystem.Party;

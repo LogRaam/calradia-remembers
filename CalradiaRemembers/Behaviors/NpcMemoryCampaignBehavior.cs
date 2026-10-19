@@ -15,6 +15,7 @@ using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Letters;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Nemesis;

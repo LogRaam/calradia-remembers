@@ -8,7 +8,6 @@
 // Lucon" would have NPCs mourning a man the player can visit in his own dungeon. Rank-and-file soldiers do die and
 // may be spoken of plainly as fallen.
 
-using CalradiaRemembers.Logic;
 
 namespace CalradiaRemembers.Logic.Battles
 {

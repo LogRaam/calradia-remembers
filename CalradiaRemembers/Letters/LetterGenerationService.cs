@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Letters;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Services;
 using CalradiaRemembers.Storage;
@@ -260,7 +261,7 @@ namespace CalradiaRemembers.Letters
             if (profile == null || behavior == null || string.IsNullOrWhiteSpace(reply)) return;
 
             LetterMemoryFinalizer.RecordLetterMemory(
-               profile, Logic.LetterReplyReason.Of(originalLetter!.Reason), reply, false, today, behavior);
+               profile, CalradiaRemembers.Logic.Letters.LetterReplyReason.Of(originalLetter!.Reason), reply, false, today, behavior);
          }
          catch (Exception ex)
          {
@@ -607,7 +608,7 @@ namespace CalradiaRemembers.Letters
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
          // IdentityCrysys (08/10/2026): a reply to the "why no reply?" follow-up is about the thread, not the silence the
          // player has just broken; with the follow-up's reason, every reply after it reproached the player again.
-         LetterReason replyReason = Logic.LetterReplyReason.Of(originalLetter.Reason);
+         LetterReason replyReason = CalradiaRemembers.Logic.Letters.LetterReplyReason.Of(originalLetter.Reason);
          string writtenBy = CorrespondenceRank.WrittenByFor(giverHero, profile, replyReason);
          bool onPatrol = Missions.CompanionPatrolBehavior.Instance?.IsPatrolling(profile.Id) == true;
          string message = LetterPromptBuilder.BuildReplyLetterMessage(

@@ -7,6 +7,8 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Letters;
+using CalradiaRemembers.Logic.Prisoners;
 using CalradiaRemembers.Portraits;
 using CalradiaRemembers.Verbs;
 using NpcMemoryService.Core.Models;

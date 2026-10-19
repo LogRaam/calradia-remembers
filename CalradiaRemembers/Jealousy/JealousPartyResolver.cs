@@ -3,7 +3,7 @@
 #region
 
 using System;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Romance;
 using CalradiaRemembers.Marriage;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Standing;

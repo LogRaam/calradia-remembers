@@ -25,10 +25,13 @@ using CalradiaRemembers.Logic.Verbs;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Bastards;
+using CalradiaRemembers.Logic.Captivity;
 using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Logic.Escort;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Logic.Items;
 using CalradiaRemembers.Logic.Marriage;
+using CalradiaRemembers.Logic.Providers;
 using CalradiaRemembers.Logic.Social;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Styles;
@@ -3491,7 +3494,7 @@ namespace CalradiaRemembers.Mapping
             Underworld = BuildUnderworld(hero),
             OwnVentures = ventures,
             HeldFor = ReadHeldFor(hero),
-            CaptiveNotoriety = hero is {IsPrisoner: true} ? Logic.CaptiveNotoriety.Describe(StatureReader.Of(hero), hero.IsClanLeader) : null,
+            CaptiveNotoriety = hero is {IsPrisoner: true} ? CalradiaRemembers.Logic.Captivity.CaptiveNotoriety.Describe(StatureReader.Of(hero), hero.IsClanLeader) : null,
             PartyStanding = BuildPartyStanding(hero),
             HereAndNow = BuildHereAndNow(hero),
             PersonalBonds = BuildPersonalBonds(hero, profile),

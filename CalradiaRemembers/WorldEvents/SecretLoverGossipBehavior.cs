@@ -17,6 +17,7 @@ using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Romance;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;

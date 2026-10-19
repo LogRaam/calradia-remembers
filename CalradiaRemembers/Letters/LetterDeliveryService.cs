@@ -5,7 +5,7 @@
 
 using System.Linq;
 using CalradiaRemembers.Foundation;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Letters;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;

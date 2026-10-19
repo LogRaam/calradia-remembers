@@ -9,6 +9,8 @@ using CalradiaRemembers.Battles;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Battles;
+using CalradiaRemembers.Logic.RealmTidings;
 using CalradiaRemembers.Stance;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -1212,7 +1214,7 @@ namespace CalradiaRemembers.WorldEvents
             // so the regard between two lords can stand on it. Not news, so it goes straight into that tier.
             if (AlreadyRecordedCaptureToday(prisoner)) return;
 
-            int magnitude = Logic.CaptiveNotoriety.NewsMagnitude(Mapping.StatureReader.Of(prisoner), prisoner.IsClanLeader);
+            int magnitude = CalradiaRemembers.Logic.Captivity.CaptiveNotoriety.NewsMagnitude(Mapping.StatureReader.Of(prisoner), prisoner.IsClanLeader);
             if (magnitude > 0) RecordGreatCapture(prisoner, capturingParty, magnitude);
             else RecordLesserCapture(prisoner, capturingParty?.LeaderHero);
          }
@@ -1300,7 +1302,7 @@ namespace CalradiaRemembers.WorldEvents
             Day = Today,
             Magnitude = 55,
             InvolvesPlayer = true,
-            Status = Logic.CaptureNorm.Status,
+            Status = CalradiaRemembers.Logic.Captivity.CaptureNorm.Status,
             Summary = $"{PlayerName} took {lord.Name} captive.",
             ActorIds = Ids(Hero.MainHero, lord),
             FactionIds = FactionIds(Hero.MainHero, lord),

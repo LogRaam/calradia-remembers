@@ -20,6 +20,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.AuthoredQuests;
+using CalradiaRemembers.Logic.Providers;
 using CalradiaRemembers.Services;
 using NpcMemoryService.Core.LlmClient;
 using NpcMemoryService.Core.Models;

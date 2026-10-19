@@ -9,7 +9,7 @@
 #region
 
 using System.Collections.Generic;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Romance;
 using FluentAssertions;
 using NUnit.Framework;
 

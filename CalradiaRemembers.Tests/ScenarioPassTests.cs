@@ -12,6 +12,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Scenarios;
 using FluentAssertions;
 using NUnit.Framework;
 

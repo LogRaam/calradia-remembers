@@ -1,3 +1,5 @@
+using CalradiaRemembers.Logic.Letters;
+
 // Code written by Gabriel Mailhot, 11/07/2026.
 // The refusal countdown must start only once the divorce-demand letter has actually been DELIVERED (the
 // player has seen it): a demand not yet delivered never times out into a refusal.

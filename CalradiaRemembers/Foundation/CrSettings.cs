@@ -5,6 +5,10 @@
 using System;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Chat;
+using CalradiaRemembers.Logic.Companions;
+using CalradiaRemembers.Logic.Providers;
+using CalradiaRemembers.Logic.Witnesses;
 using MCM.Abstractions.Attributes;
 using MCM.Abstractions.Attributes.v2;
 using MCM.Abstractions.Base.Global;
@@ -665,7 +669,7 @@ namespace CalradiaRemembers.Foundation
 
       // Player complaint: conversations are ALWAYS crowded with ambient bystanders. Thins the AMBIENT hero
       // witnesses a conversation gathers only; never the player's own companions (see
-      // CalradiaRemembers.Logic.WitnessPresencePolicy + WitnessResolver.ResolveAutoWitnesses). Default Bustling
+      // CalradiaRemembers.Logic.Witnesses.WitnessPresencePolicy + WitnessResolver.ResolveAutoWitnesses). Default Bustling
       // is an EXACT passthrough (p=1.0, cap=int.MaxValue): the mod is LIVE, so an existing player who never opens
       // this menu sees precisely today's room, unchanged.
       [SettingPropertyDropdown("{=CR_MCM_WitnessDensity}Witness Density", RequireRestart = false, Order = 12,

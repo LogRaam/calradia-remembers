@@ -10,6 +10,7 @@
 #region
 
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.RealmTidings;
 using FluentAssertions;
 using NUnit.Framework;
 

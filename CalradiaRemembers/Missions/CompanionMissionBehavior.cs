@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Travel;
 using CalradiaRemembers.WorldEvents;
 using Helpers;
@@ -20,7 +21,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
-using MissionResult = CalradiaRemembers.Logic.MissionResult;
+using MissionResult = CalradiaRemembers.Logic.Companions.MissionResult;
 
 #endregion
 

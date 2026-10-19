@@ -12,8 +12,10 @@ using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Marriage;
+using CalradiaRemembers.Logic.Prisoners;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.WorldEvents;
@@ -1319,7 +1321,7 @@ namespace CalradiaRemembers.GameState
       RefusedStanding,
 
       /// <summary>
-      ///   The captivity/war guard (<see cref="Logic.MarriageGuardPolicy.MarriageAllowed" />) forbids the match:
+      ///   The captivity/war guard (<see cref="CalradiaRemembers.Logic.Marriage.MarriageGuardPolicy.MarriageAllowed" />) forbids the match:
       ///   one of the pair is held captive, or their two houses are on opposite sides of an active war. The direct
       ///   marry action already refuses exactly these states; arrange_marriage now honours the same law (v1.34.2).
       /// </summary>

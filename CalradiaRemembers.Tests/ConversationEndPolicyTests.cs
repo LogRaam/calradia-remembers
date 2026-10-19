@@ -6,7 +6,7 @@
 
 #region
 
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Conversation;
 using FluentAssertions;
 using NUnit.Framework;
 

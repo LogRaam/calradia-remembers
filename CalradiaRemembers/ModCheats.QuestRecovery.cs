@@ -12,7 +12,7 @@
 using System.Collections.Generic;
 using System.Text;
 using CalradiaRemembers.Behaviors;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Quests;
 using CalradiaRemembers.Quests;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;

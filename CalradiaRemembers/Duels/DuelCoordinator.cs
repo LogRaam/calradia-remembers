@@ -13,7 +13,7 @@ using System;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Foundation;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Conversation;
 using CalradiaRemembers.Logic.Duels;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;

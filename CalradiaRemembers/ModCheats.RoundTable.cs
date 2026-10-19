@@ -12,7 +12,6 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Chat;
-using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;

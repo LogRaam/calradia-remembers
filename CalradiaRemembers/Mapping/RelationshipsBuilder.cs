@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Captivity;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 

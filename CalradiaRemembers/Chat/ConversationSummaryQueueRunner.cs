@@ -15,7 +15,7 @@ using System.Text;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Conversation;
 using TaleWorlds.CampaignSystem;
 
 #endregion

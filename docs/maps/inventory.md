@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 527 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1203 types in 33 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1203 types in 44 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -877,7 +877,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (672)
+### CalradiaRemembers.Logic (445)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -915,10 +915,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BackgroundCallHoldPolicy` | public static class | Decides whether a background model call keeps waiting for the conversation to close. |
 | `BackgroundCallTimeout` | public static class | The timeout of a call nobody waits on in a conversation. |
 | `BanditClearOfferPolicy` | public static class | Decides whether an open-field bandit-clearing deed is viable to offer near a giver's anchor town. |
-| `BattleMemoryText` | public static class | Builds the "fought beside you" memory line and the place/engagement phrasing. |
-| `BattleNotability` | public static class | Decides whether a battle is notable enough to record. |
 | `BattleRecordText` | public static class | Pure: names a battle's sides and its scale for the world's record. |
-| `BattleSetting` | public enum | What kind of engagement a battle was, for naming it correctly (a siege is not a field battle). |
 | `BattleSideFacts` | public class | One side of a recorded battle, as the game knows it. |
 | `BattleWorthFacts` | public class | What a won battle was worth (fkasad, 01/10/2026: "fighting half a dozen looters" is no feat). |
 | `BirthHouseFacts` | public class | What is known of the house a character was born into. |
@@ -928,45 +925,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `Bounty` | public class | A realm's price on the player's head. |
 | `BountyReason` | public enum | Why a realm has put a price on the player's head. |
 | `BrigandageFacts` | public class | What was attacked, for brigandage. |
-| `CaptiveActionOutcomePolicy` | public static class | Decides whether the player's physical attempt in a captive scene lands, this turn. |
-| `CaptiveDisposition` | public enum | How readily she bargains. |
-| `CaptiveEncounterPolicy` | public static class | The pure decisions behind a captive encounter: the per-tick probability a captor acts (EncounterProbability) and the intent the scene takes (SelectIntent). |
-| `CaptiveEscapeResolution` | public enum | How a captive-escape encounter resolved. |
-| `CaptiveGearLossPolicy` | public static class | The single decision point for WHEN an escape encounter's outcome should transfer the player's equipment to their captor's holder. |
-| `CaptiveGearStockPolicy` | public static class | Pure decisions over an accumulated pool of HeldItems: what merges in across escapes, and which single item per slot the holder wears. |
-| `CaptiveIntentRules` | public static class | Classifies a CaptiveSceneIntent for the chat flow's scene handling. |
-| `CaptiveKinDescriber` | public static class | Builds the captivity clause for a kinsman named in an NPC's RELATIONSHIPS block. |
-| `CaptiveNotoriety` | public static class | Whose capture is talked of, and how far the news carries. |
-| `CaptiveOffer` | public class | What she may offer, and how readily. |
-| `CaptiveOfferFacts` | public class | What decides a captive's offer. |
-| `CaptiveOfferPolicy` | public static class | Decides a captive's offer. |
-| `CaptiveSceneArcPolicy` | public static class | Picks the lead captor's opening arc as a WEIGHTED draw over SceneArc, mirroring CaptiveEncounterPolicy.SelectIntent's draw style: context LEANS the odds rather than gating them, and every arc keeps a floor weight so it c... |
-| `CaptiveSceneDirector` | public class | The "director" of a captive scene: a small state machine that owns the dramatic structure so the model never has to (and never loops a beat). |
-| `CaptiveTerm` | public enum | A term a captive may put on the table for her freedom. |
 | `CaptivityEndReason` | public enum | Engine-free mirror of TaleWorlds.CampaignSystem.Actions.EndCaptivityDetail. |
 | `CaptivityReleaseNarrator` | public static class | Composes the chronicle wording for the end of the player's captivity. |
 | `CaptorReleasePolicy` | public static class | Pure gate for chat-negotiated player release. |
 | `CaptorReleaseVerdict` | public class | What release paths (if any) a captor is open to for THIS captive player. |
-| `CaptureFacts` | public class | What is known of the capture. |
-| `CaptureMemoryText` | public static class | The captor's memory of the capture. |
-| `CaptureNorm` | public static class | The framing of a lord taken captive by the player. |
-| `CaptureQuestPolicy` | public static class | Decides what a proposed capture really is, from whether the giver is at war with the target. |
-| `CaptureStake` | public enum | What the captive is to the one who hears of the capture. |
 | `CardinalDirectionPolicy` | public static class | Pure 8-point compass bearing from one campaign-map position to another, for phrasing a quest's direction ("the hideout lies to the north of Town X"). |
 | `CharacterOverride` | public class | One author's override for a single NPC: optional trait values (null = leave the vanilla value untouched) and an optional backstory. |
 | `CharacterOverrideSet` | public class | The authored overrides as a whole, with the rule for picking one for a hero. |
-| `ChatCompositionMode` | public enum | How a chat reply is composed. |
-| `ChatCompositionModePolicy` | public static class | Maps the "Chat Composition" MCM dropdown value to ChatCompositionMode. |
-| `ChatEscapeAction` | public enum | What the chat should do with one press of Escape. |
-| `ChatEscapeFacts` | public class | The state an Escape press is judged on. |
-| `ChatEscapePolicy` | public static class | Decides what one Escape press does in the chat. |
-| `ChatFocusArbitrationPolicy` | public static class | Whether the chat overlay should hold the input this frame, or stand aside for something that wants it. |
-| `ChatFocusVerdict` | public enum | What the chat overlay should be doing with the input this frame. |
-| `ChatSkinFacts` | public class | The facts the chat window is chosen on. |
-| `ChatSkinFallbackPolicy` | public static class | Picks the window that will actually be usable. |
-| `ChatTemperaturePolicy` | public static class | Pure: the conversation temperature the player picked, held inside a range a model stays coherent in. |
-| `ChatTitleText` | public static class | The chat window's title. |
-| `ChatWindowLivenessPolicy` | public static class | Whether a recorded chat window is genuinely live, or a leftover that must not block the next one. |
 | `ChronicleCalendar` | public static class | The shared calendar constants and year math for the player chronicle and letter archive. |
 | `ClanRegardCandidate` | public class | One other house, as the page's house sees it. |
 | `ClanRegardListPolicy` | public static class | Sorts other houses into at odds and of affinity, each line with its reason and the war mark. |
@@ -982,39 +947,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CommitmentPolicy` | public static class | Pure math and tuning for a TrackedCommitment's deadline and its fulfilled/breached consequences. |
 | `CommitmentState` | public enum | The lifecycle of a tracked commitment. |
 | `CommonerChatContext` | public class | Decides whether the "talk to the locals" idle-chat option should be offered. |
-| `CompanionAbuseConsequence` | public struct | The computed aftermath of one companion-victim scene: how the bond scars, how deep the revenge, how loud the news. |
-| `CompanionAbuseConsequencePolicy` | public static class | Pure policy for the companion-victim aftermath. |
-| `CompanionAmbition` | public enum | Which of the four ambitions the companion would voice, or none. |
-| `CompanionAmbitionFacts` | public class | Live facts about the companion the caller (CompanionAudienceTopicResolver) has already gathered from engine state, everything CompanionAmbitionPolicy needs, and nothing it has to guess. |
-| `CompanionAmbitionPolicy` | public static class | Pure rules for which ambition (if any) a companion's live facts support voicing today. |
-| `CompanionAudiencePacing` | public enum | How readily a travelling companion asks for a private word, on the road as well as in a settlement. |
-| `CompanionAudiencePacingRules` | public static class | Turns the player's chosen pacing into the shared cooldown and the road trigger's daily chance. |
-| `CompanionAudienceTopicCandidate` | public class | One topic under consideration for a found-topic companion audience: whether its precondition (read from live state by the caller) actually holds, and how strong/interesting it is (0..100, comparable across topics) when i... |
-| `CompanionAudienceTopicPolicy` | public static class | Picks the single strongest ELIGIBLE topic among the candidates the caller offers, or CompanionAudienceReason.None when nothing qualifies, silence is the default, never a fallback "just to say something". |
 | `CompanionBaseline` | public static class | The happiness a companion drifts toward, set by the prestige of the clan they serve. |
-| `CompanionCallbackPolicy` | public static class | Pure rules for whether/how strongly a stored NotableEvent qualifies as an unprompted callback. |
-| `CompanionConversationPacing` | public static class | Rate-limits the lift a companion takes from being genuinely heard by the player. |
-| `CompanionCounselPolicy` | public static class | Pure rules for which practical counsel (if any) the party's live state actually supports today. |
-| `CompanionEngagementPolicy` | public static class | Decides whether a companion is kicking their heels. |
-| `CompanionErrandJournalText` | public static class | Pure formatting for the companion-errand quest-journal mirror: a stable title and one status line per phase / closing outcome. |
-| `CompanionErrandPhase` | public enum | Where a companion's errand is in its out-to-back arc, for journal-text purposes only. |
-| `CompanionGratitudePolicy` | public static class | Pure rules for whether/how strongly a live Appreciation qualifies as an unprompted gratitude audience. |
 | `CompanionHappiness` | public static class | Pure happiness arithmetic: clamp, banding, the "wants to leave" floor, the per-driver magnitudes, and a gentle drift back to baseline. |
-| `CompanionLifecyclePolicy` | public static class | Pure gates for companion lifecycle transitions the engine drives: whether one may organically depart right now, and whether a returning errand-runner may be re-added to the player's party. |
-| `CompanionMissionOutcome` | public class | The resolved result of a dispatched mission. |
-| `CompanionMissionPayload` | public enum | The KIND of thing an errand brings back — drives how the host gathers it (flavour/voice is per-type). |
-| `CompanionMissionType` | public enum | The errand a companion can be sent on. |
-| `CompanionMissions` | public static class | Pure decision logic for companion missions. |
-| `CompanionPatrolPolicy` | public static class | Pure: the companion patrol's rules (men to prefill, the leash, the monthly letter, food). |
-| `CompanionRapport` | public static class | Pure camp-life arithmetic: the trait COMPATIBILITY that nudges two companions toward bonding or clashing, the band their accumulated relation falls into, whether the feeling is strong enough to raise with the player, and... |
-| `CompanionRescuePolicy` | public static class | Whether (and how likely) the player's companions mount a rescue of their captive lord. |
-| `CompanionRetentionPolicy` | public static class | Pure rules for the unhappy-companion retention loop: whether to ask for an audience, how a refusal or a granted audience moves the count, and when patience finally runs out into a farewell. |
-| `CompanionRumourFreshnessFacts` | public class | One piece of news a companion travelling with the player might bring, against the world as it is now. |
-| `CompanionRumourFreshnessPolicy` | public static class | Whether a companion still brings a piece of news to the player, and how its age is said. |
-| `CompanionRumourPolicy` | public static class | Pure rules for scoring a rumour candidate's strength once the engine has already resolved awareness. |
-| `CompanionSceneKind` | public enum | The shape of a companion-victim captive scene. |
-| `CompanionScenePolicy` | public static class | Whether a captive encounter targets a held companion, and which way it plays out. |
-| `CompanionSchemeWarningPolicy` | public static class | Pure rules for whether a companion qualifies to voice an unprompted scheme-warning audience. |
 | `CompanionSecretAffectionPolicy` | public static class | Pure rules for a companion's secret affection confession (eligibility plus the weekly roll). |
 | `CompanyMember` | public class | One person of the player's company. |
 | `CompanyRole` | public enum | How someone travels with the player. |
@@ -1026,12 +960,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ConsoleHelpPolicy` | public static class | How cr.help answers, given what is actually registered and what each command is documented to do. |
 | `ContentmentPacing` | public enum | How readily a companion's spirits recover from a grievance. |
 | `ContentmentPacingRules` | public static class | Turns the player's chosen pacing into the weekly recovery it grants. |
-| `ConversationCompressionPolicy` | public static class | Pure policy: given how many lines a conversation holds and how many are already folded into its running summary, decide whether to fold more now and which lines. |
-| `ConversationEndPolicy` | public static class | Decides whether an NPC's end_conversation should lock the chat shut, or leave the player in control. |
-| `ConversationFoldPlan` | public struct | What ConversationCompressionPolicy.Plan decides about folding older lines away. |
-| `ConversationMemoryRules` | public static class | The rule for recording a fallback conversation memory at window close (used only when the LLM emitted no [EVENT] of its own): two completed player turns always qualify, and a SINGLE turn qualifies when the player's own w... |
-| `ConversationSummaryQueue` | public class | A pure, ordered (FIFO) queue of PendingSummaryJob. |
-| `ConversationTranscript` | public class | Accumulates the conversation's attributed lines and answers the two questions asked of it: what session one participant should receive, and how the whole thing reads as plain text. |
 | `CorrespondenceInterestPolicy` | public static class | Turns the player's correspondence behaviour, explicit or implicit, into the InterestDeltas that a caller accumulates per sender/subject/globally and then clamps (ClampSender, ClampSubject, ClampGlobal) before handing the... |
 | `CorrespondencePreference` | public struct | A single correspondence preference the player has stated (typically parsed by CorrespondencePreferenceParser from a reply's control line). |
 | `CorrespondencePreferenceParser` | public static class | Parses the optional correspondence-preference control line an LLM may append to a reply, into a typed CorrespondencePreference. |
@@ -1042,15 +970,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilSceneKind` | public enum | The image family a council's TYPE calls for, independent of terrain. |
 | `CouncilSceneTerrain` | public enum | The terrain bucket a council scene image cares about: only Desert and Steppe get their own art (dunes, open grass); every other engine TerrainType (Forest, Mountain, Plain, Snow, Water...) shares one "forest/mountains" i... |
 | `CouncilVoiceMode` | public enum | How a council's turns are generated: together in one call, or each seated member their own. |
-| `CourierDispatchPolicy` | public static class | Pure gate for the reply-courier dispatch: whether a sender already has a courier on the road. |
-| `CourierHirePlace` | public enum | The kind of place the player stands in. |
-| `CourierHirePlacePolicy` | public static class | Where the courier is offered from the settlement's own menu. |
-| `CourierLoss` | public enum | What happened to a courier that never arrived. |
-| `CourierLossFacts` | public class | What is known about whoever destroyed a courier. |
-| `CourierRationPolicy` | public static class | Decides when a courier's larder is refilled mid-errand. |
-| `CourierSecretPolicy` | public static class | The decisions a lost courier and its secret turn on. |
-| `CourierStuckPolicy` | public static class | Decides when a live courier's lack of movement stops being patience and becomes a jam. |
-| `CourierWaylayPolicy` | public static class | Pure rules for whether a single bandit party waylays a passing courier. |
 | `CourtActionPolicy` | public static class | Pure math and gates for the four "court action" verbs. |
 | `CourtMarkerText` | public static class | The court verbs' hidden cooldown markers, as they were once written into memory text. |
 | `CrRecoveryAction` | public enum | A stuck CR subsystem the recovery command (cr.reset) can stand down. |
@@ -1071,16 +990,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EnvoyMandatePolicy` | public static class | Holds an envoy to his mandate, and names him. |
 | `EnvoyReleaseFacts` | public class | How a captive's captivity ended, as the envoy task reads it. |
 | `EnvoyTurnFacts` | public class | What the turn that produced a deal said: the facts a gift and a plain acceptance are read from. |
-| `EnvoyVisitFacts` | public class | What decides whether an envoy may come about a captive the player holds (PrisonerExchangePolicy.EnvoyMayCome). |
-| `EquipmentLoadoutPolicy` | public static class | Chooses which equipment loadout (civilian or battle) the notable-gear clause should read for a scene. |
-| `EquipmentModifierQualityPolicy` | public static class | Pure, engine-free mapping from an item modifier's plain facts to a GearQuality band. |
-| `EquipmentNotabilityPolicy` | public static class | Pure, engine-free scoring and phrasing of a hero's NOTABLE equipment. |
-| `EquipmentPieceFacts` | public class | One equipped item, reduced to the facts EquipmentNotabilityPolicy needs. |
-| `EscapeCloseLatch` | public class | Holds an Escape close until it is safe (philip0105, 11/10/2026: Escape out of a conversation crashed the game, the close button did not). |
 | `EscapedTargetPolicy` | public static class | The rules for a capture or delivery task whose target escaped. |
 | `EscortCostPolicy` | public static class | Pure pricing for the per-correspondent armed-escort premium (a distance-scaled one-off fee). |
-| `ExchangeCaptiveFacts` | public class | What an exchange needs to know about one captive. |
-| `ExchangeHandover` | public enum | What happens to a captive once the other side has them. |
 | `ExternalEventRules` | public static class | The normalisation + quota rules every externally-fed world event passes through. |
 | `ExternalMissionRules` | public static class | The normalisation rules every externally-registered player mission passes through. |
 | `EyeColorBands` | public static class | The words for Bannerlord's eye-colour gradient, banded from the slider offset. |
@@ -1102,8 +1013,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GameRelationFacts` | public class | The game's relations with the player that one character's standing is read from. |
 | `GameRelationReading` | public static class | Reads a character's clan standing and own relation with the player. |
 | `GarrisonStrength` | public static class | A garrison's strength band. |
-| `GearKind` | public enum | The broad kind of an equipped piece, enough to phrase it ("clad in", "bears", "rides"). |
-| `GearQuality` | public enum | The quality band of a piece, derived by the host from the item's modifier (Masterwork/Legendary vs Rusty/Tattered/Cracked...) and, for an unmarked piece, its raw value. |
 | `GeographyDescriber` | public static class | Pure rules for describing a bearing (distance band plus 8-wind direction) between two map points. |
 | `GiftEquipDecision` | public struct | The policy's verdict: whether to equip the gift, and why. |
 | `GiftEquipFacts` | public struct | The facts GiftEquipPolicy.Decide needs to judge one gifted equipment item. |
@@ -1131,7 +1040,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HouseholdKinPolicy` | public static class | Decides who in the player's house is family, and therefore never a retainer to be given away. |
 | `HuntMode` | public enum | How the realm comes after an outlaw. |
 | `IHistoryRecord` | public interface | A long-term entry as eviction sees it. |
-| `ILetterIntentionWorld` | public interface | The live-world signals the per-reason staleness decision needs, keyed by the letter's sender id. |
 | `IManagedPortrait` | public interface | A UI element that owns exactly one character portrait — which, on screen, is backed by a GPU render-target (a character tableau). |
 | `IRandomSource` | public interface | A source of bounded random integers. |
 | `IRumorRecord` | public interface | The minimum a stored world happening must expose for the pruner to reason about its lifetime: when it occurred and whether it is the player's own deed (kept long-term) or third-party rumour (aged out). |
@@ -1146,18 +1054,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `IntimacyPacingRules` | public static class | Turns the player's Relationship Pacing dial into the relief applied to the intimacy consent bar. |
 | `IntimateChroniclePolicy` | public static class | Decides whether a notable intimate event is worth a chronicle line, and composes that line's text. |
 | `IntimateChronicleSceneKind` | public enum | Which kind of intimate beat is being considered for the chronicle. |
-| `JealousStake` | public enum | Who the jealous party is, and why they have a stake — sets the reaction's flavour. |
 | `JealousyCulture` | public class | A culture's parsed stance on romantic exclusivity. |
-| `JealousyHearingPolicy` | public static class | Pure gate deciding whether a jealous party is close enough to a liaison's location to have heard word of it. |
 | `JealousyHierarchy` | public enum | How strongly senior-vs-secondary partner rank drives competition jealousy. |
 | `JealousyOutrage` | public enum | How strongly a romantic act elsewhere reads as a betrayal for this culture. |
-| `JealousyReaction` | public static class | The pure tuning behind a jealousy reaction: the relation hit (Severity), the chance of a confronting letter (LetterChance), and the in-character grievance / letter framing. |
-| `JealousyReactionPolicy` | public static class | Decides whether a romantic act, witnessed or private, draws a jealous reaction this time. |
-| `JealousyTrack` | public enum | Which of the three prices a jealous partner pays. |
-| `JealousyTrackFacts` | public class | What is known about a jealous partner when her price is being decided. |
-| `JealousyTrackPolicy` | public static class | Chooses the jealousy track from what the partner's people hold and what she herself agreed to. |
-| `JealousyTriggerPolicy` | public static class | Pure gate deciding whether a recorded romantic act is plausible COURTSHIP worth a jealous reaction. |
-| `KeepPeaceBreachPolicy` | public static class | Decides whether a freshly declared war breaches a promisor's "keep the peace" oath. |
 | `KeywordToken` | public class | One parsed keyword: a Verb (uppercased, e.g. |
 | `KinDeathDescriber` | public static class | The clause that follows a dead relative's name: " (who died in childbirth 12 days ago)". |
 | `KinDeathFacts` | public class | What is known of a relative's death. |
@@ -1165,35 +1064,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `KinkParser` | public static class | Parses author-written kink names (case-insensitive) to Kink values. |
 | `KnowledgeTier` | public enum | How confidently an NPC could say where a third party is, from their social tie alone. |
 | `LandfallFacts` | public class | What decides whether a conversation waiting for landfall may be received now. |
-| `LetterAgeDescriber` | public static class | Renders how long ago a received letter was written, for the read window's heading. |
-| `LetterArchivePolicy` | public static class | Archive-membership rules for a contact's letter correspondence (retention is unbounded by design). |
 | `LetterBudget` | public class | The budget the mailbox scheduler (LetterMailboxPolicy) enforces: how many unprompted letters may land per rolling window, and how often a lower-weight candidate is let through anyway so the mailbox does not become a mono... |
-| `LetterCadence` | public static class | The timing rules for NPC-initiated correspondence: whether an NPC may send another letter right now, and how long since they last had reason to (a proxy for the last meeting). |
 | `LetterCandidate` | public class | One candidate letter waiting to compete for the mailbox budget. |
-| `LetterCandidateFreshness` | public static class | How long a queued LetterCandidateIntent stays worth delivering before it is quietly retired instead. |
-| `LetterComposerState` | public class | The view-agnostic state of the courier window for one open session: its mode and the courier fee, and from those the widget visibility and the send eligibility. |
-| `LetterDeliveryPolicy` | public static class | Pure gate deciding whether a letter should be delivered now, or held back because its sender is currently near the player. |
-| `LetterDirection` | public enum | Which side of the correspondence a thread entry sits on. |
-| `LetterDistancePolicy` | public static class | The distance (in courier travel days) at which a spouse or consort may write to lament the player's absence, as a graduated CHANCE: none while near, rising between NearDays and FarDays, and capped at MaxChancePercent so... |
-| `LetterFontPolicy` | public static class | Decides whether the parchment letter view should swap its decorative Latin font (Galahad) for a plain, glyph-complete one. |
-| `LetterIntentionPolicy` | public static class | Pure per-reason decision: does the intention that motivated this letter still hold at delivery time? |
 | `LetterLeakConsequencePolicy` | public static class | The grudge magnitude and renown cost a fired letter-leak (Inc 2) applies. |
-| `LetterLeakPolicy` | public static class | The substance bar an intercepted letter must clear to be anyone's secret. |
 | `LetterMailboxPolicy` | public static class | Chooses which single unprompted letter, if any, reaches the player right now: a budgeted, weight-ordered, anti-starvation, occasionally-diverse pick over a set of candidates the caller has already decided are eligible to... |
 | `LetterPacing` | public enum | How much unprompted NPC correspondence reaches the player. |
 | `LetterPacingRules` | public static class | Turns the player's chosen pacing into the budget that actually governs the mailbox. |
-| `LetterRegardFacts` | public class | What a letter's worth is weighed against. |
-| `LetterRegardPolicy` | public static class | The worth of a letter to the reader's regard. |
-| `LetterReplyDecision` | public struct | The parsed outcome of an NPC's letter-reply decision. |
-| `LetterReplyDecisionParser` | public static class | Parses the terse control line an LLM returns when deciding whether an NPC answers the player's letter, into a typed LetterReplyDecision. |
-| `LetterReplyKind` | public enum | Whether the NPC answers the player's letter at all. |
-| `LetterReplyReason` | public static class | The occasion of a reply. |
-| `LetterThreadAssembler` | public static class | Builds the dated, chronological correspondence thread for one contact. |
-| `LetterThreadEntry` | public class | One line of the correspondence thread: a dated header and the letter body. |
-| `LetterTone` | public enum | How a letter left its reader feeling toward the player, as the reader judged it. |
 | `LetterWeights` | public static class | Turns a letter's LetterReason into the base weight the mailbox scheduler (LetterMailboxPolicy) competes on. |
-| `LetterWhereaboutsPolicy` | public static class | The whereabouts wording of a letter. |
-| `LetterWindowMode` | public enum | What the courier window is doing right now. |
 | `LlmCompatibilityMode` | public enum | How the host wants chat-completion sampling parameters shaped for the target model. |
 | `LlmParameterPolicy` | public static class | Resolves the chat-completion parameter wire shape for a target model. |
 | `LlmWireParameters` | public struct | The wire shape the request must use for its sampling parameters. |
@@ -1207,7 +1084,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LoverChildClanPolicy` | public static class | Pure rule for attributing a lover-child's clan (Inc 3c): the lover's line when he has one, else the mother's line only when that is not the player's, else neither. |
 | `LoverChildClanTarget` | public enum | Which line a lover-child joins at birth, decided by LoverChildClanPolicy. |
 | `LoverConceptionPolicy` | public static class | Pure rule for a lover-child being conceived on a tryst: the modest per-tryst chance that a fertile partner in an active affair falls pregnant by her lover. |
-| `ManualModelMode` | public enum | The three-state in-chat model switch (21/08/2026, replaces the old binary manual toggle). |
 | `MapOffset` | public struct | How far east and how far north one map position lies from another. |
 | `MapPoint` | public struct | A position on the campaign map, in the engine's own coordinates. |
 | `MarketReading` | public class | One trade good as a town's market reads it. |
@@ -1227,11 +1103,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MercenaryEnlistmentPolicy` | public static class | Pure gate for the join_as_mercenary action: whether the player's clan may take mercenary service under the kingdom in question right now, the two facts both the prompt teaching and the bridge's execution guard must agree... |
 | `MercenaryReleasePolicy` | public static class | Pure gate for the end_mercenary action: whether the player's clan is truly under mercenary service right now, the one fact both the prompt teaching (EncounterContext.PlayerIsMercenary) and the bridge's execution guard mu... |
 | `MercenaryRenewalFacts` | public class | A contract ended and another began: is it the same service renewed? |
-| `MirrorReconcileDecision` | public enum | What to do with one quest-journal mirror at session launch. |
-| `MissionResult` | public enum | How well a dispatched companion's errand turned out. |
-| `MissionSkill` | public enum | The CR-local skill a mission is judged by, kept independent of the engine's SkillObject. |
 | `ModRecoveryPolicy` | public static class | Decides what cr.reset should clear, and how to report it. |
-| `ModelModePolicy` | public static class | Decides which model a scene's main call uses, and which id/effort/pin each role resolves to. |
 | `NameNormalization` | public static class | Folds a name (or any free-text token) down to a plain, lowercase, diacritic-free form so that "Héloïse" and "heloise" compare equal. |
 | `NativeQuestMemory` | public class | A memory for the giver of a native quest. |
 | `NativeQuestPhase` | public enum | Where a native quest stands, as the game reports it. |
@@ -1241,7 +1113,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NemesisTurnVerdict` | public struct | The gate's verdict: whether the nemesis turns, and if not, why. |
 | `NewsDestinationCandidate` | public class | One candidate town the companion could gather news at, named for matching the request. |
 | `NewsDestinationSelector` | public static class | Chooses which town a "bring me news about X" errand rides to. |
-| `NotHisToSellFacts` | public class | What the refusal of a sale by a lord who does not hold the captive is told from. |
 | `NotableRecruitmentBlock` | public enum | Why a notable cannot (yet) be recruited as a companion, or None when they can. |
 | `NotableRecruitmentPolicy` | public static class | The pure gate behind recruit_notable. |
 | `NpcActionGate` | public static class | The base conditions of every action a character takes. |
@@ -1250,14 +1121,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `OathKindParser` | public static class | Resolves a swear_oath resolution's oath_kind string to the whitelisted CommitmentKind it names. |
 | `OfferFlowGate` | public static class | The pure routing decision behind the offer ("give") button. |
 | `OfferRoute` | public enum | Where the one "what do you offer?" control routes, given what is outstanding with the current NPC and whether the player holds hero captives. |
-| `OpenAiApiKeyPolicy` | public static class | Resolves which OpenAI-Compatible API key a service role should send. |
-| `OpenAiEndpointPolicy` | public static class | Resolves which OpenAI-Compatible endpoint URL a service role should call. |
-| `OpenPartnerLoverPolicy` | public static class | Pure rules for an OPEN partner autonomously taking a lover of her own: the neglect-scaled weekly chance that she strays, and whether a given candidate is a plausible lover. |
-| `OpenRelationshipPolicy` | public static class | Pure gate: does a reciprocal open-relationship arrangement suppress this partner's jealousy? |
 | `OrientationParser` | public static class | Parses a human orientation word (plus common synonyms) to a SexualOrientation. |
 | `OutlawPolicy` | public static class | The rules of outlawry, bounties and amnesty. |
 | `OverdueOutcome` | public enum | What the daily overdue sweep should do once a commitment's deadline lapses. |
-| `OverlayNeighbour` | public class | One layer beside the chat, as the arbiter needs to see it. |
 | `PairRegard` | public class | The speaker's regard for the other: points on the regard scale, the verdict, and the reasons, strongest first. |
 | `PairRegardFacts` | public class | What ties the speaker to the other, and what happened between them. |
 | `PairRegardPolicy` | public static class | Weighs what lies between two characters into a verdict with its reason. |
@@ -1266,27 +1132,21 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PanelTickSuppressionCounter` | public class | A reference count of how many CR panels currently need the vanilla settlement-visual tick suppressed (the mod wires this to a Harmony guard: while the count is above zero, SettlementVisualManager.OnTick is skipped so its... |
 | `PartnerFacts` | public class | One other partner of the player, as a partner sees them. |
 | `PartnerStanding` | public class | One partner's standing as the competition pass sees it (engine-gathered, pure to reason over). |
-| `PartyCounselFacts` | public class | Live facts about the party the caller has already gathered (item roster, morale model, member roster, carry weight), everything CompanionCounselPolicy needs, and nothing it has to guess. |
-| `PartyCounselKind` | public enum | Which practical condition of the party the counsel is about, or none. |
 | `PartyMoraleMood` | public static class | Turns the player party's morale into the weekly mood nudge it gives their companions, if any. |
 | `PastCandidateFacts` | public class | One long-term event the speaker knows, as the past-on-mention block weighs it. |
 | `PastMentionRequest` | public class | The turn the past is weighed for: what the player named, and when the speaker stands. |
 | `PastOnMentionPolicy` | public static class | Picks and words the past events a speaker brings to a turn in which the player named their people. |
 | `PastTie` | public enum | How close the speaker stands to a past event, from farthest to nearest. |
-| `PatrolLeashFacts` | public class | What the hourly leash knows of a patrolling party. |
 | `PatrolLetterText` | public static class | Pure: the monthly patrol letter's Context, and reading a stop order out of a letter's answer. |
 | `PatrolReportFacts` | public class | The record a monthly patrol letter reports. |
 | `PeaceMediationBlock` | public enum | Why the player cannot (yet) mediate peace with this leader, or None when they can. |
 | `PeaceMediationPolicy` | public static class | The pure gate behind mediate_peace. |
 | `PendingMatchBook` | public class | The matches other mods have registered, and the door they pass. |
 | `PendingMatchEntry` | public class | One match waiting for its decider's consent. |
-| `PendingSummaryJob` | public class | One pending "write the rich summary and replace the base event" job, captured as plain data so it can be persisted (a later increment wires it into SyncData) and replayed after a game reload. |
 | `PerceivedImageFacts` | public class | What the image is composed from. |
 | `PerceivedImagePolicy` | public static class | Composes the perceived image. |
 | `PersonaTraitIntensity` | public static class | How strongly a persona's traits are said. |
 | `PersonaTraitLevels` | public class | A hero's five personality trait levels, -2 to +2 as the game keeps them. |
-| `PlayerChangeFacts` | public class | The predecessor's state when the change fired. |
-| `PlayerChangeKind` | public enum | What a change of player character was. |
 | `PlayerCompanyPolicy` | public static class | Who travels with the player, for inviting and for clearing the room. |
 | `PlayerDeedValence` | public static class | Classifies a player's deed from the observer's point of view, from two facts the host has already resolved against the game (faction membership, kinship). |
 | `PlayerDressBand` | public enum | The band an onlooker would perceive at a glance, from wholly bare to genuine battle harness. |
@@ -1312,18 +1172,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PresentWitness` | public class | A witness in the room, as the privacy rule sees them. |
 | `PressForWarFacts` | public class | The facts one lord's pressing for war against one realm rests on, read from the game. |
 | `PressForWarPolicy` | public static class | Whether and how a lord may press his realm toward war at the player's word. |
-| `PrisonerBuyerCandidate` | public class | One lord who might want the captive. |
-| `PrisonerBuyerPolicy` | public static class | Orders who may send an envoy about a captive, and says what each wants. |
-| `PrisonerBuyerRole` | public enum | What a prospective buyer is to the captive. |
 | `PrisonerDeedTarget` | public class | What captive an NPC is asking for: a specific hero (HeroId) when named, otherwise any lord of a faction (FactionId). |
-| `PrisonerExchangePolicy` | public static class | The rules of a prisoner exchange. |
-| `PrisonerOfferAvailabilityPolicy` | public static class | Whether a lord's written offer for a prisoner can still be honoured, and if not, why not. |
-| `PrisonerOfferBlock` | public enum | Why a lord's prisoner offer cannot be accepted, or None when it can. |
-| `PrisonerOfferPolicy` | public static class | The gold a PrisonerOffer letter names for the captive (clamped to the honest ransom band). |
 | `PrisonerRecruitmentBlock` | public enum | Why a held prisoner cannot (yet) be recruited, or None when they can. |
 | `PrisonerRecruitmentPolicy` | public static class | The pure gate behind recruit_prisoner. |
-| `PrisonerReleasePolicy` | public static class | The rules for a prisoner bargaining their way out. |
-| `PrisonerTradePolicy` | public static class | Pure price discipline for a prisoner sale, either direction. |
 | `PrivateAudienceFacts` | public class | The state a request for privacy is judged on. |
 | `PrivateAudiencePolicy` | public static class | Decides a request for privacy. |
 | `PrivateAudienceVerdict` | public enum | What a request for privacy does. |
@@ -1341,37 +1192,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PromptSelection` | public class | The profile to use and the place MCM should show. |
 | `PromptSelectionFacts` | public class | What the MCM pick is judged on. |
 | `ProvideGoodsPolicy` | public static class | Pure rules for a ProvideGoods supply task: category normalization, count clamp, satisfaction. |
-| `ProviderKind` | public enum | The concrete OpenAI-compatible service a request is sent to. |
-| `ProviderModelPolicy` | public static class | Whether a configured model id is a real choice for the provider a role is pointed at, and what to send when it is not. |
-| `ProviderPinFailurePolicy` | public static class | Recognises a dead end made by the player's provider pin, and builds the pin into a request. |
-| `ProviderRolePolicy` | public static class | Maps the per-role provider dropdown strings to a ProviderKind, honouring the "(default)" inherit sentinel. |
 | `PublicAffrontPolicy` | public static class | The rule behind "insults travel": when a conversation's relation drop, delivered before witnesses, becomes a circulating rumour, and how widely it carries. |
-| `QuestFailureLeniency` | public class | How a failed or abandoned quest is charged: whether it grudges, remembers a broken word, spends trust, and by how much regard. |
-| `QuestFailureLeniencyPolicy` | public static class | Decides the leniency of a quest failure by kind: hard-to-find bandit deeds are forgiven, all else keeps full consequence. |
-| `QuestKillCreditPolicy` | public static class | Decides whether a hero's death satisfies a kill-target quest, given who struck the blow. |
-| `QuestMenuComposer` | public static class | Formats the grounded quest menu into compact prompt lines. |
-| `QuestMenuEntry` | public class | One task a giver can truly offer right now: its type token, its REAL target, and a short cue. |
-| `QuestReconcilePolicy` | public static class | Pure decision for the session-launch quest-mirror reconciler. |
-| `QuestRecoveryPolicy` | public static class | Resolves the 1-based quest number a player typed into a 0-based index, or an error to show. |
 | `QuestRescueCreditPolicy` | public static class | Decides whether the end of a captivity should be credited to the player as a rescue, for the purpose of satisfying an outstanding NpcMemoryService.Core.Models.QuestType.RescuePrisoner quest. |
-| `QuestRewardGatePolicy` | public static class | Pure eligibility/re-validation gate for RewardGrant.GrantFief and RewardGrant.MarriageReward. |
-| `QuestRewardPayoutVerdict` | public enum | The binary outcome of re-validating a heavy quest reward (fief or marriage) at payout. |
-| `QuestSaveBasePolicy` | public static class | Decides the quest definer's save-type base id, avoiding a known boot-crash collision with Europe1100. |
 | `QuestTargetVoidPolicy` | public static class | Decides whether a hero-bound quest should be voided because its target hero has left the world. |
 | `QuestVoidReason` | public enum | Why QuestTargetVoidPolicy.ReasonToVoid would cancel a hero-bound quest, or None when it stands. |
 | `RansomEnvoyFacts` | public class | Who a giver may send the player to buy back. |
 | `RansomEnvoyPolicy` | public static class | The rules of a ransom_envoy task. |
-| `RapportBand` | public enum | How two companions stand with each other — banded from their accumulated mutual relation. |
-| `RealmFace` | public class | The face a realm's queen wears, and the file it came from. |
-| `RealmFaceFacts` | public class | Who wears what now. |
-| `RealmFaceFile` | public static class | Reads and merges faces files. |
-| `RealmFacePlan` | public class | What to change. |
-| `RealmFacePlanner` | public static class | Who to dress and who to give her face back. |
-| `RealmServiceLine` | public class | The news line, the chronicle line and the reach of the player's clan entering a realm's service. |
-| `RealmServiceWording` | public static class | Words the player's entry into a realm as what it was: an oath of fealty, or a hired contract. |
-| `RealmTidingsPolicy` | public static class | Pure subject-selection for a realm-tidings letter: given the world events a writer could relay and the ones they have already relayed, picks the single most worth-telling fresh event, or nothing. |
-| `RealmTidingsSalience` | public static class | Turns a world event's magnitude (how far the news carries, 0..100) and the writer's RumorConfidence in it into the opaque salience score RealmTidingsPolicy.RealmTidingsCandidate competes on. |
-| `ReasoningWirePolicy` | public static class | Decides whether a provider kind expects the reasoning-effort keyword serialized as the top-level reasoning_effort string rather than OpenRouter's nested reasoning object. |
 | `RebellionFacts` | public class | A house's rebellion, and its return to the fold. |
 | `RebellionWording` | public static class | How a house's members remember a rebellion, and how the world tells it. |
 | `RecruitIntentDetector` | public static class | Detects a "where can I find / hire a companion?" intent in a free-text player message. |
@@ -1382,49 +1208,29 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RelationSummaryFacts` | public class | The standings the header line is written from. |
 | `RelationSummaryText` | public static class | Writes the header line. |
 | `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
-| `ReleaseBargainMode` | public enum | How a freedom bargain is honoured, decided by who holds the prisoner. |
 | `ReliefSeat` | public class | A place a character answers for, as a destination for the grain he asked for. |
 | `ReplyCourierBlock` | public enum | Why no reply courier may ride to the player right now (None = the road is open). |
 | `ReplyCourierGatePolicy` | public static class | Single source of truth for the reply-courier road gate. |
 | `ReplyLanguagePolicy` | public static class | Which language the characters speak, and how an opening line is told so. |
 | `RescueEvidence` | public static class | The evidence line of a completed rescue task. |
 | `RetainerLeavePolicy` | public static class | Pure end-condition gate for an ACTIVE retainer arrangement (a foreign lord riding in the player's party). |
-| `RetentionStep` | public enum | What the engine should do this tick for an unhappy companion. |
 | `RetiredArchetypes` | public static class | Persona archetypes no longer handed out, recognised in a stored profile. |
-| `RetirementKind` | public enum | What a spent companion asks for when they retire — decided by whether they hold land. |
 | `RideWithMeEligibilityPolicy` | public static class | Pure eligibility gate for ride_with_me: the idle-lord retainer, the exact complement of EscortEligibilityPolicy.CanEscort. |
 | `RoadAudienceFacts` | public class | Everything that could make right now a bad moment to interrupt the player, read off the live campaign by the caller. |
 | `RoadAudienceSafetyPolicy` | public static class | Pure gate: is RIGHT NOW, on the open road, a moment where a travelling companion may ask the player for a private word? |
 | `RoleplayBenchChecks` | public static class | Advisory, dependency-light structural signals for the roleplay model bench (cr.rp_bench). |
-| `RomanticActTier` | public enum | How serious the romantic act is — drives grudge severity and letter likelihood. |
 | `RomanticPreferenceParser` | public static class | Parses author-written romantic-preference names (case-insensitive) to RomanticPreference values. |
 | `RomanticProfilePolicy` | public static class | The pure decisions behind a fresh RomanticProfile roll: the trait-based fallback sketches, sexual orientation, and the preference/kink pools + distinct picks. |
 | `RomanticTraits` | public class | A hero's five personality traits, already converted to the -2..2 scale, carried as plain ints so RomanticProfilePolicy stays free of any engine dependency. |
-| `RoundTableGate` | public class | The pure decision state of the round-table feature: whether the player's last message opened the floor to the whole group, whether the round-table button/UI should be offered, and where the next deterministic lap should... |
-| `RoundTableIntentDetector` | public static class | Pure rules for detecting a round-table "open the floor to everyone" intent in player text. |
-| `RoundTablePolicy` | public static class | Pure turn-order and cap arithmetic for a round-table burst. |
 | `RumorAwareness` | public static class | The pure awareness model: how far news of an event carries, and how surely it has reached a given observer. |
 | `RumorAwarenessBreakdown` | public class | One observer's awareness of one event, with every term that produced it. |
 | `RumorConfidence` | public enum | How surely a rumour has reached an observer — derived from the awareness score. |
 | `RumorDiscretion` | public static class | Whether a world event is kept from someone whatever their score. |
-| `ScatteredLootItem` | public class | One item taken from the player on a fled bandit escape, scattered among that culture's bands until recovered. |
-| `ScatteredLootLedger` | public class | Save-serializable carrier for every item currently scattered among bandit bands, awaiting recovery. |
-| `ScatteredLootPolicy` | public static class | Pure rules for recovering scattered captivity loot from defeated bandit bands. |
-| `ScenarioArgs` | public static class | Parsing helpers for the scripted-scenarios keyword payloads. |
-| `ScenarioCandidate` | public class | One hero or faction a reference may name. |
-| `ScenarioChecks` | public class | What a fired event asks of the world while it plays its rules, and how it plays one. |
 | `ScenarioMergeResult` | public class | The rules kept, where each came from, and what was dropped. |
 | `ScenarioPackFolder` | public class | A folder of scenario packs and who it belongs to. |
 | `ScenarioPackFolders` | public static class | Where scenario packs are read from, in order. |
-| `ScenarioPass` | public static class | Plays every rule a fired event calls for. |
-| `ScenarioReferenceMatch` | public static class | How well a scenario reference names a candidate, and which candidate it names. |
-| `ScenarioRoleRef` | public static class | A reference written as a tale role, "{husband}". |
-| `ScenarioRoleText` | public static class | Fills a rule's message with the names of the tale's people. |
 | `ScenarioRule` | public class | One reactive rule: a Trigger, optional Guards (eligibility, AND-combined), a list of Consequences (declarative world mutations), and a Message for the World-Event store. |
 | `ScenarioRuleMerge` | public static class | Keeps one rule per id, the first read. |
-| `ScenarioSelector` | public static class | Selects the single scenario rule to fire for an event, or null when none apply. |
-| `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
-| `SceneContentKind` | public enum | The kind of scene that is opening. |
 | `SceneDecisionMerge` | public static class | Merges the scene model's decisions about the scene into the interpreter's actions. |
 | `SceneFocusSelector` | public static class | The pure avoid-repeat rule behind a captive scene's driving "focus": pick a random index into a pool of flavour strings, but never the same index the previous round already used, so a captor never opens two rounds in a r... |
 | `ScheduledLetterAction` | public enum | What the daily host pass should do with one ScheduledLetter this tick. |
@@ -1441,15 +1247,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SecretBondEligibility` | public static class | The single source of truth for whether a hidden bond may be taken up, and if not, why not. |
 | `SecretBondFacts` | public class | The plain facts the decision needs, read off the live campaign by whoever is asking. |
 | `SecretBondVerdict` | public enum | Why a hidden bond may or may not be taken up, in the order the doors are tried. |
-| `SecretDefeaterFacts` | public class | Who answers for the troop that defeated a secret's carrier. |
-| `SecretHandoff` | public class | Where a secret went, and to whom. |
-| `SecretHandoffKind` | public enum | How a carried secret changes hands. |
-| `SecretLoverAdmissionPolicy` | public static class | Decides whether the player admitting a secret-lover bond to a given NPC reveals anything, and about whom. |
-| `SecretLoverLeakPolicy` | public static class | Gates when the EXISTENCE of a secret lover may begin to leak: after a delay, once, never before. |
-| `SecretPropagationPolicy` | public static class | The numeric contract for how a held secret-lover identity trickles from a knowing lord to his friends. |
-| `SecretReaction` | public class | What the reader does about it. |
-| `SecretReactionPolicy` | public static class | From the model's one-word reading to a severity, and from a severity to a reaction. |
-| `SecretSeverity` | public enum | How an intercepted letter touches the lord who read it. |
 | `SeductionDifficulty` | public enum | How narrowly a seduction cleared its bar. |
 | `SeductionEligibilityPolicy` | public static class | Decides whether a married NPC is seducible by the player: the first gate of the Stolen Love pillar. |
 | `SeductionFacts` | public class | Everything needed to judge whether a married NPC can be seduced by the player. |
@@ -1462,7 +1259,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SelfEsteemTemper` | public class | The traits that decide how easily it moves. |
 | `ServiceEnticement` | public enum | The kind of enticement a poaching lord dangles in a ServiceOffer letter. |
 | `ServiceOfferPolicy` | public static class | Chooses the ServiceOffer enticement and holds the light accept warm-up. |
-| `ServiceRole` | public enum | A model ROLE the player can route to its own provider. |
 | `SessionHistoryComposer` | public static class | Rebuilds one participant's view of the conversation from the shared attributed transcript. |
 | `SessionTurn` | public class | One rebuilt message: what to add to the session, and under whose name. |
 | `SessionTurnRole` | public enum | Which role one rebuilt message plays in the session handed to the model. |
@@ -1479,10 +1275,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SharedPastSide` | public class | One side of the pair, as the game knows them now. |
 | `SiegeParticipationMarker` | public static class | Decides whether a buffered "the player just stormed this settlement" marker still applies to a settlement whose ownership is changing. |
 | `SilentRefusalMessages` | public static class | Wording for the bridge executor refusal branches that used to return null. |
-| `SkirmishFacts` | public class | The facts of one small fight a companion shared with the player, as its memory line reads them. |
-| `SkirmishFoe` | public class | The other side of a small fight, as the game knows it. |
-| `SkirmishLine` | public class | A memory line already in a companion's profile, as the fold reads it. |
-| `SkirmishMemoryText` | public static class | Pure: the folded "small fights" memory a companion keeps of the skirmishes shared with the player. |
 | `SourcedScenarioRule` | public class | A loaded rule and the source it came from. |
 | `SpeakerNamesakePolicy` | public static class | Decides whether a hero matched in the player's message is merely a namesake of the character being spoken to. |
 | `SpeakerProfileSelector` | public static class | Chooses which stored profile represents the NPC currently speaking, so a memory never ends up on the wrong person. |
@@ -1505,10 +1297,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StationGuidelinesPolicy` | public static class | Maps an NPC's occupation to the behavior-guidelines register that should voice them, and picks the concrete text through a fallback chain. |
 | `Stature` | public struct | A person's (or a house's) standing in the realm: their clan's tier, and whether they rule. |
 | `StolenSpouseGrudgePolicy` | public static class | Sizes the jilted spouse's personal grudge against the player when a stolen-love affair ends their marriage. |
-| `SuccessionKinship` | public static class | Maps a predecessor's family relation to the heir into the word an NPC would use. |
-| `SuccessionMemoryPolicy` | public static class | The rule for which recorded events survive a succession (are inherited by the heir). |
-| `SuccessionTrigger` | public static class | Classifies a change of player character, so only a real succession reframes memories. |
-| `SummaryEnqueueOutcome` | public enum | What ConversationSummaryQueue.Enqueue actually did with the new job. |
 | `SwayFacts` | public class | One sway that just landed, as the plea task reads it. |
 | `SwayGroundingPolicy` | public static class | Whether the player actually spoke of the person a sway is about. |
 | `SwayStance` | public enum | The stance a sway_opinion action asked for, once its raw token is read strictly. |
@@ -1535,21 +1323,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `UnknownActionNotice` | public static class | Builds the wording and the diagnostic record for an [ACTION] the bridge refused because its type is not a real mod verb. |
 | `VassalageOfferPolicy` | public static class | Pure gate for the join_as_vassal action: whether the speaking NPC truly rules a kingdom, and the player's clan is not already a full vassal of one, the two facts both the prompt teaching and the bridge's execution guard... |
 | `VentriloquizedReactionPolicy` | public static class | Decides when a speaker's witness reactions must yield to the round-table lap. |
-| `WarDeedMatcher` | public static class | Decides whether a war declaration satisfies a deliver-war-on-faction deed. |
-| `WarLoomingPolicy` | public static class | Pure threshold and cadence gate for the "war looming" world condition. |
-| `WarPressFacts` | public class | What a king weighs when a lord of his realm presses him toward war. |
-| `WarPressPolicy` | public static class | Whether a king goes to war when a lord presses him (PRESS_FOR_WAR). |
-| `WarSides` | public struct | The two sides of one war declaration, as faction ids. |
-| `WarWeariness` | public static class | Pure war-weariness arithmetic: clamp, the per-event tolls, rest recovery, the Valor-scaled retirement tolerance, banding, the "wants to retire" test, and the retirement shape by landedness. |
-| `WearinessBand` | public enum | How worn down by war a companion is — the bands the accumulating score falls into. |
-| `WhereaboutsFacts` | public class | Where someone is, as the letter needs it. |
-| `WitnessDedup` | public static class | Decides whether two WitnessEntry values denote the same present witness. |
-| `WitnessDensity` | public enum | How many ambient hero witnesses a conversation gathers. |
-| `WitnessPresencePolicy` | public static class | Thins a gathered list of ambient hero witnesses according to the player's chosen WitnessDensity. |
-| `WitnessReactionDecision` | public class | The verdict, plus the canonical spelling of the speaker's name when the line is kept. |
-| `WitnessReactionGate` | public static class | Decides, for one emitted reaction, whether it may be voiced. |
-| `WitnessReactionVerdict` | public enum | Why a witness reaction was kept or dropped. |
-| `WitnessSpeechDetector` | public static class | Classifies a witness reaction's text as containing actual SPOKEN words, or being nothing but a stage-direction/gesture. |
 | `WorldEventPruner` | public static class | Keeps the world-event log bounded, with two lifetimes on purpose: third-party events are rumour fodder and age out (a window, plus a hard cap), while the player's own deeds are the chronicle and are kept long-term (only... |
 | `WorldFactRelevance` | public struct | The result of scoring one world-fact candidate against the player's message. |
 | `WorldFactRelevancePolicy` | public static class | Pure, engine-free scoring of how much a world fact bears on what the player just said. |
@@ -1615,7 +1388,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestOutcomeFacts` | public class | A terminated InformalQuest (Completed), as read by the engine-side scan. |
 | `TraitFacts` | public class | A hero's trait levels relevant to appreciation formation and decay: Generosity and Mercy (a warm heart remembers a favour more readily and for longer), Calculating (a cold ledger-keeper is less moved by a mere kindness),... |
 
-### CalradiaRemembers.Logic.Assemblies (110)
+### CalradiaRemembers.Logic.Assemblies (113)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1715,6 +1488,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ResolutionRequirement` | public enum | The world conditions a motion needs before it may be offered. |
 | `ResolutionStatus` | public enum | The lifecycle of one motion taken in an assembly. |
 | `ResolutionWorldFacts` | public struct | The flattened world state a council reads to decide which motions it may offer. |
+| `RoundTableGate` | public class | The pure decision state of the round-table feature: whether the player's last message opened the floor to the whole group, whether the round-table button/UI should be offered, and where the next deterministic lap should... |
+| `RoundTableIntentDetector` | public static class | Pure rules for detecting a round-table "open the floor to everyone" intent in player text. |
+| `RoundTablePolicy` | public static class | Pure turn-order and cap arithmetic for a round-table burst. |
 | `RsvpDecision` | public enum | Whether an invited hero agrees to attend an assembly. |
 | `RsvpOutcome` | public struct | The one outcome of an RSVP decision: the yes/no and the reason behind it. |
 | `RsvpReason` | public enum | Why an RSVP resolved the way it did, so the caller can pick a fitting reply letter and log line. |
@@ -1851,18 +1627,68 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BastardScandalPolicy` | public static class | Scales the cost of a discovered bastard scandal (the standing hit and how far it spreads) by the culture's outrage at infidelity — the same JealousyOutrage the jealousy system reads. |
 | `HushMoneyPolicy` | public static class | The numeric contract for hush money paid to a lord who holds the player's secret-lover identity. |
 
-### CalradiaRemembers.Logic.Battles (8)
+### CalradiaRemembers.Logic.Battles (15)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `BattleFeatDigest` | public class | The few facts worth remembering out of one battle, chosen from the whole ledger. |
 | `BattleFeatDistiller` | public static class | Chooses the few facts from a battle that an NPC would actually raise. |
 | `BattleFeatText` | public static class | The first-hand lines a battle's real deeds leave in the memory of those who were there. |
+| `BattleMemoryText` | public static class | Builds the "fought beside you" memory line and the place/engagement phrasing. |
+| `BattleNotability` | public static class | Decides whether a battle is notable enough to record. |
+| `BattleSetting` | public enum | What kind of engagement a battle was, for naming it correctly (a siege is not a field battle). |
 | `CombatFeat` | public class | One thing the player did to one named foe in one engagement. |
 | `CombatFeatOutcome` | public enum | What actually became of a foe the player put out of the fight. |
 | `CombatFeatTier` | public enum | How remarkable a deed is, which decides how far word of it may travel. |
 | `CombatProwessPolicy` | public static class | Rates a single victory: an exploit, a plain deed, or something nobody would remark on. |
 | `CombatantFacts` | public class | The fighting facts of one combatant, as the game itself knows them; the policy turns these into a prowess score. |
+| `SkirmishFacts` | public class | The facts of one small fight a companion shared with the player, as its memory line reads them. |
+| `SkirmishFoe` | public class | The other side of a small fight, as the game knows it. |
+| `SkirmishLine` | public class | A memory line already in a companion's profile, as the fold reads it. |
+| `SkirmishMemoryText` | public static class | Pure: the folded "small fights" memory a companion keeps of the skirmishes shared with the player. |
+
+### CalradiaRemembers.Logic.Captivity (20)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `CaptiveActionOutcomePolicy` | public static class | Decides whether the player's physical attempt in a captive scene lands, this turn. |
+| `CaptiveDisposition` | public enum | How readily she bargains. |
+| `CaptiveEncounterPolicy` | public static class | The pure decisions behind a captive encounter: the per-tick probability a captor acts (EncounterProbability) and the intent the scene takes (SelectIntent). |
+| `CaptiveEscapeResolution` | public enum | How a captive-escape encounter resolved. |
+| `CaptiveGearLossPolicy` | public static class | The single decision point for WHEN an escape encounter's outcome should transfer the player's equipment to their captor's holder. |
+| `CaptiveGearStockPolicy` | public static class | Pure decisions over an accumulated pool of HeldItems: what merges in across escapes, and which single item per slot the holder wears. |
+| `CaptiveIntentRules` | public static class | Classifies a CaptiveSceneIntent for the chat flow's scene handling. |
+| `CaptiveKinDescriber` | public static class | Builds the captivity clause for a kinsman named in an NPC's RELATIONSHIPS block. |
+| `CaptiveNotoriety` | public static class | Whose capture is talked of, and how far the news carries. |
+| `CaptiveOffer` | public class | What she may offer, and how readily. |
+| `CaptiveOfferFacts` | public class | What decides a captive's offer. |
+| `CaptiveOfferPolicy` | public static class | Decides a captive's offer. |
+| `CaptiveSceneArcPolicy` | public static class | Picks the lead captor's opening arc as a WEIGHTED draw over SceneArc, mirroring CaptiveEncounterPolicy.SelectIntent's draw style: context LEANS the odds rather than gating them, and every arc keeps a floor weight so it c... |
+| `CaptiveSceneDirector` | public class | The "director" of a captive scene: a small state machine that owns the dramatic structure so the model never has to (and never loops a beat). |
+| `CaptiveTerm` | public enum | A term a captive may put on the table for her freedom. |
+| `CaptureFacts` | public class | What is known of the capture. |
+| `CaptureMemoryText` | public static class | The captor's memory of the capture. |
+| `CaptureNorm` | public static class | The framing of a lord taken captive by the player. |
+| `CaptureStake` | public enum | What the captive is to the one who hears of the capture. |
+| `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
+
+### CalradiaRemembers.Logic.Chat (13)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `ChatCompositionModePolicy` | public static class | Maps the "Chat Composition" MCM dropdown value to ChatCompositionMode. |
+| `ChatEscapeAction` | public enum | What the chat should do with one press of Escape. |
+| `ChatEscapeFacts` | public class | The state an Escape press is judged on. |
+| `ChatEscapePolicy` | public static class | Decides what one Escape press does in the chat. |
+| `ChatFocusArbitrationPolicy` | public static class | Whether the chat overlay should hold the input this frame, or stand aside for something that wants it. |
+| `ChatFocusVerdict` | public enum | What the chat overlay should be doing with the input this frame. |
+| `ChatSkinFacts` | public class | The facts the chat window is chosen on. |
+| `ChatSkinFallbackPolicy` | public static class | Picks the window that will actually be usable. |
+| `ChatTemperaturePolicy` | public static class | Pure: the conversation temperature the player picked, held inside a range a model stays coherent in. |
+| `ChatTitleText` | public static class | The chat window's title. |
+| `ChatWindowLivenessPolicy` | public static class | Whether a recorded chat window is genuinely live, or a leftover that must not block the next one. |
+| `EscapeCloseLatch` | public class | Holds an Escape close until it is safe (philip0105, 11/10/2026: Escape out of a conversation crashed the game, the close button did not). |
+| `OverlayNeighbour` | public class | One layer beside the chat, as the arbiter needs to see it. |
 
 ### CalradiaRemembers.Logic.Chronicle (1)
 
@@ -1870,16 +1696,54 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `ChronicleResumePolicy` | public static class | Decides which deed the illuminator should resume from, given what it wrote last time. |
 
-### CalradiaRemembers.Logic.Companions (4)
+### CalradiaRemembers.Logic.Companions (42)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `CompanionAbuseConsequence` | public struct | The computed aftermath of one companion-victim scene: how the bond scars, how deep the revenge, how loud the news. |
+| `CompanionAbuseConsequencePolicy` | public static class | Pure policy for the companion-victim aftermath. |
+| `CompanionAmbition` | public enum | Which of the four ambitions the companion would voice, or none. |
+| `CompanionAmbitionFacts` | public class | Live facts about the companion the caller (CompanionAudienceTopicResolver) has already gathered from engine state, everything CompanionAmbitionPolicy needs, and nothing it has to guess. |
+| `CompanionAmbitionPolicy` | public static class | Pure rules for which ambition (if any) a companion's live facts support voicing today. |
+| `CompanionAudiencePacing` | public enum | How readily a travelling companion asks for a private word, on the road as well as in a settlement. |
+| `CompanionAudiencePacingRules` | public static class | Turns the player's chosen pacing into the shared cooldown and the road trigger's daily chance. |
+| `CompanionAudienceTopicCandidate` | public class | One topic under consideration for a found-topic companion audience: whether its precondition (read from live state by the caller) actually holds, and how strong/interesting it is (0..100, comparable across topics) when i... |
+| `CompanionAudienceTopicPolicy` | public static class | Picks the single strongest ELIGIBLE topic among the candidates the caller offers, or CompanionAudienceReason.None when nothing qualifies, silence is the default, never a fallback "just to say something". |
+| `CompanionCallbackPolicy` | public static class | Pure rules for whether/how strongly a stored NotableEvent qualifies as an unprompted callback. |
 | `CompanionCandidate` | public class | One companion the player could part with, as the gate sees them. |
+| `CompanionConversationPacing` | public static class | Rate-limits the lift a companion takes from being genuinely heard by the player. |
+| `CompanionCounselPolicy` | public static class | Pure rules for which practical counsel (if any) the party's live state actually supports today. |
+| `CompanionEngagementPolicy` | public static class | Decides whether a companion is kicking their heels. |
+| `CompanionErrandJournalText` | public static class | Pure formatting for the companion-errand quest-journal mirror: a stable title and one status line per phase / closing outcome. |
+| `CompanionErrandPhase` | public enum | Where a companion's errand is in its out-to-back arc, for journal-text purposes only. |
+| `CompanionGratitudePolicy` | public static class | Pure rules for whether/how strongly a live Appreciation qualifies as an unprompted gratitude audience. |
+| `CompanionLifecyclePolicy` | public static class | Pure gates for companion lifecycle transitions the engine drives: whether one may organically depart right now, and whether a returning errand-runner may be re-added to the player's party. |
+| `CompanionMissionOutcome` | public class | The resolved result of a dispatched mission. |
+| `CompanionMissionPayload` | public enum | The KIND of thing an errand brings back: drives how the host gathers it (flavour/voice is per-type). |
+| `CompanionMissionType` | public enum | The errand a companion can be sent on. |
+| `CompanionMissions` | public static class | Pure decision logic for companion missions. |
+| `CompanionPatrolPolicy` | public static class | Pure: the companion patrol's rules (men to prefill, the leash, the monthly letter, food). |
+| `CompanionRapport` | public static class | Pure camp-life arithmetic: the trait COMPATIBILITY that nudges two companions toward bonding or clashing, the band their accumulated relation falls into, whether the feeling is strong enough to raise with the player, and... |
+| `CompanionRescuePolicy` | public static class | Whether (and how likely) the player's companions mount a rescue of their captive lord. |
+| `CompanionRetentionPolicy` | public static class | Pure rules for the unhappy-companion retention loop: whether to ask for an audience, how a refusal or a granted audience moves the count, and when patience finally runs out into a farewell. |
+| `CompanionRumourFreshnessFacts` | public class | One piece of news a companion travelling with the player might bring, against the world as it is now. |
+| `CompanionRumourFreshnessPolicy` | public static class | Whether a companion still brings a piece of news to the player, and how its age is said. |
+| `CompanionRumourPolicy` | public static class | Pure rules for scoring a rumour candidate's strength once the engine has already resolved awareness. |
+| `CompanionSceneKind` | public enum | The shape of a companion-victim captive scene. |
+| `CompanionScenePolicy` | public static class | Whether a captive encounter targets a held companion, and which way it plays out. |
+| `CompanionSchemeWarningPolicy` | public static class | Pure rules for whether a companion qualifies to voice an unprompted scheme-warning audience. |
 | `CompanionServiceTransferBlock` | public enum | Why a companion cannot be handed into a lord's service, or None when they can. |
 | `CompanionServiceTransferFacts` | public record | Everything the gate needs, as plain facts the caller reads off the live game. |
 | `CompanionServiceTransferPolicy` | public static class | The pure gate behind take_into_service. |
+| `MissionResult` | public enum | How well a dispatched companion's errand turned out. |
+| `MissionSkill` | public enum | The CR-local skill a mission is judged by, kept independent of the engine's SkillObject. |
+| `PartyCounselFacts` | public class | Live facts about the party the caller has already gathered (item roster, morale model, member roster, carry weight), everything CompanionCounselPolicy needs, and nothing it has to guess. |
+| `PartyCounselKind` | public enum | Which practical condition of the party the counsel is about, or none. |
+| `PatrolLeashFacts` | public class | What the hourly leash knows of a patrolling party. |
+| `RapportBand` | public enum | How two companions stand with each other: banded from their accumulated mutual relation. |
+| `RetentionStep` | public enum | What the engine should do this tick for an unhappy companion. |
 
-### CalradiaRemembers.Logic.Conversation (20)
+### CalradiaRemembers.Logic.Conversation (28)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1889,20 +1753,28 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatClosePlan` | public static class | Which steps a close runs, in order. |
 | `ChatCloseStep` | public enum | One step of a chat close, in the order it runs. |
 | `ConversationCast` | public class | The live cast of a conversation: the anchor and every other present character, each Active or Witness, with the moves that shift that boundary (Promote / Demote). |
+| `ConversationCompressionPolicy` | public static class | Pure policy: given how many lines a conversation holds and how many are already folded into its running summary, decide whether to fold more now and which lines. |
+| `ConversationEndPolicy` | public static class | Decides whether an NPC's end_conversation should lock the chat shut, or leave the player in control. |
+| `ConversationFoldPlan` | public struct | What ConversationCompressionPolicy.Plan decides about folding older lines away. |
+| `ConversationMemoryRules` | public static class | The rule for recording a fallback conversation memory at window close (used only when the LLM emitted no [EVENT] of its own): two completed player turns always qualify, and a SINGLE turn qualifies when the player's own w... |
 | `ConversationResumeFacts` | public class | What is known when a chat is about to open, against what was kept when the last one closed. |
 | `ConversationResumeIdentity` | public class | Whose conversation this is and when it was had. |
 | `ConversationResumePolicy` | public static class | Decides whether the kept conversation belongs in the chat that is opening. |
 | `ConversationResumeSnapshot` | public class | The words of one conversation, kept across a save. |
 | `ConversationResumeVerdict` | public enum | Why a kept conversation was or was not picked up again. |
+| `ConversationSummaryQueue` | public class | A pure, ordered (FIFO) queue of PendingSummaryJob. |
+| `ConversationTranscript` | public class | Accumulates the conversation's attributed lines and answers the two questions asked of it: what session one participant should receive, and how the whole thing reads as plain text. |
 | `EnsembleFloorPolicy` | public static class | Decides whether an ensemble beat left a question hanging, and who in the room should answer it. |
 | `MapEncounterCloseFacts` | public class | What the close knows of the player's encounter. |
 | `MapEncounterClosePolicy` | public static class | Whether the close may finish the encounter. |
 | `MapEventSighting` | public class | A map event as the close saw it, for one of the three places a battle can hide (the encounter itself, the player's own party, or the party met). |
 | `MeetingLeaveFacts` | public class | What the close knows when it ends the conversation, to tell the game whether the meeting is over (Wallace1067, 17/10/2026, see MapEncounterClosePolicy.LeavesTheMeeting). |
+| `PendingSummaryJob` | public class | One pending "write the rich summary and replace the base event" job, captured as plain data so it can be persisted (a later increment wires it into SyncData) and replayed after a game reload. |
 | `ReturnMove` | public enum | What the pending briefing return should do on this tick. |
 | `SilenceOrderContext` | public class | Everything SilenceOrderPolicy.Resolve weighs to decide whether a silence order lands. |
 | `SilenceOrderPolicy` | public static class | Resolves a silence order. |
 | `SilenceResponse` | public enum | Whether an ordered participant yields the floor or holds it. |
+| `SummaryEnqueueOutcome` | public enum | What ConversationSummaryQueue.Enqueue actually did with the new job. |
 
 ### CalradiaRemembers.Logic.Diagnostics (6)
 
@@ -1944,6 +1816,16 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DuelVenue` | public enum | Where a duel is staged, or that it cannot be staged now. |
 | `DuelVenuePolicy` | public static class | Chooses the venue for a duel from where the player stands. |
 | `SquareReadinessFacts` | public class | What the town square's opening waits on. |
+
+### CalradiaRemembers.Logic.Dynasty (5)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `PlayerChangeFacts` | public class | The predecessor's state when the change fired. |
+| `PlayerChangeKind` | public enum | What a change of player character was. |
+| `SuccessionKinship` | public static class | Maps a predecessor's family relation to the heir into the word an NPC would use. |
+| `SuccessionMemoryPolicy` | public static class | The rule for which recorded events survive a succession (are inherited by the heir). |
+| `SuccessionTrigger` | public static class | Classifies a change of player character, so only a real succession reframes memories. |
 
 ### CalradiaRemembers.Logic.Escort (7)
 
@@ -2019,16 +1901,66 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RecentMatterWording` | public static class | Words the clause naming the matter a character raises. |
 | `RecentMatterWordingFacts` | public class | What the matter's clause is written from. |
 
-### CalradiaRemembers.Logic.Items (6)
+### CalradiaRemembers.Logic.Items (15)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `EquipmentLoadoutPolicy` | public static class | Chooses which equipment loadout (civilian or battle) the notable-gear clause should read for a scene. |
+| `EquipmentModifierQualityPolicy` | public static class | Pure, engine-free mapping from an item modifier's plain facts to a GearQuality band. |
+| `EquipmentNotabilityPolicy` | public static class | Pure, engine-free scoring and phrasing of a hero's NOTABLE equipment. |
+| `EquipmentPieceFacts` | public class | One equipped item, reduced to the facts EquipmentNotabilityPolicy needs. |
+| `GearKind` | public enum | The broad kind of an equipped piece, enough to phrase it ("clad in", "bears", "rides"). |
+| `GearQuality` | public enum | The quality band of a piece, derived by the host from the item's modifier (Masterwork/Legendary vs Rusty/Tattered/Cracked...) and, for an unmarked piece, its raw value. |
 | `GiftCandidate` | public struct | One roster item as far as gift-name resolution is concerned: enough to match a narrated word against and, once matched, to hand back to the caller for the real transfer. |
 | `GiftNameResolver` | public static class | Resolves a narrated free-text gift word (e.g. "pendant") against the player's real roster items, so a flourish of narration does not hard-fail just because nothing is literally named that. |
 | `ItemSaleDecision` | public class | How a sale is settled. |
 | `ItemSaleFacts` | public class | What a sale is settled on. |
 | `ItemSalePolicy` | public static class | Settles a sale. |
 | `ItemSaleRefusal` | public enum | Why a sale does not go through. |
+| `ScatteredLootItem` | public class | One item taken from the player on a fled bandit escape, scattered among that culture's bands until recovered. |
+| `ScatteredLootLedger` | public class | Save-serializable carrier for every item currently scattered among bandit bands, awaiting recovery. |
+| `ScatteredLootPolicy` | public static class | Pure rules for recovering scattered captivity loot from defeated bandit bands. |
+
+### CalradiaRemembers.Logic.Letters (36)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `CourierDispatchPolicy` | public static class | Pure gate for the reply-courier dispatch: whether a sender already has a courier on the road. |
+| `CourierHirePlace` | public enum | The kind of place the player stands in. |
+| `CourierHirePlacePolicy` | public static class | Where the courier is offered from the settlement's own menu. |
+| `CourierLoss` | public enum | What happened to a courier that never arrived. |
+| `CourierLossFacts` | public class | What is known about whoever destroyed a courier. |
+| `CourierRationPolicy` | public static class | Decides when a courier's larder is refilled mid-errand. |
+| `CourierSecretPolicy` | public static class | The decisions a lost courier and its secret turn on. |
+| `CourierStuckPolicy` | public static class | Decides when a live courier's lack of movement stops being patience and becomes a jam. |
+| `CourierWaylayPolicy` | public static class | Pure rules for whether a single bandit party waylays a passing courier. |
+| `ILetterIntentionWorld` | public interface | The live-world signals the per-reason staleness decision needs, keyed by the letter's sender id. |
+| `LetterAgeDescriber` | public static class | Renders how long ago a received letter was written, for the read window's heading. |
+| `LetterArchivePolicy` | public static class | Archive-membership rules for a contact's letter correspondence (retention is unbounded by design). |
+| `LetterCadence` | public static class | The timing rules for NPC-initiated correspondence: whether an NPC may send another letter right now, and how long since they last had reason to (a proxy for the last meeting). |
+| `LetterCandidateFreshness` | public static class | How long a queued LetterCandidateIntent stays worth delivering before it is quietly retired instead. |
+| `LetterComposerState` | public class | The view-agnostic state of the courier window for one open session: its mode and the courier fee, and from those the widget visibility and the send eligibility. |
+| `LetterDeliveryPolicy` | public static class | Pure gate deciding whether a letter should be delivered now, or held back because its sender is currently near the player. |
+| `LetterDirection` | public enum | Which side of the correspondence a thread entry sits on. |
+| `LetterDistancePolicy` | public static class | The distance (in courier travel days) at which a spouse or consort may write to lament the player's absence, as a graduated CHANCE: none while near, rising between NearDays and FarDays, and capped at MaxChancePercent so... |
+| `LetterFontPolicy` | public static class | Decides whether the parchment letter view should swap its decorative Latin font (Galahad) for a plain, glyph-complete one. |
+| `LetterIntentionPolicy` | public static class | Pure per-reason decision: does the intention that motivated this letter still hold at delivery time? |
+| `LetterLeakPolicy` | public static class | The substance bar an intercepted letter must clear to be anyone's secret. |
+| `LetterRegardFacts` | public class | What a letter's worth is weighed against. |
+| `LetterRegardPolicy` | public static class | The worth of a letter to the reader's regard. |
+| `LetterReplyDecision` | public struct | The parsed outcome of an NPC's letter-reply decision. |
+| `LetterReplyDecisionParser` | public static class | Parses the terse control line an LLM returns when deciding whether an NPC answers the player's letter, into a typed LetterReplyDecision. |
+| `LetterReplyKind` | public enum | Whether the NPC answers the player's letter at all. |
+| `LetterReplyReason` | public static class | The occasion of a reply. |
+| `LetterThreadAssembler` | public static class | Builds the dated, chronological correspondence thread for one contact. |
+| `LetterThreadEntry` | public class | One line of the correspondence thread: a dated header and the letter body. |
+| `LetterTone` | public enum | How a letter left its reader feeling toward the player, as the reader judged it. |
+| `LetterWhereaboutsPolicy` | public static class | The whereabouts wording of a letter. |
+| `LetterWindowMode` | public enum | What the courier window is doing right now. |
+| `SecretDefeaterFacts` | public class | Who answers for the troop that defeated a secret's carrier. |
+| `SecretHandoff` | public class | Where a secret went, and to whom. |
+| `SecretHandoffKind` | public enum | How a carried secret changes hands. |
+| `WhereaboutsFacts` | public class | Where someone is, as the letter needs it. |
 
 ### CalradiaRemembers.Logic.Marriage (34)
 
@@ -2095,12 +2027,74 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NemesisRosterPolicy` | public static class | Pure roster lookup: which (if any) living nemesis of a given band culture already claims a given region. |
 | `NemesisRumorLine` | public static class | Pure text for the tavern-keeper's nemesis rumour line: takes the nemesis's display label and his region's display string (both already resolved by the caller, exactly like the lord bounty announcement resolves them) and... |
 
-### CalradiaRemembers.Logic.Prisoners (2)
+### CalradiaRemembers.Logic.Prisoners (16)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `EnvoyVisitFacts` | public class | What decides whether an envoy may come about a captive the player holds (PrisonerExchangePolicy.EnvoyMayCome). |
+| `ExchangeCaptiveFacts` | public class | What an exchange needs to know about one captive. |
+| `ExchangeHandover` | public enum | What happens to a captive once the other side has them. |
+| `NotHisToSellFacts` | public class | What the refusal of a sale by a lord who does not hold the captive is told from. |
 | `PrisonHolding` | public struct | One prison the game holds captives in, reduced to the plain facts custody scoring needs. |
+| `PrisonerBuyerCandidate` | public class | One lord who might want the captive. |
+| `PrisonerBuyerPolicy` | public static class | Orders who may send an envoy about a captive, and says what each wants. |
+| `PrisonerBuyerRole` | public enum | What a prospective buyer is to the captive. |
 | `PrisonerCustodyPolicy` | public static class | Pure, engine-free custody rules: which prisons are the player's, and the captives they hold. |
+| `PrisonerExchangePolicy` | public static class | The rules of a prisoner exchange. |
+| `PrisonerOfferAvailabilityPolicy` | public static class | Whether a lord's written offer for a prisoner can still be honoured, and if not, why not. |
+| `PrisonerOfferBlock` | public enum | Why a lord's prisoner offer cannot be accepted, or None when it can. |
+| `PrisonerOfferPolicy` | public static class | The gold a PrisonerOffer letter names for the captive (clamped to the honest ransom band). |
+| `PrisonerReleasePolicy` | public static class | The rules for a prisoner bargaining their way out. |
+| `PrisonerTradePolicy` | public static class | Pure price discipline for a prisoner sale, either direction. |
+| `ReleaseBargainMode` | public enum | How a freedom bargain is honoured, decided by who holds the prisoner. |
+
+### CalradiaRemembers.Logic.Providers (12)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `ChatCompositionMode` | public enum | How a chat reply is composed. |
+| `ManualModelMode` | public enum | The three-state in-chat model switch (21/08/2026, replaces the old binary manual toggle). |
+| `ModelModePolicy` | public static class | Decides which model a scene's main call uses, and which id/effort/pin each role resolves to. |
+| `OpenAiApiKeyPolicy` | public static class | Resolves which OpenAI-Compatible API key a service role should send. |
+| `OpenAiEndpointPolicy` | public static class | Resolves which OpenAI-Compatible endpoint URL a service role should call. |
+| `ProviderKind` | public enum | The concrete OpenAI-compatible service a request is sent to. |
+| `ProviderModelPolicy` | public static class | Whether a configured model id is a real choice for the provider a role is pointed at, and what to send when it is not. |
+| `ProviderPinFailurePolicy` | public static class | Recognises a dead end made by the player's provider pin, and builds the pin into a request. |
+| `ProviderRolePolicy` | public static class | Maps the per-role provider dropdown strings to a ProviderKind, honouring the "(default)" inherit sentinel. |
+| `ReasoningWirePolicy` | public static class | Decides whether a provider kind expects the reasoning-effort keyword serialized as the top-level reasoning_effort string rather than OpenRouter's nested reasoning object. |
+| `SceneContentKind` | public enum | The kind of scene that is opening. |
+| `ServiceRole` | public enum | A model ROLE the player can route to its own provider. |
+
+### CalradiaRemembers.Logic.Quests (12)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `CaptureQuestPolicy` | public static class | Decides what a proposed capture really is, from whether the giver is at war with the target. |
+| `MirrorReconcileDecision` | public enum | What to do with one quest-journal mirror at session launch. |
+| `QuestFailureLeniency` | public class | How a failed or abandoned quest is charged: whether it grudges, remembers a broken word, spends trust, and by how much regard. |
+| `QuestFailureLeniencyPolicy` | public static class | Decides the leniency of a quest failure by kind: hard-to-find bandit deeds are forgiven, all else keeps full consequence. |
+| `QuestKillCreditPolicy` | public static class | Decides whether a hero's death satisfies a kill-target quest, given who struck the blow. |
+| `QuestMenuComposer` | public static class | Formats the grounded quest menu into compact prompt lines. |
+| `QuestMenuEntry` | public class | One task a giver can truly offer right now: its type token, its REAL target, and a short cue. |
+| `QuestReconcilePolicy` | public static class | Pure decision for the session-launch quest-mirror reconciler. |
+| `QuestRecoveryPolicy` | public static class | Resolves the 1-based quest number a player typed into a 0-based index, or an error to show. |
+| `QuestRewardGatePolicy` | public static class | Pure eligibility/re-validation gate for RewardGrant.GrantFief and RewardGrant.MarriageReward. |
+| `QuestRewardPayoutVerdict` | public enum | The binary outcome of re-validating a heavy quest reward (fief or marriage) at payout. |
+| `QuestSaveBasePolicy` | public static class | Decides the quest definer's save-type base id, avoiding a known boot-crash collision with Europe1100. |
+
+### CalradiaRemembers.Logic.RealmTidings (9)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `RealmFace` | public class | The face a realm's queen wears, and the file it came from. |
+| `RealmFaceFacts` | public class | Who wears what now. |
+| `RealmFaceFile` | public static class | Reads and merges faces files. |
+| `RealmFacePlan` | public class | What to change. |
+| `RealmFacePlanner` | public static class | Who to dress and who to give her face back. |
+| `RealmServiceLine` | public class | The news line, the chronicle line and the reach of the player's clan entering a realm's service. |
+| `RealmServiceWording` | public static class | Words the player's entry into a realm as what it was: an oath of fealty, or a hired contract. |
+| `RealmTidingsPolicy` | public static class | Pure subject-selection for a realm-tidings letter: given the world events a writer could relay and the ones they have already relayed, picks the single most worth-telling fresh event, or nothing. |
+| `RealmTidingsSalience` | public static class | Turns a world event's magnitude (how far the news carries, 0..100) and the writer's RumorConfidence in it into the opaque salience score RealmTidingsPolicy.RealmTidingsCandidate competes on. |
 
 ### CalradiaRemembers.Logic.Rescue (8)
 
@@ -2114,6 +2108,43 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RescueGratitude` | public struct | The gratitude a single NPC feels after a player rescue: how many personal-regard points it is worth, and whether it is significant enough to be recorded as a lasting memory (versus a fleeting warmth that leaves no trace)... |
 | `RescueGratitudePolicy` | public static class | Decides how strongly an NPC reacts to being rescued (or to a loved one being rescued) by the player. |
 | `RescueTie` | public enum | How the freed prisoner relates to the player, deciding the shape of their gratitude. |
+
+### CalradiaRemembers.Logic.Romance (17)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `JealousStake` | public enum | Who the jealous party is, and why they have a stake: sets the reaction's flavour. |
+| `JealousyHearingPolicy` | public static class | Pure gate deciding whether a jealous party is close enough to a liaison's location to have heard word of it. |
+| `JealousyReaction` | public static class | The pure tuning behind a jealousy reaction: the relation hit (Severity), the chance of a confronting letter (LetterChance), and the in-character grievance / letter framing. |
+| `JealousyReactionPolicy` | public static class | Decides whether a romantic act, witnessed or private, draws a jealous reaction this time. |
+| `JealousyTrack` | public enum | Which of the three prices a jealous partner pays. |
+| `JealousyTrackFacts` | public class | What is known about a jealous partner when her price is being decided. |
+| `JealousyTrackPolicy` | public static class | Chooses the jealousy track from what the partner's people hold and what she herself agreed to. |
+| `JealousyTriggerPolicy` | public static class | Pure gate deciding whether a recorded romantic act is plausible COURTSHIP worth a jealous reaction. |
+| `OpenPartnerLoverPolicy` | public static class | Pure rules for an OPEN partner autonomously taking a lover of her own: the neglect-scaled weekly chance that she strays, and whether a given candidate is a plausible lover. |
+| `OpenRelationshipPolicy` | public static class | Pure gate: does a reciprocal open-relationship arrangement suppress this partner's jealousy? |
+| `RomanticActTier` | public enum | How serious the romantic act is: drives grudge severity and letter likelihood. |
+| `SecretLoverAdmissionPolicy` | public static class | Decides whether the player admitting a secret-lover bond to a given NPC reveals anything, and about whom. |
+| `SecretLoverLeakPolicy` | public static class | Gates when the EXISTENCE of a secret lover may begin to leak: after a delay, once, never before. |
+| `SecretPropagationPolicy` | public static class | The numeric contract for how a held secret-lover identity trickles from a knowing lord to his friends. |
+| `SecretReaction` | public class | What the reader does about it. |
+| `SecretReactionPolicy` | public static class | From the model's one-word reading to a severity, and from a severity to a reaction. |
+| `SecretSeverity` | public enum | How an intercepted letter touches the lord who read it. |
+
+### CalradiaRemembers.Logic.Scenarios (10)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `ScenarioArgs` | public static class | Parsing helpers for the scripted-scenarios keyword payloads. |
+| `ScenarioCandidate` | public class | One hero or faction a reference may name. |
+| `ScenarioChecks` | public class | What a fired event asks of the world while it plays its rules, and how it plays one. |
+| `ScenarioPass` | public static class | Plays every rule a fired event calls for. |
+| `ScenarioReferenceMatch` | public static class | How well a scenario reference names a candidate, and which candidate it names. |
+| `ScenarioRoleRef` | public static class | A reference written as a tale role, "{husband}". |
+| `ScenarioRoleText` | public static class | Fills a rule's message with the names of the tale's people. |
+| `ScenarioSelector` | public static class | Selects the single scenario rule to fire for an event, or null when none apply. |
+| `WarPressFacts` | public class | What a king weighs when a lord of his realm presses him toward war. |
+| `WarPressPolicy` | public static class | Whether a king goes to war when a lord presses him (PRESS_FOR_WAR). |
 
 ### CalradiaRemembers.Logic.Social (2)
 
@@ -2178,6 +2209,18 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ViolenceVerdict` | public enum | How an attempt ended. |
 | `ViolentAct` | public enum | What the player is attempting against an NPC, from least to most severe. |
 
+### CalradiaRemembers.Logic.War (7)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `KeepPeaceBreachPolicy` | public static class | Decides whether a freshly declared war breaches a promisor's "keep the peace" oath. |
+| `RetirementKind` | public enum | What a spent companion asks for when they retire: decided by whether they hold land. |
+| `WarDeedMatcher` | public static class | Decides whether a war declaration satisfies a deliver-war-on-faction deed. |
+| `WarLoomingPolicy` | public static class | Pure threshold and cadence gate for the "war looming" world condition. |
+| `WarSides` | public struct | The two sides of one war declaration, as faction ids. |
+| `WarWeariness` | public static class | Pure war-weariness arithmetic: clamp, the per-event tolls, rest recovery, the Valor-scaled retirement tolerance, banding, the "wants to retire" test, and the retirement shape by landedness. |
+| `WearinessBand` | public enum | How worn down by war a companion is: the bands the accumulating score falls into. |
+
 ### CalradiaRemembers.Logic.WarDuty (24)
 
 | Type | Kind | What it is |
@@ -2206,6 +2249,18 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WarLevyPayment` | public static class | Pure: what a hand-over counts for against a levy. |
 | `WarLevyPolicy` | public static class | Pure: how much coin stands for a vassal's absence from a war. |
 | `WarServiceLedger` | public class | The war-duty ledger: service, wars, and the reckoning in progress. |
+
+### CalradiaRemembers.Logic.Witnesses (7)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `WitnessDedup` | public static class | Decides whether two WitnessEntry values denote the same present witness. |
+| `WitnessDensity` | public enum | How many ambient hero witnesses a conversation gathers. |
+| `WitnessPresencePolicy` | public static class | Thins a gathered list of ambient hero witnesses according to the player's chosen WitnessDensity. |
+| `WitnessReactionDecision` | public class | The verdict, plus the canonical spelling of the speaker's name when the line is kept. |
+| `WitnessReactionGate` | public static class | Decides, for one emitted reaction, whether it may be voiced. |
+| `WitnessReactionVerdict` | public enum | Why a witness reaction was kept or dropped. |
+| `WitnessSpeechDetector` | public static class | Classifies a witness reaction's text as containing actual SPOKEN words, or being nothing but a stage-direction/gesture. |
 
 ### CalradiaRemembers.Logic.WorldAlmanac (27)
 

@@ -14,6 +14,7 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Mapping;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;

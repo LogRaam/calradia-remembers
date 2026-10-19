@@ -11,6 +11,8 @@ using CalradiaRemembers.Chat;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Companions;
+using CalradiaRemembers.Logic.War;
 using CalradiaRemembers.Missions;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;

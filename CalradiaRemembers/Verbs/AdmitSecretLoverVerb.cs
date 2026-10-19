@@ -16,6 +16,7 @@ using System.Text;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Romance;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;

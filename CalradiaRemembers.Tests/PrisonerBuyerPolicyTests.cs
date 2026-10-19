@@ -9,7 +9,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Prisoners;
 using FluentAssertions;
 using NpcMemoryService.Core.Standing;
 using NUnit.Framework;

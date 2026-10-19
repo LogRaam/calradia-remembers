@@ -8,7 +8,7 @@ using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Foundation;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.Travel;
 using NpcMemoryService.Core.Models;

@@ -58,7 +58,7 @@ namespace CalradiaRemembers.Chat
          var fallbackService = new NpcChatService(client ?? services.InterpreterClient, new SectionResponseParser(), services.ChatService.PromptBuilder) {
             ChatParameters = services.ChatService.ChatParameters,
             // The interpreter's client by default, so the interpreter role's window; a role client otherwise.
-            ContextWindowProvider = () => LlmServices.ContextWindowFor(client == null ? Logic.ServiceRole.Interpret : Logic.ServiceRole.Nsfw)
+            ContextWindowProvider = () => LlmServices.ContextWindowFor(client == null ? CalradiaRemembers.Logic.Providers.ServiceRole.Interpret : CalradiaRemembers.Logic.Providers.ServiceRole.Nsfw)
          };
 
          int budgetSeconds = Math.Max(15, ModSettings.LlmResponseTimeoutSeconds) + 5;

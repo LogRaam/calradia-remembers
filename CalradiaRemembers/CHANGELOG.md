@@ -20,6 +20,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   sets at load (cr.testall `mcm_test_buttons_wired`). New `Tools/Remove-DeadUsings.py` removed 102 imports nothing
   used. Pairs 137 -> 92; nine namespaces leave the cycle set. The `Settings` namespace is gone; MCM keeps your
   settings (it finds them by id). No behaviour change.
+- **Logic split, the themes** (same day): Captivity, Chat, Witnesses, Items, RealmTidings, Dynasty, Prisoners,
+  Providers, Conversation, Battles, War, Letters, Companions, Quests, Scenarios, Romance (Jealousy, secret lovers,
+  open partners), plus RoundTable into Assemblies. Each theme left in the root what the root still reads (the letter
+  mailbox and weights, companion happiness, jealousy culture, the stance core...). Root of Logic: 420 files, 729
+  types in 57 parts -> 247 files, 445 types in 37 parts. Pairs stay at 92, no new cycle. `Move-LogicTypes.py` now
+  also rewrites the partial form `Logic.X` written inside a mod namespace. Stance, Schemes, Rumors and Mercenaries
+  stay whole in the root: their core is what the root itself reads.
 
 ## v2.7.18.. 2026-10-19
 

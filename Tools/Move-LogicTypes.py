@@ -92,7 +92,8 @@ def main(argv):
 
     names = sorted({n for p in moving for n in DECL.findall(files[p]["code"])})
     word = re.compile(r"(?<![\w.])(" + "|".join(map(re.escape, names)) + r")\b")
-    fq = re.compile(re.escape(LOGIC) + r"\.(" + "|".join(map(re.escape, names)) + r")\b")
+    # Fully qualified, or partly (`Logic.X` written inside a CalradiaRemembers namespace): both become the full new name.
+    fq = re.compile(r"(?<![\w.])(?:CalradiaRemembers\.)?Logic\.(" + "|".join(map(re.escape, names)) + r")\b")
 
     # Who declares what, outside the moving files: for check 2.
     declared_in = {}

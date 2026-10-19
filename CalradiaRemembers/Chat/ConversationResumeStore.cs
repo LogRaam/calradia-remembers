@@ -19,7 +19,6 @@
 using System;
 using System.Text;
 using CalradiaRemembers.Foundation;
-using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Conversation;
 using TaleWorlds.CampaignSystem;
 

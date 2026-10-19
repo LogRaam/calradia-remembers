@@ -8,7 +8,7 @@
 
 #region
 
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Letters;
 using FluentAssertions;
 using NUnit.Framework;
 

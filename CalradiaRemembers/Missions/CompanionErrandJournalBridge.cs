@@ -5,7 +5,7 @@
 using System;
 using System.Linq;
 using CalradiaRemembers.Foundation;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Companions;
 using TaleWorlds.CampaignSystem;
 
 #endregion

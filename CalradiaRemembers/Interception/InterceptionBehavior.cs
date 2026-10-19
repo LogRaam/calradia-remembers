@@ -1139,12 +1139,12 @@ namespace CalradiaRemembers.Interception
       {
          if (m?.Key == null || !m.Key.StartsWith("we:", StringComparison.Ordinal)) return "";
          WorldEvent e = WorldEventStore.Instance?.GetById(m.Key.Substring(3));
-         if (e?.Status != Logic.CaptureNorm.Status) return "";
+         if (e?.Status != CalradiaRemembers.Logic.Captivity.CaptureNorm.Status) return "";
 
          bool realm = npc?.MapFaction != null && e.AggrievedFactionIds?.Contains(npc.MapFaction.StringId) == true;
          bool kin = npc?.Clan != null && e.AggrievedActorIds?.Any(id => Hero.FindFirst(h => h.StringId == id)?.Clan == npc.Clan) == true;
 
-         return " " + Logic.CaptureNorm.Line(Logic.CaptureNorm.StakeOf(kin, realm));
+         return " " + CalradiaRemembers.Logic.Captivity.CaptureNorm.Line(CalradiaRemembers.Logic.Captivity.CaptureNorm.StakeOf(kin, realm));
       }
 
       private void MarkMatterRaised(Hero npc, RecentMatter m)

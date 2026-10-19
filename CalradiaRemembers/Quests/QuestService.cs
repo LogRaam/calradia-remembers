@@ -304,8 +304,8 @@ namespace CalradiaRemembers.Quests
                // No-fault forgiveness (same rule as AbandonQuest): a lapsed deadline on a hard-to-find bandit
                // deed is a mild disappointment, not a broken word, since the target can hide until scouted. Every
                // other quest keeps the full consequence with this path's own DeadlineFailurePenalty.
-               CalradiaRemembers.Logic.QuestFailureLeniency leniency =
-                  CalradiaRemembers.Logic.QuestFailureLeniencyPolicy.Resolve(quest.Type, DeadlineFailurePenalty);
+               CalradiaRemembers.Logic.Quests.QuestFailureLeniency leniency =
+                  CalradiaRemembers.Logic.Quests.QuestFailureLeniencyPolicy.Resolve(quest.Type, DeadlineFailurePenalty);
 
                ProfileMutator.ApplyReputationDelta(profile, -leniency.RegardPenalty, NpcMemoryService.Core.Standing.RegardCause.Quest); // 5.1: single clamp path.
 
@@ -469,7 +469,7 @@ namespace CalradiaRemembers.Quests
       ///   ordinary LLM-offered quest. Returns null (and issues nothing) when the giver already has an
       ///   outstanding task: the caller (the dialogue offer, or a console test) should not have shown the
       ///   offer in that case, but this is re-checked here as the final guard. The reward is fixed at
-      ///   issuance by the caller (see <see cref="Logic.NemesisBountyRewardPolicy" />), never renegotiated.
+      ///   issuance by the caller (see <see cref="CalradiaRemembers.Logic.Nemesis.NemesisBountyRewardPolicy" />), never renegotiated.
       /// </summary>
       public static InformalQuest IssueNemesisBounty(NpcProfile giver,
                                                       Hero giverHero,
@@ -547,8 +547,8 @@ namespace CalradiaRemembers.Quests
          // giver disgusted and hostile). A bandit deed whose target hides until scouted is a mild disappointment,
          // not a broken word: no grudge, no broken-word memory, no trust spent, only a token regard nick. Every
          // other quest keeps the full broken-word consequence with this path's own AbandonPenalty.
-         CalradiaRemembers.Logic.QuestFailureLeniency leniency =
-            CalradiaRemembers.Logic.QuestFailureLeniencyPolicy.Resolve(quest.Type, AbandonPenalty);
+         CalradiaRemembers.Logic.Quests.QuestFailureLeniency leniency =
+            CalradiaRemembers.Logic.Quests.QuestFailureLeniencyPolicy.Resolve(quest.Type, AbandonPenalty);
 
          ProfileMutator.ApplyReputationDelta(giver, -leniency.RegardPenalty, NpcMemoryService.Core.Standing.RegardCause.Quest); // 5.1: single clamp path.
          Hero giverHero = FindGiverHero(giver);

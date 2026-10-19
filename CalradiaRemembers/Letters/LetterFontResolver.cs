@@ -3,7 +3,7 @@
 #region
 
 using System;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Letters;
 using TaleWorlds.Localization;
 
 #endregion

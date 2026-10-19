@@ -15,6 +15,7 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.RealmTidings;
 using CalradiaRemembers.Storage;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;

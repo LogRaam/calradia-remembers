@@ -17,6 +17,7 @@ using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.WorldEvents;

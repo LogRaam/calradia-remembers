@@ -15,6 +15,8 @@ using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Letters;
+using CalradiaRemembers.Logic.Prisoners;
 using NpcMemoryService.Core.Standing;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
@@ -969,7 +971,7 @@ namespace CalradiaRemembers.Letters
       #region private
 
       // Anti-spam cadence + last-meeting proxy now live in the pure, unit-tested
-      // CalradiaRemembers.Logic.LetterCadence; these thin wrappers keep the call sites unchanged.
+      // CalradiaRemembers.Logic.Letters.LetterCadence; these thin wrappers keep the call sites unchanged.
 
       /// <summary>True when the NPC has no letter in transit and respects the cooldown.</summary>
       private static bool CanSendLetter(NpcProfile profile, int today, int cooldownDays)

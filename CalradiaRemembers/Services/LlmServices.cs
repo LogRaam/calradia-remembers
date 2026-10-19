@@ -9,6 +9,7 @@ using System.Net.Http;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Providers;
 using CalradiaRemembers.Mapping;
 using NpcMemoryService.Core.Actions;
 using NpcMemoryService.Core.LlmClient;

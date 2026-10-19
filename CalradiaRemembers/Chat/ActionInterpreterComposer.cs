@@ -76,7 +76,7 @@ namespace CalradiaRemembers.Chat
             // The interpreter's own fit (fkasad, 13/10/2026): on a local endpoint with a declared window, its full
             // prompt (~17.6k tokens) is replaced by the compact one when it would not fit with its reply, rather than
             // being cut by the server (its action catalogue is exactly what a truncation removes).
-            int window = LlmServices.ContextWindowFor(Logic.ServiceRole.Interpret);
+            int window = LlmServices.ContextWindowFor(CalradiaRemembers.Logic.Providers.ServiceRole.Interpret);
             if (window > 0 && level == LeanPromptLevel.Full && !FitsWindow(window, prompt))
             {
                level = LeanPromptLevel.Lean;

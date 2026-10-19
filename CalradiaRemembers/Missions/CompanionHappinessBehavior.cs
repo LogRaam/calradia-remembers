@@ -10,6 +10,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Storage;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;

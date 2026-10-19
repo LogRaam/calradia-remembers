@@ -37,12 +37,24 @@ using CalradiaRemembers.Logic.Battles;
 using CalradiaRemembers.Logic.Actions;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Appreciations;
+using CalradiaRemembers.Logic.Captivity;
+using CalradiaRemembers.Logic.Chat;
+using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Logic.Duels;
+using CalradiaRemembers.Logic.Dynasty;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Logic.Items;
+using CalradiaRemembers.Logic.Letters;
 using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.Logic.Nemesis;
+using CalradiaRemembers.Logic.Prisoners;
+using CalradiaRemembers.Logic.Providers;
+using CalradiaRemembers.Logic.RealmTidings;
+using CalradiaRemembers.Logic.Romance;
+using CalradiaRemembers.Logic.Scenarios;
 using CalradiaRemembers.Logic.Social;
 using CalradiaRemembers.Logic.Verbs;
+using CalradiaRemembers.Logic.Witnesses;
 using CalradiaRemembers.Lore;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
@@ -4394,8 +4406,8 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("theCastleMenuOffersACourier", Has("castle"), true);
          t.Expect("theVillageMenuOffersACourier", Has("village"), true);
 
-         Logic.CourierHirePlace here = Letters.TaverneLetterBehavior.PlaceOf(Settlement.CurrentSettlement);
-         t.Note($"here: {here} ({(Logic.CourierHirePlacePolicy.OfferedInTheMenu(here) ? "in the menu" : here == Logic.CourierHirePlace.Town ? "at the tavern keeper" : "none")})");
+         CalradiaRemembers.Logic.Letters.CourierHirePlace here = Letters.TaverneLetterBehavior.PlaceOf(Settlement.CurrentSettlement);
+         t.Note($"here: {here} ({(CalradiaRemembers.Logic.Letters.CourierHirePlacePolicy.OfferedInTheMenu(here) ? "in the menu" : here == CalradiaRemembers.Logic.Letters.CourierHirePlace.Town ? "at the tavern keeper" : "none")})");
 
          return t.Line();
       }
@@ -5251,7 +5263,7 @@ namespace CalradiaRemembers.Diagnostics
             store.Record(siege);
             store.Record(fell);
 
-            string Why(WorldEvent e) => Logic.CompanionRumourFreshnessPolicy.WhyNotNews(CompanionAudienceTopicResolver.FreshnessFacts(e, today));
+            string Why(WorldEvent e) => CalradiaRemembers.Logic.Companions.CompanionRumourFreshnessPolicy.WhyNotNews(CompanionAudienceTopicResolver.FreshnessFacts(e, today));
 
             t.Expect("aSiegeFightOvertakenByTheFall", Why(siege) != null, true);
             t.Expect("thePlayersOwnWarIsNoNews", mine != null && Why(ownWar) != null, true);
@@ -8925,7 +8937,7 @@ namespace CalradiaRemembers.Diagnostics
          foreach (Hero cand in Hero.AllAliveHeroes.Where(h => h != null && h != Hero.MainHero && h.IsLord && !h.IsPrisoner))
          {
             if (Hero.AllAliveHeroes.Any(f => f != null && f != cand && f != Hero.MainHero && !f.IsPrisoner
-                   && CalradiaRemembers.Logic.SecretPropagationPolicy.IsFriend(new NpcMemoryService.Core.Standing.VanillaRelation(cand.GetRelation(f)))))
+                   && CalradiaRemembers.Logic.Romance.SecretPropagationPolicy.IsFriend(new NpcMemoryService.Core.Standing.VanillaRelation(cand.GetRelation(f)))))
             {
                teller = cand;
                break;
@@ -11323,7 +11335,7 @@ namespace CalradiaRemembers.Diagnostics
 
          bool hadProfile = behavior.Store.Get(lord.StringId) != null;
          MemoryResult result = Battles.CaptureMemoryBehavior.Record(lord.StringId,
-            new Logic.CaptureFacts {PlayerName = "(selftest) Can", Place = "Pravend", AfterBattle = true, PlayerMen = 112});
+            new CalradiaRemembers.Logic.Captivity.CaptureFacts {PlayerName = "(selftest) Can", Place = "Pravend", AfterBattle = true, PlayerMen = 112});
          NpcProfile profile = behavior.Store.Get(lord.StringId);
          NotableEvent written = profile?.Events.LastOrDefault(e => e.summary != null && e.summary.Contains("(selftest) Can"));
          try
@@ -17226,7 +17238,7 @@ namespace CalradiaRemembers.Diagnostics
             // STAKE: a hand-edited config cannot push a conversation out of the range a model stays coherent in.
             settings.ChatTemperature = 3f;
             sent = behavior.LlmServices.ChatService.ChatParameters.Creativity;
-            t.Expect("heldInRange", Math.Abs(sent - Logic.ChatTemperaturePolicy.Max) < 0.001f, true);
+            t.Expect("heldInRange", Math.Abs(sent - CalradiaRemembers.Logic.Chat.ChatTemperaturePolicy.Max) < 0.001f, true);
          }
          finally
          {

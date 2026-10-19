@@ -7,7 +7,7 @@
 
 #region
 
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Captivity;
 using FluentAssertions;
 using NUnit.Framework;
 

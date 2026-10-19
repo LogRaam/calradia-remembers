@@ -10,6 +10,7 @@
 #region
 
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Letters;
 using FluentAssertions;
 using NpcMemoryService.Core.Standing;
 using NUnit.Framework;

@@ -7,7 +7,7 @@
 
 #region
 
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Romance;
 using FluentAssertions;
 using NpcMemoryService.Core.Standing;
 using NUnit.Framework;

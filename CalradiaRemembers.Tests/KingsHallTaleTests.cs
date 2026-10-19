@@ -14,6 +14,7 @@ using System.IO;
 using System.Linq;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.AuthoredQuests;
+using CalradiaRemembers.Logic.Scenarios;
 using CalradiaRemembers.Tests.Maps;
 using FluentAssertions;
 using Newtonsoft.Json.Linq;
