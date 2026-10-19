@@ -31,6 +31,11 @@ namespace CalradiaRemembers.Tests.Maps
       public void GIVEN_the_source_as_it_stands_WHEN_the_dependencies_are_regenerated_THEN_they_match_the_committed_map()
          => ApprovedMap.Verify(DependencyMap.Path, Generated(DependencyMap.Generate));
 
+      // ONE LEVEL DOWN: a namespace that splits into separate parts, or a type whose users all live elsewhere.
+      [Test]
+      public void GIVEN_the_source_as_it_stands_WHEN_the_placement_is_regenerated_THEN_it_matches_the_committed_map()
+         => ApprovedMap.Verify(PlacementMap.Path, Generated(PlacementMap.Generate));
+
       // THE BEHAVIOUR INDEX. A change inside a method leaves no structural trace, but a behaviour that matters is held
       // by a test, so it shows here. This file existed already and sat ten days stale, for want of exactly this test.
       [Test]
