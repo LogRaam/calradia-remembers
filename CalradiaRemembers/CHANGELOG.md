@@ -44,6 +44,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   yield; the test assumed an empty screen. Whatever already claims focus when it starts is scenery, by the arbiter's
   own rule, and the test's layers are judged against that screen; the tavern-backdrop case is noted, not failed, when a
   settlement menu is already up.
+- **A notable's trade can have guidelines of its own** (Windmolen, 19/10: "can I make a separate file behavior
+  guidelines_merchants?"). `behavior_guidelines_<trade>.txt` (merchant, artisan, ruralnotable, headman, preacher) is
+  read Custom-first before `behavior_guidelines_notable.txt` and replaces it for that trade
+  (`StationGuidelinesPolicy.TradeKeys` / `TradeKeyOf` / `SelectStationText(station, trade, lookup)`); none ships, so
+  nothing changes until a player or a mod writes one; cr_patch applies to them like any narrative file. And the
+  profile now names all five trades (`NotableTradeLine`): a headman and a preacher read as "a person of some
+  standing", so a section written for them had nothing to recognise them by. Custom/README.txt documents the files.
+  cr.testall `trade_guidelines`.
 - **Closing a chat or council never finishes the encounter during a siege** (Zivkyn, 18/10, on 2.7.16: "I crash every
   time i end a Council meeting with my own war band men if we are preparing for a seige defense"). Defence in depth,
   the crash's cause is NOT proven: the battle guard could not see a siege with no fight yet, and

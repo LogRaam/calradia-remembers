@@ -251,9 +251,10 @@ namespace CalradiaRemembers.Mapping
          if (hero.IsFactionLeader) return "Leads a faction.";
          if (hero.IsClanLeader) return "Leads a noble clan.";
          if (hero.IsLord) return "A noble lord with land and retainers.";
-         if (hero.IsMerchant) return "A merchant by trade, a notable of the town.";
-         if (hero.IsRuralNotable) return "A respected village notable.";
-         if (hero.IsArtisan) return "An artisan of the town.";
+         // All five notable trades by name (Windmolen, 19/10/2026): a guideline written for one trade needs the
+         // model to know which trade it is speaking as.
+         string trade = CalradiaRemembers.Logic.StationGuidelinesPolicy.NotableTradeLine(hero.Occupation.ToString());
+         if (trade != null) return trade;
          if (hero.IsGangLeader) return "Leads an underworld gang.";
 
          return "A person of some standing in Calradia.";

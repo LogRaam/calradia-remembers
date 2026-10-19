@@ -19,6 +19,10 @@ For example:
   Custom\behavior_guidelines.txt
   Custom\post_history_instructions.txt
   Custom\behavior_guidelines_gangleader.txt (and the other station variants)
+  Custom\behavior_guidelines_merchant.txt (one trade of town or village notable; also _artisan,
+    _ruralnotable, _headman, _preacher. None ships: a notable whose trade has no file of its own uses
+    behavior_guidelines_notable.txt. A trade file replaces that shared file for its trade, so copy
+    behavior_guidelines_notable.txt under the new name and edit it, rather than starting empty)
   Custom\cultural_traditions.json (JSON: keep the structure valid, matching "Name": "description"
     pairs with commas between them; keyed by the culture's DISPLAY NAME, case-sensitive, so an overhaul
     mod's own culture, for example "Nord", goes in as its own entry)

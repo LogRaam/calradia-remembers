@@ -141,6 +141,67 @@ namespace CalradiaRemembers.Tests
                 .Should().Be("companion text");
         }
 
+        // Windmolen (19/10/2026) asked whether merchants could have a guidelines file of their own. A merchant
+        // with a merchant file must be voiced by it, or the player's file is silently ignored.
+        [Test]
+        public void GIVEN_a_merchant_file_exists_WHEN_selecting_a_merchants_text_THEN_the_trade_file_wins()
+        {
+            var files = new Dictionary<string, string> {
+                {StationGuidelinesPolicy.NotableKey, "notable text"},
+                {"merchant", "merchant text"}
+            };
+
+            string trade = StationGuidelinesPolicy.TradeKeyOf("Merchant");
+
+            StationGuidelinesPolicy.SelectStationText(StationGuidelinesPolicy.NotableKey, trade, k => Lookup(files, k))
+                .Should().Be("merchant text");
+        }
+
+        // None ships: an artisan, or a merchant whose player wrote no file, keeps the shared notable voice.
+        [Test]
+        public void GIVEN_no_file_for_this_trade_WHEN_selecting_the_text_THEN_the_shared_notable_file_applies()
+        {
+            var files = new Dictionary<string, string> {
+                {StationGuidelinesPolicy.NotableKey, "notable text"},
+                {"merchant", "merchant text"},
+                {"artisan", "  "}
+            };
+
+            StationGuidelinesPolicy.SelectStationText(StationGuidelinesPolicy.NotableKey, StationGuidelinesPolicy.TradeKeyOf("Artisan"), k => Lookup(files, k))
+                .Should().Be("notable text");
+        }
+
+        // A trade file is looked for only under a notable: a gang leader or a lord never picks up a file
+        // because its name happens to match.
+        [Test]
+        public void GIVEN_someone_who_is_not_a_notable_WHEN_asking_their_trade_THEN_there_is_none()
+        {
+            foreach (string occupation in new[] {"GangLeader", "Bandit", "Wanderer", "Lord", null})
+                StationGuidelinesPolicy.TradeKeyOf(occupation).Should().BeNull(occupation ?? "null");
+        }
+
+        // Every trade the loader reads is a trade some notable can have, and each notable has one: a key
+        // missing from TradeKeys would leave that trade's file unread.
+        [Test]
+        public void GIVEN_each_notable_occupation_WHEN_asking_its_trade_THEN_the_loader_reads_that_file()
+        {
+            foreach (string occupation in new[] {"Merchant", "Artisan", "RuralNotable", "Headman", "Preacher"})
+                StationGuidelinesPolicy.TradeKeys.Should().Contain(StationGuidelinesPolicy.TradeKeyOf(occupation), occupation);
+        }
+
+        // A guideline section written "if you are a headman" is followed only if the model is told it is one.
+        // Headmen and preachers used to read as "a person of some standing in Calradia".
+        [Test]
+        public void GIVEN_each_notable_occupation_WHEN_describing_their_rank_THEN_the_trade_is_named()
+        {
+            StationGuidelinesPolicy.NotableTradeLine("Merchant").Should().Contain("merchant");
+            StationGuidelinesPolicy.NotableTradeLine("Artisan").Should().Contain("artisan");
+            StationGuidelinesPolicy.NotableTradeLine("RuralNotable").Should().Contain("village notable");
+            StationGuidelinesPolicy.NotableTradeLine("Headman").Should().Contain("headman");
+            StationGuidelinesPolicy.NotableTradeLine("Preacher").Should().Contain("preacher");
+            StationGuidelinesPolicy.NotableTradeLine("Lord").Should().BeNull();
+        }
+
         // A modder who ships the mod without any station files (or hasn't written them yet) must fall
         // through cleanly to the base guidelines, never to a missing or blank prompt section.
         [Test]

@@ -408,6 +408,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("external_action_teaching", Severity.Light, "Extension Surface (tashmetu, 05/10/2026): an external action's TeachingText reached no prompt, because the live prompt composed CR's own verbs by fixed name lists. Registers a dummy action whose TeachingText returns a sentinel, builds a REAL encounter context for a real NPC (EncounterContextBuilder.Build, the chat's own call) and asserts the sentinel is in its action teachings while IsEligible holds, and gone when it does not. Unregisters in a finally", TestExternalActionTeaching),
          new SelfTest("external_action_guidance", Severity.Light, "Extension Surface actions guidance (ExternalActionSpec.Guidance): the fix for the modder report that an ineligible action's NPC roleplayed AGREEING in prose, only for the deed to fail its own eligibility check at execution. Registers a dummy action that is ALWAYS ineligible with a Guidance callback returning a distinctive sentinel -> asserts the REAL VerbRegistry.Instance.ComposeGuidance includes the sentinel despite the ineligibility, while ComposeTeachings for the same context excludes the action entirely (the whole behavioral point); also asserts the guidance context it received carried the real NPC's facts and correctly resolved a hero named in the player's message via CR's own ContextualNameResolver, not a reimplementation. Unregisters in a finally so nothing leaks into a later test or a real prompt", TestExternalActionGuidance),
          new SelfTest("prompt_variable_registration", Severity.Light, "Extension Surface, Prompt Variables volet (increment 4): CrPrompt.RegisterVariable is the PUBLIC door a third-party mod uses to contribute a LIVE {{name}} prompt variable, replacing a Harmony patch on the SDK's own PromptBuilder.BuildPromptVariables. Since PromptVariableRegistry.Compose is SDK-internal (like Clear, visible only to the SDK's own test project), drives the REAL public surface instead: builds a live system prompt (BuildSystemPrompt, the same call the chat pipeline uses) for a real NPC with PostHistoryInstructions referencing a registered token -> asserts the provider's value, keyed off the real NpcId, lands in the actual prompt text; registers a SECOND provider that THROWS in the same prompt build -> asserts building never throws, the other token still resolves, and the throwing token's own {{name}} is left literal (Compose skipped it, never smuggled a stray value in); registers a third provider under a BUILT-IN name (user) -> asserts the real player name still wins and the impostor value never appears, the exact merge guard BuildPromptVariables enforces. Unregisters all three in a finally via CrPrompt.Unregister, the only cleanup surface the mod assembly has", TestPromptVariableRegistration),
+         new SelfTest("trade_guidelines", Severity.Light, "Windmolen (19/10/2026) asked whether merchants could have a behavior guidelines file of their own. Puts a merchant text in memory (no file is written) and asserts on real notables that a merchant's prompt guidelines are that text while another trade's are not, and that a headman's or preacher's profile names the trade. Restores the text", TestTradeGuidelines),
          new SelfTest("spawn_spot", Severity.Light, "Gabriel (19/10/2026): authored_quest_opening failed with '[TALE] band spawn failed: AccessViolationException', the band placed at a village plus a random offset; the engine's placement runs a native path query from the point's navigation face, and a point off the walkable map has none. Asserts on the real map that MapSpot keeps a village gate as it is, moves a point beyond the map's edge to walkable ground near the village, and refuses it when there is no place to fall back on. Spawns nothing", TestSpawnSpot),
          new SelfTest("override_not_inherited", Severity.Light, "LapitaPolata (19/10/2026): a noble of Rhagaea's clan had Rhagaea's exact backstory. A child born in the campaign is made from a parent's character, so her template is the parent. Finds a living hero born of parents whose template is set, authors an entry at runtime keyed on that template (the parent), and asserts the loader does NOT hand it to the child. Restores the file-backed overrides", TestOverrideNotInherited),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
@@ -16851,6 +16852,44 @@ namespace CalradiaRemembers.Diagnostics
       ///   Deliberately calls <see cref="CharacterOverrideLoader.SyncAuthoredProse" />, the same method the chat
       ///   calls each turn, so removing that call from the chat breaks this test instead of passing beside it.
       /// </summary>
+      private static string TestTradeGuidelines(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("trade_guidelines");
+
+         Hero merchant = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsNotable && h.IsMerchant && Mapping.HeroPresence.IsInTheWorld(h));
+         Hero other = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsNotable && !h.IsMerchant && !h.IsGangLeader && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(merchant == null || other == null, "no merchant and other notable in the world")) return t.Line();
+
+         const string marker = "CR SELFTEST: the merchant's own guidelines.";
+         string before = NarrativeLoader.ReplaceStationGuidelinesForTest("merchant", marker);
+         try
+         {
+            t.Note(merchant.Name + " (merchant), " + other.Name + " (" + other.Occupation + ")");
+            t.Expect("aMerchantIsVoicedByTheMerchantFile",
+                     (EncounterContextBuilder.ResolveStationGuidelines(merchant) ?? "").Contains(marker), true);
+            t.Expect("anotherTradeKeepsTheSharedNotableFile",
+                     (EncounterContextBuilder.ResolveStationGuidelines(other) ?? "").Contains(marker), false);
+         }
+         finally
+         {
+            NarrativeLoader.ReplaceStationGuidelinesForTest("merchant", before);
+         }
+
+         t.Expect("withTheFileGoneTheMerchantIsANotableAgain",
+                  (EncounterContextBuilder.ResolveStationGuidelines(merchant) ?? "").Contains(marker), false);
+
+         Hero named = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsNotable && (h.IsHeadman || h.IsPreacher) && Mapping.HeroPresence.IsInTheWorld(h));
+         if (named == null) t.Note("no headman or preacher in the world: their profile line is covered by unit tests only");
+         else
+         {
+            string personality = HeroProfileMapper.FromHero(named).Personality ?? "";
+            t.Expect("theProfileNamesAHeadmanOrPreacher",
+                     personality.Contains(named.IsHeadman ? "headman" : "preacher"), true);
+         }
+
+         return t.Line();
+      }
+
       private static string TestSpawnSpot(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("spawn_spot");

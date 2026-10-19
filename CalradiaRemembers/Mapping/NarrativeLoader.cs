@@ -50,6 +50,10 @@ namespace CalradiaRemembers.Mapping
          _stationGuidelines.Clear();
          foreach (string station in new[] {"gangleader", "notable", "wanderer", "companion"})
             _stationGuidelines[station] = ReadFile($"behavior_guidelines_{station}.txt", $"{station} guidelines");
+
+         // A notable's own trade, read before the shared notable file (Windmolen, 19/10/2026). None ships.
+         foreach (string trade in CalradiaRemembers.Logic.StationGuidelinesPolicy.TradeKeys)
+            _stationGuidelines[trade] = ReadFile($"behavior_guidelines_{trade}.txt", $"{trade} guidelines");
       }
 
       /// <summary>
@@ -93,6 +97,18 @@ namespace CalradiaRemembers.Mapping
          => stationKey != null && _stationGuidelines.TryGetValue(stationKey, out string text)
             ? text
             : "";
+
+      /// <summary>
+      ///   Test seam for cr.testall: sets one station or trade text in memory and returns what was there, so the
+      ///   test can put it back. Never called by the game.
+      /// </summary>
+      internal static string ReplaceStationGuidelinesForTest(string key, string text)
+      {
+         string before = StationGuidelines(key);
+         _stationGuidelines[key] = text ?? "";
+
+         return before;
+      }
 
       #region private
 

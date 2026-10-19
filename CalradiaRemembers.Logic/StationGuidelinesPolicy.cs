@@ -34,6 +34,59 @@ namespace CalradiaRemembers.Logic
         public const string CompanionKey = "companion";
 
         /// <summary>
+        ///   The trades that may each have their own guidelines file, read before the shared notable one
+        ///   (Windmolen, 19/10/2026: "can I make a separate file behavior guidelines_merchants?"). A file is
+        ///   <c>behavior_guidelines_&lt;trade&gt;.txt</c>; none ships, so a notable reads the shared file until a
+        ///   player or a mod writes one.
+        /// </summary>
+        public static readonly string[] TradeKeys = {"merchant", "artisan", "ruralnotable", "headman", "preacher"};
+
+        /// <summary>
+        ///   The trade key of a town or village notable's occupation ("Merchant" gives "merchant"), or null for
+        ///   anyone who is not a notable, whose register has no trade below it.
+        /// </summary>
+        public static string TradeKeyOf(string occupationName)
+        {
+            if (ResolveStationKey(occupationName) != NotableKey) return null;
+
+            return occupationName.ToLowerInvariant();
+        }
+
+        /// <summary>
+        ///   The sentence that tells the model which trade a notable plies, or null for anyone else. Every one of
+        ///   the five is named: a headman and a preacher used to read only as "a person of some standing", so a
+        ///   guideline written for them had nothing to recognise them by.
+        /// </summary>
+        public static string NotableTradeLine(string occupationName)
+        {
+            switch (occupationName)
+            {
+                case "Merchant": return "A merchant by trade, a notable of the town.";
+                case "Artisan": return "An artisan of the town.";
+                case "RuralNotable": return "A respected village notable, a landowner.";
+                case "Headman": return "The headman of a village, who speaks for its people.";
+                case "Preacher": return "A preacher, a voice of faith among the townsfolk.";
+                default: return null;
+            }
+        }
+
+        /// <summary>
+        ///   The guidelines text for a notable's own trade first (<paramref name="tradeKey" />, when that file has
+        ///   text), then the station chain of <see cref="SelectStationText(string, Func{string, string})" />. A
+        ///   trade file replaces the shared notable file for that trade; it does not add to it.
+        /// </summary>
+        public static string SelectStationText(string stationKey, string tradeKey, Func<string, string> textForKey)
+        {
+            if (!string.IsNullOrEmpty(tradeKey) && textForKey != null)
+            {
+                string own = textForKey(tradeKey);
+                if (!string.IsNullOrWhiteSpace(own)) return own;
+            }
+
+            return SelectStationText(stationKey, textForKey);
+        }
+
+        /// <summary>
         ///   The station register for a hero, honoring the wanderer, companion, lord ladder: a wanderer who
         ///   has joined the player rises out of the free-blade register into the companion one, and a
         ///   companion granted a fief rises again into the lordly base register (a landed hero carries

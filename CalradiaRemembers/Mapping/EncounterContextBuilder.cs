@@ -4264,7 +4264,7 @@ namespace CalradiaRemembers.Mapping
          return StationGuidelinesPolicy.ResolveStationKey(hero.Occupation.ToString(), isPlayerCompanion, holdsFief);
       }
 
-      private static string ResolveStationGuidelines(Hero hero)
+      internal static string ResolveStationGuidelines(Hero hero)
       {
          if (hero == null) return null;
 
@@ -4277,7 +4277,9 @@ namespace CalradiaRemembers.Mapping
          bool isPlayerCompanion = hero.CompanionOf == Clan.PlayerClan;
          bool holdsFief = hero.IsClanLeader && (hero.Clan?.Settlements?.Any(s => s != null && (s.IsTown || s.IsCastle)) ?? false);
          string key = StationGuidelinesPolicy.ResolveStationKey(hero.Occupation.ToString(), isPlayerCompanion, holdsFief);
-         string text = StationGuidelinesPolicy.SelectStationText(key, NarrativeLoader.StationGuidelines);
+         // A notable's own trade file first, when a player or a mod wrote one (Windmolen, 19/10/2026).
+         string trade = key == StationGuidelinesPolicy.NotableKey ? StationGuidelinesPolicy.TradeKeyOf(hero.Occupation.ToString()) : null;
+         string text = StationGuidelinesPolicy.SelectStationText(key, trade, NarrativeLoader.StationGuidelines);
 
          // A lord resolves to no station file and used to fall through to the base register, which is
          // injected session-wide (LlmServices -> BehaviorGuidelinesOverride) and therefore cannot know who is
