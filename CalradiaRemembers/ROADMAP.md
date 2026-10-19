@@ -32,6 +32,30 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## WISHED 2026-10-19 (tthheerroocckk, Nexus), ROADMAPPED, GABRIEL WANTS A DESIGN TALK FIRST: a council at sea
+
+"can we call a council at sea? like for pirate roleplay?" Today the campaign-bar button greys out at sea and
+`CouncilEntry.PromptAndConvene` says "You cannot convene a council at sea." (`CouncilEntry.cs`, header: no conversation
+scene loads on open water, and the direct fallback would ride the live map). Gabriel (19/10/2026): roadmap it, and
+discuss a design before anything is built.
+
+What a design has to answer:
+- **The scene.** No land scene exists at sea, and a Gauntlet layer over the live map leaks VRAM by design (the council
+  MUST be a Mission). Does War Sails ship a deck scene a conversation mission could load (its naval battle scenes?),
+  or does the council wait for landfall? Needs a spike in the decompiled 1.4.8 naval code before any promise.
+- **Who sits.** At sea only the Party scope is at hand (`CouncilRosterResolver`: companions and kin riding with you);
+  the other scopes draw from the clan wherever it stands.
+- **What a sea council is for.** Pirate roleplay suggests its own matters (a prize, a course, a raid on a coast), not
+  only the land agenda.
+
+Found while tracing it, to settle in the same talk: `CouncilConversationStager.StageCouncil` has no sea refusal of its
+own; at sea it logs "[COUNCIL STAGE] the player is at sea ..." and calls `OpenDirect` (on the map). Only the bar and the
+picker refuse first. Reached without that refusal: `cr.council`, the war council offer after a battle
+(`WarCouncilOfferBehavior`), and the arrest trial (`ArrestBehavior`, whose own triggers already skip the sea at three
+sites; not verified for the trial path itself).
+
+---
+
 ## REMOVED 2026-10-15 (fkasad), NOT BUILT: the interpreter's tags applied after the reply shows
 
 The MCM "Actions Interpreter Timing" dropdown offered "Asynchronous: the reply shows instantly, tags apply a moment
