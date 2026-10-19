@@ -252,7 +252,9 @@ namespace CalradiaRemembers.Stance
       {
          // Belt-and-suspenders: never capture unless the player is fully on the open map. The game can still
          // report a settlement/encounter/menu for a tick or two right after a town mission ends.
-         if (Hero.MainHero.CurrentSettlement != null || PlayerEncounter.Current != null || Campaign.Current.CurrentMenuContext != null)
+         // At sea the player's own position is water, where no land convoy can be put (MapSpot, 19/10/2026): wait for land.
+         if (Hero.MainHero.CurrentSettlement != null || PlayerEncounter.Current != null || Campaign.Current.CurrentMenuContext != null
+             || MobileParty.MainParty?.IsCurrentlyAtSea == true)
          {
             ModLog.Info("[AMBUSH] not fully on the open map yet — re-arming the capture for a later tick.");
             _pendingCaptureLordId = paymaster.StringId;
@@ -706,6 +708,9 @@ namespace CalradiaRemembers.Stance
             return null;
          }
 
+         CampaignVec2? spot = Travel.MapSpot.Walkable(spawnPos, spawnAt, "ambush convoy");
+         if (spot == null) return null;
+
          Hero chief = HeroCreator.CreateSpecialHero(template, null, bandits, null, 35);
          if (chief == null)
          {
@@ -717,7 +722,7 @@ namespace CalradiaRemembers.Stance
          MobileParty party = LordPartyComponent.CreateLordParty(
             "cr_ambush_captors_" + Guid.NewGuid().ToString("N"),
             chief,
-            new CampaignVec2(spawnPos, true),
+            spot.Value,
             1f, // let the engine place it at a VALID reachable point in this radius...
             spawnAt, // ...around a real settlement, so the position is never off-map/in-water
             chief);

@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 526 types in 61 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 527 types in 61 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1203 types in 31 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
@@ -743,10 +743,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TournamentOutcomeCapture` | internal static class | Reads the real arena bracket at tournament end into a TournamentResult and feeds the lords' memories. |
 | `TournamentRivalryBehavior` | public class | Tallies arena head-to-heads and crystallizes a standing rivalry (worthy or bitter) once enough have been fought. |
 
-### CalradiaRemembers.Travel (2)
+### CalradiaRemembers.Travel (3)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `MapSpot` | public static class | Walkable ground for a new party. |
 | `TransientPartyRegistry` | public class | Tracks the mod's transient parties, despawns them before a save, and reports a true loss to their owner. |
 | `TravelingParty` | public static class | Low-level, stateless helpers for a visible, fast, defeatable travelling party — the mechanics behind the letter courier, now shared with the companion news-errand. |
 

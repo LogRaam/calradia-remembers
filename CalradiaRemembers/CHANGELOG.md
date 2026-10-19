@@ -31,8 +31,19 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   same session was green). The band's point was the village plus a random offset of up to 3 in each direction, raw
   arithmetic that can land in water or off the walkable map before the native party creation. Now the game picks it
   (`NavigationHelper.FindPointAroundPosition` around the gate, as `BanditSpawnCampaignBehavior` does), and any point
-  (a band restored from a save, the spike) is checked walkable first (`LandSpot`, logged when moved). The cause is the
-  likely one, not proven: the crash was caught, so the log names no point.
+  (a band restored from a save, the spike) is checked walkable first. The cause is the likely one, not proven: the
+  crash was caught, so the log names no point. Read in the decompiled engine since: a party created with a spawn
+  radius runs `NavigationHelper.FindReachablePointAroundPosition`, whose native path query starts from the given
+  point's navigation face, and a point off the walkable map has none. So the check is now shared by EVERY CR spawn
+  (`Travel.MapSpot.Walkable`: kept if walkable, else placed by the game around the home's gate, else not spawned,
+  logged `[SPAWN]`): tale bands, every `TravelingParty` (couriers, bounty hunters, sergeants, a courier restored from
+  a save) and the ambush convoy, which also now waits for land instead of springing at sea (the player's own
+  position is water there). cr.testall `spawn_spot`.
+- **cr.testall `chat_focus_arbiter` arranges its own screen** (Gabriel 19/10: FAIL with `restingFocusClaimers=
+  [MapEscapeMenu]`, the map's escape menu up when the run began, so every "hold" read Yield). The arbiter was right to
+  yield; the test assumed an empty screen. Whatever already claims focus when it starts is scenery, by the arbiter's
+  own rule, and the test's layers are judged against that screen; the tavern-backdrop case is noted, not failed, when a
+  settlement menu is already up.
 - **Closing a chat or council never finishes the encounter during a siege** (Zivkyn, 18/10, on 2.7.16: "I crash every
   time i end a Council meeting with my own war band men if we are preparing for a seige defense"). Defence in depth,
   the crash's cause is NOT proven: the battle guard could not see a siege with no fight yet, and

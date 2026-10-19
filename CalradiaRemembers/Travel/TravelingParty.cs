@@ -116,10 +116,15 @@ namespace CalradiaRemembers.Travel
                                       Clan ownerClan = null,
                                       Hero ownerHero = null)
       {
+         // Never a point the engine cannot stand on (MapSpot): a courier or hunters restored from a save, or sent from
+         // a party at sea, would otherwise reach the native placement with no navigation face.
+         CampaignVec2? spot = MapSpot.Walkable(spawnPos, home, name?.ToString() ?? "traveling party");
+         if (spot == null) return null;
+
          TroopRoster roster = BuildEscortRoster(preferredCulture, escortSize);
 
          MobileParty party = CustomPartyComponent.CreateCustomPartyWithTroopRoster(
-            new CampaignVec2(spawnPos, true),
+            spot.Value,
             1f,
             home,
             name,

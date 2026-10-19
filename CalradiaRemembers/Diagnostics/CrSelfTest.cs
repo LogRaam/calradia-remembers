@@ -408,6 +408,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("external_action_teaching", Severity.Light, "Extension Surface (tashmetu, 05/10/2026): an external action's TeachingText reached no prompt, because the live prompt composed CR's own verbs by fixed name lists. Registers a dummy action whose TeachingText returns a sentinel, builds a REAL encounter context for a real NPC (EncounterContextBuilder.Build, the chat's own call) and asserts the sentinel is in its action teachings while IsEligible holds, and gone when it does not. Unregisters in a finally", TestExternalActionTeaching),
          new SelfTest("external_action_guidance", Severity.Light, "Extension Surface actions guidance (ExternalActionSpec.Guidance): the fix for the modder report that an ineligible action's NPC roleplayed AGREEING in prose, only for the deed to fail its own eligibility check at execution. Registers a dummy action that is ALWAYS ineligible with a Guidance callback returning a distinctive sentinel -> asserts the REAL VerbRegistry.Instance.ComposeGuidance includes the sentinel despite the ineligibility, while ComposeTeachings for the same context excludes the action entirely (the whole behavioral point); also asserts the guidance context it received carried the real NPC's facts and correctly resolved a hero named in the player's message via CR's own ContextualNameResolver, not a reimplementation. Unregisters in a finally so nothing leaks into a later test or a real prompt", TestExternalActionGuidance),
          new SelfTest("prompt_variable_registration", Severity.Light, "Extension Surface, Prompt Variables volet (increment 4): CrPrompt.RegisterVariable is the PUBLIC door a third-party mod uses to contribute a LIVE {{name}} prompt variable, replacing a Harmony patch on the SDK's own PromptBuilder.BuildPromptVariables. Since PromptVariableRegistry.Compose is SDK-internal (like Clear, visible only to the SDK's own test project), drives the REAL public surface instead: builds a live system prompt (BuildSystemPrompt, the same call the chat pipeline uses) for a real NPC with PostHistoryInstructions referencing a registered token -> asserts the provider's value, keyed off the real NpcId, lands in the actual prompt text; registers a SECOND provider that THROWS in the same prompt build -> asserts building never throws, the other token still resolves, and the throwing token's own {{name}} is left literal (Compose skipped it, never smuggled a stray value in); registers a third provider under a BUILT-IN name (user) -> asserts the real player name still wins and the impostor value never appears, the exact merge guard BuildPromptVariables enforces. Unregisters all three in a finally via CrPrompt.Unregister, the only cleanup surface the mod assembly has", TestPromptVariableRegistration),
+         new SelfTest("spawn_spot", Severity.Light, "Gabriel (19/10/2026): authored_quest_opening failed with '[TALE] band spawn failed: AccessViolationException', the band placed at a village plus a random offset; the engine's placement runs a native path query from the point's navigation face, and a point off the walkable map has none. Asserts on the real map that MapSpot keeps a village gate as it is, moves a point beyond the map's edge to walkable ground near the village, and refuses it when there is no place to fall back on. Spawns nothing", TestSpawnSpot),
          new SelfTest("override_not_inherited", Severity.Light, "LapitaPolata (19/10/2026): a noble of Rhagaea's clan had Rhagaea's exact backstory. A child born in the campaign is made from a parent's character, so her template is the parent. Finds a living hero born of parents whose template is set, authors an entry at runtime keyed on that template (the parent), and asserts the loader does NOT hand it to the child. Restores the file-backed overrides", TestOverrideNotInherited),
          new SelfTest("conviction", Severity.Light, "Mechanical: author a BELIEF on an NPC at runtime (no file edit) and follow it along the whole real chain: the loader hands it back, the chat's own per-turn sync carries it onto the profile, and the section lands in the live system prompt saying it moves what he DECIDES (the one thing a backstory refuses to do) with its three limits intact (no powers, no imported lore, cannot bend the world). Then switch custom data off and prove the belief LEAVES the prompt instead of lingering. Restores the file overrides + your MCM choice", TestConviction),
          new SelfTest("stance_deed", Severity.Light, "a gift deed -> assert Trust rose and persisted", TestStanceDeed),
@@ -14163,11 +14164,18 @@ namespace CalradiaRemembers.Diagnostics
             // game assemblies afterwards confirmed SceneLayer is the ONLY layer in the game that claims focus
             // from a constructor rather than when it opens, so the exemption list is complete, and this line is
             // what keeps it complete.
-            ChatFocusVerdict atRest =
-               ChatFocusArbitrationPolicy.Decide(true, ChatManager.LayerFactsFor(top, null));
+            // testall arranges its own context (Gabriel, 13/10/2026). Whatever already claims focus on the player's
+            // screen when the test starts (19/10/2026: the map's own escape menu, "MapEscapeMenu", was up and every
+            // "hold" read Yield) is what a chat opened now would find there: scenery, by the arbiter's own rule. The
+            // test's layers are judged against that screen, not against an empty one it does not have.
             var resting = ChatManager.LayerFactsFor(top, null);
-            string claimers = string.Join(", ", resting.Where(l => l != null && l.WantsFocus && !l.IsTheWorldBeneath)
-                                                       .Select(l => l.Name ?? "(unnamed)"));
+            var alreadyThere = new HashSet<string>(resting.Where(l => l != null && l.WantsFocus && !l.IsTheWorldBeneath)
+                                                          .Select(l => l.Name ?? "(unnamed)"), StringComparer.Ordinal);
+            if (t.Skip(alreadyThere.Contains("MissionEscapeMenu") || alreadyThere.Contains("MissionConversation"),
+                       "a layer this test adds is already on the screen, so its own layers could not be told apart")) return t.Line();
+
+            ChatFocusVerdict atRest = ChatFocusArbitrationPolicy.Decide(true, resting, alreadyThere);
+            string claimers = string.Join(", ", alreadyThere);
             t.Note($"screen={top.GetType().Name}, layers={top.Layers.Count}, atRest={atRest}, " +
                    $"restingFocusClaimers=[{(claimers.Length == 0 ? "none" : claimers)}]");
             t.Expect("aRestingScreenNeverTakesTheChatOffTheScreen", atRest, ChatFocusVerdict.Hold);
@@ -14185,7 +14193,7 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("vanillaLayerNameReadsBackFromTheEngine",
                      withConversation.Any(l => l != null && l.Name == "MissionConversation" && l.WantsFocus), true);
             t.Expect("vanillaConversationLayerChangesNothing",
-                     ChatFocusArbitrationPolicy.Decide(true, withConversation), ChatFocusVerdict.Hold);
+                     ChatFocusArbitrationPolicy.Decide(true, withConversation, alreadyThere), ChatFocusVerdict.Hold);
 
             // The other half: a genuine modal must still get the screen, or the chat starves a pause menu of
             // input and the player cannot click Resume.
@@ -14193,14 +14201,14 @@ namespace CalradiaRemembers.Diagnostics
             realModal.IsFocusLayer = true;
             List<OverlayNeighbour> withModal = ChatManager.LayerFactsFor(top, null);
 
-            t.Expect("yieldsToARealModal", ChatFocusArbitrationPolicy.Decide(true, withModal), ChatFocusVerdict.Yield);
+            t.Expect("yieldsToARealModal", ChatFocusArbitrationPolicy.Decide(true, withModal, alreadyThere), ChatFocusVerdict.Yield);
             t.Expect("theLogNamesWhatTookTheScreen",
-                     ChatFocusArbitrationPolicy.ReasonFor(true, withModal), "MissionEscapeMenu");
+                     ChatFocusArbitrationPolicy.ReasonFor(true, withModal, alreadyThere), "MissionEscapeMenu");
 
             // The reclaim that never came in his session. A yield must never outlive the thing it yielded to.
             top.RemoveLayer(realModal);
             t.Expect("reclaimsTheScreenWhenTheModalGoes",
-                     ChatFocusArbitrationPolicy.Decide(true, ChatManager.LayerFactsFor(top, null)), ChatFocusVerdict.Hold);
+                     ChatFocusArbitrationPolicy.Decide(true, ChatManager.LayerFactsFor(top, null), alreadyThere), ChatFocusVerdict.Hold);
 
             // Gabriel's play-test, 2026-09-09, and the second proof that a NAME LIST cannot be complete. He
             // opened a chat in a TAVERN, where vanilla's settlement menu ("MapMenuOverlay") holds focus for the
@@ -14213,12 +14221,15 @@ namespace CalradiaRemembers.Diagnostics
             settlementMenu.IsFocusLayer = true;
 
             List<OverlayNeighbour> inATavern = ChatManager.LayerFactsFor(top, null);
-            var backdrop = new HashSet<string>(StringComparer.Ordinal) {"MapMenuOverlay"};
+            var backdrop = new HashSet<string>(alreadyThere, StringComparer.Ordinal) {"MapMenuOverlay"};
 
             t.Expect("scenerySeenAtOpenNeverTakesTheScreenLater",
                      ChatFocusArbitrationPolicy.Decide(true, inATavern, backdrop), ChatFocusVerdict.Hold);
-            t.Expect("theSameLayerUnrecordedIsExactlyTheBugHeSaw",
-                     ChatFocusArbitrationPolicy.Decide(true, inATavern), ChatFocusVerdict.Yield);
+            // Run from inside a settlement, that menu is already scenery and the bug cannot be staged.
+            if (alreadyThere.Contains("MapMenuOverlay")) t.Note("a settlement menu was already up: the unrecorded-backdrop case is not staged");
+            else
+               t.Expect("theSameLayerUnrecordedIsExactlyTheBugHeSaw",
+                        ChatFocusArbitrationPolicy.Decide(true, inATavern, alreadyThere), ChatFocusVerdict.Yield);
 
             // And the backdrop must not become an amnesty: a genuine modal opening over that menu still wins.
             top.AddLayer(modalOverTheBackdrop);
@@ -16840,6 +16851,30 @@ namespace CalradiaRemembers.Diagnostics
       ///   Deliberately calls <see cref="CharacterOverrideLoader.SyncAuthoredProse" />, the same method the chat
       ///   calls each turn, so removing that call from the chat breaks this test instead of passing beside it.
       /// </summary>
+      private static string TestSpawnSpot(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("spawn_spot");
+
+         Settlement village = Settlement.All?.FirstOrDefault(s => s != null && s.IsVillage
+                                                              && Helpers.NavigationHelper.IsPositionValidForNavigationType(s.GatePosition, MobileParty.NavigationType.Default));
+         if (t.Skip(village == null, "no village with a walkable gate")) return t.Line();
+
+         Campaign.Current.MapSceneWrapper.GetMapBorders(out TaleWorlds.Library.Vec2 min, out TaleWorlds.Library.Vec2 _, out float _);
+         var beyond = new TaleWorlds.Library.Vec2(min.x - 50f, min.y - 50f);
+
+         CampaignVec2? atTheGate = Travel.MapSpot.Walkable(village.GatePosition.ToVec2(), village, "[SELFTEST] gate");
+         CampaignVec2? moved = Travel.MapSpot.Walkable(beyond, village, "[SELFTEST] beyond the edge");
+         CampaignVec2? refused = Travel.MapSpot.Walkable(beyond, null, "[SELFTEST] nowhere to fall back");
+
+         t.Note(village.Name + ": gate " + village.GatePosition.ToVec2() + ", moved to " + (moved?.ToVec2().ToString() ?? "none"));
+         t.Expect("aWalkablePointIsKept", atTheGate.HasValue && atTheGate.Value.ToVec2().DistanceSquared(village.GatePosition.ToVec2()) < 0.01f, true);
+         t.Expect("aPointOffTheMapIsMovedToWalkableGround", moved.HasValue && Helpers.NavigationHelper.IsPositionValidForNavigationType(moved.Value, MobileParty.NavigationType.Default), true);
+         t.Expect("andNearTheVillage", moved.HasValue && moved.Value.ToVec2().Distance(village.GatePosition.ToVec2()) <= 4f, true);
+         t.Expect("withNowhereToFallBackNothingIsSpawned", refused.HasValue, false);
+
+         return t.Line();
+      }
+
       private static string TestOverrideNotInherited(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("override_not_inherited");

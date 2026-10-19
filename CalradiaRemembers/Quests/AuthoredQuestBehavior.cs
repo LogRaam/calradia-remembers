@@ -915,20 +915,6 @@ namespace CalradiaRemembers.Quests
       internal static MobileParty SpawnBandForSpike(Vec2 at, Settlement home, string name, string template, int size)
          => SpawnBand(at, home, name, template, size);
 
-      /// <summary>
-      ///   <paramref name="at" /> when it is walkable ground, else a point the game picks around <paramref name="home" />'s
-      ///   gate. A band restored from a save, or placed by the spike, is checked the same way before the native call.
-      /// </summary>
-      private static CampaignVec2 LandSpot(Vec2 at, Settlement home)
-      {
-         var spot = new CampaignVec2(at, true);
-         if (NavigationHelper.IsPositionValidForNavigationType(spot, MobileParty.NavigationType.Default)) return spot;
-
-         ModLog.Info($"[TALE] band spot ({at.x:0.0}, {at.y:0.0}) is not walkable ground; placed by the game around {home?.Name}.");
-
-         return NavigationHelper.FindPointAroundPosition(home.GatePosition, MobileParty.NavigationType.Default, 3f);
-      }
-
       /// <summary>A bandit-owned band of the template's troops, patrolling around its place.</summary>
       private static MobileParty SpawnBand(Vec2 at, Settlement home, string name, string template, int size)
       {
@@ -959,8 +945,11 @@ namespace CalradiaRemembers.Quests
             for (var i = 0; i < line.Count && i < split.Length; i++)
                if (split[i] > 0) roster.AddToCounts(line[i], split[i]);
             ModLog.Info($"[TALE] band of {bandits.Name}: {string.Join(", ", line.Select((t, i) => $"{(i < split.Length ? split[i] : 0)} {t.Name}"))}.");
+            CampaignVec2? spot = Travel.MapSpot.Walkable(at, home, "tale band " + name);
+            if (spot == null) return null;
+
             MobileParty band = CustomPartyComponent.CreateCustomPartyWithTroopRoster(
-               LandSpot(at, home), 1f, home, new TaleWorlds.Localization.TextObject(name), bandits, roster, TroopRoster.CreateDummyTroopRoster(), null);
+               spot.Value, 1f, home, new TaleWorlds.Localization.TextObject(name), bandits, roster, TroopRoster.CreateDummyTroopRoster(), null);
             if (band == null) return null;
 
             var grain = TaleWorlds.Core.Game.Current.ObjectManager.GetObject<TaleWorlds.Core.ItemObject>("grain");
