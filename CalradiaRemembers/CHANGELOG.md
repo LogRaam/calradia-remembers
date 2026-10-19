@@ -4,6 +4,17 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.17.. open
 
+### New
+- **A character's mood of the day has a cause** (Lordfadooboo, 18/10: "the ai struggles to invent a reason for their
+  mood and engaging with that mechanic can sometimes end the moment its addressed"). Gabriel: the list lives in the
+  code, and the real cause is always named. `MoodCause.Of` (SDK): the fact that leaned the drawn mood most (a captive's
+  captivity, a death in the family, a fief lost, a tournament won, wounds, the realm's war, coin running short), else
+  a trifle from the public `MoodCause.Trifles` table by the day's seed (same all day; names no one, no weather). Said
+  in the YOUR DAY block as true, or as "a small private matter"; he may keep it to himself. Self-esteem events now
+  keep their kind and subject (`NpcProfile.LastPersonalBlowKind/Subject`, `LastPersonalGladnessKind/Subject`,
+  additive; old saves name a blow vaguely). Letters keep the mood alone. New moods (tired, drunk) not built, awaiting
+  Gabriel. cr.testall `mood_of_the_day` extended.
+
 ### For tale authors
 - **Ways out the world takes** (Gabriel, 12/10 and 18/10, the Troy-inspired tale: the war ends some other way, she or
   the king dies, the player weds her). Objectives `war_ends`, `dies`, `weds_player` (`hero`: a role), on a stage or a

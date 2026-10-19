@@ -63,7 +63,8 @@ namespace CalradiaRemembers.Standing
          catch (Exception ex) { ModLog.Error($"[SELF-ESTEEM] battle read failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
-      private void OnHeroPrisonerTaken(PartyBase capturer, Hero prisoner) => SelfEsteemService.Record(prisoner, SelfEsteemEvent.Captured);
+      private void OnHeroPrisonerTaken(PartyBase capturer, Hero prisoner)
+         => SelfEsteemService.Record(prisoner, SelfEsteemEvent.Captured, capturer?.LeaderHero?.Name?.ToString());
 
       private void OnHeroPrisonerReleased(Hero prisoner, PartyBase party, IFaction faction, EndCaptivityDetail detail, bool showNotification)
       {
@@ -77,7 +78,7 @@ namespace CalradiaRemembers.Standing
       {
          try
          {
-            if (winner?.HeroObject != null) SelfEsteemService.Record(winner.HeroObject, SelfEsteemEvent.TournamentWon);
+            if (winner?.HeroObject != null) SelfEsteemService.Record(winner.HeroObject, SelfEsteemEvent.TournamentWon, town?.Name?.ToString());
             foreach (CharacterObject c in participants ?? new MBReadOnlyList<CharacterObject>())
                if (c?.HeroObject != null && c != winner)
                   SelfEsteemService.Record(c.HeroObject, SelfEsteemEvent.TournamentLost);
@@ -90,8 +91,8 @@ namespace CalradiaRemembers.Standing
       {
          if (settlement == null || !(settlement.IsTown || settlement.IsCastle) || newOwner == oldOwner) return;
 
-         if (oldOwner != null) SelfEsteemService.Record(oldOwner, SelfEsteemEvent.FiefLost);
-         if (newOwner != null) SelfEsteemService.Record(newOwner, SelfEsteemEvent.FiefGained);
+         if (oldOwner != null) SelfEsteemService.Record(oldOwner, SelfEsteemEvent.FiefLost, settlement.Name?.ToString());
+         if (newOwner != null) SelfEsteemService.Record(newOwner, SelfEsteemEvent.FiefGained, settlement.Name?.ToString());
       }
 
       // A death in the house: parents, spouse, children, siblings.
@@ -106,9 +107,19 @@ namespace CalradiaRemembers.Standing
             kin.AddRange(victim.Siblings ?? Enumerable.Empty<Hero>());
 
             foreach (Hero h in kin.Where(h => h != null).Distinct())
-               SelfEsteemService.Record(h, SelfEsteemEvent.KinDied);
+               SelfEsteemService.Record(h, SelfEsteemEvent.KinDied, $"your {KinWord(h, victim)} {victim.Name}");
          }
          catch (Exception ex) { ModLog.Error($"[SELF-ESTEEM] bereavement read failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      // What the dead was to the mourner, for the day's cause ("the death of your brother Olek").
+      private static string KinWord(Hero mourner, Hero dead)
+      {
+         if (dead.Father == mourner || dead.Mother == mourner) return dead.IsFemale ? "daughter" : "son";
+         if (dead.Spouse == mourner) return dead.IsFemale ? "wife" : "husband";
+         if (mourner.Father == dead || mourner.Mother == dead) return dead.IsFemale ? "mother" : "father";
+
+         return dead.IsFemale ? "sister" : "brother";
       }
 
       private static IEnumerable<Hero> Leaders(MBReadOnlyList<MapEventParty> parties)

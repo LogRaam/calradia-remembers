@@ -8,7 +8,7 @@ sentence beside each type is the first sentence of its own doc comment; `(no sum
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 526 types in 61 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1203 types in 31 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 264 types in 17 namespaces, 9 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -2470,11 +2470,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WitnessReaction` | public class | A brief visible reaction (gesture, expression, one short line) from a witness present during a conversation. |
 | `WorldState` | public class | Ambient world context injected into every NPC system prompt. |
 
-### NpcMemoryService.Core.Mood (7)
+### NpcMemoryService.Core.Mood (9)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `DayCause` | public record | Why the day is what it is: a fact of the game, or a small private trifle. |
 | `DayMood` | public enum | What kind of day this character is having. |
+| `MoodCause` | public static class | Picks the cause of a drawn mood. |
 | `MoodFacts` | public record | How the day is pressing. |
 | `MoodLadder` | public static class | The order the player can move a mood along, from bleakest to brightest. |
 | `MoodLine` | public static class | Composes the character's mood block for the prompt's per-turn tail. |

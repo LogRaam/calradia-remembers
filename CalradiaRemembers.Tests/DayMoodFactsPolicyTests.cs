@@ -100,6 +100,30 @@ namespace CalradiaRemembers.Tests
             Read(new DayMoodReadings {RecentGladness = true}).PersonalGladness.Should().BeTrue();
         }
 
+        // STAKE (Lordfadooboo, 18/10/2026; Gabriel: the real cause is always named): the day says what the blow was
+        // and whom it concerned, from his side, so "what troubles you?" has a true answer.
+        [Test]
+        public void GIVEN_a_recent_blow_of_a_known_kind_WHEN_read_THEN_the_day_says_what_it_was()
+        {
+            Read(new DayMoodReadings {RecentBlow = true, RecentBlowKind = SelfEsteemEvent.FiefLost, RecentBlowSubject = "Pravend"})
+                .PersonalBlowWhat.Should().Be("the loss of Pravend");
+            Read(new DayMoodReadings {RecentBlow = true, RecentBlowKind = SelfEsteemEvent.KinDied, RecentBlowSubject = "your brother Olek"})
+                .PersonalBlowWhat.Should().Be("the death of your brother Olek");
+            Read(new DayMoodReadings {RecentGladness = true, RecentGladnessKind = SelfEsteemEvent.TournamentWon, RecentGladnessSubject = "Lageta"})
+                .PersonalGladnessWhat.Should().Be("the tournament you won at Lageta");
+        }
+
+        // STAKE: a blow kept before its kind was (an old save), or one with no subject, is named vaguely or by its kind,
+        // never invented; a blow too old to weigh on the day says nothing at all.
+        [Test]
+        public void GIVEN_a_blow_without_its_kind_or_subject_or_no_longer_recent_WHEN_read_THEN_nothing_is_invented()
+        {
+            Read(new DayMoodReadings {RecentBlow = true}).PersonalBlowWhat.Should().BeNull();
+            Read(new DayMoodReadings {RecentBlow = true, RecentBlowKind = SelfEsteemEvent.FiefLost}).PersonalBlowWhat.Should().Be("the loss of a fief of yours");
+            Read(new DayMoodReadings {RecentBlow = false, RecentBlowKind = SelfEsteemEvent.FiefLost, RecentBlowSubject = "Pravend"})
+                .PersonalBlowWhat.Should().BeNull();
+        }
+
         // Self-esteem shaken or broken reads low; assured or proud reads high; steady reads neither.
         [Test]
         public void GIVEN_his_self_esteem_WHEN_read_THEN_low_high_or_neither()

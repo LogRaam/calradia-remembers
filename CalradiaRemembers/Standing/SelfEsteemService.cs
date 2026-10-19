@@ -27,9 +27,10 @@ namespace CalradiaRemembers.Standing
 
       /// <summary>
       ///   Records one event for <paramref name="hero" /> when the player has met him; nothing otherwise. Game thread.
-      ///   Also marks the day's personal blow or gladness for the mood of the day.
+      ///   Also marks the day's personal blow or gladness for the mood of the day, with what it was and
+      ///   <paramref name="subject" /> (whom or what it concerned), so the day can name its cause.
       /// </summary>
-      public static void Record(Hero hero, SelfEsteemEvent e)
+      public static void Record(Hero hero, SelfEsteemEvent e, string subject = null)
       {
          try
          {
@@ -47,8 +48,19 @@ namespace CalradiaRemembers.Standing
             profile.SelfEsteemShift = after.Shift;
             profile.SelfEsteemShiftDay = after.ShiftDay;
             profile.SelfEsteemCapturedOnDays = after.CapturedOnDays ?? new List<int>();
-            if (IsBlow(e)) profile.LastPersonalBlowDay = today;
-            if (IsGladness(e)) profile.LastPersonalGladnessDay = today;
+            if (IsBlow(e))
+            {
+               profile.LastPersonalBlowDay = today;
+               profile.LastPersonalBlowKind = e.ToString();
+               profile.LastPersonalBlowSubject = subject;
+            }
+
+            if (IsGladness(e))
+            {
+               profile.LastPersonalGladnessDay = today;
+               profile.LastPersonalGladnessKind = e.ToString();
+               profile.LastPersonalGladnessSubject = subject;
+            }
             store.Set(profile);
 
             ModLog.Info($"[SELF-ESTEEM] {hero.Name}: {e}, shift now {after.Shift:+#;-#;0} ({BandFor(hero, profile)}).");

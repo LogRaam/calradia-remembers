@@ -56,6 +56,18 @@ namespace CalradiaRemembers.Logic
         /// <summary>A gladness of his own lately (a fief gained, a tournament or a battle won).</summary>
         public bool RecentGladness { get; set; }
 
+        /// <summary>What the recent blow was; null when unknown (a save from before it was kept).</summary>
+        public SelfEsteemEvent? RecentBlowKind { get; set; }
+
+        /// <summary>Whom or what the blow concerned ("Pravend", "your brother Olek"); null when none.</summary>
+        public string RecentBlowSubject { get; set; }
+
+        /// <summary>What the recent gladness was; null when unknown.</summary>
+        public SelfEsteemEvent? RecentGladnessKind { get; set; }
+
+        /// <summary>Whom or what the gladness concerned ("Lageta"); null when none.</summary>
+        public string RecentGladnessSubject { get; set; }
+
         /// <summary>How he regards himself lately; null when unknown.</summary>
         public SelfEsteemBand? SelfEsteem { get; set; }
     }
@@ -86,9 +98,42 @@ namespace CalradiaRemembers.Logic
                 IsCaptive = r.IsPrisoner,
                 PersonalBlow = r.RecentBlow,
                 PersonalGladness = r.RecentGladness,
+                PersonalBlowWhat = r.RecentBlow ? BlowWhat(r.RecentBlowKind, r.RecentBlowSubject) : null,
+                PersonalGladnessWhat = r.RecentGladness ? GladnessWhat(r.RecentGladnessKind, r.RecentGladnessSubject) : null,
                 SelfRegardLow = r.SelfEsteem == SelfEsteemBand.Shaken || r.SelfEsteem == SelfEsteemBand.Broken,
                 SelfRegardHigh = r.SelfEsteem == SelfEsteemBand.Assured || r.SelfEsteem == SelfEsteemBand.Proud
             };
+        }
+
+        /// <summary>
+        ///   A blow, from his side, for the day's cause (Lordfadooboo, 18/10/2026; Gabriel: the real cause is always
+        ///   named). Null when its kind was never kept: the SDK then names it vaguely, never wrongly.
+        /// </summary>
+        public static string BlowWhat(SelfEsteemEvent? kind, string subject)
+        {
+            bool named = !string.IsNullOrWhiteSpace(subject);
+            switch (kind)
+            {
+                case SelfEsteemEvent.FiefLost: return named ? $"the loss of {subject.Trim()}" : "the loss of a fief of yours";
+                case SelfEsteemEvent.KinDied: return named ? $"the death of {subject.Trim()}" : "a death in your family";
+                case SelfEsteemEvent.Captured: return named ? $"your capture by {subject.Trim()}" : "your recent captivity";
+                case SelfEsteemEvent.BattleLost: return "a battle you lost these last days";
+                default: return null;
+            }
+        }
+
+        /// <summary>A gladness, from his side, for the day's cause. Null when its kind was never kept.</summary>
+        public static string GladnessWhat(SelfEsteemEvent? kind, string subject)
+        {
+            bool named = !string.IsNullOrWhiteSpace(subject);
+            switch (kind)
+            {
+                case SelfEsteemEvent.FiefGained: return named ? $"{subject.Trim()} newly yours" : "a fief newly yours";
+                case SelfEsteemEvent.TournamentWon: return named ? $"the tournament you won at {subject.Trim()}" : "a tournament you won";
+                case SelfEsteemEvent.BattleWon: return "a battle you won these last days";
+                case SelfEsteemEvent.BattleWonAgainstOdds: return "a battle you won against the odds";
+                default: return null;
+            }
         }
     }
 }

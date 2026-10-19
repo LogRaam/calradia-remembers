@@ -22,7 +22,18 @@ namespace CalradiaRemembers.Mapping
       /// <summary>The day's mood and whether wit may surface, or (null, false) when none can be drawn.</summary>
       public static (DayMood? Mood, bool Wit) Draw(Hero hero)
       {
-         if (hero == null || hero == Hero.MainHero) return (null, false);
+         (DayMood? mood, bool wit, DayCause _) = DrawDay(hero);
+
+         return (mood, wit);
+      }
+
+      /// <summary>
+      ///   The day's mood, whether wit may surface, and why the day is what it is (Lordfadooboo, 18/10/2026): the fact
+      ///   that leaned it, else a trifle (MoodCause). (null, false, null) when none can be drawn.
+      /// </summary>
+      public static (DayMood? Mood, bool Wit, DayCause Cause) DrawDay(Hero hero)
+      {
+         if (hero == null || hero == Hero.MainHero) return (null, false, null);
 
          try
          {
@@ -30,13 +41,13 @@ namespace CalradiaRemembers.Mapping
             int seed = MoodOfTheDay.SeedFor(hero.StringId, (int) CampaignTime.Now.ToDays);
             DayMood mood = MoodOfTheDay.Draw(facts, seed);
 
-            return (mood, MoodOfTheDay.WitIsPermitted(mood, facts, seed));
+            return (mood, MoodOfTheDay.WitIsPermitted(mood, facts, seed), MoodCause.Of(mood, facts, seed));
          }
          catch (Exception ex)
          {
             ModLog.Error($"[MOOD] could not draw {hero.Name}'s day: {ex.GetType().Name}: {ex.Message}");
 
-            return (null, false);
+            return (null, false, null);
          }
       }
 
@@ -59,9 +70,15 @@ namespace CalradiaRemembers.Mapping
             IsPrisoner = hero.IsPrisoner,
             RecentBlow = Standing.SelfEsteemService.HasRecentBlow(profile),
             RecentGladness = Standing.SelfEsteemService.HasRecentGladness(profile),
+            RecentBlowKind = KindOf(profile?.LastPersonalBlowKind),
+            RecentBlowSubject = profile?.LastPersonalBlowSubject,
+            RecentGladnessKind = KindOf(profile?.LastPersonalGladnessKind),
+            RecentGladnessSubject = profile?.LastPersonalGladnessSubject,
             SelfEsteem = Standing.SelfEsteemService.BandFor(hero, profile)
          };
       }
+
+      private static SelfEsteemEvent? KindOf(string name) => Enum.TryParse(name, out SelfEsteemEvent e) ? e : (SelfEsteemEvent?) null;
 
       // The same bands the own_body and house_means packs speak, read through their own policies.
       private static HurtBand BodyHurt(Hero hero) => EncounterContextBuilder.ReadHurtFor(hero);

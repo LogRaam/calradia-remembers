@@ -382,7 +382,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("brigandage_patch_attached", Severity.Light, "Brigandage: the Harmony hook on BeHostileAction's private ApplyInternal is attached (resolved by name with Prepare, so a renamed target would silently stop detecting brigandage; this catches it).", TestBrigandagePatchAttached),
          new SelfTest("courier_save_restore", Severity.Light, "Couriers ride through TransientPartyRegistry since 26/09/2026. Sends a real courier with a test letter, then runs a save's despawn and restore without saving: the letter is still in flight, not lost, carried by a live courier standing where the old one stood. Every other transient party on the map goes through the same cycle, as in a real save. The test letter and its courier are removed at the end.", TestCourierSaveRestore),
          new SelfTest("self_esteem", Severity.Light, "Self-esteem (Lordfadooboo and Maifailun, ruled 30/09/2026): records three captivities on a real met character through the real path; his self-regard falls (never rises), each captivity lands harder than the last, and the blow reaches his mood of the day; the chat dossier's perceived image of him is one sentence with no number in it. The character's record is restored.", TestSelfEsteem),
-         new SelfTest("mood_of_the_day", Severity.Light, "The mood of the day (ROADMAP, ruled 14/09 and 30/09/2026): reads real characters' days off the game and draws their mood. The same man drawn twice today is the same mood; a captive never draws an ordinary day or high spirits; the player draws none; a lift in conversation moves it one band and a new conversation starts from the day again. Read-only.", TestMoodOfTheDay),
+         new SelfTest("mood_of_the_day", Severity.Light, "The mood of the day (ROADMAP, ruled 14/09 and 30/09/2026): reads real characters' days off the game and draws their mood. The same man drawn twice today is the same mood; a captive never draws an ordinary day or high spirits; the player draws none; a lift in conversation moves it one band and a new conversation starts from the day again. Lordfadooboo (18/10/2026): a coloured day has a cause, the same all day, and a death recorded on a met character names the dead on a grim or guarded day (restored after).", TestMoodOfTheDay),
          new SelfTest("action_gate", Severity.Light, "The one gate every character's action asks (Gabriel, 30/09/2026: a baby son asked to discuss warfare, then a dead father sat at a council). On the live population: no child takes an adult's act (lords by occupation included), no child under 13 sits at a council, no captive acts outside marriage, duels, witnessing and a held scene, no one dead or disabled acts at all, the player never acts toward themselves, and a free adult lord may do everything. Read-only.", TestActionGate),
          new SelfTest("letter_place_and_audience_age", Severity.Light, "Two reports (30/09/2026): Lordfadooboo's lone player placed \"on the march with your own retinue\" (the writer's) in a wanderer's letter, and Nexusrrr's baby son asking for an audience about warfare. Checks the phrase that places the player in a letter never borrows the writer's \"your\" and says alone when alone, and that no child is among those who may ask for an audience in any town. Read-only.", TestLetterAndAudienceSeekers),
          new SelfTest("regard_changed", Severity.Light, "The public regard-change door (29/09/2026, for tashmetu's bridge): raises a real character's regard by 1 and lowers it back through the one place regard changes, and checks a CrNpcMemory.RegardChanged listener hears both with before and after, reported as self_test (a test's change, which a mirroring mod must not keep). Regard is restored and the listener removed.", TestRegardChanged),
@@ -14520,6 +14520,45 @@ namespace CalradiaRemembers.Diagnostics
             (NpcMemoryService.Core.Mood.DayMood? held, bool _) = Mapping.DayMoodReader.Draw(captive);
             t.Note($"captive {captive.Name}: {held}");
             t.Expect("aCaptiveHasNoOrdinaryDay", held != NpcMemoryService.Core.Mood.DayMood.Even && held != NpcMemoryService.Core.Mood.DayMood.HighSpirits, true);
+         }
+
+         // Lordfadooboo (18/10/2026): the day has a cause. A coloured day always has one, the same all day.
+         (NpcMemoryService.Core.Mood.DayMood? m1, bool _, NpcMemoryService.Core.Mood.DayCause c1) = Mapping.DayMoodReader.DrawDay(lord);
+         (NpcMemoryService.Core.Mood.DayMood? _, bool _, NpcMemoryService.Core.Mood.DayCause c2) = Mapping.DayMoodReader.DrawDay(lord);
+         t.Note($"cause: {c1?.Text ?? "(none)"}{(c1?.IsReal == true ? " (real)" : "")}");
+         t.Expect("aColouredDayHasACause", m1 == NpcMemoryService.Core.Mood.DayMood.Even || !string.IsNullOrWhiteSpace(c1?.Text), true);
+         t.Expect("theSameCauseAllDay", c2?.Text, c1?.Text);
+
+         // Gabriel (18/10/2026): the real cause is always named. A death in the house recorded on a met character's
+         // profile names the dead when the day leans grim or guarded on it (a blow forbids an ordinary day).
+         var store = behavior?.Store;
+         NpcProfile met = store?.ListIds().Select(store.Get)
+                               .FirstOrDefault(p => p != null && Hero.FindFirst(h => h.StringId == p.Id) is {IsAlive: true, IsChild: false, IsPrisoner: false} h && h != Hero.MainHero);
+         Hero mourner = met == null ? null : Hero.FindFirst(h => h.StringId == met.Id);
+         if (mourner != null)
+         {
+            int shift = met.SelfEsteemShift;
+            int? shiftDay = met.SelfEsteemShiftDay, blowDay = met.LastPersonalBlowDay;
+            string blowKind = met.LastPersonalBlowKind, blowSubject = met.LastPersonalBlowSubject;
+            try
+            {
+               Standing.SelfEsteemService.Record(mourner, SelfEsteemEvent.KinDied, "your brother [SELFTEST]");
+               (NpcMemoryService.Core.Mood.DayMood? day, bool _, NpcMemoryService.Core.Mood.DayCause why) = Mapping.DayMoodReader.DrawDay(mourner);
+               t.Note($"{mourner.Name} after a death: {day}, cause {why?.Text}");
+               t.Expect("theBlowIsKept", met.LastPersonalBlowKind == nameof(SelfEsteemEvent.KinDied) && met.LastPersonalBlowSubject == "your brother [SELFTEST]", true);
+               bool leaned = day == NpcMemoryService.Core.Mood.DayMood.Grim || day == NpcMemoryService.Core.Mood.DayMood.Guarded;
+               t.Expect("aGrimOrGuardedDayNamesTheDeath", !leaned || (why?.IsReal == true && why.Text.Contains("your brother [SELFTEST]")), true);
+               t.Expect("aBlowLeavesNoOrdinaryDay", day != NpcMemoryService.Core.Mood.DayMood.Even, true);
+            }
+            finally
+            {
+               met.SelfEsteemShift = shift;
+               met.SelfEsteemShiftDay = shiftDay;
+               met.LastPersonalBlowDay = blowDay;
+               met.LastPersonalBlowKind = blowKind;
+               met.LastPersonalBlowSubject = blowSubject;
+               store.Set(met);
+            }
          }
 
          t.Expect("thePlayerDrawsNone", Mapping.DayMoodReader.Draw(Hero.MainHero).Mood.HasValue, false);

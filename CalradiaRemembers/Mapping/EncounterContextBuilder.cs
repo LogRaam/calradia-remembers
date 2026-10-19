@@ -551,6 +551,7 @@ namespace CalradiaRemembers.Mapping
             HereAndNow = knowledge.HereAndNow,
             PersonalBonds = knowledge.PersonalBonds,
             DayMood = knowledge.DayMood,
+            DayMoodCause = knowledge.DayMoodCause,
             WitPermitted = knowledge.WitPermitted,
             DayMoodNow = Chat.ConversationMood.NowFor(hero?.StringId, knowledge.DayMood),
             SelfEsteem = knowledge.SelfEsteem,
@@ -3469,7 +3470,7 @@ namespace CalradiaRemembers.Mapping
          MarketWordFacts marketWord = BuildMarketWord(hero);
          OwnVenturesFacts ventures = BuildOwnVentures(hero);
          PartyPost partyPost = ReadPartyPost(hero);
-         (NpcMemoryService.Core.Mood.DayMood? Mood, bool Wit) mood = DayMoodReader.Draw(hero);
+         (NpcMemoryService.Core.Mood.DayMood? Mood, bool Wit, NpcMemoryService.Core.Mood.DayCause Cause) mood = DayMoodReader.DrawDay(hero);
 
          return new EncounterContext {
             // The interpreter's memory names the player in the third person (Gabriel, 17/10/2026: "he" for a woman).
@@ -3494,6 +3495,7 @@ namespace CalradiaRemembers.Mapping
             PersonalBonds = BuildPersonalBonds(hero, profile),
             RealmNews = BuildRealmNews(hero),
             DayMood = mood.Mood,
+            DayMoodCause = mood.Cause,
             WitPermitted = mood.Wit,
             SelfEsteem = Standing.SelfEsteemService.BandFor(hero, profile)
          };
