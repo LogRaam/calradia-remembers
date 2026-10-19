@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-548 rules read 424 facts.
+548 rules read 426 facts.
 
 ## Facts read by more than one rule
 
@@ -122,6 +122,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `GatePosition.ToVec2` (4) | `CompanionPatrolPolicy.ShouldReissue`, `CourierGateFacts`, `EscortCostPolicy.EscortPremium`, `PatrolLeashFacts` |
 | `Hero.StayingInSettlement` (4) | `EscortCostPolicy.EscortPremium`, `LetterWhereaboutsPolicy.ForPlayer`, `LetterWhereaboutsPolicy.ForWriter`, `WhereaboutsFacts` |
 | `LeaderParty.LeaderHero` (4) | `BattleRecordText.Summary`, `LiberationFacts`, `SkirmishFacts`, `SkirmishFoe` |
+| `LeaderParty.SiegeEvent` (4) | `ChaseFacts`, `InterceptionPolicy.PlayerCanBeApproached`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `MapEncounterCloseFacts` |
 | `MobileParty.ItemRoster` (4) | `CompanionCounselPolicy.Select`, `GiftQuantityPolicy.Resolve`, `PartyCounselFacts`, `WarLevyPayment.Counts` |
 | `PairRegardReader.Assess` (4) | `ClanRegardCandidate`, `PairRegardPolicy.Describe`, `PairRegardPolicy.PageReason`, `PairRegardPolicy.WithoutThePair` |
 | `Party.EstimatedStrength` (4) | `InterceptionFacts`, `InterceptionPolicy.Choose`, `InterceptionPolicy.IsOutnumbered`, `InterceptionPolicy.IsRoadValid` |
@@ -152,7 +153,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ItemRosterElement.Amount` (3) | `GiftQuantityPolicy.Resolve`, `ItemSaleFacts`, `WarLevyPayment.GoodsCredit` |
 | `Kingdom.Clans` (3) | `ArrestPolicy.CouncilSeats`, `AuthoredRivalPolicy.Choose`, `TrialVerdictPolicy.DefaultConviction` |
 | `LeaderHero.Clan` (3) | `PlayerStandingFacts`, `PlayerStandingPolicy.Resolve`, `PrisonerRecruitmentPolicy.Evaluate` |
-| `LeaderParty.SiegeEvent` (3) | `ChaseFacts`, `InterceptionPolicy.PlayerCanBeApproached`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter` |
 | `MarketData.GetPriceFactor` (3) | `MarketReading`, `ProvideGoodsPolicy.MarketKey`, `TownNeedsPolicy.MostLacking` |
 | `MarriageModel.IsCoupleSuitableForMarriage` (3) | `MatchRegistrationFacts`, `QuestMenuEntry`, `ReturnFacts` |
 | `MemberRoster.GetTroopRoster` (3) | `AuthoredBandMakeupFacts`, `CompanionCounselPolicy.Select`, `PartyCounselFacts` |
@@ -576,7 +576,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `ManualActionAvailability.Describe`: `Clan.Kingdom`, `Clan.Leader`, `Clan.Settlements`, `FactionManager.IsAtWarAgainstFaction`, `Hero.Clan`, `Hero.GetRelation`, `Hero.Gold`, `Hero.GovernorOf`, `Hero.IsAlive`, `Hero.IsFactionLeader`, `Hero.IsLord`, `Hero.IsNotable`, `Hero.IsPlayerCompanion`, `Hero.IsPrisoner`, `Hero.MapFaction`, `Hero.PartyBelongedTo`, `Hero.Spouse`, `Kingdom.Leader`, `MobileParty.Army`, `MobileParty.LeaderHero`, `MobileParty.SiegeEvent`, `ModSettings.AdultContentLevel`, `PartyBelongedTo.LeaderHero`, `PartyBelongedToAsPrisoner.LeaderHero`, `Romantic.IsConsort`, `StatureReader.Player`, `Status.IsIntimateOrDeeper`, `Town.Governor`
 - `ManualActionAvailability.GetAvailable`: `Clan.Leader`, `Hero.Clan`, `Hero.GovernorOf`, `Hero.IsAlive`, `Hero.IsLord`, `Hero.IsNotable`, `Hero.IsPlayerCompanion`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Spouse`, `ModSettings.AdultContentLevel`, `PartyBelongedTo.LeaderHero`, `PartyBelongedToAsPrisoner.LeaderHero`, `Romantic.IsConsort`, `Status.IsIntimateOrDeeper`
 - `ManualActionFacts`: `Clan.Kingdom`, `Clan.Leader`, `Clan.Settlements`, `FactionManager.IsAtWarAgainstFaction`, `Hero.Clan`, `Hero.GetRelation`, `Hero.Gold`, `Hero.GovernorOf`, `Hero.IsAlive`, `Hero.IsFactionLeader`, `Hero.IsLord`, `Hero.IsNotable`, `Hero.IsPlayerCompanion`, `Hero.IsPrisoner`, `Hero.MapFaction`, `Hero.PartyBelongedTo`, `Hero.Spouse`, `Kingdom.Leader`, `MobileParty.Army`, `MobileParty.LeaderHero`, `MobileParty.SiegeEvent`, `ModSettings.AdultContentLevel`, `PartyBelongedTo.LeaderHero`, `PartyBelongedToAsPrisoner.LeaderHero`, `Romantic.IsConsort`, `StatureReader.Player`, `Status.IsIntimateOrDeeper`, `Town.Governor`
-- `MapEncounterCloseFacts`: `EncounteredParty.MapEvent`, `MobileParty.MapEvent`, `PlayerEncounter.Battle`, `PlayerEncounter.InsideSettlement`
+- `MapEncounterCloseFacts`: `CurrentSettlement.SiegeEvent`, `EncounteredParty.MapEvent`, `LeaderParty.SiegeEvent`, `MobileParty.MapEvent`, `PlayerEncounter.Battle`, `PlayerEncounter.InsideSettlement`, `PlayerSiege.PlayerSiegeEvent`
 - `MapTriggerFacts`: `GetPosition2D.DistanceSquared`, `Hero.Culture`, `MobileParty.BesiegedSettlement`, `MobileParty.CurrentSettlement`, `MobileParty.GetPosition2D`, `MobileParty.IsCurrentlyAtSea`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`, `Settlement.Culture`, `Vec2.Zero`
 - `MarketReading`: `MarketData.GetPriceFactor`
 - `MarriageBlockOverridePolicy.CanOverride`: `Hero.Spouse`

@@ -12377,6 +12377,8 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("aLiveFightKeepsTheEncounter", Logic.Conversation.MapEncounterClosePolicy.MayFinish(FactsFor(Logic.Conversation.MapEncounterClosePolicy.IsLive(live))), false);
          t.Expect("aFinalizedFightLetsItFinish", Logic.Conversation.MapEncounterClosePolicy.MayFinish(FactsFor(Logic.Conversation.MapEncounterClosePolicy.IsLive(finalized))), true);
          t.Expect("aFightWithAWinnerLetsItFinish", Logic.Conversation.MapEncounterClosePolicy.MayFinish(FactsFor(Logic.Conversation.MapEncounterClosePolicy.IsLive(hasWinner))), true);
+         // Zivkyn (18/10/2026): a siege keeps the encounter, fight or none.
+         t.Expect("aSiegeKeepsTheEncounter", Logic.Conversation.MapEncounterClosePolicy.MayFinish(new Logic.Conversation.MapEncounterCloseFacts {HasEncounter = true, SiegeUnderWay = true}), false);
 
          TaleWorlds.CampaignSystem.MapEvents.MapEvent mainPartyEvent = TaleWorlds.CampaignSystem.Party.MobileParty.MainParty?.MapEvent;
          if (mainPartyEvent != null) t.Note($"player's own party has a live MapEvent: finalized={mainPartyEvent.IsFinalized}, hasWinner={mainPartyEvent.HasWinner}, raid={mainPartyEvent.IsRaid}");

@@ -1376,8 +1376,11 @@ namespace CalradiaRemembers.Chat
                HasEncounter = PlayerEncounter.Current != null, InMission = Mission.Current != null,
                InsideSettlement = PlayerEncounter.Current != null && PlayerEncounter.InsideSettlement,
                BriefingReturnPending = CompanionBriefingCoordinator.HasPendingReturn, BattleUnderWay = battle,
-               BattleIsRaid = (PlayerEncounter.Battle ?? TaleWorlds.CampaignSystem.Party.MobileParty.MainParty?.MapEvent)?.IsRaid == true
+               BattleIsRaid = (PlayerEncounter.Battle ?? TaleWorlds.CampaignSystem.Party.MobileParty.MainParty?.MapEvent)?.IsRaid == true,
+               SiegeUnderWay = PlayerIsInASiege()
             };
+            // Zivkyn (18/10/2026): a crash on closing a council while preparing a siege defense; the siege is the game's.
+            if (facts.HasEncounter && facts.SiegeUnderWay) ModLog.Info("[CLOSE] encounter kept: a siege is under way; the game settles it.");
             if (battle && facts.BattleIsRaid) ModLog.Info("[CLOSE] the player is raiding: the encounter is finished as before 2.7.5.");
             else if (battle)
             {
@@ -1418,6 +1421,16 @@ namespace CalradiaRemembers.Chat
       }
 
       // ── Private ───────────────────────────────────────────────────────────
+
+      // A siege the player is part of: their own (PlayerSiege), their party's or army leader's, or the settlement they stand in.
+      private static bool PlayerIsInASiege()
+      {
+         var main = TaleWorlds.CampaignSystem.Party.MobileParty.MainParty;
+
+         return TaleWorlds.CampaignSystem.Siege.PlayerSiege.PlayerSiegeEvent != null || main?.SiegeEvent != null
+                || main?.CurrentSettlement?.SiegeEvent != null || main?.Army?.LeaderParty?.SiegeEvent != null
+                || main?.Army?.LeaderParty?.CurrentSettlement?.SiegeEvent != null;
+      }
 
       /// <summary>A MapEvent as a pure sighting for MapEncounterClosePolicy (null reads as Exists=false).</summary>
       private static Logic.Conversation.MapEventSighting ToSighting(TaleWorlds.CampaignSystem.MapEvents.MapEvent e)

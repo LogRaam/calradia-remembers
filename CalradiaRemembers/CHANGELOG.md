@@ -4,6 +4,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.18.. open
 
+### Fixed
+- **Closing a chat or council never finishes the encounter during a siege** (Zivkyn, 18/10, on 2.7.16: "I crash every
+  time i end a Council meeting with my own war band men if we are preparing for a seige defense"). Defence in depth,
+  the crash's cause is NOT proven: the battle guard could not see a siege with no fight yet, and
+  `PlayerEncounter.Finish` begins with `GameMenu.ExitToLast`, tearing down the siege menu. `MapEncounterCloseFacts.SiegeUnderWay`
+  (the player's siege, their party's or army leader's, the settlement they stand in) keeps the encounter; logged
+  `[CLOSE] encounter kept: a siege is under way`. Crash report and log asked of Zivkyn. cr.testall `close_settled_battle`.
+
 ## v2.7.17.. 2026-10-18
 
 ### New

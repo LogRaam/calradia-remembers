@@ -8,6 +8,10 @@
 // encounter menu after every chat. The guard counted any attached MapEvent, live or settled; the likely cause (not
 // reproduced, his log said only "a battle is under way") is one already finalized or already won when the chat
 // closed. BattleUnderWay now asks IsLive, not merely whether an event is attached, and the log names which one.
+// Zivkyn (Nexus, 18/10/2026, on 2.7.16): "I crash every time i end a Council meeting with my own war band men if we are
+// preparing for a seige defense." Not proven to be this step, but the battle guard cannot see a siege that has no fight
+// yet, and finishing the encounter tears down the siege menu while the siege goes on (PlayerEncounter.Finish begins with
+// GameMenu.ExitToLast). A siege is the game's to settle, like a battle.
 
 namespace CalradiaRemembers.Logic.Conversation
 {
@@ -34,6 +38,12 @@ namespace CalradiaRemembers.Logic.Conversation
       ///   branch ends it cleanly, so the close finishes the encounter as it did before 2.7.5.
       /// </summary>
       public bool BattleIsRaid { get; init; }
+
+      /// <summary>
+      ///   A siege involves the player: their own, their party's or army's, or the settlement they stand in (Zivkyn,
+      ///   18/10/2026). Its menus are the game's; the close never finishes the encounter under it.
+      /// </summary>
+      public bool SiegeUnderWay { get; init; }
    }
 
    /// <summary>A map event as the close saw it, for one of the three places a battle can hide (the encounter itself,
@@ -103,6 +113,7 @@ namespace CalradiaRemembers.Logic.Conversation
             && (f.MetPartyGone || (f.TalkedWithTheMetParty && !f.AtWarWithTheMetParty));
 
       public static bool MayFinish(MapEncounterCloseFacts f)
-         => f != null && f.HasEncounter && !f.InMission && !f.InsideSettlement && !f.BriefingReturnPending && (!f.BattleUnderWay || f.BattleIsRaid);
+         => f != null && f.HasEncounter && !f.InMission && !f.InsideSettlement && !f.BriefingReturnPending && !f.SiegeUnderWay
+            && (!f.BattleUnderWay || f.BattleIsRaid);
    }
 }

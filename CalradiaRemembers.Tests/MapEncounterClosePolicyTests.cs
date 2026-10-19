@@ -132,6 +132,17 @@ namespace CalradiaRemembers.Tests
          MapEncounterClosePolicy.LeavesTheMeeting(new MeetingLeaveFacts {HasEncounter = true, TalkedWithTheMetParty = true, AtASettlement = true}).Should().BeFalse();
       }
 
+      // STAKE (Zivkyn, 18/10/2026: "I crash every time i end a Council meeting ... if we are preparing for a seige
+      // defense"): a siege with no fight yet is invisible to the battle guard; finishing the encounter would tear down the
+      // siege menu while the siege goes on. A siege is the game's to settle, whatever else the close sees.
+      [Test]
+      public void GIVEN_a_siege_under_way_WHEN_the_chat_closes_THEN_the_encounter_is_left_to_the_game()
+      {
+         MapEncounterClosePolicy.MayFinish(new MapEncounterCloseFacts {HasEncounter = true, SiegeUnderWay = true}).Should().BeFalse();
+         MapEncounterClosePolicy.MayFinish(new MapEncounterCloseFacts {HasEncounter = true, SiegeUnderWay = true, BattleUnderWay = true, BattleIsRaid = true})
+                                .Should().BeFalse();
+      }
+
       // STAKE: a briefing is a step inside a meeting (Gabriel, 12/09/2026): closing it must leave the meeting standing.
       [Test]
       public void GIVEN_a_briefing_WHEN_it_closes_THEN_the_meeting_goes_on()
