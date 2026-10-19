@@ -12,8 +12,10 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   a trifle from the public `MoodCause.Trifles` table by the day's seed (same all day; names no one, no weather). Said
   in the YOUR DAY block as true, or as "a small private matter"; he may keep it to himself. Self-esteem events now
   keep their kind and subject (`NpcProfile.LastPersonalBlowKind/Subject`, `LastPersonalGladnessKind/Subject`,
-  additive; old saves name a blow vaguely). Letters keep the mood alone. New moods (tired, drunk) not built, awaiting
-  Gabriel. cr.testall `mood_of_the_day` extended.
+  additive; old saves name a blow vaguely). Letters keep the mood alone. cr.testall `mood_of_the_day` extended.
+- **A new mood: weary** (Lordfadooboo, 18/10: "tired"; Gabriel: tired, not drunk). `DayMood.Weary` (SDK `e9cf453`),
+  worn down, not unkind; leaned by the small hours, a wound, a captivity; level with guarded on the ladder. The
+  perceived image reads "looks worn out" (`PerceivedImagePolicy`).
 
 ### For tale authors
 - **Ways out the world takes** (Gabriel, 12/10 and 18/10, the Troy-inspired tale: the war ends some other way, she or

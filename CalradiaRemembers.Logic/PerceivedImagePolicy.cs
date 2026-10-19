@@ -79,6 +79,7 @@ namespace CalradiaRemembers.Logic
                 DayMood.Restless => $"and today {he} cannot keep still",
                 DayMood.Expansive => $"and today {he} is in an open, talkative humour",
                 DayMood.HighSpirits => $"and today {he} is in fine spirits",
+                DayMood.Weary => $"and today {he} looks worn out",
                 _ => null
             };
         }
