@@ -11,18 +11,20 @@ Read from syntax: a type is recognised by its name, and a name declared in two n
 Most of the files that use the type (more than half, and at least 3) are in ONE other namespace. Either it
 belongs there, or it is a shared foundation that should say so. Moving one is the cheapest cut a cycle can get;
 `dependencies.md` shows which pairs it would untangle. Bands: a few (1-5), several (6-15), many (16+).
+Effect of the move, counted on the type names files use: the links between namespaces it removes and adds. Only
+a move that removes a link and adds none is worth making; the others are listed so the vote is not mistaken for advice.
 
-| Type | Lives in | Used mostly by | Users there | Users at home |
-|---|---|---|---|---|
-| `StoryLog` | `CalradiaRemembers` | `CalradiaRemembers.Chat` | several | none |
-| `ChatViewModel` | `CalradiaRemembers.Chat` | `CalradiaRemembers` | several | a few |
-| `ActionOutcome` | `CalradiaRemembers.GameState` | `CalradiaRemembers.Verbs` | many | a few |
-| `StanceConsequenceBehavior` | `CalradiaRemembers.Stance` | `CalradiaRemembers` | a few | a few |
-| `DiplomaticStatus` | `NpcMemoryService.Core.Models` | `NpcMemoryService.Core.Prompts` | a few | none |
-| `EncounterContext` | `NpcMemoryService.Core.Models` | `NpcMemoryService.Core.Knowledge` | several | none |
-| `PlayerStatusVsNpc` | `NpcMemoryService.Core.Models` | `NpcMemoryService.Core.Prompts` | a few | none |
-| `WorldState` | `NpcMemoryService.Core.Models` | `NpcMemoryService.Core.Prompts` | a few | none |
-| `MetaReasoningGuard` | `NpcMemoryService.Core.Parsing` | `NpcMemoryService.Core.Services` | a few | a few |
+| Type | Lives in | Used mostly by | Users there | Users at home | Effect of moving it there |
+|---|---|---|---|---|---|
+| `StoryLog` | `CalradiaRemembers` | `CalradiaRemembers.Chat` | several | none | removes nothing, adds `CalradiaRemembers.Marriage` -> `CalradiaRemembers.Chat` |
+| `ChatViewModel` | `CalradiaRemembers.Chat` | `CalradiaRemembers` | several | a few | removes nothing, adds nothing |
+| `ActionOutcome` | `CalradiaRemembers.GameState` | `CalradiaRemembers.Verbs` | many | a few | removes nothing, adds `CalradiaRemembers.Quests` -> `CalradiaRemembers.Verbs` |
+| `StanceConsequenceBehavior` | `CalradiaRemembers.Stance` | `CalradiaRemembers` | a few | a few | removes nothing, adds nothing |
+| `DiplomaticStatus` | `NpcMemoryService.Core.Models` | `NpcMemoryService.Core.Prompts` | a few | none | removes nothing, adds nothing |
+| `EncounterContext` | `NpcMemoryService.Core.Models` | `NpcMemoryService.Core.Knowledge` | several | none | removes nothing, adds `NpcMemoryService.Core.Services` -> `NpcMemoryService.Core.Knowledge` |
+| `PlayerStatusVsNpc` | `NpcMemoryService.Core.Models` | `NpcMemoryService.Core.Prompts` | a few | none | removes nothing, adds nothing |
+| `WorldState` | `NpcMemoryService.Core.Models` | `NpcMemoryService.Core.Prompts` | a few | none | removes nothing, adds nothing |
+| `MetaReasoningGuard` | `NpcMemoryService.Core.Parsing` | `NpcMemoryService.Core.Services` | a few | a few | removes nothing, adds `NpcMemoryService.Core.Parsing` -> `NpcMemoryService.Core.Services` |
 
 ## Cohesion: how many parts each namespace falls into
 

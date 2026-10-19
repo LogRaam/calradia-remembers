@@ -7,7 +7,10 @@
 //     "Is Diagnostics one module or five?" A namespace in several parts is several modules sharing a folder.
 //   - TYPES THAT LIVE AWAY FROM THEIR USERS: a type whose users are mostly in ONE other namespace (Graphify reattaches a
 //     node to the community most of its neighbours are in; this is the same vote, on our namespaces). Moving it there is
-//     the cheapest cut a cycle can get.
+//     the cheapest cut a cycle can get. Each candidate carries the move's EFFECT, counted on the names files use: the
+//     namespace links it would remove and the ones it would add. The first version (19/10/2026) listed StoryLog and
+//     ActionOutcome on the vote alone; checked by hand, moving either removed nothing (Verbs names seven other GameState
+//     types) and added links (Marriage would start using Chat). A move is worth making when it removes and adds nothing.
 //
 // Read from syntax, like every map here: a type is recognised by its NAME, so a name declared in two namespaces is left
 // out rather than guessed. Users are counted in FILES, and only inside the type's own layer: the mod using a Logic
@@ -104,7 +107,17 @@ namespace CalradiaRemembers.Tests.Maps
       private static void AppendLivingAway(
          StringBuilder sb, List<TypeAt> types, Dictionary<string, TypeAt> byName, Dictionary<TypeAt, HashSet<SourceFile>> users)
       {
-         var rows = new List<(TypeAt Type, string Elsewhere, int There, int Home, int All)>();
+         var rows = new List<(TypeAt Type, string Elsewhere, int There, int Home, int All, string Effect)>();
+
+         // Which types of namespace B the files of namespace A name: a move removes A's link to B only when T was the last.
+         var named = new Dictionary<(string From, string To), HashSet<string>>();
+         foreach ((TypeAt used, HashSet<SourceFile> by) in users)
+            foreach (SourceFile f in by)
+            {
+               if (f.Namespace == used.Namespace) continue;
+               if (!named.TryGetValue((f.Namespace, used.Namespace), out HashSet<string>? set)) named[(f.Namespace, used.Namespace)] = set = new HashSet<string>(StringComparer.Ordinal);
+               set.Add(used.Name);
+            }
 
          foreach (TypeAt type in types.Where(t => byName.ContainsKey(t.Name)))
          {
@@ -121,7 +134,7 @@ namespace CalradiaRemembers.Tests.Maps
             int there = top.Count();
             if (there < FewestUsersToMove || there * 2 <= using_.Count) continue;
 
-            rows.Add((type, top.Key, there, home, using_.Count));
+            rows.Add((type, top.Key, there, home, using_.Count, EffectOfMoving(type, top.Key, using_, named)));
          }
 
          sb.AppendLine("## Types that live away from their users");
@@ -129,6 +142,8 @@ namespace CalradiaRemembers.Tests.Maps
          sb.AppendLine($"Most of the files that use the type (more than half, and at least {FewestUsersToMove}) are in ONE other namespace. Either it");
          sb.AppendLine("belongs there, or it is a shared foundation that should say so. Moving one is the cheapest cut a cycle can get;");
          sb.AppendLine("`dependencies.md` shows which pairs it would untangle. Bands: a few (1-5), several (6-15), many (16+).");
+         sb.AppendLine("Effect of the move, counted on the type names files use: the links between namespaces it removes and adds. Only");
+         sb.AppendLine("a move that removes a link and adds none is worth making; the others are listed so the vote is not mistaken for advice.");
          sb.AppendLine();
 
          if (rows.Count == 0)
@@ -139,15 +154,39 @@ namespace CalradiaRemembers.Tests.Maps
             return;
          }
 
-         sb.AppendLine("| Type | Lives in | Used mostly by | Users there | Users at home |");
-         sb.AppendLine("|---|---|---|---|---|");
+         sb.AppendLine("| Type | Lives in | Used mostly by | Users there | Users at home | Effect of moving it there |");
+         sb.AppendLine("|---|---|---|---|---|---|");
 
          foreach (var row in rows.OrderBy(r => r.Type.Layer)
                                  .ThenBy(r => r.Type.Namespace, StringComparer.Ordinal)
                                  .ThenBy(r => r.Type.Name, StringComparer.Ordinal))
-            sb.AppendLine($"| `{row.Type.Name}` | `{row.Type.Namespace}` | `{row.Elsewhere}` | {Band(row.There)} | {(row.Home == 0 ? "none" : Band(row.Home))} |");
+            sb.AppendLine($"| `{row.Type.Name}` | `{row.Type.Namespace}` | `{row.Elsewhere}` | {Band(row.There)} | {(row.Home == 0 ? "none" : Band(row.Home))} | {row.Effect} |");
 
          sb.AppendLine();
+      }
+
+      /// <summary>
+      ///   The links between namespaces a move of <paramref name="type" /> into <paramref name="target" /> would remove and
+      ///   add: target to home goes when the type was the only one of home the target names; each other namespace that
+      ///   names the type, home included, gains a link to the target unless it names one of the target's types already.
+      /// </summary>
+      private static string EffectOfMoving(TypeAt type, string target, HashSet<SourceFile> using_,
+                                           Dictionary<(string From, string To), HashSet<string>> named)
+      {
+         bool removes = named.TryGetValue((target, type.Namespace), out HashSet<string>? fromTarget)
+                        && fromTarget.Count == 1 && fromTarget.Contains(type.Name);
+
+         List<string> added = using_.Select(f => f.Namespace)
+                                    .Where(ns => ns != target)
+                                    .Distinct()
+                                    .Where(ns => !named.TryGetValue((ns, target), out HashSet<string>? already) || already.Count == 0)
+                                    .OrderBy(ns => ns, StringComparer.Ordinal)
+                                    .ToList();
+
+         string removed = removes ? $"removes `{target}` -> `{type.Namespace}`" : "removes nothing";
+         string adds = added.Count == 0 ? "adds nothing" : "adds " + string.Join(", ", added.Select(ns => $"`{ns}` -> `{target}`"));
+
+         return removes && added.Count == 0 ? $"**worth it**: {removed}, {adds}" : $"{removed}, {adds}";
       }
 
       private static void AppendCohesion(
