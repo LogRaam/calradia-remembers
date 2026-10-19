@@ -356,11 +356,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroPageLettersPatch` | internal class | Inserts the per-contact "Letters" button into the hero encyclopedia page's info block. |
 | `HeroPageNemesisPatchA` | internal class | Appends the nemesis dossier bullet list to the hero encyclopedia page. |
 | `HeroPageNemesisPatchB` | internal class | Appends the "Nemesis:" header line to the hero encyclopedia page. |
-| `HeroPagePersonalRelationPatch` | internal class | Inserts a single line into the hero encyclopedia page, just after the vanilla Info block, showing the NPC's personal regard for the player. |
 | `HeroPageRegardHousesPatchA` | internal class | Appends the houses at odds and of affinity to the hero encyclopedia page. |
 | `HeroPageRegardHousesPatchB` | internal class | Appends the "Houses:" header line to the hero encyclopedia page. |
 | `HeroPageRegardWhyPatchA` | internal class | Appends the friends-and-enemies reasons to the hero encyclopedia page. |
 | `HeroPageRegardWhyPatchB` | internal class | Appends the "Why:" header line to the hero encyclopedia page. |
+| `HeroPageRegardYouPatch` | internal class | Inserts a single line into the hero encyclopedia page, at the head of the regard block (above "Why:" and the houses), showing the NPC's personal regard for the player. |
 | `HeroPageStandingAccordsPatchA` | internal class | Appends the standing-accords bullet list to the hero encyclopedia page. |
 | `HeroPageStandingAccordsPatchB` | internal class | Appends the "Standing accords:" header line to the hero encyclopedia page. |
 

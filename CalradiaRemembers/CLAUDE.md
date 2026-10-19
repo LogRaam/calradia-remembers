@@ -171,7 +171,7 @@ internal sealed class MyPatchA : PrefabExtensionInsertPatch
 }
 ```
 
-**UIExtenderEx ordering**: with two Append patches on the same container, **PatchB runs FIRST** (appears on top), PatchA appears below. Assign label/header to PatchB, data to PatchA.
+**UIExtenderEx ordering** (read in its decompiled `PrefabComponent`, 19/10/2026): patches are applied in type order (`Assembly.GetTypes`, which the compiler lays down source FILE by file, alphabetically; the class name does not count, measured) and an `Append` inserts right after the target, so the LAST applied lands on TOP. PatchB.cs therefore appears above PatchA.cs: label/header on PatchB, data on PatchA. The FILE name decides the row's place on the page (`HeroPageRegardYouPatch.cs` sits above "Why:"; `HeroPageRowOrderTests` reads the compiled order).
 
 **Mixin pattern**: `[ViewModelMixin]` on a class inheriting nothing; read `_hero` via reflection (see `EncyclopediaHeroPagePersonalRelationMixin` as reference).
 

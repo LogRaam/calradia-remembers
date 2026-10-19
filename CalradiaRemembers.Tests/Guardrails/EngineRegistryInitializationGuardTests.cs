@@ -163,7 +163,7 @@ namespace CalradiaRemembers.Tests.Guardrails
         ///   wins so the scan reflects the latest build. Returns null only when no built copy exists at all (the
         ///   caller turns that into a clear "build the mod first" failure).
         /// </summary>
-        private static string? TryLocateModAssembly([CallerFilePath] string sourceFilePath = "")
+        internal static string? TryLocateModAssembly([CallerFilePath] string sourceFilePath = "")
         {
             var anchors = new List<DirectoryInfo>();
             if (!string.IsNullOrEmpty(sourceFilePath))

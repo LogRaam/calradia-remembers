@@ -12,6 +12,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (the player's siege, their party's or army leader's, the settlement they stand in) keeps the encounter; logged
   `[CLOSE] encounter kept: a siege is under way`. Crash report and log asked of Zivkyn. cr.testall `close_settled_battle`.
 
+### Changed
+- **The encyclopedia's "Personal regard" row heads the regard block** (tashmetu, 18/10, ask 6: "the player's own regard
+  first"; Gabriel 19/10), above "Why:" and the houses, under the standing accords. It sat under the houses. UIExtenderEx
+  stacks the hero-page rows in type order, which follows the SOURCE FILE names, last on top: `HeroPagePersonalRelationPatch`
+  became `HeroPageRegardYouPatch(.cs)`. Guard: `HeroPageRowOrderTests` reads the compiled order with Cecil (and checks
+  every heading sits above its list). Kept: six houses a side (Gabriel 19/10: design 8.2, the grouping already fixed
+  the density); the collapsible section waits.
+
 ## v2.7.17.. 2026-10-18
 
 ### New
