@@ -73,7 +73,16 @@ namespace CalradiaRemembers.Tests.Maps
          // letters (Letters), leaves him memories (Behaviors, Storage), releases a governor before a confiscation
          // (GameState) and reads presence (Mapping), and the console and cr.testall call it: the same shape as Arrests,
          // already in the group. Breaking it would take a hook per effect; Aims, which needed one edge, was kept out.
-         "CalradiaRemembers.WarDuty"
+         "CalradiaRemembers.WarDuty",
+
+         // INVISIBLE UNTIL 19/10/2026, NOT NEW. The map did not resolve a BARE name to an enclosing namespace: inside
+         // CalradiaRemembers.Travel, `ModLog` is CalradiaRemembers' own, with no using and no qualifier. Found while
+         // splitting Logic (Logic.Nemesis read as "uses: nothing"). Every name below calls the mod root's foundations
+         // (ModLog, SafeRun, ModSettings, ModulePaths, StoryLog) while the root's ModCheats and submodule call them back.
+         // Retainer had left the group on 19/10 only because SafeRun moved to the root, where the map could not see it.
+         "CalradiaRemembers.Aims", "CalradiaRemembers.Appearance", "CalradiaRemembers.GUI", "CalradiaRemembers.Portraits",
+         "CalradiaRemembers.Retainer", "CalradiaRemembers.Storage", "CalradiaRemembers.Travel", "CalradiaRemembers.UI",
+         "CalradiaRemembers.UI.Spike", "CalradiaRemembers.Video"
       };
 
       /// <summary>
@@ -89,8 +98,11 @@ namespace CalradiaRemembers.Tests.Maps
       ///   two namespaces already in the group never adds a name there, but it always adds a pair here. 99 when fitted;
       ///   84 the same day, once SafeRun left Diagnostics for the root, 47 imports of Diagnostics that nothing used were
       ///   removed, and RelationWarmth took its own project's namespace (Retainer left the cycle with them).
+      ///   137 since the same day: the map started resolving a bare name to an enclosing namespace, which showed 53 pairs
+      ///   that had always been there, every one between the mod root (ModLog, SafeRun, ModSettings beside ModCheats and
+      ///   the submodule) and a namespace that calls ModLog without a using. Not new edges: a measurement fixed.
       /// </summary>
-      private const int MutualPairsOn19October = 84;
+      private const int MutualPairsOn19October = 137;
 
       // A NEW ENTANGLEMENT IS THE ONE STRUCTURAL CHANGE THAT IS NEVER AN IMPROVEMENT. Inside a cycle nothing can be
       // understood, tested or moved alone, and 46 namespaces are in one already.

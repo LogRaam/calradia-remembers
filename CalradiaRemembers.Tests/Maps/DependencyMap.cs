@@ -10,6 +10,9 @@
 // qualified name was "rarer"; it was not. CalradiaRemembers.Standing read as "used by: nothing" while Chat, Mapping,
 // Duels and Violence all called it by qualified name, so real cycles were invisible to the cycle wall (Gabriel asked
 // for the map review that found it). Still no compilation, so no game DLL is needed; an unused import still counts.
+// Since 19/10/2026 a BARE type name declared in an enclosing namespace counts too (`ModLog` inside CalradiaRemembers.Travel
+// is CalradiaRemembers'): splitting Logic showed Logic.Nemesis as "uses: nothing", and the fix showed 53 pairs with the
+// mod root that had always been there.
 //
 // PAIRS THAT USE EACH OTHER (19/10/2026, after reading how Graphify ranks the edges of its own graph). The cycle groups say
 // THAT 49 namespaces are tangled, not where to cut: removing the two biggest hubs only took the group to 37. Every edge now
@@ -120,6 +123,9 @@ namespace CalradiaRemembers.Tests.Maps
 
             foreach (string to in QualifiedTargets(file, from, typesIn))
                if (to != from) Add(from, to, file);
+
+            foreach (string to in EnclosingTargets(file, from, typesIn))
+               Add(from, to, file);
          }
 
          origins = found;
@@ -160,6 +166,41 @@ namespace CalradiaRemembers.Tests.Maps
                found.Add(hit);
                break;
             }
+         }
+
+         return found;
+      }
+
+      /// <summary>
+      ///   The enclosing namespaces a file reaches by a BARE type name, with no using and no qualifier: inside
+      ///   CalradiaRemembers.Logic.Nemesis, `IRandomSource` is CalradiaRemembers.Logic's, because the compiler looks in
+      ///   each enclosing namespace, innermost first, before the file's usings. A name the file's own namespace declares
+      ///   stays there; the member side of `x.Name` is a member, not a type.
+      /// </summary>
+      private static IEnumerable<string> EnclosingTargets(SourceFile file, string from, Dictionary<string, HashSet<string>> typesIn)
+      {
+         var enclosing = new List<string>();
+         for (string scope = from; scope.Contains('.');)
+         {
+            scope = scope.Substring(0, scope.LastIndexOf('.'));
+            if (IsOurs(scope)) enclosing.Add(scope);
+         }
+
+         if (enclosing.Count == 0) return Array.Empty<string>();
+
+         typesIn.TryGetValue(from, out HashSet<string>? own);
+         var found = new HashSet<string>(StringComparer.Ordinal);
+
+         foreach (IdentifierNameSyntax id in file.Root.DescendantNodes().OfType<IdentifierNameSyntax>())
+         {
+            if (id.Parent is MemberAccessExpressionSyntax access && access.Name == id) continue;
+            if (id.Parent is QualifiedNameSyntax qualified && qualified.Right == id) continue;
+
+            string name = id.Identifier.Text;
+            if (own != null && own.Contains(name)) continue;
+
+            string? hit = enclosing.FirstOrDefault(ns => typesIn.TryGetValue(ns, out HashSet<string>? types) && types.Contains(name));
+            if (hit != null) found.Add(hit);
          }
 
          return found;
