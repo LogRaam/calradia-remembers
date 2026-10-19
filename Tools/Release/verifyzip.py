@@ -400,7 +400,7 @@ MUST = [
     ("logic", b"RelationSummaryText"),
     ("logic", b"AuthoredCulturePolicy"),
     ("logic", b"GrudgeBannerText"),
-    ("sdk",   b"IsReasoningMandatoryRefusal"),
+    # ("sdk",   b"IsReasoningMandatoryRefusal"),   # replaced in 2.7.18 by IsReasoningOffRefusal (now in MUST_NOT)
     ("sdk",   b"HistoryWindowPolicy"),
     # 2.7.3
     ("mod",   "scene_close_gives_the_map_back".encode("utf-16-le")),
@@ -572,8 +572,25 @@ MUST = [
     ("mod",   "pair_regard_source".encode("utf-16-le")),
     ("mod",   "tale_companion_giver".encode("utf-16-le")),
     ("sdk",   "a bad night's sleep".encode("utf-16-le")),
+    # 2.7.18
+    ("logic", b"TradeKeyOf"),
+    ("logic", b"NotableTradeLine"),
+    ("logic", b"WarWhat"),
+    ("logic", b"TemplateKey"),
+    ("logic", b"SiegeUnderWay"),
+    ("mod",   b"MapSpot"),
+    ("mod",   b"HeroPageRegardYouPatch"),
+    ("mod",   b"ReplaceStationGuidelinesForTest"),
+    ("sdk",   b"RealmWarWhat"),
+    ("sdk",   b"IsReasoningOffRefusal"),
+    ("mod",   "spawn_spot".encode("utf-16-le")),
+    ("mod",   "trade_guidelines".encode("utf-16-le")),
+    ("mod",   "override_not_inherited".encode("utf-16-le")),
+    ("mod",   b"{=CR_MCM_"),   # attribute arguments are UTF-8 in the metadata blob
 ]
 MUST_NOT = [
+    ("mod",   b"HeroPagePersonalRelationPatch"),   # 2.7.18: renamed HeroPageRegardYouPatch (the file name sets the row order)
+    ("sdk",   b"IsReasoningMandatoryRefusal"),   # 2.7.18: replaced by IsReasoningOffRefusal (any language)
     ("mod",   "patrol_spike".encode("utf-16-le")),   # 2.7.13: the patrol engine spike's console command, removed before release
     ("mod", b"ActionInterpreterTimingSetting"),   # 2.7.12: the dead "Actions Interpreter Timing" dropdown is removed
     ("mod",   "A predator wearing a lord's title".encode("utf-16-le")),   # 2.6.11: the retired archetype is gone (the testall keeps the 'Sadistic' opening on purpose)
@@ -647,7 +664,12 @@ for path, needle in [("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf
                      ("CalradiaRemembers/ModuleData/scenarios/rhagaea_marriage.json", "rhagaea_marriage"),
                      # 2.7.15
                      ("CalradiaRemembers/GUI/Prefabs/CR_HeroRegardWhyItems.xml", "CalradiaRegardWhyItems"),
-                     ("CalradiaRemembers/GUI/Prefabs/CR_HeroRegardHousesItems.xml", "CalradiaRegardHousesItems")]:
+                     ("CalradiaRemembers/GUI/Prefabs/CR_HeroRegardHousesItems.xml", "CalradiaRegardHousesItems"),
+                     # 2.7.18
+                     ("CalradiaRemembers/ModuleData/Languages/EN/language_data.xml", "std_CalradiaRemembers_mcm.xml"),
+                     ("CalradiaRemembers/ModuleData/Languages/EN/std_CalradiaRemembers_mcm.xml", "CR_MCM_"),
+                     ("CalradiaRemembers/ModuleData/Languages/README.txt", "language"),
+                     ("CalradiaRemembers/ModuleData/Custom/README.txt", "behavior_guidelines_merchant.txt")]:
     found = path in names and needle in zn.read(path).decode("utf-8", "ignore")
     ok &= found
     print("  %-70s %s" % (path[18:], "YES" if found else "*** MISSING ***"))

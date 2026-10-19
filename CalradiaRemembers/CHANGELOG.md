@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.7.18.. open
+## v2.7.18.. 2026-10-19
 
 ### New
 - **The MCM page can be translated** (kkxz3, 18/10: "Could you make it possible to translate the MCM settings?";
@@ -83,6 +83,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   became `HeroPageRegardYouPatch(.cs)`. Guard: `HeroPageRowOrderTests` reads the compiled order with Cecil (and checks
   every heading sits above its list). Kept: six houses a side (Gabriel 19/10: design 8.2, the grouping already fixed
   the density); the collapsible section waits.
+
+### Internal
+- **Maps, after reading Graphify** (Gabriel 19/10). `dependencies.md` lists the pairs of namespaces that use each other,
+  with the files behind each side (`37f1bc4`; `RatchetTests` pins their count); new `placement.md`: types living away
+  from their users, with the effect of moving each, and how many parts each namespace falls into (`4fb00f1`, `b30ef34`).
+- **15 pairs untangled** (`8636d26`): `SafeRun` moved from `Diagnostics` to the root beside `ModLog`, 47 imports of
+  `CalradiaRemembers.Diagnostics` nothing used removed, `RelationWarmth` now in `CalradiaRemembers.Logic` (it was the
+  mod's root namespace in the Logic project). Mutual pairs 99 -> 84; `Retainer` leaves the cycle. No behaviour change.
 
 ## v2.7.17.. 2026-10-18
 

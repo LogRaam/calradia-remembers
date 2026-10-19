@@ -1,0 +1,28 @@
+Version 2.7.18
+
+A low day can be argued with, the settings page can be translated, merchants and other notables can have guidelines of their own, and several fixes.
+
+New
+
+- The mod's settings page (MCM) can be translated. Every setting's name, description, group and button now carries a translation id, and the mod ships an English template with a short guide in ModuleData/Languages. Your saved settings are not affected. (Thank you, kkxz3.)
+- Each trade of town and village notable can have its own behavior guidelines: put behavior_guidelines_merchant.txt (or _artisan, _ruralnotable, _headman, _preacher) in your Custom folder and it replaces the shared notable guidelines for that trade. None ships, so nothing changes until you write one. Headmen and preachers are now also told their trade, so guidelines written for them can reach them. (Thank you, Windmolen.)
+
+Fixed
+
+- Memory compression and conversation summaries work again with models that always reason (such as GLM through an OpenAI-compatible endpoint). Background tasks now use your Reasoning Effort setting when the model refuses to turn reasoning off, whatever language it answers in. (Thank you, LapitaPolata.)
+- A character pack's entry no longer reaches that character's children: a daughter born in your campaign no longer inherits her mother's whole backstory. (Thank you, LapitaPolata.)
+- Closing a chat or a council while a siege is under way no longer ends the siege encounter. (Thank you, Zivkyn.)
+- Parties the mod creates (a tale's band, couriers, bounty hunters, sergeants, ambushers) are always placed on ground the game can stand on, which removes a possible crash. An ambush no longer springs while you are at sea; it waits for land.
+
+Changed
+
+- A character in a low mood can be argued with: a true and sound answer to what troubles them can lift their spirits, a step at a time, while flattery and empty cheer do not. When a war is what weighs on them, they now know which realm they fight and how the strength of the two sides compares. (Thank you, fkasad.)
+- On the encyclopedia page, a character's personal regard for you now heads the regard section, above the reasons and the houses. (Thank you, tashmetu.)
+
+Developer tools
+
+- New cr.testall tests: spawn_spot, trade_guidelines, override_not_inherited; mood_of_the_day, close_settled_battle and chat_focus_arbiter extended.
+
+Notes
+
+- Your existing saves load as they are.
