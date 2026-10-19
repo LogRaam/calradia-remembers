@@ -13,6 +13,7 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Nemesis;
 using CalradiaRemembers.Mapping;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;

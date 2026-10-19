@@ -20,6 +20,7 @@ using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.WorldEvents;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;

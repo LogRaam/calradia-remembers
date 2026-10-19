@@ -4,6 +4,7 @@
 
 using System;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.Settings;
 using NpcMemoryService.Core.Models;
 

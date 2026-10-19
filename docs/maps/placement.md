@@ -37,7 +37,7 @@ count is what to read: a namespace of many unrelated parts is a folder of things
 
 | Namespace | Types | Parts | Types on their own | Density |
 |---|---|---|---|---|
-| `CalradiaRemembers.Logic` | 729 | 57 | 406 | loose |
+| `CalradiaRemembers.Logic` | 672 | 51 | 373 | loose |
 | `CalradiaRemembers.Logic.Assemblies` | 110 | 6 | 69 | loose |
 | `NpcMemoryService.Core.Models` | 74 | 4 | 9 | loose |
 | `CalradiaRemembers.Assemblies` | 23 | 4 | 7 | loose |
@@ -45,6 +45,7 @@ count is what to read: a namespace of many unrelated parts is a folder of things
 | `CalradiaRemembers.Diagnostics` | 15 | 3 | 7 | loose |
 | `NpcMemoryService.Core.Actions` | 18 | 3 | 5 | medium |
 | `CalradiaRemembers.Duels` | 15 | 3 | 0 | medium |
+| `CalradiaRemembers.Logic.Marriage` | 34 | 2 | 25 | loose |
 | `CalradiaRemembers.Logic.Duels` | 25 | 2 | 11 | loose |
 | `CalradiaRemembers.Logic.Grudges` | 29 | 2 | 11 | loose |
 | `CalradiaRemembers.Marriage` | 14 | 2 | 3 | medium |
@@ -59,6 +60,7 @@ count is what to read: a namespace of many unrelated parts is a folder of things
 | `CalradiaRemembers.Logic.AuthoredQuests` | 84 | 1 | 25 | loose |
 | `CalradiaRemembers.Logic.WarDuty` | 24 | 1 | 18 | loose |
 | `CalradiaRemembers.Logic.Actions` | 18 | 1 | 12 | loose |
+| `CalradiaRemembers.Logic.Nemesis` | 14 | 1 | 11 | loose |
 | `CalradiaRemembers.Logic.WorldAlmanac` | 27 | 1 | 11 | medium |
 | `CalradiaRemembers.Logic.Interception` | 13 | 1 | 10 | loose |
 | `CalradiaRemembers.Chat` | 52 | 1 | 6 | loose |
@@ -97,6 +99,7 @@ count is what to read: a namespace of many unrelated parts is a folder of things
 | `CalradiaRemembers.WorldEvents` | 15 | 1 | 0 | tight |
 | `NpcMemoryService.Core.LlmClient.OpenRouter` | 6 | 1 | 0 | tight |
 | `CalradiaRemembers.Logic.Conversation` | 20 | 0 | 20 | loose |
+| `CalradiaRemembers.Logic.Bastards` | 9 | 0 | 9 | loose |
 | `CalradiaRemembers.Logic.Escort` | 7 | 0 | 7 | loose |
 | `CalradiaRemembers.Logic.Items` | 6 | 0 | 6 | loose |
 | `CalradiaRemembers.GUI` | 4 | 0 | 4 | loose |

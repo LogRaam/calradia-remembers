@@ -1,6 +1,6 @@
 // Code written by Gabriel Mailhot, 20/08/2026.
 // Nemesis pillar, discoverability piece (player report, SuperGraham339): resolves a Hero down to the plain
-// facts CalradiaRemembers.Logic.NemesisDossierBuilder needs (name/culture/region strings, counters, history
+// facts CalradiaRemembers.Logic.Nemesis.NemesisDossierBuilder needs (name/culture/region strings, counters, history
 // sentences), then calls it. Shared by EncyclopediaHeroPageNemesisMixin (the actual page) and cr.nemesis
 // (the dev-truth preview) so both prove the exact same code, mirroring how NemesisResolutionBehavior.Resolve
 // backs both the real HeroKilledEvent hook and its own console test commands.
@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Nemesis;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;

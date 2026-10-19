@@ -10,6 +10,7 @@ using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.Mapping;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Services;

@@ -22,6 +22,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Escort;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Retainer;
 using CalradiaRemembers.Services;

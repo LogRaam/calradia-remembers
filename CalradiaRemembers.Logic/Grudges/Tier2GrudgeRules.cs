@@ -5,6 +5,7 @@
 // would be called from.
 
 using NpcMemoryService.Core.Standing;
+using CalradiaRemembers.Logic.Marriage;
 
 namespace CalradiaRemembers.Logic.Grudges
 {

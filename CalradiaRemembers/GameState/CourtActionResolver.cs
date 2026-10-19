@@ -12,6 +12,7 @@ using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.WorldEvents;

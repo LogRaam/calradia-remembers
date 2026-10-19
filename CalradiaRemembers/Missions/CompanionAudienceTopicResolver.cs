@@ -18,6 +18,7 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;

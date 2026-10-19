@@ -20,6 +20,7 @@ using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Items;
+using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.Logic.WarDuty;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;

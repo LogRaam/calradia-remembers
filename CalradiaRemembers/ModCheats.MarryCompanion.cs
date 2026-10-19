@@ -17,6 +17,7 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.Marriage;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;

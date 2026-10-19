@@ -8,6 +8,7 @@
 using System;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Marriage;
 
 #endregion
 

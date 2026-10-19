@@ -9,6 +9,7 @@
 
 using System.Collections.Generic;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Marriage;
 using FluentAssertions;
 using NUnit.Framework;
 

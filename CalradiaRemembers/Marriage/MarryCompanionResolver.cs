@@ -9,6 +9,7 @@
 
 using System.Linq;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Marriage;
 using TaleWorlds.CampaignSystem;
 
 #endregion

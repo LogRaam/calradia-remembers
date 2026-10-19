@@ -39,6 +39,8 @@ using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Logic.Marriage;
+using CalradiaRemembers.Logic.Nemesis;
 using CalradiaRemembers.Logic.Social;
 using CalradiaRemembers.Logic.Verbs;
 using CalradiaRemembers.Lore;
@@ -8995,7 +8997,7 @@ namespace CalradiaRemembers.Diagnostics
 
          int playerGold0 = Hero.MainHero.Gold;
          int npcGold0 = npc.Gold;
-         int price = CalradiaRemembers.Logic.HushMoneyPolicy.MinPayment;
+         int price = CalradiaRemembers.Logic.Bastards.HushMoneyPolicy.MinPayment;
 
          try
          {
@@ -9020,7 +9022,7 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("the player paid the price", Hero.MainHero.Gold, playerBefore - price);
             t.Expect("the lord received the price", npc.Gold, npcBefore + price);
             t.Expect("the hush is recorded as recent",
-               CalradiaRemembers.Logic.HushMoneyPolicy.IsRecentlyPaid(gossip.HushPaidDay(npc.StringId, subject.StringId), today), true);
+               CalradiaRemembers.Logic.Bastards.HushMoneyPolicy.IsRecentlyPaid(gossip.HushPaidDay(npc.StringId, subject.StringId), today), true);
             t.Expect("a memory of the payment is kept", (npcProfile.Events?.Count ?? 0) > memoryCountBefore, true);
          }
          finally

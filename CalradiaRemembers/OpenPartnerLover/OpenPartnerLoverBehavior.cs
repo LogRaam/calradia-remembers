@@ -9,6 +9,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Social;
 using CalradiaRemembers.WorldEvents;

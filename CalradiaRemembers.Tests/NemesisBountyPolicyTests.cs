@@ -13,6 +13,7 @@
 #region
 
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Nemesis;
 using FluentAssertions;
 using NUnit.Framework;
 

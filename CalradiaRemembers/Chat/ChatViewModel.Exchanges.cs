@@ -19,6 +19,7 @@ using CalradiaRemembers.Logic.Conversation;
 using CalradiaRemembers.Logic.Actions;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Appreciations;
+using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.Lore;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Quests;

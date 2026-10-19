@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.Marriage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;

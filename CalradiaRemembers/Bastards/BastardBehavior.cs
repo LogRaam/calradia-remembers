@@ -10,6 +10,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Bastards;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Storage;

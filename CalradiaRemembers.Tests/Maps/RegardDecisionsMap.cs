@@ -24,6 +24,7 @@ using System.Reflection;
 using Microsoft.CodeAnalysis;
 using System.Text;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Bastards;
 using NpcMemoryService.Core.Prompts;
 using NpcMemoryService.Core.Standing;
 

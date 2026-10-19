@@ -12,6 +12,7 @@
 #region
 
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Marriage;
 using FluentAssertions;
 using NpcMemoryService.Core.Models;
 using NUnit.Framework;

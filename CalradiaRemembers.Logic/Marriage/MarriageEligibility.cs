@@ -1,0 +1,90 @@
+// Code written by Gabriel Mailhot, 20/06/2026.
+// Extracted from the mod's MarriageProspectResolver: the rule for whether two people could wed. Pure
+// so its thresholds (adult age, opposite-sex only), shared by the prompt listing, the bridge's marry
+// re-validation, and love-match eligibility, and silent when they drift, stay protected by tests.
+//
+// 2026-07-21 (Gabriel, after a player report): the age GAP was removed from this rule. A marriage is a
+// CONTRACT between two individuals, so age governs only whether each is an adult, never how far apart
+// they are. Age remains a real constraint on BIOLOGY, which is a separate question answered separately
+// by ConceptionResolver (fertility 18 to 45, women only), and on what a house spontaneously OFFERS,
+// answered by MarriageProspectPolicy. Neither belongs in the legality of the contract itself.
+
+namespace CalradiaRemembers.Logic.Marriage
+{
+    /// <summary>
+    ///   Whether a candidate could marry the player under Calradia's rules: alive, unwed, adult, and of
+    ///   the opposite sex (the engine marries opposite-sex only). The host reads the Hero state; this
+    ///   holds the actual rule and its tuning.
+    /// </summary>
+    public static class MarriageEligibility
+    {
+        /// <summary>Minimum marriage age — Bannerlord adults at 18.</summary>
+        public const float MinMarriageAge = 18f;
+
+        /// <summary>
+        ///   The regard threshold that makes a love-match marriage conceivable: EITHER the mod's own
+        ///   personal-regard ledger (<c>NpcProfile.ReputationWithPlayer</c>) OR the live vanilla clan
+        ///   relation (<c>Hero.GetRelation</c>) reaching this value. Shared by
+        ///   <c>EncounterContextBuilder.ResolveLoveMatchEligible</c> (teaches the action) and
+        ///   <c>BannerlordGameStateBridge.ExecuteMarry</c> (re-validates before sealing it) so the two
+        ///   gates can never drift apart. Broadened from personal-regard-only after a player report:
+        ///   players who built vanilla relation the ordinary way (gifts, favors, quests) expected that
+        ///   to count toward a match, not just the mod's own hidden ledger.
+        /// </summary>
+        public const int MarriageEligibilityThreshold = 50;
+
+        /// <summary>
+        ///   The candidate and the player, as marriage law sees them. Four booleans then two floats, and the
+        ///   two floats are two people's ages: swap them and a child reads as marriageable because the PLAYER
+        ///   is an adult. Shared with <see cref="MarriageProspectPolicy.IsOfferableProspect" />, which asks
+        ///   the same question and then one more about age.
+        ///   Named rather than positional (2026-09-10). Gabriel: the code should be an example of good
+        ///   practice. A run of same-typed arguments hides a swap that compiles in silence, and a test
+        ///   that names only what it is about reads as the rule it protects.
+        /// </summary>
+        public sealed class MarriageMatchFacts
+        {
+           /// <summary>The candidate is alive.</summary>
+           public bool CandidateAlive { get; set; }
+
+           /// <summary>The candidate is already wed.</summary>
+           public bool CandidateHasSpouse { get; set; }
+
+           /// <summary>The candidate is a woman.</summary>
+           public bool CandidateIsFemale { get; set; }
+
+           /// <summary>The player is a woman. Read only against the candidate's own sex, never on its own.</summary>
+           public bool PlayerIsFemale { get; set; }
+
+           /// <summary>The candidate's age in years, weighed against the marriage floor.</summary>
+           public float CandidateAge { get; set; }
+
+           /// <summary>
+           ///   The player's age in years. DELIBERATELY UNREAD by the rule: how far apart two adults are is not
+           ///   a bar to a contract they both enter. Carried so the caller can hand over one whole match.
+           /// </summary>
+           public float PlayerAge { get; set; }
+        }
+
+        /// <summary>
+        ///   True when the candidate could wed the player: alive and unwed, adult, opposite sex. The
+        ///   player's own age is accepted for the caller's convenience and deliberately unused: how far
+        ///   apart two adults are is not a bar to a contract they both enter.
+        /// </summary>
+        public static bool IsMarriageable(MarriageMatchFacts facts)
+        {
+           if (facts == null) return false;
+
+           bool candidateAlive = facts.CandidateAlive;
+           bool candidateHasSpouse = facts.CandidateHasSpouse;
+           bool candidateIsFemale = facts.CandidateIsFemale;
+           bool playerIsFemale = facts.PlayerIsFemale;
+           float candidateAge = facts.CandidateAge;
+           float playerAge = facts.PlayerAge;
+
+            if (!candidateAlive || candidateHasSpouse) return false;
+            if (candidateIsFemale == playerIsFemale) return false;
+            return candidateAge >= MinMarriageAge;
+        }
+    }
+}

@@ -10,6 +10,7 @@ using CalradiaRemembers.Chat;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Stance;

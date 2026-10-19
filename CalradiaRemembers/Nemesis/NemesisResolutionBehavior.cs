@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Nemesis;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.WorldEvents;

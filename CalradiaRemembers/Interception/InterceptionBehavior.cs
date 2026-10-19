@@ -15,6 +15,7 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Interception;
+using CalradiaRemembers.Logic.Nemesis;
 using CalradiaRemembers.Nemesis;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.WorldEvents;

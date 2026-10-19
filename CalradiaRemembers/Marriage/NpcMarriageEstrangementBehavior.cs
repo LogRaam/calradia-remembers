@@ -15,6 +15,7 @@ using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.Mapping;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Models;

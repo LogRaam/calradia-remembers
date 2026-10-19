@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 527 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1203 types in 30 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1203 types in 33 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -877,7 +877,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (729)
+### CalradiaRemembers.Logic (672)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -915,14 +915,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BackgroundCallHoldPolicy` | public static class | Decides whether a background model call keeps waiting for the conversation to close. |
 | `BackgroundCallTimeout` | public static class | The timeout of a call nobody waits on in a conversation. |
 | `BanditClearOfferPolicy` | public static class | Decides whether an open-field bandit-clearing deed is viable to offer near a giver's anchor town. |
-| `BastardBlackmailPolicy` | public static class | When the mother of a bastard can blackmail the player for her silence, and how much she demands. |
-| `BastardClaimVerdict` | public enum | How a grown bastard regards the FATHER's clan. |
-| `BastardDiscoveryPolicy` | public static class | How likely a concealed bastard is discovered this SEASON, rising with the child's age. |
-| `BastardLegitimacyPolicy` | public static class | Whether a player-parented child is the player's concealed bastard, given the marriage facts at birth. |
-| `BastardMotherDisposition` | public enum | How the mother of a hidden bastard relates to the player — drives the letter she writes. |
-| `BastardMotherPolicy` | public static class | Resolves a bastard mother's disposition from her honour/calculating traits and her regard for the player. |
-| `BastardPrestigePolicy` | public static class | The rule for a grown bastard's disposition toward the FATHER's clan. |
-| `BastardScandalPolicy` | public static class | Scales the cost of a discovered bastard scandal (the standing hit and how far it spreads) by the culture's outrage at infidelity — the same JealousyOutrage the jealousy system reads. |
 | `BattleMemoryText` | public static class | Builds the "fought beside you" memory line and the place/engagement phrasing. |
 | `BattleNotability` | public static class | Decides whether a battle is notable enough to record. |
 | `BattleRecordText` | public static class | Pure: names a battle's sides and its scale for the world's record. |
@@ -1061,7 +1053,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CourierWaylayPolicy` | public static class | Pure rules for whether a single bandit party waylays a passing courier. |
 | `CourtActionPolicy` | public static class | Pure math and gates for the four "court action" verbs. |
 | `CourtMarkerText` | public static class | The court verbs' hidden cooldown markers, as they were once written into memory text. |
-| `CourtshipTrialPolicy` | public static class | Pure completion gate for a courtship trial (a marriage prospect riding with the player to be tested). |
 | `CrRecoveryAction` | public enum | A stuck CR subsystem the recovery command (cr.reset) can stand down. |
 | `CraftWeaponPolicy` | public static class | The rules of a craft_weapon task. |
 | `DayMoodFactsPolicy` | public static class | Reads a character's day into the facts the mood draw weighs. |
@@ -1072,20 +1063,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DialogueEntryTracePolicy` | public static class | Composes the "[DIALOGUE] conversation with ..." line the dialogue collector logs once per hero conversation. |
 | `DialogueHeuristics` | public static class | Small pure heuristics over LLM text and parsed responses, used by the conversation flow. |
 | `DiscretionFacts` | public class | What a discretion check is judged on. |
-| `DivorceAnnouncePolicy` | public static class | Drives the bounded announce phase of a spouse's divorce demand (romance audit C1/C2), so the refusal clock starts on a letter the player genuinely saw THIS cycle, an undelivered letter re-announces instead of freezing, a... |
-| `DivorceAnnounceStep` | public enum | What the host should do this tick for a demand whose refusal clock has not yet started. |
-| `DivorceBlock` | public enum | Why a marriage dissolution was refused at its deadline, ranked by how the host must respond. |
-| `DivorceBlockPolicy` | public static class | Classifies a dissolution refusal from the same facts DivorcePolicy's hosts observe. |
-| `DivorceConsequencePolicy` | public static class | Pure rules turning a divorce's facts into a signed per-party consequence matrix: who grudges, who feels relief, who feels outright gratitude, and who is untouched. |
-| `DivorceConsequences` | public class | The full per-party verdict for one divorce, one PartyReaction per stake. |
-| `DivorceDemandTimeoutPolicy` | public static class | Pure gate deciding when a pending divorce demand's grace period has run out, unread refusal (the player never explicitly refused, but the deadline passed). |
 | `DivorceDetectionFacts` | public class | What a divorce check compares. |
-| `DivorceEligibilityFacts` | public class | Every already-resolved fact DivorcePolicy.IsEligible needs. "Leaving spouse" is whichever of the two would have to move clans to formalize the split (the one who joined the other's clan at marriage) — resolved live by Di... |
-| `DivorceFacts` | public class | Every already-resolved fact DivorceConsequencePolicy.Resolve needs about the shape of one divorce. |
-| `DivorcePolicy` | public static class | Pure math and gates for the end_marriage estrangement process. |
-| `DivorceProcess` | public class | One NPC's ongoing estrangement from their own spouse, begun at the player's urging: who, concerning which spouse, started when, due when, how many days of spousal resistance have already pushed the end day back, and wher... |
-| `DivorceProcessState` | public enum | The lifecycle of a divorce process. |
-| `DivorceResistanceOutcome` | public enum | The outcome of one day's spousal-resistance roll against an active DivorceProcess. |
 | `EarnRegardPolicy` | public static class | The rules of an earn_regard task. |
 | `EarnRegardTargetFacts` | public class | Who a giver may send the player to win over. |
 | `EnvoyDeal` | public class | A deal rebound to the mandate, ready for the bridge. |
@@ -1101,9 +1079,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EscapeCloseLatch` | public class | Holds an Escape close until it is safe (philip0105, 11/10/2026: Escape out of a conversation crashed the game, the close button did not). |
 | `EscapedTargetPolicy` | public static class | The rules for a capture or delivery task whose target escaped. |
 | `EscortCostPolicy` | public static class | Pure pricing for the per-correspondent armed-escort premium (a distance-scaled one-off fee). |
-| `EstrangementPhase` | public enum | Where a fraying marriage stands on its way from the first crack to a spouse ready to walk out. |
-| `EstrangementProgressPolicy` | public static class | Paces a Stolen Love estrangement from its start day to the point the spouse is ready to leave, scaled by the seduction's SeductionDifficulty. |
-| `ExCompanionDivorcePolicy` | public static class | Pure decision for the divorce half of the marry-your-own-companion feature: whether a divorcing spouse is an ex-companion who must be returned to the free-wanderer pool rather than relocated to a birth clan. |
 | `ExchangeCaptiveFacts` | public class | What an exchange needs to know about one captive. |
 | `ExchangeHandover` | public enum | What happens to a captive once the other side has them. |
 | `ExternalEventRules` | public static class | The normalisation + quota rules every externally-fed world event passes through. |
@@ -1122,7 +1097,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FirstImpressionPolicy` | public static class | Pure rules that resolve a barely-known noble's opening posture toward the player. |
 | `FoodTradeFacts` | public class | One visit's food trade in a town. |
 | `FoodTradeVerdict` | public enum | What the town remembers of a visit's food trade. |
-| `ForcedMarriagePolicy` | public static class | How a marriage sealed on the family's blessing, against the spouse's own unwon heart, is resented. |
 | `ForeignDivorceDetection` | public static class | Finds the marriages another mod ended. |
 | `GameCalendar` | public class | The game's own calendar, as the running campaign set it (0 when no campaign has set it yet). |
 | `GameRelationFacts` | public class | The game's relations with the player that one character's standing is read from. |
@@ -1156,7 +1130,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HouseLeaning` | public enum | How the lord's house stands on the war, by the game's own support for it. |
 | `HouseholdKinPolicy` | public static class | Decides who in the player's house is family, and therefore never a retainer to be given away. |
 | `HuntMode` | public enum | How the realm comes after an outlaw. |
-| `HushMoneyPolicy` | public static class | The numeric contract for hush money paid to a lord who holds the player's secret-lover identity. |
 | `IHistoryRecord` | public interface | A long-term entry as eviction sees it. |
 | `ILetterIntentionWorld` | public interface | The live-world signals the per-reason staleness decision needs, keyed by the letter's sender id. |
 | `IManagedPortrait` | public interface | A UI element that owns exactly one character portrait — which, on screen, is backed by a GPU render-target (a character tableau). |
@@ -1238,12 +1211,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MapOffset` | public struct | How far east and how far north one map position lies from another. |
 | `MapPoint` | public struct | A position on the campaign map, in the engine's own coordinates. |
 | `MarketReading` | public class | One trade good as a town's market reads it. |
-| `MarriageBlockOverridePolicy` | public static class | Pure soft-vs-hard table: which MarriageBlockReason a passed courtship trial may override. |
-| `MarriageClaimPolicy` | public static class | Detects whether an [EVENT] summary CLAIMS that the conversation NPC and the player are now married, so the mod can withhold the memory (and the romantic-arc advancement riding on it) until Hero.Spouse confirms the weddin... |
-| `MarriageCustomReading` | public struct | A culture's marriage custom: strictness 0 (low) to 2 (high), and whether a house of the tier asked shares partners. |
-| `MarriageEligibility` | public static class | Whether a candidate could marry the player under Calradia's rules: alive, unwed, adult, and of the opposite sex (the engine marries opposite-sex only). |
-| `MarriageGuardPolicy` | public static class | Live-state guards a marriage or a marriage-blessing must satisfy, whatever the LLM proposed. |
-| `MarriageProspectPolicy` | public static class | Whether a house would put a given kin forward as a marriage prospect of its own accord. |
 | `MarryCompanionEligibilityPolicy` | public static class | Pure eligibility rule for the "marry your own companion" carve-out: which same-clan wanderer companion the mod would let the player wed despite the ordinary SameClan bar. |
 | `MatchFacts` | public class | What decides a match the player brokers between two other people. |
 | `MatchRegistrationFacts` | public class | What the door reads about a match offered for registration. |
@@ -1268,20 +1235,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NameNormalization` | public static class | Folds a name (or any free-text token) down to a plain, lowercase, diacritic-free form so that "Héloïse" and "heloise" compare equal. |
 | `NativeQuestMemory` | public class | A memory for the giver of a native quest. |
 | `NativeQuestPhase` | public enum | Where a native quest stands, as the game reports it. |
-| `NemesisBountyPolicy` | public static class | Decides whether a given lord may offer the player a bounty on a given tracked nemesis. |
-| `NemesisBountyRewardPolicy` | public static class | The gold and personal-relation reward a lord promises for a nemesis's capture or death, scaled by his notoriety. |
-| `NemesisDossierBuilder` | public static class | Pure formatting for the encyclopedia hero-page nemesis dossier. |
-| `NemesisEscapeChancePolicy` | public static class | The chance a player escapes a NEMESIS captor in a captive-scene attempt, decaying with each prior recapture as the nemesis tightens his guard, but never reaching zero. |
-| `NemesisIdentity` | public class | A persistent, regional, named bandit boss the player can build a recurring vendetta with. |
-| `NemesisMaterializePolicy` | public static class | Pure region-proximity gate for the nemesis materializing into a bandit party the player engages. |
-| `NemesisNameGenerator` | public static class | Pure, deterministic name/epithet minting. |
-| `NemesisNameResult` | public class | The minted name and byname for one nemesis identity. |
-| `NemesisResolutionKind` | public enum | How a tracked nemesis's life ended, for wording purposes only (no state of its own). |
-| `NemesisResolutionPolicy` | public static class | Pure classification and wording for a nemesis's closure deed. |
-| `NemesisRevealPolicy` | public static class | Pure pacing policy for the nemesis reveal roll. |
-| `NemesisRoster` | public class | Serializable roster of nemesis identities, living and dead (a dead one is kept for the record but never recurs). |
-| `NemesisRosterPolicy` | public static class | Pure roster lookup: which (if any) living nemesis of a given band culture already claims a given region. |
-| `NemesisRumorLine` | public static class | Pure text for the tavern-keeper's nemesis rumour line: takes the nemesis's display label and his region's display string (both already resolved by the caller, exactly like the lord bounty announcement resolves them) and... |
 | `NemesisTurnFacts` | public struct | The facts the turn gate reasons over: the nemesis's stance toward the player, his grudge, his traits. |
 | `NemesisTurnPolicy` | public static class | The pure gate deciding whether a beaten, held nemesis will accept being spared and taken into the player's service. |
 | `NemesisTurnRefusal` | public enum | Why a nemesis refuses to turn, or None when he accepts. |
@@ -1316,7 +1269,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PartyCounselFacts` | public class | Live facts about the party the caller has already gathered (item roster, morale model, member roster, carry weight), everything CompanionCounselPolicy needs, and nothing it has to guess. |
 | `PartyCounselKind` | public enum | Which practical condition of the party the counsel is about, or none. |
 | `PartyMoraleMood` | public static class | Turns the player party's morale into the weekly mood nudge it gives their companions, if any. |
-| `PartyReaction` | public class | One party's verdict on a divorce. |
 | `PastCandidateFacts` | public class | One long-term event the speaker knows, as the past-on-mention block weighs it. |
 | `PastMentionRequest` | public class | The turn the past is weighed for: what the player named, and when the speaker stands. |
 | `PastOnMentionPolicy` | public static class | Picks and words the past events a speaker brings to a turn in which the player named their people. |
@@ -1337,8 +1289,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PlayerChangeKind` | public enum | What a change of player character was. |
 | `PlayerCompanyPolicy` | public static class | Who travels with the player, for inviting and for clearing the room. |
 | `PlayerDeedValence` | public static class | Classifies a player's deed from the observer's point of view, from two facts the host has already resolved against the game (faction membership, kinship). |
-| `PlayerDivorceConsentFacts` | public class | Every already-resolved fact PlayerDivorceConsentPolicy.SpouseConsents needs. |
-| `PlayerDivorceConsentPolicy` | public static class | Pure gate deciding whether the player's own spouse would ALSO have wanted this marriage to end (mutual consent), when the PLAYER is the one who initiates the split. |
 | `PlayerDressBand` | public enum | The band an onlooker would perceive at a glance, from wholly bare to genuine battle harness. |
 | `PlayerDressPolicy` | public static class | Pure classification of the player's state of dress. |
 | `PlayerExecutionPolicy` | public static class | Pure gate deciding whether a captor may actually execute the captive PLAYER. Consulted twice: once by the mod's EncounterContextBuilder (deciding whether the LLM is even TAUGHT the execute_player action this turn) and ag... |
@@ -1412,7 +1362,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RansomEnvoyFacts` | public class | Who a giver may send the player to buy back. |
 | `RansomEnvoyPolicy` | public static class | The rules of a ransom_envoy task. |
 | `RapportBand` | public enum | How two companions stand with each other — banded from their accumulated mutual relation. |
-| `ReactionKind` | public enum | The kind of reaction one party has to a divorce. |
 | `RealmFace` | public class | The face a realm's queen wears, and the file it came from. |
 | `RealmFaceFacts` | public class | Who wears what now. |
 | `RealmFaceFile` | public static class | Reads and merges faces files. |
@@ -1538,9 +1487,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpeakerNamesakePolicy` | public static class | Decides whether a hero matched in the player's message is merely a namesake of the character being spoken to. |
 | `SpeakerProfileSelector` | public static class | Chooses which stored profile represents the NPC currently speaking, so a memory never ends up on the wrong person. |
 | `SpokenFigure` | public static class | Reads the last sum named in a line of speech. |
-| `SpouseDivorceDemandFacts` | public class | Every already-resolved fact SpouseDivorceDemandPolicy.ShouldDemand needs. |
-| `SpouseDivorceDemandPolicy` | public static class | Pure gate deciding whether the player's own spouse is unhappy enough to raise a divorce demand this evaluation period. |
-| `SpouseDivorceEscalationFacts` | public class | Every already-resolved fact SpouseDivorceDemandPolicy.ShouldEscalate needs. |
 | `SpousePair` | public class | A married couple, by hero id; Key is the same whichever spouse is named first. |
 | `SpouseTenurePolicy` | public static class | How long a character has been married, as their family line says it. |
 | `StagedStartFacts` | public class | What the stager knows when its grace runs out. |
@@ -1558,7 +1504,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StanceShift` | public class | One exchange's spoken nudges to the moveable axes (Affection is not moved here — it is the existing reputation, moved by change_relation). |
 | `StationGuidelinesPolicy` | public static class | Maps an NPC's occupation to the behavior-guidelines register that should voice them, and picks the concrete text through a fallback chain. |
 | `Stature` | public struct | A person's (or a house's) standing in the realm: their clan's tier, and whether they rule. |
-| `StolenLoveEstrangement` | public class | One married NPC whose marriage is coming apart because of an affair with the player: who they are, who they are married to, when the estrangement began, and how hard-won the seduction was (which paces how long the rift t... |
 | `StolenSpouseGrudgePolicy` | public static class | Sizes the jilted spouse's personal grudge against the player when a stolen-love affair ends their marriage. |
 | `SuccessionKinship` | public static class | Maps a predecessor's family relation to the heir into the word an NPC would use. |
 | `SuccessionMemoryPolicy` | public static class | The rule for which recorded events survive a succession (are inherited by the heir). |
@@ -1597,8 +1542,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WarSides` | public struct | The two sides of one war declaration, as faction ids. |
 | `WarWeariness` | public static class | Pure war-weariness arithmetic: clamp, the per-event tolls, rest recovery, the Valor-scaled retirement tolerance, banding, the "wants to retire" test, and the retirement shape by landedness. |
 | `WearinessBand` | public enum | How worn down by war a companion is — the bands the accumulating score falls into. |
-| `WeddingFacts` | public class | What is known about a match at the moment of the wedding. |
-| `WeddingMemoryText` | public static class | Words the new spouse's memory of the wedding. |
 | `WhereaboutsFacts` | public class | Where someone is, as the letter needs it. |
 | `WitnessDedup` | public static class | Decides whether two WitnessEntry values denote the same present witness. |
 | `WitnessDensity` | public enum | How many ambient hero witnesses a conversation gathers. |
@@ -1894,6 +1837,20 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TaleVillageFacts` | public class | The state of one village a tale could be about. |
 | `TaleVillagePolicy` | public static class | Which village a tale may be about, and when the giver has lost it. |
 
+### CalradiaRemembers.Logic.Bastards (9)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `BastardBlackmailPolicy` | public static class | When the mother of a bastard can blackmail the player for her silence, and how much she demands. |
+| `BastardClaimVerdict` | public enum | How a grown bastard regards the FATHER's clan. |
+| `BastardDiscoveryPolicy` | public static class | How likely a concealed bastard is discovered this SEASON, rising with the child's age. |
+| `BastardLegitimacyPolicy` | public static class | Whether a player-parented child is the player's concealed bastard, given the marriage facts at birth. |
+| `BastardMotherDisposition` | public enum | How the mother of a hidden bastard relates to the player — drives the letter she writes. |
+| `BastardMotherPolicy` | public static class | Resolves a bastard mother's disposition from her honour/calculating traits and her regard for the player. |
+| `BastardPrestigePolicy` | public static class | The rule for a grown bastard's disposition toward the FATHER's clan. |
+| `BastardScandalPolicy` | public static class | Scales the cost of a discovered bastard scandal (the standing hit and how far it spreads) by the culture's outrage at infidelity — the same JealousyOutrage the jealousy system reads. |
+| `HushMoneyPolicy` | public static class | The numeric contract for hush money paid to a lord who holds the player's secret-lover identity. |
+
 ### CalradiaRemembers.Logic.Battles (8)
 
 | Type | Kind | What it is |
@@ -2073,12 +2030,70 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ItemSalePolicy` | public static class | Settles a sale. |
 | `ItemSaleRefusal` | public enum | Why a sale does not go through. |
 
+### CalradiaRemembers.Logic.Marriage (34)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `CourtshipTrialPolicy` | public static class | Pure completion gate for a courtship trial (a marriage prospect riding with the player to be tested). |
+| `DivorceAnnouncePolicy` | public static class | Drives the bounded announce phase of a spouse's divorce demand (romance audit C1/C2), so the refusal clock starts on a letter the player genuinely saw THIS cycle, an undelivered letter re-announces instead of freezing, a... |
+| `DivorceAnnounceStep` | public enum | What the host should do this tick for a demand whose refusal clock has not yet started. |
+| `DivorceBlock` | public enum | Why a marriage dissolution was refused at its deadline, ranked by how the host must respond. |
+| `DivorceBlockPolicy` | public static class | Classifies a dissolution refusal from the same facts DivorcePolicy's hosts observe. |
+| `DivorceConsequencePolicy` | public static class | Pure rules turning a divorce's facts into a signed per-party consequence matrix: who grudges, who feels relief, who feels outright gratitude, and who is untouched. |
+| `DivorceConsequences` | public class | The full per-party verdict for one divorce, one PartyReaction per stake. |
+| `DivorceDemandTimeoutPolicy` | public static class | Pure gate deciding when a pending divorce demand's grace period has run out, unread refusal (the player never explicitly refused, but the deadline passed). |
+| `DivorceEligibilityFacts` | public class | Every already-resolved fact DivorcePolicy.IsEligible needs. "Leaving spouse" is whichever of the two would have to move clans to formalize the split (the one who joined the other's clan at marriage) — resolved live by Di... |
+| `DivorceFacts` | public class | Every already-resolved fact DivorceConsequencePolicy.Resolve needs about the shape of one divorce. |
+| `DivorcePolicy` | public static class | Pure math and gates for the end_marriage estrangement process. |
+| `DivorceProcess` | public class | One NPC's ongoing estrangement from their own spouse, begun at the player's urging: who, concerning which spouse, started when, due when, how many days of spousal resistance have already pushed the end day back, and wher... |
+| `DivorceProcessState` | public enum | The lifecycle of a divorce process. |
+| `DivorceResistanceOutcome` | public enum | The outcome of one day's spousal-resistance roll against an active DivorceProcess. |
+| `EstrangementPhase` | public enum | Where a fraying marriage stands on its way from the first crack to a spouse ready to walk out. |
+| `EstrangementProgressPolicy` | public static class | Paces a Stolen Love estrangement from its start day to the point the spouse is ready to leave, scaled by the seduction's SeductionDifficulty. |
+| `ExCompanionDivorcePolicy` | public static class | Pure decision for the divorce half of the marry-your-own-companion feature: whether a divorcing spouse is an ex-companion who must be returned to the free-wanderer pool rather than relocated to a birth clan. |
+| `ForcedMarriagePolicy` | public static class | How a marriage sealed on the family's blessing, against the spouse's own unwon heart, is resented. |
+| `MarriageBlockOverridePolicy` | public static class | Pure soft-vs-hard table: which MarriageBlockReason a passed courtship trial may override. |
+| `MarriageClaimPolicy` | public static class | Detects whether an [EVENT] summary CLAIMS that the conversation NPC and the player are now married, so the mod can withhold the memory (and the romantic-arc advancement riding on it) until Hero.Spouse confirms the weddin... |
+| `MarriageCustomReading` | public struct | A culture's marriage custom: strictness 0 (low) to 2 (high), and whether a house of the tier asked shares partners. |
+| `MarriageEligibility` | public static class | Whether a candidate could marry the player under Calradia's rules: alive, unwed, adult, and of the opposite sex (the engine marries opposite-sex only). |
+| `MarriageGuardPolicy` | public static class | Live-state guards a marriage or a marriage-blessing must satisfy, whatever the LLM proposed. |
+| `MarriageProspectPolicy` | public static class | Whether a house would put a given kin forward as a marriage prospect of its own accord. |
+| `PartyReaction` | public class | One party's verdict on a divorce. |
+| `PlayerDivorceConsentFacts` | public class | Every already-resolved fact PlayerDivorceConsentPolicy.SpouseConsents needs. |
+| `PlayerDivorceConsentPolicy` | public static class | Pure gate deciding whether the player's own spouse would ALSO have wanted this marriage to end (mutual consent), when the PLAYER is the one who initiates the split. |
+| `ReactionKind` | public enum | The kind of reaction one party has to a divorce. |
+| `SpouseDivorceDemandFacts` | public class | Every already-resolved fact SpouseDivorceDemandPolicy.ShouldDemand needs. |
+| `SpouseDivorceDemandPolicy` | public static class | Pure gate deciding whether the player's own spouse is unhappy enough to raise a divorce demand this evaluation period. |
+| `SpouseDivorceEscalationFacts` | public class | Every already-resolved fact SpouseDivorceDemandPolicy.ShouldEscalate needs. |
+| `StolenLoveEstrangement` | public class | One married NPC whose marriage is coming apart because of an affair with the player: who they are, who they are married to, when the estrangement began, and how hard-won the seduction was (which paces how long the rift t... |
+| `WeddingFacts` | public class | What is known about a match at the moment of the wedding. |
+| `WeddingMemoryText` | public static class | Words the new spouse's memory of the wedding. |
+
 ### CalradiaRemembers.Logic.Narrative (2)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `NarrativePatch` | public class | One module's contribution to one narrative file: where it came from, and what it says. |
 | `NarrativePatchComposer` | public static class | Lays other modules' contributions over one of the mod's own narrative files, in load order. |
+
+### CalradiaRemembers.Logic.Nemesis (14)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `NemesisBountyPolicy` | public static class | Decides whether a given lord may offer the player a bounty on a given tracked nemesis. |
+| `NemesisBountyRewardPolicy` | public static class | The gold and personal-relation reward a lord promises for a nemesis's capture or death, scaled by his notoriety. |
+| `NemesisDossierBuilder` | public static class | Pure formatting for the encyclopedia hero-page nemesis dossier. |
+| `NemesisEscapeChancePolicy` | public static class | The chance a player escapes a NEMESIS captor in a captive-scene attempt, decaying with each prior recapture as the nemesis tightens his guard, but never reaching zero. |
+| `NemesisIdentity` | public class | A persistent, regional, named bandit boss the player can build a recurring vendetta with. |
+| `NemesisMaterializePolicy` | public static class | Pure region-proximity gate for the nemesis materializing into a bandit party the player engages. |
+| `NemesisNameGenerator` | public static class | Pure, deterministic name/epithet minting. |
+| `NemesisNameResult` | public class | The minted name and byname for one nemesis identity. |
+| `NemesisResolutionKind` | public enum | How a tracked nemesis's life ended, for wording purposes only (no state of its own). |
+| `NemesisResolutionPolicy` | public static class | Pure classification and wording for a nemesis's closure deed. |
+| `NemesisRevealPolicy` | public static class | Pure pacing policy for the nemesis reveal roll. |
+| `NemesisRoster` | public class | Serializable roster of nemesis identities, living and dead (a dead one is kept for the record but never recurs). |
+| `NemesisRosterPolicy` | public static class | Pure roster lookup: which (if any) living nemesis of a given band culture already claims a given region. |
+| `NemesisRumorLine` | public static class | Pure text for the tavern-keeper's nemesis rumour line: takes the nemesis's display label and his region's display string (both already resolved by the caller, exactly like the lord bounty announcement resolves them) and... |
 
 ### CalradiaRemembers.Logic.Prisoners (2)
 

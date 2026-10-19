@@ -4,6 +4,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.19.. open
 
+### Internal
+- **Logic split into themes, pilot** (Gabriel 19/10). The 420 flat files of `CalradiaRemembers.Logic` start moving into
+  sub-namespaces by theme, the way `Logic.Duels` and `Logic.Grudges` already were: `Logic.Bastards` (7 files),
+  `Logic.Marriage` (20: marriage, divorce, estrangement, courtship), `Logic.Nemesis` (12; `NemesisTurnPolicy` stays in
+  the root because `CaptiveOfferPolicy` reads its thresholds). New `Tools/Move-LogicTypes.py` moves a set (git mv,
+  namespace, the `using` of every user) and refuses a move that would add a pair of namespaces using each other.
+  `Jealousy` stays in the root for now: `RomanticProfilePolicy` and the marriage rules read it. No behaviour change.
+
 ## v2.7.18.. 2026-10-19
 
 ### New

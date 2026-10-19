@@ -9,6 +9,7 @@ using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.Marriage;
 using CalradiaRemembers.Quests;
 using NpcMemoryService.Core.Models;
