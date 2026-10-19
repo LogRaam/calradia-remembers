@@ -556,6 +556,22 @@ MUST = [
     ("mod",   "press_for_war".encode("utf-16-le")),
     ("sdk",   "press_for_war".encode("utf-16-le")),
     ("mod",   "captive_dungeon_bargain".encode("utf-16-le")),
+    # 2.7.17
+    ("logic", b"TaleRoleState"),
+    ("logic", b"IsPlayersCompanion"),
+    ("logic", b"WithoutThePair"),
+    ("logic", b"OutsideTraces"),
+    ("logic", b"BlowWhat"),
+    ("mod",   b"CrLetters"),
+    ("mod",   b"CrPairRegard"),
+    ("mod",   b"CrPatrols"),
+    ("mod",   b"DrawDay"),
+    ("sdk",   b"MoodCause"),
+    ("sdk",   b"FromAnotherMod"),
+    ("mod",   "letter_from_another_mod".encode("utf-16-le")),
+    ("mod",   "pair_regard_source".encode("utf-16-le")),
+    ("mod",   "tale_companion_giver".encode("utf-16-le")),
+    ("sdk",   "a bad night's sleep".encode("utf-16-le")),
 ]
 MUST_NOT = [
     ("mod",   "patrol_spike".encode("utf-16-le")),   # 2.7.13: the patrol engine spike's console command, removed before release

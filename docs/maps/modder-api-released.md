@@ -1,4 +1,4 @@
-Released in v2.7.16
+Released in v2.7.17
 
 The modder API as it SHIPPED, the baseline for the vanished-member guard (see docs/maps/README.md). Recorded on
 purpose at each release cut with Tools/Update-Maps.ps1 -RecordReleasedApi; never by a plain regeneration.
@@ -64,6 +64,13 @@ _A whole conversation as it CLOSES, delivered by CrConversation.Ended._
 _Read-only readings of the cultures CR plays by (its ModuleData jealousy_cultures.json, or a Custom copy)._
 
 - `static MarriageCustomReading MarriageCustom(string cultureName, int clanTier)`
+
+### CrLetters
+
+_Another mod's letters, delivered through CR's courier and letter window._
+
+- `const int MaxBodyLength = 4000`
+- `static bool Deliver(Hero sender, string body, string sourceMod)`
 
 ### CrMatchOutcome
 
@@ -131,6 +138,66 @@ _The public NPC-memory API. A caller identifies the NPC by its hero StringId (ne
 - `static event Action<CrRegardChange> RegardChanged`
 - `static int RemoveMemory(CrMemoryRemoval removal)`
 - `static int? GetRegard(string npcId)`
+
+### CrPairRegard
+
+_The door through which other mods add to what one character thinks of another._
+
+- `static void RegisterPairRegardSource(IPairRegardSource source)`
+- `static void UnregisterPairRegardSource(IPairRegardSource source)`
+
+### CrPatrolBattle
+
+_One battle a patrol fought, for CrPatrols.Fought._
+
+- `CrPatrolInfo Patrol { get; }`
+- `bool Won { get; }`
+- `int FoeMen { get; }`
+- `int GameDay { get; }`
+- `string FoeName { get; }`
+
+### CrPatrolEnd
+
+_A patrol's end, for CrPatrols.Ended._
+
+- `CrPatrolEndKind How { get; }`
+- `CrPatrolInfo Patrol { get; }`
+- `int GameDay { get; }`
+- `int MenBack { get; }`
+
+### CrPatrolEndKind
+
+_How a patrol ended._
+
+- `Back`
+- `Captured`
+- `Killed`
+- `Scattered`
+
+### CrPatrolInfo
+
+_A patrol as it stood when copied._
+
+- `bool RidingHome { get; }`
+- `int BattlesLost { get; }`
+- `int BattlesWon { get; }`
+- `int FoesBeaten { get; }`
+- `int MenAtDeparture { get; }`
+- `int StartDay { get; }`
+- `string CompanionId { get; }`
+- `string CompanionName { get; }`
+- `string Id { get; }`
+- `string PartyId { get; }`
+- `string SettlementId { get; }`
+- `string SettlementName { get; }`
+
+### CrPatrols
+
+_The companion patrols, read-only, and their public events._
+
+- `static IReadOnlyList<CrPatrolInfo> Current { get; }`
+- `static event Action<CrPatrolBattle> Fought`
+- `static event Action<CrPatrolEnd> Ended`
 
 ### CrPrompt
 
@@ -302,6 +369,12 @@ _The outcome of feeding an event through Feed (record / update / retract)._
 - `RejectedThrottled`
 - `Retracted`
 - `Updated`
+
+### IPairRegardSource
+
+_What another mod knows lies between two characters._
+
+- `IEnumerable<PairRegardTrace> TracesFor(Hero speaker, Hero other, int today)`
 
 ### MemoryResult
 

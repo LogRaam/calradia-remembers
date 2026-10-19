@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.7.17.. open
+## v2.7.17.. 2026-10-18
 
 ### New
 - **A character's mood of the day has a cause** (Lordfadooboo, 18/10: "the ai struggles to invent a reason for their

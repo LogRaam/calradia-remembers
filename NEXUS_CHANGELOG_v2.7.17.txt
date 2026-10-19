@@ -1,0 +1,30 @@
+Version 2.7.17
+
+A character's mood of the day now has a reason, a new weary mood, an easier encyclopedia page, and new doors for tale writers and other mods.
+
+New
+
+- A character's mood has a reason. When a character is grim, short of patience or in fine spirits, they now know why, and can tell you if you ask. When something real lies behind it, that is the reason: the death of a brother, a fief lost, a tournament won, their wounds, their realm's war going well or badly, a captivity. When nothing does, it is a small private matter: a bad night's sleep, an old ache, a quarrel over nothing, a fine meal last evening. The reason stays the same all day, and a character may still keep it to themselves. (Thank you, Lordfadooboo.)
+- A new mood: weary. Some days a character is worn down: slower, shorter, with little appetite for effort, but not unkind. It comes more often late at night, to the wounded and to captives. (Thank you, Lordfadooboo.)
+
+Changed
+
+- The encyclopedia page reads more easily. The houses a character is at odds with, or close to, are grouped by reason, one line each, instead of the same reason repeated for every house. A house whose lord is already explained above is named "through" that lord, and nothing is said twice. (Thank you, tashmetu.)
+
+For modders
+
+- Tale writers can end a stage when the world moves: a war ends, a character dies, or the player marries someone.
+- A tale can name the realm of the character who offers it.
+- A tale can be offered by one of the player's companions only, so a road tale no longer goes to a spouse or a child travelling along. (Thank you, tashmetu.)
+- Another mod can send a letter written in full from one of its characters. It travels with Calradia Remembers' courier, opens in the letter window and stays in the letter book; the sender remembers writing it, and the player may reply. (Thank you, tashmetu.)
+- Another mod can add its own reasons to what two characters think of each other, in conversation and on the encyclopedia page. All outside reasons together count for a limited amount, so they can tip a pair but never outweigh what happened in your game. (Thank you, tashmetu.)
+- Companion patrols can be read by other mods, with an event after each battle and one when a patrol ends. (Thank you, tashmetu.)
+- All of it is described in EXTENSION_API.md and HOWTO_Quests.md.
+
+Developer tools
+
+- New cr.testall tests: tale_world_exits, tale_realm, tale_companion_giver, pair_regard_source, letter_from_another_mod; companion_patrol, npc_regard_reason and mood_of_the_day extended.
+
+Notes
+
+- Your existing saves load as they are.
