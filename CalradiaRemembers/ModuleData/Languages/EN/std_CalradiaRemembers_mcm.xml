@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GENERATED from CalradiaRemembers/Settings/CrSettings.cs by McmStringsTests: do not edit by hand. -->
+<!-- To translate: see ../README.txt. Keep every id; translate only the text. -->
+<base xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" type="string">
+  <tags>
+    <tag language="English" />
+  </tags>
+  <strings>
+    <string id="CR_MCM_AdultContentLevel" text="Adult Content Level" />
+    <string id="CR_MCM_AdultContentLevel_Hint" text="How much romantic/intimate content NPCs may express. Off, Mature (romance, nothing explicit), Explicit, or Hardcore. A child can be conceived only at Explicit or above. Applies on your next conversation." />
+    <string id="CR_MCM_Group_Content" text="Content" />
+    <string id="CR_MCM_PromptProfile" text="Prompt Profile" />
+    <string id="CR_MCM_PromptProfile_Hint" text="Which prompt profile composes what characters read: stock, your own (Custom/Prompts) or one a mod ships (cr_prompts). Stock is the reset. cr.prompt_check lists what each profile changes." />
+    <string id="CR_MCM_ChatSkin" text="Chat Window Style" />
+    <string id="CR_MCM_ChatSkin_Hint" text="The look of the conversation window. Origin is the original panel; Dark Leather is the illuminated leather book. Both are the same conversation, only the look differs. Applies on your next conversation." />
+    <string id="CR_MCM_ChatTextSizePercent" text="Chat Text Size (%)" />
+    <string id="CR_MCM_ChatTextSizePercent_Hint" text="Scales ONLY the dialogue text in the chat window, not the window itself: a smaller value fits more words per line, a larger one reads easier. 100 is the shipped size. Applies on your next conversation." />
+    <string id="CR_MCM_DarkLeatherZoomPercent" text="Dark Leather Size (%)" />
+    <string id="CR_MCM_DarkLeatherZoomPercent_Hint" text="Scales the Dark Leather chat window. Raise it on a high-resolution screen (1440p+) if the book feels small or cramped. 100 is the shipped size. No effect on the Origin skin." />
+    <string id="CR_MCM_CouncilZoomPercent" text="Council Size (%)" />
+    <string id="CR_MCM_CouncilZoomPercent_Hint" text="Scales the council window independently of the chat size above. The council book is wider, so on a 1440p or larger screen it can feel too big: lower it if it overflows, raise it if it feels small. 100 is the shipped size." />
+    <string id="CR_MCM_CouncilTextSizePercent" text="Council Text Size (%)" />
+    <string id="CR_MCM_CouncilTextSizePercent_Hint" text="Scales ONLY the dialogue text in the council (round-table) window, INDEPENDENTLY of the chat text size above. 100 is the shipped size. Applies to the next council." />
+    <string id="CR_MCM_MarriageRegardNeeded" text="Marriage Regard Needed" />
+    <string id="CR_MCM_MarriageRegardNeeded_Hint" text="Regard a lord or lady must hold for you before accepting a LOVE-MATCH marriage (their personal regard or your clan relation, whichever is higher). 50 is the shipped bar. Their family's blessing can still open a match below it. Applies immediately." />
+    <string id="CR_MCM_RegardDecayDays" text="Regard Warmth Cooldown (days)" />
+    <string id="CR_MCM_RegardDecayDays_Hint" text="How long warmth settles before it can deepen again. Each point of regard costs one more warm moment than the last, and a step relaxes after this many days. 0 turns it off: warmth never gets dearer. 7 is the default. Applies immediately." />
+    <string id="CR_MCM_ApiKey" text="OpenRouter API Key" />
+    <string id="CR_MCM_ApiKey_Hint" text="Paste your key from openrouter.ai/keys. Stored locally on this machine only. NEVER share your config file or a screenshot of this field. Applies immediately." />
+    <string id="CR_MCM_Group_OpenRouter" text="OpenRouter" />
+    <string id="CR_MCM_ProviderPin" text="Pin Providers (advanced)" />
+    <string id="CR_MCM_ProviderPin_Hint" text="Leave blank unless needed. Some providers censor their own output, cutting replies mid-sentence. Pinning also steadies prompt caching, which lowers cost: unpinned, OpenRouter may switch provider mid-session and the cache is lost. Comma separated." />
+    <string id="CR_MCM_NsfwProviderPin" text="Pin Providers (NSFW)" />
+    <string id="CR_MCM_NsfwProviderPin_Hint" text="Blank reuses the pin above. Set a different provider only for explicit scenes, e.g. cheapest routing for chat and an uncensored provider for scenes." />
+    <string id="CR_MCM_AllowProviderFallbacks" text="Allow provider fallbacks" />
+    <string id="CR_MCM_AllowProviderFallbacks_Hint" text="Only matters with providers pinned above. OFF (default) makes the pin a hard rule. ON lets OpenRouter fall back to others when yours are unavailable." />
+    <string id="CR_MCM_EnableRideWithMe" text="Lords can ride in your party" />
+    <string id="CR_MCM_EnableRideWithMe_Hint" text="On (default): an idle lord or lady of another clan may agree to ride IN your party for a time, keeping their own house. Off: only the follow_me escort (their own party riding alongside yours) remains. cr.retainer enable overrides for the session." />
+    <string id="CR_MCM_EnableNpcWorldClaims" text="Characters can add news to the world" />
+    <string id="CR_MCM_EnableNpcWorldClaims_Hint" text="Off (default): what a character invents stays in that conversation. On: a blight, brigands, a death or an omen they mention can become a real rumour others may hear. Never numbers, money, or who holds what - the game owns those." />
+    <string id="CR_MCM_NpcCanEndConversation" text="NPCs can end conversations" />
+    <string id="CR_MCM_NpcCanEndConversation_Hint" text="On (default): when a character ends a conversation the chat closes and you click Leave. Off: their goodbye no longer closes it, so you can have the last word and close it yourself. Captivity scenes keep their own flow." />
+    <string id="CR_MCM_EnableCouncil" text="Enable Council" />
+    <string id="CR_MCM_EnableCouncil_Hint" text="When ON, you can convene a council of companions, kin, clan lords or a war council from a town, castle or village menu, and from a button on the campaign map while on land. OFF hides those entry points; the console can still open it." />
+    <string id="CR_MCM_EnableStrategicAssessment" text="Strategic Assessment (AI)" />
+    <string id="CR_MCM_EnableStrategicAssessment_Hint" text="On (default): the Strategic Assessment is written by your highest-Tactics companion (a warband soldier if you have none), and the sharper their Tactics the better the counsel. Off, or alone: a plain summary, no AI call." />
+    <string id="CR_MCM_CouncilVoices" text="Council Voices" />
+    <string id="CR_MCM_CouncilVoices_Hint" text="Default for a new council (flip it in the council window). One call for the table keeps the scene cohesive but voices the others from little more than a name. One call per member gives each their real memory and regard, at a round-trip apiece." />
+    <string id="CR_MCM_CompanionContentment" text="Companion contentment" />
+    <string id="CR_MCM_CompanionContentment_Hint" text="When ON, a neglected companion grows restless, asks for an audience, and if you keep refusing eventually leaves by letter, never silently. Also gates the occasional found-topic audience. OFF disables both entirely." />
+    <string id="CR_MCM_Group_Companions" text="Companions" />
+    <string id="CR_MCM_ContentmentPacing" text="Contentment Pacing" />
+    <string id="CR_MCM_ContentmentPacing_Hint" text="How fast companions get over a grievance: Forgiving, Balanced (default), or Exacting. In every setting, a companion left merely idle NEVER leaves you." />
+    <string id="CR_MCM_CompanionAudiencePacing" text="Companions Asking For A Word" />
+    <string id="CR_MCM_CompanionAudiencePacing_Hint" text="How often a travelling companion asks for a private word when they have something worth raising: on entering a settlement AND, new, while on the road. Never switches it off entirely. Occasionally is the shipped feel." />
+    <string id="CR_MCM_CustomApiKey" text="API Key (optional)" />
+    <string id="CR_MCM_CustomApiKey_Hint" text="Leave blank for keyless local servers like LM Studio or Ollama. Fill it in only if your server requires one. Applies immediately." />
+    <string id="CR_MCM_Group_OpenAICompatible" text="OpenAI-Compatible" />
+    <string id="CR_MCM_CustomEndpointUrl" text="Endpoint URL (Prose / shared)" />
+    <string id="CR_MCM_CustomEndpointUrl_Hint" text="Base URL of your local server, with /v1 (e.g. http://localhost:1234/v1). Serves the Prose role, and any role whose own Endpoint below is blank. Set that role's model under LLM Provider too, or it sends an OpenRouter id to your server." />
+    <string id="CR_MCM_CustomEndpointUrlNsfw" text="Endpoint URL (NSFW)" />
+    <string id="CR_MCM_CustomEndpointUrlNsfw_Hint" text="Optional. A separate OpenAI-Compatible server URL for the NSFW role only, so you can split roles across two local machines. Blank = use the shared Endpoint URL above. Applies immediately." />
+    <string id="CR_MCM_CustomEndpointUrlHousekeeping" text="Endpoint URL (Background)" />
+    <string id="CR_MCM_CustomEndpointUrlHousekeeping_Hint" text="Optional. A separate OpenAI-Compatible server URL for the mod's background work only (summaries, memory compression). Leave blank to use the same server as everything else." />
+    <string id="CR_MCM_CustomEndpointUrlInterpret" text="Endpoint URL (Interpret)" />
+    <string id="CR_MCM_CustomEndpointUrlInterpret_Hint" text="Optional. A separate OpenAI-Compatible server URL for the Interpret role only, so the interpreter can run on its own local machine. Blank = use the shared Endpoint URL above. Applies immediately." />
+    <string id="CR_MCM_CustomParameterCompatibility" text="Parameter Compatibility" />
+    <string id="CR_MCM_CustomParameterCompatibility_Hint" text="Which sampling parameters to send. Auto detects OpenAI reasoning models (gpt-5, o1/o3/o4), which reject the classic max_tokens. Leave on Auto unless your endpoint rejects a field." />
+    <string id="CR_MCM_CustomReasoningEffort" text="Reasoning Effort" />
+    <string id="CR_MCM_CustomReasoningEffort_Hint" text="Sends reasoning_effort to a local or OpenAI-compatible endpoint. Set Off if a reasoning model spends the whole reply budget thinking and stalls. Default sends nothing. Some servers (vLLM) ignore it; Verbose Logging shows what was sent." />
+    <string id="CR_MCM_CustomApiKeyNsfw" text="API Key (NSFW)" />
+    <string id="CR_MCM_CustomApiKeyNsfw_Hint" text="Optional. A separate API key for the NSFW role only, so it can authenticate against a different OpenAI-Compatible server than the shared one. Blank = use the API Key above. Applies immediately." />
+    <string id="CR_MCM_CustomApiKeyHousekeeping" text="API Key (Background)" />
+    <string id="CR_MCM_CustomApiKeyHousekeeping_Hint" text="Optional. A separate API key for the mod's background work only. Leave blank to use the same key as everything else." />
+    <string id="CR_MCM_CustomApiKeyInterpret" text="API Key (Interpret)" />
+    <string id="CR_MCM_CustomApiKeyInterpret_Hint" text="Optional. A separate API key for the Interpret role only, so the interpreter can authenticate against its own OpenAI-Compatible server. Blank = use the API Key above. Applies immediately." />
+    <string id="CR_MCM_EnableLogging" text="Enable File Logging" />
+    <string id="CR_MCM_EnableLogging_Hint" text="Writes the mod's diagnostics to CalradiaRemembers.log (only the last two sessions are kept, so the file never grows without bound). Off by default; turn on to capture a bug report." />
+    <string id="CR_MCM_Group_Diagnostics" text="Diagnostics" />
+    <string id="CR_MCM_EnableScreenLogging" text="Enable On-Screen Logging" />
+    <string id="CR_MCM_EnableScreenLogging_Hint" text="Also prints the mod's diagnostics as on-screen messages (top-left). Off by default: the stream can crowd the screen during play. Turn it on only when you want to watch the mod live; the file log above is the better channel for a bug report." />
+    <string id="CR_MCM_EnableJealousy" text="Enable Jealousy" />
+    <string id="CR_MCM_EnableJealousy_Hint" text="On (default): the world is richer, partners react to being favoured or slighted, a neglected co-partner can feel wronged, and open-relationship pacts matter. Off: a drama-free household, no jealousy of any kind, from any partner." />
+    <string id="CR_MCM_Group_Relationships" text="Relationships" />
+    <string id="CR_MCM_EnableStolenLove" text="Enable Stolen Love" />
+    <string id="CR_MCM_EnableStolenLove_Hint" text="Off (default): a married character resists an affair as before. On: seducing a MARRIED character is a gated, personality-true path (an honourable or content one holds firm however high your standing). Explicit content follows Adult Content Level." />
+    <string id="CR_MCM_AllowKillingCharacters" text="Allow killing characters" />
+    <string id="CR_MCM_AllowKillingCharacters_Hint" text="Off (default): you may rob or beat someone in conversation, never kill. On: a killing attempt is possible, never a formality (it turns on how you compare and whether they are alone). The world answers: a crime, lost standing, kin who remember." />
+    <string id="CR_MCM_EnableArrests" text="Arrests and outlaws" />
+    <string id="CR_MCM_EnableArrests_Hint" text="Off (default). On: as a vassal or mercenary, a grave act brings a warrant: surrender and face your liege's council, or flee as an outlaw with a price on your head. Robbing merchants in peace makes you a brigand. Never a kingdom's ruler." />
+    <string id="CR_MCM_JudgeMercenaryDepartures" text="Mercenary departures are judged" />
+    <string id="CR_MCM_JudgeMercenaryDepartures_Hint" text="On (default): when a contract ends, the realm's lords judge it. Leaving a losing war, or going to its enemy, costs their regard, which fades over a year. A contract renewed within days is no departure. Off: never judged." />
+    <string id="CR_MCM_EnableWarDuty" text="Vassal war duty" />
+    <string id="CR_MCM_EnableWarDuty_Hint" text="Off (default). On: a sworn vassal (never a mercenary) who sits out the realm's war is summoned by the ruler to answer for it, then asked a levy in coin, or troops, horses or arms instead, and may lose a fief by giving nothing." />
+    <string id="CR_MCM_WarDutyWindowDays" text="War duty window (days)" />
+    <string id="CR_MCM_WarDutyWindowDays_Hint" text="Days of war a sworn vassal may go without fighting for the realm (a battle, a siege, a day in its army) before the ruler calls them to account. Default 30." />
+    <string id="CR_MCM_WarLevyScalePercent" text="War levy scale (%)" />
+    <string id="CR_MCM_WarLevyScalePercent_Hint" text="Scales the levy a ruler asks of a vassal who did not fight (it grows with clan tier and fiefs held, at most 10,000 per hand-over). 100 = as designed." />
+    <string id="CR_MCM_ClanStandingWarmsFirstMeetings" text="Clan standing warms first meetings" />
+    <string id="CR_MCM_ClanStandingWarmsFirstMeetings_Hint" text="On (default): when you next speak with someone whose clan already counts you a friend, they start warmer toward you, once, up to friendly regard; the rest is earned in person. An offence stands. Off: regard starts from zero." />
+    <string id="CR_MCM_EnablePostDuelConversation" text="Post-duel conversation" />
+    <string id="CR_MCM_EnablePostDuelConversation_Hint" text="On (default): after a duel the conversation reopens and resumes what led to it. The loser concedes (a beaten character of honour may grant a favour you ask); the victor says what they now expect. Off: only the duel's consequences apply." />
+    <string id="CR_MCM_Group_Duels" text="Duels" />
+    <string id="CR_MCM_LeanPrompt" text="Compact prompt for small models" />
+    <string id="CR_MCM_LeanPrompt_Hint" text="Trims the prompt to fit a SMALL, short-context model (4k to 8k). Turn ON if the AI stays silent: the full prompt is overflowing it. Replies grow less richly grounded. Leave OFF for cloud models." />
+    <string id="CR_MCM_Group_LLMProvider" text="LLM Provider" />
+    <string id="CR_MCM_LocalContextTokens" text="Local model context (tokens)" />
+    <string id="CR_MCM_LocalContextTokens_Hint" text="0 = off (cloud models). For a local/custom server: the context length set there, per request. CR then trims each request to fit it (oldest lines first, then the compact prompt) instead of the server cutting it blind." />
+    <string id="CR_MCM_MemoryCompression" text="Compress old memories" />
+    <string id="CR_MCM_MemoryCompression_Hint" text="Lets characters fold old, superseded memories into a short outline, so a long campaign stops inflating every prompt (the usual cause of slow replies on a local model). First meetings, recent events and grave moments are never dropped." />
+    <string id="CR_MCM_ChatTemperature" text="Chat Temperature" />
+    <string id="CR_MCM_ChatTemperature_Hint" text="How varied conversation replies are (default 0.70). Lower is steadier and more repetitive, higher more surprising; above 1.0 a local model may lose its character. Reasoning models ignore it. Applies immediately." />
+    <string id="CR_MCM_LlmTimeoutSeconds" text="LLM Response Timeout (s)" />
+    <string id="CR_MCM_LlmTimeoutSeconds_Hint" text="How long to wait for a reply, in seconds (default 120), in conversations and for letters and summaries (never under 60). Raise it for a slow local or reasoning model; lower it to fail fast. Applies immediately." />
+    <string id="CR_MCM_Model" text="PROSE model" />
+    <string id="CR_MCM_Model_Hint" text="Model id in the ACTIVE provider's own format (OpenRouter: x-ai/grok-4.20; NanoGPT: deepseek-ai/DeepSeek-V3; Ollama: llama3.1:8b). Writes ordinary chat, and in Enhanced mode the prose of every scene. Applies immediately." />
+    <string id="CR_MCM_Provider" text="Roleplay / Prose provider" />
+    <string id="CR_MCM_Provider_Hint" text="Which provider the roleplay and prose model above is sent to. It is also the base every other role inherits when left on (default). Each provider keeps its own key further down. Applies immediately." />
+    <string id="CR_MCM_NanoGptApiKey" text="NanoGPT API Key" />
+    <string id="CR_MCM_NanoGptApiKey_Hint" text="Paste your key from nano-gpt.com. Stored locally on this machine only. NEVER share your config file or a screenshot of this field." />
+    <string id="CR_MCM_Group_NanoGPT" text="NanoGPT" />
+    <string id="CR_MCM_ChatCompositionModeSetting" text="Chat Composition" />
+    <string id="CR_MCM_ChatCompositionModeSetting_Hint" text="Where a fresh session's in-chat Enhanced/Roleplay switch starts. Enhanced (default): the prose model writes and the interpret model tags, richest but slower. Standard: one call, cheapest and fastest. The in-chat switch overrides it for the session." />
+    <string id="CR_MCM_CncModel" text="NSFW model" />
+    <string id="CR_MCM_CncModel_Hint" text="Model id for explicit content: captivity in Standard mode, the fallback in Enhanced. Blank uses the PROSE model - and so does the shipped OpenRouter id if you point this role at your own server without naming ITS model." />
+    <string id="CR_MCM_CncProvider" text="NSFW provider" />
+    <string id="CR_MCM_CncProvider_Hint" text="Which provider the NSFW model above is sent to. (default) uses the PROSE provider. Applies immediately." />
+    <string id="CR_MCM_HousekeepingModel" text="Background model" />
+    <string id="CR_MCM_HousekeepingModel_Hint" text="Optional. A cheaper or smaller chat model (not an embedding model) for the mod's background work: summaries, memory compression, claim extraction. Blank uses the roleplay model. Useful on a local server, where two prompts share one cache." />
+    <string id="CR_MCM_HousekeepingProvider" text="Background provider" />
+    <string id="CR_MCM_HousekeepingProvider_Hint" text="Which provider the Background model above is sent to. (default) uses the PROSE provider." />
+    <string id="CR_MCM_ActionInterpreterModel" text="Interpret model" />
+    <string id="CR_MCM_ActionInterpreterModel_Hint" text="Enhanced mode only: the model that reads the structured actions out of the prose. Blank uses the PROSE model - and so does the shipped OpenRouter id if you point this role at your own server without naming ITS model." />
+    <string id="CR_MCM_ActionInterpreterProvider" text="Interpret provider" />
+    <string id="CR_MCM_ActionInterpreterProvider_Hint" text="Which provider the Interpret model above is sent to. (default) uses the PROSE provider (set it to a local OpenAI-Compatible endpoint to run the interpreter locally). Applies immediately." />
+    <string id="CR_MCM_NsfwReasoningEffort" text="Reasoning Effort (NSFW)" />
+    <string id="CR_MCM_NsfwReasoningEffort_Hint" text="Reasoning effort while the chat is in NSFW mode. Lower or Off makes a reasoning model far less prone to moralizing refusals, and speeds up scenes. OpenRouter and NanoGPT." />
+    <string id="CR_MCM_ReasoningEffort" text="Reasoning Effort (PROSE)" />
+    <string id="CR_MCM_ReasoningEffort_Hint" text="How hard the PROSE model thinks before replying. Higher can mean finer dialogue but slower replies, more truncation and more refusals on adult content; in Enhanced mode it writes captivity scenes too, so keep it Low or Medium. OpenRouter and NanoGPT." />
+    <string id="CR_MCM_RelationshipWarmth" text="Relationship Pacing" />
+    <string id="CR_MCM_RelationshipWarmth_Hint" text="How relationships grow through conversation: a philosophy, not a difficulty. Grounded keeps the core game's feel; Warm rewards good company; Storyteller is roleplay-first. Insults cost the same everywhere." />
+    <string id="CR_MCM_ReplyLanguage" text="Reply Language" />
+    <string id="CR_MCM_ReplyLanguage_Hint" text="Leave blank to use the game's language (an English game mirrors whatever language you write in). Name a language (e.g. Spanish) to force every reply, letter, memory, and the illuminated chronicle into it, no matter what you write." />
+    <string id="CR_MCM_NpcsRaiseWorldNews" text="NPCs Raise World News" />
+    <string id="CR_MCM_NpcsRaiseWorldNews_Hint" text="Off (default): an NPC approaches you only about something between the two of you. On: they may also stop you to ask what you make of distant news. Their own deeds and yours are always allowed either way." />
+    <string id="CR_MCM_InterceptionPacing" text="Lords Approaching You" />
+    <string id="CR_MCM_InterceptionPacing_Hint" text="How often a lord rides out to have a word with you on the road. Never switches it off entirely. Occasionally is the shipped feel." />
+    <string id="CR_MCM_AuthoredQuests" text="Authored Quests (experimental)" />
+    <string id="CR_MCM_AuthoredQuests_Hint" text="Experimental, off by default. On: characters may ask your help with a written tale (a quest in several stages, like the wolf of the wood). Off: no new tale is offered; one under way goes on (cr.story_abandon sets it aside)." />
+    <string id="CR_MCM_LordsHoldTheirCourse" text="Lords Hold Their Course" />
+    <string id="CR_MCM_LordsHoldTheirCourse_Hint" text="On: a lord riding out to speak with you holds his course until he reaches you, or gives up after a few days. Off: as before 2.6.8, he may turn back to his own affairs and lose interest quickly. Applies to the next chase." />
+    <string id="CR_MCM_AskCompanionsAtStart" text="Ask Which Companions Come Along" />
+    <string id="CR_MCM_AskCompanionsAtStart_Hint" text="Off (default): a conversation opens with whoever is truly there; bring a companion, a lord riding with you or a prisoner in with the Invite button. On: as before 2.7.5, each conversation first asks which companions come along." />
+    <string id="CR_MCM_NpcCrossTalkRounds" text="NPC Cross-Talk" />
+    <string id="CR_MCM_NpcCrossTalkRounds_Hint" text="How many times NPCs may talk amongst themselves (one reacting to another) before the turn comes back to you, in a scene with witnesses. 2 is the default; 0 turns it off so only the NPC you spoke to replies. Applies on your next message." />
+    <string id="CR_MCM_LetterPacing" text="Letters from NPCs" />
+    <string id="CR_MCM_LetterPacing_Hint" text="How many unprompted letters NPCs send you. Fewer keeps only what matters; the mod also learns from which letters you answer versus dismiss. Applies immediately." />
+    <string id="CR_MCM_InvulnerableCouriers" text="Invulnerable Couriers" />
+    <string id="CR_MCM_InvulnerableCouriers_Hint" text="Off: couriers can be intercepted by bandits or by the sender's enemies. A lost letter is sent again, and what it said travels with its captors to whoever beats them. On: no interception." />
+    <string id="CR_MCM_AllowCaptorExecutions" text="Allow Captor Executions" />
+    <string id="CR_MCM_AllowCaptorExecutions_Hint" text="Let a captor's scene end your character, at their own deliberate choice, deep in a Hardcore captive scene. Off by default. Irreversible: game over, or your heir succeeds you." />
+    <string id="CR_MCM_AllowFiefAndMarriageQuestRewards" text="Allow Fief And Marriage Quest Rewards" />
+    <string id="CR_MCM_AllowFiefAndMarriageQuestRewards_Hint" text="Let a lord promise one of their own fiefs, or a marriage into their house, as a quest reward, delivered when you complete it. Off by default." />
+    <string id="CR_MCM_StoryLogging" text="Story Log" />
+    <string id="CR_MCM_StoryLogging_Hint" text="Writes a clean narrative transcript of every conversation and letter to CalradiaRemembers_story.log in your Logs folder. No timestamps, no noise: it reads like a novel." />
+    <string id="CR_MCM_ReportUnsupportedActions" text="Report unsupported actions" />
+    <string id="CR_MCM_ReportUnsupportedActions_Hint" text="Shows a note in chat when the AI attempts an action the mod does not support yet. Every attempt is logged to CalradiaRemembers_unknown_actions.log regardless of this setting. Send that log to LogRaam on Nexus to request support." />
+    <string id="CR_MCM_TestConnection" text="Test Connection" />
+    <string id="CR_MCM_TestConnection_Hint" text="Validates your key, then sends a one-token test to the roleplay model and, if set, the consensual model, reporting any error. Costs a fraction of a cent." />
+    <string id="CR_MCM_TestConnection_Button" text="Test" />
+    <string id="CR_MCM_TestCustomConnection" text="Test Endpoint" />
+    <string id="CR_MCM_TestCustomConnection_Hint" text="Sends a one-token test to your endpoint with the roleplay model and, if set, the consensual model. Your server must be running. OpenAI-Compatible only." />
+    <string id="CR_MCM_TestCustomConnection_Button" text="Test" />
+    <string id="CR_MCM_TestNanoGptConnection" text="Test NanoGPT Connection" />
+    <string id="CR_MCM_TestNanoGptConnection_Hint" text="Checks your NanoGPT key against nano-gpt.com without starting a conversation. No tokens spent." />
+    <string id="CR_MCM_TestNanoGptConnection_Button" text="Test" />
+    <string id="CR_MCM_SelfEsteemClimb" text="Self-Esteem Climb" />
+    <string id="CR_MCM_SelfEsteemClimb_Hint" text="How hard a character's pride climbs once already high. 0: every success counts in full, as before. 2 (default): half way up, a victory counts a quarter; near the top, almost nothing. Higher: harder still. Applies immediately." />
+    <string id="CR_MCM_Group_Character" text="Character" />
+    <string id="CR_MCM_UseCustomTraits" text="Use custom traits" />
+    <string id="CR_MCM_UseCustomTraits_Hint" text="Applies the hand-authored personalities from ModuleData/character_overrides.json, replacing an authored NPC's five vanilla traits. Edits load on the next campaign, or via cr.reload_lore." />
+    <string id="CR_MCM_CustomFolderPath" text="Custom Folder Path" />
+    <string id="CR_MCM_CustomFolderPath_Hint" text="Where your edited prompts and styles are read from. Blank = the mod's own ModuleData/Custom. An absolute path keeps them outside the mod so an update never wipes them (re-enter it afterwards). Applies on the next campaign or cr.reload_lore." />
+    <string id="CR_MCM_VerboseLogging" text="Verbose Logging" />
+    <string id="CR_MCM_VerboseLogging_Hint" text="Logs the full system prompt and NPC reply on every exchange. Turn on only to capture a bug report: it floods the log. Requires Enable Logging." />
+    <string id="CR_MCM_WitnessDensity" text="Witness Density" />
+    <string id="CR_MCM_WitnessDensity_Hint" text="How many ambient bystanders a conversation gathers. Sparse thins the room fast; Normal keeps a genuine middle ground; Bustling (default) is today's full room, unchanged. Never touches companions you bring yourself. Applies on your next conversation." />
+  </strings>
+</base>

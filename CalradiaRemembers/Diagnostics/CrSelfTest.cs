@@ -13447,12 +13447,21 @@ namespace CalradiaRemembers.Diagnostics
       /// </summary>
       private const int MaxHintChars = 250;
 
+      // The "{=id}" a translatable hint opens on (kkxz3, 19/10/2026) is never shown, so it never counts against the width.
+      private static string WithoutTranslationId(string raw)
+      {
+         if (raw == null || !raw.StartsWith("{=", StringComparison.Ordinal)) return raw;
+         int close = raw.IndexOf('}');
+
+         return close < 0 ? raw : raw.Substring(close + 1);
+      }
+
       /// <summary>The HintText named argument of a setting attribute, or null when this attribute has none.</summary>
       private static string ReadHintText(CustomAttributeData attribute)
       {
          foreach (CustomAttributeNamedArgument named in attribute.NamedArguments)
             if (named.MemberName == "HintText")
-               return named.TypedValue.Value as string;
+               return WithoutTranslationId(named.TypedValue.Value as string);
 
          return null;
       }

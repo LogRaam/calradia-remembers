@@ -29,337 +29,337 @@ namespace CalradiaRemembers.Settings
    /// </summary>
    public sealed class CrSettings : AttributeGlobalSettings<CrSettings>
    {
-      [SettingPropertyDropdown("Adult Content Level", RequireRestart = false, Order = 0,
-         HintText = "How much romantic/intimate content NPCs may express. Off, Mature (romance, " +
+      [SettingPropertyDropdown("{=CR_MCM_AdultContentLevel}Adult Content Level", RequireRestart = false, Order = 0,
+         HintText = "{=CR_MCM_AdultContentLevel_Hint}How much romantic/intimate content NPCs may express. Off, Mature (romance, " +
                     "nothing explicit), Explicit, or Hardcore. A child can be conceived only at Explicit or " +
                     "above. Applies on your next conversation.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public Dropdown<string> AdultContentLevel { get; set; } =
          new(new[] {"Off", "Mature", "Explicit", "Hardcore"}, 1); // default: Mature
 
       // The Prompt Composer (Gabriel, 11/10/2026: "Un param MCM pourrait designer l'ordonnanceur a utiliser"). Filled with the
       // profiles found at the main menu and at each session launch (Mapping.PromptProfileService); MCM saves only the place
       // in this list, so the service also keeps the pick by id.
-      [SettingPropertyDropdown("Prompt Profile", RequireRestart = false, Order = 40,
-         HintText = "Which prompt profile composes what characters read: stock, your own (Custom/Prompts) or one a mod ships (cr_prompts). Stock is the reset. cr.prompt_check lists what each profile changes.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyDropdown("{=CR_MCM_PromptProfile}Prompt Profile", RequireRestart = false, Order = 40,
+         HintText = "{=CR_MCM_PromptProfile_Hint}Which prompt profile composes what characters read: stock, your own (Custom/Prompts) or one a mod ships (cr_prompts). Stock is the reset. cr.prompt_check lists what each profile changes.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public Dropdown<string> PromptProfile { get; set; } = new(new[] {"Stock (Calradia Remembers)"}, 0);
 
-      [SettingPropertyDropdown("Chat Window Style", RequireRestart = false, Order = 5,
-         HintText = "The look of the conversation window. Origin is the original panel; Dark Leather is the " +
+      [SettingPropertyDropdown("{=CR_MCM_ChatSkin}Chat Window Style", RequireRestart = false, Order = 5,
+         HintText = "{=CR_MCM_ChatSkin_Hint}The look of the conversation window. Origin is the original panel; Dark Leather is the " +
                     "illuminated leather book. Both are the same conversation, only the look differs. Applies on " +
                     "your next conversation.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public Dropdown<string> ChatSkin { get; set; } =
          new(new[] {"Origin", "Dark Leather"}, 1); // default: Dark Leather (the illuminated book)
 
-      [SettingPropertyInteger("Chat Text Size (%)", 70, 130, "0 '%'", RequireRestart = false, Order = 6,
-         HintText = "Scales ONLY the dialogue text in the chat window, not the window itself: a smaller value fits " +
+      [SettingPropertyInteger("{=CR_MCM_ChatTextSizePercent}Chat Text Size (%)", 70, 130, "0 '%'", RequireRestart = false, Order = 6,
+         HintText = "{=CR_MCM_ChatTextSizePercent_Hint}Scales ONLY the dialogue text in the chat window, not the window itself: a smaller value fits " +
                     "more words per line, a larger one reads easier. 100 is the shipped size. Applies on your next conversation.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public int ChatTextSizePercent { get; set; } = 100;
 
-      [SettingPropertyInteger("Dark Leather Size (%)", 80, 140, "0 '%'", RequireRestart = false, Order = 7,
-         HintText = "Scales the Dark Leather chat window. Raise it on a high-resolution screen (1440p+) if the book " +
+      [SettingPropertyInteger("{=CR_MCM_DarkLeatherZoomPercent}Dark Leather Size (%)", 80, 140, "0 '%'", RequireRestart = false, Order = 7,
+         HintText = "{=CR_MCM_DarkLeatherZoomPercent_Hint}Scales the Dark Leather chat window. Raise it on a high-resolution screen (1440p+) if the book " +
                     "feels small or cramped. 100 is the shipped size. No effect on the Origin skin.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public int DarkLeatherZoomPercent { get; set; } = 100;
 
-      [SettingPropertyInteger("Council Size (%)", 60, 140, "0 '%'", RequireRestart = false, Order = 8,
-         HintText = "Scales the council window independently of the chat size above. The council book is wider, so on a 1440p " +
+      [SettingPropertyInteger("{=CR_MCM_CouncilZoomPercent}Council Size (%)", 60, 140, "0 '%'", RequireRestart = false, Order = 8,
+         HintText = "{=CR_MCM_CouncilZoomPercent_Hint}Scales the council window independently of the chat size above. The council book is wider, so on a 1440p " +
                     "or larger screen it can feel too big: lower it if it overflows, raise it if it feels small. 100 is the " +
                     "shipped size.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public int CouncilZoomPercent { get; set; } = 100;
 
-      [SettingPropertyInteger("Council Text Size (%)", 70, 130, "0 '%'", RequireRestart = false, Order = 9,
-         HintText = "Scales ONLY the dialogue text in the council (round-table) window, INDEPENDENTLY of the chat " +
+      [SettingPropertyInteger("{=CR_MCM_CouncilTextSizePercent}Council Text Size (%)", 70, 130, "0 '%'", RequireRestart = false, Order = 9,
+         HintText = "{=CR_MCM_CouncilTextSizePercent_Hint}Scales ONLY the dialogue text in the council (round-table) window, INDEPENDENTLY of the chat " +
                     "text size above. 100 is the shipped size. Applies to the next council.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public int CouncilTextSizePercent { get; set; } = 100;
 
-      [SettingPropertyInteger("Marriage Regard Needed", 10, 50, "0", RequireRestart = false, Order = 10,
-         HintText = "Regard a lord or lady must hold for you before accepting a LOVE-MATCH marriage (their personal regard or " +
+      [SettingPropertyInteger("{=CR_MCM_MarriageRegardNeeded}Marriage Regard Needed", 10, 50, "0", RequireRestart = false, Order = 10,
+         HintText = "{=CR_MCM_MarriageRegardNeeded_Hint}Regard a lord or lady must hold for you before accepting a LOVE-MATCH marriage (their personal regard or " +
                     "your clan relation, whichever is higher). 50 is the shipped bar. Their family's blessing can still open " +
                     "a match below it. Applies immediately.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public int MarriageRegardNeeded { get; set; } = 50;
 
-      [SettingPropertyInteger("Regard Warmth Cooldown (days)", 0, 30, "0 'days'", RequireRestart = false, Order = 11,
-         HintText = "How long warmth settles before it can deepen again. Each point of regard costs one more warm moment " +
+      [SettingPropertyInteger("{=CR_MCM_RegardDecayDays}Regard Warmth Cooldown (days)", 0, 30, "0 'days'", RequireRestart = false, Order = 11,
+         HintText = "{=CR_MCM_RegardDecayDays_Hint}How long warmth settles before it can deepen again. Each point of regard costs one more warm moment " +
                     "than the last, and a step relaxes after this many days. 0 turns it off: warmth never gets dearer. " +
                     "7 is the default. Applies immediately.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public int RegardDecayDays { get; set; } = 7;
 
-      [SettingPropertyText("OpenRouter API Key", RequireRestart = false, Order = 0,
-         HintText = "Paste your key from openrouter.ai/keys. Stored locally on this machine only. NEVER share your " +
+      [SettingPropertyText("{=CR_MCM_ApiKey}OpenRouter API Key", RequireRestart = false, Order = 0,
+         HintText = "{=CR_MCM_ApiKey_Hint}Paste your key from openrouter.ai/keys. Stored locally on this machine only. NEVER share your " +
                     "config file or a screenshot of this field. Applies immediately.")]
-      [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenRouter}OpenRouter", GroupOrder = 1)]
       public string ApiKey { get; set; } = "";
 
       // Hints must stay SHORT: a long one overflows the MCM control and its first line is cut off the top
       // (Gabriel, screenshot 2026-07-13). Two or three lines, no more. Say the stake, not the essay.
       // ProviderPin and NsfwProviderPin are resolved per model mode by ModelModePolicy.ResolveProviderPin.
-      [SettingPropertyText("Pin Providers (advanced)", RequireRestart = false, Order = 4,
-         HintText = "Leave blank unless needed. Some providers censor their own output, cutting replies " +
+      [SettingPropertyText("{=CR_MCM_ProviderPin}Pin Providers (advanced)", RequireRestart = false, Order = 4,
+         HintText = "{=CR_MCM_ProviderPin_Hint}Leave blank unless needed. Some providers censor their own output, cutting replies " +
                     "mid-sentence. Pinning also steadies prompt caching, which lowers cost: unpinned, OpenRouter " +
                     "may switch provider mid-session and the cache is lost. Comma separated.")]
-      [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenRouter}OpenRouter", GroupOrder = 1)]
       public string ProviderPin { get; set; } = "";
 
-      [SettingPropertyText("Pin Providers (NSFW)", RequireRestart = false, Order = 5,
-         HintText = "Blank reuses the pin above. Set a different provider only for explicit scenes, e.g. " +
+      [SettingPropertyText("{=CR_MCM_NsfwProviderPin}Pin Providers (NSFW)", RequireRestart = false, Order = 5,
+         HintText = "{=CR_MCM_NsfwProviderPin_Hint}Blank reuses the pin above. Set a different provider only for explicit scenes, e.g. " +
                     "cheapest routing for chat and an uncensored provider for scenes.")]
-      [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenRouter}OpenRouter", GroupOrder = 1)]
       public string NsfwProviderPin { get; set; } = "";
 
-      [SettingPropertyBool("Allow provider fallbacks", RequireRestart = false, Order = 6,
-         HintText = "Only matters with providers pinned above. OFF (default) makes the pin a hard rule. ON lets " +
+      [SettingPropertyBool("{=CR_MCM_AllowProviderFallbacks}Allow provider fallbacks", RequireRestart = false, Order = 6,
+         HintText = "{=CR_MCM_AllowProviderFallbacks_Hint}Only matters with providers pinned above. OFF (default) makes the pin a hard rule. ON lets " +
                     "OpenRouter fall back to others when yours are unavailable.")]
-      [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenRouter}OpenRouter", GroupOrder = 1)]
       public bool AllowProviderFallbacks { get; set; } = false;
 
-      [SettingPropertyBool("Lords can ride in your party", RequireRestart = false, Order = 2,
-         HintText = "On (default): an idle lord or lady of another clan may agree to ride IN your party for a time, keeping " +
+      [SettingPropertyBool("{=CR_MCM_EnableRideWithMe}Lords can ride in your party", RequireRestart = false, Order = 2,
+         HintText = "{=CR_MCM_EnableRideWithMe_Hint}On (default): an idle lord or lady of another clan may agree to ride IN your party for a time, keeping " +
                     "their own house. Off: only the follow_me escort (their own party riding alongside yours) remains. " +
                     "cr.retainer enable overrides for the session.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool EnableRideWithMe { get; set; } = true;
 
-      [SettingPropertyBool("Characters can add news to the world", RequireRestart = false, Order = 13,
-         HintText = "Off (default): what a character invents stays in that conversation. On: a blight, brigands, " +
+      [SettingPropertyBool("{=CR_MCM_EnableNpcWorldClaims}Characters can add news to the world", RequireRestart = false, Order = 13,
+         HintText = "{=CR_MCM_EnableNpcWorldClaims_Hint}Off (default): what a character invents stays in that conversation. On: a blight, brigands, " +
                     "a death or an omen they mention can become a real rumour others may hear. Never numbers, " +
                     "money, or who holds what - the game owns those.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool EnableNpcWorldClaims { get; set; } = false;
 
-      [SettingPropertyBool("NPCs can end conversations", RequireRestart = false, Order = 5,
-         HintText = "On (default): when a character ends a conversation the chat closes and you click Leave. Off: their " +
+      [SettingPropertyBool("{=CR_MCM_NpcCanEndConversation}NPCs can end conversations", RequireRestart = false, Order = 5,
+         HintText = "{=CR_MCM_NpcCanEndConversation_Hint}On (default): when a character ends a conversation the chat closes and you click Leave. Off: their " +
                     "goodbye no longer closes it, so you can have the last word and close it yourself. Captivity scenes keep " +
                     "their own flow.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool NpcCanEndConversation { get; set; } = true;
 
-      [SettingPropertyBool("Enable Council", RequireRestart = false, Order = 3,
-         HintText = "When ON, you can convene a council of companions, kin, clan lords or a war council from a town, castle " +
+      [SettingPropertyBool("{=CR_MCM_EnableCouncil}Enable Council", RequireRestart = false, Order = 3,
+         HintText = "{=CR_MCM_EnableCouncil_Hint}When ON, you can convene a council of companions, kin, clan lords or a war council from a town, castle " +
                     "or village menu, and from a button on the campaign map while on land. OFF hides those entry points; the " +
                     "console can still open it.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool EnableCouncil { get; set; } = true;
 
-      [SettingPropertyBool("Strategic Assessment (AI)", RequireRestart = false, Order = 6,
-         HintText = "On (default): the Strategic Assessment is written by your highest-Tactics companion (a warband soldier " +
+      [SettingPropertyBool("{=CR_MCM_EnableStrategicAssessment}Strategic Assessment (AI)", RequireRestart = false, Order = 6,
+         HintText = "{=CR_MCM_EnableStrategicAssessment_Hint}On (default): the Strategic Assessment is written by your highest-Tactics companion (a warband soldier " +
                     "if you have none), and the sharper their Tactics the better the counsel. Off, or alone: " +
                     "a plain summary, no AI call.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool EnableStrategicAssessment { get; set; } = true;
 
-      [SettingPropertyDropdown("Council Voices", RequireRestart = false, Order = 4,
-         HintText = "Default for a new council (flip it in the council window). One call for the table keeps the scene " +
+      [SettingPropertyDropdown("{=CR_MCM_CouncilVoices}Council Voices", RequireRestart = false, Order = 4,
+         HintText = "{=CR_MCM_CouncilVoices_Hint}Default for a new council (flip it in the council window). One call for the table keeps the scene " +
                     "cohesive but voices the others from little more than a name. One call per member gives " +
                     "each their real memory and regard, at a round-trip apiece.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public Dropdown<string> CouncilVoices { get; set; } =
          new(new[] {"One call for the table", "One call per member"}, 0); // default: whole table
 
-      [SettingPropertyBool("Companion contentment", RequireRestart = false, Order = 0,
-         HintText = "When ON, a neglected companion grows restless, asks for an audience, and if you keep refusing eventually " +
+      [SettingPropertyBool("{=CR_MCM_CompanionContentment}Companion contentment", RequireRestart = false, Order = 0,
+         HintText = "{=CR_MCM_CompanionContentment_Hint}When ON, a neglected companion grows restless, asks for an audience, and if you keep refusing eventually " +
                     "leaves by letter, never silently. Also gates the occasional found-topic audience. OFF disables both " +
                     "entirely.")]
-      [SettingPropertyGroup("Companions", GroupOrder = 6)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Companions}Companions", GroupOrder = 6)]
       public bool CompanionContentment { get; set; } = true;
 
-      [SettingPropertyDropdown("Contentment Pacing", RequireRestart = false, Order = 1,
-         HintText = "How fast companions get over a grievance: Forgiving, Balanced (default), or Exacting. In every " +
+      [SettingPropertyDropdown("{=CR_MCM_ContentmentPacing}Contentment Pacing", RequireRestart = false, Order = 1,
+         HintText = "{=CR_MCM_ContentmentPacing_Hint}How fast companions get over a grievance: Forgiving, Balanced (default), or Exacting. In every " +
                     "setting, a companion left merely idle NEVER leaves you.")]
-      [SettingPropertyGroup("Companions", GroupOrder = 6)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Companions}Companions", GroupOrder = 6)]
       public Dropdown<string> ContentmentPacing { get; set; } =
          new(new[] {"Forgiving", "Balanced", "Exacting"}, 1); // default: Balanced
 
-      [SettingPropertyDropdown("Companions Asking For A Word", RequireRestart = false, Order = 2,
-         HintText = "How often a travelling companion asks for a private word when they have something worth raising: on " +
+      [SettingPropertyDropdown("{=CR_MCM_CompanionAudiencePacing}Companions Asking For A Word", RequireRestart = false, Order = 2,
+         HintText = "{=CR_MCM_CompanionAudiencePacing_Hint}How often a travelling companion asks for a private word when they have something worth raising: on " +
                     "entering a settlement AND, new, while on the road. Never switches it off entirely. Occasionally is the " +
                     "shipped feel.")]
-      [SettingPropertyGroup("Companions", GroupOrder = 6)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Companions}Companions", GroupOrder = 6)]
       public Dropdown<string> CompanionAudiencePacing { get; set; } =
          new(new[] {"Never", "Rarely", "Occasionally", "Often"}, 2); // default: Occasionally (today's settlement feel, plus a road chance)
 
-      [SettingPropertyText("API Key (optional)", RequireRestart = false, Order = 0,
-         HintText = "Leave blank for keyless local servers like LM Studio or Ollama. Fill it in only if your server " +
+      [SettingPropertyText("{=CR_MCM_CustomApiKey}API Key (optional)", RequireRestart = false, Order = 0,
+         HintText = "{=CR_MCM_CustomApiKey_Hint}Leave blank for keyless local servers like LM Studio or Ollama. Fill it in only if your server " +
                     "requires one. Applies immediately.")]
-      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 3)]
       public string CustomApiKey { get; set; } = "";
 
-      [SettingPropertyText("Endpoint URL (Prose / shared)", RequireRestart = false, Order = 1,
-         HintText = "Base URL of your local server, with /v1 (e.g. http://localhost:1234/v1). Serves the Prose " +
+      [SettingPropertyText("{=CR_MCM_CustomEndpointUrl}Endpoint URL (Prose / shared)", RequireRestart = false, Order = 1,
+         HintText = "{=CR_MCM_CustomEndpointUrl_Hint}Base URL of your local server, with /v1 (e.g. http://localhost:1234/v1). Serves the Prose " +
                     "role, and any role whose own Endpoint below is blank. Set that role's model under LLM " +
                     "Provider too, or it sends an OpenRouter id to your server.")]
-      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 3)]
       public string CustomEndpointUrl { get; set; } = "";
 
-      [SettingPropertyText("Endpoint URL (NSFW)", RequireRestart = false, Order = 2,
-         HintText = "Optional. A separate OpenAI-Compatible server URL for the NSFW role only, so you can split roles " +
+      [SettingPropertyText("{=CR_MCM_CustomEndpointUrlNsfw}Endpoint URL (NSFW)", RequireRestart = false, Order = 2,
+         HintText = "{=CR_MCM_CustomEndpointUrlNsfw_Hint}Optional. A separate OpenAI-Compatible server URL for the NSFW role only, so you can split roles " +
                     "across two local machines. Blank = use the shared Endpoint URL above. Applies immediately.")]
-      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 3)]
       public string CustomEndpointUrlNsfw { get; set; } = "";
 
-      [SettingPropertyText("Endpoint URL (Background)", RequireRestart = false, Order = 4,
-         HintText = "Optional. A separate OpenAI-Compatible server URL for the mod's background work only " +
+      [SettingPropertyText("{=CR_MCM_CustomEndpointUrlHousekeeping}Endpoint URL (Background)", RequireRestart = false, Order = 4,
+         HintText = "{=CR_MCM_CustomEndpointUrlHousekeeping_Hint}Optional. A separate OpenAI-Compatible server URL for the mod's background work only " +
                     "(summaries, memory compression). Leave blank to use the same server as everything else.")]
-      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 3)]
       public string CustomEndpointUrlHousekeeping { get; set; } = "";
 
-      [SettingPropertyText("Endpoint URL (Interpret)", RequireRestart = false, Order = 3,
-         HintText = "Optional. A separate OpenAI-Compatible server URL for the Interpret role only, so the interpreter " +
+      [SettingPropertyText("{=CR_MCM_CustomEndpointUrlInterpret}Endpoint URL (Interpret)", RequireRestart = false, Order = 3,
+         HintText = "{=CR_MCM_CustomEndpointUrlInterpret_Hint}Optional. A separate OpenAI-Compatible server URL for the Interpret role only, so the interpreter " +
                     "can run on its own local machine. Blank = use the shared Endpoint URL above. Applies immediately.")]
-      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 3)]
       public string CustomEndpointUrlInterpret { get; set; } = "";
 
-      [SettingPropertyDropdown("Parameter Compatibility", RequireRestart = false, Order = 4,
-         HintText = "Which sampling parameters to send. Auto detects OpenAI reasoning models (gpt-5, o1/o3/o4), which " +
+      [SettingPropertyDropdown("{=CR_MCM_CustomParameterCompatibility}Parameter Compatibility", RequireRestart = false, Order = 4,
+         HintText = "{=CR_MCM_CustomParameterCompatibility_Hint}Which sampling parameters to send. Auto detects OpenAI reasoning models (gpt-5, o1/o3/o4), which " +
                     "reject the classic max_tokens. Leave on Auto unless your endpoint rejects a field.")]
-      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 3)]
       public Dropdown<string> CustomParameterCompatibility { get; set; } =
          new(new[] {"Auto", "Standard", "Reasoning"}, 0); // default: Auto
 
-      [SettingPropertyDropdown("Reasoning Effort", RequireRestart = false, Order = 6,
-         HintText = "Sends reasoning_effort to a local or OpenAI-compatible endpoint. Set Off if a reasoning model spends the " +
+      [SettingPropertyDropdown("{=CR_MCM_CustomReasoningEffort}Reasoning Effort", RequireRestart = false, Order = 6,
+         HintText = "{=CR_MCM_CustomReasoningEffort_Hint}Sends reasoning_effort to a local or OpenAI-compatible endpoint. Set Off if a reasoning model spends the " +
                     "whole reply budget thinking and stalls. Default sends nothing. Some servers (vLLM) ignore it; Verbose " +
                     "Logging shows what was sent.")]
-      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 3)]
       public Dropdown<string> CustomReasoningEffort { get; set; } =
          new(new[] {"Default", "Off", "Minimal", "Low", "Medium", "High"}, 0); // default: Default (send nothing)
 
-      [SettingPropertyText("API Key (NSFW)", RequireRestart = false, Order = 5,
-         HintText = "Optional. A separate API key for the NSFW role only, so it can authenticate against a different " +
+      [SettingPropertyText("{=CR_MCM_CustomApiKeyNsfw}API Key (NSFW)", RequireRestart = false, Order = 5,
+         HintText = "{=CR_MCM_CustomApiKeyNsfw_Hint}Optional. A separate API key for the NSFW role only, so it can authenticate against a different " +
                     "OpenAI-Compatible server than the shared one. Blank = use the API Key above. Applies immediately.")]
-      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 3)]
       public string CustomApiKeyNsfw { get; set; } = "";
 
-      [SettingPropertyText("API Key (Background)", RequireRestart = false, Order = 7,
-         HintText = "Optional. A separate API key for the mod's background work only. Leave blank to use the " +
+      [SettingPropertyText("{=CR_MCM_CustomApiKeyHousekeeping}API Key (Background)", RequireRestart = false, Order = 7,
+         HintText = "{=CR_MCM_CustomApiKeyHousekeeping_Hint}Optional. A separate API key for the mod's background work only. Leave blank to use the " +
                     "same key as everything else.")]
-      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 3)]
       public string CustomApiKeyHousekeeping { get; set; } = "";
 
-      [SettingPropertyText("API Key (Interpret)", RequireRestart = false, Order = 6,
-         HintText = "Optional. A separate API key for the Interpret role only, so the interpreter can authenticate " +
+      [SettingPropertyText("{=CR_MCM_CustomApiKeyInterpret}API Key (Interpret)", RequireRestart = false, Order = 6,
+         HintText = "{=CR_MCM_CustomApiKeyInterpret_Hint}Optional. A separate API key for the Interpret role only, so the interpreter can authenticate " +
                     "against its own OpenAI-Compatible server. Blank = use the API Key above. Applies immediately.")]
-      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 3)]
       public string CustomApiKeyInterpret { get; set; } = "";
 
       public override string DisplayName => "Calradia Remembers";
 
-      [SettingPropertyBool("Enable File Logging", RequireRestart = false, Order = 0,
-         HintText = "Writes the mod's diagnostics to CalradiaRemembers.log (only the last two sessions are kept, " +
+      [SettingPropertyBool("{=CR_MCM_EnableLogging}Enable File Logging", RequireRestart = false, Order = 0,
+         HintText = "{=CR_MCM_EnableLogging_Hint}Writes the mod's diagnostics to CalradiaRemembers.log (only the last two sessions are kept, " +
                     "so the file never grows without bound). Off by default; turn on to capture a bug report.")]
-      [SettingPropertyGroup("Diagnostics", GroupOrder = 7)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Diagnostics}Diagnostics", GroupOrder = 7)]
       public bool EnableLogging { get; set; } = false;
 
-      [SettingPropertyBool("Enable On-Screen Logging", RequireRestart = false, Order = 1,
-         HintText = "Also prints the mod's diagnostics as on-screen messages (top-left). Off by default: the " +
+      [SettingPropertyBool("{=CR_MCM_EnableScreenLogging}Enable On-Screen Logging", RequireRestart = false, Order = 1,
+         HintText = "{=CR_MCM_EnableScreenLogging_Hint}Also prints the mod's diagnostics as on-screen messages (top-left). Off by default: the " +
                     "stream can crowd the screen during play. Turn it on only when you want to watch the mod live; " +
                     "the file log above is the better channel for a bug report.")]
-      [SettingPropertyGroup("Diagnostics", GroupOrder = 7)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Diagnostics}Diagnostics", GroupOrder = 7)]
       public bool EnableScreenLogging { get; set; } = false;
 
-      [SettingPropertyBool("Enable Jealousy", RequireRestart = false, Order = 0,
-         HintText = "On (default): the world is richer, partners react to being favoured or slighted, a neglected " +
+      [SettingPropertyBool("{=CR_MCM_EnableJealousy}Enable Jealousy", RequireRestart = false, Order = 0,
+         HintText = "{=CR_MCM_EnableJealousy_Hint}On (default): the world is richer, partners react to being favoured or slighted, a neglected " +
                     "co-partner can feel wronged, and open-relationship pacts matter. Off: a drama-free household, " +
                     "no jealousy of any kind, from any partner.")]
-      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Relationships}Relationships", GroupOrder = 8)]
       public bool EnableJealousy { get; set; } = true;
 
-      [SettingPropertyBool("Enable Stolen Love", RequireRestart = false, Order = 1,
-         HintText = "Off (default): a married character resists an affair as before. On: seducing a MARRIED character is a " +
+      [SettingPropertyBool("{=CR_MCM_EnableStolenLove}Enable Stolen Love", RequireRestart = false, Order = 1,
+         HintText = "{=CR_MCM_EnableStolenLove_Hint}Off (default): a married character resists an affair as before. On: seducing a MARRIED character is a " +
                     "gated, personality-true path (an honourable or content one holds firm however high your " +
                     "standing). Explicit content follows Adult Content Level.")]
-      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Relationships}Relationships", GroupOrder = 8)]
       public bool EnableStolenLove { get; set; } = false;
 
-      [SettingPropertyBool("Allow killing characters", RequireRestart = false, Order = 2,
-         HintText = "Off (default): you may rob or beat someone in conversation, never kill. On: a killing attempt is " +
+      [SettingPropertyBool("{=CR_MCM_AllowKillingCharacters}Allow killing characters", RequireRestart = false, Order = 2,
+         HintText = "{=CR_MCM_AllowKillingCharacters_Hint}Off (default): you may rob or beat someone in conversation, never kill. On: a killing attempt is " +
                     "possible, never a formality (it turns on how you compare and whether they are alone). The " +
                     "world answers: a crime, lost standing, kin who remember.")]
-      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Relationships}Relationships", GroupOrder = 8)]
       public bool AllowKillingCharacters { get; set; } = false;
 
       // Arrests in the King's name (Gabriel, 26/09/2026): OFF by default (it can cost the player their fiefs and put
       // them at war). Gates only what OPENS a case (a warrant, a brigandage); a case already open runs to its end, so
       // turning it off mid-way never strands the player in a cell or an outlawry with no way out.
-      [SettingPropertyBool("Arrests and outlaws", RequireRestart = false, Order = 3,
-         HintText = "Off (default). On: as a vassal or mercenary, a grave act brings a warrant: surrender and face your " +
+      [SettingPropertyBool("{=CR_MCM_EnableArrests}Arrests and outlaws", RequireRestart = false, Order = 3,
+         HintText = "{=CR_MCM_EnableArrests_Hint}Off (default). On: as a vassal or mercenary, a grave act brings a warrant: surrender and face your " +
                     "liege's council, or flee as an outlaw with a price on your head. Robbing merchants in peace " +
                     "makes you a brigand. Never a kingdom's ruler.")]
-      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Relationships}Relationships", GroupOrder = 8)]
       public bool EnableArrests { get; set; } = false;
 
       // Fakade (Nexus, 04/10/2026): "If this is due to the mercenary thing, can that also be an option to disable?"
-      [SettingPropertyBool("Mercenary departures are judged", RequireRestart = false, Order = 5,
-         HintText = "On (default): when a contract ends, the realm's lords judge it. Leaving a losing war, or going to " +
+      [SettingPropertyBool("{=CR_MCM_JudgeMercenaryDepartures}Mercenary departures are judged", RequireRestart = false, Order = 5,
+         HintText = "{=CR_MCM_JudgeMercenaryDepartures_Hint}On (default): when a contract ends, the realm's lords judge it. Leaving a losing war, or going to " +
                     "its enemy, costs their regard, which fades over a year. A contract renewed within days is no " +
                     "departure. Off: never judged.")]
-      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Relationships}Relationships", GroupOrder = 8)]
       public bool JudgeMercenaryDepartures { get; set; } = true;
 
       // Maifailun (Nexus, 15/10/2026) and Gabriel's ladder the same day: summons, levy, goods, a fief. OFF by default
       // (it can cost the player a fief). Gates what the RULER does; the service ledger is kept either way.
-      [SettingPropertyBool("Vassal war duty", RequireRestart = false, Order = 6,
-         HintText = "Off (default). On: a sworn vassal (never a mercenary) who sits out the realm's war is summoned by " +
+      [SettingPropertyBool("{=CR_MCM_EnableWarDuty}Vassal war duty", RequireRestart = false, Order = 6,
+         HintText = "{=CR_MCM_EnableWarDuty_Hint}Off (default). On: a sworn vassal (never a mercenary) who sits out the realm's war is summoned by " +
                     "the ruler to answer for it, then asked a levy in coin, or troops, horses or arms instead, and may " +
                     "lose a fief by giving nothing.")]
-      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Relationships}Relationships", GroupOrder = 8)]
       public bool EnableWarDuty { get; set; } = false;
 
-      [SettingPropertyInteger("War duty window (days)", 10, 120, "0", RequireRestart = false, Order = 7,
-         HintText = "Days of war a sworn vassal may go without fighting for the realm (a battle, a siege, a day in its " +
+      [SettingPropertyInteger("{=CR_MCM_WarDutyWindowDays}War duty window (days)", 10, 120, "0", RequireRestart = false, Order = 7,
+         HintText = "{=CR_MCM_WarDutyWindowDays_Hint}Days of war a sworn vassal may go without fighting for the realm (a battle, a siege, a day in its " +
                     "army) before the ruler calls them to account. Default 30.")]
-      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Relationships}Relationships", GroupOrder = 8)]
       public int WarDutyWindowDays { get; set; } = 30;
 
-      [SettingPropertyInteger("War levy scale (%)", 25, 400, "0 '%'", RequireRestart = false, Order = 8,
-         HintText = "Scales the levy a ruler asks of a vassal who did not fight (it grows with clan tier and fiefs " +
+      [SettingPropertyInteger("{=CR_MCM_WarLevyScalePercent}War levy scale (%)", 25, 400, "0 '%'", RequireRestart = false, Order = 8,
+         HintText = "{=CR_MCM_WarLevyScalePercent_Hint}Scales the levy a ruler asks of a vassal who did not fight (it grows with clan tier and fiefs " +
                     "held, at most 10,000 per hand-over). 100 = as designed.")]
-      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Relationships}Relationships", GroupOrder = 8)]
       public int WarLevyScalePercent { get; set; } = 100;
 
       // tashmetu (30/09/2026): a clan at +54 with the player, and its lord met him as a near-stranger.
-      [SettingPropertyBool("Clan standing warms first meetings", RequireRestart = false, Order = 4,
-         HintText = "On (default): when you next speak with someone whose clan already counts you a friend, they " +
+      [SettingPropertyBool("{=CR_MCM_ClanStandingWarmsFirstMeetings}Clan standing warms first meetings", RequireRestart = false, Order = 4,
+         HintText = "{=CR_MCM_ClanStandingWarmsFirstMeetings_Hint}On (default): when you next speak with someone whose clan already counts you a friend, they " +
                     "start warmer toward you, once, up to friendly regard; the rest is earned in person. An offence " +
                     "stands. Off: regard starts from zero.")]
-      [SettingPropertyGroup("Relationships", GroupOrder = 8)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Relationships}Relationships", GroupOrder = 8)]
       public bool ClanStandingWarmsFirstMeetings { get; set; } = true;
 
-      [SettingPropertyBool("Post-duel conversation", RequireRestart = false, Order = 0,
-         HintText = "On (default): after a duel the conversation reopens and resumes what led to it. The loser concedes (a " +
+      [SettingPropertyBool("{=CR_MCM_EnablePostDuelConversation}Post-duel conversation", RequireRestart = false, Order = 0,
+         HintText = "{=CR_MCM_EnablePostDuelConversation_Hint}On (default): after a duel the conversation reopens and resumes what led to it. The loser concedes (a " +
                     "beaten character of honour may grant a favour you ask); the victor says what they now expect. Off: only " +
                     "the duel's consequences apply.")]
-      [SettingPropertyGroup("Duels", GroupOrder = 9)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Duels}Duels", GroupOrder = 9)]
       public bool EnablePostDuelConversation { get; set; } = true;
 
       public override string FolderName => "CalradiaRemembers";
       public override string FormatType => "json2";
       public override string Id => "CalradiaRemembers";
 
-      [SettingPropertyBool("Compact prompt for small models", RequireRestart = false, Order = 12,
-         HintText = "Trims the prompt to fit a SMALL, short-context model (4k to 8k). Turn ON if the AI stays silent: " +
+      [SettingPropertyBool("{=CR_MCM_LeanPrompt}Compact prompt for small models", RequireRestart = false, Order = 12,
+         HintText = "{=CR_MCM_LeanPrompt_Hint}Trims the prompt to fit a SMALL, short-context model (4k to 8k). Turn ON if the AI stays silent: " +
                     "the full prompt is overflowing it. Replies grow less richly grounded. Leave OFF for cloud models.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public bool LeanPrompt { get; set; } = false;
 
-      [SettingPropertyInteger("Local model context (tokens)", 0, 262144, "0", RequireRestart = false, Order = 13,
-         HintText = "0 = off (cloud models). For a local/custom server: the context length set there, per request. CR then trims " +
+      [SettingPropertyInteger("{=CR_MCM_LocalContextTokens}Local model context (tokens)", 0, 262144, "0", RequireRestart = false, Order = 13,
+         HintText = "{=CR_MCM_LocalContextTokens_Hint}0 = off (cloud models). For a local/custom server: the context length set there, per request. CR then trims " +
                     "each request to fit it (oldest lines first, then the compact prompt) instead of the server cutting it blind.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public int LocalContextTokens { get; set; } = 0;
 
-      [SettingPropertyBool("Compress old memories", RequireRestart = false, Order = 14,
-         HintText = "Lets characters fold old, superseded memories into a short outline, so a long campaign stops inflating " +
+      [SettingPropertyBool("{=CR_MCM_MemoryCompression}Compress old memories", RequireRestart = false, Order = 14,
+         HintText = "{=CR_MCM_MemoryCompression_Hint}Lets characters fold old, superseded memories into a short outline, so a long campaign stops inflating " +
                     "every prompt (the usual cause of slow replies on a local model). First meetings, recent events and grave " +
                     "moments are never dropped.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public bool MemoryCompression { get; set; } = true;
 
       // Phase 2: the hard-failure fallback is the NSFW model, so this legacy field is no longer shown in MCM or
@@ -368,49 +368,49 @@ namespace CalradiaRemembers.Settings
 
       // fkasad (Nexus, 17/10/2026) asked whether the mod tunes temperature by the kind of call; it does, but the
       // conversation value was fixed at 0.7. Gabriel the same day: a setting, for players fitting a local model.
-      [SettingPropertyFloatingInteger("Chat Temperature", ChatTemperaturePolicy.Min, ChatTemperaturePolicy.Max, "0.00", RequireRestart = false, Order = 15,
-         HintText = "How varied conversation replies are (default 0.70). Lower is steadier and more repetitive, higher " +
+      [SettingPropertyFloatingInteger("{=CR_MCM_ChatTemperature}Chat Temperature", ChatTemperaturePolicy.Min, ChatTemperaturePolicy.Max, "0.00", RequireRestart = false, Order = 15,
+         HintText = "{=CR_MCM_ChatTemperature_Hint}How varied conversation replies are (default 0.70). Lower is steadier and more repetitive, higher " +
                     "more surprising; above 1.0 a local model may lose its character. Reasoning models ignore it. " +
                     "Applies immediately.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public float ChatTemperature { get; set; } = ChatTemperaturePolicy.Default;
 
-      [SettingPropertyInteger("LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 11,
-         HintText = "How long to wait for a reply, in seconds (default 120), in conversations and for letters and " +
+      [SettingPropertyInteger("{=CR_MCM_LlmTimeoutSeconds}LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 11,
+         HintText = "{=CR_MCM_LlmTimeoutSeconds_Hint}How long to wait for a reply, in seconds (default 120), in conversations and for letters and " +
                     "summaries (never under 60). Raise it for a slow local or reasoning model; lower it to fail fast. " +
                     "Applies immediately.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public int LlmTimeoutSeconds { get; set; } = 120;
 
-      [SettingPropertyText("PROSE model", RequireRestart = false, Order = 2,
-         HintText = "Model id in the ACTIVE provider's own format (OpenRouter: x-ai/grok-4.20; NanoGPT: " +
+      [SettingPropertyText("{=CR_MCM_Model}PROSE model", RequireRestart = false, Order = 2,
+         HintText = "{=CR_MCM_Model_Hint}Model id in the ACTIVE provider's own format (OpenRouter: x-ai/grok-4.20; NanoGPT: " +
                     "deepseek-ai/DeepSeek-V3; Ollama: llama3.1:8b). Writes ordinary chat, and in Enhanced mode " +
                     "the prose of every scene. Applies immediately.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public string Model { get; set; } = "x-ai/grok-4.20";
 
       // Per-role provider (2026-08-13): each model role may go to its OWN provider. The roleplay / prose role is
       // the BASE: it is the Provider dropdown below (property name kept for save compatibility), presented right
       // here as "Roleplay / Prose provider". The other three roles keep a "(default)" option that inherits this
       // base, so an upgraded config behaves exactly as before and there is no redundant global provider field.
-      [SettingPropertyDropdown("Roleplay / Prose provider", RequireRestart = false, Order = 3,
-         HintText = "Which provider the roleplay and prose model above is sent to. It is also the base every other " +
+      [SettingPropertyDropdown("{=CR_MCM_Provider}Roleplay / Prose provider", RequireRestart = false, Order = 3,
+         HintText = "{=CR_MCM_Provider_Hint}Which provider the roleplay and prose model above is sent to. It is also the base every other " +
                     "role inherits when left on (default). Each provider keeps its own key further down. Applies immediately.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public Dropdown<string> Provider { get; set; } =
          new(new[] {ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0); // default: OpenRouter
 
-      [SettingPropertyText("NanoGPT API Key", RequireRestart = false, Order = 0,
-         HintText = "Paste your key from nano-gpt.com. Stored locally on this machine only. NEVER share your config " +
+      [SettingPropertyText("{=CR_MCM_NanoGptApiKey}NanoGPT API Key", RequireRestart = false, Order = 0,
+         HintText = "{=CR_MCM_NanoGptApiKey_Hint}Paste your key from nano-gpt.com. Stored locally on this machine only. NEVER share your config " +
                     "file or a screenshot of this field.")]
-      [SettingPropertyGroup("NanoGPT", GroupOrder = 2)]
+      [SettingPropertyGroup("{=CR_MCM_Group_NanoGPT}NanoGPT", GroupOrder = 2)]
       public string NanoGptApiKey { get; set; } = "";
 
-      [SettingPropertyDropdown("Chat Composition", RequireRestart = false, Order = 1,
-         HintText = "Where a fresh session's in-chat Enhanced/Roleplay switch starts. Enhanced (default): the prose model " +
+      [SettingPropertyDropdown("{=CR_MCM_ChatCompositionModeSetting}Chat Composition", RequireRestart = false, Order = 1,
+         HintText = "{=CR_MCM_ChatCompositionModeSetting_Hint}Where a fresh session's in-chat Enhanced/Roleplay switch starts. Enhanced (default): the prose model " +
                     "writes and the interpret model tags, richest but slower. Standard: one call, cheapest and fastest. The " +
                     "in-chat switch overrides it for the session.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public Dropdown<string> ChatCompositionModeSetting { get; set; } =
          new(new[] {ChatCompositionModePolicy.StandardLabel, ChatCompositionModePolicy.EnhancedLabel}, 1); // default: Enhanced
 
@@ -422,16 +422,16 @@ namespace CalradiaRemembers.Settings
       public Dropdown<string> ConsensualProvider { get; set; } =
          new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
 
-      [SettingPropertyText("NSFW model", RequireRestart = false, Order = 6,
-         HintText = "Model id for explicit content: captivity in Standard mode, the fallback in Enhanced. Blank " +
+      [SettingPropertyText("{=CR_MCM_CncModel}NSFW model", RequireRestart = false, Order = 6,
+         HintText = "{=CR_MCM_CncModel_Hint}Model id for explicit content: captivity in Standard mode, the fallback in Enhanced. Blank " +
                     "uses the PROSE model - and so does the shipped OpenRouter id if you point this role at your " +
                     "own server without naming ITS model.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public string CncModel { get; set; } = "x-ai/grok-4.20";
 
-      [SettingPropertyDropdown("NSFW provider", RequireRestart = false, Order = 7,
-         HintText = "Which provider the NSFW model above is sent to. (default) uses the PROSE provider. Applies immediately.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      [SettingPropertyDropdown("{=CR_MCM_CncProvider}NSFW provider", RequireRestart = false, Order = 7,
+         HintText = "{=CR_MCM_CncProvider_Hint}Which provider the NSFW model above is sent to. (default) uses the PROSE provider. Applies immediately.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public Dropdown<string> CncProvider { get; set; } =
          new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
 
@@ -442,61 +442,61 @@ namespace CalradiaRemembers.Settings
       //
       // Blank means what it has always meant: the same model as the prose reply, so nobody who does not go
       // looking for this is affected by it.
-      [SettingPropertyText("Background model", RequireRestart = false, Order = 11,
-         HintText = "Optional. A cheaper or smaller chat model (not an embedding model) for the mod's background " +
+      [SettingPropertyText("{=CR_MCM_HousekeepingModel}Background model", RequireRestart = false, Order = 11,
+         HintText = "{=CR_MCM_HousekeepingModel_Hint}Optional. A cheaper or smaller chat model (not an embedding model) for the mod's background " +
                     "work: summaries, memory compression, claim extraction. Blank uses the roleplay model. Useful " +
                     "on a local server, where two prompts share one cache.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public string HousekeepingModel { get; set; } = "";
 
-      [SettingPropertyDropdown("Background provider", RequireRestart = false, Order = 12,
-         HintText = "Which provider the Background model above is sent to. (default) uses the PROSE provider.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      [SettingPropertyDropdown("{=CR_MCM_HousekeepingProvider}Background provider", RequireRestart = false, Order = 12,
+         HintText = "{=CR_MCM_HousekeepingProvider_Hint}Which provider the Background model above is sent to. (default) uses the PROSE provider.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public Dropdown<string> HousekeepingProvider { get; set; } =
          new(new[] {"(default)", "OpenRouter", "NanoGPT", "OpenAI-Compatible"}, 0);
 
-      [SettingPropertyText("Interpret model", RequireRestart = false, Order = 8,
-         HintText = "Enhanced mode only: the model that reads the structured actions out of the prose. Blank " +
+      [SettingPropertyText("{=CR_MCM_ActionInterpreterModel}Interpret model", RequireRestart = false, Order = 8,
+         HintText = "{=CR_MCM_ActionInterpreterModel_Hint}Enhanced mode only: the model that reads the structured actions out of the prose. Blank " +
                     "uses the PROSE model - and so does the shipped OpenRouter id if you point this role at " +
                     "your own server without naming ITS model.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public string ActionInterpreterModel { get; set; } = "x-ai/grok-4.20";
 
-      [SettingPropertyDropdown("Interpret provider", RequireRestart = false, Order = 9,
-         HintText = "Which provider the Interpret model above is sent to. (default) uses the PROSE provider (set it " +
+      [SettingPropertyDropdown("{=CR_MCM_ActionInterpreterProvider}Interpret provider", RequireRestart = false, Order = 9,
+         HintText = "{=CR_MCM_ActionInterpreterProvider_Hint}Which provider the Interpret model above is sent to. (default) uses the PROSE provider (set it " +
                     "to a local OpenAI-Compatible endpoint to run the interpreter locally). Applies immediately.")]
-      [SettingPropertyGroup("LLM Provider", GroupOrder = 0)]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public Dropdown<string> ActionInterpreterProvider { get; set; } =
          new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
 
-      [SettingPropertyDropdown("Reasoning Effort (NSFW)", RequireRestart = false, Order = 2,
-         HintText = "Reasoning effort while the chat is in NSFW mode. Lower or Off makes a reasoning model far less " +
+      [SettingPropertyDropdown("{=CR_MCM_NsfwReasoningEffort}Reasoning Effort (NSFW)", RequireRestart = false, Order = 2,
+         HintText = "{=CR_MCM_NsfwReasoningEffort_Hint}Reasoning effort while the chat is in NSFW mode. Lower or Off makes a reasoning model far less " +
                     "prone to moralizing refusals, and speeds up scenes. OpenRouter and NanoGPT.")]
-      [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenRouter}OpenRouter", GroupOrder = 1)]
       public Dropdown<string> NsfwReasoningEffort { get; set; } =
          new(new[] {ModelModePolicy.SameAsProse, "Default", "Off", "Minimal", "Low", "Medium", "High"}, 0); // default: Same as roleplay
 
-      [SettingPropertyDropdown("Reasoning Effort (PROSE)", RequireRestart = false, Order = 1,
-         HintText = "How hard the PROSE model thinks before replying. Higher can mean finer dialogue but slower replies, more " +
+      [SettingPropertyDropdown("{=CR_MCM_ReasoningEffort}Reasoning Effort (PROSE)", RequireRestart = false, Order = 1,
+         HintText = "{=CR_MCM_ReasoningEffort_Hint}How hard the PROSE model thinks before replying. Higher can mean finer dialogue but slower replies, more " +
                     "truncation and more refusals on adult content; in Enhanced mode it writes captivity scenes too, so keep " +
                     "it Low or Medium. OpenRouter and NanoGPT.")]
-      [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenRouter}OpenRouter", GroupOrder = 1)]
       public Dropdown<string> ReasoningEffort { get; set; } =
          new(new[] {"Default", "Off", "Minimal", "Low", "Medium", "High"}, 3); // default: Low
 
-      [SettingPropertyDropdown("Relationship Pacing", RequireRestart = false, Order = 1,
-         HintText = "How relationships grow through conversation: a philosophy, not a difficulty. Grounded keeps the " +
+      [SettingPropertyDropdown("{=CR_MCM_RelationshipWarmth}Relationship Pacing", RequireRestart = false, Order = 1,
+         HintText = "{=CR_MCM_RelationshipWarmth_Hint}How relationships grow through conversation: a philosophy, not a difficulty. Grounded keeps the " +
                     "core game's feel; Warm rewards good company; Storyteller is roleplay-first. Insults cost the " +
                     "same everywhere.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public Dropdown<string> RelationshipWarmth { get; set; } =
          new(new[] {"Grounded", "Warm", "Storyteller"}, 0); // default: Grounded (= Normal)
 
-      [SettingPropertyText("Reply Language", RequireRestart = false, Order = 3,
-         HintText = "Leave blank to use the game's language (an English game mirrors whatever language you write " +
+      [SettingPropertyText("{=CR_MCM_ReplyLanguage}Reply Language", RequireRestart = false, Order = 3,
+         HintText = "{=CR_MCM_ReplyLanguage_Hint}Leave blank to use the game's language (an English game mirrors whatever language you write " +
                     "in). Name a language (e.g. Spanish) to force every reply, letter, memory, and the illuminated " +
                     "chronicle into it, no matter what you write.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public string ReplyLanguage { get; set; } = "";
 
       // Three players in two days, none of them defending it (Kilju101 17/09, Lordfadooboo 18/09, fkasad 18/09).
@@ -510,66 +510,66 @@ namespace CalradiaRemembers.Settings
       //
       // Default OFF, and that is the decision, not the switch: a player annoyed by this does not go looking
       // through mod options, they stop using the mod. Anyone who wants the world talked about can turn it on.
-      [SettingPropertyBool("NPCs Raise World News", RequireRestart = false, Order = 3,
-         HintText = "Off (default): an NPC approaches you only about something between the two of you. On: they " +
+      [SettingPropertyBool("{=CR_MCM_NpcsRaiseWorldNews}NPCs Raise World News", RequireRestart = false, Order = 3,
+         HintText = "{=CR_MCM_NpcsRaiseWorldNews_Hint}Off (default): an NPC approaches you only about something between the two of you. On: they " +
                     "may also stop you to ask what you make of distant news. Their own deeds and yours are " +
                     "always allowed either way.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool NpcsRaiseWorldNews { get; set; } = false;
 
-      [SettingPropertyDropdown("Lords Approaching You", RequireRestart = false, Order = 2,
-         HintText = "How often a lord rides out to have a word with you on the road. Never switches it off " +
+      [SettingPropertyDropdown("{=CR_MCM_InterceptionPacing}Lords Approaching You", RequireRestart = false, Order = 2,
+         HintText = "{=CR_MCM_InterceptionPacing_Hint}How often a lord rides out to have a word with you on the road. Never switches it off " +
                     "entirely. Occasionally is the shipped feel.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public Dropdown<string> InterceptionPacing { get; set; } =
          new(new[] {"Never", "Rarely", "Occasionally", "Often"}, 2); // default: Occasionally (today's behaviour)
 
       // Authored quests (docs/design/AUTHORED_QUESTS.md; Gabriel, 03/10/2026): a switch for the new written tales.
       // Gabriel (05/10/2026): shipped in 2.7.0 OFF and marked experimental; the scene's close is not yet play-verified.
-      [SettingPropertyBool("Authored Quests (experimental)", RequireRestart = false, Order = 4,
-         HintText = "Experimental, off by default. On: characters may ask your help with a written tale (a quest in several stages, like the wolf of the wood). Off: no new tale is offered; one under way goes on (cr.story_abandon sets it aside).")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyBool("{=CR_MCM_AuthoredQuests}Authored Quests (experimental)", RequireRestart = false, Order = 4,
+         HintText = "{=CR_MCM_AuthoredQuests_Hint}Experimental, off by default. On: characters may ask your help with a written tale (a quest in several stages, like the wolf of the wood). Off: no new tale is offered; one under way goes on (cr.story_abandon sets it aside).")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool AuthoredQuests { get; set; } = false;
 
       // Fakade (Nexus, 03/10/2026): since 2.6.8 a lord riding out to the player is held on course (Lordfadooboo had
       // asked for it); Fakade liked the old way too, where they lost interest quickly. Both, by the player's choice.
-      [SettingPropertyBool("Lords Hold Their Course", RequireRestart = false, Order = 3,
-         HintText = "On: a lord riding out to speak with you holds his course until he reaches you, or gives up after a few days. Off: as before 2.6.8, he may turn back to his own affairs and lose interest quickly. Applies to the next chase.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyBool("{=CR_MCM_LordsHoldTheirCourse}Lords Hold Their Course", RequireRestart = false, Order = 3,
+         HintText = "{=CR_MCM_LordsHoldTheirCourse_Hint}On: a lord riding out to speak with you holds his course until he reaches you, or gives up after a few days. Off: as before 2.6.8, he may turn back to his own affairs and lose interest quickly. Applies to the next chase.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool LordsHoldTheirCourse { get; set; } = true;
 
       // Gabriel (08/10/2026): with the Invite button, asking at every conversation which companions come along is no
       // longer needed. Off by default; on brings back the old question.
-      [SettingPropertyBool("Ask Which Companions Come Along", RequireRestart = false, Order = 3,
-         HintText = "Off (default): a conversation opens with whoever is truly there; bring a companion, a lord riding with you or a prisoner in with the Invite button. On: as before 2.7.5, each conversation first asks which companions come along.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyBool("{=CR_MCM_AskCompanionsAtStart}Ask Which Companions Come Along", RequireRestart = false, Order = 3,
+         HintText = "{=CR_MCM_AskCompanionsAtStart_Hint}Off (default): a conversation opens with whoever is truly there; bring a companion, a lord riding with you or a prisoner in with the Invite button. On: as before 2.7.5, each conversation first asks which companions come along.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool AskCompanionsAtStart { get; set; } = false;
 
       // Player report (2026-08-05): in a scene with several NPCs, they kept talking to each other for a long
       // stretch before he could get a word in. This dial caps how many NPC-to-NPC exchanges fire per player
       // turn (was a hard-coded 3). 2 is the new shipped feel; 0 turns cross-talk off completely. See
       // CalradiaRemembers.Chat.ChatViewModel (WitnessExchangeCap) and ModSettings.NpcCrossTalkRounds.
-      [SettingPropertyInteger("NPC Cross-Talk", 0, 3, "0", RequireRestart = false, Order = 10,
-         HintText = "How many times NPCs may talk amongst themselves (one reacting to another) before the turn " +
+      [SettingPropertyInteger("{=CR_MCM_NpcCrossTalkRounds}NPC Cross-Talk", 0, 3, "0", RequireRestart = false, Order = 10,
+         HintText = "{=CR_MCM_NpcCrossTalkRounds_Hint}How many times NPCs may talk amongst themselves (one reacting to another) before the turn " +
                     "comes back to you, in a scene with witnesses. 2 is the default; 0 turns it off so only the " +
                     "NPC you spoke to replies. Applies on your next message.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public int NpcCrossTalkRounds { get; set; } = 2;
 
-      [SettingPropertyDropdown("Letters from NPCs", RequireRestart = false, Order = 6,
-         HintText = "How many unprompted letters NPCs send you. Fewer keeps only what matters; the mod also learns " +
+      [SettingPropertyDropdown("{=CR_MCM_LetterPacing}Letters from NPCs", RequireRestart = false, Order = 6,
+         HintText = "{=CR_MCM_LetterPacing_Hint}How many unprompted letters NPCs send you. Fewer keeps only what matters; the mod also learns " +
                     "from which letters you answer versus dismiss. Applies immediately.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public Dropdown<string> LetterPacing { get; set; } =
          new(new[] {"Rarely", "Occasionally", "Often"}, 1); // default: Occasionally
 
       // Player report (2026-08-05): letters get lost too often (almost every time) when the sender is far. The
       // per-band waylay roll compounds over a long trip. A distance-independent cap now blunts that; this toggle
       // is the total opt-out for a player who never wants a letter intercepted at all. Off = today's behaviour.
-      [SettingPropertyBool("Invulnerable Couriers", RequireRestart = false, Order = 11,
-         HintText = "Off: couriers can be intercepted by bandits or by the sender's enemies. A lost letter is sent " +
+      [SettingPropertyBool("{=CR_MCM_InvulnerableCouriers}Invulnerable Couriers", RequireRestart = false, Order = 11,
+         HintText = "{=CR_MCM_InvulnerableCouriers_Hint}Off: couriers can be intercepted by bandits or by the sender's enemies. A lost letter is sent " +
                     "again, and what it said travels with its captors to whoever beats them. On: no interception.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool InvulnerableCouriers { get; set; } = false;
 
       // "Intercepted letters can leak" (Order 12) is gone since 26/09/2026: Gabriel ruled that an intercepted letter
@@ -580,10 +580,10 @@ namespace CalradiaRemembers.Settings
       // end their character for real. High-stakes and IRREVERSIBLE (game over, or heir succession), so this is
       // opt-in like AdultContentLevel/Hardcore, off by default, and re-validated by the bridge at the moment of
       // execution regardless of what this reads (see CalradiaRemembers.Logic.PlayerExecutionPolicy).
-      [SettingPropertyBool("Allow Captor Executions", RequireRestart = false, Order = 8,
-         HintText = "Let a captor's scene end your character, at their own deliberate choice, deep in a Hardcore " +
+      [SettingPropertyBool("{=CR_MCM_AllowCaptorExecutions}Allow Captor Executions", RequireRestart = false, Order = 8,
+         HintText = "{=CR_MCM_AllowCaptorExecutions_Hint}Let a captor's scene end your character, at their own deliberate choice, deep in a Hardcore " +
                     "captive scene. Off by default. Irreversible: game over, or your heir succeeds you.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool AllowCaptorExecutions { get; set; } = false;
 
       // COUNCIL_ACTIONS.md Partie 5 (the "Caladog" case): a king promised a fief and marriage to himself as
@@ -591,68 +591,68 @@ namespace CalradiaRemembers.Settings
       // existing guardrail (never promise a fief or marriage as the price of a task) stays fully intact for
       // everyone who never touches this menu; on, the guardrail relaxes AND the reward is genuinely delivered
       // (or honestly degrades) on completion, re-validated at both issuance and payout.
-      [SettingPropertyBool("Allow Fief And Marriage Quest Rewards", RequireRestart = false, Order = 9,
-         HintText = "Let a lord promise one of their own fiefs, or a marriage into their house, as a quest " +
+      [SettingPropertyBool("{=CR_MCM_AllowFiefAndMarriageQuestRewards}Allow Fief And Marriage Quest Rewards", RequireRestart = false, Order = 9,
+         HintText = "{=CR_MCM_AllowFiefAndMarriageQuestRewards_Hint}Let a lord promise one of their own fiefs, or a marriage into their house, as a quest " +
                     "reward, delivered when you complete it. Off by default.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool AllowFiefAndMarriageQuestRewards { get; set; } = false;
 
-      [SettingPropertyBool("Story Log", RequireRestart = false, Order = 2,
-         HintText = "Writes a clean narrative transcript of every conversation and letter to " +
+      [SettingPropertyBool("{=CR_MCM_StoryLogging}Story Log", RequireRestart = false, Order = 2,
+         HintText = "{=CR_MCM_StoryLogging_Hint}Writes a clean narrative transcript of every conversation and letter to " +
                     "CalradiaRemembers_story.log in your Logs folder. No timestamps, no noise: it reads like a novel.")]
-      [SettingPropertyGroup("Diagnostics", GroupOrder = 7)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Diagnostics}Diagnostics", GroupOrder = 7)]
       public bool StoryLogging { get; set; } = false;
 
-      [SettingPropertyBool("Report unsupported actions", RequireRestart = false, Order = 4,
-         HintText = "Shows a note in chat when the AI attempts an action the mod does not support yet. Every attempt is " +
+      [SettingPropertyBool("{=CR_MCM_ReportUnsupportedActions}Report unsupported actions", RequireRestart = false, Order = 4,
+         HintText = "{=CR_MCM_ReportUnsupportedActions_Hint}Shows a note in chat when the AI attempts an action the mod does not support yet. Every attempt is " +
                     "logged to CalradiaRemembers_unknown_actions.log regardless of this setting. Send that log to LogRaam on " +
                     "Nexus to request support.")]
-      [SettingPropertyGroup("Diagnostics", GroupOrder = 7)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Diagnostics}Diagnostics", GroupOrder = 7)]
       public bool ReportUnsupportedActions { get; set; } = false;
 
-      [SettingPropertyButton("Test Connection", RequireRestart = false, Order = 3,
-         HintText = "Validates your key, then sends a one-token test to the roleplay model and, if set, the consensual " +
+      [SettingPropertyButton("{=CR_MCM_TestConnection}Test Connection", RequireRestart = false, Order = 3,
+         HintText = "{=CR_MCM_TestConnection_Hint}Validates your key, then sends a one-token test to the roleplay model and, if set, the consensual " +
                     "model, reporting any error. Costs a fraction of a cent.",
-         Content = "Test")]
-      [SettingPropertyGroup("OpenRouter", GroupOrder = 1)]
+         Content = "{=CR_MCM_TestConnection_Button}Test")]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenRouter}OpenRouter", GroupOrder = 1)]
       public Action TestConnection { get; set; } = ApiKeyTester.Run;
 
-      [SettingPropertyButton("Test Endpoint", RequireRestart = false, Order = 5,
-         HintText = "Sends a one-token test to your endpoint with the roleplay model and, if set, the consensual model. " +
+      [SettingPropertyButton("{=CR_MCM_TestCustomConnection}Test Endpoint", RequireRestart = false, Order = 5,
+         HintText = "{=CR_MCM_TestCustomConnection_Hint}Sends a one-token test to your endpoint with the roleplay model and, if set, the consensual model. " +
                     "Your server must be running. OpenAI-Compatible only.",
-         Content = "Test")]
-      [SettingPropertyGroup("OpenAI-Compatible", GroupOrder = 3)]
+         Content = "{=CR_MCM_TestCustomConnection_Button}Test")]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 3)]
       public Action TestCustomConnection { get; set; } = ApiKeyTester.RunCustom;
 
-      [SettingPropertyButton("Test NanoGPT Connection", RequireRestart = false, Order = 1,
-         HintText = "Checks your NanoGPT key against nano-gpt.com without starting a conversation. No tokens spent.",
-         Content = "Test")]
-      [SettingPropertyGroup("NanoGPT", GroupOrder = 2)]
+      [SettingPropertyButton("{=CR_MCM_TestNanoGptConnection}Test NanoGPT Connection", RequireRestart = false, Order = 1,
+         HintText = "{=CR_MCM_TestNanoGptConnection_Hint}Checks your NanoGPT key against nano-gpt.com without starting a conversation. No tokens spent.",
+         Content = "{=CR_MCM_TestNanoGptConnection_Button}Test")]
+      [SettingPropertyGroup("{=CR_MCM_Group_NanoGPT}NanoGPT", GroupOrder = 2)]
       public Action TestNanoGptConnection { get; set; } = ApiKeyTester.RunNanoGpt;
 
       // fkasad (Nexus, 01/10/2026): "almost everyone in my faction is at 100 just by doing chores"; Gabriel: a slider.
-      [SettingPropertyInteger("Self-Esteem Climb", 0, 4, "0", RequireRestart = false, Order = 3,
-         HintText = "How hard a character's pride climbs once already high. 0: every success counts in full, as before. 2 (default): half way up, a victory counts a quarter; near the top, almost nothing. Higher: harder still. Applies immediately.")]
-      [SettingPropertyGroup("Character", GroupOrder = 5)]
+      [SettingPropertyInteger("{=CR_MCM_SelfEsteemClimb}Self-Esteem Climb", 0, 4, "0", RequireRestart = false, Order = 3,
+         HintText = "{=CR_MCM_SelfEsteemClimb_Hint}How hard a character's pride climbs once already high. 0: every success counts in full, as before. 2 (default): half way up, a victory counts a quarter; near the top, almost nothing. Higher: harder still. Applies immediately.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Character}Character", GroupOrder = 5)]
       public int SelfEsteemClimb { get; set; } = SelfEsteemPolicy.DefaultClimbExponent;
 
-      [SettingPropertyBool("Use custom traits", RequireRestart = false, Order = 0,
-         HintText = "Applies the hand-authored personalities from ModuleData/character_overrides.json, replacing an " +
+      [SettingPropertyBool("{=CR_MCM_UseCustomTraits}Use custom traits", RequireRestart = false, Order = 0,
+         HintText = "{=CR_MCM_UseCustomTraits_Hint}Applies the hand-authored personalities from ModuleData/character_overrides.json, replacing an " +
                     "authored NPC's five vanilla traits. Edits load on the next campaign, or via cr.reload_lore.")]
-      [SettingPropertyGroup("Character", GroupOrder = 5)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Character}Character", GroupOrder = 5)]
       public bool UseCustomTraits { get; set; } = false;
 
-      [SettingPropertyText("Custom Folder Path", RequireRestart = false, Order = 2,
-         HintText = "Where your edited prompts and styles are read from. Blank = the mod's own ModuleData/Custom. An absolute " +
+      [SettingPropertyText("{=CR_MCM_CustomFolderPath}Custom Folder Path", RequireRestart = false, Order = 2,
+         HintText = "{=CR_MCM_CustomFolderPath_Hint}Where your edited prompts and styles are read from. Blank = the mod's own ModuleData/Custom. An absolute " +
                     "path keeps them outside the mod so an update never wipes them (re-enter it afterwards). Applies on the " +
                     "next campaign or cr.reload_lore.")]
-      [SettingPropertyGroup("Character", GroupOrder = 5)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Character}Character", GroupOrder = 5)]
       public string CustomFolderPath { get; set; } = "";
 
-      [SettingPropertyBool("Verbose Logging", RequireRestart = false, Order = 1,
-         HintText = "Logs the full system prompt and NPC reply on every exchange. Turn on only to capture a bug " +
+      [SettingPropertyBool("{=CR_MCM_VerboseLogging}Verbose Logging", RequireRestart = false, Order = 1,
+         HintText = "{=CR_MCM_VerboseLogging_Hint}Logs the full system prompt and NPC reply on every exchange. Turn on only to capture a bug " +
                     "report: it floods the log. Requires Enable Logging.")]
-      [SettingPropertyGroup("Diagnostics", GroupOrder = 7)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Diagnostics}Diagnostics", GroupOrder = 7)]
       public bool VerboseLogging { get; set; } = false;
 
       // Player complaint: conversations are ALWAYS crowded with ambient bystanders. Thins the AMBIENT hero
@@ -660,11 +660,11 @@ namespace CalradiaRemembers.Settings
       // CalradiaRemembers.Logic.WitnessPresencePolicy + WitnessResolver.ResolveAutoWitnesses). Default Bustling
       // is an EXACT passthrough (p=1.0, cap=int.MaxValue): the mod is LIVE, so an existing player who never opens
       // this menu sees precisely today's room, unchanged.
-      [SettingPropertyDropdown("Witness Density", RequireRestart = false, Order = 12,
-         HintText = "How many ambient bystanders a conversation gathers. Sparse thins the room fast; Normal keeps " +
+      [SettingPropertyDropdown("{=CR_MCM_WitnessDensity}Witness Density", RequireRestart = false, Order = 12,
+         HintText = "{=CR_MCM_WitnessDensity_Hint}How many ambient bystanders a conversation gathers. Sparse thins the room fast; Normal keeps " +
                     "a genuine middle ground; Bustling (default) is today's full room, unchanged. Never touches " +
                     "companions you bring yourself. Applies on your next conversation.")]
-      [SettingPropertyGroup("Content", GroupOrder = 4)]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public Dropdown<string> WitnessDensity { get; set; } =
          new(new[] {"Sparse", "Normal", "Bustling"}, 2); // default: Bustling (today's live behaviour, unchanged)
    }
