@@ -1,8 +1,10 @@
 // Code written by Gabriel Mailhot, 10/06/2026.
 // Moved into CalradiaRemembers.Logic 20/06/2026 so the relation-gating policy it drives
-// (RelationGate) can be unit-tested. Namespace kept as CalradiaRemembers so no caller changes.
+// (RelationGate) can be unit-tested. Namespace kept as CalradiaRemembers so no caller changes, until 19/10/2026: the
+// dependency map read every pure policy that takes a warmth as Logic using the MOD's root namespace, a cycle edge the
+// projects cannot even have. Now in CalradiaRemembers.Logic like the rest of its project.
 
-namespace CalradiaRemembers
+namespace CalradiaRemembers.Logic
 {
     /// <summary>
     ///   How readily NPCs grow to like the player through ordinary conversation.

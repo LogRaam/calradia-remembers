@@ -8,7 +8,6 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
-using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Storage;
 using Newtonsoft.Json;

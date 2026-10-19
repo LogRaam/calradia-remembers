@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Travel;
 using CalradiaRemembers.WorldEvents;

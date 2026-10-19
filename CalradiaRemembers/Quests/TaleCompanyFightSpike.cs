@@ -14,7 +14,6 @@ using System;
 using System.Linq;
 using System.Reflection;
 using HarmonyLib;
-using CalradiaRemembers.Diagnostics;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Encounters;

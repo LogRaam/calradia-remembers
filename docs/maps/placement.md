@@ -18,7 +18,6 @@ belongs there, or it is a shared foundation that should say so. Moving one is th
 | `ChatViewModel` | `CalradiaRemembers.Chat` | `CalradiaRemembers` | several | a few |
 | `ActionOutcome` | `CalradiaRemembers.GameState` | `CalradiaRemembers.Verbs` | many | a few |
 | `StanceConsequenceBehavior` | `CalradiaRemembers.Stance` | `CalradiaRemembers` | a few | a few |
-| `RelationWarmth` | `CalradiaRemembers` | `CalradiaRemembers.Logic` | a few | none |
 | `DiplomaticStatus` | `NpcMemoryService.Core.Models` | `NpcMemoryService.Core.Prompts` | a few | none |
 | `EncounterContext` | `NpcMemoryService.Core.Models` | `NpcMemoryService.Core.Knowledge` | several | none |
 | `PlayerStatusVsNpc` | `NpcMemoryService.Core.Models` | `NpcMemoryService.Core.Prompts` | a few | none |
@@ -36,12 +35,12 @@ count is what to read: a namespace of many unrelated parts is a folder of things
 
 | Namespace | Types | Parts | Types on their own | Density |
 |---|---|---|---|---|
-| `CalradiaRemembers.Logic` | 728 | 57 | 411 | loose |
+| `CalradiaRemembers.Logic` | 729 | 57 | 406 | loose |
 | `CalradiaRemembers.Logic.Assemblies` | 110 | 6 | 69 | loose |
 | `NpcMemoryService.Core.Models` | 74 | 4 | 9 | loose |
 | `CalradiaRemembers.Assemblies` | 23 | 4 | 7 | loose |
 | `NpcMemoryService.Core.Prompts` | 43 | 3 | 12 | loose |
-| `CalradiaRemembers.Diagnostics` | 16 | 3 | 7 | loose |
+| `CalradiaRemembers.Diagnostics` | 15 | 3 | 7 | loose |
 | `NpcMemoryService.Core.Actions` | 18 | 3 | 5 | medium |
 | `CalradiaRemembers.Duels` | 15 | 3 | 0 | medium |
 | `CalradiaRemembers.Logic.Duels` | 25 | 2 | 11 | loose |
@@ -71,7 +70,7 @@ count is what to read: a namespace of many unrelated parts is a folder of things
 | `CalradiaRemembers.Mapping` | 29 | 1 | 2 | loose |
 | `CalradiaRemembers.WorldAlmanac` | 14 | 1 | 2 | medium |
 | `NpcMemoryService.Core.Compression` | 5 | 1 | 2 | tight |
-| `CalradiaRemembers` | 49 | 1 | 1 | loose |
+| `CalradiaRemembers` | 50 | 1 | 1 | loose |
 | `CalradiaRemembers.Battles` | 5 | 1 | 1 | tight |
 | `CalradiaRemembers.Logic.Verbs` | 6 | 1 | 1 | tight |
 | `CalradiaRemembers.Missions` | 18 | 1 | 1 | medium |

@@ -8,7 +8,6 @@
 #region
 
 using CalradiaRemembers.Behaviors;
-using CalradiaRemembers.Diagnostics;
 using TaleWorlds.CampaignSystem;
 
 #endregion

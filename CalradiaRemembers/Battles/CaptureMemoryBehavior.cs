@@ -30,8 +30,9 @@ namespace CalradiaRemembers.Battles
 
       public override void RegisterEvents()
       {
-         // Guarded here rather than through Diagnostics.SafeRun: Diagnostics' cr.testall drives this behaviour, and the
-         // reverse reference would close a namespace cycle.
+         // Guarded here rather than through SafeRun: written while SafeRun lived in Diagnostics, whose cr.testall drives
+         // this behaviour, so the reverse reference would have closed a namespace cycle. SafeRun is at the root since
+         // 19/10/2026 and could serve; this guard is kept as it is.
          CampaignEvents.MapEventStarted.AddNonSerializedListener(this, (e, a, d) => Guard("battle", () => OnBattle(e)));
          CampaignEvents.HeroPrisonerTaken.AddNonSerializedListener(this, (capturer, prisoner) => Guard("taken", () => OnTaken(capturer, prisoner)));
       }

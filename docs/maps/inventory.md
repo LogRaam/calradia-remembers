@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 527 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1203 types in 31 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1203 types in 30 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -43,7 +43,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (49)
+### CalradiaRemembers (50)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -94,6 +94,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ModSettings` | public static class | Mod-wide settings façade. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
 | `ProseInterpretTestRunner` | internal static class | The runner behind cr.prose_interpret_test. |
+| `SafeRun` | public static class | Shared guard for campaign tick handlers. |
 | `SingleCallProbeRunner` | internal static class | The runner behind cr.single_call_probe: sends each scenario as one composer+extractor call and reports. |
 | `StoryLog` | internal static class | Writes a clean, narrative-style transcript of conversations and letters to CalradiaRemembers_story.log. |
 
@@ -272,7 +273,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `CompanionBriefingCoordinator` | public static class | Offers the companion-briefing picker and opens the resulting private chat. |
 
-### CalradiaRemembers.Diagnostics (16)
+### CalradiaRemembers.Diagnostics (15)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -285,7 +286,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LlmDiagnostic` | public static class | Sends a test prompt to the configured LLM and logs the response. |
 | `MemoryBench` | public static class | A live-model bench for what a character KNOWS: does he use what he was given, and does he keep quiet about what he was not? |
 | `RoleplayBench` | public static class | The cr.rp_bench roleplay model bench. |
-| `SafeRun` | public static class | Shared guard for campaign tick handlers. |
 | `SeededCase` | public class | One seeded character and what was done to them, so the run knows what to ask about. |
 | `SeededKind` | public enum | The situations the seeder can create. |
 | `SingleCallBench` | public static class | Runs the single-call bench in-game: single-call self-tags vs interpreter tags on the same prose. |
@@ -877,13 +877,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers (1)
-
-| Type | Kind | What it is |
-|---|---|---|
-| `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
-
-### CalradiaRemembers.Logic (728)
+### CalradiaRemembers.Logic (729)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1438,6 +1432,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RelationGate` | public static class | Single source of truth for how a LLM-proposed relation change is allowed to move the player↔NPC relationship. |
 | `RelationSummaryFacts` | public class | The standings the header line is written from. |
 | `RelationSummaryText` | public static class | Writes the header line. |
+| `RelationWarmth` | public enum | How readily NPCs grow to like the player through ordinary conversation. |
 | `ReleaseBargainMode` | public enum | How a freedom bargain is honoured, decided by who holds the prisoner. |
 | `ReliefSeat` | public class | A place a character answers for, as a destination for the grain he asked for. |
 | `ReplyCourierBlock` | public enum | Why no reply courier may ride to the player right now (None = the road is open). |

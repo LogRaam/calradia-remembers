@@ -8,7 +8,6 @@
 #region
 
 using System;
-using CalradiaRemembers.Diagnostics;
 using SandBox;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;

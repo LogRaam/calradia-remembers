@@ -10,7 +10,6 @@
 #region
 
 using System;
-using CalradiaRemembers.Diagnostics;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
 using TaleWorlds.Engine;

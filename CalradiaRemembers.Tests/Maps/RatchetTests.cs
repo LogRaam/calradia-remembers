@@ -45,7 +45,7 @@ namespace CalradiaRemembers.Tests.Maps
          "CalradiaRemembers.Jealousy", "CalradiaRemembers.Letters", "CalradiaRemembers.Lore",
          "CalradiaRemembers.Mapping", "CalradiaRemembers.Marriage", "CalradiaRemembers.Memory",
          "CalradiaRemembers.Missions", "CalradiaRemembers.Nemesis", "CalradiaRemembers.Quests",
-         "CalradiaRemembers.RealmTidings", "CalradiaRemembers.Retainer", "CalradiaRemembers.Scenarios",
+         "CalradiaRemembers.RealmTidings", "CalradiaRemembers.Scenarios",
          "CalradiaRemembers.Services", "CalradiaRemembers.Stance", "CalradiaRemembers.Tournaments",
          "CalradiaRemembers.Verbs", "CalradiaRemembers.Witnesses", "CalradiaRemembers.WorldAlmanac",
          "CalradiaRemembers.WorldEvents",
@@ -86,9 +86,11 @@ namespace CalradiaRemembers.Tests.Maps
       /// <summary>
       ///   Pairs of namespaces that use each other DIRECTLY on 19/10/2026, the day the dependency map started listing them
       ///   (after reading how Graphify ranks its graph's edges). Finer than the cycle set above: a new cross-edge between
-      ///   two namespaces already in the group never adds a name there, but it always adds a pair here.
+      ///   two namespaces already in the group never adds a name there, but it always adds a pair here. 99 when fitted;
+      ///   84 the same day, once SafeRun left Diagnostics for the root, 47 imports of Diagnostics that nothing used were
+      ///   removed, and RelationWarmth took its own project's namespace (Retainer left the cycle with them).
       /// </summary>
-      private const int MutualPairsOn19October = 99;
+      private const int MutualPairsOn19October = 84;
 
       // A NEW ENTANGLEMENT IS THE ONE STRUCTURAL CHANGE THAT IS NEVER AN IMPROVEMENT. Inside a cycle nothing can be
       // understood, tested or moved alone, and 46 namespaces are in one already.

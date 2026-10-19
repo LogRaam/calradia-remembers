@@ -8,7 +8,6 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.Behaviors;
-using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Appreciations;

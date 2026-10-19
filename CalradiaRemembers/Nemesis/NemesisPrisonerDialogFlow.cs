@@ -19,7 +19,6 @@
 using System;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
-using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Witnesses;
 using NpcMemoryService.Core.Models;

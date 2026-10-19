@@ -8,7 +8,6 @@
 
 using System;
 using System.Collections.Generic;
-using CalradiaRemembers.Diagnostics;
 using SandBox;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;

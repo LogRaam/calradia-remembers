@@ -10,7 +10,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic.WorldAlmanac;
 using CalradiaRemembers.Portraits;

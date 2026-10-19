@@ -9,7 +9,6 @@
 
 using System;
 using CalradiaRemembers.Commitments;
-using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
 
