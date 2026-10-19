@@ -12,6 +12,7 @@
 
 using System;
 using System.Collections.Generic;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Verbs;
 using NpcMemoryService.Core.Actions;

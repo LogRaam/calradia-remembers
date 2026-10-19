@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic.Verbs;
 using NpcMemoryService.Core.Models;

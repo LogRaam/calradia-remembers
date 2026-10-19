@@ -8,6 +8,7 @@ using HarmonyLib;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem.GameMenus;
 using TaleWorlds.Core;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

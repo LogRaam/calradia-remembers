@@ -15,7 +15,7 @@
 
 using System;
 using System.Collections.Generic;
-using CalradiaRemembers.Services;
+using CalradiaRemembers.Foundation;
 using NpcMemoryService.Core.Knowledge;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;

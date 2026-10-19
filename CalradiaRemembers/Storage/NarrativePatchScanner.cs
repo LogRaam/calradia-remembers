@@ -13,6 +13,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Narrative;
 using TaleWorlds.ModuleManager;
 

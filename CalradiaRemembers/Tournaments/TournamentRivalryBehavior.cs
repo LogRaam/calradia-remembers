@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using CalradiaRemembers.Appreciations;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;

@@ -5,6 +5,7 @@
 using System;
 using System.Linq;
 using System.Text;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Models;

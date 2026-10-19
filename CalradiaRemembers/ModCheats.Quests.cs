@@ -8,7 +8,6 @@ using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.GameState;
-using CalradiaRemembers.Logic;
 using CalradiaRemembers.Quests;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;

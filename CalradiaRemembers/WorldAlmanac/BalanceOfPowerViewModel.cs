@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.WorldAlmanac;
 using CalradiaRemembers.Portraits;
 using TaleWorlds.Library;

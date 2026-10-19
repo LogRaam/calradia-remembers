@@ -9,6 +9,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Video;
 
 #endregion

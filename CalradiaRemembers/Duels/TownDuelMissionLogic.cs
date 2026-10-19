@@ -17,7 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Duels;
 using SandBox.Missions.MissionLogics;
 using TaleWorlds.CampaignSystem;

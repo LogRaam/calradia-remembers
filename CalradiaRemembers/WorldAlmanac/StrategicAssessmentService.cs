@@ -12,7 +12,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
-using CalradiaRemembers.Chat;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic.WorldAlmanac;
 using CalradiaRemembers.Portraits;

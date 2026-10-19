@@ -16,10 +16,10 @@ a move that removes a link and adds none is worth making; the others are listed 
 
 | Type | Lives in | Used mostly by | Users there | Users at home | Effect of moving it there |
 |---|---|---|---|---|---|
-| `StoryLog` | `CalradiaRemembers` | `CalradiaRemembers.Chat` | several | none | removes nothing, adds `CalradiaRemembers.Marriage` -> `CalradiaRemembers.Chat` |
-| `ChatViewModel` | `CalradiaRemembers.Chat` | `CalradiaRemembers` | several | a few | removes nothing, adds nothing |
+| `ChatViewModel` | `CalradiaRemembers.Chat` | `CalradiaRemembers` | several | a few | removes nothing, adds `CalradiaRemembers.Dialogue` -> `CalradiaRemembers`, `CalradiaRemembers.Nemesis` -> `CalradiaRemembers` |
+| `StoryLog` | `CalradiaRemembers.Foundation` | `CalradiaRemembers.Chat` | several | none | removes nothing, adds `CalradiaRemembers.Marriage` -> `CalradiaRemembers.Chat` |
 | `ActionOutcome` | `CalradiaRemembers.GameState` | `CalradiaRemembers.Verbs` | many | a few | removes nothing, adds `CalradiaRemembers.Quests` -> `CalradiaRemembers.Verbs` |
-| `StanceConsequenceBehavior` | `CalradiaRemembers.Stance` | `CalradiaRemembers` | a few | a few | removes nothing, adds nothing |
+| `StanceConsequenceBehavior` | `CalradiaRemembers.Stance` | `CalradiaRemembers` | a few | a few | removes nothing, adds `CalradiaRemembers.Stance` -> `CalradiaRemembers` |
 | `DiplomaticStatus` | `NpcMemoryService.Core.Models` | `NpcMemoryService.Core.Prompts` | a few | none | removes nothing, adds nothing |
 | `EncounterContext` | `NpcMemoryService.Core.Models` | `NpcMemoryService.Core.Knowledge` | several | none | removes nothing, adds `NpcMemoryService.Core.Services` -> `NpcMemoryService.Core.Knowledge` |
 | `PlayerStatusVsNpc` | `NpcMemoryService.Core.Models` | `NpcMemoryService.Core.Prompts` | a few | none | removes nothing, adds nothing |
@@ -41,6 +41,7 @@ count is what to read: a namespace of many unrelated parts is a folder of things
 | `CalradiaRemembers.Logic.Assemblies` | 110 | 6 | 69 | loose |
 | `NpcMemoryService.Core.Models` | 74 | 4 | 9 | loose |
 | `CalradiaRemembers.Assemblies` | 23 | 4 | 7 | loose |
+| `CalradiaRemembers` | 45 | 3 | 20 | loose |
 | `NpcMemoryService.Core.Prompts` | 43 | 3 | 12 | loose |
 | `CalradiaRemembers.Diagnostics` | 15 | 3 | 7 | loose |
 | `NpcMemoryService.Core.Actions` | 18 | 3 | 5 | medium |
@@ -63,7 +64,7 @@ count is what to read: a namespace of many unrelated parts is a folder of things
 | `CalradiaRemembers.Logic.Nemesis` | 14 | 1 | 11 | loose |
 | `CalradiaRemembers.Logic.WorldAlmanac` | 27 | 1 | 11 | medium |
 | `CalradiaRemembers.Logic.Interception` | 13 | 1 | 10 | loose |
-| `CalradiaRemembers.Chat` | 52 | 1 | 6 | loose |
+| `CalradiaRemembers.Chat` | 50 | 1 | 5 | loose |
 | `CalradiaRemembers.Logic.Rescue` | 8 | 1 | 5 | loose |
 | `CalradiaRemembers.Logic.Diagnostics` | 6 | 1 | 4 | loose |
 | `NpcMemoryService.Core.Parsing` | 10 | 1 | 4 | medium |
@@ -74,7 +75,6 @@ count is what to read: a namespace of many unrelated parts is a folder of things
 | `CalradiaRemembers.Mapping` | 29 | 1 | 2 | loose |
 | `CalradiaRemembers.WorldAlmanac` | 14 | 1 | 2 | medium |
 | `NpcMemoryService.Core.Compression` | 5 | 1 | 2 | tight |
-| `CalradiaRemembers` | 50 | 1 | 1 | loose |
 | `CalradiaRemembers.Battles` | 5 | 1 | 1 | tight |
 | `CalradiaRemembers.Logic.Verbs` | 6 | 1 | 1 | tight |
 | `CalradiaRemembers.Missions` | 18 | 1 | 1 | medium |
@@ -83,6 +83,7 @@ count is what to read: a namespace of many unrelated parts is a folder of things
 | `NpcMemoryService.Core.Storage` | 4 | 1 | 1 | tight |
 | `CalradiaRemembers.Chronicle` | 5 | 1 | 0 | tight |
 | `CalradiaRemembers.Commoners` | 5 | 1 | 0 | tight |
+| `CalradiaRemembers.Foundation` | 8 | 1 | 0 | tight |
 | `CalradiaRemembers.Grudges` | 6 | 1 | 0 | tight |
 | `CalradiaRemembers.Interception` | 7 | 1 | 0 | tight |
 | `CalradiaRemembers.Jealousy` | 5 | 1 | 0 | tight |

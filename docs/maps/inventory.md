@@ -43,7 +43,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (50)
+### CalradiaRemembers (45)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -85,18 +85,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FeedResult` | public enum | The outcome of feeding an event through Feed (record / update / retract). |
 | `IPairRegardSource` | public interface | What another mod knows lies between two characters. |
 | `InterpretTestRunner` | internal static class | The runner behind cr.interpret_test. |
-| `LocalContextState` | public static class | The session's record of fitting requests to the local model's window. |
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
 | `ModCheats` | public static class, partial over 59 files | Exposes diagnostic commands to the Bannerlord cheat console. |
-| `ModLog` | internal static class | Writes timestamped log entries to a file in the Bannerlord Logs folder AND shows them in the in-game console. |
-| `ModSettings` | public static class | Mod-wide settings façade. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
 | `ProseInterpretTestRunner` | internal static class | The runner behind cr.prose_interpret_test. |
-| `SafeRun` | public static class | Shared guard for campaign tick handlers. |
 | `SingleCallProbeRunner` | internal static class | The runner behind cr.single_call_probe: sends each scenario as one composer+extractor call and reports. |
-| `StoryLog` | internal static class | Writes a clean, narrative-style transcript of conversations and letters to CalradiaRemembers_story.log. |
 
 ### CalradiaRemembers.Aims (2)
 
@@ -182,7 +177,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `NpcMemoryCampaignBehavior` | public class | Bridges the NpcMemoryService SDK to the Bannerlord campaign lifecycle. |
 
-### CalradiaRemembers.Chat (52)
+### CalradiaRemembers.Chat (50)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -227,8 +222,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `IRoundTableHost` | internal interface | The exact set of view-model operations the round-table lap (RoundTableController.RunAsync) drives, so the controller depends on this seam rather than the whole ChatViewModel. |
 | `ItemBargainText` | public static class | Builds the goods list and acceptance stimulus for an item-bargain settlement. |
 | `MBRandomSource` | public class | Engine-backed IRandomSource for the mod: the real game RNG. The pure logic in CalradiaRemembers.Logic depends only on the interface, so tests inject a deterministic source. |
-| `MainThreadAwaitable` | public struct | Custom awaiter that resumes its continuation on the main-thread dispatcher. |
-| `MainThreadDispatcher` | public static class | Marshals work back onto Bannerlord's main thread. |
 | `ManualActionMenuController` | internal class | Owns the manual action-injection menu so it does not thread through the shared ChatViewModel partials, mirroring OfferController and ActionConfirmationController. |
 | `MemoryEntryViewModel` | public class | One row in the in-chat "shared memories" panel: a muted meta line (the dated day, and the event type when it is not a plain remark) above the memory's summary. |
 | `MemoryScrollablePanel` | public class | A plain ScrollablePanel for the shared-memories list. |
@@ -369,6 +362,19 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | Type | Kind | What it is |
 |---|---|---|
 | `FollowMeBehavior` | public class | Persists active follow_me escorts (a lord's own party riding with the player) and advances/ends each daily. |
+
+### CalradiaRemembers.Foundation (8)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `CrSettings` | public class | MCM (Mod Configuration Menu) global settings for Calradia Remembers. |
+| `LocalContextState` | public static class | The session's record of fitting requests to the local model's window. |
+| `MainThreadAwaitable` | public struct | Custom awaiter that resumes its continuation on the main-thread dispatcher. |
+| `MainThreadDispatcher` | public static class | Marshals work back onto Bannerlord's main thread. |
+| `ModLog` | internal static class | Writes timestamped log entries to a file in the Bannerlord Logs folder AND shows them in the in-game console. |
+| `ModSettings` | public static class | Mod-wide settings façade. |
+| `SafeRun` | public static class | Shared guard for campaign tick handlers. |
+| `StoryLog` | internal static class | Writes a clean, narrative-style transcript of conversations and letters to CalradiaRemembers_story.log. |
 
 ### CalradiaRemembers.GUI (4)
 
@@ -677,19 +683,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ScenarioPackLoader` | public static class | Reads and parses the scenario packs into ScenarioRules. |
 | `ScenarioRuntime` | public class | Holds the loaded rules + the persisted fired-once set, and runs a fired trigger end to end. |
 
-### CalradiaRemembers.Services (2)
-
-| Type | Kind | What it is |
-|---|---|---|
-| `BackgroundCallHold` | public static class | Makes a background model call wait for the open conversation to close, on the local server only. |
-| `LlmServices` | public class | Centralizes the construction and lifetime of the LLM stack (HTTP client, OpenRouter client, parser, prompt builder, chat service). |
-
-### CalradiaRemembers.Settings (2)
+### CalradiaRemembers.Services (3)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ApiKeyTester` | public static class | Backs the MCM "Test Connection" buttons. |
-| `CrSettings` | public class | MCM (Mod Configuration Menu) global settings for Calradia Remembers. |
+| `BackgroundCallHold` | public static class | Makes a background model call wait for the open conversation to close, on the local server only. |
+| `LlmServices` | public class | Centralizes the construction and lifetime of the LLM stack (HTTP client, OpenRouter client, parser, prompt builder, chat service). |
 
 ### CalradiaRemembers.Social (1)
 

@@ -12,6 +12,7 @@ using NpcMemoryService.Core.Extension;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Prompts;
 using TaleWorlds.CampaignSystem;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

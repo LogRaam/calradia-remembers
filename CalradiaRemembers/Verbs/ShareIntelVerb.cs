@@ -4,6 +4,7 @@
 
 using System;
 using System.Text;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem.Settlements;

@@ -14,6 +14,7 @@ using HarmonyLib;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Localization;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

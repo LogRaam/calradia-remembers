@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Battles;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Stance;
 using NpcMemoryService.Core.Models;

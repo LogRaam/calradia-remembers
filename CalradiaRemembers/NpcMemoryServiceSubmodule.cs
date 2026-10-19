@@ -19,6 +19,7 @@ using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Dynasty;
 using CalradiaRemembers.Escort;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Interception;
@@ -470,6 +471,10 @@ namespace CalradiaRemembers
          NpcMemoryService.Core.Services.ProfileMutator.RegardChanged += Quests.QuestDeedTracker.OnRegardChanged;
          // What CR did to fit a local model's declared window (fkasad, 13/10/2026): logged, kept, told once.
          NpcMemoryService.Core.Services.NpcChatService.ContextFitted += LocalContextState.OnFitted;
+         // The MCM Test buttons: the settings cannot name the tester, which reads them (CrSettings.ConnectionTest).
+         CrSettings.ConnectionTest = Services.ApiKeyTester.Run;
+         CrSettings.CustomConnectionTest = Services.ApiKeyTester.RunCustom;
+         CrSettings.NanoGptConnectionTest = Services.ApiKeyTester.RunNanoGpt;
 
          try
          {

@@ -11,6 +11,7 @@
 
 using System;
 using TaleWorlds.Library;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

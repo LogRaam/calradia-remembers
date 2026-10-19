@@ -4,6 +4,7 @@
 
 using System;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Portraits;

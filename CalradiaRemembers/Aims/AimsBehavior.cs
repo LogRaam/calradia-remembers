@@ -13,6 +13,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Aims;
 using Newtonsoft.Json;
 using NpcMemoryService.Core.Standing;

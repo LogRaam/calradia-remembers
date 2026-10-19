@@ -11,7 +11,6 @@
 #region
 
 using System;
-using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Marriage;
 using FluentAssertions;

@@ -9,6 +9,7 @@
 
 using System;
 using CalradiaRemembers.Commitments;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
 

@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Escort;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;

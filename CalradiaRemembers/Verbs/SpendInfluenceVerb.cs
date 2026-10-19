@@ -5,6 +5,7 @@
 using System;
 using System.Text;
 using CalradiaRemembers.Appreciations;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic.Appreciations;
 using NpcMemoryService.Core.Models;

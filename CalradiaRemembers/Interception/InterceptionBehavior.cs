@@ -9,6 +9,7 @@ using System.Text;
 using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;

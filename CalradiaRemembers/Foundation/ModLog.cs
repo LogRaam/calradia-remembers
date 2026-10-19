@@ -6,12 +6,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using CalradiaRemembers.Logic.Diagnostics;
-using CalradiaRemembers.Settings;
 using TaleWorlds.Library;
 
 #endregion
 
-namespace CalradiaRemembers
+namespace CalradiaRemembers.Foundation
 {
    /// <summary>
    ///   Writes timestamped log entries to a file in the Bannerlord Logs folder

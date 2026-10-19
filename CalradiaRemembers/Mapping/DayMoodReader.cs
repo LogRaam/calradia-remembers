@@ -6,6 +6,7 @@
 #region
 
 using System;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Knowledge;
 using NpcMemoryService.Core.Mood;

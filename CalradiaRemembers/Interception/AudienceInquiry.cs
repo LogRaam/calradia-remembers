@@ -19,7 +19,7 @@ using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using CalradiaRemembers.Behaviors;
-using CalradiaRemembers.Chat;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Interception;
 using CalradiaRemembers.Mapping;

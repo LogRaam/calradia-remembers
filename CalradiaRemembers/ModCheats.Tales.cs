@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.AuthoredQuests;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;

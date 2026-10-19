@@ -17,7 +17,7 @@
 #region
 
 using System;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Duels;
 using SandBox;
 using SandBox.Missions.AgentBehaviors;

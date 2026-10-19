@@ -18,6 +18,7 @@
 #region
 
 using TaleWorlds.CampaignSystem;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

@@ -11,7 +11,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
-using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Nemesis;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;

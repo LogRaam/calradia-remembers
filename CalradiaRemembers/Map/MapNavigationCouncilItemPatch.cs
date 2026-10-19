@@ -13,6 +13,7 @@ using System.Reflection;
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ViewModelCollection.Map.MapBar;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

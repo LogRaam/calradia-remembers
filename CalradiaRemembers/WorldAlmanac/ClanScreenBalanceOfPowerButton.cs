@@ -17,6 +17,7 @@ using System;
 using HarmonyLib;
 using SandBox.GauntletUI;
 using TaleWorlds.Engine.GauntletUI;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

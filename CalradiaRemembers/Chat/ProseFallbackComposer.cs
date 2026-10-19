@@ -5,6 +5,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Services;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Parsing;

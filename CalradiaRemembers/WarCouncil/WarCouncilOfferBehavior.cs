@@ -11,6 +11,7 @@
 using System;
 using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
 using TaleWorlds.CampaignSystem;

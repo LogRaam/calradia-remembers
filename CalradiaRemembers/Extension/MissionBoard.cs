@@ -5,6 +5,7 @@
 using System;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Quests;
 using CalradiaRemembers.Storage;

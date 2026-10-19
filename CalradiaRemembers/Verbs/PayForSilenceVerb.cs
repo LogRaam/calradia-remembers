@@ -10,8 +10,8 @@
 
 using System;
 using System.Linq;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
-using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Bastards;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;

@@ -15,6 +15,7 @@
 using System;
 using System.Collections.Generic;
 using CalradiaRemembers.Diagnostics;
+using CalradiaRemembers.Foundation;
 using SandBox;
 using SandBox.Missions.MissionLogics;
 using TaleWorlds.CampaignSystem;

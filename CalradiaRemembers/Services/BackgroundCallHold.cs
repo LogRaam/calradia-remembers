@@ -10,6 +10,7 @@
 using System.Diagnostics;
 using System.Threading.Tasks;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 
 #endregion

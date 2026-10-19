@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
 using TaleWorlds.MountAndBlade;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

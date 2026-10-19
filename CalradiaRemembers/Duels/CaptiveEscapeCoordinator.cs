@@ -21,8 +21,8 @@
 using System;
 using System.Collections.Generic;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
-using CalradiaRemembers.Nemesis;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;

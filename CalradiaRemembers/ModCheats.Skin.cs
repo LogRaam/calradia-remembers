@@ -44,9 +44,9 @@ namespace CalradiaRemembers
             case "clear":
                ChatManager.SkinConsoleOverride = null;
 
-               return $"Chat skin override cleared; following the MCM menu ({ModSettings.ChatSkinPrefab}).";
+               return $"Chat skin override cleared; following the MCM menu ({ChatManager.MenuSkinPrefab}).";
             default:
-               string ov = ChatManager.SkinConsoleOverride ?? $"(none, MCM = {ModSettings.ChatSkinPrefab})";
+               string ov = ChatManager.SkinConsoleOverride ?? $"(none, MCM = {ChatManager.MenuSkinPrefab})";
 
                return $"Chat skin override: {ov}. Currently open with: {ChatManager.ActiveSkin}. " +
                       "Usage: cr.skin [classic|manuscript|default].";

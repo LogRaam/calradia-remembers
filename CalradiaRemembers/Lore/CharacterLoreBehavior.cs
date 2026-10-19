@@ -5,9 +5,9 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
-using CalradiaRemembers.Settings;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;

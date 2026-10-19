@@ -13,6 +13,7 @@
 using System;
 using System.Collections.Generic;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Duels;
 using NpcMemoryService.Core.Models;

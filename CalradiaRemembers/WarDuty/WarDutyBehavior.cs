@@ -21,6 +21,7 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Aims;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic.Aims;

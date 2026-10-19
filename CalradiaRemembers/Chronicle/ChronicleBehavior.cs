@@ -3,6 +3,7 @@
 #region
 
 using System;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Chronicle;
 using System.Text;
 using TaleWorlds.CampaignSystem;

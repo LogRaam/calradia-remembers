@@ -18,6 +18,7 @@
 using System;
 using System.Reflection;
 using HarmonyLib;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

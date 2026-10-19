@@ -4,6 +4,7 @@
 
 using TaleWorlds.GauntletUI;
 using TaleWorlds.GauntletUI.BaseTypes;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

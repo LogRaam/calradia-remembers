@@ -2,6 +2,7 @@
 
 #region
 
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.Logic.Narrative;
 using System.Collections.Generic;
@@ -66,7 +67,7 @@ namespace CalradiaRemembers.Mapping
       /// </summary>
       public static string CustomBaseFolder()
       {
-         string configured = CalradiaRemembers.ModSettings.CustomFolderPath;
+         string configured = CalradiaRemembers.Foundation.ModSettings.CustomFolderPath;
          if (!string.IsNullOrWhiteSpace(configured))
             try { if (Directory.Exists(configured)) return configured; }
             catch { /* a malformed path silently falls back to the shipped default below */ }

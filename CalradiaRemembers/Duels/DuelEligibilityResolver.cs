@@ -10,6 +10,7 @@
 #region
 
 using System;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Social;
 using NpcMemoryService.Core.Models;

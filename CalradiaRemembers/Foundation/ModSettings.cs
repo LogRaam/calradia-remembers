@@ -5,12 +5,11 @@
 using System;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Marriage;
-using CalradiaRemembers.Settings;
 using NpcMemoryService.Core.Models;
 
 #endregion
 
-namespace CalradiaRemembers
+namespace CalradiaRemembers.Foundation
 {
    /// <summary>
    ///   Mod-wide settings façade. Sprint 16 backs <see cref="AdultContentLevel" /> with
@@ -74,23 +73,11 @@ namespace CalradiaRemembers
       /// <summary>Intercepted-letter-leak Inc 1: when ON, a bandit-waylaid substantive letter may leak to a hostile hand. OFF by default (today's behaviour).</summary>
 
       /// <summary>
-      ///   The chat window skin prefab chosen in the MCM menu ("Chat Window Style"), mapped from its display
-      ///   label to the prefab name. Read live; falls back to the Dark Leather (Manuscript) book when MCM has
-      ///   not loaded, which is the shipped default.
+      ///   The chat window style chosen in the MCM menu ("Chat Window Style"), as its label ("Origin", "Dark Leather"),
+      ///   or null when MCM has not loaded. <see cref="CrSettings" /> holds it; Chat's ChatManager.MenuSkinPrefab maps it
+      ///   to a prefab, so the settings never name the chat's prefabs.
       /// </summary>
-      public static string ChatSkinPrefab
-      {
-         get
-         {
-            string v = CrSettings.Instance?.ChatSkin?.SelectedValue;
-
-            switch (v)
-            {
-               case "Origin": return Chat.ChatManager.ClassicSkin;
-               default: return Chat.ChatManager.ManuscriptSkin; // Dark Leather (default)
-            }
-         }
-      }
+      public static string ChatSkinChoice => CrSettings.Instance?.ChatSkin?.SelectedValue;
 
       /// <summary>
       ///   When true, the companion-contentment loop runs (restlessness, audiences, farewell-letter
@@ -198,7 +185,7 @@ namespace CalradiaRemembers
       ///   Player-chosen zoom factor for the Dark Leather (Manuscript) chat window ("Dark Leather Size (%)"),
       ///   read live from the MCM menu. 1.0 (100%) reproduces the shipped look; clamped to [0.8, 1.4] to match
       ///   the slider's own bounds even if a stale/edited config carries something outside them. Falls back to
-      ///   1.0 when MCM has not loaded. No effect on the Origin skin (see <see cref="Chat.ChatManager" />).
+      ///   1.0 when MCM has not loaded. No effect on the Origin skin (see Chat's <c>ChatManager</c>).
       /// </summary>
       public static float DarkLeatherScale
       {

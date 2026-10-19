@@ -14,6 +14,7 @@
 using System;
 using System.Collections.Generic;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Storage;
 using CalradiaRemembers.WorldEvents;

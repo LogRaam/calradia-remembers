@@ -9,6 +9,7 @@
 #region
 
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Storage;

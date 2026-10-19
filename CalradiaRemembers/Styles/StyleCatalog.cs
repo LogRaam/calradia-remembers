@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Styles;
 using TaleWorlds.Library;
 

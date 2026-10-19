@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Storage;
 using TaleWorlds.CampaignSystem;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

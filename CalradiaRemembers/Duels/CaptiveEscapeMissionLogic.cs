@@ -17,6 +17,7 @@ using TaleWorlds.Engine;
 using TaleWorlds.Library;
 using TaleWorlds.MountAndBlade;
 using TaleWorlds.ObjectSystem;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

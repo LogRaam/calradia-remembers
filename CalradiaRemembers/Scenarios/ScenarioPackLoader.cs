@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 
 #endregion

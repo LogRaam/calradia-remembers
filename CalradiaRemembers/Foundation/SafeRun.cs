@@ -9,7 +9,7 @@ using System;
 
 #endregion
 
-namespace CalradiaRemembers
+namespace CalradiaRemembers.Foundation
 {
     /// <summary>
     ///   Shared guard for campaign tick handlers. Mirrors the SafeStep pattern proven in

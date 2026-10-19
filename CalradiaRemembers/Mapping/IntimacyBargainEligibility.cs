@@ -6,6 +6,7 @@
 
 #region
 
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;

@@ -23,6 +23,7 @@ using System.IO;
 using System.Threading;
 using NpcMemoryService.Core.LlmClient;
 using NpcMemoryService.Core.Prompts;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

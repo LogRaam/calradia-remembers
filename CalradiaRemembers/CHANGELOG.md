@@ -11,6 +11,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   the root because `CaptiveOfferPolicy` reads its thresholds). New `Tools/Move-LogicTypes.py` moves a set (git mv,
   namespace, the `using` of every user) and refuses a move that would add a pair of namespaces using each other.
   `Jealousy` stays in the root for now: `RomanticProfilePolicy` and the marriage rules read it. No behaviour change.
+- **The dependency map sees a bare name resolved to an enclosing namespace** (`c0a0e9d`): it revealed 53 old pairs
+  between the mod root and the namespaces calling `ModLog` or `SafeRun` without a using (pairs 84 -> 137).
+- **New namespace `CalradiaRemembers.Foundation`**: `ModLog`, `SafeRun`, `StoryLog`, `ModSettings`, `CrSettings`,
+  `LocalContextState` and `MainThreadDispatcher` (from Chat), the things every namespace reads, now in one place
+  that reads none of them back. `ModSettings.ChatSkinPrefab` became `ChatManager.MenuSkinPrefab` (the settings no
+  longer name the chat's prefabs); the MCM Test buttons reach `Services.ApiKeyTester` through hooks the submodule
+  sets at load (cr.testall `mcm_test_buttons_wired`). New `Tools/Remove-DeadUsings.py` removed 102 imports nothing
+  used. Pairs 137 -> 92; nine namespaces leave the cycle set. The `Settings` namespace is gone; MCM keeps your
+  settings (it finds them by id). No behaviour change.
 
 ## v2.7.18.. 2026-10-19
 

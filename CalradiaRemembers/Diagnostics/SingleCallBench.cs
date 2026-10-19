@@ -16,6 +16,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Services;
 using NpcMemoryService.Core.Actions;
 using NpcMemoryService.Core.LlmClient;

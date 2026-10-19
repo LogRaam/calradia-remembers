@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;

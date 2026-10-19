@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Appearance;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;

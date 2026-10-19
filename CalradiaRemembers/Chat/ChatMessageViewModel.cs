@@ -3,6 +3,7 @@
 #region
 
 using System;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Portraits;

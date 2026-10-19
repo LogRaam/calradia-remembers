@@ -8,6 +8,7 @@ using System.Linq;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

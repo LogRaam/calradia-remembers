@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CalradiaRemembers.Diagnostics;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.WorldAlmanac;
 using TaleWorlds.CampaignSystem;
 

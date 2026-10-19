@@ -5,6 +5,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.WarDuty;
 using CalradiaRemembers.WarDuty;
 using TaleWorlds.Library;

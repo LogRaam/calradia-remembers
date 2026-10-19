@@ -11,6 +11,7 @@ using CalradiaRemembers.Logic.Conversation;
 using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Diagnostics;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Assemblies;
@@ -54,6 +55,12 @@ namespace CalradiaRemembers.Chat
       public const string ClassicSkin = "CalradiaRemembersChat";
       /// <summary>The ornate two-page illuminated-manuscript skin (fixed-size book over Gabriel's page art).</summary>
       public const string ManuscriptSkin = "CalradiaRemembersChat_Manuscript";
+
+      /// <summary>
+      ///   The skin prefab chosen in the MCM menu ("Chat Window Style"): Origin is the classic window, anything else the
+      ///   Dark Leather book, which is also the shipped default when MCM has not loaded. Read live.
+      /// </summary>
+      public static string MenuSkinPrefab => ModSettings.ChatSkinChoice == "Origin" ? ClassicSkin : ManuscriptSkin;
       /// <summary>The bespoke 3-column COUNCIL window (left seat strip / centre chatroom / right engagements), a stretch layout so it never needs the Manuscript's zoom.</summary>
       public const string CouncilSkin = "CalradiaRemembersCouncil";
 
@@ -1581,7 +1588,7 @@ namespace CalradiaRemembers.Chat
                ? ClassicSkin
                : !string.IsNullOrWhiteSpace(SkinConsoleOverride)
                   ? SkinConsoleOverride
-                  : ModSettings.ChatSkinPrefab;
+                  : MenuSkinPrefab;
          // Dark Leather paints its End Conversation and Memories labels into its page art, over invisible buttons:
          // without the art the player sees no way out (EmperorHaterius, 04/10/2026). Origin draws its own.
          bool artLoads = skin != ManuscriptSkin || ManuscriptArtLoads();

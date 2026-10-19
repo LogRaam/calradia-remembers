@@ -11,6 +11,7 @@
 
 using System;
 using CalradiaRemembers.Diagnostics;
+using CalradiaRemembers.Foundation;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
 using TaleWorlds.Engine;

@@ -8,6 +8,7 @@
 
 using System.Collections.Generic;
 using NpcMemoryService.Core.Mood;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

@@ -18,8 +18,7 @@
 #region
 
 using System;
-using CalradiaRemembers.Behaviors;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Nemesis;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Localization;

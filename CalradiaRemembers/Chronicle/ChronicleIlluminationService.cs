@@ -14,7 +14,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
-using CalradiaRemembers.Chat;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.LlmClient;
 using NpcMemoryService.Core.Services;

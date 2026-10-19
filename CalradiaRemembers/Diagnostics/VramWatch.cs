@@ -6,6 +6,7 @@
 #region
 
 using System;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

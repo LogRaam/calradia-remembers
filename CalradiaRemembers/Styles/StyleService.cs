@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Styles;
 using NpcMemoryService.Core.Prompts;
 

@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Text;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Assemblies;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;

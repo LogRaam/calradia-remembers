@@ -10,13 +10,13 @@
 
 #region
 
-using CalradiaRemembers.Chat;
+using CalradiaRemembers.Foundation;
 using NpcMemoryService.Core.Prompts;
 using TaleWorlds.Library;
 
 #endregion
 
-namespace CalradiaRemembers
+namespace CalradiaRemembers.Foundation
 {
    /// <summary>The session's record of fitting requests to the local model's window.</summary>
    public static class LocalContextState

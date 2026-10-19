@@ -6,6 +6,7 @@ using TaleWorlds.Engine.GauntletUI;
 using TaleWorlds.GauntletUI.BaseTypes;
 using TaleWorlds.ScreenSystem;
 using TaleWorlds.TwoDimension;
+using CalradiaRemembers.Foundation;
 using EngTex = TaleWorlds.Engine.Texture;
 
 #endregion

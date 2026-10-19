@@ -17,7 +17,7 @@
 using System;
 using System.Linq;
 using CalradiaRemembers.Behaviors;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Nemesis;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Quests;

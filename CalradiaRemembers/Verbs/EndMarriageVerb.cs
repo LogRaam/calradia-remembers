@@ -4,6 +4,7 @@
 
 using System;
 using System.Text;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Marriage;
 using NpcMemoryService.Core.Models;

@@ -55,11 +55,11 @@ namespace CalradiaRemembers.Tests.Maps
          "CalradiaRemembers.Logic", "CalradiaRemembers.Logic.Assemblies",
 
          // INVISIBLE UNTIL 01/10/2026, NOT NEW. The dependency map read only `using` directives, so a namespace called by
-         // QUALIFIED name (Settings.CrSettings, Violence.X) never showed its edge. Gabriel asked for the map review that
+         // QUALIFIED name (CrSettings, Violence.X) never showed its edge. Gabriel asked for the map review that
          // found it; the corrected map, run on the exact 2.6.7 sources (mod dc99b73, SDK 9977098), already showed every
          // name below in a cycle. Added as they were found, so the wall is honest from here on.
          "CalradiaRemembers", "CalradiaRemembers.Arrests", "CalradiaRemembers.Chronicle", "CalradiaRemembers.Map",
-         "CalradiaRemembers.OpenPartnerLover", "CalradiaRemembers.Rescue", "CalradiaRemembers.Settings",
+         "CalradiaRemembers.OpenPartnerLover", "CalradiaRemembers.Rescue",
          "CalradiaRemembers.Styles", "CalradiaRemembers.Violence", "CalradiaRemembers.WarCouncil",
          "NpcMemoryService.Core.Knowledge", "NpcMemoryService.Core.Memory", "NpcMemoryService.Core.Standing",
 
@@ -79,10 +79,10 @@ namespace CalradiaRemembers.Tests.Maps
          // CalradiaRemembers.Travel, `ModLog` is CalradiaRemembers' own, with no using and no qualifier. Found while
          // splitting Logic (Logic.Nemesis read as "uses: nothing"). Every name below calls the mod root's foundations
          // (ModLog, SafeRun, ModSettings, ModulePaths, StoryLog) while the root's ModCheats and submodule call them back.
-         // Retainer had left the group on 19/10 only because SafeRun moved to the root, where the map could not see it.
-         "CalradiaRemembers.Aims", "CalradiaRemembers.Appearance", "CalradiaRemembers.GUI", "CalradiaRemembers.Portraits",
-         "CalradiaRemembers.Retainer", "CalradiaRemembers.Storage", "CalradiaRemembers.Travel", "CalradiaRemembers.UI",
-         "CalradiaRemembers.UI.Spike", "CalradiaRemembers.Video"
+         // The same day those foundations moved to CalradiaRemembers.Foundation, which uses none of its callers, and
+         // Appearance, GUI, Portraits, Retainer, Storage, Travel, UI, UI.Spike and Video left again. Aims stays: its
+         // behavior raises the public CrConversation events, and the submodule registers it.
+         "CalradiaRemembers.Aims"
       };
 
       /// <summary>
@@ -101,8 +101,11 @@ namespace CalradiaRemembers.Tests.Maps
       ///   137 since the same day: the map started resolving a bare name to an enclosing namespace, which showed 53 pairs
       ///   that had always been there, every one between the mod root (ModLog, SafeRun, ModSettings beside ModCheats and
       ///   the submodule) and a namespace that calls ModLog without a using. Not new edges: a measurement fixed.
+      ///   92 the same day, once ModLog, SafeRun, StoryLog, ModSettings, CrSettings, LocalContextState and
+      ///   MainThreadDispatcher moved to CalradiaRemembers.Foundation (the MCM Test buttons now reach the tester
+      ///   through a hook) and 102 imports nothing used were removed (Tools/Remove-DeadUsings.py).
       /// </summary>
-      private const int MutualPairsOn19October = 137;
+      private const int MutualPairsOn19October = 92;
 
       // A NEW ENTANGLEMENT IS THE ONE STRUCTURAL CHANGE THAT IS NEVER AN IMPROVEMENT. Inside a cycle nothing can be
       // understood, tested or moved alone, and 46 namespaces are in one already.

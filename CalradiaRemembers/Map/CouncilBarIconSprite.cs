@@ -14,6 +14,7 @@
 #region
 
 using System;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Portraits;
 using TaleWorlds.Engine.GauntletUI;
 using TaleWorlds.GauntletUI;

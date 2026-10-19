@@ -3,6 +3,7 @@
 #region
 
 using System;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using MCM.Abstractions.Attributes;
 using MCM.Abstractions.Attributes.v2;
@@ -11,7 +12,7 @@ using MCM.Common;
 
 #endregion
 
-namespace CalradiaRemembers.Settings
+namespace CalradiaRemembers.Foundation
 {
    /// <summary>
    ///   MCM (Mod Configuration Menu) global settings for Calradia Remembers.
@@ -615,20 +616,27 @@ namespace CalradiaRemembers.Settings
                     "model, reporting any error. Costs a fraction of a cent.",
          Content = "{=CR_MCM_TestConnection_Button}Test")]
       [SettingPropertyGroup("{=CR_MCM_Group_OpenRouter}OpenRouter", GroupOrder = 1)]
-      public Action TestConnection { get; set; } = ApiKeyTester.Run;
+      public Action TestConnection { get; set; } = () => ConnectionTest?.Invoke();
 
       [SettingPropertyButton("{=CR_MCM_TestCustomConnection}Test Endpoint", RequireRestart = false, Order = 5,
          HintText = "{=CR_MCM_TestCustomConnection_Hint}Sends a one-token test to your endpoint with the roleplay model and, if set, the consensual model. " +
                     "Your server must be running. OpenAI-Compatible only.",
          Content = "{=CR_MCM_TestCustomConnection_Button}Test")]
       [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 3)]
-      public Action TestCustomConnection { get; set; } = ApiKeyTester.RunCustom;
+      public Action TestCustomConnection { get; set; } = () => CustomConnectionTest?.Invoke();
 
       [SettingPropertyButton("{=CR_MCM_TestNanoGptConnection}Test NanoGPT Connection", RequireRestart = false, Order = 1,
          HintText = "{=CR_MCM_TestNanoGptConnection_Hint}Checks your NanoGPT key against nano-gpt.com without starting a conversation. No tokens spent.",
          Content = "{=CR_MCM_TestNanoGptConnection_Button}Test")]
       [SettingPropertyGroup("{=CR_MCM_Group_NanoGPT}NanoGPT", GroupOrder = 2)]
-      public Action TestNanoGptConnection { get; set; } = ApiKeyTester.RunNanoGpt;
+      public Action TestNanoGptConnection { get; set; } = () => NanoGptConnectionTest?.Invoke();
+
+      /// <summary>
+      ///   What the three Test buttons above run, set once by the submodule at load (Services' ApiKeyTester). The
+      ///   settings sit in Foundation, which every namespace reads, and the tester in Services, which reads the
+      ///   settings: naming it here made the two use each other (19/10/2026). Read at the click, so load order is moot.
+      /// </summary>
+      internal static Action ConnectionTest, CustomConnectionTest, NanoGptConnectionTest;
 
       // fkasad (Nexus, 01/10/2026): "almost everyone in my faction is at 100 just by doing chores"; Gabriel: a slider.
       [SettingPropertyInteger("{=CR_MCM_SelfEsteemClimb}Self-Esteem Climb", 0, 4, "0", RequireRestart = false, Order = 3,

@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using CalradiaRemembers.Appearance;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.GUI;
 using CalradiaRemembers.Interception;

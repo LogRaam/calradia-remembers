@@ -10,6 +10,7 @@ using System;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Localization;
 using TaleWorlds.SaveSystem;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

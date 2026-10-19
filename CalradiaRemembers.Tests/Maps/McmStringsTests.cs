@@ -68,7 +68,7 @@ namespace CalradiaRemembers.Tests.Maps
       {
          if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}.");
 
-         return SourceTree.Production.Single(f => f.RelativePath.EndsWith("Settings/CrSettings.cs", StringComparison.Ordinal)).Text;
+         return SourceTree.Production.Single(f => f.RelativePath.EndsWith("Foundation/CrSettings.cs", StringComparison.Ordinal)).Text;
       }
 
       // Every "{=id}text" literal on the page, its concatenated pieces joined, in the order the page declares them.
@@ -135,7 +135,7 @@ namespace CalradiaRemembers.Tests.Maps
       {
          var sb = new StringBuilder();
          sb.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
-         sb.Append("<!-- GENERATED from CalradiaRemembers/Settings/CrSettings.cs by McmStringsTests: do not edit by hand. -->\n");
+         sb.Append("<!-- GENERATED from CalradiaRemembers/Foundation/CrSettings.cs by McmStringsTests: do not edit by hand. -->\n");
          sb.Append("<!-- To translate: see ../README.txt. Keep every id; translate only the text. -->\n");
          sb.Append("<base xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" type=\"string\">\n");
          sb.Append("  <tags>\n    <tag language=\"English\" />\n  </tags>\n  <strings>\n");

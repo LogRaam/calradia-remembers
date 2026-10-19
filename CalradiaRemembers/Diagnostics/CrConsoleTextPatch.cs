@@ -9,6 +9,7 @@
 
 using System;
 using System.Collections.Generic;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Diagnostics;
 using HarmonyLib;
 using TaleWorlds.Library;

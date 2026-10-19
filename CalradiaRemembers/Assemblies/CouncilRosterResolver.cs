@@ -10,6 +10,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Missions;
 using TaleWorlds.CampaignSystem;

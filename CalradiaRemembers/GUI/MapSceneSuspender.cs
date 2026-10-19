@@ -13,6 +13,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using TaleWorlds.ScreenSystem;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

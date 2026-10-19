@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-548 rules read 426 facts.
+547 rules read 425 facts.
 
 ## Facts read by more than one rule
 
@@ -373,7 +373,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `ChatEscapeFacts`: `ScreenManager.FocusedLayer`
 - `ChatFocusArbitrationPolicy.Decide`: `ScreenManager.TopScreen`
 - `ChatFocusArbitrationPolicy.ReasonFor`: `ScreenManager.TopScreen`
-- `ChatSkinFacts`: `ModSettings.ChatSkinPrefab`
 - `ClaimantBackerFacts`: `Clan.Influence`, `Clan.Kingdom`, `Hero.Clan`, `Hero.GetRelation`, `Hero.IsAlive`, `Hero.IsLord`, `Hero.IsPrisoner`
 - `ClanRegardCandidate`: `CharacterRelationManager.GetHeroRelation`, `Clan.Leader`, `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`, `PairRegardReader.Assess`
 - `ClanStandingSeedFacts`: `ModSettings.ClanStandingWarmsFirstMeetings`

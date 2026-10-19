@@ -10,6 +10,7 @@
 
 using System;
 using NpcMemoryService.Core.Extension;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

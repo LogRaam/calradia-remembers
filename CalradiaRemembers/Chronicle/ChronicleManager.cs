@@ -4,6 +4,7 @@
 
 using TaleWorlds.Engine.GauntletUI;
 using TaleWorlds.ScreenSystem;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

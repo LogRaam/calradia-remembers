@@ -26,6 +26,7 @@ using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.MountAndBlade;
 using SandBox.Missions.MissionLogics.Hideout;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

@@ -12,6 +12,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Video;
 using CalradiaRemembers.Portraits;
 using CalradiaRemembers.Video;

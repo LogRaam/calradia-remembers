@@ -3,6 +3,7 @@
 #region
 
 using System;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Missions;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;

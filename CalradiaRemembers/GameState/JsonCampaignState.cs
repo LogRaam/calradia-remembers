@@ -6,6 +6,7 @@ using System;
 using System.Text;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

@@ -25,6 +25,7 @@ using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Escort;
 using CalradiaRemembers.Duels;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Items;
 using CalradiaRemembers.Logic;

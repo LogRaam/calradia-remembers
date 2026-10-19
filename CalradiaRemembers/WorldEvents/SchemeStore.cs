@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Commitments;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic;

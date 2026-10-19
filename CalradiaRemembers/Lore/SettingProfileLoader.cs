@@ -7,6 +7,7 @@
 
 using System;
 using System.IO;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
 using Newtonsoft.Json;

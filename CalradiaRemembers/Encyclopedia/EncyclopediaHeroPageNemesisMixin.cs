@@ -14,6 +14,7 @@ using System;
 using System.Reflection;
 using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.ViewModels;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Nemesis;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ViewModelCollection.Encyclopedia.Pages;

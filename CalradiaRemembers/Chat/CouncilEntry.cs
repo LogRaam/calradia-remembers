@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Assemblies;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Assemblies;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;

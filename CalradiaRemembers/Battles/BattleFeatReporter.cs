@@ -11,6 +11,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Battles;
 using CalradiaRemembers.Tournaments;

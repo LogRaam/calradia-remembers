@@ -14,8 +14,8 @@
 #region
 
 using System;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
-using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Violence;
 using CalradiaRemembers.Verbs;
 using NpcMemoryService.Core.Models;

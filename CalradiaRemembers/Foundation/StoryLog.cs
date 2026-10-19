@@ -4,11 +4,10 @@
 
 using System;
 using System.IO;
-using CalradiaRemembers.Settings;
 
 #endregion
 
-namespace CalradiaRemembers
+namespace CalradiaRemembers.Foundation
 {
     /// <summary>
     ///   Writes a clean, narrative-style transcript of conversations and letters to

@@ -19,6 +19,7 @@
 #region
 
 using System;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.UI;
 using TaleWorlds.Core;
 using TaleWorlds.Engine.GauntletUI;

@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -14,7 +15,7 @@ using TaleWorlds.Localization;
 
 #endregion
 
-namespace CalradiaRemembers.Settings
+namespace CalradiaRemembers.Services
 {
    /// <summary>
    ///   Backs the MCM "Test Connection" buttons. Resolves the current key for a provider

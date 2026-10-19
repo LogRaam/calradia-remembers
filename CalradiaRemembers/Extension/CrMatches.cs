@@ -10,6 +10,7 @@
 #region
 
 using System;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Marriage;
 using TaleWorlds.CampaignSystem;

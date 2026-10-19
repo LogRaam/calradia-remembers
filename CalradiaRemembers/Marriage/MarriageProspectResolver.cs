@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using CalradiaRemembers.Logic;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Marriage;
 using TaleWorlds.CampaignSystem;
 

@@ -5,10 +5,11 @@
 using System;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
+using CalradiaRemembers.Foundation;
 
 #endregion
 
-namespace CalradiaRemembers.Chat
+namespace CalradiaRemembers.Foundation
 {
    /// <summary>
    ///   Marshals work back onto Bannerlord's main thread. An LLM turn runs its network

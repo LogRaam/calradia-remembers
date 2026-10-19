@@ -25,6 +25,7 @@ using CalradiaRemembers.Commitments;
 using CalradiaRemembers.Companions;
 using CalradiaRemembers.Duels;
 using CalradiaRemembers.Dynasty;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Interception;
@@ -32,7 +33,6 @@ using CalradiaRemembers.Items;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
-using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Logic.Battles;
 using CalradiaRemembers.Logic.Actions;
 using CalradiaRemembers.Logic.Assemblies;
@@ -54,7 +54,6 @@ using CalradiaRemembers.Verbs;
 using CalradiaRemembers.Retainer;
 using CalradiaRemembers.Scenarios;
 using CalradiaRemembers.Services;
-using CalradiaRemembers.Settings;
 using CalradiaRemembers.Social;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Travel;
@@ -275,6 +274,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
          new SelfTest("panel_siege_guard", Severity.Light, "Mechanical: the full-map panel crash guard. Asserts the Harmony prefix that skips SettlementVisualManager.OnTick (the vanilla siege-bombardment visual tick, which runs on the frame loop and access-violates natively under a pushed CR panel: four confirmed 0xC0000005 crashes) is actually attached to the LIVE engine method. It resolves the target BY NAME, so a game update that renamed the type/method would silently stop protecting; this fires if that ever happens. Also asserts that with no panel open nothing is suppressed (siege visuals tick normally). No LLM, mutates nothing", TestPanelSiegeVisualGuard),
          new SelfTest("setting_hints_fit", Severity.Light, "Mechanical: every MCM hint fits on screen. A shipped bug with a receipt - v2.5.6 repaired NINETEEN hints that ran off the edge, and because they read \"On (default): ... Off: ...\" the clipped half was always the one explaining the other position. They were fixed by hand with nothing left to stop the twentieth, which 2026-09-12 then added. Reads the ATTRIBUTES, so it holds whether or not MCM has loaded. Read-only", TestSettingHintsFit),
+         new SelfTest("mcm_test_buttons_wired", Severity.Light, "Mechanical: the three MCM Test buttons (OpenRouter, OpenAI-Compatible endpoint, NanoGPT) reach the connection tester. Since 19/10/2026 the settings no longer name the tester (it reads them, and the two namespaces used each other): the submodule hands it over at load, so a button whose hook was never set would click and do nothing, with no error. Asserts each hook is set. Read-only, no call is made", TestMcmTestButtonsWired),
          new SelfTest("settings_ranges_agree", Severity.Light, "Mechanical (Gabriel, 2026-09-10, after the Regard Warmth Cooldown: \"je suis surpris que le bon comportement n'ait pas ete bien protege par des tests unitaires. Par exemple, 0 aurait du etre teste\"). The uncomfortable truth is that 0 WAS tested and the test agreed with the bug: it pinned what the code did, while the MCM control clamped its minimum to 1 and the v2.5.1 changelog promised 0 turned the cooldown off. Three artefacts, no place for any two of them to meet. This is that place. Reflects over EVERY [SettingPropertyInteger] on CrSettings, pairs it with the same-named ModSettings property that enforces it, drives the declared MIN and MAX through the live setting, and asserts the code honours every value the menu offers. Catches the whole family in one assertion, including settings that do not exist yet. Restores each setting to its prior value in a finally", TestSettingsRangesAgree),
          new SelfTest("console_help_complete", Severity.Light, "Mechanical: cr.help against the REAL command registry. Asked on 2026-09-10 whether it was still complete, it described 70 of 259 registered commands, so cr.testall and cr.test were themselves invisible, and it advertised cr.compose, renamed cr.letter_compose long before, which made the one name a reader was most likely to copy verbatim the one that would fail. A hand-written list of every command in a project that gains commands weekly can only drift, so what EXISTS now comes from reflection over the assembly its own [CommandLineArgumentFunction] attributes and the prose is an overlay on top of it. Reads the live registry, drives the real ModCheats.Help in all three of its forms, and asserts: the help never names a command that does not exist (the cr.compose class of error), every registered command is reachable through cr.help all however undescribed, the curated page says where the rest of them are, and the search finds a command by fragment. Read-only, mutates nothing", TestConsoleHelpComplete),
          new SelfTest("seasonal_chronicle", Severity.Light, "The seasonal historian (Gabriel's design): at each turn of the season every realm is read, and what MOVED - a stronghold taken, coffers grown, armies thinned - is written into the world as ordinary news. Computed deterministically from the almanac's own power facts rather than written by a model, because \"Vlandia grew rich\" IS a delta description and a background call every season would cost tokens forever, fail halfway, and have a language to get wrong. Drives the REAL behaviour against the REAL store with a perturbed reading (the honest alternative is waiting a season and hoping), and asserts it is ordinary news rather than a fourth memory store. Removes the row it writes", TestSeasonalChronicle),
@@ -2432,9 +2432,9 @@ namespace CalradiaRemembers.Diagnostics
          var t = new TestRun("deferred_audience_open_pumps");
 
          var ran = false;
-         CalradiaRemembers.Chat.MainThreadDispatcher.Enqueue(() => ran = true);
+         MainThreadDispatcher.Enqueue(() => ran = true);
          t.Expect("notRunBeforePump", ran, false); // the open MUST be deferred, never synchronous with the inquiry
-         CalradiaRemembers.Chat.MainThreadDispatcher.Pump();
+         MainThreadDispatcher.Pump();
          t.Expect("ranAfterPump", ran, true); // OnApplicationTick's Pump is what actually opens the audience chat
 
          t.Note("Deferred-open mechanism holds: Enqueue withholds the action until the next Pump (OnApplicationTick), one frame after the approach inquiry dismisses, breaking the settlement-entry popup cascade.");
@@ -11569,7 +11569,7 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             if (Chat.ChatManager.IsOpen) Chat.ChatManager.Close();
-            Chat.MainThreadDispatcher.Pump();
+            MainThreadDispatcher.Pump();
             if (Chat.ExplorationBackdrop.IsOpen) Chat.ExplorationBackdrop.Close();
             Campaign.Current.TimeControlMode = timeBefore;
             try { System.IO.File.Delete(path); } catch { /* a temp file left behind harms nothing */ }
@@ -11595,7 +11595,7 @@ namespace CalradiaRemembers.Diagnostics
             OnClose = () =>
             {
                closed = true;
-               Chat.MainThreadDispatcher.Enqueue(() => queuedRan = true);
+               MainThreadDispatcher.Enqueue(() => queuedRan = true);
             }
          };
          try
@@ -11605,7 +11605,7 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("onItsBackdrop", Chat.ExplorationBackdrop.IsOpen, true);
 
             Chat.ChatManager.Close();
-            Chat.MainThreadDispatcher.Pump();
+            MainThreadDispatcher.Pump();
 
             t.Expect("theScenesOwnCloseRan", closed, true);
             t.Expect("whatTheCloseQueuedRan", queuedRan, true);
@@ -11615,7 +11615,7 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             if (Chat.ChatManager.IsOpen) Chat.ChatManager.Close();
-            Chat.MainThreadDispatcher.Pump();
+            MainThreadDispatcher.Pump();
             if (Chat.ExplorationBackdrop.IsOpen) Chat.ExplorationBackdrop.Close();
             Campaign.Current.TimeControlMode = timeBefore;
          }
@@ -13441,6 +13441,21 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"{checkedCount} hint(s) measured against {MaxHintChars} chars");
          t.Expect("everyHintFitsOnTheScreen", toolong.Count == 0 ? "" : string.Join(", ", toolong), "");
          t.Expect("noSettingIsLeftWithoutItsExplanation", empty.Count == 0 ? "" : string.Join(", ", empty), "");
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   The MCM Test buttons call CrSettings.ConnectionTest and its two siblings, which the submodule sets at load
+      ///   (the settings live in Foundation and cannot name Services' tester). Unset, a button would do nothing.
+      /// </summary>
+      private static string TestMcmTestButtonsWired(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("mcm_test_buttons_wired");
+
+         t.Expect("openRouterTestIsWired", CrSettings.ConnectionTest != null, true);
+         t.Expect("endpointTestIsWired", CrSettings.CustomConnectionTest != null, true);
+         t.Expect("nanoGptTestIsWired", CrSettings.NanoGptConnectionTest != null, true);
 
          return t.Line();
       }

@@ -11,6 +11,7 @@ using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Localization;
 using TaleWorlds.SaveSystem;
+using CalradiaRemembers.Foundation;
 
 #endregion
 

@@ -14,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Chat;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Conversation;
 using CalradiaRemembers.Witnesses;
 using TaleWorlds.CampaignSystem;
