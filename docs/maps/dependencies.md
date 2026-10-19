@@ -199,6 +199,508 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic.Grudges.TraitFacts` | 0 | 1 |
 | `CalradiaRemembers.Logic.MissionResult` | 0 | 1 |
 
+## Pairs that use each other directly
+
+Where to cut a cycle. Each pair lists the files that create each direction, the pairs held up by the fewest
+files first: a side resting on ONE file is one file away from untangling the pair. `RatchetTests` pins the count.
+
+99 pair(s); 85 with a side resting on one file.
+
+#### `CalradiaRemembers` and `CalradiaRemembers.Mapping`
+
+- `CalradiaRemembers` uses `CalradiaRemembers.Mapping` in 16 files: `Extension/CrLetters.cs`, `Extension/CrNpcMemory.cs`, `Extension/CrRomance.cs`, and 13 more
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers` in 1 file(s): `Mapping/NarrativeLoader.cs`
+
+#### `CalradiaRemembers.Appreciations` and `CalradiaRemembers.Mapping`
+
+- `CalradiaRemembers.Appreciations` uses `CalradiaRemembers.Mapping` in 1 file(s): `Appreciations/AppreciationBehavior.cs`
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Appreciations` in 2 file(s): `Mapping/EncounterContextBuilder.cs`, `Mapping/PairRegardReader.cs`
+
+#### `CalradiaRemembers.Arrests` and `CalradiaRemembers.Chat`
+
+- `CalradiaRemembers.Arrests` uses `CalradiaRemembers.Chat` in 1 file(s): `Arrests/ArrestBehavior.cs`
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Arrests` in 3 file(s): `Chat/ChatViewModel.Council.cs`, `Chat/ChatViewModel.cs`, `Chat/CouncilLift.cs`
+
+#### `CalradiaRemembers.Assemblies` and `CalradiaRemembers.Diagnostics`
+
+- `CalradiaRemembers.Assemblies` uses `CalradiaRemembers.Diagnostics` in 6 files: `Assemblies/CouncilHostageBehavior.cs`, `Assemblies/CouncilPactBehavior.cs`, `Assemblies/CouncilStipendBehavior.cs`, and 3 more
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.Assemblies` in 1 file(s): `Diagnostics/CrSelfTest.cs`
+
+#### `CalradiaRemembers.Assemblies` and `CalradiaRemembers.GameState`
+
+- `CalradiaRemembers.Assemblies` uses `CalradiaRemembers.GameState` in 1 file(s): `Assemblies/CouncilTroopDeliveryBehavior.cs`
+- `CalradiaRemembers.GameState` uses `CalradiaRemembers.Assemblies` in 1 file(s): `GameState/CourtActionResolver.cs`
+
+#### `CalradiaRemembers.Assemblies` and `CalradiaRemembers.Mapping`
+
+- `CalradiaRemembers.Assemblies` uses `CalradiaRemembers.Mapping` in 7 files: `Assemblies/CouncilAttendanceResolver.cs`, `Assemblies/CouncilHostageBehavior.cs`, `Assemblies/CouncilPactBehavior.cs`, and 4 more
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Assemblies` in 1 file(s): `Mapping/EncounterContextBuilder.cs`
+
+#### `CalradiaRemembers.Bastards` and `CalradiaRemembers.GameState`
+
+- `CalradiaRemembers.Bastards` uses `CalradiaRemembers.GameState` in 1 file(s): `Bastards/BastardBehavior.cs`
+- `CalradiaRemembers.GameState` uses `CalradiaRemembers.Bastards` in 1 file(s): `GameState/BannerlordGameStateBridge.cs`
+
+#### `CalradiaRemembers.Bastards` and `CalradiaRemembers.Mapping`
+
+- `CalradiaRemembers.Bastards` uses `CalradiaRemembers.Mapping` in 1 file(s): `Bastards/BastardBehavior.cs`
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Bastards` in 1 file(s): `Mapping/EncounterContextBuilder.cs`
+
+#### `CalradiaRemembers.Battles` and `CalradiaRemembers.Tournaments`
+
+- `CalradiaRemembers.Battles` uses `CalradiaRemembers.Tournaments` in 1 file(s): `Battles/BattleFeatReporter.cs`
+- `CalradiaRemembers.Tournaments` uses `CalradiaRemembers.Battles` in 1 file(s): `Tournaments/TournamentMemoryFeeder.cs`
+
+#### `CalradiaRemembers.Battles` and `CalradiaRemembers.WorldEvents`
+
+- `CalradiaRemembers.Battles` uses `CalradiaRemembers.WorldEvents` in 1 file(s): `Battles/BattleFeatReporter.cs`
+- `CalradiaRemembers.WorldEvents` uses `CalradiaRemembers.Battles` in 1 file(s): `WorldEvents/WorldEventFeeders.cs`
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Chat`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Chat` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Behaviors` in 18 files: `Chat/ActionConfirmationController.cs`, `Chat/ChatManager.cs`, `Chat/ChatSceneStager.cs`, and 15 more
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Commitments`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Commitments` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
+- `CalradiaRemembers.Commitments` uses `CalradiaRemembers.Behaviors` in 1 file(s): `Commitments/CommitmentBehavior.cs`
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Commoners`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Commoners` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
+- `CalradiaRemembers.Commoners` uses `CalradiaRemembers.Behaviors` in 1 file(s): `Commoners/CommonsDialogBehavior.cs`
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Diagnostics`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Diagnostics` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.Behaviors` in 5 files: `Diagnostics/ActionBench.cs`, `Diagnostics/CrSelfTest.cs`, `Diagnostics/MemoryBench.cs`, and 2 more
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Dialogue`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Dialogue` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
+- `CalradiaRemembers.Dialogue` uses `CalradiaRemembers.Behaviors` in 1 file(s): `Dialogue/LlmDialogFlow.cs`
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Duels`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Duels` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
+- `CalradiaRemembers.Duels` uses `CalradiaRemembers.Behaviors` in 2 file(s): `Duels/DuelCoordinator.cs`, `Duels/DuelOutcomeApplier.cs`
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.GameState`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.GameState` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
+- `CalradiaRemembers.GameState` uses `CalradiaRemembers.Behaviors` in 3 file(s): `GameState/BannerlordGameStateBridge.cs`, `GameState/CourtActionResolver.cs`, `GameState/LordRecruitmentFactsBuilder.cs`
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Grudges`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Grudges` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
+- `CalradiaRemembers.Grudges` uses `CalradiaRemembers.Behaviors` in 2 file(s): `Grudges/GrudgeBehavior.cs`, `Grudges/GrudgeResolutionService.cs`
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Jealousy`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Jealousy` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
+- `CalradiaRemembers.Jealousy` uses `CalradiaRemembers.Behaviors` in 1 file(s): `Jealousy/JealousyBehavior.cs`
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Letters`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Letters` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
+- `CalradiaRemembers.Letters` uses `CalradiaRemembers.Behaviors` in 9 files: `Letters/CourierSecretBehavior.cs`, `Letters/CourierService.cs`, `Letters/LetterGenerationService.cs`, and 6 more
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Mapping`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Mapping` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Behaviors` in 3 file(s): `Mapping/DayMoodReader.cs`, `Mapping/EncounterContextBuilder.cs`, `Mapping/RelationshipsBuilder.cs`
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Missions`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Missions` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
+- `CalradiaRemembers.Missions` uses `CalradiaRemembers.Behaviors` in 8 files: `Missions/CompanionAffectionBehavior.cs`, `Missions/CompanionAudienceTopicBehavior.cs`, `Missions/CompanionAudienceTopicResolver.cs`, and 5 more
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Nemesis`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Nemesis` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
+- `CalradiaRemembers.Nemesis` uses `CalradiaRemembers.Behaviors` in 6 files: `Nemesis/NemesisBehavior.cs`, `Nemesis/NemesisBountyDialogFlow.cs`, `Nemesis/NemesisDossierFactory.cs`, and 3 more
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Quests`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Quests` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
+- `CalradiaRemembers.Quests` uses `CalradiaRemembers.Behaviors` in 5 files: `Quests/AuthoredQuestBehavior.cs`, `Quests/CalradiaRemembersQuest.cs`, `Quests/QuestDeedTracker.cs`, and 2 more
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Services`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Services` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
+- `CalradiaRemembers.Services` uses `CalradiaRemembers.Behaviors` in 1 file(s): `Services/LlmServices.cs`
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.WorldEvents`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.WorldEvents` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
+- `CalradiaRemembers.WorldEvents` uses `CalradiaRemembers.Behaviors` in 4 files: `WorldEvents/AuthoredHistoryBehavior.cs`, `WorldEvents/MercenaryReputationBehavior.cs`, `WorldEvents/SecretLoverGossipBehavior.cs`, and 1 more
+
+#### `CalradiaRemembers.Chat` and `CalradiaRemembers.Companions`
+
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Companions` in 2 file(s): `Chat/ChatManager.cs`, `Chat/ChatViewModel.CompanionBriefing.cs`
+- `CalradiaRemembers.Companions` uses `CalradiaRemembers.Chat` in 1 file(s): `Companions/CompanionBriefingCoordinator.cs`
+
+#### `CalradiaRemembers.Chat` and `CalradiaRemembers.Interception`
+
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Interception` in 1 file(s): `Chat/ChatViewModel.cs`
+- `CalradiaRemembers.Interception` uses `CalradiaRemembers.Chat` in 3 file(s): `Interception/AudienceInquiry.cs`, `Interception/FiefAudienceBehavior.cs`, `Interception/InterceptionBehavior.cs`
+
+#### `CalradiaRemembers.Chat` and `CalradiaRemembers.Mapping`
+
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Mapping` in 12 files: `Chat/ChatManager.cs`, `Chat/ChatMessageViewModel.cs`, `Chat/ChatSceneStager.cs`, and 9 more
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Chat` in 1 file(s): `Mapping/EncounterContextBuilder.cs`
+
+#### `CalradiaRemembers.Chat` and `CalradiaRemembers.Quests`
+
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Quests` in 5 files: `Chat/ChatViewModel.CouncilResolutions.cs`, `Chat/ChatViewModel.Exchanges.cs`, `Chat/ChatViewModel.Helpers.cs`, and 2 more
+- `CalradiaRemembers.Quests` uses `CalradiaRemembers.Chat` in 1 file(s): `Quests/AuthoredQuestBehavior.cs`
+
+#### `CalradiaRemembers.Chat` and `CalradiaRemembers.Services`
+
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Services` in 7 files: `Chat/ActionInterpreterComposer.cs`, `Chat/ChatManager.cs`, `Chat/ChatViewModel.Exchanges.cs`, and 4 more
+- `CalradiaRemembers.Services` uses `CalradiaRemembers.Chat` in 1 file(s): `Services/BackgroundCallHold.cs`
+
+#### `CalradiaRemembers.Chat` and `CalradiaRemembers.Standing`
+
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Standing` in 2 file(s): `Chat/ChatViewModel.Exchanges.cs`, `Chat/ChatViewModel.cs`
+- `CalradiaRemembers.Standing` uses `CalradiaRemembers.Chat` in 1 file(s): `Standing/PerceivedImageService.cs`
+
+#### `CalradiaRemembers.Chat` and `CalradiaRemembers.Verbs`
+
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Verbs` in 4 files: `Chat/ChatViewModel.Council.cs`, `Chat/CouncilLift.cs`, `Chat/ManualActionMenuController.cs`, and 1 more
+- `CalradiaRemembers.Verbs` uses `CalradiaRemembers.Chat` in 1 file(s): `Verbs/ExternalVerbAdapter.cs`
+
+#### `CalradiaRemembers.Chat` and `CalradiaRemembers.WorldEvents`
+
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.WorldEvents` in 3 file(s): `Chat/ChatViewModel.Exchanges.cs`, `Chat/ChatViewModel.cs`, `Chat/ConversationSummaryService.cs`
+- `CalradiaRemembers.WorldEvents` uses `CalradiaRemembers.Chat` in 1 file(s): `WorldEvents/SchemeStore.cs`
+
+#### `CalradiaRemembers.Commitments` and `CalradiaRemembers.Diagnostics`
+
+- `CalradiaRemembers.Commitments` uses `CalradiaRemembers.Diagnostics` in 1 file(s): `Commitments/CommitmentBehavior.cs`
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.Commitments` in 1 file(s): `Diagnostics/CrSelfTest.cs`
+
+#### `CalradiaRemembers.Commitments` and `CalradiaRemembers.Mapping`
+
+- `CalradiaRemembers.Commitments` uses `CalradiaRemembers.Mapping` in 1 file(s): `Commitments/CommitmentQuest.cs`
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Commitments` in 1 file(s): `Mapping/EncounterContextBuilder.cs`
+
+#### `CalradiaRemembers.Commitments` and `CalradiaRemembers.WorldEvents`
+
+- `CalradiaRemembers.Commitments` uses `CalradiaRemembers.WorldEvents` in 1 file(s): `Commitments/CommitmentBehavior.cs`
+- `CalradiaRemembers.WorldEvents` uses `CalradiaRemembers.Commitments` in 1 file(s): `WorldEvents/SchemeStore.cs`
+
+#### `CalradiaRemembers.Diagnostics` and `CalradiaRemembers.Duels`
+
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.Duels` in 1 file(s): `Diagnostics/CrSelfTest.cs`
+- `CalradiaRemembers.Duels` uses `CalradiaRemembers.Diagnostics` in 7 files: `Duels/CaptiveEscapeMissionLauncher.cs`, `Duels/CaptiveEscapeMissionLogic.cs`, `Duels/DuelMissionLauncher.cs`, and 4 more
+
+#### `CalradiaRemembers.Diagnostics` and `CalradiaRemembers.GameState`
+
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.GameState` in 2 file(s): `Diagnostics/CrSelfTest.cs`, `Diagnostics/LlmDiagnostic.cs`
+- `CalradiaRemembers.GameState` uses `CalradiaRemembers.Diagnostics` in 1 file(s): `GameState/BannerlordGameStateBridge.cs`
+
+#### `CalradiaRemembers.Diagnostics` and `CalradiaRemembers.Grudges`
+
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.Grudges` in 1 file(s): `Diagnostics/CrSelfTest.cs`
+- `CalradiaRemembers.Grudges` uses `CalradiaRemembers.Diagnostics` in 2 file(s): `Grudges/ExecutedKinGrudgeBehavior.cs`, `Grudges/SwayExposureBehavior.cs`
+
+#### `CalradiaRemembers.Diagnostics` and `CalradiaRemembers.Jealousy`
+
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.Jealousy` in 1 file(s): `Diagnostics/CrSelfTest.cs`
+- `CalradiaRemembers.Jealousy` uses `CalradiaRemembers.Diagnostics` in 1 file(s): `Jealousy/JealousyBehavior.cs`
+
+#### `CalradiaRemembers.Diagnostics` and `CalradiaRemembers.Letters`
+
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.Letters` in 1 file(s): `Diagnostics/CrSelfTest.cs`
+- `CalradiaRemembers.Letters` uses `CalradiaRemembers.Diagnostics` in 1 file(s): `Letters/LetterMutationQueue.cs`
+
+#### `CalradiaRemembers.Diagnostics` and `CalradiaRemembers.Mapping`
+
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.Mapping` in 4 files: `Diagnostics/CrSelfTest.cs`, `Diagnostics/LlmDiagnostic.cs`, `Diagnostics/MemoryBench.cs`, and 1 more
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Diagnostics` in 1 file(s): `Mapping/RealmFaceBehavior.cs`
+
+#### `CalradiaRemembers.Diagnostics` and `CalradiaRemembers.Marriage`
+
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.Marriage` in 1 file(s): `Diagnostics/CrSelfTest.cs`
+- `CalradiaRemembers.Marriage` uses `CalradiaRemembers.Diagnostics` in 6 files: `Marriage/CourtshipTrialBehavior.cs`, `Marriage/DivorceProcessBehavior.cs`, `Marriage/ForeignDivorceBehavior.cs`, and 3 more
+
+#### `CalradiaRemembers.Diagnostics` and `CalradiaRemembers.Missions`
+
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.Missions` in 1 file(s): `Diagnostics/CrSelfTest.cs`
+- `CalradiaRemembers.Missions` uses `CalradiaRemembers.Diagnostics` in 7 files: `Missions/CompanionAffectionBehavior.cs`, `Missions/CompanionAudienceTopicBehavior.cs`, `Missions/CompanionHappinessBehavior.cs`, and 4 more
+
+#### `CalradiaRemembers.Diagnostics` and `CalradiaRemembers.Nemesis`
+
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.Nemesis` in 1 file(s): `Diagnostics/CrSelfTest.cs`
+- `CalradiaRemembers.Nemesis` uses `CalradiaRemembers.Diagnostics` in 2 file(s): `Nemesis/NemesisPrisonerDialogFlow.cs`, `Nemesis/NemesisResolutionBehavior.cs`
+
+#### `CalradiaRemembers.Diagnostics` and `CalradiaRemembers.OpenPartnerLover`
+
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.OpenPartnerLover` in 1 file(s): `Diagnostics/CrSelfTest.cs`
+- `CalradiaRemembers.OpenPartnerLover` uses `CalradiaRemembers.Diagnostics` in 1 file(s): `OpenPartnerLover/OpenPartnerLoverBehavior.cs`
+
+#### `CalradiaRemembers.Diagnostics` and `CalradiaRemembers.Quests`
+
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.Quests` in 1 file(s): `Diagnostics/CrSelfTest.cs`
+- `CalradiaRemembers.Quests` uses `CalradiaRemembers.Diagnostics` in 3 file(s): `Quests/AuthoredQuestBehavior.cs`, `Quests/NativeQuestMemoryBehavior.cs`, `Quests/TaleCompanyFightSpike.cs`
+
+#### `CalradiaRemembers.Diagnostics` and `CalradiaRemembers.Retainer`
+
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.Retainer` in 1 file(s): `Diagnostics/CrSelfTest.cs`
+- `CalradiaRemembers.Retainer` uses `CalradiaRemembers.Diagnostics` in 1 file(s): `Retainer/RetainerBehavior.cs`
+
+#### `CalradiaRemembers.Diagnostics` and `CalradiaRemembers.Verbs`
+
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.Verbs` in 1 file(s): `Diagnostics/CrSelfTest.cs`
+- `CalradiaRemembers.Verbs` uses `CalradiaRemembers.Diagnostics` in 1 file(s): `Verbs/PressForWarVerb.cs`
+
+#### `CalradiaRemembers.Diagnostics` and `CalradiaRemembers.WorldAlmanac`
+
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.WorldAlmanac` in 1 file(s): `Diagnostics/CrSelfTest.cs`
+- `CalradiaRemembers.WorldAlmanac` uses `CalradiaRemembers.Diagnostics` in 2 file(s): `WorldAlmanac/BalanceSurveyBehavior.cs`, `WorldAlmanac/KingdomPowerFactsBuilder.cs`
+
+#### `CalradiaRemembers.Diagnostics` and `CalradiaRemembers.WorldEvents`
+
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.WorldEvents` in 1 file(s): `Diagnostics/CrSelfTest.cs`
+- `CalradiaRemembers.WorldEvents` uses `CalradiaRemembers.Diagnostics` in 4 files: `WorldEvents/AuthoredHistoryBehavior.cs`, `WorldEvents/SchemeStore.cs`, `WorldEvents/WorldConditionsFeeder.cs`, and 1 more
+
+#### `CalradiaRemembers.Duels` and `CalradiaRemembers.Mapping`
+
+- `CalradiaRemembers.Duels` uses `CalradiaRemembers.Mapping` in 2 file(s): `Duels/DuelEligibilityResolver.cs`, `Duels/DuelOutcomeApplier.cs`
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Duels` in 1 file(s): `Mapping/EncounterContextBuilder.cs`
+
+#### `CalradiaRemembers.Duels` and `CalradiaRemembers.Stance`
+
+- `CalradiaRemembers.Duels` uses `CalradiaRemembers.Stance` in 1 file(s): `Duels/DuelOutcomeApplier.cs`
+- `CalradiaRemembers.Stance` uses `CalradiaRemembers.Duels` in 1 file(s): `Stance/AmbushMissionStartPatch.cs`
+
+#### `CalradiaRemembers.Escort` and `CalradiaRemembers.Mapping`
+
+- `CalradiaRemembers.Escort` uses `CalradiaRemembers.Mapping` in 1 file(s): `Escort/FollowMeBehavior.cs`
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Escort` in 1 file(s): `Mapping/EncounterContextBuilder.cs`
+
+#### `CalradiaRemembers.GameState` and `CalradiaRemembers.Items`
+
+- `CalradiaRemembers.GameState` uses `CalradiaRemembers.Items` in 1 file(s): `GameState/BannerlordGameStateBridge.cs`
+- `CalradiaRemembers.Items` uses `CalradiaRemembers.GameState` in 1 file(s): `Items/ItemPickerService.cs`
+
+#### `CalradiaRemembers.GameState` and `CalradiaRemembers.Jealousy`
+
+- `CalradiaRemembers.GameState` uses `CalradiaRemembers.Jealousy` in 1 file(s): `GameState/BannerlordGameStateBridge.cs`
+- `CalradiaRemembers.Jealousy` uses `CalradiaRemembers.GameState` in 1 file(s): `Jealousy/JealousyBehavior.cs`
+
+#### `CalradiaRemembers.GameState` and `CalradiaRemembers.Marriage`
+
+- `CalradiaRemembers.GameState` uses `CalradiaRemembers.Marriage` in 2 file(s): `GameState/BannerlordGameStateBridge.cs`, `GameState/CourtActionResolver.cs`
+- `CalradiaRemembers.Marriage` uses `CalradiaRemembers.GameState` in 1 file(s): `Marriage/MarriageApprovalBehavior.cs`
+
+#### `CalradiaRemembers.GameState` and `CalradiaRemembers.Missions`
+
+- `CalradiaRemembers.GameState` uses `CalradiaRemembers.Missions` in 2 file(s): `GameState/BannerlordGameStateBridge.cs`, `GameState/CourtActionResolver.cs`
+- `CalradiaRemembers.Missions` uses `CalradiaRemembers.GameState` in 1 file(s): `Missions/CompanionAudienceTopicBehavior.cs`
+
+#### `CalradiaRemembers.GameState` and `CalradiaRemembers.Quests`
+
+- `CalradiaRemembers.GameState` uses `CalradiaRemembers.Quests` in 1 file(s): `GameState/BannerlordGameStateBridge.cs`
+- `CalradiaRemembers.Quests` uses `CalradiaRemembers.GameState` in 4 files: `Quests/AuthoredQuestBehavior.cs`, `Quests/QuestFactory.cs`, `Quests/QuestService.cs`, and 1 more
+
+#### `CalradiaRemembers.GameState` and `CalradiaRemembers.Verbs`
+
+- `CalradiaRemembers.GameState` uses `CalradiaRemembers.Verbs` in 1 file(s): `GameState/BannerlordGameStateBridge.cs`
+- `CalradiaRemembers.Verbs` uses `CalradiaRemembers.GameState` in 24 files: `Verbs/AdmitSecretLoverVerb.cs`, `Verbs/ArrangeMatchVerb.cs`, `Verbs/BuyPrisonerVerb.cs`, and 21 more
+
+#### `CalradiaRemembers.GameState` and `CalradiaRemembers.WorldEvents`
+
+- `CalradiaRemembers.GameState` uses `CalradiaRemembers.WorldEvents` in 3 file(s): `GameState/BannerlordGameStateBridge.cs`, `GameState/CourtActionResolver.cs`, `GameState/PregnancyService.cs`
+- `CalradiaRemembers.WorldEvents` uses `CalradiaRemembers.GameState` in 1 file(s): `WorldEvents/SchemeStore.cs`
+
+#### `CalradiaRemembers.Grudges` and `CalradiaRemembers.Mapping`
+
+- `CalradiaRemembers.Grudges` uses `CalradiaRemembers.Mapping` in 1 file(s): `Grudges/GrudgeResolutionService.cs`
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Grudges` in 2 file(s): `Mapping/EncounterContextBuilder.cs`, `Mapping/PairRegardReader.cs`
+
+#### `CalradiaRemembers.Grudges` and `CalradiaRemembers.WorldEvents`
+
+- `CalradiaRemembers.Grudges` uses `CalradiaRemembers.WorldEvents` in 3 file(s): `Grudges/GrudgeBehavior.cs`, `Grudges/GrudgeResolutionService.cs`, `Grudges/SwayExposureBehavior.cs`
+- `CalradiaRemembers.WorldEvents` uses `CalradiaRemembers.Grudges` in 1 file(s): `WorldEvents/SchemeStore.cs`
+
+#### `CalradiaRemembers.Interception` and `CalradiaRemembers.Letters`
+
+- `CalradiaRemembers.Interception` uses `CalradiaRemembers.Letters` in 1 file(s): `Interception/InterceptionBehavior.cs`
+- `CalradiaRemembers.Letters` uses `CalradiaRemembers.Interception` in 1 file(s): `Letters/PrisonerEnvoyBehavior.cs`
+
+#### `CalradiaRemembers.Interception` and `CalradiaRemembers.Mapping`
+
+- `CalradiaRemembers.Interception` uses `CalradiaRemembers.Mapping` in 3 file(s): `Interception/AudienceInquiry.cs`, `Interception/FiefAudienceBehavior.cs`, `Interception/InterceptionBehavior.cs`
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Interception` in 1 file(s): `Mapping/EncounterContextBuilder.cs`
+
+#### `CalradiaRemembers.Letters` and `CalradiaRemembers.Missions`
+
+- `CalradiaRemembers.Letters` uses `CalradiaRemembers.Missions` in 2 file(s): `Letters/LetterGenerationService.cs`, `Letters/PlayerLetterService.cs`
+- `CalradiaRemembers.Missions` uses `CalradiaRemembers.Letters` in 1 file(s): `Missions/CompanionPatrolBehavior.cs`
+
+#### `CalradiaRemembers.Mapping` and `CalradiaRemembers.Missions`
+
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Missions` in 1 file(s): `Mapping/EncounterContextBuilder.cs`
+- `CalradiaRemembers.Missions` uses `CalradiaRemembers.Mapping` in 6 files: `Missions/CompanionAudienceTopicBehavior.cs`, `Missions/CompanionErrandQuest.cs`, `Missions/CompanionHappinessBehavior.cs`, and 3 more
+
+#### `CalradiaRemembers.Mapping` and `CalradiaRemembers.Nemesis`
+
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Nemesis` in 1 file(s): `Mapping/EncounterContextBuilder.cs`
+- `CalradiaRemembers.Nemesis` uses `CalradiaRemembers.Mapping` in 3 file(s): `Nemesis/NemesisBehavior.cs`, `Nemesis/NemesisBountyDialogFlow.cs`, `Nemesis/NemesisPrisonerDialogFlow.cs`
+
+#### `CalradiaRemembers.Mapping` and `CalradiaRemembers.Quests`
+
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Quests` in 1 file(s): `Mapping/EncounterContextBuilder.cs`
+- `CalradiaRemembers.Quests` uses `CalradiaRemembers.Mapping` in 7 files: `Quests/AuthoredQuestBehavior.cs`, `Quests/AuthoredStoryQuest.cs`, `Quests/CalradiaRemembersQuest.cs`, and 4 more
+
+#### `CalradiaRemembers.Mapping` and `CalradiaRemembers.Services`
+
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Services` in 1 file(s): `Mapping/EncounterContextBuilder.cs`
+- `CalradiaRemembers.Services` uses `CalradiaRemembers.Mapping` in 1 file(s): `Services/LlmServices.cs`
+
+#### `CalradiaRemembers.Mapping` and `CalradiaRemembers.Stance`
+
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Stance` in 1 file(s): `Mapping/EncounterContextBuilder.cs`
+- `CalradiaRemembers.Stance` uses `CalradiaRemembers.Mapping` in 3 file(s): `Stance/AmbushCaptivityBehavior.cs`, `Stance/StanceConsequenceBehavior.cs`, `Stance/TownAmbushBehavior.cs`
+
+#### `CalradiaRemembers.Mapping` and `CalradiaRemembers.Styles`
+
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Styles` in 1 file(s): `Mapping/EncounterContextBuilder.cs`
+- `CalradiaRemembers.Styles` uses `CalradiaRemembers.Mapping` in 1 file(s): `Styles/StyleCatalog.cs`
+
+#### `CalradiaRemembers.Mapping` and `CalradiaRemembers.Verbs`
+
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Verbs` in 1 file(s): `Mapping/EncounterContextBuilder.cs`
+- `CalradiaRemembers.Verbs` uses `CalradiaRemembers.Mapping` in 2 file(s): `Verbs/ExternalVerbAdapter.cs`, `Verbs/PressForWarVerb.cs`
+
+#### `CalradiaRemembers.Services` and `CalradiaRemembers.Settings`
+
+- `CalradiaRemembers.Services` uses `CalradiaRemembers.Settings` in 1 file(s): `Services/LlmServices.cs`
+- `CalradiaRemembers.Settings` uses `CalradiaRemembers.Services` in 1 file(s): `Settings/ApiKeyTester.cs`
+
+#### `CalradiaRemembers.Stance` and `CalradiaRemembers.WorldEvents`
+
+- `CalradiaRemembers.Stance` uses `CalradiaRemembers.WorldEvents` in 1 file(s): `Stance/StanceConsequenceBehavior.cs`
+- `CalradiaRemembers.WorldEvents` uses `CalradiaRemembers.Stance` in 2 file(s): `WorldEvents/SchemeStore.cs`, `WorldEvents/WorldEventFeeders.cs`
+
+#### `CalradiaRemembers.Verbs` and `CalradiaRemembers.Violence`
+
+- `CalradiaRemembers.Verbs` uses `CalradiaRemembers.Violence` in 1 file(s): `Verbs/VerbRegistry.cs`
+- `CalradiaRemembers.Violence` uses `CalradiaRemembers.Verbs` in 1 file(s): `Violence/PlayerViolenceVerb.cs`
+
+#### `NpcMemoryService.Core.Actions` and `NpcMemoryService.Core.Parsing`
+
+- `NpcMemoryService.Core.Actions` uses `NpcMemoryService.Core.Parsing` in 1 file(s): `Actions/ActionBenchRunner.cs`
+- `NpcMemoryService.Core.Parsing` uses `NpcMemoryService.Core.Actions` in 1 file(s): `Parsing/ActionTagSanitizer.cs`
+
+#### `NpcMemoryService.Core.Actions` and `NpcMemoryService.Core.Prompts`
+
+- `NpcMemoryService.Core.Actions` uses `NpcMemoryService.Core.Prompts` in 1 file(s): `Actions/ActionBenchRunner.cs`
+- `NpcMemoryService.Core.Prompts` uses `NpcMemoryService.Core.Actions` in 3 file(s): `Prompts/ActionInterpreterPromptBuilder.cs`, `Prompts/SingleCallExtractionPromptBuilder.cs`, `Prompts/VerbCatalogPolicy.cs`
+
+#### `NpcMemoryService.Core.Knowledge` and `NpcMemoryService.Core.Models`
+
+- `NpcMemoryService.Core.Knowledge` uses `NpcMemoryService.Core.Models` in 15 files: `Knowledge/HereAndNowPack.cs`, `Knowledge/HouseMeansPack.cs`, `Knowledge/HouseStandingPack.cs`, and 12 more
+- `NpcMemoryService.Core.Models` uses `NpcMemoryService.Core.Knowledge` in 1 file(s): `Models/EncounterContext.cs`
+
+#### `NpcMemoryService.Core.Knowledge` and `NpcMemoryService.Core.Prompts`
+
+- `NpcMemoryService.Core.Knowledge` uses `NpcMemoryService.Core.Prompts` in 1 file(s): `Knowledge/NpcKnowledgeFactory.cs`
+- `NpcMemoryService.Core.Prompts` uses `NpcMemoryService.Core.Knowledge` in 1 file(s): `Prompts/PromptBuilder.cs`
+
+#### `NpcMemoryService.Core.Memory` and `NpcMemoryService.Core.Models`
+
+- `NpcMemoryService.Core.Memory` uses `NpcMemoryService.Core.Models` in 1 file(s): `Memory/SharedRecall.cs`
+- `NpcMemoryService.Core.Models` uses `NpcMemoryService.Core.Memory` in 1 file(s): `Models/WitnessEntry.cs`
+
+#### `NpcMemoryService.Core.Models` and `NpcMemoryService.Core.Prompts`
+
+- `NpcMemoryService.Core.Models` uses `NpcMemoryService.Core.Prompts` in 1 file(s): `Models/EncounterContext.cs`
+- `NpcMemoryService.Core.Prompts` uses `NpcMemoryService.Core.Models` in 7 files: `Prompts/ActionInterpreterContextBuilder.cs`, `Prompts/IPromptBuilder.cs`, `Prompts/LetterPromptBuilder.cs`, and 4 more
+
+#### `NpcMemoryService.Core.Models` and `NpcMemoryService.Core.Services`
+
+- `NpcMemoryService.Core.Models` uses `NpcMemoryService.Core.Services` in 1 file(s): `Models/NpcProfile.cs`
+- `NpcMemoryService.Core.Services` uses `NpcMemoryService.Core.Models` in 7 files: `Services/ChronicleIlluminator.cs`, `Services/ConversationSummarizer.cs`, `Services/LetterMemorySummarizer.cs`, and 4 more
+
+#### `NpcMemoryService.Core.Prompts` and `NpcMemoryService.Core.Standing`
+
+- `NpcMemoryService.Core.Prompts` uses `NpcMemoryService.Core.Standing` in 1 file(s): `Prompts/PromptBuilder.cs`
+- `NpcMemoryService.Core.Standing` uses `NpcMemoryService.Core.Prompts` in 1 file(s): `Standing/Regard.cs`
+
+#### `CalradiaRemembers.Assemblies` and `CalradiaRemembers.Chat`
+
+- `CalradiaRemembers.Assemblies` uses `CalradiaRemembers.Chat` in 2 file(s): `Assemblies/AssemblyMenuBehavior.cs`, `Assemblies/CouncilSessionBehavior.cs`
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Assemblies` in 9 files: `Chat/ChatManager.cs`, `Chat/ChatViewModel.Council.cs`, `Chat/ChatViewModel.CouncilResolutions.cs`, and 6 more
+
+#### `CalradiaRemembers.Chat` and `CalradiaRemembers.Diagnostics`
+
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Diagnostics` in 2 file(s): `Chat/ChatManager.cs`, `Chat/ChatViewModel.Helpers.cs`
+- `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers.Chat` in 2 file(s): `Diagnostics/CrSelfTest.cs`, `Diagnostics/RoleplayBench.cs`
+
+#### `CalradiaRemembers.Chat` and `CalradiaRemembers.Duels`
+
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Duels` in 3 file(s): `Chat/ChatManager.cs`, `Chat/ChatViewModel.Helpers.cs`, `Chat/ManualActionMenuController.cs`
+- `CalradiaRemembers.Duels` uses `CalradiaRemembers.Chat` in 2 file(s): `Duels/CaptiveEscapeCoordinator.cs`, `Duels/DuelCoordinator.cs`
+
+#### `CalradiaRemembers.Chat` and `CalradiaRemembers.GameState`
+
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.GameState` in 9 files: `Chat/ActionConfirmationController.cs`, `Chat/ChatViewModel.Council.cs`, `Chat/ChatViewModel.Envoy.cs`, and 6 more
+- `CalradiaRemembers.GameState` uses `CalradiaRemembers.Chat` in 2 file(s): `GameState/BannerlordGameStateBridge.cs`, `GameState/CourtActionResolver.cs`
+
+#### `CalradiaRemembers.Chat` and `CalradiaRemembers.Letters`
+
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Letters` in 2 file(s): `Chat/ChatViewModel.Exchanges.cs`, `Chat/ChatViewModel.Helpers.cs`
+- `CalradiaRemembers.Letters` uses `CalradiaRemembers.Chat` in 3 file(s): `Letters/CaptiveEncounterService.cs`, `Letters/CourierSecretBehavior.cs`, `Letters/PrisonerEnvoyBehavior.cs`
+
+#### `CalradiaRemembers.Chat` and `CalradiaRemembers.Stance`
+
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Stance` in 3 file(s): `Chat/ChatViewModel.Exchanges.cs`, `Chat/ChatViewModel.Helpers.cs`, `Chat/ChatViewModel.cs`
+- `CalradiaRemembers.Stance` uses `CalradiaRemembers.Chat` in 2 file(s): `Stance/AmbushCaptivityBehavior.cs`, `Stance/AmbushMissionStartPatch.cs`
+
+#### `CalradiaRemembers.Jealousy` and `CalradiaRemembers.Mapping`
+
+- `CalradiaRemembers.Jealousy` uses `CalradiaRemembers.Mapping` in 2 file(s): `Jealousy/JealousyBehavior.cs`, `Jealousy/JealousyCultureLoader.cs`
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Jealousy` in 2 file(s): `Mapping/EncounterContextBuilder.cs`, `Mapping/RomanticProfileBuilder.cs`
+
+#### `CalradiaRemembers.Letters` and `CalradiaRemembers.Marriage`
+
+- `CalradiaRemembers.Letters` uses `CalradiaRemembers.Marriage` in 2 file(s): `Letters/LetterIntentionResolver.cs`, `Letters/LetterTriggerEvaluator.cs`
+- `CalradiaRemembers.Marriage` uses `CalradiaRemembers.Letters` in 2 file(s): `Marriage/CourtshipTrialBehavior.cs`, `Marriage/SpouseDivorceDemandBehavior.cs`
+
+#### `CalradiaRemembers.Logic` and `CalradiaRemembers.Logic.Assemblies`
+
+- `CalradiaRemembers.Logic` uses `CalradiaRemembers.Logic.Assemblies` in 2 file(s): `CommitmentPolicy.cs`, `NpcActionGate.cs`
+- `CalradiaRemembers.Logic.Assemblies` uses `CalradiaRemembers.Logic` in 3 file(s): `Assemblies/ClaimantSupportPolicy.cs`, `Assemblies/CouncilActorPolicy.cs`, `Assemblies/EngagementSubjectMatcher.cs`
+
+#### `CalradiaRemembers.Mapping` and `CalradiaRemembers.Marriage`
+
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Marriage` in 2 file(s): `Mapping/EncounterContextBuilder.cs`, `Mapping/RelationshipsBuilder.cs`
+- `CalradiaRemembers.Marriage` uses `CalradiaRemembers.Mapping` in 6 files: `Marriage/CourtshipTrialBehavior.cs`, `Marriage/DivorceProcessBehavior.cs`, `Marriage/ForeignDivorceBehavior.cs`, and 3 more
+
+#### `CalradiaRemembers.Mapping` and `CalradiaRemembers.Standing`
+
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Standing` in 2 file(s): `Mapping/DayMoodReader.cs`, `Mapping/EncounterContextBuilder.cs`
+- `CalradiaRemembers.Standing` uses `CalradiaRemembers.Mapping` in 2 file(s): `Standing/PerceivedImageService.cs`, `Standing/SelfEsteemService.cs`
+
+#### `CalradiaRemembers.Mapping` and `CalradiaRemembers.WorldEvents`
+
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.WorldEvents` in 2 file(s): `Mapping/EncounterContextBuilder.cs`, `Mapping/PairRegardReader.cs`
+- `CalradiaRemembers.WorldEvents` uses `CalradiaRemembers.Mapping` in 5 files: `WorldEvents/AuthoredHistoryBehavior.cs`, `WorldEvents/FoodTradeMemoryBehavior.cs`, `WorldEvents/MercenaryReputationBehavior.cs`, and 2 more
+
+#### `CalradiaRemembers.Chat` and `CalradiaRemembers.Missions`
+
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Missions` in 3 file(s): `Chat/ChatViewModel.cs`, `Chat/CouncilLift.cs`, `Chat/ManualActionMenuController.cs`
+- `CalradiaRemembers.Missions` uses `CalradiaRemembers.Chat` in 4 files: `Missions/CompanionAffectionBehavior.cs`, `Missions/CompanionAudienceTopicBehavior.cs`, `Missions/CompanionHappinessBehavior.cs`, and 1 more
+
+#### `CalradiaRemembers.GameState` and `CalradiaRemembers.Mapping`
+
+- `CalradiaRemembers.GameState` uses `CalradiaRemembers.Mapping` in 3 file(s): `GameState/BannerlordGameStateBridge.cs`, `GameState/CourtActionResolver.cs`, `GameState/LordRecruitmentFactsBuilder.cs`
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.GameState` in 4 files: `Mapping/ContextualNameResolver.cs`, `Mapping/EncounterContextBuilder.cs`, `Mapping/FirstImpressionResolver.cs`, and 1 more
+
 ## Every namespace, and its edges
 
 ### CalradiaRemembers

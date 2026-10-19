@@ -20,7 +20,7 @@ project internals.
 | Map | Read it to answer |
 |---|---|
 | [`inventory.md`](inventory.md) | Does this concept already exist, and where does it live? Every type, by layer and namespace, with one sentence each. Also the files of 1000 lines and more. |
-| [`dependencies.md`](dependencies.md) | Who knows whom? Cycles first, then who uses the most and who is used the most, then every edge. |
+| [`dependencies.md`](dependencies.md) | Who knows whom? Cycles first, then who uses the most and who is used the most, then the pairs that use each other with the files that make each side (where to cut a cycle), then every edge. |
 | [`../../RULES.md`](../../RULES.md) | What does the MOD promise to do? Every test name as a sentence, with each fixture's reason for existing. |
 | [`rules-sdk.md`](rules-sdk.md) | The same for the SDK. |
 | [`constants.md`](constants.md) | Is there already a number for this? Opens with the NAMES declared in more than one type. |

@@ -83,6 +83,13 @@ namespace CalradiaRemembers.Tests.Maps
       /// </summary>
       private const int BareNumberThresholdsOn21September = 74;
 
+      /// <summary>
+      ///   Pairs of namespaces that use each other DIRECTLY on 19/10/2026, the day the dependency map started listing them
+      ///   (after reading how Graphify ranks its graph's edges). Finer than the cycle set above: a new cross-edge between
+      ///   two namespaces already in the group never adds a name there, but it always adds a pair here.
+      /// </summary>
+      private const int MutualPairsOn19October = 99;
+
       // A NEW ENTANGLEMENT IS THE ONE STRUCTURAL CHANGE THAT IS NEVER AN IMPROVEMENT. Inside a cycle nothing can be
       // understood, tested or moved alone, and 46 namespaces are in one already.
       [Test]
@@ -98,6 +105,24 @@ namespace CalradiaRemembers.Tests.Maps
                                + string.Join(", ", joined)
                                + ". Read docs/maps/dependencies.md to see which group, and break the edge rather than widening this "
                                + "baseline. If it truly had to happen, add the name here and say why in the commit.");
+      }
+
+      // A NEW CROSS-EDGE INSIDE THE GROUP. The cycle set above cannot see one: both names are already in it. A pair that
+      // now uses each other is a cut that has become harder to make.
+      [Test]
+      public void GIVEN_the_pairs_of_namespaces_that_use_each_other_WHEN_counted_THEN_there_are_no_more_than_before()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
+
+         IReadOnlyList<DependencyMap.MutualPair> pairs = DependencyMap.MutualPairs(SourceTree.Production);
+
+         pairs.Count.Should().BeLessThanOrEqualTo(MutualPairsOn19October,
+            "two namespaces have started to use each other directly. docs/maps/dependencies.md, \"Pairs that use each other "
+          + "directly\", lists every pair with the files that create it: break the new edge rather than raising the baseline. "
+          + "If it truly had to happen, raise it here and say why in the commit.");
+
+         if (pairs.Count < MutualPairsOn19October)
+            Assert.Warn($"{MutualPairsOn19October - pairs.Count} pair(s) untangled since the baseline: lower it to {pairs.Count}.");
       }
 
       // AND THE BASELINE MUST NOT QUIETLY BECOME A TARGET: when a namespace is untangled, this says so, so the list

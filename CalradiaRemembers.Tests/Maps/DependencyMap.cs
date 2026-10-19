@@ -10,6 +10,12 @@
 // qualified name was "rarer"; it was not. CalradiaRemembers.Standing read as "used by: nothing" while Chat, Mapping,
 // Duels and Violence all called it by qualified name, so real cycles were invisible to the cycle wall (Gabriel asked
 // for the map review that found it). Still no compilation, so no game DLL is needed; an unused import still counts.
+//
+// PAIRS THAT USE EACH OTHER (19/10/2026, after reading how Graphify ranks the edges of its own graph). The cycle groups say
+// THAT 49 namespaces are tangled, not where to cut: removing the two biggest hubs only took the group to 37. Every edge now
+// remembers the files that create it, and the pairs that use each other directly are listed with those files, the
+// pairs held up by the fewest files first. That is the actionable list: a pair whose one side rests on a single file
+// is one file away from being untangled. RatchetTests pins their count.
 
 #region
 
@@ -28,7 +34,7 @@ namespace CalradiaRemembers.Tests.Maps
 
       public static string Generate(IReadOnlyList<SourceFile> files)
       {
-         Dictionary<string, SortedSet<string>> uses = EdgesOf(files);
+         Dictionary<string, SortedSet<string>> uses = EdgesOf(files, out Dictionary<(string, string), SortedSet<string>> origins);
          Dictionary<string, SortedSet<string>> usedBy = Invert(uses);
          List<string> nodes = uses.Keys.Union(usedBy.Keys).OrderBy(n => n, StringComparer.Ordinal).ToList();
 
@@ -45,18 +51,56 @@ namespace CalradiaRemembers.Tests.Maps
 
          AppendCycles(sb, nodes, uses);
          AppendFanTable(sb, nodes, uses, usedBy);
+         AppendMutualPairs(sb, MutualPairs(uses, origins));
          AppendAdjacency(sb, nodes, uses, usedBy);
 
          return sb.ToString();
+      }
+
+      /// <summary>
+      ///   One pair of namespaces that use each other directly, with the files that create each direction. The two
+      ///   names are in ordinal order, so a pair is listed once.
+      /// </summary>
+      internal sealed class MutualPair
+      {
+         public string First { get; init; } = "";
+         public string Second { get; init; } = "";
+
+         /// <summary>The files in <see cref="First" /> that name <see cref="Second" />.</summary>
+         public IReadOnlyList<string> FirstUsesSecondIn { get; init; } = Array.Empty<string>();
+
+         /// <summary>The files in <see cref="Second" /> that name <see cref="First" />.</summary>
+         public IReadOnlyList<string> SecondUsesFirstIn { get; init; } = Array.Empty<string>();
+
+         /// <summary>How many files hold up the weaker direction: 1 means one file away from no longer being a pair.</summary>
+         public int WeakerSide => Math.Min(FirstUsesSecondIn.Count, SecondUsesFirstIn.Count);
+      }
+
+      /// <summary>Every pair of our namespaces that use each other directly, the pairs held up by the fewest files first.</summary>
+      public static IReadOnlyList<MutualPair> MutualPairs(IReadOnlyList<SourceFile> files)
+      {
+         Dictionary<string, SortedSet<string>> uses = EdgesOf(files, out Dictionary<(string, string), SortedSet<string>> origins);
+
+         return MutualPairs(uses, origins);
       }
 
       #region private
 
       private static bool IsOurs(string ns) => OurRoots.Any(r => ns == r || ns.StartsWith(r + ".", StringComparison.Ordinal));
 
-      private static Dictionary<string, SortedSet<string>> EdgesOf(IReadOnlyList<SourceFile> files)
+      private static Dictionary<string, SortedSet<string>> EdgesOf(
+         IReadOnlyList<SourceFile> files, out Dictionary<(string, string), SortedSet<string>> origins)
       {
          var uses = new Dictionary<string, SortedSet<string>>();
+         var found = new Dictionary<(string, string), SortedSet<string>>();
+
+         void Add(string from, string to, SourceFile file)
+         {
+            uses[from].Add(to);
+            if (!found.TryGetValue((from, to), out SortedSet<string>? where)) found[(from, to)] = where = new SortedSet<string>(StringComparer.Ordinal);
+            where.Add(file.RelativePath.Replace('\\', '/'));
+         }
+
          Dictionary<string, HashSet<string>> typesIn = TypesByNamespace(files);
 
          foreach (SourceFile file in files)
@@ -71,12 +115,14 @@ namespace CalradiaRemembers.Tests.Maps
                string? to = directive.Name?.ToString();
                if (to == null || !IsOurs(to) || to == from) continue;
 
-               uses[from].Add(to);
+               Add(from, to, file);
             }
 
             foreach (string to in QualifiedTargets(file, from, typesIn))
-               if (to != from) uses[from].Add(to);
+               if (to != from) Add(from, to, file);
          }
+
+         origins = found;
 
          return uses;
       }
@@ -221,6 +267,58 @@ namespace CalradiaRemembers.Tests.Maps
             sb.AppendLine("- used by: " + Listed(usedBy, ns));
             sb.AppendLine();
          }
+      }
+
+      private static List<MutualPair> MutualPairs(
+         Dictionary<string, SortedSet<string>> uses, Dictionary<(string, string), SortedSet<string>> origins)
+      {
+         var pairs = new List<MutualPair>();
+
+         foreach ((string from, SortedSet<string> targets) in uses)
+            foreach (string to in targets)
+            {
+               if (string.CompareOrdinal(from, to) >= 0) continue;
+               if (!uses.TryGetValue(to, out SortedSet<string>? back) || !back.Contains(from)) continue;
+
+               pairs.Add(new MutualPair {
+                  First = from, Second = to,
+                  FirstUsesSecondIn = origins[(from, to)].ToList(),
+                  SecondUsesFirstIn = origins[(to, from)].ToList()
+               });
+            }
+
+         return pairs.OrderBy(p => p.WeakerSide)
+                     .ThenBy(p => p.First, StringComparer.Ordinal)
+                     .ThenBy(p => p.Second, StringComparer.Ordinal)
+                     .ToList();
+      }
+
+      private static void AppendMutualPairs(StringBuilder sb, IReadOnlyList<MutualPair> pairs)
+      {
+         sb.AppendLine("## Pairs that use each other directly");
+         sb.AppendLine();
+         sb.AppendLine("Where to cut a cycle. Each pair lists the files that create each direction, the pairs held up by the fewest");
+         sb.AppendLine("files first: a side resting on ONE file is one file away from untangling the pair. `RatchetTests` pins the count.");
+         sb.AppendLine();
+         sb.AppendLine($"{pairs.Count} pair(s); {pairs.Count(p => p.WeakerSide == 1)} with a side resting on one file.");
+         sb.AppendLine();
+
+         foreach (MutualPair pair in pairs)
+         {
+            sb.AppendLine($"#### `{pair.First}` and `{pair.Second}`");
+            sb.AppendLine();
+            sb.AppendLine($"- `{pair.First}` uses `{pair.Second}` in {Files(pair.FirstUsesSecondIn)}");
+            sb.AppendLine($"- `{pair.Second}` uses `{pair.First}` in {Files(pair.SecondUsesFirstIn)}");
+            sb.AppendLine();
+         }
+      }
+
+      /// <summary>The first three files by name, then a count: enough to point at the cut without a wall of paths.</summary>
+      private static string Files(IReadOnlyList<string> files)
+      {
+         string shown = string.Join(", ", files.Take(3).Select(f => $"`{f}`"));
+
+         return files.Count <= 3 ? $"{files.Count} file(s): {shown}" : $"{files.Count} files: {shown}, and {files.Count - 3} more";
       }
 
       private static int Count(Dictionary<string, SortedSet<string>> edges, string ns) => edges.TryGetValue(ns, out SortedSet<string>? set) ? set.Count : 0;
