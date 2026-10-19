@@ -27,5 +27,17 @@ namespace CalradiaRemembers.Mapping
 
          return (enemies.Count > 0, kingdom.CurrentTotalStrength, enemies.Sum(k => k.CurrentTotalStrength));
       }
+
+      /// <summary>The names of the realms at war with this one, as the game shows them (fkasad, 19/10/2026).</summary>
+      public static IReadOnlyList<string> EnemyNames(Kingdom kingdom)
+      {
+         if (kingdom == null) return new string[0];
+
+         return (Kingdom.All ?? new List<Kingdom>())
+                .Where(k => k != null && k != kingdom && !k.IsEliminated && FactionManager.IsAtWarAgainstFaction(k, kingdom))
+                .Select(k => k.Name?.ToString())
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .ToList();
+      }
    }
 }

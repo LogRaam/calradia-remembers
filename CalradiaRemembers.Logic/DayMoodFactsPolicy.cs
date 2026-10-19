@@ -7,9 +7,15 @@
 //
 // A personal blow or gladness is recorded on the profile by self-esteem's events (E2); self-esteem itself leans the
 // draw (E4): the ground the day stands on.
+//
+// fkasad (19/10/2026): "the game, CR and the model just can't see the opportunities that a new situation offers but the
+// player can", and a player cannot answer "the war is going badly". When the war is the day's cause it is given in the
+// host's words: against whom, and how far behind or ahead (WarWhat), so the player has something true to argue with.
 
 #region
 
+using System.Collections.Generic;
+using System.Linq;
 using NpcMemoryService.Core.Knowledge;
 using NpcMemoryService.Core.Mood;
 
@@ -37,6 +43,9 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>The combined strength of the realms at war with theirs.</summary>
         public float EnemiesStrength { get; set; }
+
+        /// <summary>The names of the realms at war with theirs, as the game shows them; empty when none or unknown.</summary>
+        public IReadOnlyList<string> EnemyRealmNames { get; set; } = new string[0];
 
         /// <summary>Inside a town or castle (a hall), not a village or the open field.</summary>
         public bool InTownOrCastle { get; set; }
@@ -100,6 +109,7 @@ namespace CalradiaRemembers.Logic
                 PersonalGladness = r.RecentGladness,
                 PersonalBlowWhat = r.RecentBlow ? BlowWhat(r.RecentBlowKind, r.RecentBlowSubject) : null,
                 PersonalGladnessWhat = r.RecentGladness ? GladnessWhat(r.RecentGladnessKind, r.RecentGladnessSubject) : null,
+                RealmWarWhat = WarWhat(r),
                 SelfRegardLow = r.SelfEsteem == SelfEsteemBand.Shaken || r.SelfEsteem == SelfEsteemBand.Broken,
                 SelfRegardHigh = r.SelfEsteem == SelfEsteemBand.Assured || r.SelfEsteem == SelfEsteemBand.Proud
             };
@@ -120,6 +130,51 @@ namespace CalradiaRemembers.Logic
                 case SelfEsteemEvent.BattleLost: return "a battle you lost these last days";
                 default: return null;
             }
+        }
+
+        /// <summary>
+        ///   His realm's war, from his side, when it is going badly or well by the mod's one measure of losing
+        ///   (<see cref="MercenaryDeparturePolicy.IsLosing" />): against whom, and how far behind or ahead (fkasad,
+        ///   19/10/2026). Null when the war is neither, or its enemies are not named: the SDK then says it plainly.
+        /// </summary>
+        public static string WarWhat(DayMoodReadings r)
+        {
+            if (r == null || !r.RealmAtWar) return null;
+
+            List<string> names = (r.EnemyRealmNames ?? new string[0]).Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n.Trim()).ToList();
+            if (names.Count == 0) return null;
+
+            bool losing = MercenaryDeparturePolicy.IsLosing(r.RealmStrength, r.EnemiesStrength);
+            bool winning = MercenaryDeparturePolicy.IsLosing(r.EnemiesStrength, r.RealmStrength);
+            if (!losing && !winning) return null;
+
+            string against = Join(names);
+            float stronger = losing ? r.EnemiesStrength : r.RealmStrength;
+            float weaker = losing ? r.RealmStrength : r.EnemiesStrength;
+            string band = StrengthBand(weaker <= 0 ? float.MaxValue : stronger / weaker);
+
+            if (losing)
+            {
+                string whose = names.Count == 1 ? names[0] + "'s hosts are" : "their hosts together are";
+
+                return "your realm's war against " + against + " going badly: " + whose + " " + band + " your realm's";
+            }
+
+            string theirs = names.Count == 1 ? names[0] + "'s" : "theirs together";
+
+            return "your realm's war against " + against + " going well: your realm's hosts are " + band + " " + theirs;
+        }
+
+        // How much the stronger side outweighs the weaker, in words: the edge IsLosing already found, then two steps.
+        private static string StrengthBand(float ratio)
+            => ratio < 1.5f ? "stronger than" : ratio < 2.5f ? "much stronger than" : "several times stronger than";
+
+        private static string Join(List<string> names)
+        {
+            if (names.Count == 1) return names[0];
+            if (names.Count > 3) return string.Join(", ", names.Take(3)) + " and others";
+
+            return string.Join(", ", names.Take(names.Count - 1)) + " and " + names[names.Count - 1];
         }
 
         /// <summary>A gladness, from his side, for the day's cause. Null when its kind was never kept.</summary>

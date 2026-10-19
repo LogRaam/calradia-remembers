@@ -14566,6 +14566,18 @@ namespace CalradiaRemembers.Diagnostics
 
          t.Expect("thePlayerDrawsNone", Mapping.DayMoodReader.Draw(Hero.MainHero).Mood.HasValue, false);
 
+         // fkasad (19/10/2026): a war lost or won is given in the host's words, naming an enemy the game shows.
+         Hero atWar = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != Hero.MainHero && h.IsLord && !h.IsChild && !h.IsPrisoner
+                                                             && DayMoodFactsPolicy.WarWhat(Mapping.DayMoodReader.Read(h)) != null);
+         if (atWar != null)
+         {
+            DayMoodReadings war = Mapping.DayMoodReader.Read(atWar);
+            string what = DayMoodFactsPolicy.WarWhat(war);
+            t.Note(atWar.Name + ": " + what);
+            t.Expect("theWarNamesAnEnemyTheGameShows", war.EnemyRealmNames.Any(n => what.Contains(n)), true);
+         }
+         else t.Note("no lord's realm is clearly losing or winning a war: the war's words not checked");
+
          // Increment 4: the player moves it within a conversation, one band a turn, and a new conversation forgets it.
          if (first.HasValue)
          {

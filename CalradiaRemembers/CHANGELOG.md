@@ -21,6 +21,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   site (`CharacterOverrideLoader.TemplateKeyOf`) and in `cr.lore_status`. cr.testall `override_not_inherited`.
 
 ### Changed
+- **A low day can be argued with** (fkasad, 19/10, on 2.7.17: "a way to lift the spirits of a depressed NPC ... accurate
+  and logical arguments the model can weigh against what caused the npc moral drop"). The lift existed (the model's
+  `mood: lifted` in [STANCE], one band a turn, two a conversation) but nothing told him a true answer to his trouble is
+  what moves it: `MoodLine.Compose` now says so on a low day (grim, short-tempered, guarded, weary) with a REAL cause,
+  and that flattery and empty cheer do not (SDK). And the war is no longer a bare "your realm's war going badly":
+  `DayMoodFactsPolicy.WarWhat` names the enemy realms and the odds by the same measure that calls the war lost or won
+  (`MercenaryDeparturePolicy.IsLosing`; stronger / much stronger / several times stronger), carried as
+  `MoodFacts.RealmWarWhat` into `MoodCause`. Not done: the Balance of Power's strategic assessment still feeds only the
+  player's panel (fkasad's second idea, a ruler drawing on it, is a larger build). cr.testall `mood_of_the_day` extended.
 - **The encyclopedia's "Personal regard" row heads the regard block** (tashmetu, 18/10, ask 6: "the player's own regard
   first"; Gabriel 19/10), above "Why:" and the houses, under the standing accords. It sat under the houses. UIExtenderEx
   stacks the hero-page rows in type order, which follows the SOURCE FILE names, last on top: `HeroPagePersonalRelationPatch`

@@ -64,6 +64,7 @@ namespace CalradiaRemembers.Mapping
             RealmAtWar = atWar,
             RealmStrength = own,
             EnemiesStrength = enemies,
+            EnemyRealmNames = RealmWarFooting.EnemyNames(hero.Clan?.Kingdom),
             InTownOrCastle = here != null && (here.IsTown || here.IsCastle),
             UnderSiege = here?.IsUnderSiege ?? false,
             HourOfDay = (int) CampaignTime.Now.CurrentHourInDay,

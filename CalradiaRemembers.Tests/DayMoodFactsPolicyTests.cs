@@ -113,6 +113,26 @@ namespace CalradiaRemembers.Tests
                 .PersonalGladnessWhat.Should().Be("the tournament you won at Lageta");
         }
 
+        // STAKE (fkasad, 19/10/2026): "the war is going badly" gives the player nothing true to answer. The day names the
+        // enemies and how far behind or ahead the realm stands, by the same measure that calls the war lost or won.
+        [Test]
+        public void GIVEN_a_war_going_badly_or_well_WHEN_read_THEN_the_day_names_the_enemies_and_the_odds()
+        {
+            Read(new DayMoodReadings {RealmAtWar = true, RealmStrength = 1000, EnemiesStrength = 2000, EnemyRealmNames = new[] {"Battania", "Sturgia"}})
+                .RealmWarWhat.Should().Be("your realm's war against Battania and Sturgia going badly: their hosts together are much stronger than your realm's");
+            Read(new DayMoodReadings {RealmAtWar = true, RealmStrength = 3000, EnemiesStrength = 1000, EnemyRealmNames = new[] {"Vlandia"}})
+                .RealmWarWhat.Should().Be("your realm's war against Vlandia going well: your realm's hosts are several times stronger than Vlandia's");
+        }
+
+        // STAKE: an even war, or one whose enemies are not named, is not dressed up: the SDK says it plainly or not at all.
+        [Test]
+        public void GIVEN_an_even_or_unnamed_war_WHEN_read_THEN_nothing_is_dressed_up()
+        {
+            Read(new DayMoodReadings {RealmAtWar = true, RealmStrength = 1000, EnemiesStrength = 1050, EnemyRealmNames = new[] {"Vlandia"}})
+                .RealmWarWhat.Should().BeNull();
+            Read(new DayMoodReadings {RealmAtWar = true, RealmStrength = 1000, EnemiesStrength = 2000}).RealmWarWhat.Should().BeNull();
+        }
+
         // STAKE: a blow kept before its kind was (an old save), or one with no subject, is named vaguely or by its kind,
         // never invented; a blow too old to weigh on the day says nothing at all.
         [Test]
