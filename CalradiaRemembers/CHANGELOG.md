@@ -17,6 +17,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   their English text), the encyclopedia templates and in-play notices.
 
 ### Fixed
+- **Memory compression and summaries work with a model that always reasons** (LapitaPolata, 19/10, on 2.7.17,
+  glm-5.3-flash on OpenAI-Compatible with Reasoning Effort "low": "memory not compressed", HTTP 400 code 1210 in
+  Chinese, "this model always thinks, does not support turning thinking off; use low, high or max"; then "[CONV QUEUE]
+  dropped a summary job"). Proven: every housekeeping call forces `ReasoningOverride = "off"`, which wins over the
+  player's dial and goes out as `reasoning_effort: "none"`; the 06/10 safety net (Thoragoros1) recognised only the
+  English "reasoning is mandatory". `OpenRouterClient.CompleteAsync` (SDK): a refusal is now any HTTP 400 answering a
+  request that turned reasoning off, whatever its language; the call goes again with the PLAYER'S dial ("low"), or the
+  model's default when that dial is off too, and the client remembers the refusal so later background calls carry the
+  dial at once instead of failing first.
 - **Closing a chat or council never finishes the encounter during a siege** (Zivkyn, 18/10, on 2.7.16: "I crash every
   time i end a Council meeting with my own war band men if we are preparing for a seige defense"). Defence in depth,
   the crash's cause is NOT proven: the battle guard could not see a siege with no fight yet, and
