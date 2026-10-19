@@ -26,6 +26,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   request that turned reasoning off, whatever its language; the call goes again with the PLAYER'S dial ("low"), or the
   model's default when that dial is off too, and the client remembers the refusal so later background calls carry the
   dial at once instead of failing first.
+- **A tale's band is placed where the game can put a party** (cr.testall `authored_quest_opening`, Gabriel 19/10:
+  `[TALE] band spawn failed: AccessViolationException` near Mecalovea, the tale then abandoned; the run before in the
+  same session was green). The band's point was the village plus a random offset of up to 3 in each direction, raw
+  arithmetic that can land in water or off the walkable map before the native party creation. Now the game picks it
+  (`NavigationHelper.FindPointAroundPosition` around the gate, as `BanditSpawnCampaignBehavior` does), and any point
+  (a band restored from a save, the spike) is checked walkable first (`LandSpot`, logged when moved). The cause is the
+  likely one, not proven: the crash was caught, so the log names no point.
 - **Closing a chat or council never finishes the encounter during a siege** (Zivkyn, 18/10, on 2.7.16: "I crash every
   time i end a Council meeting with my own war band men if we are preparing for a seige defense"). Defence in depth,
   the crash's cause is NOT proven: the battle guard could not see a siege with no fight yet, and

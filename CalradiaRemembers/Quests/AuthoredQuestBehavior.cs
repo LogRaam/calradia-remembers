@@ -16,6 +16,7 @@ using CalradiaRemembers.Chat;
 using CalradiaRemembers.Diagnostics;
 using CalradiaRemembers.Logic.AuthoredQuests;
 using CalradiaRemembers.WorldEvents;
+using Helpers;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Services;
 using TaleWorlds.CampaignSystem;
@@ -883,7 +884,10 @@ namespace CalradiaRemembers.Quests
          });
          if (_run.BandAlerted) size += size / 3;
 
-         Vec2 at = near.GetPosition2D + new Vec2(MBRandom.RandomFloatRanged(-3f, 3f), MBRandom.RandomFloatRanged(-3f, 3f));
+         // A point the game itself would pick (BanditSpawnCampaignBehavior's way), not raw arithmetic around the village:
+         // a random offset can land in water or off the walkable map, and the native party creation then failed with an
+         // AccessViolationException (cr.testall authored_quest_opening, Gabriel 19/10/2026, near Mecalovea).
+         Vec2 at = NavigationHelper.FindPointAroundPosition(near.GatePosition, MobileParty.NavigationType.Default, 3f).ToVec2();
          string name = AuthoredQuestEngine.Fill(_run, spawn.Name) ?? "Brigands";
          MobileParty band = SpawnBand(at, near, name, spawn.Template, size);
          if (band == null)
@@ -910,6 +914,20 @@ namespace CalradiaRemembers.Quests
       /// <summary>The tale band's own spawn, for cr.tale_fight_spike (TaleCompanyFightSpike).</summary>
       internal static MobileParty SpawnBandForSpike(Vec2 at, Settlement home, string name, string template, int size)
          => SpawnBand(at, home, name, template, size);
+
+      /// <summary>
+      ///   <paramref name="at" /> when it is walkable ground, else a point the game picks around <paramref name="home" />'s
+      ///   gate. A band restored from a save, or placed by the spike, is checked the same way before the native call.
+      /// </summary>
+      private static CampaignVec2 LandSpot(Vec2 at, Settlement home)
+      {
+         var spot = new CampaignVec2(at, true);
+         if (NavigationHelper.IsPositionValidForNavigationType(spot, MobileParty.NavigationType.Default)) return spot;
+
+         ModLog.Info($"[TALE] band spot ({at.x:0.0}, {at.y:0.0}) is not walkable ground; placed by the game around {home?.Name}.");
+
+         return NavigationHelper.FindPointAroundPosition(home.GatePosition, MobileParty.NavigationType.Default, 3f);
+      }
 
       /// <summary>A bandit-owned band of the template's troops, patrolling around its place.</summary>
       private static MobileParty SpawnBand(Vec2 at, Settlement home, string name, string template, int size)
@@ -942,7 +960,7 @@ namespace CalradiaRemembers.Quests
                if (split[i] > 0) roster.AddToCounts(line[i], split[i]);
             ModLog.Info($"[TALE] band of {bandits.Name}: {string.Join(", ", line.Select((t, i) => $"{(i < split.Length ? split[i] : 0)} {t.Name}"))}.");
             MobileParty band = CustomPartyComponent.CreateCustomPartyWithTroopRoster(
-               new CampaignVec2(at, true), 1f, home, new TaleWorlds.Localization.TextObject(name), bandits, roster, TroopRoster.CreateDummyTroopRoster(), null);
+               LandSpot(at, home), 1f, home, new TaleWorlds.Localization.TextObject(name), bandits, roster, TroopRoster.CreateDummyTroopRoster(), null);
             if (band == null) return null;
 
             var grain = TaleWorlds.Core.Game.Current.ObjectManager.GetObject<TaleWorlds.Core.ItemObject>("grain");
