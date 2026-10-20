@@ -43,6 +43,9 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   afterwards is no betrayal. cr.testall `mercenary_dismissed`.
 
 ### Fixed
+- **The encyclopedia no longer seems to explain a regard it does not know** (Gabriel 20/10: "Personal regard: unknown"
+  then "Why:" over Abagai's own friend and enemy). On a character's page the list is headed "Friends and enemies, and
+  why:"; the player's page keeps "Why:", where the lines are the reasons others hold the player dear or in contempt.
 - **A tale's giver no longer remembers the same ending twice** (tashmetu 20/10, the Moonlit Maiden). A `locals_of`
   memory left nobody out, so a giver who is a notable of the village the ending speaks to got his own memory and the
   village's. Now the crowd leaves out anyone the ending names (`AuthoredQuestEngine.NamedMemoryHolders`); two memories an

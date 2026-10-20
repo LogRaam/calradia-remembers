@@ -82,7 +82,7 @@ namespace CalradiaRemembers.Encyclopedia
          if (e.PropertyName == nameof(EncyclopediaHeroPageVM.IsLoadingOver) && e.Value) Refresh();
       }
 
-      /// <summary>Cream header, "Why:" or empty (auto-hides).</summary>
+      /// <summary>Cream header: "Why:" on the player's page, "Friends and enemies, and why:" on a character's, or empty (auto-hides).</summary>
       [DataSourceProperty]
       public string CalradiaRegardWhyLabel
       {
@@ -193,7 +193,7 @@ namespace CalradiaRemembers.Encyclopedia
          foreach ((Hero h, int regard) in contempt.OrderBy(x => x.Regard).Concat(dear.OrderByDescending(x => x.Regard)).Take(MaxReasons))
             lines.Add($"• {h.Name}: {WhyTowardThePlayer(h, regard) ?? $"{RegardBands.Describe(regard)} ({regard:+#;-#;0})"}");
 
-         Show(lines);
+         Show(lines, "Why:");
       }
 
       // The strongest grudge or kindness toward the player that the player knows of, the one that agrees with the regard
@@ -291,7 +291,9 @@ namespace CalradiaRemembers.Encyclopedia
 
          var shown = derivedEnemies.Select(x => (x.Hero, x.Why, Word: "enemy")).Concat(derivedFriends.Select(x => (x.Hero, x.Why, Word: "friend"))).Take(MaxReasons).ToList();
          foreach (var s in shown) _explained.Add(s.Hero);
-         Show(shown.Select(x => $"• {x.Hero.Name}, {x.Word}: {PairRegardPolicy.WithoutThePair(x.Why, hero.Name?.ToString(), x.Hero.Name?.ToString())}").ToList());
+         // Gabriel (20/10/2026): under "Personal regard: unknown", a bare "Why:" read as the reason for the regard toward
+         // the player, while these lines are the character's own friends and enemies. The label says whose they are.
+         Show(shown.Select(x => $"• {x.Hero.Name}, {x.Word}: {PairRegardPolicy.WithoutThePair(x.Why, hero.Name?.ToString(), x.Hero.Name?.ToString())}").ToList(), "Friends and enemies, and why:");
       }
 
       // The other house lords of the hero's realm: the people a lord would have crossed before the campaign.
@@ -315,11 +317,11 @@ namespace CalradiaRemembers.Encyclopedia
             (i < ShownPerList ? shown : overflow).Add(new HeroVM(heroes[i]));
       }
 
-      private void Show(List<string> lines)
+      private void Show(List<string> lines, string label)
       {
          if (lines.Count == 0) return;
 
-         CalradiaRegardWhyLabel = "Why:";
+         CalradiaRegardWhyLabel = label;
          CalradiaRegardWhyItems = string.Join("\n", lines);
       }
 
