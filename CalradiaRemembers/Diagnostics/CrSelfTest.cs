@@ -321,7 +321,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("audience_not_spent_unheard", Severity.Light, "EnjoyingHydra (Nexus, 03/10/2026): companion audiences accepted and never opened were spent anyway (grievance count reset, topics used), and a companion left. Promises a change for a real companion, sends the audience through the real open with no profile so it fails: nothing may be spent, nothing left waiting. Opens no window.", TestAudienceNotSpentUnheard),
          new SelfTest("shared_past_draw", Severity.Light, "Gabriel's rulings on the generated shared past (NPC_REGARD.md section 7, 17/10/2026): drawn once and never re-rolled, written into the world's long-term memory before the campaign began, both adults then, a good share get nothing. Picks lords never drawn with a lord of their realm, drives the real draw (SharedPastBehavior.DrawFor) for up to six pairs: each is marked drawn; each past drawn is in the long-term memory, dated before the start, with both of age then; a second draw changes nothing. Forgets the pairs and their pasts after.", TestSharedPastDraw),
          new SelfTest("letter_from_another_mod", Severity.Light, "tashmetu (18/10/2026): R&S's tournament invitations, written as the lord's own letter, opened in the game's plain popup. CrLetters.Deliver from a lord CR knows queues the letter with its body as given and a courier riding out today, as CR's own letters ride; the player as sender and an empty body are refused. Removes the letter after.", TestLetterFromAnotherMod),
-         new SelfTest("pair_regard_source", Severity.Light, "tashmetu (18/10/2026): two lords R&S made close showed as neither on the page, beside its own tooltip. A source registered through CrPairRegard, for two lords of different houses with nothing between them here, makes the first a friend of the second with its reason, leaves the other way round untouched, counts at most PairRegardPolicy.OutsideCap however much it claims, and is gone once unregistered.", TestPairRegardSource),
+         new SelfTest("pair_regard_source", Severity.Light, "tashmetu (18/10/2026): two lords R&S made close showed as neither on the page, beside its own tooltip. A source registered through CrPairRegard, for two lords of different houses with nothing between them here, makes the first a friend of the second with its reason, leaves the other way round untouched, counts at most PairRegardPolicy.OutsideCap however much it claims, and is gone once unregistered. Since 2.7.19 the same through the function form (tashmetu, 20/10/2026: for a mod that keeps CR optional), registered and taken away by its id.", TestPairRegardSource),
          new SelfTest("npc_regard_reason", Severity.Light, "Gabriel (17/10/2026): every friend or enemy carries its reason (docs/design/NPC_REGARD.md section 9). Without touching the author's file, syncs a test betrayal of the past in which one lord wronged another, and drives the real name resolution (ContextualNameResolver.Resolve) on a message naming the betrayer: the wronged lord is told the betrayer is an enemy, for what lies between them, with the betrayal and how long ago; a lord of another house and realm asked the same is told nothing of it. The wronged lord's encyclopedia page (built here, then refreshed) lists the betrayer among his enemies and not his friends. Then the author's file alone is synced back.", TestNpcRegardReason),
          new SelfTest("companion_news_fresh", Severity.Light, "LapitaPolata (Nexus, 17/10/2026): a companion told of a castle being besieged after it had fallen, and of a war breaking out while the player was already riding to a siege in it. Records test news and reads it through the real glue (CompanionAudienceTopicResolver.FreshnessFacts): a siege fight at a place recorded as fallen since is overtaken; a war naming the player's own realm or clan is theirs; news ten days old is too old; fresh news of two other realms may still be brought. Removes the test news.", TestCompanionNewsFresh),
          new SelfTest("reply_language_everywhere", Severity.Light, "RaveN017Mod (Nexus, 17/10/2026): French game, Reply Language French, yet a character who came to him on the map and every council opened in English; he asked whether the mod could read the game's language. With the setting blank, the language resolved is the game's (none for an English game); with it set to Spanish, an opening cue ends naming Spanish and the council prompt carries Spanish. Restores the setting.", TestReplyLanguageEverywhere),
@@ -5156,6 +5156,24 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          t.Expect("unregisteredItIsGone", PairRegardReader.Assess(a, b).Verdict, Logic.PairRegardVerdict.Neither);
+
+         // The function form (tashmetu, 20/10/2026), for a mod that keeps CR optional: the same weighing, no CR type named.
+         const string fnId = "cr.testall.pair_regard";
+         CrPairRegard.RegisterPairRegardSource(fnId, (speaker, other, today) => speaker == a && other == b
+            ? new[] {(30, "[SELFTEST] you rode together", "[SELFTEST] rode together", true)}
+            : Array.Empty<(int, string, string, bool)>());
+         try
+         {
+            Logic.PairRegard r = PairRegardReader.Assess(a, b);
+            t.Expect("aFunctionSourceMakesThemFriends", r.Verdict, Logic.PairRegardVerdict.Friend);
+            t.Expect("andThePageGivesItsLine", Logic.PairRegardPolicy.PageReason(r) ?? "", "[SELFTEST] rode together");
+         }
+         finally
+         {
+            CrPairRegard.UnregisterPairRegardSource(fnId);
+         }
+
+         t.Expect("theFunctionSourceUnregisteredIsGone", PairRegardReader.Assess(a, b).Verdict, Logic.PairRegardVerdict.Neither);
 
          return t.Line();
       }

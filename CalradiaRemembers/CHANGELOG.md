@@ -4,6 +4,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.19.. open
 
+### For modders
+- **A regard source as a function** (tashmetu 20/10: without CR, the game refused Regard and Standing altogether, since
+  a class implementing `IPairRegardSource` cannot load where CR is absent). New
+  `CrPairRegard.RegisterPairRegardSource(string id, Func<Hero, Hero, int, IEnumerable<(int weight, string line, string
+  pageLine, bool knownToPlayer)>>)` and `UnregisterPairRegardSource(string id)`, naming no CR type. EXTENSION_API.md
+  explains the load failure. `OptionalDependencyDoorsTests` holds every door documented "Names no Calradia Remembers
+  type" to it. cr.testall `pair_regard_source` extended.
+
 ### Fixed
 - **A tale's giver no longer remembers the same ending twice** (tashmetu 20/10, the Moonlit Maiden). A `locals_of`
   memory left nobody out, so a giver who is a notable of the village the ending speaks to got his own memory and the

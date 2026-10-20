@@ -52,6 +52,51 @@ namespace CalradiaRemembers
          lock (Sources) Sources.Remove(source);
       }
 
+      /// <summary>
+      ///   Adds a source as a function, for a mod that keeps Calradia Remembers optional (since 2.7.19). tashmetu (20/10/2026):
+      ///   the game reads every type of a mod's DLL when it loads it, so a class implementing <see cref="IPairRegardSource" />
+      ///   cannot load where CR is absent, and Regard and Standing was refused altogether. The function returns each trace as
+      ///   (weight, line, pageLine, knownToPlayer), the fields of <see cref="PairRegardTrace" />, so the mod's own types
+      ///   name nothing of CR. Registering the same <paramref name="sourceId" /> again replaces it. Names no Calradia
+      ///   Remembers type.
+      /// </summary>
+      public static void RegisterPairRegardSource(string sourceId,
+         Func<Hero, Hero, int, IEnumerable<(int weight, string line, string pageLine, bool knownToPlayer)>> traces)
+      {
+         if (string.IsNullOrWhiteSpace(sourceId) || traces == null) return;
+
+         lock (Sources)
+         {
+            Sources.RemoveAll(s => s is FunctionSource f && f.Id == sourceId);
+            Sources.Add(new FunctionSource(sourceId, traces));
+         }
+      }
+
+      /// <summary>Takes away the source registered as a function under this id. Names no Calradia Remembers type.</summary>
+      public static void UnregisterPairRegardSource(string sourceId)
+      {
+         lock (Sources) Sources.RemoveAll(s => s is FunctionSource f && f.Id == sourceId);
+      }
+
+      private sealed class FunctionSource : IPairRegardSource
+      {
+         private readonly Func<Hero, Hero, int, IEnumerable<(int weight, string line, string pageLine, bool knownToPlayer)>> _traces;
+
+         public FunctionSource(string id, Func<Hero, Hero, int, IEnumerable<(int weight, string line, string pageLine, bool knownToPlayer)>> traces)
+         {
+            Id = id;
+            _traces = traces;
+         }
+
+         public string Id { get; }
+
+         public IEnumerable<PairRegardTrace> TracesFor(Hero speaker, Hero other, int today)
+            => (_traces(speaker, other, today) ?? Enumerable.Empty<(int, string, string, bool)>())
+               .Select(t => new PairRegardTrace {Weight = t.weight, Line = t.line, PageLine = t.pageLine, KnownToPlayer = t.knownToPlayer});
+
+         public override string ToString() => Id;
+      }
+
       // Read by PairRegardReader. A trace with no line cannot be a reason, and is dropped.
       internal static IReadOnlyList<PairRegardTrace> TracesFor(Hero speaker, Hero other, int today)
       {
@@ -70,7 +115,7 @@ namespace CalradiaRemembers
             {
                bool first;
                lock (Faulted) first = Faulted.Add(s);
-               if (first) ModLog.Error($"[REGARD] a pair-regard source ({s.GetType().FullName}) threw and adds nothing (logged once): {ex.GetType().Name}: {ex.Message}");
+               if (first) ModLog.Error($"[REGARD] a pair-regard source ({(s is FunctionSource f ? f.Id : s.GetType().FullName)}) threw and adds nothing (logged once): {ex.GetType().Name}: {ex.Message}");
             }
 
          return traces;

@@ -139,7 +139,9 @@ _The public NPC-memory API. A caller identifies the NPC by its hero StringId (ne
 _The door through which other mods add to what one character thinks of another._
 
 - `static void RegisterPairRegardSource(IPairRegardSource source)`
+- `static void RegisterPairRegardSource(string sourceId, Func<Hero, Hero, int, IEnumerable<(int weight, string line, string pageLine, bool knownToPlayer)>> traces)`
 - `static void UnregisterPairRegardSource(IPairRegardSource source)`
+- `static void UnregisterPairRegardSource(string sourceId)`
 
 ### CrPatrolBattle
 

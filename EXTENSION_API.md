@@ -265,6 +265,22 @@ public sealed class MySource : IPairRegardSource
 CrPairRegard.RegisterPairRegardSource(new MySource());
 ```
 
+**If your mod keeps Calradia Remembers optional**, do not implement `IPairRegardSource`: the game reads every type of
+your DLL when it loads it, and a class that implements an interface of CR's cannot load where CR is absent, so the
+game refuses your whole mod ("could not be loaded correctly due to a dependency conflict"; tashmetu found it with
+Regard and Standing). Since 2.7.19 register a function instead, from a method you call only once CR is there:
+
+```csharp
+CrPairRegard.RegisterPairRegardSource("MyMod.regard", (speaker, other, today) =>
+   MyTraces(speaker, other)                              // your own code, naming none of CR's types
+      .Select(x => (x.Weight, x.Line, x.PageLine, x.KnownToPlayer)));   // (weight, line, pageLine, knownToPlayer)
+
+CrPairRegard.UnregisterPairRegardSource("MyMod.regard");
+```
+
+The same applies to every door: keep CR's types out of your own classes' signatures, fields and base types. Doors
+documented "Names no Calradia Remembers type" are built for this.
+
 `PairRegardTrace` is in `CalradiaRemembers.Logic.dll`. A friend takes +20 or more, an enemy -20 or less, ties and CR's
 own traces included. What all sources say counts together for at most 40 either way (`PairRegardPolicy.OutsideCap`):
 enough to tip a pair, never enough to drown what happened in CR (a kinsman executed weighs -70). On equal weight CR's
