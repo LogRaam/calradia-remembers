@@ -751,6 +751,12 @@ namespace CalradiaRemembers.Foundation
       public static bool ReportUnsupportedActions => CrSettings.Instance?.ReportUnsupportedActions ?? false;
 
       /// <summary>
+      ///   When true, the chat's Memories panel lists the secrets other mods give a character, marked secret; off by
+      ///   default, they stay out of it (tashmetu, 20/10/2026). See <see cref="Logic.Chat.MemoryPanelPolicy" />.
+      /// </summary>
+      public static bool ShowSecretMemories => CrSettings.Instance?.ShowSecretMemories ?? false;
+
+      /// <summary>
       ///   How many ambient hero witnesses a conversation gathers (player complaint: conversations are always
       ///   crowded). Read live from the MCM menu; falls back to <see cref="CalradiaRemembers.Logic.Witnesses.WitnessDensity.Bustling" />
       ///   when MCM has not loaded, which is an EXACT passthrough (see

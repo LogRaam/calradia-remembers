@@ -4035,6 +4035,16 @@ namespace CalradiaRemembers.Chat
       ///   always current. An NPC with no memory (or a heroless speaker with no persistent profile) shows a
       ///   single gentle placeholder. Never throws; a reference panel must not risk the conversation.
       /// </summary>
+      /// <summary>
+      ///   How the Memories panel shows one memory: another mod's secret stays out of it unless the player asked to see them
+      ///   (tashmetu, 20/10/2026). Internal for cr.testall memory_panel_secrets.
+      /// </summary>
+      internal static MemoryPanelShow PanelShow(NotableEvent e)
+         => MemoryPanelPolicy.Show(new MemoryPanelFacts
+         {
+            IsPrivate = e.IsPrivate, FromAnotherMod = MemoryPanelPolicy.IsAnotherMod(e.SourceMod), ShowSecrets = ModSettings.ShowSecretMemories
+         });
+
       private void RefreshMemories()
       {
          try
@@ -4063,6 +4073,9 @@ namespace CalradiaRemembers.Chat
                // no emitted action carries no tag, so the blue marks a verifiable turning point, not the LLM's
                // narrative classification of the exchange.
                string actionLabel = e.ActionTag ?? "";
+               MemoryPanelShow show = PanelShow(e);
+               if (show == MemoryPanelShow.Hidden) continue;
+               if (show == MemoryPanelShow.MarkedSecret) meta = string.IsNullOrEmpty(meta) ? "secret" : meta + " · secret";
                _memories.Add(new MemoryEntryViewModel(meta, e.summary, actionLabel));
             }
          }

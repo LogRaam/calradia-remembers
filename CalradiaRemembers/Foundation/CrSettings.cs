@@ -337,6 +337,13 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Relationships}Relationships", GroupOrder = 8)]
       public bool ClanStandingWarmsFirstMeetings { get; set; } = true;
 
+      // tashmetu (20/10/2026): a player read a wife's secret affair in her lover's Memories panel before it came to light.
+      [SettingPropertyBool("{=CR_MCM_ShowSecretMemories}Show secret memories", RequireRestart = false, Order = 9,
+         HintText = "{=CR_MCM_ShowSecretMemories_Hint}Lists in a character's Memories panel the secrets other mods give them (an affair, a hidden " +
+                    "fondness), marked secret. Off by default, so you learn them in play rather than by reading the panel.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Relationships}Relationships", GroupOrder = 8)]
+      public bool ShowSecretMemories { get; set; } = false;
+
       [SettingPropertyBool("{=CR_MCM_EnablePostDuelConversation}Post-duel conversation", RequireRestart = false, Order = 0,
          HintText = "{=CR_MCM_EnablePostDuelConversation_Hint}On (default): after a duel the conversation reopens and resumes what led to it. The loser concedes (a " +
                     "beaten character of honour may grant a favour you ask); the victor says what they now expect. Off: only " +

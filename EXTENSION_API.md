@@ -73,7 +73,10 @@ MemoryResult result = CrNpcMemory.AddMemory(new CrMemoryEntry
 Injected memories become ordinary profile events, so they surface in later conversations exactly like
 memories CR recorded itself, and are compacted over time by CR's own memory compressor. Mark one `Private`
 (since 2.6.10) and it follows CR's audience rule for private memories: the character speaks of it only in
-private, never in front of others (an embarrassing secret, something said in confidence).
+private, never in front of others (an embarrassing secret, something said in confidence). Since 2.7.19 a private
+memory from your mod (any `SourceMod` other than CR's) also stays out of the chat's Memories panel, so the player does
+not read a secret before it comes to light; a player who sets "Show secret memories" in the mod options sees it there,
+marked secret. Give the memory a `SourceMod`: without one it reads as CR's own and is listed.
 
 ### Taking a memory back (`CrNpcMemory.RemoveMemory`, since 2.7.9)
 

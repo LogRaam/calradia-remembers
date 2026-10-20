@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-547 rules read 425 facts.
+548 rules read 426 facts.
 
 ## Facts read by more than one rule
 
@@ -590,6 +590,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `MeetingGapDescriber.Describe`: `Hero.Father`, `Hero.Mother`, `Hero.Siblings`, `Hero.Spouse`
 - `MeetingLeaveFacts`: `ConversationManager.ConversationParty`, `FactionManager.IsAtWarAgainstFaction`, `MobileParty.IsActive`, `MobileParty.MapFaction`, `PartyBase.IsMobile`, `PartyBase.MapFaction`, `PartyBase.MobileParty`, `PlayerEncounter.EncounterSettlement`, `PlayerEncounter.EncounteredParty`, `Settlement.CurrentSettlement`
 - `MemoryFacts`: `StringComparer.Ordinal`
+- `MemoryPanelFacts`: `ModSettings.ShowSecretMemories`
 - `MercenaryDeparturePolicy.IsAidOfKin`: `Hero.Culture`, `Kingdom.Culture`
 - `MercenaryDeparturePolicy.IsBetrayal`: `FactionManager.IsAtWarAgainstFaction`
 - `MercenaryDeparturePolicy.RegardShift`: `Clan.Culture`, `Hero.Culture`, `Kingdom.Culture`

@@ -62,7 +62,8 @@ namespace CalradiaRemembers
       /// <summary>
       ///   Optional, since 2.6.10 (tashmetu): true marks the memory as said in confidence. The character speaks of it
       ///   only in private, never in front of others, the audience rule CR's own private memories follow. False
-      ///   (the default) keeps it public, as before.
+      ///   (the default) keeps it public, as before. Since 2.7.19, a private memory with a SourceMod other than CR's stays
+      ///   out of the chat's Memories panel unless the player sets "Show secret memories" (tashmetu, 20/10/2026).
       /// </summary>
       public bool Private { get; set; }
 

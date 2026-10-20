@@ -98,6 +98,8 @@
     <string id="CR_MCM_WarLevyScalePercent_Hint" text="Scales the levy a ruler asks of a vassal who did not fight (it grows with clan tier and fiefs held, at most 10,000 per hand-over). 100 = as designed." />
     <string id="CR_MCM_ClanStandingWarmsFirstMeetings" text="Clan standing warms first meetings" />
     <string id="CR_MCM_ClanStandingWarmsFirstMeetings_Hint" text="On (default): when you next speak with someone whose clan already counts you a friend, they start warmer toward you, once, up to friendly regard; the rest is earned in person. An offence stands. Off: regard starts from zero." />
+    <string id="CR_MCM_ShowSecretMemories" text="Show secret memories" />
+    <string id="CR_MCM_ShowSecretMemories_Hint" text="Lists in a character's Memories panel the secrets other mods give them (an affair, a hidden fondness), marked secret. Off by default, so you learn them in play rather than by reading the panel." />
     <string id="CR_MCM_EnablePostDuelConversation" text="Post-duel conversation" />
     <string id="CR_MCM_EnablePostDuelConversation_Hint" text="On (default): after a duel the conversation reopens and resumes what led to it. The loser concedes (a beaten character of honour may grant a favour you ask); the victor says what they now expect. Off: only the duel's consequences apply." />
     <string id="CR_MCM_Group_Duels" text="Duels" />

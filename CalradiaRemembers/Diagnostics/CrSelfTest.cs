@@ -287,6 +287,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("panel_siege_guard", Severity.Light, "Mechanical: the full-map panel crash guard. Asserts the Harmony prefix that skips SettlementVisualManager.OnTick (the vanilla siege-bombardment visual tick, which runs on the frame loop and access-violates natively under a pushed CR panel: four confirmed 0xC0000005 crashes) is actually attached to the LIVE engine method. It resolves the target BY NAME, so a game update that renamed the type/method would silently stop protecting; this fires if that ever happens. Also asserts that with no panel open nothing is suppressed (siege visuals tick normally). No LLM, mutates nothing", TestPanelSiegeVisualGuard),
          new SelfTest("setting_hints_fit", Severity.Light, "Mechanical: every MCM hint fits on screen. A shipped bug with a receipt - v2.5.6 repaired NINETEEN hints that ran off the edge, and because they read \"On (default): ... Off: ...\" the clipped half was always the one explaining the other position. They were fixed by hand with nothing left to stop the twentieth, which 2026-09-12 then added. Reads the ATTRIBUTES, so it holds whether or not MCM has loaded. Read-only", TestSettingHintsFit),
          new SelfTest("mcm_test_buttons_wired", Severity.Light, "Mechanical: the three MCM Test buttons (OpenRouter, OpenAI-Compatible endpoint, NanoGPT) reach the connection tester. Since 19/10/2026 the settings no longer name the tester (it reads them, and the two namespaces used each other): the submodule hands it over at load, so a button whose hook was never set would click and do nothing, with no error. Asserts each hook is set. Read-only, no call is made", TestMcmTestButtonsWired),
+         new SelfTest("memory_panel_secrets", Severity.Light, "tashmetu (20/10/2026): a player read his wife's secret affair in her lover's Memories panel before it came to light. Gives a met character, through the REAL public door, a private memory from another mod, an open one from another mod, and a private one under CR's own name (the player's word to a companion), and asks the REAL panel rule: with Show secret memories off, only the other mod's secret is left out; on, it is listed marked secret. Restores the setting and removes the three memories", TestMemoryPanelSecrets),
          new SelfTest("tale_locals_memory", Severity.Light, "tashmetu (20/10/2026), the Moonlit Maiden: a giver who is a notable of the village an ending speaks to remembered the same moment twice, as the giver and as one of the locals. Binds a real notable of a real village as the giver of an ending that gives him a memory and speaks to the village's locals, and asks the REAL recipients: the giver is left out of the locals' memory, and the village's other notables still hear it. Writes no memory", TestTaleLocalsMemory),
          new SelfTest("settings_ranges_agree", Severity.Light, "Mechanical (Gabriel, 2026-09-10, after the Regard Warmth Cooldown: \"je suis surpris que le bon comportement n'ait pas ete bien protege par des tests unitaires. Par exemple, 0 aurait du etre teste\"). The uncomfortable truth is that 0 WAS tested and the test agreed with the bug: it pinned what the code did, while the MCM control clamped its minimum to 1 and the v2.5.1 changelog promised 0 turned the cooldown off. Three artefacts, no place for any two of them to meet. This is that place. Reflects over EVERY [SettingPropertyInteger] on CrSettings, pairs it with the same-named ModSettings property that enforces it, drives the declared MIN and MAX through the live setting, and asserts the code honours every value the menu offers. Catches the whole family in one assertion, including settings that do not exist yet. Restores each setting to its prior value in a finally", TestSettingsRangesAgree),
          new SelfTest("console_help_complete", Severity.Light, "Mechanical: cr.help against the REAL command registry. Asked on 2026-09-10 whether it was still complete, it described 70 of 259 registered commands, so cr.testall and cr.test were themselves invisible, and it advertised cr.compose, renamed cr.letter_compose long before, which made the one name a reader was most likely to copy verbatim the one that would fail. A hand-written list of every command in a project that gains commands weekly can only drift, so what EXISTS now comes from reflection over the assembly its own [CommandLineArgumentFunction] attributes and the prose is an overlay on top of it. Reads the live registry, drives the real ModCheats.Help in all three of its forms, and asserts: the help never names a command that does not exist (the cr.compose class of error), every registered command is reachable through cr.help all however undescribed, the curated page says where the rest of them are, and the search finds a command by fragment. Read-only, mutates nothing", TestConsoleHelpComplete),
@@ -13480,6 +13481,47 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("theGiverHasHisOwnMemory", giverMemory.Contains(giver.StringId), true);
          t.Expect("theGiverIsLeftOutOfTheLocals", locals.Contains(giver.StringId), false);
          t.Expect("theOtherNotablesStillHearIt", locals.Count, village.Notables.Count(n => n != null && n != giver));
+
+         return t.Line();
+      }
+
+      private static string TestMemoryPanelSecrets(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("memory_panel_secrets");
+
+         var store = behavior?.Store;
+         if (t.Abort(store == null, "no profile store")) return t.Line();
+         if (t.Skip(CrSettings.Instance == null, "the mod options are not loaded")) return t.Line();
+
+         NpcProfile profile = store.ListIds().Select(store.Get)
+                                   .FirstOrDefault(p => p != null && Hero.FindFirst(h => h.StringId == p.Id) is {IsAlive: true} h && h != Hero.MainHero);
+         if (t.Skip(profile == null, "no met character to remember anything")) return t.Line();
+
+         const string secret = "(self-test) A secret fondness.", open = "(self-test) A tale's ending.", briefing = "(self-test) The player drew me aside.";
+         bool keep = CrSettings.Instance.ShowSecretMemories;
+         try
+         {
+            CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = secret, Private = true, SourceMod = "cr.testall"});
+            CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = open, SourceMod = "cr.testall"});
+            CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = briefing, Private = true, SourceMod = Logic.Chat.MemoryPanelPolicy.OwnSource});
+            NpcProfile after = store.Get(profile.Id);
+            NotableEvent Find(string s) => after.Events.LastOrDefault(e => e.summary == s);
+            if (t.Abort(Find(secret) == null || Find(open) == null || Find(briefing) == null, "the memories were not stored")) return t.Line();
+
+            CrSettings.Instance.ShowSecretMemories = false;
+            t.Expect("anotherModsSecretIsLeftOut", Chat.ChatViewModel.PanelShow(Find(secret)), Logic.Chat.MemoryPanelShow.Hidden);
+            t.Expect("anOpenMemoryIsListed", Chat.ChatViewModel.PanelShow(Find(open)), Logic.Chat.MemoryPanelShow.Plain);
+            t.Expect("thePlayersOwnPrivateWordIsListed", Chat.ChatViewModel.PanelShow(Find(briefing)), Logic.Chat.MemoryPanelShow.Plain);
+            CrSettings.Instance.ShowSecretMemories = true;
+            t.Expect("askedForTheSecretIsMarked", Chat.ChatViewModel.PanelShow(Find(secret)), Logic.Chat.MemoryPanelShow.MarkedSecret);
+         }
+         finally
+         {
+            CrSettings.Instance.ShowSecretMemories = keep;
+            NpcProfile current = store.Get(profile.Id);
+            current?.Events.RemoveAll(e => e.summary != null && e.summary.StartsWith("(self-test) ", StringComparison.Ordinal));
+            if (current != null) store.Set(current);
+         }
 
          return t.Line();
       }

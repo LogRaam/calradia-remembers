@@ -9,6 +9,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   memory left nobody out, so a giver who is a notable of the village the ending speaks to got his own memory and the
   village's. Now the crowd leaves out anyone the ending names (`AuthoredQuestEngine.NamedMemoryHolders`); two memories an
   author aims at one hero by name both stand. cr.testall `tale_locals_memory`.
+- **Another mod's secrets stay out of the Memories panel** (tashmetu 20/10: a player read his wife's secret affair in
+  her lover's memories before it came to light). A private memory with a `SourceMod` other than CR's is left out of
+  the chat's Memories panel (`MemoryPanelPolicy`); new MCM "Show secret memories" (Relationships, off) lists them
+  marked secret. CR's own private memories (the player's word to a companion) stay listed. The character still
+  remembers and speaks of it as before. cr.testall `memory_panel_secrets`.
 
 ### Internal
 - **Logic split into themes, pilot** (Gabriel 19/10). The 420 flat files of `CalradiaRemembers.Logic` start moving into
