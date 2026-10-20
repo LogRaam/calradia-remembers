@@ -22,6 +22,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   `AimResult`, `CrAims.Retract(sourceMod, id)`, event `CrAims.Raised(CrAimRaised)` (the lord was given the floor),
   over the book CR's own war duty already uses (`cr_standing_aims`). Another mod's aim surfaces in conversation;
   letter and audience later. cr.testall `aims_door`.
+- **Four tale keys** (tashmetu 20/10, "four small things that came up while writing new ones"):
+  `requires.player.gender` (`AuthoredPlayerPolicy`, which now also holds the clan tier); `requires.giver.trade`
+  (merchant, artisan, ruralnotable, headman, preacher; notables only, the trade guidelines' keys);
+  `requires.village.type: "town"` (bound as `{village}`; a besieged town is never chosen); a negative ending `gold`
+  the player pays to the giver, a choice leading straight there offered only while the player has it
+  (`AuthoredQuestEngine.CostOf`, gating before declaration). The loader refuses a misspelt sex, an unknown trade, a
+  trade asked of a lord and any other place type. Editor schema and TaleEditor regenerated; HOWTO_Quests.md.
+  Items asked of the player or given in an ending: phase 2. cr.testall `tale_keys`.
 - **A contract the employer ended is no abandonment** (tashmetu 20/10: Mercenary Management's AI dismisses the
   player's contract, and every lord of the realm lost regard for the player being let go; the game reports both as
   `LeaveAsMercenary`). New `CrMercenaries.ContractEndedByEmployer(Kingdom)`, the same day, before or after the game's

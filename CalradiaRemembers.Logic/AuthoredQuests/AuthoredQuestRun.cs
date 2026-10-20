@@ -221,7 +221,31 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       /// <summary>The choices of the current stage whose flags hold, in the file's order.</summary>
       public static IReadOnlyList<AuthoredChoice> OpenChoices(AuthoredQuestRun run, AuthoredQuest q)
-         => (Active(run, q)?.Choices ?? new List<AuthoredChoice>()).Where(c => c != null && AuthoredFlags.Hold(c.If, run.Flags)).ToList();
+         => (Active(run, q)?.Choices ?? new List<AuthoredChoice>())
+            .Where(c => c != null && AuthoredFlags.Hold(c.If, run.Flags) && CanPay(CostOf(c, q), PlayerGold?.Invoke())).ToList();
+
+      /// <summary>
+      ///   The player's gold, read when the choices are listed (set by the mod at load; null in tests and before, when every
+      ///   choice counts as affordable). tashmetu (20/10/2026): an ending the player pays for (a fine, a bribe, a child's keep).
+      /// </summary>
+      public static Func<int> PlayerGold { get; set; }
+
+      /// <summary>
+      ///   What taking this choice costs the player: the gold of the ending it leads straight to, when that ending makes the
+      ///   player pay; 0 otherwise (a choice that leads to a stage costs nothing yet). Gating before declaration: a choice the
+      ///   player cannot pay for is never offered, rather than taken and then refuted by an empty purse.
+      /// </summary>
+      public static int CostOf(AuthoredChoice c, AuthoredQuest q)
+      {
+         if (q == null || !AuthoredQuestLoader.IsEnding(c?.Next)) return 0;
+         string id = AuthoredQuestLoader.EndingId(c.Next);
+         AuthoredOutcome o = id == null ? q.Reward : q.Endings != null && q.Endings.TryGetValue(id, out AuthoredOutcome e) ? e : null;
+
+         return o != null && o.Gold < 0 ? -o.Gold : 0;
+      }
+
+      /// <summary>Whether the player can pay <paramref name="cost" />; an unknown purse can (tests, before the mod sets it).</summary>
+      public static bool CanPay(int cost, int? playerGold) => cost <= 0 || playerGold == null || playerGold.Value >= cost;
 
       /// <summary>The open choices made in the scene (no act, no words): what the narrator is told and the player is shown.</summary>
       public static IReadOnlyList<AuthoredChoice> SceneChoices(AuthoredQuestRun run, AuthoredQuest q)

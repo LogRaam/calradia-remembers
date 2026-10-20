@@ -168,6 +168,12 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>Gabriel (12/10/2026): "jamais par la Reine de mon royaume".</summary>
       [QuestField("On: never a giver of the player's own realm.")]
       [JsonProperty("not_of_players_realm")] public bool NotOfPlayersRealm { get; set; }
+
+      /// <summary>tashmetu (20/10/2026): "Players keep asking for tales from town merchants." A notable of these trades; empty for any.</summary>
+      [QuestField("A notable's trade, one or a list (\"merchant\", or [\"merchant\", \"artisan\"]): merchant, artisan, ruralnotable, headman, preacher. Only a notable has one; empty for any.", ClosedList = nameof(AuthoredQuestLoader.GiverTrades))]
+      [JsonProperty("trade")]
+      [JsonConverter(typeof(OneOrManyConverter))]
+      public List<string> Trade { get; set; } = new();
    }
 
    /// <summary>The giver's husband, bound as {husband} (the Troy-inspired tale, Gabriel 12/10/2026).</summary>
@@ -182,7 +188,8 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
    public sealed class PlaceRequirement
    {
-      [QuestField("village (the only kind bound so far).")]
+      /// <summary>tashmetu (20/10/2026): a town as a bound place, for tales from town merchants. Still bound as {village}.</summary>
+      [QuestField("village, or town (a town is still named {village} in the tale's lines and roles).", ClosedList = nameof(AuthoredQuestLoader.PlaceTypes))]
       [JsonProperty("type")] public string Type { get; set; } = "village";
 
       /// <summary>"forest", or null for anywhere.</summary>
@@ -210,6 +217,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
    {
       [QuestField("0 to 6.")]
       [JsonProperty("min_clan_tier")] public int MinClanTier { get; set; }
+
+      /// <summary>tashmetu (20/10/2026): "requires.player.gender, like the giver's."</summary>
+      [QuestField("female or male: the tale is offered only to a woman, or a man; empty for either.", ClosedList = nameof(AuthoredQuestLoader.GiverGenders))]
+      [JsonProperty("gender")] public string Gender { get; set; }
    }
 
    /// <summary>One stage: a journal line, one verified objective, what the people involved know, and what follows.</summary>
@@ -580,7 +591,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [QuestField("Added to the giver's regard for the player (negative takes it away).")]
       [JsonProperty("regard")] public int Regard { get; set; }
 
-      [QuestField("Paid to the player by the game (positive amounts only).")]
+      [QuestField("Paid to the player by the game; negative, the player pays it (a fine, a bribe, a child's keep) to the giver. A choice leading straight to an ending the player must pay for is offered only while the player has that much.")]
       [JsonProperty("gold")] public int Gold { get; set; }
 
       [QuestField("What the giver remembers, in the giver's own voice.")]

@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 533 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1208 types in 44 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1210 types in 44 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1530,7 +1530,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HistoryRelationStep` | public class | One relation move to make now. |
 | `HistoryWorldFacts` | public class | The campaign as the validation sees it. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (84)
+### CalradiaRemembers.Logic.AuthoredQuests (86)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1561,6 +1561,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredOfferFacts` | public class | The facts an offer is judged on, past the giver qualifying. |
 | `AuthoredOnComplete` | public class | (no summary) |
 | `AuthoredOutcome` | public class | What success, failure or a named ending leaves behind. |
+| `AuthoredPlayerFacts` | public class | What the game knows of the player, for a tale's requires.player. |
+| `AuthoredPlayerPolicy` | public static class | Whether the player fits the tale's requires.player. |
 | `AuthoredQuest` | public class | One authored quest, as its file describes it. |
 | `AuthoredQuestEngine` | public static class | The stage machine. |
 | `AuthoredQuestFolders` | public static class | Where written tales are read from (fkasad, 06/10/2026: one Custom folder to manage, and the MCM path): the shipped folder, its old Custom folder (files there keep working), and Quests under the player's Custom folder. |

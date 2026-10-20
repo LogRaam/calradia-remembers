@@ -64,6 +64,17 @@
       "female",
       "male"
     ],
+    "GiverTrades": [
+      "merchant",
+      "artisan",
+      "ruralnotable",
+      "headman",
+      "preacher"
+    ],
+    "PlaceTypes": [
+      "village",
+      "town"
+    ],
     "ContentLevels": [
       "none",
       "mature",
@@ -437,7 +448,7 @@
         "gold": {
           "type": "integer",
           "x-kind": "int",
-          "description": "Paid to the player by the game (positive amounts only).",
+          "description": "Paid to the player by the game; negative, the player pays it (a fine, a bribe, a child's keep) to the giver. A choice leading straight to an ending the player must pay for is offered only while the player has that much.",
           "default": 0
         },
         "memory": {
@@ -569,6 +580,20 @@
           "x-kind": "bool",
           "description": "On: never a giver of the player's own realm.",
           "default": false
+        },
+        "trade": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "A notable's trade, one or a list (\"merchant\", or [\"merchant\", \"artisan\"]): merchant, artisan, ruralnotable, headman, preacher. Only a notable has one; empty for any.",
+          "enum": [
+            "merchant",
+            "artisan",
+            "ruralnotable",
+            "headman",
+            "preacher"
+          ],
+          "x-closed-list": "GiverTrades",
+          "x-default-empty": true
         }
       }
     },
@@ -585,7 +610,12 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "village (the only kind bound so far).",
+          "description": "village, or town (a town is still named {village} in the tale's lines and roles).",
+          "enum": [
+            "village",
+            "town"
+          ],
+          "x-closed-list": "PlaceTypes",
           "default": "village"
         },
         "near": {
@@ -675,6 +705,19 @@
           "x-kind": "int",
           "description": "0 to 6.",
           "default": 0
+        },
+        "gender": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "female or male: the tale is offered only to a woman, or a man; empty for either.",
+          "enum": [
+            "female",
+            "male"
+          ],
+          "x-closed-list": "GiverGenders"
         }
       }
     },

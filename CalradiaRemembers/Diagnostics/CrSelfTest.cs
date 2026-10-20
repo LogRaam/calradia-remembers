@@ -288,6 +288,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("setting_hints_fit", Severity.Light, "Mechanical: every MCM hint fits on screen. A shipped bug with a receipt - v2.5.6 repaired NINETEEN hints that ran off the edge, and because they read \"On (default): ... Off: ...\" the clipped half was always the one explaining the other position. They were fixed by hand with nothing left to stop the twentieth, which 2026-09-12 then added. Reads the ATTRIBUTES, so it holds whether or not MCM has loaded. Read-only", TestSettingHintsFit),
          new SelfTest("mcm_test_buttons_wired", Severity.Light, "Mechanical: the three MCM Test buttons (OpenRouter, OpenAI-Compatible endpoint, NanoGPT) reach the connection tester. Since 19/10/2026 the settings no longer name the tester (it reads them, and the two namespaces used each other): the submodule hands it over at load, so a button whose hook was never set would click and do nothing, with no error. Asserts each hook is set. Read-only, no call is made", TestMcmTestButtonsWired),
          new SelfTest("memory_panel_secrets", Severity.Light, "tashmetu (20/10/2026): a player read his wife's secret affair in her lover's Memories panel before it came to light. Gives a met character, through the REAL public door, a private memory from another mod, an open one from another mod, and a private one under CR's own name (the player's word to a companion), and asks the REAL panel rule: with Show secret memories off, only the other mod's secret is left out; on, it is listed marked secret. Restores the setting and removes the three memories", TestMemoryPanelSecrets),
+         new SelfTest("tale_keys", Severity.Light, "tashmetu (20/10/2026), four keys for written tales: requires.player.gender, a notable giver's trade, a town as the bound place, gold the player pays. A tale written into this test asks a merchant of a town and the player's own sex: a real town merchant binds, with the town as its place; a headman or a village notable is refused for the trade; its twin asking the other sex is refused for the player. One gold paid by the player through the REAL payment reaches the merchant, then is given back. Forgets the tales after", TestTaleKeys),
          new SelfTest("tale_locals_memory", Severity.Light, "tashmetu (20/10/2026), the Moonlit Maiden: a giver who is a notable of the village an ending speaks to remembered the same moment twice, as the giver and as one of the locals. Binds a real notable of a real village as the giver of an ending that gives him a memory and speaks to the village's locals, and asks the REAL recipients: the giver is left out of the locals' memory, and the village's other notables still hear it. Writes no memory", TestTaleLocalsMemory),
          new SelfTest("settings_ranges_agree", Severity.Light, "Mechanical (Gabriel, 2026-09-10, after the Regard Warmth Cooldown: \"je suis surpris que le bon comportement n'ait pas ete bien protege par des tests unitaires. Par exemple, 0 aurait du etre teste\"). The uncomfortable truth is that 0 WAS tested and the test agreed with the bug: it pinned what the code did, while the MCM control clamped its minimum to 1 and the v2.5.1 changelog promised 0 turned the cooldown off. Three artefacts, no place for any two of them to meet. This is that place. Reflects over EVERY [SettingPropertyInteger] on CrSettings, pairs it with the same-named ModSettings property that enforces it, drives the declared MIN and MAX through the live setting, and asserts the code honours every value the menu offers. Catches the whole family in one assertion, including settings that do not exist yet. Restores each setting to its prior value in a finally", TestSettingsRangesAgree),
          new SelfTest("console_help_complete", Severity.Light, "Mechanical: cr.help against the REAL command registry. Asked on 2026-09-10 whether it was still complete, it described 70 of 259 registered commands, so cr.testall and cr.test were themselves invisible, and it advertised cr.compose, renamed cr.letter_compose long before, which made the one name a reader was most likely to copy verbatim the one that would fail. A hand-written list of every command in a project that gains commands weekly can only drift, so what EXISTS now comes from reflection over the assembly its own [CommandLineArgumentFunction] attributes and the prose is an overlay on top of it. Reads the live registry, drives the real ModCheats.Help in all three of its forms, and asserts: the help never names a command that does not exist (the cr.compose class of error), every registered command is reachable through cr.help all however undescribed, the curated page says where the rest of them are, and the search finds a command by fragment. Read-only, mutates nothing", TestConsoleHelpComplete),
@@ -13542,6 +13543,61 @@ namespace CalradiaRemembers.Diagnostics
       ///   The MCM Test buttons call CrSettings.ConnectionTest and its two siblings, which the submodule sets at load
       ///   (the settings live in Foundation and cannot name Services' tester). Unset, a button would do nothing.
       /// </summary>
+      private static string TestTaleKeys(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tale_keys");
+
+         Quests.AuthoredQuestBehavior b = Quests.AuthoredQuestBehavior.Instance;
+         if (t.Skip(b == null || Hero.MainHero == null, "authored quests are not active")) return t.Line();
+
+         bool Free(Hero h) => h != null && Mapping.ActionGate.Allows(h, Logic.ActionKind.Witness);
+         Hero merchant = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsNotable && h.Occupation == Occupation.Merchant && h.HomeSettlement?.IsTown == true
+                                                                && !h.HomeSettlement.IsUnderSiege && Free(h)
+                                                                && (h.MapFaction == null || Hero.MainHero.MapFaction == null || !FactionManager.IsAtWarAgainstFaction(h.MapFaction, Hero.MainHero.MapFaction)));
+         Hero headman = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsNotable && h.Occupation == Occupation.Headman && Free(h));
+         if (t.Skip(merchant == null, "no free town merchant at peace with the player")) return t.Line();
+         t.Note($"{merchant.Name} of {merchant.HomeSettlement.Name}");
+
+         string sex = Hero.MainHero.IsFemale ? "female" : "male", other = Hero.MainHero.IsFemale ? "male" : "female";
+         const string id = "cr_selftest_tale_keys", twinId = "cr_selftest_tale_keys_twin";
+         string Tale(string taleId, string playerSex) => @"{ ""id"": """ + taleId + @""", ""title"": ""[SELFTEST] The Merchant's Debt"",
+            ""requires"": { ""giver"": { ""role"": ""notable"", ""trade"": ""merchant"", ""min_regard"": -100, ""not_at_war_with_player"": false },
+                          ""village"": { ""type"": ""town"" }, ""player"": { ""gender"": """ + playerSex + @""" } },
+            ""binds"": { ""giver"": ""a merchant"", ""village"": ""a town"" },
+            ""stages"": [ { ""id"": ""ask"", ""journal"": ""[SELFTEST]"", ""objective"": { ""type"": ""talk_to"", ""hero"": ""{giver}"" }, ""on_complete"": { ""next"": ""reward"" } } ],
+            ""reward"": { ""gold"": -1 } }";
+         t.Expect("theTaleLoadsClean", string.Join(" | ", b.DebugLoadTale(Tale(id, sex), "selftest.json")), "");
+         t.Expect("itsTwinLoadsClean", string.Join(" | ", b.DebugLoadTale(Tale(twinId, other), "selftest.json")), "");
+         try
+         {
+            string yes = b.DebugEligibility(merchant, id) ?? "";
+            t.Expect("aTownMerchantBinds", yes.StartsWith("no:") ? yes : "binds", "binds");
+            t.Expect("withTheTownAsItsPlace", yes.StartsWith("no:") || yes.Contains("village=" + merchant.HomeSettlement.Name), true);
+            if (headman != null)
+            {
+               string no = b.DebugEligibility(headman, id) ?? "";
+               t.Expect("aHeadmanIsRefusedForTheTrade", no.StartsWith("no:") && no.Contains("merchant"), true);
+            }
+            string twin = b.DebugEligibility(merchant, twinId) ?? "";
+            t.Expect("theOtherSexIsRefused", twin.StartsWith("no:") && twin.Contains("told to"), true);
+
+            if (Hero.MainHero.Gold >= 1)
+            {
+               int player = Hero.MainHero.Gold, his = merchant.Gold;
+               Quests.AuthoredQuestBehavior.DebugPayGold(-1, merchant);
+               t.Expect("thePlayerPaysTheGiver", (Hero.MainHero.Gold, merchant.Gold), (player - 1, his + 1));
+               TaleWorlds.CampaignSystem.Actions.GiveGoldAction.ApplyBetweenCharacters(merchant, Hero.MainHero, 1, disableNotification: true);
+            }
+         }
+         finally
+         {
+            b.DebugForgetTale(id);
+            b.DebugForgetTale(twinId);
+         }
+
+         return t.Line();
+      }
+
       private static string TestTaleLocalsMemory(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("tale_locals_memory");

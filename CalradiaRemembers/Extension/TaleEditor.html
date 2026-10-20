@@ -473,6 +473,17 @@ input[type="number"] { max-width: 160px; }
       "female",
       "male"
     ],
+    "GiverTrades": [
+      "merchant",
+      "artisan",
+      "ruralnotable",
+      "headman",
+      "preacher"
+    ],
+    "PlaceTypes": [
+      "village",
+      "town"
+    ],
     "ContentLevels": [
       "none",
       "mature",
@@ -846,7 +857,7 @@ input[type="number"] { max-width: 160px; }
         "gold": {
           "type": "integer",
           "x-kind": "int",
-          "description": "Paid to the player by the game (positive amounts only).",
+          "description": "Paid to the player by the game; negative, the player pays it (a fine, a bribe, a child's keep) to the giver. A choice leading straight to an ending the player must pay for is offered only while the player has that much.",
           "default": 0
         },
         "memory": {
@@ -978,6 +989,20 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "bool",
           "description": "On: never a giver of the player's own realm.",
           "default": false
+        },
+        "trade": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "A notable's trade, one or a list (\"merchant\", or [\"merchant\", \"artisan\"]): merchant, artisan, ruralnotable, headman, preacher. Only a notable has one; empty for any.",
+          "enum": [
+            "merchant",
+            "artisan",
+            "ruralnotable",
+            "headman",
+            "preacher"
+          ],
+          "x-closed-list": "GiverTrades",
+          "x-default-empty": true
         }
       }
     },
@@ -994,7 +1019,12 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "village (the only kind bound so far).",
+          "description": "village, or town (a town is still named {village} in the tale's lines and roles).",
+          "enum": [
+            "village",
+            "town"
+          ],
+          "x-closed-list": "PlaceTypes",
           "default": "village"
         },
         "near": {
@@ -1084,6 +1114,19 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "int",
           "description": "0 to 6.",
           "default": 0
+        },
+        "gender": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "female or male: the tale is offered only to a woman, or a man; empty for either.",
+          "enum": [
+            "female",
+            "male"
+          ],
+          "x-closed-list": "GiverGenders"
         }
       }
     },
@@ -3995,11 +4038,11 @@ input[type="number"] { max-width: 160px; }
     AuthoredQuest: ['id', 'title', 'author', 'unique', 'repeat_cooldown_days', 'weight', 'requires', 'on_map', 'binds', 'stages', 'reward', 'endings', 'failure'],
     AuthoredMapTrigger: ['still_hours', 'by_day', 'in_givers_lands', 'chance_per_day', 'invitation', 'accept', 'decline'],
     AuthoredRequires: ['giver', 'village', 'rival', 'husband', 'player', 'content'],
-    GiverRequirement: ['role', 'holds', 'min_regard', 'not_at_war_with_player', 'culture', 'realm', 'gender', 'with_player', 'not_pregnant', 'married', 'not_clan_leader', 'not_of_players_realm'],
+    GiverRequirement: ['role', 'holds', 'min_regard', 'not_at_war_with_player', 'culture', 'realm', 'gender', 'with_player', 'not_pregnant', 'married', 'not_clan_leader', 'not_of_players_realm', 'trade'],
     HusbandRequirement: ['role', 'rules_a_realm'],
     PlaceRequirement: ['type', 'near', 'culture'],
     RivalRequirement: ['role', 'same_realm_as'],
-    PlayerRequirement: ['min_clan_tier'],
+    PlayerRequirement: ['min_clan_tier', 'gender'],
     AuthoredStage: ['id', 'journal', 'image', 'objective', 'on_complete', 'on_enter', 'canvas', 'facts', 'knowers', 'choices'],
     AuthoredOnComplete: ['next'],
     AuthoredChoice: ['id', 'label', 'journal', 'next', 'if', 'sets', 'default', 'objective', 'said', 'canvas', 'facts', 'knowers'],
@@ -4844,7 +4887,8 @@ input[type="number"] { max-width: 160px; }
       boolField('tale/requires.giver.not_pregnant', 'Never while with child', 'GiverRequirement', 'not_pregnant', giver),
       boolField('tale/requires.giver.married', 'Married, not to the player', 'GiverRequirement', 'married', giver),
       boolField('tale/requires.giver.not_clan_leader', 'Never one who leads her house', 'GiverRequirement', 'not_clan_leader', giver),
-      boolField('tale/requires.giver.not_of_players_realm', "Never of the player's own realm", 'GiverRequirement', 'not_of_players_realm', giver))));
+      boolField('tale/requires.giver.not_of_players_realm', "Never of the player's own realm", 'GiverRequirement', 'not_of_players_realm', giver),
+      flagsField('tale/requires.giver.trade', 'A notable of the trade', 'GiverRequirement', 'trade', giver, {placeholder: 'any (merchant, artisan)'}))));
 
     // A tale that begins by itself on the map (11/10/2026): someone travelling with the player, by a popup.
     var mapOn = t.on_map && typeof t.on_map === 'object';
@@ -4870,7 +4914,7 @@ input[type="number"] { max-width: 160px; }
         edit('tale/requires.village', function () { if (on) r.village = {type: 'village'}; else delete r.village; }, true);
       }}}), 'The tale happens in a village, bound as {village}'),
       villageOn ? h('div.grid',
-        selectField('tale/requires.village.type', 'Kind', 'PlaceRequirement', 'type', r.village, ['village']),
+        selectField('tale/requires.village.type', 'Kind', 'PlaceRequirement', 'type', r.village, list('PlaceTypes')),
         selectField('tale/requires.village.near', 'Near', 'PlaceRequirement', 'near', r.village, [{value: 'forest', label: 'a forest'}], {empty: 'anywhere'}),
         flagsField('tale/requires.village.culture', 'Of the culture', 'PlaceRequirement', 'culture', r.village, {placeholder: 'any (battania, sturgia)'})) : null
     ], {dataKey: 'tale/requires.village'}));
@@ -4899,7 +4943,8 @@ input[type="number"] { max-width: 160px; }
     ], {dataKey: 'tale/requires.husband'}));
 
     ed.appendChild(section('The player', help('AuthoredRequires', 'player'), h('div.grid',
-      numberField('tale/requires.player.min_clan_tier', 'Least clan tier', 'PlayerRequirement', 'min_clan_tier', lazy(r, 'player'), {min: 0, max: 6}))));
+      numberField('tale/requires.player.min_clan_tier', 'Least clan tier', 'PlayerRequirement', 'min_clan_tier', lazy(r, 'player'), {min: 0, max: 6}),
+      selectField('tale/requires.player.gender', 'A woman or a man', 'PlayerRequirement', 'gender', lazy(r, 'player'), list('GiverGenders'), {empty: 'either'}))));
 
     ed.appendChild(section('Roles', help('AuthoredQuest', 'binds'), bindsEditor(t), {dataKey: 'tale/binds'}));
     return ed;

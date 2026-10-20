@@ -71,7 +71,12 @@ namespace CalradiaRemembers.Quests
       private int _stillHours;
       private int _mapRolledOn = -1;
 
-      public AuthoredQuestBehavior() => Instance = this;
+      public AuthoredQuestBehavior()
+      {
+         Instance = this;
+         // A choice leading to an ending the player pays for is offered only while the purse holds it (tashmetu, 20/10/2026).
+         AuthoredQuestEngine.PlayerGold = () => Hero.MainHero?.Gold ?? 0;
+      }
 
       public static AuthoredQuestBehavior Instance { get; private set; }
 
@@ -384,7 +389,8 @@ namespace CalradiaRemembers.Quests
             // The Troy-inspired tale (Gabriel, 12/10/2026): a married giver of another realm who could leave her house.
             IsMarriedToAnother = giver.Spouse != null && giver.Spouse != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(giver.Spouse),
             IsClanLeader = giver.Clan != null && giver.Clan.Leader == giver,
-            IsOfPlayersRealm = giver.MapFaction != null && giver.MapFaction == Hero.MainHero?.MapFaction
+            IsOfPlayersRealm = giver.MapFaction != null && giver.MapFaction == Hero.MainHero?.MapFaction,
+            Trade = giver.IsNotable ? Logic.StationGuidelinesPolicy.TradeKeyOf(giver.Occupation.ToString()) : null
          });
          if (whyNot != null) return false;
 
@@ -419,13 +425,8 @@ namespace CalradiaRemembers.Quests
             return false;
          }
 
-         int tier = Clan.PlayerClan?.Tier ?? 0, minTier = q.Requires?.Player?.MinClanTier ?? 0;
-         if (tier < minTier)
-         {
-            whyNot = $"your clan is tier {tier}, and the quest needs tier {minTier}";
-
-            return false;
-         }
+         whyNot = AuthoredPlayerPolicy.WhyNot(q.Requires?.Player, new AuthoredPlayerFacts {ClanTier = Clan.PlayerClan?.Tier ?? 0, IsFemale = Hero.MainHero?.IsFemale == true});
+         if (whyNot != null) return false;
 
          ids["giver"] = giver.StringId;
          names["giver"] = giver.Name?.ToString();
@@ -443,9 +444,12 @@ namespace CalradiaRemembers.Quests
          PlaceRequirement v = q.Requires?.Village;
          if (v != null)
          {
+            // tashmetu (20/10/2026): a town as the bound place, for tales from town merchants.
+            bool town = string.Equals(v.Type?.Trim(), "town", StringComparison.OrdinalIgnoreCase);
+            bool OfKind(Settlement s) => s != null && (town ? s.IsTown : s.IsVillage);
             IEnumerable<Settlement> candidates = g.Holds == "{village}"
-               ? giver.Clan?.Settlements?.Where(s => s.IsVillage) ?? Enumerable.Empty<Settlement>()
-               : new[] {giver.HomeSettlement}.Where(s => s != null && s.IsVillage);
+               ? giver.Clan?.Settlements?.Where(OfKind) ?? Enumerable.Empty<Settlement>()
+               : new[] {giver.HomeSettlement}.Where(OfKind);
             List<Settlement> owned = candidates.ToList();
             List<Settlement> ofCulture = owned.Where(s => AuthoredCulturePolicy.Matches(v.Culture, s.Culture?.StringId, s.Culture?.Name?.ToString())).ToList();
             List<Settlement> placed = ofCulture.Where(s => v.Near != "forest" || NearForest(s)).ToList();
@@ -455,7 +459,7 @@ namespace CalradiaRemembers.Quests
             Settlement village = quiet == null ? null : placed[states.IndexOf(quiet)];
             if (village == null)
             {
-               whyNot = owned.Count == 0 ? "no village is theirs to give the quest about"
+               whyNot = owned.Count == 0 ? $"no {(town ? "town" : "village")} is theirs to give the quest about"
                   : ofCulture.Count == 0
                      ? $"none of their villages ({string.Join(", ", owned.Select(s => s.Name))}) is of {AuthoredCulturePolicy.Describe(v.Culture)}"
                   : placed.Count == 0
@@ -640,7 +644,8 @@ namespace CalradiaRemembers.Quests
             Name = s?.Name?.ToString(),
             BeingRaided = s?.Village?.VillageState == Village.VillageStates.BeingRaided,
             Looted = s?.Village?.VillageState == Village.VillageStates.Looted,
-            FortressUnderSiege = s?.Village?.Bound?.IsUnderSiege == true
+            // A town is its own fortress (2.7.19): besieged, it is no place for a tale either.
+            FortressUnderSiege = s?.IsTown == true ? s.IsUnderSiege : s?.Village?.Bound?.IsUnderSiege == true
          };
 
       /// <summary>cr.testall seam: the state of a village as the tale's choice reads it.</summary>
@@ -1414,10 +1419,24 @@ namespace CalradiaRemembers.Quests
          }
 
          if (giver != null && !string.IsNullOrWhiteSpace(outcome.Memory)) Remember(giver.StringId, AuthoredQuestEngine.Fill(_run, outcome.Memory));
-         if (outcome.Gold > 0) TaleWorlds.CampaignSystem.Actions.GiveGoldAction.ApplyBetweenCharacters(null, Hero.MainHero, outcome.Gold);
+         PayGold(outcome.Gold, giver);
 
          return CarryOutConsequences(q, AuthoredQuestEngine.Consequences(_run, outcome), outcome);
       }
+
+      /// <summary>
+      ///   An ending's gold: paid to the player, or, negative, paid by the player to the giver (gone, to no one): tashmetu
+      ///   (20/10/2026), a fine, a bribe, a child's keep. A choice leading here was offered only while the player had it
+      ///   (AuthoredQuestEngine.CostOf); an ending reached otherwise takes what he has (the game's own transfer stops there).
+      /// </summary>
+      private static void PayGold(int gold, Hero giver)
+      {
+         if (gold > 0) TaleWorlds.CampaignSystem.Actions.GiveGoldAction.ApplyBetweenCharacters(null, Hero.MainHero, gold);
+         if (gold < 0) TaleWorlds.CampaignSystem.Actions.GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, Mapping.HeroPresence.IsInTheWorld(giver) ? giver : null, -gold);
+      }
+
+      /// <summary>cr.testall tale_keys: an ending's gold through the real payment.</summary>
+      internal static void DebugPayGold(int gold, Hero giver) => PayGold(gold, giver);
 
       /// <summary>
       ///   Carries out consequences (an ending's, or a stage's on_enter) and says what became of each (tashmetu, 15/10/2026:

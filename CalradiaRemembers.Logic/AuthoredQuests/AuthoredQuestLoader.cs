@@ -54,6 +54,12 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>The sexes a tale may ask its giver to be (empty for either).</summary>
       public static readonly IReadOnlyList<string> GiverGenders = new[] {"female", "male"};
 
+      /// <summary>The trades a notable giver may be asked to ply (the same keys as the trade guidelines files).</summary>
+      public static readonly IReadOnlyList<string> GiverTrades = StationGuidelinesPolicy.TradeKeys;
+
+      /// <summary>The kinds of place a tale may bind (as {village}).</summary>
+      public static readonly IReadOnlyList<string> PlaceTypes = new[] {"village", "town"};
+
       /// <summary>The content levels a tale may ask for (AuthoredContentPolicy).</summary>
       public static readonly IReadOnlyList<string> ContentLevels = AuthoredContentPolicy.Levels;
 
@@ -228,6 +234,17 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          string gender = q.Requires?.Giver?.Gender;
          if (!string.IsNullOrWhiteSpace(gender) && !GiverGenders.Contains(gender.Trim().ToLowerInvariant()))
             blocking.Add($"requires.giver.gender '{gender}' is neither {string.Join(" nor ", GiverGenders)}.");
+         string playerGender = q.Requires?.Player?.Gender;
+         if (!string.IsNullOrWhiteSpace(playerGender) && !GiverGenders.Contains(playerGender.Trim().ToLowerInvariant()))
+            blocking.Add($"requires.player.gender '{playerGender}' is neither {string.Join(" nor ", GiverGenders)}.");
+         foreach (string trade in q.Requires?.Giver?.Trade ?? new List<string>())
+            if (!GiverTrades.Contains((trade ?? "").Trim().ToLowerInvariant()))
+               blocking.Add($"requires.giver.trade '{trade}' is no trade ({string.Join(", ", GiverTrades)}).");
+         if ((q.Requires?.Giver?.Trade?.Count ?? 0) > 0 && q.Requires.Giver.Role != "notable" && q.Requires.Giver.Role != "any")
+            blocking.Add($"requires.giver.trade names a trade, which only a notable plies, but the role is '{q.Requires.Giver.Role}': set role to \"notable\".");
+         string placeType = q.Requires?.Village?.Type;
+         if (q.Requires?.Village != null && !PlaceTypes.Contains((placeType ?? "").Trim().ToLowerInvariant()))
+            blocking.Add($"requires.village.type '{placeType}' is neither {string.Join(" nor ", PlaceTypes)}.");
 
          RivalRequirement rival = q.Requires?.Rival;
          if (rival != null && !RivalRoles.Contains(rival.Role))
