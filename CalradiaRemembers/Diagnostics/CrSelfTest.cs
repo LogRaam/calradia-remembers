@@ -358,6 +358,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("spouse_status_at_wedding", Severity.Light, "brorespeta123 (Nexus, 01/10/2026): a new wife 'forgot who I was'. A marriage through the game's own proposal left her romantic status stale until the next load. Gives a lord's CR profile a stale SecretLover status, runs the same heal the wedding now runs, expects Committed, then restores the profile exactly. Weds nobody.", TestSpouseStatusAtWedding),
          new SelfTest("wedding_day_line", Severity.Light, "fkasad (10/10/2026): a marriage CR never saw reads as years old when the couple's eldest living child is 2 or more (checked on a real lord when one exists). raphareish (Nexus, 01/10/2026): a character wed days before spoke of her spouse as if married for years. Takes a married lord, sets his wedding day to three days ago for a moment, expects his family line to call them newlyweds, then forgets the day and expects the line as before. Weds nobody.", TestWeddingDayLine),
          new SelfTest("registered_match", Severity.Light, "tashmetu (Nexus, 16/10/2026): a head of house agreed in the chat to a match another mod had proposed, and nothing happened. Finds a lawful match of another house at peace, wins the bride over and the head's regard for the player (a disposable test game), registers it through the PUBLIC CrMatches.Register, checks a decider with no say is refused at the door, that the head is taught the match, then settles it through the REAL bridge (arrange_match): the game weds them, CrMatches.Settled reports it, and the match is no longer pending. Restores the head's regard; the marriage stays", TestRegisteredMatch),
+         new SelfTest("heart_page", Severity.Light, "Gabriel (20/10/2026): love stories were kept and shown nowhere; the encyclopedia now has a Heart section on the page of a character engaged with the player, in the second person, and a recap on the player's own page. Mints a clanless woman off the map, gives her a profile that became the player's lover on a known day 100 days ago through the same dating helper the game's actions use, and reads the page's lines through the mixin's seam: her page says she has been the player's lover since that season and year, the date is the calendar's (today formats as CampaignTime.Now's season and year, the check that catches a wrong day base), a later night does not move it, and the player's own page lists her. Removes her profile and her after", TestHeartPage),
          new SelfTest("match_asks_the_player", Severity.Light, "tashmetu (20/10/2026): when the bride is the player's daughter or sister, the player holds the say over her hand and the door refused. Takes an unwed woman of the player's house and a lawful groom of another house at peace, registers the match through the PUBLIC CrMatches.Register with the groom's side (the head of his house, or the groom) as the decider: it is taken as asking the player, the groom's side is taught to ask for her hand, and the chat's [Y/n] names her and the groom. Settles nothing (no daughter is wed by a test); withdraws the match. When the player's house holds no unwed woman with a lawful groom, mints one into the house (no parent named) and removes her after", TestMatchAsksThePlayer),
          new SelfTest("arrange_match_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): the matchmaker; Gabriel: a real marriage, her heart then her family's consent. Finds an unwed lord and a lawful match of another house at peace, issues the task through the real QuestFactory, and asks the real match check WITHOUT applying it: the law must pass, and the answer must be one of wed / not yet won over / family refuses, never a legal refusal. Weds nobody.", TestArrangeMatchQuest),
          new SelfTest("craft_weapon_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'a blacksmithing quest', the kind being part of the deal (Gabriel). Issues a craft_weapon task for a greatsword through the real QuestFactory, expects the forge key for a two-handed sword, and expects a two-handed sword the player did NOT forge (from the game's own items) to be refused at the hand-over, as a bought one would be. Moves nothing.", TestCraftWeaponQuest),
@@ -13662,6 +13663,58 @@ namespace CalradiaRemembers.Diagnostics
             NpcProfile current = store.Get(profile.Id);
             current?.Events.RemoveAll(e => e.summary != null && e.summary.StartsWith("(self-test) ", StringComparison.Ordinal));
             if (current != null) store.Set(current);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestHeartPage(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("heart_page");
+         if (t.Abort(behavior?.Store == null || Hero.MainHero == null, "the store is not ready")) return t.Line();
+
+         CharacterObject template = MBObjectManager.Instance.GetObjectTypeList<CharacterObject>()
+            .FirstOrDefault(c => c != null && c.IsTemplate && c.Occupation == Occupation.Wanderer && c.IsFemale != Hero.MainHero.IsFemale);
+         if (t.Abort(template == null, "no wanderer template of the other sex to mint a lover from")) return t.Line();
+
+         Hero lover = null;
+         try
+         {
+            lover = HeroCreator.CreateSpecialHero(template, null, null, null, 25);
+            NpcProfile profile = HeroProfileMapper.FromHero(lover);
+            profile.Romantic ??= new RomanticProfile();
+            var today = (int) CampaignTime.Now.ToDays;
+            int began = today - 100;
+            profile.Romantic.Status = RomanticStatus.Courting;
+            profile.Romantic.MoveTo(RomanticStatus.Intimate, began);
+            profile.Romantic.MoveTo(RomanticStatus.Intimate, today);
+            behavior.Store.Set(profile);
+
+            CampaignTime now = CampaignTime.Now;
+            t.Expect("aDayIsTheCalendarsDay", Mapping.HeartPageReader.When(today), $"{now.GetSeasonOfYear.ToString().ToLowerInvariant()} {now.GetYear}");
+
+            IReadOnlyList<string> page = Mapping.HeartPageReader.LinesFor(lover);
+            t.Note(string.Join(" | ", page));
+            t.Expect("herPageTellsTheBondAndWhenItBegan", page.FirstOrDefault(), $"{(lover.IsFemale ? "She" : "He")} has been your lover since {Mapping.HeartPageReader.When(began)}.");
+
+            IReadOnlyList<string> recap = Mapping.HeartPageReader.LinesFor(Hero.MainHero);
+            t.Expect("thePlayersPageListsHer", recap.Any(l => l.StartsWith($"{lover.Name}, your lover", StringComparison.Ordinal)), true);
+         }
+         finally
+         {
+            try
+            {
+               if (lover != null)
+               {
+                  behavior.Store.Remove(lover.StringId);
+                  if (!lover.IsDead)
+                  {
+                     if (lover.Gold != 0) lover.ChangeHeroGold(-lover.Gold);
+                     KillCharacterAction.ApplyByRemove(lover);
+                  }
+               }
+            }
+            catch (Exception ex) { ModLog.Info($"[SELFTEST] heart_page cleanup failed: {ex.GetType().Name}: {ex.Message}"); }
          }
 
          return t.Line();

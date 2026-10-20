@@ -410,7 +410,7 @@ namespace CalradiaRemembers.Jealousy
              && (stake == JealousStake.PlayerPartner || stake == JealousStake.SecretLover) && profile.Romantic != null)
          {
             RomanticStatus woundedFrom = profile.Romantic.Status;
-            profile.Romantic.Status = RomanticWoundPolicy.AfterJealousyWound(woundedFrom);
+            profile.Romantic.MoveTo(RomanticWoundPolicy.AfterJealousyWound(woundedFrom), (int) CampaignTime.Now.ToDays);
             if (profile.Romantic.Status != woundedFrom)
                ModLog.Info($"[JEALOUSY] {party.Name}'s bond wounded by betrayal: {woundedFrom} -> {profile.Romantic.Status}.");
          }
@@ -718,7 +718,7 @@ namespace CalradiaRemembers.Jealousy
 
          if (estrange)
          {
-            profile.Romantic.Status = RomanticStatus.Estranged;
+            profile.Romantic.MoveTo(RomanticStatus.Estranged, today);
             ProfileMutator.ApplyReputationDelta(profile, -EstrangeRelationHit, NpcMemoryService.Core.Standing.RegardCause.Jealousy); // a wound of the heart, not clan politics
             profile.Events.Add(new NotableEvent(today, NotableEventType.Jealousy,
                "I am the first of this house, and you left me to wither while you doted on another. I withdraw what I gave you."));

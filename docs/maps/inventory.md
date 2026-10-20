@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 533 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1211 types in 44 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 537 types in 61 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1214 types in 44 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -325,7 +325,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `SuccessionBehavior` | public class | Reframes all stored NPC memories through the lens of the new heir on player death. |
 
-### CalradiaRemembers.Encyclopedia (32)
+### CalradiaRemembers.Encyclopedia (35)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -335,6 +335,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EncyclopediaHeroPageDiscoveryMixin` | public class | UIExtenderEx mixin that displays the personal traits the player has discovered about an NPC through conversation, on that NPC's encyclopedia hero page. |
 | `EncyclopediaHeroPageGrievancesMixin` | public class | UIExtenderEx mixin that displays the grudges the player has EARNED knowledge of against this NPC, on that NPC's encyclopedia hero page. |
 | `EncyclopediaHeroPageHappinessMixin` | public class | UIExtenderEx mixin that surfaces a player COMPANION's contentment in your service on the hero encyclopedia page — a sibling of the personal-relation line. |
+| `EncyclopediaHeroPageHeartMixin` | public class | UIExtenderEx mixin for the Heart section of a hero page: @CalradiaHeartLabel (cream header) and @CalradiaHeartItems (gold lines). |
 | `EncyclopediaHeroPageKindnessesMixin` | public class | UIExtenderEx mixin that displays the kindnesses the player has EARNED knowledge of from this NPC, on that NPC's encyclopedia hero page. |
 | `EncyclopediaHeroPageLettersMixin` | public class | UIExtenderEx mixin adding a per-contact "Letters" button to the hero encyclopedia page. |
 | `EncyclopediaHeroPageNemesisMixin` | public class | UIExtenderEx mixin that displays the shared history the player has with a nemesis they have ALREADY ENCOUNTERED, on that nemesis's own encyclopedia hero page. |
@@ -349,6 +350,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroPageGrievancesPatchA` | internal class | Appends the grievances bullet list to the hero encyclopedia page. |
 | `HeroPageGrievancesPatchB` | internal class | Appends the "Grievances:" header line to the hero encyclopedia page. |
 | `HeroPageHappinessPatch` | internal class | Inserts a single line into the hero encyclopedia page, after the vanilla Info block, showing a companion's contentment in your service. |
+| `HeroPageHeartPatchA` | internal class | Appends the Heart lines (the bond told to the player, or the recap on the player's own page) to the hero page. |
+| `HeroPageHeartPatchB` | internal class | Appends the "Heart:" header line to the hero page. |
 | `HeroPageKindnessesPatchA` | internal class | Appends the kindnesses bullet list to the hero encyclopedia page. |
 | `HeroPageKindnessesPatchB` | internal class | Appends the "Kindnesses:" header line to the hero encyclopedia page. |
 | `HeroPageLettersPatch` | internal class | Inserts the per-contact "Letters" button into the hero encyclopedia page's info block. |
@@ -523,7 +526,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (29)
+### CalradiaRemembers.Mapping (30)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -535,6 +538,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EncounterContextBuilder` | public static class | Constructs an EncounterContext for a given NPC, using the game state bridge for live data and the stored profile for historical data (last-meeting computation). |
 | `FirstImpressionResolver` | public static class | Builds the ready-to-inject "first impression" line for a barely-known noble, or null. |
 | `GameRelations` | public static class | Reads a character's own relation with the player and, when there is another to read, their clan leader's. |
+| `HeartPageReader` | internal static class | Reads a hero's bond with the player for the Heart section. |
 | `HeroPresence` | public static class | Whether a hero is in the world at all: alive, and not taken out of it by the game. |
 | `HeroProfileMapper` | public static class | (no summary) |
 | `HeroSeats` | public static class | The places a character answers for, closest first. |
@@ -2123,10 +2127,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RescueGratitudePolicy` | public static class | Decides how strongly an NPC reacts to being rescued (or to a loved one being rescued) by the player. |
 | `RescueTie` | public enum | How the freed prisoner relates to the player, deciding the shape of their gratitude. |
 
-### CalradiaRemembers.Logic.Romance (17)
+### CalradiaRemembers.Logic.Romance (20)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `HeartChild` | public class | A child the player and this character have together, as the page names it. |
+| `HeartFacts` | public class | What the player knows of one character's bond with them. |
+| `HeartPagePolicy` | public static class | Tells a character's bond with the player for the Heart section, and the recap line on the player's page. |
 | `JealousStake` | public enum | Who the jealous party is, and why they have a stake: sets the reaction's flavour. |
 | `JealousyHearingPolicy` | public static class | Pure gate deciding whether a jealous party is close enough to a liaison's location to have heard word of it. |
 | `JealousyReaction` | public static class | The pure tuning behind a jealousy reaction: the relation hit (Severity), the chance of a confronting letter (LetterChance), and the in-character grievance / letter framing. |

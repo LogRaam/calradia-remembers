@@ -3521,7 +3521,9 @@ namespace CalradiaRemembers.GameState
             NpcProfile marriedProfile = context?.Profile;
             if (marriedProfile?.Romantic != null)
             {
+               RomanticStatus before = marriedProfile.Romantic.Status;
                marriedProfile.Romantic.Status = RomanticStatus.Committed;
+               marriedProfile.Romantic.NoteChangeFrom(before, (int) CampaignTime.Now.ToDays); // the Heart page dates the wedding
                marriedProfile.Romantic.IsSecretLover = false;
                marriedProfile.Romantic.SecretLoverSinceDay = null; // the bond is open now: no hidden secret left to leak
             }
@@ -4015,7 +4017,9 @@ namespace CalradiaRemembers.GameState
             if (profile.Romantic.IsConsort || profile.Romantic.Status == RomanticStatus.Committed)
                return ActionOutcome.Refused($"(You and {npcHero.Name} are already bound as consorts.)");
 
+            RomanticStatus before = profile.Romantic.Status;
             profile.Romantic.Status = RomanticStatus.Committed;
+            profile.Romantic.NoteChangeFrom(before, (int) CampaignTime.Now.ToDays);
             profile.Romantic.IsConsort = true;
 
             ModLog.Info($"[ACTION] take_as_consort: {npcHero.Name} is now the player's consort.");
@@ -4081,7 +4085,9 @@ namespace CalradiaRemembers.GameState
             if (verdict != SecretBondVerdict.Eligible)
                return ActionOutcome.Refused(SecretBondEligibility.Describe(verdict, npcHero.Name?.ToString()));
 
+            RomanticStatus before = profile.Romantic.Status;
             profile.Romantic.Status = RomanticStatus.SecretLover;
+            profile.Romantic.NoteChangeFrom(before, (int) CampaignTime.Now.ToDays);
             profile.Romantic.IsSecretLover = true;
             // Stamp the onset so the mystery-lover pillar can keep it genuinely secret for a while before whispers
             // of the bond's EXISTENCE (never the player's identity) may begin to circulate.

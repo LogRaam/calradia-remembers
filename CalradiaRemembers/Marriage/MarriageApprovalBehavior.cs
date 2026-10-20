@@ -198,7 +198,11 @@ namespace CalradiaRemembers.Marriage
          if (!created && !ProfileMutator.SpouseStatusNeedsHeal(profile.Romantic.Status)) return;
 
          RomanticStatus before = profile.Romantic.Status;
+         // A marriage made before CR saw it: dated by the wedding when CR recorded one, else left undated rather than
+         // dated to the load that healed it (the Heart page gives no date it cannot source).
          profile.Romantic.Status = RomanticStatus.Committed;
+         int? wedded = Mapping.WeddingDayBehavior.WeddedOn(spouse);
+         if (before != RomanticStatus.Committed) profile.Romantic.StatusSinceDay = wedded;
          profile.Romantic.IsSecretLover = false;
          store.Set(profile);
          ModLog.Info(created

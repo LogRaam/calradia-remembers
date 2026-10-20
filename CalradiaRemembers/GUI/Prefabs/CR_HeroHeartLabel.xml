@@ -1,0 +1,8 @@
+<DummyRoot>
+  <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="CoverChildren"
+                          HorizontalAlignment="Left"
+                          Brush="Encyclopedia.Stat.DefinitionText"
+                          Brush.TextHorizontalAlignment="Left"
+                          Text="@CalradiaHeartLabel"
+                          MarginTop="12" MarginLeft="30" />
+</DummyRoot>

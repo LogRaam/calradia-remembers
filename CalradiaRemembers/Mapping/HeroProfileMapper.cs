@@ -162,13 +162,7 @@ namespace CalradiaRemembers.Mapping
 
          profile.Romantic = RomanticProfileBuilder.Build(hero, currentArchetype);
 
-         if (previous != null)
-         {
-            profile.Romantic.Status = previous.Status;
-            profile.Romantic.AttractionToPlayer = previous.AttractionToPlayer;
-            profile.Romantic.IsConsort = previous.IsConsort;
-            profile.Romantic.IsSecretLover = previous.IsSecretLover;
-         }
+         profile.Romantic.CarryRelationshipFrom(previous);
 
          ModLog.Info($"  Generated missing RomanticProfile for {profile.Name}: " +
                      $"Orientation={profile.Romantic?.Orientation}, " +

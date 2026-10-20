@@ -4,6 +4,18 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.19.. open
 
+### New
+- **Heart, in the encyclopedia** (Gabriel 20/10: love stories were kept and shown nowhere). On the page of a character
+  engaged with the player (courting, lovers, secret lover, consort, spouse, former spouse, estranged or broken), the
+  story of the bond told to the player: "She has been your secret lover since spring 1091", the wedding, when they first
+  became lovers, their children together, open terms, and her own lover only once the player knows of him. The player's
+  own page lists one line per such person. A former spouse reads as such even though a divorce leaves the romantic state
+  as it was; a hidden bastard is never named; a bond an old save never dated is told without a date
+  (`HeartPagePolicy`, `HeartPageReader`). cr.testall `heart_page`.
+- A romantic bond now keeps the day it last changed and the day it became intimate (`RomanticProfile.StatusSinceDay`,
+  `LoversSinceDay`, `MoveTo`/`NoteChangeFrom`, SDK). A rebuilt romantic profile (an orientation fix) now carries
+  everything lived (`CarryRelationshipFrom`): until now the secret lover's day, open terms and her own lover were lost.
+
 ### For modders
 - **A regard source as a function** (tashmetu 20/10: without CR, the game refused Regard and Standing altogether, since
   a class implementing `IPairRegardSource` cannot load where CR is absent). New
