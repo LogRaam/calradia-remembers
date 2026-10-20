@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 537 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1214 types in 44 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 542 types in 61 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1218 types in 45 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -325,7 +325,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `SuccessionBehavior` | public class | Reframes all stored NPC memories through the lens of the new heir on player death. |
 
-### CalradiaRemembers.Encyclopedia (35)
+### CalradiaRemembers.Encyclopedia (38)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -342,6 +342,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EncyclopediaHeroPagePersonalRelationMixin` | public class | UIExtenderEx mixin that surfaces the NPC's PERSONAL regard for the player (our per-hero score, independent of the clan-level relation Bannerlord shows) on the hero's encyclopedia page. |
 | `EncyclopediaHeroPageRegardMixin` | public class | Refills a hero page's Friends and Enemies from real regard, and says why in a "Why" block. |
 | `EncyclopediaHeroPageStandingAccordsMixin` | public class | UIExtenderEx mixin that displays this hero's still-standing council accords with the player (a tribute they owe, a stipend they receive, a non-aggression pact, a hostage held or given, a ward bond) on their encyclopedia... |
+| `EncyclopediaHeroPageTraumaMixin` | public class | UIExtenderEx mixin for the Trauma section of a hero page: @CalradiaTraumaLabel (cream header) and @CalradiaTraumaItems (gold lines). |
 | `HeroPageAppearancePatch` | internal class | Inserts the appearance panel (composed look + inline editable note) into the hero encyclopedia page's info block. |
 | `HeroPageBearingPatch` | internal class | Inserts a single line into the hero encyclopedia page, alongside the personal-relation line, showing the NPC's Bearing (Trust/Respect/Fear, numberless) toward the player. |
 | `HeroPageChroniclePatch` | internal class | Inserts the "Read the Chronicle" button into the hero encyclopedia page's info block. |
@@ -364,6 +365,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroPageRegardYouPatch` | internal class | Inserts a single line into the hero encyclopedia page, at the head of the regard block (above "Why:" and the houses), showing the NPC's personal regard for the player. |
 | `HeroPageStandingAccordsPatchA` | internal class | Appends the standing-accords bullet list to the hero encyclopedia page. |
 | `HeroPageStandingAccordsPatchB` | internal class | Appends the "Standing accords:" header line to the hero encyclopedia page. |
+| `HeroPageTraumaPatchA` | internal class | Appends the Trauma lines (the aggressions a character lived through, Hardcore only) to the hero page. |
+| `HeroPageTraumaPatchB` | internal class | Appends the "Trauma:" header line to the hero page. |
 
 ### CalradiaRemembers.Escort (1)
 
@@ -526,7 +529,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (30)
+### CalradiaRemembers.Mapping (32)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -559,6 +562,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StoryModeTutorial` | internal static class | Whether the game's Story Mode tutorial restricts the player's interactions right now. |
 | `TownNeeds` | public static class | What the towns a character answers for are short of. |
 | `Traits` | public class | (no summary) |
+| `TraumaLedgerBehavior` | public class | The ledger of aggressions the player witnessed or committed, one record per aggression. |
+| `TraumaPageReader` | internal static class | Reads the aggressions a hero lived through for the Trauma section. |
 | `WeddingDayBehavior` | public class | The day each married hero was wed, as CR saw it happen. |
 
 ### CalradiaRemembers.Marriage (14)
@@ -2196,6 +2201,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TournamentRivalryPolicy` | public static class | Decides when repeated arena meetings become a rivalry, and of which flavor. |
 | `TournamentStanding` | public class | A hero's standing in one tournament relative to the player: the decisive relation, whether they took the crown, and the round it turned on. |
 | `TournamentTraitFacts` | public class | The hero's own character traits that colour how they carry a tournament result (Bannerlord trait levels, roughly -2..2). |
+
+### CalradiaRemembers.Logic.Trauma (4)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `TraumaAuthor` | public enum | Who did it, as the player saw it. |
+| `TraumaKind` | public enum | What was done. |
+| `TraumaPagePolicy` | public static class | The Trauma section's words, its gate, and the ledger's save form. |
+| `TraumaRecord` | public class | One aggression a character lived through, as the ledger keeps it. |
 
 ### CalradiaRemembers.Logic.Verbs (6)
 

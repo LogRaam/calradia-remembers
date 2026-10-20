@@ -2903,6 +2903,10 @@ namespace CalradiaRemembers.Chat
          if (!proposal.Forms) return;
          if (prisoner == null) return;
 
+         // The Trauma page (Gabriel, 20/10/2026), under the same conduct gate as the grudge: only what the scene was, never
+         // its ceiling, and whether or not the grudge itself takes.
+         Mapping.TraumaLedgerBehavior.Record(prisoner, null, Logic.Trauma.TraumaPagePolicy.KindOf(_captorSceneIntent), Logic.Trauma.TraumaAuthor.Player);
+
          int today = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
          const string cause = "The player made me suffer while I was helpless, their prisoner to torment.";
 
@@ -3846,6 +3850,14 @@ namespace CalradiaRemembers.Chat
          var behavior = NpcMemoryCampaignBehavior.Instance;
          int severity = CaptiveIntentRules.CaptiveAbuseSeverity(_captiveEncounterIntent);
          int today = behavior?.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
+
+         // The Trauma page (Gabriel, 20/10/2026). Who did it follows the scene's variant (CompanionScenePolicy): the player
+         // coerced, or the men (a companion-victim scene is collective only when the captor's men assault), or the captor.
+         if (severity > 0)
+            Mapping.TraumaLedgerBehavior.Record(victim, _captiveEncounterIsBandit ? null : _npcHero, Logic.Trauma.TraumaPagePolicy.KindOf(_captiveEncounterIntent),
+               _captivePlayerCoerced ? Logic.Trauma.TraumaAuthor.PlayerCoerced
+               : _captiveEncounterIsCollective ? Logic.Trauma.TraumaAuthor.CaptorsMen
+               : Logic.Trauma.TraumaAuthor.Captor);
 
          // (1) The companion resents the PLAYER (coerced to hurt them, or failed to protect them).
          var playerFacts = new CaptiveAbuseFacts {Severity = severity, PlayerWasThePerpetrator = _captivePlayerCoerced};

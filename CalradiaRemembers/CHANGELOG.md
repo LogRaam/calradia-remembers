@@ -12,6 +12,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   own page lists one line per such person. A former spouse reads as such even though a divorce leaves the romantic state
   as it was; a hidden bastard is never named; a bond an old save never dated is told without a date
   (`HeartPagePolicy`, `HeartPageReader`). cr.testall `heart_page`.
+- **Trauma, in the encyclopedia, Hardcore only** (Gabriel 20/10: "les aggressions vecues", on characters' pages only,
+  "pas ceux du joueur car on ne decide pas a la place du joueur ce qui est traumatisant pour lui"). On a character's page,
+  the aggressions they lived through that the player knows because the player was there, soberly: tortured as the
+  player's prisoner, a companion tortured or assaulted by a captor or his men before the player's eyes, or by the
+  player's own hands under a captor's compulsion, beaten down by the player in a conversation turned violent. A new
+  additive ledger (`TraumaLedgerBehavior`, save key `CalradiaRemembers_TraumaLedger_v1`) is written whatever the adult
+  level and shown only at Hardcore; it starts with this version, so nothing from before shows. A captor scene is
+  recorded under the same conduct gate as its grudge (only what the scene was, never its intent's ceiling). Grudges are
+  deliberately not read: one can be refused or resolve, and the companion's "let me be broken" grudge targets a player
+  who did not do it (`TraumaPagePolicy`, `TraumaPageReader`). cr.testall `trauma_page`.
 - A romantic bond now keeps the day it last changed and the day it became intimate (`RomanticProfile.StatusSinceDay`,
   `LoversSinceDay`, `MoveTo`/`NoteChangeFrom`, SDK). A rebuilt romantic profile (an orientation fix) now carries
   everything lived (`CarryRelationshipFrom`): until now the secret lover's day, open terms and her own lover were lost.

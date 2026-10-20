@@ -192,6 +192,7 @@ namespace CalradiaRemembers.Violence
             case ViolentAct.Assault:
                target.MakeWounded(Hero.MainHero);
                RememberOnTarget(target, "You beat me down with your own hands.");
+               Mapping.TraumaLedgerBehavior.Record(target, null, Logic.Trauma.TraumaKind.Beaten, Logic.Trauma.TraumaAuthor.Player);
 
                return new ActionOutcome($"You beat {target.Name} down. They will live, and they will remember.", false);
             default:

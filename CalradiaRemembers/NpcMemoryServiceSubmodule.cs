@@ -339,6 +339,7 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new WorldEvents.FoodTradeMemoryBehavior());
          // The day of every wedding, for the family line (raphareish, 01/10/2026).
          campaignStarter.AddBehavior(new Mapping.WeddingDayBehavior());
+         campaignStarter.AddBehavior(new Mapping.TraumaLedgerBehavior());
          campaignStarter.AddBehavior(new Marriage.ForeignDivorceBehavior());
          campaignStarter.AddBehavior(new Quests.AuthoredQuestBehavior());
          campaignStarter.AddBehavior(new Mapping.RealmFaceBehavior()); // queens with a chosen face (Gabriel, 12/10/2026)
