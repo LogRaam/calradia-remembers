@@ -76,7 +76,9 @@ memories CR recorded itself, and are compacted over time by CR's own memory comp
 private, never in front of others (an embarrassing secret, something said in confidence). Since 2.7.19 a private
 memory from your mod (any `SourceMod` other than CR's) also stays out of the chat's Memories panel, so the player does
 not read a secret before it comes to light; a player who sets "Show secret memories" in the mod options sees it there,
-marked secret. Give the memory a `SourceMod`: without one it reads as CR's own and is listed.
+marked secret. Give the memory a `SourceMod` (your mod's name): a private memory sent without one is recorded as
+"(another mod)" and kept out of the panel too, but secrets stored before 2.7.19 with no source read as CR's own and
+stay listed.
 
 ### Taking a memory back (`CrNpcMemory.RemoveMemory`, since 2.7.9)
 

@@ -51,7 +51,9 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   her lover's memories before it came to light). A private memory with a `SourceMod` other than CR's is left out of
   the chat's Memories panel (`MemoryPanelPolicy`); new MCM "Show secret memories" (Relationships, off) lists them
   marked secret. CR's own private memories (the player's word to a companion) stay listed. The character still
-  remembers and speaks of it as before. cr.testall `memory_panel_secrets`.
+  remembers and speaks of it as before. A private memory sent with no `SourceMod` is recorded as "(another mod)"
+  (`InjectedMemoryRemovalPolicy.UnnamedSource`), kept out too and still removable by any mod. cr.testall
+  `memory_panel_secrets`.
 
 ### Internal
 - **Logic split into themes, pilot** (Gabriel 19/10). The 420 flat files of `CalradiaRemembers.Logic` start moving into

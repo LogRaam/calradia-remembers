@@ -96,6 +96,8 @@ namespace CalradiaRemembers
          if (injected == null) return MemoryResult.RejectedInvalid;
          // Kept with the memory since 10/10/2026, so the mod can take it back (RemoveMemory).
          if (!string.IsNullOrWhiteSpace(entry.SourceMod)) injected.SourceMod = entry.SourceMod.Trim();
+         // A secret with no source would read as CR's own and show in the Memories panel (tashmetu, 20/10/2026).
+         else if (entry.Private) injected.SourceMod = InjectedMemoryRemovalPolicy.UnnamedSource;
 
          NpcProfile profile = behavior.Store.Get(entry.NpcId) ?? HeroProfileMapper.FromHero(hero);
          profile.Events.Add(injected);

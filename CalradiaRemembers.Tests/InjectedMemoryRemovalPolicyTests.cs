@@ -54,5 +54,15 @@ namespace CalradiaRemembers.Tests
          }).Should().BeFalse();
          InjectedMemoryRemovalPolicy.Removes(new MemoryRemovalFacts {StoredSummary = "x", RequestedSummary = "", RequestedSourceMod = "VividWorld"}).Should().BeFalse();
       }
+
+      // STAKE: since 2.7.19 a secret added with no source is recorded as "(another mod)" so the Memories panel keeps it out
+      // (tashmetu, 20/10/2026); the mod that added it named no one, so it must still be able to take it back, as before.
+      [Test]
+      public void GIVEN_a_secret_added_without_a_source_WHEN_a_mod_takes_it_back_THEN_it_is_taken()
+      {
+         InjectedMemoryRemovalPolicy.Removes(new MemoryRemovalFacts {
+            StoredSummary = "I am fond of her.", StoredSourceMod = InjectedMemoryRemovalPolicy.UnnamedSource, RequestedSummary = "I am fond of her."
+         }).Should().BeTrue();
+      }
    }
 }

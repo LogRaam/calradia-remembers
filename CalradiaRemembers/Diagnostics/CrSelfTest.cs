@@ -13640,6 +13640,8 @@ namespace CalradiaRemembers.Diagnostics
             CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = secret, Private = true, SourceMod = "cr.testall"});
             CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = open, SourceMod = "cr.testall"});
             CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = briefing, Private = true, SourceMod = Logic.Chat.MemoryPanelPolicy.OwnSource});
+            const string unnamed = "(self-test) A secret with no source.";
+            CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = unnamed, Private = true});
             NpcProfile after = store.Get(profile.Id);
             NotableEvent Find(string s) => after.Events.LastOrDefault(e => e.summary == s);
             if (t.Abort(Find(secret) == null || Find(open) == null || Find(briefing) == null, "the memories were not stored")) return t.Line();
@@ -13648,6 +13650,9 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("anotherModsSecretIsLeftOut", Chat.ChatViewModel.PanelShow(Find(secret)), Logic.Chat.MemoryPanelShow.Hidden);
             t.Expect("anOpenMemoryIsListed", Chat.ChatViewModel.PanelShow(Find(open)), Logic.Chat.MemoryPanelShow.Plain);
             t.Expect("thePlayersOwnPrivateWordIsListed", Chat.ChatViewModel.PanelShow(Find(briefing)), Logic.Chat.MemoryPanelShow.Plain);
+            // A mod that names no source still keeps its secret out of the panel, and may still take it back.
+            t.Expect("aSecretWithNoSourceIsLeftOut", Find(unnamed) == null ? (Logic.Chat.MemoryPanelShow?) null : Chat.ChatViewModel.PanelShow(Find(unnamed)), Logic.Chat.MemoryPanelShow.Hidden);
+            t.Expect("andItsModMayStillTakeItBack", CrNpcMemory.RemoveMemory(new CrMemoryRemoval {NpcId = profile.Id, Summary = unnamed}), 1);
             CrSettings.Instance.ShowSecretMemories = true;
             t.Expect("askedForTheSecretIsMarked", Chat.ChatViewModel.PanelShow(Find(secret)), Logic.Chat.MemoryPanelShow.MarkedSecret);
          }

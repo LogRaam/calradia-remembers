@@ -25,6 +25,13 @@ namespace CalradiaRemembers.Logic
    public static class InjectedMemoryRemovalPolicy
    {
       /// <summary>
+      ///   The source CR records on a PRIVATE memory a mod added without naming itself (since 2.7.19): the door is only ever
+      ///   another mod, and a secret with no source would show in the Memories panel as CR's own (tashmetu, 20/10/2026).
+      ///   It names no mod, so any mod may still take that memory back, as with no source at all.
+      /// </summary>
+      public const string UnnamedSource = "(another mod)";
+
+      /// <summary>
       ///   The text matches as AddMemory stored it (bounded and trimmed), and the memory is this mod's: added by it, or
       ///   recorded before mods were kept with memories. A memory another mod added is never taken.
       /// </summary>
@@ -33,7 +40,7 @@ namespace CalradiaRemembers.Logic
          if (f == null || string.IsNullOrWhiteSpace(f.StoredSummary)) return false;
          string requested = ExternalEventRules.BoundSummary(f.RequestedSummary);
          if (requested == null || !string.Equals(f.StoredSummary.Trim(), requested.Trim(), System.StringComparison.Ordinal)) return false;
-         if (string.IsNullOrWhiteSpace(f.StoredSourceMod)) return true;
+         if (string.IsNullOrWhiteSpace(f.StoredSourceMod) || f.StoredSourceMod.Trim() == UnnamedSource) return true;
 
          return string.Equals(f.StoredSourceMod.Trim(), (f.RequestedSourceMod ?? "").Trim(), System.StringComparison.OrdinalIgnoreCase);
       }
