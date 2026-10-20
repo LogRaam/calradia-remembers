@@ -408,6 +408,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("clan_standing_seed", Severity.Light, "tashmetu (30/09/2026): a lord whose clan counted the player a friend (+54) met him as a near-stranger. Drives the real apply path on a real character's profile: a trusted friend's clan lifts regard from 0 to friendly regard once, a second meeting adds nothing, and a character the player offended keeps the offence. Regard and the seed are restored.", TestClanStandingSeed),
          new SelfTest("letter_regard", Severity.Light, "Lordfadooboo (Nexus, 28/09/2026): a dozen letters and the correspondent's regard had not moved. Drives the real apply path on a real character's profile: a warm letter earns +1, a second the same day earns nothing, a cold one costs 1, and the [LETTER_TONE] line is stripped from the letter. Regard and the letter clock are restored.", TestLetterRegard),
          new SelfTest("vassal_departure_judged", Severity.Light, "fkasad (24/09/2026): a vassal holding no fief who leaves a realm at war is judged like a mercenary, the oath weighing like kinship; one holding fiefs is not (the war that follows is the consequence). Judges leaving the player's realm (or any realm) right now WITHOUT applying anything: judged only with no fief, the news speaks of the oath, and a sworn vassal is never thanked.", TestVassalDepartureJudged),
+         new SelfTest("mercenary_dismissed", Severity.Light, "tashmetu (20/10/2026): Mercenary Management's AI dismisses the player's contract, and CR judged every dismissal as the company abandoning the realm, so its lords lost regard for the player being let go. Ends a contract with a real realm through the real handling three times without judging any: as the game alone reports it, then with the employer's word given through CrMercenaries before the game's report, then after it. Both with the word read as a plain end (AtPeace), marked the employer's doing. Leaves the last departure as it was", TestMercenaryDismissed),
          new SelfTest("mercenary_renewal_and_fade", Severity.Light, "Fakade (Nexus, 04/10/2026): a mercenary-contract mod, and lords at -30 and -40 for good. A contract ended and taken up again the same day, through the real handling, must cost the ruler nothing and leave nothing held; and a resentment half the fade old gives back half its regard. Restores both.", TestMercenaryRenewalAndFade),
          new SelfTest("mercenary_company_judged", Severity.Light, "Zivkyn (Nexus): the game's own mercenary companies change sides mid-war and nobody resents them. Finds a real company in a realm's pay and judges its departure by fkasad's grid WITHOUT applying anything: the verdict follows the realm's footing, and the news line names the company and the realm.", TestMercenaryCompanyJudged),
          new SelfTest("faction_block_realm", Severity.Light, "tashmetu (27/09/2026): a companion's or a notable's realm is not their people's, and pulled another people's FACTION BEHAVIOR block into their prompt (or retitled theirs). Reads real heroes: a lord of a kingdom of his own culture keeps that realm for the choice; a hero living in a realm of another culture gets none. Read-only.", TestFactionBlockRealm),
@@ -11324,6 +11325,28 @@ namespace CalradiaRemembers.Diagnostics
                }
             }
          }
+
+         return t.Line();
+      }
+
+      private static string TestMercenaryDismissed(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("mercenary_dismissed");
+         WorldEvents.MercenaryReputationBehavior mercs = WorldEvents.MercenaryReputationBehavior.Instance;
+         if (t.Abort(mercs == null, "the mercenary behaviour is not running")) return t.Line();
+
+         // A realm at war, losing if one is, so the plain verdict would hold the end against the company.
+         List<Kingdom> realms = Kingdom.All?.Where(k => !k.IsEliminated && k != Hero.MainHero?.MapFaction).ToList() ?? new List<Kingdom>();
+         Kingdom realm = realms.FirstOrDefault(k => mercs.DebugJudge(k).Verdict == MercenaryDepartureVerdict.Abandoned) ?? realms.FirstOrDefault();
+         if (t.Skip(realm == null, "no realm the player is not part of")) return t.Line();
+
+         var r = mercs.DebugEndedByEmployer(realm, CrMercenaries.ContractEndedByEmployer);
+         if (t.Skip(r == null, "a real departure is waiting, or the judgment is off in the MCM")) return t.Line();
+         t.Note($"{realm.Name}: judged alone {r.Value.Plain}");
+         t.Expect("toldBeforeItIsAPlainEnd", r.Value.Before, MercenaryDepartureVerdict.AtPeace);
+         t.Expect("toldBeforeItIsTheEmployers", r.Value.BeforeMarked, true);
+         t.Expect("toldAfterItIsAPlainEnd", r.Value.After, MercenaryDepartureVerdict.AtPeace);
+         t.Expect("toldAfterItIsTheEmployers", r.Value.AfterMarked, true);
 
          return t.Line();
       }

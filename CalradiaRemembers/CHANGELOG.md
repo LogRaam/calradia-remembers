@@ -17,6 +17,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (on_the_road, lost, delivered, set_aside, answered, unknown, `ModLetterStatusPolicy`) and `GetReply(id)`. SDK:
   `PendingLetter.Id` and `SetAside`, additive. The window raises them through `Letters.ModLetterNotices`, connected
   at load (no new pair of namespaces). cr.testall `letter_from_another_mod` extended.
+- **A contract the employer ended is no abandonment** (tashmetu 20/10: Mercenary Management's AI dismisses the
+  player's contract, and every lord of the realm lost regard for the player being let go; the game reports both as
+  `LeaveAsMercenary`). New `CrMercenaries.ContractEndedByEmployer(Kingdom)`, the same day, before or after the game's
+  report: the end is judged a plain end (`MercenaryDepartureFacts.EndedByEmployer`), and joining the realm's enemy
+  afterwards is no betrayal. cr.testall `mercenary_dismissed`.
 
 ### Fixed
 - **A tale's giver no longer remembers the same ending twice** (tashmetu 20/10, the Moonlit Maiden). A `locals_of`

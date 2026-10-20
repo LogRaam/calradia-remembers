@@ -236,6 +236,19 @@ acknowledges the letter without replying; a letter still `delivered` has not bee
 courier was lost and CR sends it again. All of these name no Calradia Remembers type, so a mod that keeps CR optional
 can use them (see the regard sources below). Letters delivered before 2.7.19 have no id.
 
+### Who ended a mercenary contract (`CrMercenaries.ContractEndedByEmployer`, since 2.7.19)
+
+```csharp
+CrMercenaries.ContractEndedByEmployer(kingdom);   // the realm let the player's company go
+```
+
+The game reports a contract the employer ended and one the player walked out of the same way, and CR judges the end
+by the realm's war: leaving a realm losing its war is held against the player by its lords. If your mod ends the
+player's contract (a dismissal, a term run out, the war it was hired for over), say so the same day, before or after
+the game reports the end: it is then a plain end, never an abandonment, and the player taking service with the
+realm's enemy afterwards is no betrayal. Never call it when the player chose to leave. Names no Calradia Remembers
+type. (tashmetu, for Mercenary Management.)
+
 ### Queens with a chosen face (`ModuleData/cr_faces.json`, since 2.7.10)
 
 `{ "queens": { "<realm id>": "<BodyProperties version=... key=... />" } }`: the line the face editor copies with

@@ -251,7 +251,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 #### `CalradiaRemembers` and `CalradiaRemembers.WorldEvents`
 
-- `CalradiaRemembers` uses `CalradiaRemembers.WorldEvents` in 5 files: `Extension/Feed.cs`, `ModCheats.Relations.cs`, `ModCheats.Schemes.cs`, and 2 more
+- `CalradiaRemembers` uses `CalradiaRemembers.WorldEvents` in 6 files: `Extension/CrMercenaries.cs`, `Extension/Feed.cs`, `ModCheats.Relations.cs`, and 3 more
 - `CalradiaRemembers.WorldEvents` uses `CalradiaRemembers` in 1 file(s): `WorldEvents/WorldEventFeeders.cs`
 
 #### `CalradiaRemembers.Appreciations` and `CalradiaRemembers.Mapping`

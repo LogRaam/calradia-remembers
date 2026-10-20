@@ -59,6 +59,10 @@ namespace CalradiaRemembers.WorldEvents
 
       private Departure _last;
 
+      // Another mod said the employer ended the contract before the game reported it: kept for that day only.
+      private string _endedByEmployerKingdomId;
+      private int _endedByEmployerDay = -1;
+
       public MercenaryReputationBehavior()
       {
          Instance = this;
@@ -143,15 +147,17 @@ namespace CalradiaRemembers.WorldEvents
             ApplyPendingDeparture();
 
             (bool atWar, float own, float enemies) = WarFooting(kingdom);
+            bool endedByEmployer = _endedByEmployerKingdomId == kingdom.StringId && _endedByEmployerDay == Today;
+            _endedByEmployerKingdomId = null;
             MercenaryDepartureVerdict verdict = MercenaryDeparturePolicy.Judge(new MercenaryDepartureFacts {
-               EmployerAtWar = atWar, EmployerStrength = own, EnemiesStrength = enemies
+               EmployerAtWar = atWar, EmployerStrength = own, EnemiesStrength = enemies, EndedByEmployer = endedByEmployer
             });
             bool sameCulture = SameCulture(kingdom);
 
             // Judged as things stand now, but held for the renewal window (Fakade): rejoining the same realm within it
             // is the same service renewed, and nothing is held against it.
-            _last = new Departure {KingdomId = kingdom.StringId, Day = Today, Verdict = verdict, SameCulture = sameCulture, Pending = true};
-            ModLog.Info($"[MERCENARY] contract with {kingdom.Name} ended: {verdict} (at war {atWar}, strength {own:0} vs {enemies:0}, same culture {sameCulture}); "
+            _last = new Departure {KingdomId = kingdom.StringId, Day = Today, Verdict = verdict, SameCulture = sameCulture, Pending = true, EndedByEmployer = endedByEmployer};
+            ModLog.Info($"[MERCENARY] contract with {kingdom.Name} ended{(endedByEmployer ? " by the employer" : "")}: {verdict} (at war {atWar}, strength {own:0} vs {enemies:0}, same culture {sameCulture}); "
                         + $"judged in {MercenaryDeparturePolicy.RenewalWindowDays} days unless renewed.");
 
             return true;
@@ -162,6 +168,31 @@ namespace CalradiaRemembers.WorldEvents
 
             return false;
          }
+      }
+
+      /// <summary>
+      ///   Another mod says the employer, not the player, ended the player's mercenary contract with <paramref name="kingdom" />
+      ///   (tashmetu, 20/10/2026: Mercenary Management dismisses contracts, and CR judged every one as the player walking out).
+      ///   Told after the game reported the end, it turns the departure still waiting to be judged into a plain end; told
+      ///   before, the same day, the end is judged so when it comes. Returns what it changed, for the log and the self-test.
+      /// </summary>
+      public string OnEndedByEmployer(Kingdom kingdom)
+      {
+         if (kingdom == null) return "no realm";
+         if (_last is {Pending: true} && _last.KingdomId == kingdom.StringId && !_last.Sworn)
+         {
+            _last.Verdict = MercenaryDeparturePolicy.Judge(new MercenaryDepartureFacts {EndedByEmployer = true});
+            _last.EndedByEmployer = true;
+            ModLog.Info($"[MERCENARY] {kingdom.Name} ended the contract itself: the departure is a plain end, not held against the company.");
+
+            return "pending departure cleared";
+         }
+
+         _endedByEmployerKingdomId = kingdom.StringId;
+         _endedByEmployerDay = Today;
+         ModLog.Info($"[MERCENARY] {kingdom.Name} is ending the contract itself: today's end will not be held against the company.");
+
+         return "noted for today";
       }
 
       /// <summary>
@@ -243,7 +274,8 @@ namespace CalradiaRemembers.WorldEvents
                Kingdom former = Kingdom.All?.FirstOrDefault(k => k.StringId == _last.KingdomId);
                bool atWarWithFormer = former != null && former != kingdom && FactionManager.IsAtWarAgainstFaction(kingdom, former);
 
-               if (former != null && MercenaryDeparturePolicy.IsBetrayal(_last.Day, Today, atWarWithFormer))
+               // A company its employer let go owes it nothing: taking service elsewhere is no betrayal (2.7.19).
+               if (former != null && !_last.EndedByEmployer && MercenaryDeparturePolicy.IsBetrayal(_last.Day, Today, atWarWithFormer))
                {
                   int upgrade = MercenaryDeparturePolicy.BetrayalUpgradeShift(_last.Verdict, _last.SameCulture, _last.Sworn);
                   Remember(former, MercenaryDepartureVerdict.Betrayal, upgrade, kingdom.Name?.ToString(), _last.Sworn, departure: false);
@@ -310,6 +342,41 @@ namespace CalradiaRemembers.WorldEvents
             return (before, store.Get(ruler.StringId)?.ReputationWithPlayer ?? 0, _last is {Pending: true}, _resentments.Count - resentments);
          }
          finally { _last = kept; }
+      }
+
+      /// <summary>
+      ///   Test seam (cr.testall mercenary_dismissed): the contract with <paramref name="kingdom" /> ends through the real
+      ///   handling, the employer's word given through <paramref name="employerSays" /> (the public door) before the game's report, then after it. Returns the
+      ///   verdict as judged without that word, and each order's verdict and whether it is marked the employer's doing. Null
+      ///   when a real departure is waiting or the judgment is off. Leaves the last departure as it found it; judges nothing.
+      /// </summary>
+      internal (MercenaryDepartureVerdict Plain, MercenaryDepartureVerdict Before, bool BeforeMarked, MercenaryDepartureVerdict After, bool AfterMarked)?
+         DebugEndedByEmployer(Kingdom kingdom, Action<Kingdom> employerSays)
+      {
+         if (kingdom == null || _last is {Pending: true} || !ModSettings.JudgeMercenaryDepartures) return null;
+
+         Departure kept = _last;
+         try
+         {
+            OnLeft(kingdom);
+            MercenaryDepartureVerdict plain = _last.Verdict;
+            _last = null;
+
+            employerSays(kingdom);
+            OnLeft(kingdom);
+            (MercenaryDepartureVerdict before, bool beforeMarked) = (_last.Verdict, _last.EndedByEmployer);
+            _last = null;
+
+            OnLeft(kingdom);
+            employerSays(kingdom);
+
+            return (plain, before, beforeMarked, _last.Verdict, _last.EndedByEmployer);
+         }
+         finally
+         {
+            _last = kept;
+            _endedByEmployerKingdomId = null;
+         }
       }
 
       /// <summary>
@@ -624,6 +691,9 @@ namespace CalradiaRemembers.WorldEvents
          ///   departures they kept were already applied.
          /// </summary>
          public bool Pending { get; set; }
+
+         /// <summary>The employer ended it, told by another mod (2.7.19); absent in older saves, so false.</summary>
+         public bool EndedByEmployer { get; set; }
       }
 
       /// <summary>What a lord holds against a departure, and how much of it has been given back.</summary>

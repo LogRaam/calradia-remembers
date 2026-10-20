@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 528 types in 61 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 529 types in 61 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1208 types in 44 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
@@ -43,7 +43,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (45)
+### CalradiaRemembers (46)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -60,6 +60,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrMemoryEntry` | public class | One memory a third-party mod wants an NPC to hold. |
 | `CrMemoryRecord` | public class | One memory CR already holds for an NPC, as read back through CrNpcMemory.GetMemories. |
 | `CrMemoryRemoval` | public class | A memory a mod takes back (philip0105, Vivid World, 10/10/2026: rumors forgotten or corrected later). |
+| `CrMercenaries` | public static class | What another mod knows of the player's mercenary contracts. |
 | `CrNpcMemory` | public static class | The public NPC-memory API. A caller identifies the NPC by its hero StringId (never a display name), reads its stored memories, and injects new ones. |
 | `CrPairRegard` | public static class | The door through which other mods add to what one character thinks of another. |
 | `CrPatrolBattle` | public class | One battle a patrol fought, for CrPatrols.Fought. |

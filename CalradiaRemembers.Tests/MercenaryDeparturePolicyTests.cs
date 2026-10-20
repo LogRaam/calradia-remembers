@@ -24,6 +24,21 @@ namespace CalradiaRemembers.Tests
          MercenaryDeparturePolicy.RegardShift(MercenaryDepartureVerdict.AtPeace, sameCulture: true).Should().Be(0);
       }
 
+      // STAKE: tashmetu (20/10/2026): Mercenary Management's AI dismisses the player's contract, and every lord of the realm
+      // lost regard for the company being let go. A company its employer dismissed did not abandon a losing war; it holds
+      // no fault, and earns no thanks either.
+      [Test]
+      public void GIVEN_a_realm_losing_its_war_that_dismissed_the_company_WHEN_the_contract_ends_THEN_there_is_no_fault()
+      {
+         MercenaryDepartureVerdict verdict = MercenaryDeparturePolicy.Judge(new MercenaryDepartureFacts
+         {
+            EmployerAtWar = true, EmployerStrength = 100f, EnemiesStrength = 300f, EndedByEmployer = true
+         });
+
+         verdict.Should().Be(MercenaryDepartureVerdict.AtPeace);
+         MercenaryDeparturePolicy.RegardShift(verdict, sameCulture: true).Should().Be(0);
+      }
+
       // fkasad: at war and winning, "you're not needed anymore, thanks for your help".
       [Test]
       public void GIVEN_a_realm_winning_its_war_WHEN_the_contract_ends_THEN_the_company_leaves_with_thanks()

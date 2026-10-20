@@ -128,6 +128,12 @@ _A memory a mod takes back (philip0105, Vivid World, 10/10/2026: rumors forgotte
 - `string SourceMod { get; set; }`
 - `string Summary { get; set; }`
 
+### CrMercenaries
+
+_What another mod knows of the player's mercenary contracts._
+
+- `static void ContractEndedByEmployer(Kingdom kingdom)`
+
 ### CrNpcMemory
 
 _The public NPC-memory API. A caller identifies the NPC by its hero StringId (never a display name), reads its stored memories, and injects new ones._

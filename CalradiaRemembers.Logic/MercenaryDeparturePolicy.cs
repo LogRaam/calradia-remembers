@@ -50,6 +50,12 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>The combined strength of every realm it is at war with.</summary>
       public float EnemiesStrength { get; set; }
+
+      /// <summary>
+      ///   The employer ended the contract (dismissed the company, or its term ran out), not the company: told by another mod
+      ///   through CrMercenaries (tashmetu, 20/10/2026, Mercenary Management). The game reports both the same way.
+      /// </summary>
+      public bool EndedByEmployer { get; set; }
    }
 
    /// <summary>A contract ended and another began: is it the same service renewed?</summary>
@@ -107,7 +113,8 @@ namespace CalradiaRemembers.Logic
       /// <summary>The verdict on a departure, as it happens (a betrayal is judged later, on the next contract).</summary>
       public static MercenaryDepartureVerdict Judge(MercenaryDepartureFacts facts)
       {
-         if (facts == null || !facts.EmployerAtWar) return MercenaryDepartureVerdict.AtPeace;
+         // A company the realm let go did not abandon it, however the war goes (tashmetu, 20/10/2026).
+         if (facts == null || !facts.EmployerAtWar || facts.EndedByEmployer) return MercenaryDepartureVerdict.AtPeace;
 
          return IsLosing(facts.EmployerStrength, facts.EnemiesStrength)
             ? MercenaryDepartureVerdict.Abandoned
