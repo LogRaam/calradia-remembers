@@ -218,6 +218,24 @@ written it. False when refused: no campaign loaded, an empty body or one over 40
 or a sender who cannot write now (a child, a captive, dead or out of the world). There are no answer buttons yet: keep
 your own Accept/Decline where you need one.
 
+**Following your letter (since 2.7.19).** `DeliverWithId` does the same and returns the letter's id (null when
+refused). Keep it, then ask about the letter or hear what the player did with it, without reading CR's internals:
+
+```csharp
+string id = CrLetters.DeliverWithId(lord, body, "MyMod");
+
+CrLetters.Replied  += (letterId, sender, reply) => { if (letterId == id) { /* the player's own words */ } };
+CrLetters.SetAside += (letterId, sender)        => { if (letterId == id) { /* read, not answered */ } };
+
+string status = CrLetters.GetStatus(id);  // "on_the_road", "lost", "delivered", "set_aside", "answered", "unknown"
+string reply  = CrLetters.GetReply(id);   // the reply's text, or null
+```
+
+Both events are raised for every mod's letters: compare the id. `SetAside` is raised once, when the player
+acknowledges the letter without replying; a letter still `delivered` has not been dealt with yet. `lost` means its
+courier was lost and CR sends it again. All of these name no Calradia Remembers type, so a mod that keeps CR optional
+can use them (see the regard sources below). Letters delivered before 2.7.19 have no id.
+
 ### Queens with a chosen face (`ModuleData/cr_faces.json`, since 2.7.10)
 
 `{ "queens": { "<realm id>": "<BodyProperties version=... key=... />" } }`: the line the face editor copies with

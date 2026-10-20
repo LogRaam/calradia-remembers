@@ -320,7 +320,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("authored_quest_said_choice", Severity.Light, "Branching tales, choices by words. A tale written into this test loads and a real lord takes it on. At its last stage the action interpreter of a conversation with that lord is taught the open choice by words and not the one closed by its flag; another lord's interpreter is taught nothing. Through the REAL bridge (story_choice, the path an LLM report takes): the closed choice is refused and changes nothing, the open one is taken and ends the tale on its own ending (no regard, gold or memory). Abandons and forgets the tale after.", TestAuthoredQuestSaidChoice),
          new SelfTest("audience_not_spent_unheard", Severity.Light, "EnjoyingHydra (Nexus, 03/10/2026): companion audiences accepted and never opened were spent anyway (grievance count reset, topics used), and a companion left. Promises a change for a real companion, sends the audience through the real open with no profile so it fails: nothing may be spent, nothing left waiting. Opens no window.", TestAudienceNotSpentUnheard),
          new SelfTest("shared_past_draw", Severity.Light, "Gabriel's rulings on the generated shared past (NPC_REGARD.md section 7, 17/10/2026): drawn once and never re-rolled, written into the world's long-term memory before the campaign began, both adults then, a good share get nothing. Picks lords never drawn with a lord of their realm, drives the real draw (SharedPastBehavior.DrawFor) for up to six pairs: each is marked drawn; each past drawn is in the long-term memory, dated before the start, with both of age then; a second draw changes nothing. Forgets the pairs and their pasts after.", TestSharedPastDraw),
-         new SelfTest("letter_from_another_mod", Severity.Light, "tashmetu (18/10/2026): R&S's tournament invitations, written as the lord's own letter, opened in the game's plain popup. CrLetters.Deliver from a lord CR knows queues the letter with its body as given and a courier riding out today, as CR's own letters ride; the player as sender and an empty body are refused. Removes the letter after.", TestLetterFromAnotherMod),
+         new SelfTest("letter_from_another_mod", Severity.Light, "tashmetu (18/10/2026): R&S's tournament invitations, written as the lord's own letter, opened in the game's plain popup. CrLetters.Deliver from a lord CR knows queues the letter with its body as given and a courier riding out today, as CR's own letters ride; the player as sender and an empty body are refused. Since 2.7.19 (tashmetu, 20/10/2026: R&S read the reply by reflection and could not tell 'set aside' from 'not read yet'): DeliverWithId gives an id, GetStatus follows it on the road, delivered, set aside (raised once through the letter window's own notice) and answered, and Replied carries the id, the sender and the reply's text, read again by GetReply. Removes the letters after.", TestLetterFromAnotherMod),
          new SelfTest("pair_regard_source", Severity.Light, "tashmetu (18/10/2026): two lords R&S made close showed as neither on the page, beside its own tooltip. A source registered through CrPairRegard, for two lords of different houses with nothing between them here, makes the first a friend of the second with its reason, leaves the other way round untouched, counts at most PairRegardPolicy.OutsideCap however much it claims, and is gone once unregistered. Since 2.7.19 the same through the function form (tashmetu, 20/10/2026: for a mod that keeps CR optional), registered and taken away by its id.", TestPairRegardSource),
          new SelfTest("npc_regard_reason", Severity.Light, "Gabriel (17/10/2026): every friend or enemy carries its reason (docs/design/NPC_REGARD.md section 9). Without touching the author's file, syncs a test betrayal of the past in which one lord wronged another, and drives the real name resolution (ContextualNameResolver.Resolve) on a message naming the betrayer: the wronged lord is told the betrayer is an enemy, for what lies between them, with the betrayal and how long ago; a lord of another house and realm asked the same is told nothing of it. The wronged lord's encyclopedia page (built here, then refreshed) lists the betrayer among his enemies and not his friends. Then the author's file alone is synced back.", TestNpcRegardReason),
          new SelfTest("companion_news_fresh", Severity.Light, "LapitaPolata (Nexus, 17/10/2026): a companion told of a castle being besieged after it had fallen, and of a war breaking out while the player was already riding to a siege in it. Records test news and reads it through the real glue (CompanionAudienceTopicResolver.FreshnessFacts): a siege fight at a place recorded as fallen since is overtaken; a war naming the player's own realm or clan is theirs; news ten days old is too old; fresh news of two other realms may still be brought. Removes the test news.", TestCompanionNewsFresh),
@@ -5116,11 +5116,48 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("itWaitsForItsCourier", sent != null && !sent.IsDelivered && sent.DispatchDay == (int) CampaignTime.Now.ToDays && sent.Reason == LetterReason.FromAnotherMod, true);
             t.Expect("thePlayerCannotSendOne", CrLetters.Deliver(Hero.MainHero, body, "selftest"), false);
             t.Expect("noBodyNoLetter", CrLetters.Deliver(sender, "  ", "selftest"), false);
+
+            // The id, the status and the two notices (2.7.19), through the letter window's own notices.
+            string id = CrLetters.DeliverWithId(sender, body + " (id)", "selftest");
+            PendingLetter withId = store.Get(sender.StringId)?.SentLetters.LastOrDefault(l => l.Id == id);
+            t.Expect("anIdIsGiven", !string.IsNullOrEmpty(id) && withId != null, true);
+            t.Expect("stillOnTheRoad", CrLetters.GetStatus(id), "on_the_road");
+            t.Expect("anUnknownIdIsUnknown", CrLetters.GetStatus("no-such-letter"), "unknown");
+            if (withId != null)
+            {
+               int setAside = 0;
+               string repliedId = null, repliedText = null;
+               Hero repliedSender = null;
+               void OnSetAside(string letterId, Hero from) { if (letterId == id) setAside++; }
+               void OnReplied(string letterId, Hero from, string text) { if (letterId == id) (repliedId, repliedSender, repliedText) = (letterId, from, text); }
+               CrLetters.SetAside += OnSetAside;
+               CrLetters.Replied += OnReplied;
+               try
+               {
+                  withId.IsDelivered = true;
+                  t.Expect("delivered", CrLetters.GetStatus(id), "delivered");
+                  Letters.ModLetterNotices.OnSetAside(withId);
+                  Letters.ModLetterNotices.OnSetAside(withId);
+                  t.Expect("setAsideIsRaisedOnce", setAside, 1);
+                  t.Expect("setAside", CrLetters.GetStatus(id), "set_aside");
+                  withId.PlayerReply = "[SELFTEST] I will come.";
+                  Letters.ModLetterNotices.OnReplied(withId);
+                  t.Expect("theReplyIsRaisedWithItsIdAndSender", repliedId == id && repliedSender == sender, true);
+                  t.Expect("theReplyCarriesItsText", repliedText, "[SELFTEST] I will come.");
+                  t.Expect("answered", CrLetters.GetStatus(id), "answered");
+                  t.Expect("getReplyReadsIt", CrLetters.GetReply(id), "[SELFTEST] I will come.");
+               }
+               finally
+               {
+                  CrLetters.SetAside -= OnSetAside;
+                  CrLetters.Replied -= OnReplied;
+               }
+            }
          }
          finally
          {
             NpcProfile p = store.Get(sender.StringId);
-            if (p != null && p.SentLetters.RemoveAll(l => l.Content == body) > 0) store.Set(p);
+            if (p != null && p.SentLetters.RemoveAll(l => l.Content == body || l.Content == body + " (id)") > 0) store.Set(p);
          }
 
          return t.Line();

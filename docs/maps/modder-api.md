@@ -66,6 +66,11 @@ _Another mod's letters, delivered through CR's courier and letter window._
 
 - `const int MaxBodyLength = 4000`
 - `static bool Deliver(Hero sender, string body, string sourceMod)`
+- `static event Action<string, Hero, string> Replied`
+- `static event Action<string, Hero> SetAside`
+- `static string DeliverWithId(Hero sender, string body, string sourceMod)`
+- `static string GetReply(string letterId)`
+- `static string GetStatus(string letterId)`
 
 ### CrMatchOutcome
 

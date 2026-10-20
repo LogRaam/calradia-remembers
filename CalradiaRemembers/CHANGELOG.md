@@ -11,6 +11,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   pageLine, bool knownToPlayer)>>)` and `UnregisterPairRegardSource(string id)`, naming no CR type. EXTENSION_API.md
   explains the load failure. `OptionalDependencyDoorsTests` holds every door documented "Names no Calradia Remembers
   type" to it. cr.testall `pair_regard_source` extended.
+- **Following a letter another mod delivered** (tashmetu 20/10: R&S found its letter by sender, day and text, and read
+  `PlayerReply` by reflection every hour). `CrLetters.DeliverWithId` returns the letter's id (`Deliver` unchanged);
+  events `Replied(id, sender, reply)` and `SetAside(id, sender)` (the window's acknowledge, once); `GetStatus(id)`
+  (on_the_road, lost, delivered, set_aside, answered, unknown, `ModLetterStatusPolicy`) and `GetReply(id)`. SDK:
+  `PendingLetter.Id` and `SetAside`, additive. The window raises them through `Letters.ModLetterNotices`, connected
+  at load (no new pair of namespaces). cr.testall `letter_from_another_mod` extended.
 
 ### Fixed
 - **A tale's giver no longer remembers the same ending twice** (tashmetu 20/10, the Moonlit Maiden). A `locals_of`

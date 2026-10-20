@@ -391,6 +391,8 @@ namespace CalradiaRemembers.Letters
       public void ExecuteAcknowledge()
       {
          ApplyInterestDelta(CorrespondenceInterestPolicy.OnAcknowledge());
+         // Another mod can tell "read and set aside" from "not read yet" (tashmetu, 20/10/2026).
+         if (_letter != null && _state.Mode == LetterWindowMode.Read) ModLetterNotices.OnSetAside(_letter);
          OnCloseRequested?.Invoke();
       }
 
@@ -839,6 +841,7 @@ namespace CalradiaRemembers.Letters
             _profile, giverHero, _letter, behavior.LlmServices, behavior.Store, today);
 
          ApplyInterestDelta(CorrespondenceInterestPolicy.OnReply());
+         ModLetterNotices.OnReplied(_letter);
 
          MBInformationManager.AddQuickInformation(new TextObject(
             $"Your reply to {_profile.Name} has been sealed and sent."));

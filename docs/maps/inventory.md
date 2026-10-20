@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 527 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1206 types in 44 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 528 types in 61 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1208 types in 44 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -469,7 +469,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `JealousyCultureLoader` | public static class | Loads and caches jealousy_cultures.json from the mod's ModuleData folder, keyed by culture display name ("Khuzait", "Battania", …) to match Mapping.CulturalTraditionsLoader and stay interoperable with conversion mods. |
 | `JealousyCultureProfile` | public class | The on-disk shape of a culture's stance on romantic exclusivity, deserialized from jealousy_cultures.json. |
 
-### CalradiaRemembers.Letters (26)
+### CalradiaRemembers.Letters (27)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -495,6 +495,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterTriggerEvaluator` | public class | Listens to campaign events and evaluates daily conditions to decide when an NPC should initiate a letter to the player. |
 | `LetterViewModel` | public class | View model for the dedicated courier window. |
 | `LetterWindowManager` | public static class | Show/hide lifecycle for the parchment courier window, composed on the shared crash-safe panel host. |
+| `ModLetterNotices` | internal static class | What the player did with a letter another mod delivered. |
 | `PlayerLetterService` | public static class | Creates and queues letters from the player to NPCs, runs the daily delivery check, and marks delivered letters as read after the NPC's first response. |
 | `PrisonerEnvoyBehavior` | public class | Sends and announces envoys come to treat for a captive the player holds. |
 | `TaverneLetterBehavior` | public class | Registers a courier-hire option in the Tavern Keeper's service menu. |
@@ -1924,7 +1925,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ScatteredLootLedger` | public class | Save-serializable carrier for every item currently scattered among bandit bands, awaiting recovery. |
 | `ScatteredLootPolicy` | public static class | Pure rules for recovering scattered captivity loot from defeated bandit bands. |
 
-### CalradiaRemembers.Logic.Letters (36)
+### CalradiaRemembers.Logic.Letters (38)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1960,6 +1961,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterTone` | public enum | How a letter left its reader feeling toward the player, as the reader judged it. |
 | `LetterWhereaboutsPolicy` | public static class | The whereabouts wording of a letter. |
 | `LetterWindowMode` | public enum | What the courier window is doing right now. |
+| `ModLetterFacts` | public class | What a mod's letter has become, as far as the player's side of it goes. |
+| `ModLetterStatusPolicy` | public static class | The status words CrLetters.GetStatus answers with. |
 | `SecretDefeaterFacts` | public class | Who answers for the troop that defeated a secret's carrier. |
 | `SecretHandoff` | public class | Where a secret went, and to whom. |
 | `SecretHandoffKind` | public enum | How a carried secret changes hands. |

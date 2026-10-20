@@ -475,6 +475,9 @@ namespace CalradiaRemembers
          CrSettings.ConnectionTest = Services.ApiKeyTester.Run;
          CrSettings.CustomConnectionTest = Services.ApiKeyTester.RunCustom;
          CrSettings.NanoGptConnectionTest = Services.ApiKeyTester.RunNanoGpt;
+         // What the player does with another mod's letter reaches the public door (Letters cannot name it).
+         Letters.ModLetterNotices.Replied = CrLetters.OnReplied;
+         Letters.ModLetterNotices.SetAside = CrLetters.OnSetAside;
 
          try
          {

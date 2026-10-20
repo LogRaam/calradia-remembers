@@ -24,7 +24,7 @@ the subject of news, and the verbs a model emits in conversation have their own 
 | `FiefAudience` | `FiefAudienceBehavior.EligibleHeroes` |
 | `HeldScene` | `ChatSceneStager.ReceiveOneAwaitingLandfall` |
 | `Hostage` | `CouncilHostageBehavior.TryStart`, `HostageCandidateResolver.IsEligible` |
-| `Letter` | `BastardBehavior.SendDemandLetter`, `BastardBehavior.SendMotherNote`, `CompanionHappinessBehavior.SendFarewell`, `CrLetters.Deliver`, `LetterGenerationService.QueueInitialLetter`, `LetterTriggerEvaluator.CanSendLetter`, `PrisonerEnvoyBehavior.OnHourlyTick` |
+| `Letter` | `BastardBehavior.SendDemandLetter`, `BastardBehavior.SendMotherNote`, `CompanionHappinessBehavior.SendFarewell`, `CrLetters.DeliverWithId`, `LetterGenerationService.QueueInitialLetter`, `LetterTriggerEvaluator.CanSendLetter`, `PrisonerEnvoyBehavior.OnHourlyTick` |
 | `MarriageProspect` | `MarriageProspectResolver.Build`, `MarriageProspectResolver.ResolveCandidate` |
 | `RealmTidings` | `RealmTidingsBehavior.CanRelay` |
 | `ReceiveLetter` | `CourierService.CanReceiveLetter` |
