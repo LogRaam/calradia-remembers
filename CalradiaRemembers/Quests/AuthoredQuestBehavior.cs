@@ -1416,24 +1416,26 @@ namespace CalradiaRemembers.Quests
          if (giver != null && !string.IsNullOrWhiteSpace(outcome.Memory)) Remember(giver.StringId, AuthoredQuestEngine.Fill(_run, outcome.Memory));
          if (outcome.Gold > 0) TaleWorlds.CampaignSystem.Actions.GiveGoldAction.ApplyBetweenCharacters(null, Hero.MainHero, outcome.Gold);
 
-         return CarryOutConsequences(q, AuthoredQuestEngine.Consequences(_run, outcome));
+         return CarryOutConsequences(q, AuthoredQuestEngine.Consequences(_run, outcome), outcome);
       }
 
       /// <summary>
       ///   Carries out consequences (an ending's, or a stage's on_enter) and says what became of each (tashmetu, 15/10/2026:
       ///   another mod must not answer an elopement that did not happen).
       /// </summary>
-      private List<CrTaleConsequence> CarryOutConsequences(AuthoredQuest q, IEnumerable<AuthoredConsequence> consequences)
+      private List<CrTaleConsequence> CarryOutConsequences(AuthoredQuest q, IEnumerable<AuthoredConsequence> consequences, AuthoredOutcome outcome = null)
       {
          var results = new List<CrTaleConsequence>();
+         List<AuthoredConsequence> all = (consequences ?? Enumerable.Empty<AuthoredConsequence>()).ToList();
+         ISet<string> named = AuthoredQuestEngine.NamedMemoryHolders(_run, outcome, all);
          Hero giver = Find(AuthoredQuestEngine.Bound(_run, "{giver}"));
-         foreach (AuthoredConsequence c in consequences ?? Enumerable.Empty<AuthoredConsequence>())
+         foreach (AuthoredConsequence c in all)
          {
             try
             {
                if (c.Type == "memory")
                {
-                  List<string> ids = Who(c.Who).ToList();
+                  List<string> ids = MemoryRecipients(c.Who, named);
                   foreach (string id in ids) Remember(id, AuthoredQuestEngine.Fill(_run, c.Text));
                   results.Add(ids.Count > 0
                      ? Result(c, ids[0], null, CrTaleConsequenceStatus.Done, null)
@@ -1714,9 +1716,9 @@ namespace CalradiaRemembers.Quests
       private IEnumerable<string> Who(string who)
       {
          if (string.IsNullOrEmpty(who)) return Enumerable.Empty<string>();
-         if (who.StartsWith("locals_of:"))
+         if (IsCrowd(who))
          {
-            Settlement s = Settlement.Find(AuthoredQuestEngine.Bound(_run, who.Substring("locals_of:".Length)) ?? "");
+            Settlement s = Settlement.Find(AuthoredQuestEngine.Bound(_run, who.Substring(AuthoredQuestEngine.LocalsOf.Length)) ?? "");
 
             return s?.Notables?.Where(n => n != null).Select(n => n.StringId).ToList() ?? new List<string>();
          }
@@ -1725,6 +1727,33 @@ namespace CalradiaRemembers.Quests
 
          return id != null ? new[] {id} : Enumerable.Empty<string>();
       }
+
+      /// <summary>Who a memory consequence reaches: its target, less anyone the same ending already names (a crowd only).</summary>
+      private List<string> MemoryRecipients(string who, ISet<string> named)
+         => Who(who).Where(id => !IsCrowd(who) || !named.Contains(id)).ToList();
+
+      /// <summary>
+      ///   Self-test seam (tashmetu, 20/10/2026): who an ending's memories reach, giver first, for a giver bound to a village,
+      ///   when the ending gives the giver a memory of its own and speaks to the village's locals. Writes nothing.
+      /// </summary>
+      internal (List<string> giverMemory, List<string> locals) DebugEndingMemoryRecipients(Hero giver, Settlement village)
+      {
+         AuthoredQuestRun keep = _run;
+         try
+         {
+            _run = new AuthoredQuestRun {QuestId = "cr_selftest_locals"};
+            _run.BoundIds["giver"] = giver.StringId;
+            _run.BoundIds["village"] = village.StringId;
+            var outcome = new AuthoredOutcome {Memory = "the ending, as the giver saw it"};
+            var crowd = new AuthoredConsequence {Type = "memory", Who = AuthoredQuestEngine.LocalsOf + "{village}", Text = "the ending, as the village heard it"};
+            ISet<string> named = AuthoredQuestEngine.NamedMemoryHolders(_run, outcome, new[] {crowd});
+
+            return (new List<string> {giver.StringId}, MemoryRecipients(crowd.Who, named));
+         }
+         finally { _run = keep; }
+      }
+
+      private static bool IsCrowd(string who) => who != null && who.StartsWith(AuthoredQuestEngine.LocalsOf);
 
       private static void Remember(string heroId, string line)
          => CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = heroId, Summary = line, Kind = "Other", DaysAgo = 0, SourceMod = "CalradiaRemembers"});

@@ -4,6 +4,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.19.. open
 
+### Fixed
+- **A tale's giver no longer remembers the same ending twice** (tashmetu 20/10, the Moonlit Maiden). A `locals_of`
+  memory left nobody out, so a giver who is a notable of the village the ending speaks to got his own memory and the
+  village's. Now the crowd leaves out anyone the ending names (`AuthoredQuestEngine.NamedMemoryHolders`); two memories an
+  author aims at one hero by name both stand. cr.testall `tale_locals_memory`.
+
 ### Internal
 - **Logic split into themes, pilot** (Gabriel 19/10). The 420 flat files of `CalradiaRemembers.Logic` start moving into
   sub-namespaces by theme, the way `Logic.Duels` and `Logic.Grudges` already were: `Logic.Bastards` (7 files),

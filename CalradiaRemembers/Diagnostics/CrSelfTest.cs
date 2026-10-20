@@ -287,6 +287,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("panel_siege_guard", Severity.Light, "Mechanical: the full-map panel crash guard. Asserts the Harmony prefix that skips SettlementVisualManager.OnTick (the vanilla siege-bombardment visual tick, which runs on the frame loop and access-violates natively under a pushed CR panel: four confirmed 0xC0000005 crashes) is actually attached to the LIVE engine method. It resolves the target BY NAME, so a game update that renamed the type/method would silently stop protecting; this fires if that ever happens. Also asserts that with no panel open nothing is suppressed (siege visuals tick normally). No LLM, mutates nothing", TestPanelSiegeVisualGuard),
          new SelfTest("setting_hints_fit", Severity.Light, "Mechanical: every MCM hint fits on screen. A shipped bug with a receipt - v2.5.6 repaired NINETEEN hints that ran off the edge, and because they read \"On (default): ... Off: ...\" the clipped half was always the one explaining the other position. They were fixed by hand with nothing left to stop the twentieth, which 2026-09-12 then added. Reads the ATTRIBUTES, so it holds whether or not MCM has loaded. Read-only", TestSettingHintsFit),
          new SelfTest("mcm_test_buttons_wired", Severity.Light, "Mechanical: the three MCM Test buttons (OpenRouter, OpenAI-Compatible endpoint, NanoGPT) reach the connection tester. Since 19/10/2026 the settings no longer name the tester (it reads them, and the two namespaces used each other): the submodule hands it over at load, so a button whose hook was never set would click and do nothing, with no error. Asserts each hook is set. Read-only, no call is made", TestMcmTestButtonsWired),
+         new SelfTest("tale_locals_memory", Severity.Light, "tashmetu (20/10/2026), the Moonlit Maiden: a giver who is a notable of the village an ending speaks to remembered the same moment twice, as the giver and as one of the locals. Binds a real notable of a real village as the giver of an ending that gives him a memory and speaks to the village's locals, and asks the REAL recipients: the giver is left out of the locals' memory, and the village's other notables still hear it. Writes no memory", TestTaleLocalsMemory),
          new SelfTest("settings_ranges_agree", Severity.Light, "Mechanical (Gabriel, 2026-09-10, after the Regard Warmth Cooldown: \"je suis surpris que le bon comportement n'ait pas ete bien protege par des tests unitaires. Par exemple, 0 aurait du etre teste\"). The uncomfortable truth is that 0 WAS tested and the test agreed with the bug: it pinned what the code did, while the MCM control clamped its minimum to 1 and the v2.5.1 changelog promised 0 turned the cooldown off. Three artefacts, no place for any two of them to meet. This is that place. Reflects over EVERY [SettingPropertyInteger] on CrSettings, pairs it with the same-named ModSettings property that enforces it, drives the declared MIN and MAX through the live setting, and asserts the code honours every value the menu offers. Catches the whole family in one assertion, including settings that do not exist yet. Restores each setting to its prior value in a finally", TestSettingsRangesAgree),
          new SelfTest("console_help_complete", Severity.Light, "Mechanical: cr.help against the REAL command registry. Asked on 2026-09-10 whether it was still complete, it described 70 of 259 registered commands, so cr.testall and cr.test were themselves invisible, and it advertised cr.compose, renamed cr.letter_compose long before, which made the one name a reader was most likely to copy verbatim the one that would fail. A hand-written list of every command in a project that gains commands weekly can only drift, so what EXISTS now comes from reflection over the assembly its own [CommandLineArgumentFunction] attributes and the prose is an overlay on top of it. Reads the live registry, drives the real ModCheats.Help in all three of its forms, and asserts: the help never names a command that does not exist (the cr.compose class of error), every registered command is reachable through cr.help all however undescribed, the curated page says where the rest of them are, and the search finds a command by fragment. Read-only, mutates nothing", TestConsoleHelpComplete),
          new SelfTest("seasonal_chronicle", Severity.Light, "The seasonal historian (Gabriel's design): at each turn of the season every realm is read, and what MOVED - a stronghold taken, coffers grown, armies thinned - is written into the world as ordinary news. Computed deterministically from the almanac's own power facts rather than written by a model, because \"Vlandia grew rich\" IS a delta description and a background call every season would cost tokens forever, fail halfway, and have a language to get wrong. Drives the REAL behaviour against the REAL store with a perturbed reading (the honest alternative is waiting a season and hoping), and asserts it is ordinary news rather than a fourth memory store. Removes the row it writes", TestSeasonalChronicle),
@@ -13461,6 +13462,28 @@ namespace CalradiaRemembers.Diagnostics
       ///   The MCM Test buttons call CrSettings.ConnectionTest and its two siblings, which the submodule sets at load
       ///   (the settings live in Foundation and cannot name Services' tester). Unset, a button would do nothing.
       /// </summary>
+      private static string TestTaleLocalsMemory(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tale_locals_memory");
+
+         Quests.AuthoredQuestBehavior b = Quests.AuthoredQuestBehavior.Instance;
+         if (t.Skip(b == null, "authored quests are not active")) return t.Line();
+
+         // A village with two notables or more, so the others can be seen still hearing it; one will do otherwise.
+         Settlement village = Settlement.All.Where(s => s.IsVillage && s.Notables?.Count(n => n != null) > 0)
+            .OrderByDescending(s => s.Notables.Count(n => n != null)).FirstOrDefault();
+         if (t.Skip(village == null, "no village has a notable")) return t.Line();
+         Hero giver = village.Notables.First(n => n != null);
+         t.Note($"{giver.Name} of {village.Name}, {village.Notables.Count(n => n != null)} notable(s)");
+
+         (List<string> giverMemory, List<string> locals) = b.DebugEndingMemoryRecipients(giver, village);
+         t.Expect("theGiverHasHisOwnMemory", giverMemory.Contains(giver.StringId), true);
+         t.Expect("theGiverIsLeftOutOfTheLocals", locals.Contains(giver.StringId), false);
+         t.Expect("theOtherNotablesStillHearIt", locals.Count, village.Notables.Count(n => n != null && n != giver));
+
+         return t.Line();
+      }
+
       private static string TestMcmTestButtonsWired(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("mcm_test_buttons_wired");

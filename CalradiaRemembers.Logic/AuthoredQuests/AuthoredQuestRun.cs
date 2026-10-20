@@ -600,6 +600,28 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          => (consequences ?? new List<AuthoredConsequence>()).Where(c => c != null && AuthoredFlags.Hold(c.If, run?.Flags)).ToList();
 
       /// <summary>
+      ///   tashmetu (20/10/2026): "Could locals_of leave out anyone the same ending already gives a memory to? Then a tale can
+      ///   speak to the giver and to the village without the giver hearing it twice." The heroes these consequences (and the
+      ///   outcome's own memory, which goes to the giver) already address by name: a "locals_of:" memory leaves them out. Two
+      ///   memories an author aims at one hero by name both stand; only the crowd yields to the named.
+      /// </summary>
+      public static ISet<string> NamedMemoryHolders(AuthoredQuestRun run, AuthoredOutcome outcome, IEnumerable<AuthoredConsequence> consequences)
+      {
+         var named = new HashSet<string>();
+         if (outcome != null && !string.IsNullOrWhiteSpace(outcome.Memory) && Bound(run, "{giver}") is string giver) named.Add(giver);
+         foreach (AuthoredConsequence c in consequences ?? Enumerable.Empty<AuthoredConsequence>())
+         {
+            if (c?.Type != "memory" || string.IsNullOrEmpty(c.Who) || c.Who.StartsWith(LocalsOf)) continue;
+            if (Bound(run, c.Who) is string id) named.Add(id);
+         }
+
+         return named;
+      }
+
+      /// <summary>The prefix of a memory aimed at the notables of a bound place: "locals_of:{village}".</summary>
+      public const string LocalsOf = "locals_of:";
+
+      /// <summary>
       ///   tashmetu (15/10/2026): what the current stage carries out as the tale enters it, under the flags set so far (the
       ///   choice that led here included). The first stage is the request and enters nothing.
       /// </summary>
