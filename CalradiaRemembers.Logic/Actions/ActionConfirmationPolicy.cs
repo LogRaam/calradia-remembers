@@ -29,6 +29,16 @@ namespace CalradiaRemembers.Logic.Actions
       Recompose
    }
 
+   /// <summary>What the arrange_match confirmation names (BuildHandQuestion).</summary>
+   public sealed class HandConfirmationFacts
+   {
+      /// <summary>The woman of the player's house whose hand is asked.</summary>
+      public string BrideName { get; init; }
+
+      /// <summary>The man who would wed her.</summary>
+      public string SuitorName { get; init; }
+   }
+
    /// <summary>What the question about an item leaving the player's hands names.</summary>
    public sealed class ItemConfirmationFacts
    {
@@ -152,6 +162,19 @@ namespace CalradiaRemembers.Logic.Actions
             return $"Sell {item} to {npc} for {f.Price} coins{(f.ClampedToPurse ? " (all they have)" : "")}?";
 
          return $"Give {item} to {npc}?";
+      }
+
+      /// <summary>
+      ///   "Give Ylva's hand to Erek?": the player's own yes to a match the groom's side asked of him, for a woman of his
+      ///   house (tashmetu, 20/10/2026). Asked in the chat whatever the model read in his words: a daughter is never wed on
+      ///   the reading of a sentence.
+      /// </summary>
+      public static string BuildHandQuestion(HandConfirmationFacts f)
+      {
+         string bride = string.IsNullOrWhiteSpace(f?.BrideName) ? "her" : f.BrideName.Trim() + "'s";
+         string suitor = string.IsNullOrWhiteSpace(f?.SuitorName) ? "him" : f.SuitorName.Trim();
+
+         return $"Give {bride} hand to {suitor}?";
       }
 
       /// <summary>

@@ -33,7 +33,9 @@ namespace CalradiaRemembers
 
       /// <summary>
       ///   Registers a match for the player to broker: <paramref name="deciderId" /> (the bride herself, or the head of her
-      ///   house or a parent) will be taught arrange_match for it in the chat. Refused at once, keeping nothing, when an id
+      ///   house or a parent) will be taught arrange_match for it in the chat. Since 2.7.19, when the player holds the say over
+      ///   the bride (his daughter, his sister, a woman of his house), the decider is the groom's side instead (the groom, the
+      ///   head of his house or his parent): he asks the player for her hand, and the player answers yes or no in the chat. Refused at once, keeping nothing, when an id
       ///   names no one, the two are one person, the game would not wed them, or the decider has no say over her hand.
       ///   Registering the same couple again replaces the earlier entry. Not saved: register again when a game is loaded.
       ///   The ids are named on <see cref="CrMatchRequest" />, so a suitor and a bride can never be passed the wrong way round.
@@ -45,18 +47,22 @@ namespace CalradiaRemembers
             string suitorId = request?.SuitorId, brideId = request?.BrideId, deciderId = request?.DeciderId, sourceMod = request?.SourceMod;
             Hero suitor = Find(suitorId), bride = Find(brideId), decider = Find(deciderId);
             bool known = suitor != null && bride != null && decider != null;
-            MatchRegistrationResult result = PendingMatchBook.Judge(new MatchRegistrationFacts {
+            var facts = new MatchRegistrationFacts {
                AllKnown = known,
                SamePerson = known && suitor == bride,
                PlayerIsOneOfThem = known && (suitor == Hero.MainHero || bride == Hero.MainHero),
                LawfulCouple = known && Campaign.Current?.Models?.MarriageModel?.IsCoupleSuitableForMarriage(suitor, bride) == true,
-               DeciderHasSay = known && (decider == bride || MarriageProspectResolver.HasAuthority(decider, bride))
-            });
+               DeciderHasSay = known && (decider == bride || MarriageProspectResolver.HasAuthority(decider, bride)),
+               // tashmetu (20/10/2026): the player's own daughter or sister; the groom's side asks the player for her hand.
+               PlayerHasSayOverBride = known && Hero.MainHero != null && MarriageProspectResolver.HasAuthority(Hero.MainHero, bride),
+               DeciderSpeaksForSuitor = known && (decider == suitor || MarriageProspectResolver.HasAuthority(decider, suitor))
+            };
+            MatchRegistrationResult result = PendingMatchBook.Judge(facts);
 
             ModLog.Info($"[MATCH API] {sourceMod ?? "a mod"} registered {suitor?.Name?.ToString() ?? suitorId} for {bride?.Name?.ToString() ?? brideId}, "
-                        + $"decided by {decider?.Name?.ToString() ?? deciderId}: {result}.");
+                        + $"decided by {decider?.Name?.ToString() ?? deciderId}{(PendingMatchBook.AsksThePlayer(facts) ? ", who asks the player for her hand" : "")}: {result}.");
             if (result == MatchRegistrationResult.Registered)
-               Book.Add(new PendingMatchEntry {SuitorId = suitorId, BrideId = brideId, DeciderId = deciderId, Source = sourceMod});
+               Book.Add(new PendingMatchEntry {SuitorId = suitorId, BrideId = brideId, DeciderId = deciderId, Source = sourceMod, AsksThePlayer = PendingMatchBook.AsksThePlayer(facts)});
 
             return result;
          }
@@ -79,8 +85,11 @@ namespace CalradiaRemembers
       internal static PendingMatchEntry ForDecider(Hero decider)
       {
          if (decider == null) return null;
-         Book.Prune(e => Find(e.SuitorId) is {IsDead: false, Spouse: null} && Find(e.BrideId) is {IsDead: false, Spouse: null} bride
-                         && Find(e.DeciderId) is {IsDead: false} who && (who == bride || MarriageProspectResolver.HasAuthority(who, bride)));
+         Book.Prune(e => Find(e.SuitorId) is {IsDead: false, Spouse: null} suitor && Find(e.BrideId) is {IsDead: false, Spouse: null} bride
+                         && Find(e.DeciderId) is {IsDead: false} who
+                         && (e.AsksThePlayer
+                            ? MarriageProspectResolver.HasAuthority(Hero.MainHero, bride) && (who == suitor || MarriageProspectResolver.HasAuthority(who, suitor))
+                            : who == bride || MarriageProspectResolver.HasAuthority(who, bride)));
 
          return Book.ForDecider(decider.StringId);
       }
@@ -109,7 +118,10 @@ namespace CalradiaRemembers
       /// <summary>The bride.</summary>
       public string BrideId { get; set; }
 
-      /// <summary>The one who decides: the bride herself, or the head of her house or a parent.</summary>
+      /// <summary>
+      ///   The one who decides: the bride herself, or the head of her house or a parent. When the player holds the say over
+      ///   her, the groom's side who asks the player for her hand: the groom, the head of his house, or his parent.
+      /// </summary>
       public string DeciderId { get; set; }
 
       /// <summary>Your mod's name, for the log and <see cref="CrMatchOutcome.Source" />.</summary>

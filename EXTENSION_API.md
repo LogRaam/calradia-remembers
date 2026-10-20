@@ -191,6 +191,14 @@ decider lost the say over her (a new head of house: register again with the new 
 of the player by letter is taught first. Kept in memory only and forgotten when the game is left: register again when a
 game is loaded.
 
+**A woman of the player's house (since 2.7.19).** When the player holds the say over the bride (the head of her house,
+or her parent: his daughter, his sister), make the GROOM's side the decider: the groom himself, the head of his house,
+or his parent. The door takes it as a match that asks the player: the groom's side is taught, in a conversation the
+player opens, that he may ask for her hand; when the player gives it, CR asks the player in the chat "Give {bride}'s
+hand to {groom}?" [Y/n], so she is never wed on the model's reading of a sentence. The law is the same (lawful, no war
+or captivity between the houses, she holds him dear enough), and the family's consent is the player's own yes.
+`Settled` reports it as any other. To have him bring it up unbidden, give him a `CrAims` aim as well.
+
 ### Companion patrols (`CalradiaRemembers.CrPatrols`, since 2.7.17)
 
 Read the patrols the player's companions lead, and hear their battles and their end:

@@ -22,6 +22,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   `AimResult`, `CrAims.Retract(sourceMod, id)`, event `CrAims.Raised(CrAimRaised)` (the lord was given the floor),
   over the book CR's own war duty already uses (`cr_standing_aims`). Another mod's aim surfaces in conversation;
   letter and audience later. cr.testall `aims_door`.
+- **A match for a daughter of the player's house** (tashmetu 20/10: "When the bride is the player's daughter or
+  sister, the one with the say over her hand is the player, so the door refuses."). `CrMatches.Register` now takes the
+  groom's side as the decider when the player holds the say over the bride (`PendingMatchBook.AsksThePlayer`); the
+  groom's side is taught to ask for her hand, and arrange_match is always confirmed in the chat ("Give Ylva's hand to
+  Erek?" [Y/n], `ActionConfirmationPolicy.BuildHandQuestion`). The law: `CourtActionResolver.TryGiveHandOfPlayersHouse`
+  (her heart and the houses; the player's yes is the family's). Design in ROADMAP. cr.testall `match_asks_the_player`.
 - **Four tale keys** (tashmetu 20/10, "four small things that came up while writing new ones"):
   `requires.player.gender` (`AuthoredPlayerPolicy`, which now also holds the clan tier); `requires.giver.trade`
   (merchant, artisan, ruralnotable, headman, preacher; notables only, the trade guidelines' keys);

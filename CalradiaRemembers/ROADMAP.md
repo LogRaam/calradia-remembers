@@ -32,6 +32,31 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## BUILT 2026-10-20 for 2.7.19 (tashmetu, approved by Gabriel): a match for a daughter of the player's house
+
+tashmetu (20/10/2026): "When the bride is the player's daughter or sister, the one with the say over her hand is the
+player, so the door refuses. The groom's side (the head of his house, or his father) could be the one who asks for her,
+with 'his hand' / 'her hand' following who is asked." CrMatches assumed the player is always the broker, never the head
+of the bride's house (`MarriageProspectResolver.HasAuthority`: her clan's leader or a parent).
+
+The design, decided on Gabriel's "j'approuve tous les points":
+- **Who asks whom.** When the player has the say over the bride (the head of her house, or her parent), another mod
+  may register the match with the decider on the GROOM's side: the suitor himself, or one with the say over him (the
+  head of his house, or his parent). The door takes it as a match that asks the player (`AsksThePlayer`), refused as
+  before when neither side holds the say.
+- **No new initiative.** The groom's side is taught, in a conversation the player opens, that he may ask the player for
+  her hand ("her hand": the bride's hand is the one asked). He does not seek the player out for it: a mod that wants
+  him to bring it up unbidden registers a CrAims aim for him, which carries its own pacing and ActionGate.
+- **The player answers.** The model emits arrange_match when the player gives her hand in words; CR then asks the
+  player in the chat, "Give {bride}'s hand to {suitor}?" [Y/n], so a daughter is never wed on the model's reading of
+  a sentence. No: nothing happens, and the match stays registered.
+- **The law.** The player must still hold the say over her and the decider over the groom; the game must find them
+  lawful; no war or captivity between the houses; and her heart (she must hold him dear enough), as for every brokered
+  match. The family's consent is the player's own yes, so the regard and the standing of houses are not weighed.
+- **Not done:** the symmetric case (the player's son, the bride's side offering her to him) needs no change to work as
+  a broker's match today (the bride's head is asked as before); an offer made TO the player for his son, with "his
+  hand", is left until a mod asks for it.
+
 ## WISHED 2026-10-19 (tthheerroocckk, Nexus), ROADMAPPED, GABRIEL WANTS A DESIGN TALK FIRST: a council at sea
 
 "can we call a council at sea? like for pirate roleplay?" Today the campaign-bar button greys out at sea and

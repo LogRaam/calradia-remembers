@@ -31,6 +31,24 @@ namespace CalradiaRemembers.Verbs
             if (match == null) return null;
 
             var sb = new StringBuilder();
+            if (match.AsksThePlayer)
+            {
+                // tashmetu (20/10/2026): the bride is of the player's house, and the player holds the say over her hand.
+                sb.AppendLine("ARRANGE_MATCH, ASKING FOR A HAND IN MARRIAGE:");
+                sb.AppendLine(match.AskerIsTheSuitor
+                    ? $"You would wed {match.BrideName}, of the player's house, and her hand is the player's to give. You may ask for it."
+                    : $"You would see {match.SuitorName} wed {match.BrideName}, of the player's house, and her hand is the player's to give. You may ask the player for it.");
+                sb.AppendLine("Only once the player has plainly given her hand, emit:");
+                sb.AppendLine("[ACTION]");
+                sb.AppendLine("type: arrange_match");
+                sb.AppendLine("[/ACTION]");
+                sb.AppendLine("The player is asked to confirm, and the game weds them only if she herself holds the groom dear enough and the match");
+                sb.AppendLine("is lawful. A refusal is the player's to make: take it as the head of a house would.");
+                sb.AppendLine();
+
+                return sb.ToString();
+            }
+
             sb.AppendLine("ARRANGE_MATCH, GIVING A HAND IN MARRIAGE:");
             sb.AppendLine($"The player comes on behalf of {match.SuitorName}, who would wed {match.BrideName}, and you have the say over her");
             sb.AppendLine("hand. Weigh the match as the head of a house would. If you consent to the marriage, emit:");

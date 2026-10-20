@@ -11,6 +11,10 @@
 // head of house is never taught a match the game would then refute. What may change later (her heart, her family's
 // regard) is weighed when the head consents, as for any brokered match.
 //
+// tashmetu (20/10/2026): when the bride is the player's own daughter or sister, the player holds the say over her hand,
+// and the door refused; the groom's side may now be the decider, asking the PLAYER for her hand (AsksThePlayer). The
+// player answers yes or no in the chat (ROADMAP, "a match for a daughter of the player's house").
+//
 // The book is kept in memory only: a mod registers again when a game is loaded. Nothing is written to the save, so a
 // mod that is removed leaves nothing behind.
 
@@ -42,7 +46,10 @@ namespace CalradiaRemembers.Logic
       /// <summary>The game would not wed this couple (age, kin, a marriage already, the same sex).</summary>
       RejectedNotLawful,
 
-      /// <summary>The decider has no say over the bride's hand (neither she herself, nor her house's head or parent).</summary>
+      /// <summary>
+      ///   The decider has no say over the bride's hand (neither she herself, nor her house's head or parent), and the match
+      ///   cannot ask the player for it either (the player holds no say over her, or the decider does not speak for the groom).
+      /// </summary>
       RejectedNoAuthority
    }
 
@@ -63,6 +70,12 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>The decider is the bride, or has the say over her hand.</summary>
       public bool DeciderHasSay { get; init; }
+
+      /// <summary>The player has the say over the bride's hand: the head of her house, or her parent.</summary>
+      public bool PlayerHasSayOverBride { get; init; }
+
+      /// <summary>The decider is the suitor himself, or has the say over him (the head of his house, or his parent).</summary>
+      public bool DeciderSpeaksForSuitor { get; init; }
    }
 
    /// <summary>One match waiting for its decider's consent.</summary>
@@ -79,6 +92,12 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>The mod that registered it.</summary>
       public string Source { get; init; }
+
+      /// <summary>
+      ///   The decider is on the groom's side and asks the player, who holds the say over the bride (his daughter, his
+      ///   sister, a woman of his house): the player gives her hand or not.
+      /// </summary>
+      public bool AsksThePlayer { get; init; }
    }
 
    /// <summary>The matches other mods have registered, and the door they pass. Pure.</summary>
@@ -96,10 +115,17 @@ namespace CalradiaRemembers.Logic
          if (f.SamePerson) return MatchRegistrationResult.RejectedSamePerson;
          if (f.PlayerIsOneOfThem) return MatchRegistrationResult.RejectedPlayer;
          if (!f.LawfulCouple) return MatchRegistrationResult.RejectedNotLawful;
-         if (!f.DeciderHasSay) return MatchRegistrationResult.RejectedNoAuthority;
+         if (!f.DeciderHasSay && !AsksThePlayer(f)) return MatchRegistrationResult.RejectedNoAuthority;
 
          return MatchRegistrationResult.Registered;
       }
+
+      /// <summary>
+      ///   The match asks the player for the bride's hand: the player holds the say over her, and the decider speaks for
+      ///   the groom. Only when the decider has no say over her himself; otherwise he decides, as before.
+      /// </summary>
+      public static bool AsksThePlayer(MatchRegistrationFacts f)
+         => f != null && !f.DeciderHasSay && f.PlayerHasSayOverBride && f.DeciderSpeaksForSuitor;
 
       /// <summary>Keeps the match; one registered again for the same couple replaces the earlier one.</summary>
       public void Add(PendingMatchEntry entry)

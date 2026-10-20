@@ -509,6 +509,38 @@ namespace CalradiaRemembers.GameState
          return new ArrangeMarriageVerdict(ArrangeMarriageResult.Wed, suitor, bride, suitorClanBefore, brideClanBefore);
       }
 
+      /// <summary>
+      ///   tashmetu (20/10/2026): the groom's side asked the player for the hand of a woman of his house (his daughter, his
+      ///   sister), and the player said yes in the chat. The law as for every brokered match, but the family's consent is
+      ///   the player's own: the player must still hold the say over her, <paramref name="groomSide" /> over the groom (or be
+      ///   him), the game must find them lawful, no war or captivity between the houses, and she must hold him dear enough.
+      /// </summary>
+      public static ArrangeMarriageVerdict TryGiveHandOfPlayersHouse(Hero suitor, Hero bride, Hero groomSide, bool apply)
+      {
+         if (bride == null || suitor == null) return new ArrangeMarriageVerdict(ArrangeMarriageResult.NoTargetKin, suitor, bride, null, null);
+         if (!MarriageProspectResolver.HasAuthority(Hero.MainHero, bride) || groomSide == null
+             || groomSide != suitor && !MarriageProspectResolver.HasAuthority(groomSide, suitor))
+            return new ArrangeMarriageVerdict(ArrangeMarriageResult.NoAuthority, suitor, bride, null, null);
+         if (Campaign.Current?.Models?.MarriageModel?.IsCoupleSuitableForMarriage(suitor, bride) != true)
+            return new ArrangeMarriageVerdict(ArrangeMarriageResult.NotSuitable, suitor, bride, null, null);
+         if (!MarriageGuardPolicy.MarriageAllowed(new MarriageGuardPolicy.MarriageStateFacts {CandidatePrisoner = suitor.IsPrisoner, PlayerPrisoner = bride.IsPrisoner, AtWarWithCandidate = HousesAtWar(suitor, bride)}))
+            return new ArrangeMarriageVerdict(ArrangeMarriageResult.BlockedByGuard, suitor, bride, null, null);
+
+         // The family is the player, whose yes was asked in the chat: only her heart and the houses are weighed.
+         MatchVerdict verdict = MatchmakerPolicy.Decide(new MatchFacts {
+            BrideRelationToSuitor = bride.GetRelation(suitor), OfAnotherHouse = bride.Clan != suitor.Clan,
+            FamilyRegardForThePlayer = 100, SuitorClanTier = suitor.Clan?.Tier ?? 0, BrideClanTier = suitor.Clan?.Tier ?? 0
+         });
+         if (verdict == MatchVerdict.NotWonOver) return new ArrangeMarriageVerdict(ArrangeMarriageResult.NotWonOver, suitor, bride, null, null);
+         if (verdict == MatchVerdict.SameHouse) return new ArrangeMarriageVerdict(ArrangeMarriageResult.NotCrossClan, suitor, bride, null, null);
+
+         Clan suitorClanBefore = suitor.Clan;
+         Clan brideClanBefore = bride.Clan;
+         if (apply) MarriageAction.Apply(suitor, bride);
+
+         return new ArrangeMarriageVerdict(ArrangeMarriageResult.Wed, suitor, bride, suitorClanBefore, brideClanBefore);
+      }
+
       // ── appoint_governor (personal-command verb, council + 1:1, 2026-08-05) ──
 
       /// <summary>

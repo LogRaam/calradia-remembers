@@ -74,6 +74,20 @@ namespace CalradiaRemembers.Chat
          if (type.Equals("counter_offer", StringComparison.OrdinalIgnoreCase))
             return PreprocessCounterOffer(action, npc, profile, context);
 
+         // arrange_match asking the player for a woman of his house (tashmetu, 20/10/2026): the player's own yes, always.
+         if (type.Equals("arrange_match", StringComparison.OrdinalIgnoreCase) && BannerlordGameStateBridge.HandAskedOfThePlayer(npc) is { } hand)
+         {
+            string handKey = $"arrange_match:{npc?.StringId}:{hand.BrideName}";
+            if (_resolvedKeys.Contains(handKey)) return ActionDisposition.Skip;
+            _resolvedKeys.Add(handKey);
+            _pending.Enqueue(new PendingConfirmation {
+               Action = action, Npc = npc, Profile = profile, Context = context,
+               Question = ActionConfirmationPolicy.BuildHandQuestion(new HandConfirmationFacts {BrideName = hand.BrideName, SuitorName = hand.SuitorName})
+            });
+
+            return ActionDisposition.Queued;
+         }
+
          bool tracked = type.Equals("give_gold", StringComparison.OrdinalIgnoreCase)
                         || type.Equals("take_gold", StringComparison.OrdinalIgnoreCase)
                         || type.Equals("join_party", StringComparison.OrdinalIgnoreCase)

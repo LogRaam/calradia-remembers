@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 533 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1210 types in 44 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1211 types in 44 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1333,13 +1333,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WorldFactRelevance` | public struct | The result of scoring one world-fact candidate against the player's message. |
 | `WorldFactRelevancePolicy` | public static class | Pure, engine-free scoring of how much a world fact bears on what the player just said. |
 
-### CalradiaRemembers.Logic.Actions (18)
+### CalradiaRemembers.Logic.Actions (19)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ActionConfirmationPolicy` | public static class | Pure policy for the terminal-style "confirm this action?" prompt shown in chat before a consequential LLM action (moving coin or committing to a service) is applied. |
 | `ActionsPanelGate` | public static class | Decides whether the Actions tile opens the new panel or the vanilla menu it replaces. |
 | `ConfirmationAnswer` | public enum | How the player answered a pending in-chat confirmation prompt. |
+| `HandConfirmationFacts` | public class | What the arrange_match confirmation names (BuildHandQuestion). |
 | `ItemConfirmationFacts` | public class | What the question about an item leaving the player's hands names. |
 | `ManualActionAvailability` | public static class | Decides, from a ManualActionFacts snapshot, exactly which ManualActionCatalog entries the manual menu may offer for THIS conversation right now. |
 | `ManualActionCatalog` | public static class | The fixed set of every action the manual menu may offer, in the stable order the menu lists them (grouped Coin & Goods, Prisoner, Companion, Governance, Diplomacy). |

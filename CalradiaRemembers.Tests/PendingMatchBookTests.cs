@@ -106,5 +106,36 @@ namespace CalradiaRemembers.Tests
          book.Remove("suitor", "bride").Should().BeTrue();
          book.ForDecider("head").Should().BeNull();
       }
+
+      // STAKE: tashmetu (20/10/2026): "When the bride is the player's daughter or sister, the one with the say over her hand
+      // is the player, so the door refuses. The groom's side could be the one who asks for her." It is taken, as a match that
+      // asks the player.
+      [Test]
+      public void GIVEN_the_players_daughter_and_the_grooms_father_as_decider_WHEN_registered_THEN_it_is_taken_as_asking_the_player()
+      {
+         var f = new MatchRegistrationFacts {AllKnown = true, LawfulCouple = true, DeciderHasSay = false, PlayerHasSayOverBride = true, DeciderSpeaksForSuitor = true};
+
+         PendingMatchBook.Judge(f).Should().Be(MatchRegistrationResult.Registered);
+         PendingMatchBook.AsksThePlayer(f).Should().BeTrue();
+      }
+
+      // STAKE: the player's say over a woman of his house is no licence for anyone to ask: only one who speaks for the groom.
+      // And a woman of another house still needs her own family's decider, as before.
+      [Test]
+      public void GIVEN_a_decider_speaking_for_neither_side_WHEN_registered_THEN_it_is_still_refused()
+      {
+         PendingMatchBook.Judge(new MatchRegistrationFacts {AllKnown = true, LawfulCouple = true, PlayerHasSayOverBride = true, DeciderSpeaksForSuitor = false})
+            .Should().Be(MatchRegistrationResult.RejectedNoAuthority);
+         PendingMatchBook.Judge(new MatchRegistrationFacts {AllKnown = true, LawfulCouple = true, PlayerHasSayOverBride = false, DeciderSpeaksForSuitor = true})
+            .Should().Be(MatchRegistrationResult.RejectedNoAuthority);
+      }
+
+      // STAKE: when the decider holds the say over her himself, he decides as before; the match never asks the player then.
+      [Test]
+      public void GIVEN_a_decider_with_the_say_over_her_WHEN_judged_THEN_the_match_does_not_ask_the_player()
+      {
+         PendingMatchBook.AsksThePlayer(new MatchRegistrationFacts {AllKnown = true, LawfulCouple = true, DeciderHasSay = true, PlayerHasSayOverBride = true, DeciderSpeaksForSuitor = true})
+            .Should().BeFalse();
+      }
    }
 }

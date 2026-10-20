@@ -358,6 +358,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("spouse_status_at_wedding", Severity.Light, "brorespeta123 (Nexus, 01/10/2026): a new wife 'forgot who I was'. A marriage through the game's own proposal left her romantic status stale until the next load. Gives a lord's CR profile a stale SecretLover status, runs the same heal the wedding now runs, expects Committed, then restores the profile exactly. Weds nobody.", TestSpouseStatusAtWedding),
          new SelfTest("wedding_day_line", Severity.Light, "fkasad (10/10/2026): a marriage CR never saw reads as years old when the couple's eldest living child is 2 or more (checked on a real lord when one exists). raphareish (Nexus, 01/10/2026): a character wed days before spoke of her spouse as if married for years. Takes a married lord, sets his wedding day to three days ago for a moment, expects his family line to call them newlyweds, then forgets the day and expects the line as before. Weds nobody.", TestWeddingDayLine),
          new SelfTest("registered_match", Severity.Light, "tashmetu (Nexus, 16/10/2026): a head of house agreed in the chat to a match another mod had proposed, and nothing happened. Finds a lawful match of another house at peace, wins the bride over and the head's regard for the player (a disposable test game), registers it through the PUBLIC CrMatches.Register, checks a decider with no say is refused at the door, that the head is taught the match, then settles it through the REAL bridge (arrange_match): the game weds them, CrMatches.Settled reports it, and the match is no longer pending. Restores the head's regard; the marriage stays", TestRegisteredMatch),
+         new SelfTest("match_asks_the_player", Severity.Light, "tashmetu (20/10/2026): when the bride is the player's daughter or sister, the player holds the say over her hand and the door refused. Takes an unwed woman of the player's house and a lawful groom of another house at peace, registers the match through the PUBLIC CrMatches.Register with the groom's side (the head of his house, or the groom) as the decider: it is taken as asking the player, the groom's side is taught to ask for her hand, and the chat's [Y/n] names her and the groom. Settles nothing (no daughter is wed by a test); withdraws the match. MANUAL when the player's house holds no unwed woman", TestMatchAsksThePlayer),
          new SelfTest("arrange_match_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): the matchmaker; Gabriel: a real marriage, her heart then her family's consent. Finds an unwed lord and a lawful match of another house at peace, issues the task through the real QuestFactory, and asks the real match check WITHOUT applying it: the law must pass, and the answer must be one of wed / not yet won over / family refuses, never a legal refusal. Weds nobody.", TestArrangeMatchQuest),
          new SelfTest("craft_weapon_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'a blacksmithing quest', the kind being part of the deal (Gabriel). Issues a craft_weapon task for a greatsword through the real QuestFactory, expects the forge key for a two-handed sword, and expects a two-handed sword the player did NOT forge (from the game's own items) to be refused at the hand-over, as a bought one would be. Moves nothing.", TestCraftWeaponQuest),
          new SelfTest("recruit_troops_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'recruitment quests'. Finds a lord leading a party with room, issues a recruit_troops task through the real QuestFactory with an oversized ask, and expects it keyed to his own culture and clamped to the band and the room in his party. Moves no troops.", TestRecruitTroopsQuest),
@@ -13656,6 +13657,45 @@ namespace CalradiaRemembers.Diagnostics
             NpcProfile current = store.Get(profile.Id);
             current?.Events.RemoveAll(e => e.summary != null && e.summary.StartsWith("(self-test) ", StringComparison.Ordinal));
             if (current != null) store.Set(current);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestMatchAsksThePlayer(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("match_asks_the_player");
+         if (t.Skip(Clan.PlayerClan?.Leader != Hero.MainHero, "the player does not lead their house")) return t.Line();
+
+         Hero bride = null, groom = null;
+         foreach (Hero woman in Clan.PlayerClan.Heroes.Where(h => h != Hero.MainHero && h.IsFemale && h.Spouse == null && !h.IsChild && !h.IsPrisoner
+                                                                  && Mapping.HeroPresence.IsInTheWorld(h)))
+         {
+            groom = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsFemale && h.Spouse == null && !h.IsChild && !h.IsPrisoner && h.Clan != null
+                                                           && h.Clan != Clan.PlayerClan && h.Clan.Leader != null && !h.Clan.Leader.IsPrisoner
+                                                           && Campaign.Current.Models.MarriageModel.IsCoupleSuitableForMarriage(h, woman)
+                                                           && (h.MapFaction == null || Hero.MainHero.MapFaction == null || !FactionManager.IsAtWarAgainstFaction(h.MapFaction, Hero.MainHero.MapFaction)));
+            if (groom == null) continue;
+            bride = woman;
+            break;
+         }
+
+         if (t.Skip(bride == null, "no unwed woman of the player's house with a lawful groom at peace (a daughter or sister of age is needed)")) return t.Line();
+         Hero groomSide = groom.Clan.Leader;
+         t.Note($"{bride.Name} for {groom.Name}, asked by {groomSide.Name}");
+         try
+         {
+            t.Expect("theGroomsSideIsTaken", CrMatches.Register(new CrMatchRequest {SuitorId = groom.StringId, BrideId = bride.StringId, DeciderId = groomSide.StringId, SourceMod = "cr.testall"}),
+               MatchRegistrationResult.Registered);
+            PendingMatch taught = behavior.GameStateBridge.MatchToArrange(groomSide);
+            t.Expect("heIsTaughtToAskThePlayer", taught?.AsksThePlayer, (bool?) true);
+            PendingMatch hand = BannerlordGameStateBridge.HandAskedOfThePlayer(groomSide);
+            t.Expect("theChatAsksThePlayer", hand == null ? null : Logic.Actions.ActionConfirmationPolicy.BuildHandQuestion(new Logic.Actions.HandConfirmationFacts {BrideName = hand.BrideName, SuitorName = hand.SuitorName}),
+               $"Give {bride.Name}'s hand to {groom.Name}?");
+         }
+         finally
+         {
+            CrMatches.Withdraw(groom.StringId, bride.StringId);
          }
 
          return t.Line();

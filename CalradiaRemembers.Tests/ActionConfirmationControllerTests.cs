@@ -80,5 +80,14 @@ namespace CalradiaRemembers.Tests
             ActionConfirmationPolicy.BuildQuestion("join_party", "Fercread the Pinder", 500)
                 .Should().Be("Let Fercread the Pinder take service in your party for 500 coins?");
         }
+
+        // STAKE: tashmetu (20/10/2026): a groom's father asks the player for his daughter's hand. The player's yes is asked in
+        // the chat, naming her and the groom, so she is never wed on the model's reading of a sentence.
+        [Test]
+        public void GIVEN_a_hand_asked_of_the_player_WHEN_prompting_THEN_the_question_names_her_and_the_groom()
+        {
+            ActionConfirmationPolicy.BuildHandQuestion(new HandConfirmationFacts {BrideName = "Ylva", SuitorName = "Erek"})
+                .Should().Be("Give Ylva's hand to Erek?");
+        }
     }
 }

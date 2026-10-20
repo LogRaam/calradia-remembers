@@ -961,7 +961,25 @@ namespace CalradiaRemembers.GameState
          Hero suitor = Hero.FindFirst(h => h.StringId == entry.SuitorId);
          Hero bride = Hero.FindFirst(h => h.StringId == entry.BrideId);
 
-         return suitor == null || bride == null ? null : new PendingMatch {BrideName = bride.Name?.ToString(), SuitorName = suitor.Name?.ToString()};
+         return suitor == null || bride == null ? null : new PendingMatch {
+            BrideName = bride.Name?.ToString(), SuitorName = suitor.Name?.ToString(), AsksThePlayer = entry.AsksThePlayer,
+            AskerIsTheSuitor = entry.AsksThePlayer && authorizer == suitor
+         };
+      }
+
+      /// <summary>
+      ///   The match this character would ask the PLAYER to give a hand to (tashmetu, 20/10/2026), for the chat's [Y/n]
+      ///   before arrange_match runs; null when the match he holds is not one that asks the player.
+      /// </summary>
+      public static PendingMatch HandAskedOfThePlayer(Hero asker)
+      {
+         PendingMatchEntry entry = asker == null ? null : CrMatches.ForDecider(asker);
+         if (entry is not {AsksThePlayer: true}) return null;
+         Hero suitor = Hero.FindFirst(h => h.StringId == entry.SuitorId), bride = Hero.FindFirst(h => h.StringId == entry.BrideId);
+
+         return suitor == null || bride == null ? null : new PendingMatch {
+            BrideName = bride.Name?.ToString(), SuitorName = suitor.Name?.ToString(), AsksThePlayer = true, AskerIsTheSuitor = asker == suitor
+         };
       }
 
       /// <summary>
@@ -982,11 +1000,16 @@ namespace CalradiaRemembers.GameState
             string brideId = errand?.Quest.TargetHeroId ?? registered.BrideId;
             Hero suitor = Hero.FindFirst(h => h.StringId == suitorId);
             Hero bride = Hero.FindFirst(h => h.StringId == brideId);
-            ArrangeMarriageVerdict v = CourtActionResolver.TryArrangeThirdPartyMatch(suitor, bride, authorizer, apply: true);
+            bool playerGives = registered?.AsksThePlayer == true;
+            ArrangeMarriageVerdict v = playerGives
+               ? CourtActionResolver.TryGiveHandOfPlayersHouse(suitor, bride, authorizer, apply: true)
+               : CourtActionResolver.TryArrangeThirdPartyMatch(suitor, bride, authorizer, apply: true);
 
             string refusal = v.Result switch
             {
-               ArrangeMarriageResult.NoAuthority => $"({authorizer.Name} has no say over {bride?.Name}'s hand.)",
+               ArrangeMarriageResult.NoAuthority => playerGives
+                  ? $"({bride?.Name}'s hand is no longer yours to give, or {authorizer.Name} no longer speaks for {suitor?.Name}.)"
+                  : $"({authorizer.Name} has no say over {bride?.Name}'s hand.)",
                ArrangeMarriageResult.NotSuitable => $"({suitor?.Name} and {bride?.Name} cannot lawfully wed.)",
                ArrangeMarriageResult.BlockedByGuard => $"({suitor?.Name} and {bride?.Name} cannot be wed now: not across a war, nor from captivity.)",
                ArrangeMarriageResult.NotWonOver => $"({bride?.Name} does not yet hold {suitor?.Name} dear enough; she must be won over first.)",
@@ -1010,14 +1033,19 @@ namespace CalradiaRemembers.GameState
             {
                NpcProfile p = store?.Get(who.StringId);
                if (p == null) continue;
-               p.Events.Add(new NotableEvent(day, NotableEventType.Collaboration,
-                  who == bride ? $"{player} brokered my marriage to {suitor.Name}." : $"At {player}'s asking, I gave {bride.Name} in marriage to {suitor.Name}."));
+               p.Events.Add(new NotableEvent(day, NotableEventType.Collaboration, playerGives
+                  ? who == bride ? $"{player} gave my hand to {suitor.Name}."
+                  : who == suitor ? $"I asked {player} for {bride.Name}'s hand, and it was given."
+                  : $"I asked {player} for {bride.Name}'s hand for {suitor.Name}, and it was given."
+                  : who == bride ? $"{player} brokered my marriage to {suitor.Name}." : $"At {player}'s asking, I gave {bride.Name} in marriage to {suitor.Name}."));
                store.Set(p);
             }
 
-            ModLog.Info($"[QUEST] arrange_match: {suitor.Name} wed {bride.Name}, consent by {authorizer.Name}, brokered by the player.");
+            ModLog.Info($"[QUEST] arrange_match: {suitor.Name} wed {bride.Name}, consent by {(playerGives ? "the player, asked by " : "")}{authorizer.Name}{(playerGives ? "" : ", brokered by the player")}.");
 
-            return new ActionOutcome($"{authorizer.Name} consents: {suitor.Name} and {bride.Name} are wed.", true);
+            return new ActionOutcome(playerGives
+               ? $"You give {bride.Name}'s hand: {suitor.Name} and {bride.Name} are wed."
+               : $"{authorizer.Name} consents: {suitor.Name} and {bride.Name} are wed.", true);
          }
          catch (Exception ex)
          {
