@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 529 types in 61 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 533 types in 61 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1208 types in 44 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 21000+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 21500+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -43,12 +43,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (46)
+### CalradiaRemembers (50)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ActionRegistrationResult` | public enum | The outcome of CrActions.Register. |
+| `AimResult` | public enum | What became of an aim handed to CrAims.Register. |
 | `CrActions` | public static class | The public facade a third-party mod calls to register (or unregister) one executable conversation action. |
+| `CrAimRaised` | public class | A lord was given the floor for an aim (CrAims.Raised). |
+| `CrAims` | public static class | The door through which other mods give lords aims of their own. |
 | `CrConversation` | public static class | The public conversation-lifecycle events other mods subscribe to. |
 | `CrConversationInfo` | public class | The identity of a conversation as it OPENS, delivered by CrConversation.Started. |
 | `CrConversationLog` | public class | A whole conversation as it CLOSES, delivered by CrConversation.Ended. |
@@ -79,6 +82,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrTranscriptLine` | public class | One attributed line of a conversation, as delivered in CrConversationLog. |
 | `ExternalActionParam` | public class | One named parameter an ExternalActionSpec accepts, taught to the LLM by name and meaning. |
 | `ExternalActionSpec` | public class | Everything a third-party mod supplies to register one executable conversation action through CrActions.Register. |
+| `ExternalAim` | public class | A lord's aim of his own, as another mod hands it to CrAims.Register. |
 | `ExternalEventLifetime` | public enum | How long a fed event is STORED: a Rumor is pruned after a few weeks, a Deed is kept (under its own cap), so dedup on its id holds for good. |
 | `ExternalMission` | public class | One mission a third-party mod wants CR to set the player. |
 | `ExternalWorldEvent` | public class | One world fact a third-party mod wants CR to know about. |

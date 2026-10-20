@@ -17,12 +17,44 @@ _The outcome of CrActions.Register._
 - `RejectedDuplicate`
 - `RejectedInvalid`
 
+### AimResult
+
+_What became of an aim handed to CrAims.Register._
+
+- `Accepted`
+- `AlreadyExpired`
+- `EmptyWant`
+- `LordAlreadyHasAnAim`
+- `MissingIdentity`
+- `ReservedSource`
+- `SourceAtCapacity`
+- `UnknownHero`
+- `Updated`
+
 ### CrActions
 
 _The public facade a third-party mod calls to register (or unregister) one executable conversation action._
 
 - `static ActionRegistrationResult Register(ExternalActionSpec spec)`
 - `static bool Unregister(string name)`
+
+### CrAimRaised
+
+_A lord was given the floor for an aim (CrAims.Raised)._
+
+- `int GameDay { get; set; }`
+- `string AimId { get; set; }`
+- `string Channel { get; set; }`
+- `string NpcId { get; set; }`
+- `string SourceMod { get; set; }`
+
+### CrAims
+
+_The door through which other mods give lords aims of their own._
+
+- `static AimResult Register(ExternalAim aim)`
+- `static bool Retract(string sourceMod, string id)`
+- `static event Action<CrAimRaised> Raised`
 
 ### CrConversation
 
@@ -319,6 +351,19 @@ _Everything a third-party mod supplies to register one executable conversation a
 - `string Description { get; set; }`
 - `string Name { get; set; }`
 - `string SourceMod { get; set; }`
+
+### ExternalAim
+
+_A lord's aim of his own, as another mod hands it to CrAims.Register._
+
+- `List<string> Channels { get; set; }`
+- `int? ExpiresOnDay { get; set; }`
+- `string Id { get; set; }`
+- `string MissionId { get; set; }`
+- `string NpcId { get; set; }`
+- `string PlayerPart { get; set; }`
+- `string SourceMod { get; set; }`
+- `string Want { get; set; }`
 
 ### ExternalEventLifetime
 

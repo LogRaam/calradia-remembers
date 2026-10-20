@@ -478,6 +478,8 @@ namespace CalradiaRemembers
          // What the player does with another mod's letter reaches the public door (Letters cannot name it).
          Letters.ModLetterNotices.Replied = CrLetters.OnReplied;
          Letters.ModLetterNotices.SetAside = CrLetters.OnSetAside;
+         // A lord given the floor for another mod's aim is announced through the public door (static, once per process).
+         Aims.AimsBehavior.Raised += CrAims.OnRaised;
 
          try
          {

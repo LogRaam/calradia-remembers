@@ -236,6 +236,29 @@ acknowledges the letter without replying; a letter still `delivered` has not bee
 courier was lost and CR sends it again. All of these name no Calradia Remembers type, so a mod that keeps CR optional
 can use them (see the regard sources below). Letters delivered before 2.7.19 have no id.
 
+### Lords with aims of their own (`CrAims`, since 2.7.19)
+
+```csharp
+AimResult r = CrAims.Register(new ExternalAim {
+   Id = "lakonon", SourceMod = "MyMod", NpcId = lord.StringId,
+   Want = "Lakonon. By right it is the Osticos', but the Vlandians hold it and the council will not vote a war for it.",
+   PlayerPart = "his men can take what a claim alone cannot",   // optional, one line
+   MissionId = null,                                            // optional: a MissionBoard deed the lord may ask outright
+   ExpiresOnDay = null                                          // optional
+});
+CrAims.Raised += r => { /* r.AimId, r.SourceMod, r.NpcId, r.Channel, r.GameDay */ };
+CrAims.Retract("MyMod", "lakonon");
+```
+
+You say WHAT a lord wants; CR decides WHEN it surfaces and remembers that it did. In a conversation the player opens,
+the lord has leave to bring it up himself: at most twice, the second time only after 60 days while it still stands,
+never toward an enemy or in captivity. He raises it as himself: an honest lord asks openly, a calculating one keeps his
+purpose close, and neither states a falsehood. Without a `MissionId` he may sound the player out but promises nothing
+the game cannot carry. One aim per lord across all mods (`LordAlreadyHasAnAim`), 40 per source, want 400 characters,
+player's part 200; an aim is kept with the save. `Raised` means the lord was GIVEN THE FLOOR, not that he said it: he
+may judge the moment wrong and stay silent. Today aims surface in conversation; `Channels` may already name "letter"
+and "audience", which will carry them later without a change on your side.
+
 ### Who ended a mercenary contract (`CrMercenaries.ContractEndedByEmployer`, since 2.7.19)
 
 ```csharp

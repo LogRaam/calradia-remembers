@@ -304,6 +304,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("background_hold", Severity.Light, "fkasad (Nexus, 15/10/2026): on a local server, summaries, memory compaction and letters slipped in between two replies, the server swapped its KV cache and replies timed out. With a conversation forced open through the seam: a background call routed to OpenAI-Compatible (local) waits; the same call routed to a cloud provider goes at once; with no conversation open a local call goes at once. Restores the provider dropdowns and the seam (the held wait ends within a second)", TestBackgroundHold),
          new SelfTest("war_duty_ledger", Severity.Light, "Maifailun (Nexus, 15/10/2026): a vassal who sits out the realm's war is called to account, so the mod must see his service. On a fresh ledger through the real upkeep: the realm the player is sworn to (none as a mercenary or a free lord) and its enemy kingdoms are recorded from today, so no one owes on the first day. A battle against a realm at war with his counts as service; one against bandits does not. Restores the player's own ledger", TestWarDutyLedger),
          new SelfTest("aims_conversation", Severity.Light, "CrAims (tashmetu, 14/10/2026: lords with aims of their own; 'the real risk is a lord who brings up Lakonon in every conversation'). A test aim is registered on a real lord not at war with the player; a conversation opening with him gives him leave to raise it and the encounter context carries his want; a second conversation the same day does not give it again; the leave ends with the conversation. An aim Calradia Remembers seeds for its own mechanics is not voiced by the generic section. Retracts both aims", TestAimsConversation),
+         new SelfTest("aims_door", Severity.Light, "The public CrAims door (tashmetu, 14/10/2026: 'nobody takes the first step with the player'; proposed in ROADMAP, approved by Gabriel 20/10/2026). Registers an aim for a lord at peace with the player through the REAL door: accepted, updated under the same id, refused for a second aim on the same lord, an unknown hero, and CR's own name; a conversation opened with him gives him leave and the context carries the want; CrAims.Raised tells the mod, with the aim's id, the lord and the channel; retracted, it is gone. Retracts and closes after", TestAimsDoor),
          new SelfTest("player_named_on_screen", Severity.Light, "Gabriel (17/10/2026): a grievance read 'over The marriage was ended by the player's own choice'; never 'the player' in the game, the character by name. Passes a stored cause saying 'the player' through the real grievance line and the real chat message line, and asserts both show the player's name, never 'the player', and that a sentence cause follows a colon. Changes nothing", TestPlayerNamedOnScreen),
          new SelfTest("chat_temperature", Severity.Light, "fkasad (Nexus, 17/10/2026) asked whether the mod tunes the temperature; the conversation value was fixed at 0.7, and Gabriel asked for a setting. Moves the Chat Temperature setting and asserts the live chat service sends the new value, and that an out-of-range value is held in range; restores the setting", TestChatTemperature),
          new SelfTest("companion_patrol", Severity.Light, "jaserms1 (Nexus, 16/10/2026): a council's patrol order did nothing; Gabriel's rulings 16-17/10 (the player's own men, chosen on the game's troop screen, until told to stop) and his spike at Ebereth (a free AI patrol drifts off its post). Arranges a companion and men, confirms a 5-man patrol of the nearest village through the same handler the troop screen calls, and asserts the men really left the main party, the patrol is anchored on the village with the AI free; then drags it away and runs the hourly leash, which must re-anchor it; then brings it home and asserts every man is back. tashmetu (18/10/2026): another mod reads the patrol through CrPatrols.Current and hears its end through CrPatrols.Ended, as Back. Cleans up", TestCompanionPatrol),
@@ -17248,6 +17249,57 @@ namespace CalradiaRemembers.Diagnostics
             aims.Retract(Aims.AimsBehavior.CrSource, "cr_selftest_own");
             aims.OnConversationEnded(first);
             aims.OnConversationEnded(second);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestAimsDoor(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("aims_door");
+
+         Aims.AimsBehavior aims = Aims.AimsBehavior.Instance;
+         if (t.Skip(aims == null, "the aims behavior is not registered")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.Age >= 18
+                                                            && h.MapFaction != null && Hero.MainHero?.MapFaction != null
+                                                            && !FactionManager.IsAtWarAgainstFaction(h.MapFaction, Hero.MainHero.MapFaction)
+                                                            && aims.Book.ForNpc(h.StringId) == null
+                                                            && (behavior?.Store?.Get(h.StringId)?.ReputationWithPlayer ?? 0) > NpcMemoryService.Core.Standing.VanillaRelation.EnemyTier);
+         if (t.Skip(lord == null, "no lord at peace with the player to hold a test aim")) return t.Line();
+         t.Note(lord.Name.ToString());
+
+         const string source = "cr_selftest_door", session = "cr_selftest_door_session";
+         const string want = "The selftest wants the old watchtower manned again.";
+         var raised = new List<CrAimRaised>();
+         void OnRaised(CrAimRaised r) { if (r.SourceMod == source) raised.Add(r); }
+         CrAims.Raised += OnRaised;
+         try
+         {
+            t.Expect("accepted", CrAims.Register(new ExternalAim {Id = "tower", SourceMod = source, NpcId = lord.StringId, Want = want, Channels = {"conversation"}}),
+               AimResult.Accepted);
+            t.Expect("updatedUnderTheSameId", CrAims.Register(new ExternalAim {Id = "tower", SourceMod = source, NpcId = lord.StringId, Want = want}),
+               AimResult.Updated);
+            t.Expect("oneAimPerLord", CrAims.Register(new ExternalAim {Id = "other", SourceMod = source + "_b", NpcId = lord.StringId, Want = want}),
+               AimResult.LordAlreadyHasAnAim);
+            t.Expect("anUnknownHeroIsRefused", CrAims.Register(new ExternalAim {Id = "x", SourceMod = source, NpcId = "no_such_hero", Want = want}),
+               AimResult.UnknownHero);
+            t.Expect("crsOwnNameIsReserved", CrAims.Register(new ExternalAim {Id = "x", SourceMod = Aims.AimsBehavior.CrSource, NpcId = lord.StringId, Want = want}),
+               AimResult.ReservedSource);
+
+            // STAKE: the lord gets leave to raise it in a conversation the player opens, and the mod hears it.
+            aims.OnConversationStarted(new CrConversationInfo(lord.StringId, null, (int) CampaignTime.Now.ToDays, session));
+            t.Expect("theContextCarriesTheWant", aims.ForContext(lord, session)?.Want, want);
+            t.Expect("theModHearsItWasRaised", raised.Count == 1 && raised[0].AimId == "tower" && raised[0].NpcId == lord.StringId && raised[0].Channel == "conversation", true);
+
+            t.Expect("retracted", CrAims.Retract(source, "tower"), true);
+            t.Expect("goneOnceRetracted", aims.Book.ForNpc(lord.StringId) == null, true);
+         }
+         finally
+         {
+            CrAims.Raised -= OnRaised;
+            CrAims.Retract(source, "tower");
+            aims.OnConversationEnded(session);
          }
 
          return t.Line();

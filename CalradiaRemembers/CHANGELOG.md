@@ -17,6 +17,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (on_the_road, lost, delivered, set_aside, answered, unknown, `ModLetterStatusPolicy`) and `GetReply(id)`. SDK:
   `PendingLetter.Id` and `SetAside`, additive. The window raises them through `Letters.ModLetterNotices`, connected
   at load (no new pair of namespaces). cr.testall `letter_from_another_mod` extended.
+- **Lords with aims of their own: the public door** (tashmetu 14/10, "in Calradia, nobody takes the first step with
+  the player"; shape proposed in ROADMAP, approved by Gabriel 20/10). `CrAims.Register(ExternalAim)` ->
+  `AimResult`, `CrAims.Retract(sourceMod, id)`, event `CrAims.Raised(CrAimRaised)` (the lord was given the floor),
+  over the book CR's own war duty already uses (`cr_standing_aims`). Another mod's aim surfaces in conversation;
+  letter and audience later. cr.testall `aims_door`.
 - **A contract the employer ended is no abandonment** (tashmetu 20/10: Mercenary Management's AI dismisses the
   player's contract, and every lord of the realm lost regard for the player being let go; the game reports both as
   `LeaveAsMercenary`). New `CrMercenaries.ContractEndedByEmployer(Kingdom)`, the same day, before or after the game's
