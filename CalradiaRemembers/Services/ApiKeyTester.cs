@@ -44,18 +44,29 @@ namespace CalradiaRemembers.Services
       ///   completions. A bad model id is the most common silent misconfiguration, so its
       ///   error is surfaced verbatim.
       /// </summary>
-      public static void Run() => _ = RunOpenRouterAsync();
+      public static void Run()
+      {
+         ModLog.Info("[API TEST] OpenRouter test clicked.");
+         _ = RunOpenRouterAsync();
+      }
 
       /// <summary>
       ///   Tests a custom OpenAI-compatible endpoint by sending a one-token completion.
       ///   The key is optional — blank = keyless server (LM Studio / Ollama default).
       /// </summary>
-      public static void RunCustom() => _ = RunCustomAsync();
+      public static void RunCustom()
+      {
+         ModLog.Info("[API TEST] endpoint test clicked.");
+         _ = RunCustomAsync();
+      }
 
       /// <summary>Tests the NanoGPT key (MCM field → NANOGPT_API_KEY env var).</summary>
-      public static void RunNanoGpt() =>
+      public static void RunNanoGpt()
+      {
+         ModLog.Info("[API TEST] NanoGPT test clicked.");
          Probe("NanoGPT", NanoGptModelsUrl, ResolveKey(CrSettings.Instance?.NanoGptApiKey, NanoGptEnvVar),
             "nano-gpt.com");
+      }
 
       #region private
 
@@ -285,6 +296,9 @@ namespace CalradiaRemembers.Services
 
       private static void ShowResult(string title, string body)
       {
+         // The button leaves no other trace: "the Test button no longer works" (Gabriel, 19/10/2026) is answered by
+         // this line, or by its absence.
+         ModLog.Info($"[API TEST] {title}: {body}");
          try
          {
             InformationManager.ShowInquiry(new InquiryData(
