@@ -1,8 +1,33 @@
 <DummyRoot>
-  <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="StretchToParent"
-                          HorizontalAlignment="Left"
-                          Brush="Encyclopedia.Stat.ValueText"
-                          Brush.TextHorizontalAlignment="Left"
-                          Text="@CalradiaRegardHousesItems"
-                          MarginTop="2" MarginLeft="30" MarginBottom="4" />
+  <ListPanel StackLayout.LayoutMethod="VerticalTopToBottom"
+             HeightSizePolicy="CoverChildren" WidthSizePolicy="StretchToParent"
+             HorizontalAlignment="Left"
+             MarginLeft="30" MarginBottom="4">
+    <Children>
+      <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="CoverChildren"
+                              HorizontalAlignment="Left"
+                              Brush="Encyclopedia.Stat.DefinitionText"
+                              Brush.TextHorizontalAlignment="Left"
+                              Text="@CalradiaRegardHousesOddsLabel"
+                              MarginTop="2" MarginLeft="12" />
+      <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="StretchToParent"
+                              HorizontalAlignment="Left"
+                              Brush="Encyclopedia.Stat.ValueText"
+                              Brush.TextHorizontalAlignment="Left"
+                              Text="@CalradiaRegardHousesOddsItems"
+                              MarginTop="2" MarginLeft="24" />
+      <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="CoverChildren"
+                              HorizontalAlignment="Left"
+                              Brush="Encyclopedia.Stat.DefinitionText"
+                              Brush.TextHorizontalAlignment="Left"
+                              Text="@CalradiaRegardHousesAffinityLabel"
+                              MarginTop="6" MarginLeft="12" />
+      <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="StretchToParent"
+                              HorizontalAlignment="Left"
+                              Brush="Encyclopedia.Stat.ValueText"
+                              Brush.TextHorizontalAlignment="Left"
+                              Text="@CalradiaRegardHousesAffinityItems"
+                              MarginTop="2" MarginLeft="24" />
+    </Children>
+  </ListPanel>
 </DummyRoot>

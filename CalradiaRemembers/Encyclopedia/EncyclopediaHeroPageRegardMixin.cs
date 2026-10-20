@@ -56,7 +56,7 @@ namespace CalradiaRemembers.Encyclopedia
       private string _label;
       private string _items;
       private string _housesLabel;
-      private string _housesItems;
+      private string _oddsLabel, _oddsItems, _affinityLabel, _affinityItems;
 
       // The characters whose reason the Why block gives, so their house is named through them rather than said twice.
       private readonly HashSet<Hero> _explained = new();
@@ -121,15 +121,54 @@ namespace CalradiaRemembers.Encyclopedia
          }
       }
 
-      /// <summary>Gold lines: the houses at odds, then those of affinity, each with its reason and the war mark.</summary>
+      /// <summary>Cream subtitle under "Houses:", "At odds" or empty (auto-hides).</summary>
       [DataSourceProperty]
-      public string CalradiaRegardHousesItems
+      public string CalradiaRegardHousesOddsLabel
       {
-         get => _housesItems;
+         get => _oddsLabel;
          set
          {
-            if (_housesItems == value) return;
-            _housesItems = value;
+            if (_oddsLabel == value) return;
+            _oddsLabel = value;
+            ViewModel?.OnPropertyChanged();
+         }
+      }
+
+      /// <summary>Gold bullets under it, one per reason, the houses sharing it and the war mark.</summary>
+      [DataSourceProperty]
+      public string CalradiaRegardHousesOddsItems
+      {
+         get => _oddsItems;
+         set
+         {
+            if (_oddsItems == value) return;
+            _oddsItems = value;
+            ViewModel?.OnPropertyChanged();
+         }
+      }
+
+      /// <summary>Cream subtitle, "Of affinity" or empty (auto-hides).</summary>
+      [DataSourceProperty]
+      public string CalradiaRegardHousesAffinityLabel
+      {
+         get => _affinityLabel;
+         set
+         {
+            if (_affinityLabel == value) return;
+            _affinityLabel = value;
+            ViewModel?.OnPropertyChanged();
+         }
+      }
+
+      /// <summary>Gold bullets under it, as the houses at odds.</summary>
+      [DataSourceProperty]
+      public string CalradiaRegardHousesAffinityItems
+      {
+         get => _affinityItems;
+         set
+         {
+            if (_affinityItems == value) return;
+            _affinityItems = value;
             ViewModel?.OnPropertyChanged();
          }
       }
@@ -146,7 +185,10 @@ namespace CalradiaRemembers.Encyclopedia
          CalradiaRegardWhyLabel = "";
          CalradiaRegardWhyItems = "";
          CalradiaRegardHousesLabel = "";
-         CalradiaRegardHousesItems = "";
+         CalradiaRegardHousesOddsLabel = "";
+         CalradiaRegardHousesOddsItems = "";
+         CalradiaRegardHousesAffinityLabel = "";
+         CalradiaRegardHousesAffinityItems = "";
          _explained.Clear();
 
          try
@@ -249,11 +291,22 @@ namespace CalradiaRemembers.Encyclopedia
          }
 
          (IReadOnlyList<string> odds, IReadOnlyList<string> affinity) = ClanRegardListPolicy.Lists(houses);
-         List<string> lines = odds.Select(l => "At odds, " + l).Concat(affinity.Select(l => "Of affinity, " + l)).ToList();
-         if (lines.Count == 0) return;
+         if (odds.Count == 0 && affinity.Count == 0) return;
 
+         // Gabriel (20/10/2026): "At odds" and "Of affinity" as titles with a list under each, easier to read than
+         // the two words repeated at the head of every line.
          CalradiaRegardHousesLabel = "Houses:";
-         CalradiaRegardHousesItems = string.Join("\n", lines);
+         if (odds.Count > 0)
+         {
+            CalradiaRegardHousesOddsLabel = "At odds";
+            CalradiaRegardHousesOddsItems = string.Join("\n", odds.Select(l => "• " + Capitalised(l)));
+         }
+
+         if (affinity.Count > 0)
+         {
+            CalradiaRegardHousesAffinityLabel = "Of affinity";
+            CalradiaRegardHousesAffinityItems = string.Join("\n", affinity.Select(l => "• " + Capitalised(l)));
+         }
       }
 
       // A character's page: vanilla's lists, corrected by what really happened, with the reasons.
@@ -316,6 +369,9 @@ namespace CalradiaRemembers.Encyclopedia
          for (int i = 0; i < heroes.Count; i++)
             (i < ShownPerList ? shown : overflow).Add(new HeroVM(heroes[i]));
       }
+
+      private static string Capitalised(string line)
+         => string.IsNullOrEmpty(line) ? line : char.ToUpperInvariant(line[0]) + line.Substring(1);
 
       private void Show(List<string> lines, string label)
       {
