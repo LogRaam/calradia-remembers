@@ -32,6 +32,14 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## APPROVED 2026-10-20, PHASE 2 (Gabriel: "les objets ... dans une deuxieme phase car ca peut etre plus complique"): items in tales
+
+tashmetu (20/10/2026): "A tale that asks for things ('bring 30 grain to {giver}'), and a thing given in an ending."
+Today `item` and `to` on an objective are read but not played (HOWTO section 11), and no consequence gives an item.
+Open for the design: a `bring` objective (which inventory counts: the party's; whether the items leave on delivery,
+through the give_item road with its confirmation), an item consequence (by id or by kind, "30 grain"), how a tale
+declares an amount the player cannot reach (gating before declaration), and the editor's forms.
+
 ## BUILT 2026-10-20 for 2.7.19 (tashmetu, approved by Gabriel): a match for a daughter of the player's house
 
 tashmetu (20/10/2026): "When the bride is the player's daughter or sister, the one with the say over her hand is the
