@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 542 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1218 types in 45 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1219 types in 45 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1764,7 +1764,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RapportBand` | public enum | How two companions stand with each other: banded from their accumulated mutual relation. |
 | `RetentionStep` | public enum | What the engine should do this tick for an unhappy companion. |
 
-### CalradiaRemembers.Logic.Conversation (28)
+### CalradiaRemembers.Logic.Conversation (29)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1796,6 +1796,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SilenceOrderPolicy` | public static class | Resolves a silence order. |
 | `SilenceResponse` | public enum | Whether an ordered participant yields the floor or holds it. |
 | `SummaryEnqueueOutcome` | public enum | What ConversationSummaryQueue.Enqueue actually did with the new job. |
+| `WitnessExchangePolicy` | public static class | Decides whether the bystander exchange must stop and leave the floor to the player. |
 
 ### CalradiaRemembers.Logic.Diagnostics (6)
 

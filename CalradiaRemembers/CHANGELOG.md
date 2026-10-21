@@ -68,6 +68,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   afterwards is no betrayal. cr.testall `mercenary_dismissed`.
 
 ### Fixed
+- **A character no longer asks the player the same question again after a bystander speaks** (Lordfadooboo 20/10: on
+  the road with Apolanea and a companion invited in, the question came back two or three times before he could answer).
+  The bystander exchange (NPC Cross-Talk) re-called the character after every bystander line without looking at its own
+  line, and the last round's directive even said to "turn the question to the player". Now the exchange stops once the
+  character's line ends on a question that names no bystander (`WitnessExchangePolicy`), and the witness-turn directive
+  says a question already put to the player is still waiting and must not be asked again (SDK `PromptBuilder`).
 - **Kingdom votes: CR's code on their path can no longer crash the game** (CarolusIV 20/10: a crash on every vote on fief
   awards, trade agreements and some war declarations, with CC and "the bridge" also running; cause NOT proven ours, crash
   report asked). Nothing in CR hooks the vote itself, but three unguarded handlers run inside its outcome: the popup

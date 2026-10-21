@@ -1836,7 +1836,13 @@ namespace CalradiaRemembers.Chat
             // it just never drives this loop.
             bool anyWitnessSpoke = witnessReactions.Exists(r => WitnessSpeechDetector.HasSpokenWords(r.text));
 
-            if (!suppressGroupTail && anyWitnessSpoke && speaker.IsMain && !IsCaptiveEncounter
+            // Lordfadooboo (20/10/2026): a line that ends on a question to the player hands the floor to the player;
+            // answering the bystander from there only re-asks it. The bystander's line stands and the player answers.
+            bool waitsForThePlayer = WitnessExchangePolicy.WaitsForThePlayer(npcLine, _witnesses.Select(w => w.Name));
+            if (waitsForThePlayer && anyWitnessSpoke && speaker.IsMain)
+               ModLog.Info($"[15C] {speaker.Name} asked the player a question; the bystander exchange waits for the answer.");
+
+            if (!suppressGroupTail && anyWitnessSpoke && speaker.IsMain && !IsCaptiveEncounter && !waitsForThePlayer
                 && _witnessExchangesThisRound < WitnessExchangeCap && !_conversationEnded)
             {
                _witnessExchangesThisRound++;
@@ -2422,6 +2428,14 @@ namespace CalradiaRemembers.Chat
                HandleWitnessLeaves(result.Response);
 
                if (_conversationEnded || isLast) break;
+
+               // The reply asked the player something: stop here, or the next round re-asks it (Lordfadooboo, 20/10/2026).
+               if (WitnessExchangePolicy.WaitsForThePlayer(npcReply, _witnesses.Select(w => w.Name)))
+               {
+                  ModLog.Info($"[15C] {mainSpeaker.Name} asked the player a question; the bystander exchange waits for the answer.");
+
+                  break;
+               }
 
                // Collect new witness reactions from this response.
                // Display them immediately (without committing) — they become
