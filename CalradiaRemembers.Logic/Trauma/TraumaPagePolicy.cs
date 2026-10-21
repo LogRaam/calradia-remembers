@@ -35,7 +35,10 @@ namespace CalradiaRemembers.Logic.Trauma
       Tormented,
 
       /// <summary>Beaten down in a conversation turned violent.</summary>
-      Beaten
+      Beaten,
+
+      /// <summary>Robbed by force in a conversation turned violent (Gabriel, 20/10/2026: "oui, ajoute le vol").</summary>
+      Robbed
    }
 
    /// <summary>Who did it, as the player saw it. Stored by NAME in the save.</summary>
@@ -108,7 +111,7 @@ namespace CalradiaRemembers.Logic.Trauma
 
          return r.Author switch
          {
-            TraumaAuthor.Player when r.Kind == TraumaKind.Beaten => $"{she} was {verb} by you{date}.",
+            TraumaAuthor.Player when r.Kind is TraumaKind.Beaten or TraumaKind.Robbed => $"{she} was {verb} by you{date}.",
             TraumaAuthor.Player => $"{she} was {verb} by you while your prisoner{date}.",
             TraumaAuthor.PlayerCoerced => $"{she} was {verb} by your own hands, forced on you by {by}, while you were both held captive{date}.",
             TraumaAuthor.Captor => $"{she} was {verb} by {by} while held captive, before your eyes{date}.",
@@ -154,6 +157,7 @@ namespace CalradiaRemembers.Logic.Trauma
          TraumaKind.Assaulted => "assaulted",
          TraumaKind.Interrogated => "harshly interrogated",
          TraumaKind.Beaten => "beaten down",
+         TraumaKind.Robbed => "robbed at swordpoint",
          _ => "tormented"
       };
    }

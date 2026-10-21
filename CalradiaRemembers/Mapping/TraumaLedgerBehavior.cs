@@ -59,8 +59,5 @@ namespace CalradiaRemembers.Mapping
 
       /// <summary>What <paramref name="victim" /> lived through, oldest first.</summary>
       public static IReadOnlyList<TraumaRecord> Of(Hero victim) => victim == null ? Array.Empty<TraumaRecord>() : TraumaPagePolicy.Of(_ledger, victim.StringId);
-
-      /// <summary>cr.testall seam: forgets everything recorded for this hero.</summary>
-      internal static void DebugForget(Hero victim) => _ledger.RemoveAll(r => r.VictimId == victim?.StringId);
    }
 }

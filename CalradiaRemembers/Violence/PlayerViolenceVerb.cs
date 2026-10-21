@@ -186,6 +186,7 @@ namespace CalradiaRemembers.Violence
 
                GiveGoldAction.ApplyBetweenCharacters(target, Hero.MainHero, take);
                RememberOnTarget(target, $"You robbed me of {take} denars, with a blade between us.");
+               Mapping.TraumaLedgerBehavior.Record(target, null, Logic.Trauma.TraumaKind.Robbed, Logic.Trauma.TraumaAuthor.Player);
 
                return new ActionOutcome($"You take {take} denars from {target.Name} by force (purse: {Hero.MainHero.Gold}).", false);
             }

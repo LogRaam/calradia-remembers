@@ -60,6 +60,15 @@ namespace CalradiaRemembers.Tests
                          .Should().Be("He was beaten down by you, in spring 1092.");
       }
 
+      // STAKE: Gabriel (20/10/2026): "oui, ajoute le vol". A purse taken by force is an aggression the victim lived through,
+      // told as the player's own deed, never as something done while a prisoner.
+      [Test]
+      public void GIVEN_a_woman_the_player_robbed_by_force_WHEN_her_page_opens_THEN_it_says_the_player_robbed_her()
+      {
+         TraumaPagePolicy.Line(new TraumaRecord {Kind = TraumaKind.Robbed, Author = TraumaAuthor.Player, Day = 100}, true, null, When)
+                         .Should().Be("She was robbed at swordpoint by you, in spring 1092.");
+      }
+
       // STAKE: the words follow what the scene was; a scene of force reads as an assault, never as something gentler.
       [Test]
       public void GIVEN_each_captive_scene_intent_WHEN_its_kind_is_read_THEN_torture_and_force_and_interrogation_keep_their_names()
