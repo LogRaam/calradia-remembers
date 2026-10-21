@@ -1519,13 +1519,14 @@ namespace CalradiaRemembers.Diagnostics
       ///   divorce_process self-test find a SECOND, distinct couple for its mutual-consent scenario after
       ///   already having dissolved the first.
       /// </summary>
-      private static (Hero npc, Hero spouse)? ResolveDivorceEligibleCouple(HashSet<string> excludeNpcIds = null)
+      private static (Hero npc, Hero spouse)? ResolveDivorceEligibleCouple(HashSet<string> excludeNpcIds = null, Func<Hero, bool> reject = null)
       {
          foreach (Hero h in Hero.AllAliveHeroes)
          {
             if (h == Hero.MainHero) continue;
             if (excludeNpcIds != null && excludeNpcIds.Contains(h.StringId)) continue;
             Hero spouse = h.Spouse;
+            if (spouse != null && reject != null && (reject(h) || reject(spouse))) continue;
 
             if (spouse is not {IsAlive: true} || spouse == Hero.MainHero) continue;
             if (h.IsPregnant || spouse.IsPregnant || h.IsPrisoner || spouse.IsPrisoner) continue;
@@ -4844,7 +4845,11 @@ namespace CalradiaRemembers.Diagnostics
          // A second, distinct couple is needed: the first pair is no longer married after Scenario A.
          // Best-effort: if the campaign has no second eligible couple, this half is skipped WITHOUT
          // failing Scenario A's already-recorded verdict above.
-         (Hero npc, Hero spouse)? secondPair = ResolveDivorceEligibleCouple(usedNpcIds);
+         // Neither of the second couple may already hold a Divorce grudge of today: the first couple's divorce grudges its
+         // family and friends, and on Gabriel's save (20/10/2026) the second couple's husband was the first wife's kin, so the
+         // check read Scenario A's grudge (and the same-day dedup would have hidden a real one from Scenario B).
+         (Hero npc, Hero spouse)? secondPair = ResolveDivorceEligibleCouple(usedNpcIds,
+            h => GrudgeBehavior.Instance.GrudgesFor(h.StringId).Any(g => g.Source == GrudgeSource.Divorce && g.EventDay == today));
          if (secondPair == null)
          {
             t.Note("mutualConsentSpouseGrudgeAbsent skipped: no second eligible couple available");
@@ -5440,7 +5445,7 @@ namespace CalradiaRemembers.Diagnostics
          Hero a = lords.FirstOrDefault();
          Hero b = lords.FirstOrDefault(h => a != null && h.MapFaction != a.MapFaction && h.Clan != a.Clan);
          Hero stranger = lords.FirstOrDefault(h => a != null && b != null && h.Clan != a.Clan && h.Clan != b.Clan && h.MapFaction != a.MapFaction
-                                                   && h.MapFaction != b.MapFaction && h.Spouse != a && h.Spouse != b);
+                                                   && h.MapFaction != b.MapFaction && !IsKinOf(h, a) && !IsKinOf(h, b));
 
          if (t.Skip(a == null || b == null || stranger == null, "no three adult lords of three houses and realms")) return t.Line();
 
@@ -5499,7 +5504,7 @@ namespace CalradiaRemembers.Diagnostics
          Hero a = lords.FirstOrDefault();
          Hero b = lords.FirstOrDefault(h => a != null && h.MapFaction != a.MapFaction && h.Clan != a.Clan);
          Hero stranger = lords.FirstOrDefault(h => a != null && b != null && h.Clan != a.Clan && h.Clan != b.Clan && h.MapFaction != a.MapFaction
-                                                   && h.MapFaction != b.MapFaction && h.Spouse != a && h.Spouse != b);
+                                                   && h.MapFaction != b.MapFaction && !IsKinOf(h, a) && !IsKinOf(h, b));
 
          if (t.Skip(a == null || b == null || stranger == null, "no three adult lords of three houses and realms")) return t.Line();
 
@@ -13573,9 +13578,12 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("itsTwinLoadsClean", string.Join(" | ", b.DebugLoadTale(Tale(twinId, other), "selftest.json")), "");
          try
          {
-            string yes = b.DebugEligibility(merchant, id) ?? "";
-            t.Expect("aTownMerchantBinds", yes.StartsWith("no:") ? yes : "binds", "binds");
-            t.Expect("withTheTownAsItsPlace", yes.StartsWith("no:") || yes.Contains("village=" + merchant.HomeSettlement.Name), true);
+            // The place is read off the binding itself: the offer can be "not now" for a reason of the world's (the merchant
+            // has a vanilla task of his own), which prints no bound place and failed this on Gabriel's save (20/10/2026).
+            t.Note(b.DebugEligibility(merchant, id) ?? "");
+            string bindWhy = b.DebugBind(id, merchant, out Dictionary<string, string> ids);
+            t.Expect("aTownMerchantBinds", bindWhy ?? "binds", "binds");
+            t.Expect("withTheTownAsItsPlace", ids != null && ids.TryGetValue("village", out string place) && place == merchant.HomeSettlement.StringId, true);
             if (headman != null)
             {
                string no = b.DebugEligibility(headman, id) ?? "";
@@ -13673,6 +13681,11 @@ namespace CalradiaRemembers.Diagnostics
       // sauvegarde de test." The victim is a companion of the player's (reused, or minted into the party) and what is recorded
       // stays, so the page can be opened in the encyclopedia afterwards. Only the MCM adult level, which is not the save's, is
       // put back.
+      // A stranger to an event is no kin of its actors: kin know it whatever the realm or house (LongTermHistoryPolicy.WouldKnow),
+      // and a daughter married into another realm stays a daughter (authored_history picked one on Gabriel's test save, 20/10/2026).
+      private static bool IsKinOf(Hero h, Hero of)
+         => h == of || h.Spouse == of || h.Father == of || h.Mother == of || of.Father == h || of.Mother == h || of.Siblings.Contains(h);
+
       private static string TestTraumaPage(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("trauma_page");
