@@ -68,6 +68,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   afterwards is no betrayal. cr.testall `mercenary_dismissed`.
 
 ### Fixed
+- **Kingdom votes: CR's code on their path can no longer crash the game** (CarolusIV 20/10: a crash on every vote on fief
+  awards, trade agreements and some war declarations, with CC and "the bridge" also running; cause NOT proven ours, crash
+  report asked). Nothing in CR hooks the vote itself, but three unguarded handlers run inside its outcome: the popup
+  postfix behind "Who is this?" (every vanilla popup, `AudienceInquiry.OnPopupShown`), the war-declared quest stamp
+  (`QuestDeedTracker.OnWarDeclared`) and the fief-changed self-esteem record (`SelfEsteemBehavior`). Each now runs in
+  `SafeRun.Step` and logs its fault instead of throwing into the game's action.
 - **The encyclopedia no longer seems to explain a regard it does not know** (Gabriel 20/10: "Personal regard: unknown"
   then "Why:" over Abagai's own friend and enemy). On a character's page the list is headed "Friends and enemies, and
   why:"; the player's page keeps "Why:", where the lines are the reasons others hold the player dear or in contempt.

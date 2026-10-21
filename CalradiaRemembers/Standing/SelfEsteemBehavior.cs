@@ -90,10 +90,14 @@ namespace CalradiaRemembers.Standing
       private void OnSettlementOwnerChanged(Settlement settlement, bool openToClaim, Hero newOwner, Hero oldOwner, Hero capturerHero,
                                             ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail detail)
       {
-         if (settlement == null || !(settlement.IsTown || settlement.IsCastle) || newOwner == oldOwner) return;
+         // Raised from inside ChangeOwnerOfSettlementAction, a fief award's outcome among them (CarolusIV 20/10/2026).
+         SafeRun.Step("[SELF-ESTEEM] fief changed hands", () =>
+         {
+            if (settlement == null || !(settlement.IsTown || settlement.IsCastle) || newOwner == oldOwner) return;
 
-         if (oldOwner != null) SelfEsteemService.Record(oldOwner, SelfEsteemEvent.FiefLost, settlement.Name?.ToString());
-         if (newOwner != null) SelfEsteemService.Record(newOwner, SelfEsteemEvent.FiefGained, settlement.Name?.ToString());
+            if (oldOwner != null) SelfEsteemService.Record(oldOwner, SelfEsteemEvent.FiefLost, settlement.Name?.ToString());
+            if (newOwner != null) SelfEsteemService.Record(newOwner, SelfEsteemEvent.FiefGained, settlement.Name?.ToString());
+         });
       }
 
       // A death in the house: parents, spouse, children, siblings.

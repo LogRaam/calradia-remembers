@@ -726,16 +726,21 @@ namespace CalradiaRemembers.Quests
 
       private void OnWarDeclared(IFaction faction1, IFaction faction2, DeclareWarAction.DeclareWarDetail detail)
       {
-         IFaction player = Hero.MainHero?.MapFaction;
-
-         if (player == null || faction1 == null || faction2 == null) return;
-
-         int day = CurrentDay();
-         ForEachOutstandingQuest((profile, quest) =>
+         // Raised from inside DeclareWarAction, a kingdom vote's outcome among them (CarolusIV 20/10/2026): a fault here
+         // must never propagate into the game's action.
+         SafeRun.Step("[QUEST] war declared", () =>
          {
-            if (quest.Type == QuestType.DeclareWar && WarDeedMatcher.IsSatisfied(new WarSides(faction1.StringId, faction2.StringId), quest.TargetFactionId, player.StringId))
-               Stamp(profile, quest,
-                  $"Declared war on {quest.TargetFactionName ?? faction2.Name?.ToString()} on day {day}", day);
+            IFaction player = Hero.MainHero?.MapFaction;
+
+            if (player == null || faction1 == null || faction2 == null) return;
+
+            int day = CurrentDay();
+            ForEachOutstandingQuest((profile, quest) =>
+            {
+               if (quest.Type == QuestType.DeclareWar && WarDeedMatcher.IsSatisfied(new WarSides(faction1.StringId, faction2.StringId), quest.TargetFactionId, player.StringId))
+                  Stamp(profile, quest,
+                     $"Declared war on {quest.TargetFactionName ?? faction2.Name?.ToString()} on day {day}", day);
+            });
          });
       }
 

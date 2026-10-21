@@ -92,8 +92,13 @@ namespace CalradiaRemembers.Interception
       /// <summary>The popup patch: the popup now shows <paramref name="data" /> (null when it is cleared).</summary>
       internal static void OnPopupShown(InquiryData data)
       {
-         Showing = data;
-         AudienceWhoButtonMixin.Current?.Refresh(OffersWho(data));
+         // Runs on EVERY vanilla popup (a kingdom vote's outcome among them, CarolusIV 20/10/2026): a fault here must
+         // never reach the game's own popup code.
+         SafeRun.Step("[AUDIENCE] popup shown", () =>
+         {
+            Showing = data;
+            AudienceWhoButtonMixin.Current?.Refresh(OffersWho(data));
+         });
       }
 
       /// <summary>
