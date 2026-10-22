@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 542 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1221 types in 45 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 543 types in 61 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1227 types in 45 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -529,7 +529,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (32)
+### CalradiaRemembers.Mapping (33)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -549,6 +549,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NarrativeLoader` | public static class | Loads narrative text files from the mod's ModuleData folder at session launch. |
 | `PairRegardReader` | internal static class | Reads what lies between two characters into PairRegardFacts, and assesses it. |
 | `PlayerDressResolver` | public static class | Resolves the player's live PlayerDressBand from Hero.MainHero's equipment. |
+| `PlayerFameResolver` | public static class | Builds the "what you know of their name" line for a character who does not know the player in person, or null. |
 | `PlayerPrisonBreakPatch` | public static class | Who the player is breaking out of prison right now, for the listeners of that release. |
 | `PromptProfileService` | internal static class | The prompt profile in use, and the layout each kind of character gets from it. |
 | `RealmFaceBehavior` | public class | Dresses each realm's queen in the face its faces file gives, and gives a former queen her own face back. |
@@ -2175,10 +2176,16 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WarPressFacts` | public class | What a king weighs when a lord of his realm presses him toward war. |
 | `WarPressPolicy` | public static class | Whether a king goes to war when a lord presses him (PRESS_FOR_WAR). |
 
-### CalradiaRemembers.Logic.Social (2)
+### CalradiaRemembers.Logic.Social (8)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `FameBand` | public enum | How far the player's name has reached one character who does not know them in person. |
+| `FameObserver` | public enum | Who is hearing of the player: how widely word reaches someone of their station. |
+| `FameRepute` | public enum | What the player is said to be, once known by reputation (the game's own traits for the player). |
+| `PlayerFameFacts` | public class | What the rule reads: the player's standing and who is hearing of it. |
+| `PlayerFamePolicy` | public static class | The rule: renown and a crown carry the name; station, realm, culture and deeds done nearby carry it further. |
+| `PlayerFameReading` | public class | How far the player's name has reached this character, and what it carries (pure). |
 | `PresenceDescriber` | public static class | Renders the spatial "you are with the player like THIS" line, and gates the separate elapsed-gap note (handled by MeetingGapDescriber) so it never fires for someone who travels with the player daily. |
 | `PresenceTier` | public enum | Where an NPC stands relative to the player at this moment, from closest to farthest. |
 

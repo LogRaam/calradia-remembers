@@ -289,6 +289,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("mcm_test_buttons_wired", Severity.Light, "Mechanical: the three MCM Test buttons (OpenRouter, OpenAI-Compatible endpoint, NanoGPT) reach the connection tester. Since 19/10/2026 the settings no longer name the tester (it reads them, and the two namespaces used each other): the submodule hands it over at load, so a button whose hook was never set would click and do nothing, with no error. Asserts each hook is set. Read-only, no call is made", TestMcmTestButtonsWired),
          new SelfTest("memory_panel_secrets", Severity.Light, "tashmetu (20/10/2026): a player read his wife's secret affair in her lover's Memories panel before it came to light. Gives a met character, through the REAL public door, a private memory from another mod, an open one from another mod, and a private one under CR's own name (the player's word to a companion), and asks the REAL panel rule: with Show secret memories off, only the other mod's secret is left out; on, it is listed marked secret. Restores the setting and removes the three memories", TestMemoryPanelSecrets),
          new SelfTest("tale_keys", Severity.Light, "tashmetu (20/10/2026), four keys for written tales: requires.player.gender, a notable giver's trade, a town as the bound place, gold the player pays. A tale written into this test asks a merchant of a town and the player's own sex: a real town merchant binds, with the town as its place; a headman or a village notable is refused for the trade; its twin asking the other sex is refused for the player. One gold paid by the player through the REAL payment reaches the merchant, then is given back. Forgets the tales after", TestTaleKeys),
+         new SelfTest("player_fame", Severity.Light, "Gabriel (21/10/2026), after reading another mod's notoriety per culture: a character who never met the player is told how far the player's name has reached them. Picks a real foreign lord who never met the player and builds his REAL encounter context (EncounterContextBuilder.Build, what a conversation sends): with the player's renown at 0 he is not told the name is famous, at 1000 he is told he would know the banner, and the line names the player's character. A member of the player's own clan gets no line. Restores the player clan's renown", TestPlayerFame),
          new SelfTest("tale_items", Severity.Light, "tashmetu (20/10/2026), items in tales: \"bring 30 grain to {giver}\" and a thing given in an ending; Gabriel approved it for a second phase. A tale written into this test (never a shipped file) is taken on with a real lord and asks him 3 grain; the party is given 8. The bag sees the goods asked of him (and of nobody else), a bag hand-over of 2 takes nothing and leaves the stage; a give_item worded in the chat (Gabriel 21/10: it counts) through the REAL bridge takes nothing while the party carries 2, is asked first naming the 3 asked, then takes exactly 3 of the 8, ends the tale, and its ending gives 2 wine through the REAL item consequence. Puts the party's grain and wine back, abandons and forgets the tale", TestTaleItems),
          new SelfTest("tale_locals_memory", Severity.Light, "tashmetu (20/10/2026), the Moonlit Maiden: a giver who is a notable of the village an ending speaks to remembered the same moment twice, as the giver and as one of the locals. Binds a real notable of a real village as the giver of an ending that gives him a memory and speaks to the village's locals, and asks the REAL recipients: the giver is left out of the locals' memory, and the village's other notables still hear it. Writes no memory", TestTaleLocalsMemory),
          new SelfTest("settings_ranges_agree", Severity.Light, "Mechanical (Gabriel, 2026-09-10, after the Regard Warmth Cooldown: \"je suis surpris que le bon comportement n'ait pas ete bien protege par des tests unitaires. Par exemple, 0 aurait du etre teste\"). The uncomfortable truth is that 0 WAS tested and the test agreed with the bug: it pinned what the code did, while the MCM control clamped its minimum to 1 and the v2.5.1 changelog promised 0 turned the cooldown off. Three artefacts, no place for any two of them to meet. This is that place. Reflects over EVERY [SettingPropertyInteger] on CrSettings, pairs it with the same-named ModSettings property that enforces it, drives the declared MIN and MAX through the live setting, and asserts the code honours every value the menu offers. Catches the whole family in one assertion, including settings that do not exist yet. Restores each setting to its prior value in a finally", TestSettingsRangesAgree),
@@ -10985,6 +10986,49 @@ namespace CalradiaRemembers.Diagnostics
         ],
         ""endings"": { ""fed"": { ""consequences"": [ { ""type"": ""item"", ""item"": ""wine"", ""count"": 2 } ] } }
       }";
+
+      private static string TestPlayerFame(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("player_fame");
+
+         Clan clan = Clan.PlayerClan;
+         if (t.Abort(clan == null || Hero.MainHero == null, "no player clan")) return t.Line();
+         Hero stranger = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.Clan != null && h.Clan != clan && h.Culture != Hero.MainHero.Culture
+                                                                 && h.MapFaction != Hero.MainHero.MapFaction && h.Age >= 18
+                                                                 && behavior.Store.Get(h.StringId)?.Events?.Count is null or 0
+                                                                 && !Mapping.FirstImpressionResolver.IsAlreadyKnown(h, behavior.Store.Get(h.StringId), behavior.GameStateBridge));
+         if (t.Skip(stranger == null, "no foreign lord who never met the player")) return t.Line();
+         NpcProfile profile = behavior.Store.Get(stranger.StringId);
+         string player = Hero.MainHero.Name.ToString();
+
+         float renownBefore = clan.Renown;
+         int tierBefore = clan.Tier;
+         try
+         {
+            clan.ResetClanRenown();
+            string modest = EncounterContextBuilder.Build(stranger, profile, behavior.GameStateBridge, "Well met.").PlayerFameLine;
+            t.Note($"{stranger.Name} at renown 0: {modest}");
+            t.Expect("aStrangerIsToldOfTheName", modest?.Contains(player) == true, true);
+            t.Expect("anUnknownHouseIsNoBannerHeKnows", modest?.Contains("know the banner") == true, false);
+
+            clan.AddRenown(1000f, false);
+            string famous = EncounterContextBuilder.Build(stranger, profile, behavior.GameStateBridge, "Well met.").PlayerFameLine;
+            t.Note($"{stranger.Name} at renown 1000: {famous}");
+            t.Expect("aGreatNameIsKnownAbroad", famous?.Contains("know the banner") == true, true);
+
+            Hero own = clan.Heroes.FirstOrDefault(h => h != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(h));
+            if (own != null)
+               t.Expect("hisOwnClanNeedsNoWordOfHisName", Mapping.PlayerFameResolver.Resolve(own, behavior.Store.Get(own.StringId), behavior.GameStateBridge), null);
+            else
+               t.Note("no other member of the player's clan to ask");
+         }
+         finally
+         {
+            RestoreClanTier(clan, renownBefore, tierBefore);
+         }
+
+         return t.Line();
+      }
 
       private static string TestTaleItems(NpcMemoryCampaignBehavior behavior)
       {

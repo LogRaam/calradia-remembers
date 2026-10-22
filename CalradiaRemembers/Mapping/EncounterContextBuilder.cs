@@ -710,6 +710,7 @@ namespace CalradiaRemembers.Mapping
                JealousyCultureLoader.GetCulture(hero?.Culture?.Name?.ToString())
                                     .ToleratesSharedPartners(StatureReader.Player.ClanTier),
             PlayerDeedsHeard = ResolvePlayerDeedsHeard(hero),
+            PlayerFameLine = PlayerFameResolver.Resolve(hero, profile, bridge),
             QueryRelevantFactsBlock = ResolveQueryRelevantFacts(hero, playerMessage, (int) CampaignTime.Now.ToDays),
             PastOnMentionBlock = ResolvePastOnMention(hero, playerMessage, (int) CampaignTime.Now.ToDays),
             CompanionOnErrand = ResolveCompanionOnErrand(hero),

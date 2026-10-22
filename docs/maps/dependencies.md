@@ -673,11 +673,11 @@ files first: a side resting on ONE file is one file away from untangling the pai
 #### `CalradiaRemembers.GameState` and `CalradiaRemembers.Mapping`
 
 - `CalradiaRemembers.GameState` uses `CalradiaRemembers.Mapping` in 3 file(s): `GameState/BannerlordGameStateBridge.cs`, `GameState/CourtActionResolver.cs`, `GameState/LordRecruitmentFactsBuilder.cs`
-- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.GameState` in 4 files: `Mapping/ContextualNameResolver.cs`, `Mapping/EncounterContextBuilder.cs`, `Mapping/FirstImpressionResolver.cs`, and 1 more
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.GameState` in 5 files: `Mapping/ContextualNameResolver.cs`, `Mapping/EncounterContextBuilder.cs`, `Mapping/FirstImpressionResolver.cs`, and 2 more
 
 #### `CalradiaRemembers.Mapping` and `CalradiaRemembers.WorldEvents`
 
-- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.WorldEvents` in 3 file(s): `Mapping/EncounterContextBuilder.cs`, `Mapping/HeartPageReader.cs`, `Mapping/PairRegardReader.cs`
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.WorldEvents` in 4 files: `Mapping/EncounterContextBuilder.cs`, `Mapping/HeartPageReader.cs`, `Mapping/PairRegardReader.cs`, and 1 more
 - `CalradiaRemembers.WorldEvents` uses `CalradiaRemembers.Mapping` in 5 files: `WorldEvents/AuthoredHistoryBehavior.cs`, `WorldEvents/FoodTradeMemoryBehavior.cs`, `WorldEvents/MercenaryReputationBehavior.cs`, and 2 more
 
 ## Every namespace, and its edges

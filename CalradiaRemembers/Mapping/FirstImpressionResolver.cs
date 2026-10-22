@@ -89,7 +89,7 @@ namespace CalradiaRemembers.Mapping
       ///   The NPC is no stranger: a real relationship (friend or enemy) exists, or they have a history of
       ///   recorded dealings with the player. First impressions are only for the barely-known.
       /// </summary>
-      private static bool IsAlreadyKnown(Hero npc, NpcProfile profile, IGameStateBridge bridge)
+      internal static bool IsAlreadyKnown(Hero npc, NpcProfile profile, IGameStateBridge bridge)
       {
          int relation = bridge?.GetPlayerRelation(npc) ?? 0;
          int events = profile?.Events?.Count ?? 0;

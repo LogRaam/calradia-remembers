@@ -2,6 +2,18 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## Next.. branch night/fame-edicts, built overnight 22/10 on Gabriel's leave, not yet in a version
+
+### New
+- **What a character knows of the player's name** (Gabriel 21/10, after reading another mod's notoriety per culture).
+  A character who has never met the player is now told how far the name has reached them: never heard of it, a name
+  heard, known by reputation, or famous ("you would know the banner anywhere"). It reads the player's renown, whether
+  he rules a realm, and the listener: a lord hears more than a notable, a notable more than a wanderer; the player's own
+  realm and culture talk of their own; deeds done in the listener's realm carry the name there. Once known by
+  reputation, the name carries what the game says of the player (merciless, merciful, keeps or breaks his word). A
+  character who heard of one of the player's deeds knows him by reputation at least, and the first impression is
+  unchanged. Nothing is saved (`PlayerFamePolicy`). cr.testall `player_fame`.
+
 ## v2.7.19.. open
 
 ### New
