@@ -289,6 +289,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("mcm_test_buttons_wired", Severity.Light, "Mechanical: the three MCM Test buttons (OpenRouter, OpenAI-Compatible endpoint, NanoGPT) reach the connection tester. Since 19/10/2026 the settings no longer name the tester (it reads them, and the two namespaces used each other): the submodule hands it over at load, so a button whose hook was never set would click and do nothing, with no error. Asserts each hook is set. Read-only, no call is made", TestMcmTestButtonsWired),
          new SelfTest("memory_panel_secrets", Severity.Light, "tashmetu (20/10/2026): a player read his wife's secret affair in her lover's Memories panel before it came to light. Gives a met character, through the REAL public door, a private memory from another mod, an open one from another mod, and a private one under CR's own name (the player's word to a companion), and asks the REAL panel rule: with Show secret memories off, only the other mod's secret is left out; on, it is listed marked secret. Restores the setting and removes the three memories", TestMemoryPanelSecrets),
          new SelfTest("tale_keys", Severity.Light, "tashmetu (20/10/2026), four keys for written tales: requires.player.gender, a notable giver's trade, a town as the bound place, gold the player pays. A tale written into this test asks a merchant of a town and the player's own sex: a real town merchant binds, with the town as its place; a headman or a village notable is refused for the trade; its twin asking the other sex is refused for the player. One gold paid by the player through the REAL payment reaches the merchant, then is given back. Forgets the tales after", TestTaleKeys),
+         new SelfTest("edict_effects", Severity.Light, "Gabriel (21/10/2026), edicts on towns and realms, by the player and by the world's lords, and contestable. Picks a real town held by a lord and has its holder decree a Heavy levy through the REAL decree (EdictBehavior.Decree): the influence is spent, the game's OWN loyalty model now carries a line named for the edict at -1 a day and its tax model a +25% factor (what the town's tooltip shows). A second edict on the same town and a decree by someone who does not hold it are refused before anything moves. Then the town is made restless with a long grievance and one day runs: its people force the edict off and the loyalty line is gone. Restores the town's loyalty, the holder's influence, and removes the edict and its news", TestEdictEffects),
          new SelfTest("player_fame", Severity.Light, "Gabriel (21/10/2026), after reading another mod's notoriety per culture: a character who never met the player is told how far the player's name has reached them. Picks a real foreign lord who never met the player and builds his REAL encounter context (EncounterContextBuilder.Build, what a conversation sends): with the player's renown at 0 he is not told the name is famous, at 1000 he is told he would know the banner, and the line names the player's character. A member of the player's own clan gets no line. Restores the player clan's renown", TestPlayerFame),
          new SelfTest("tale_items", Severity.Light, "tashmetu (20/10/2026), items in tales: \"bring 30 grain to {giver}\" and a thing given in an ending; Gabriel approved it for a second phase. A tale written into this test (never a shipped file) is taken on with a real lord and asks him 3 grain; the party is given 8. The bag sees the goods asked of him (and of nobody else), a bag hand-over of 2 takes nothing and leaves the stage; a give_item worded in the chat (Gabriel 21/10: it counts) through the REAL bridge takes nothing while the party carries 2, is asked first naming the 3 asked, then takes exactly 3 of the 8, ends the tale, and its ending gives 2 wine through the REAL item consequence. Puts the party's grain and wine back, abandons and forgets the tale", TestTaleItems),
          new SelfTest("tale_locals_memory", Severity.Light, "tashmetu (20/10/2026), the Moonlit Maiden: a giver who is a notable of the village an ending speaks to remembered the same moment twice, as the giver and as one of the locals. Binds a real notable of a real village as the giver of an ending that gives him a memory and speaks to the village's locals, and asks the REAL recipients: the giver is left out of the locals' memory, and the village's other notables still hear it. Writes no memory", TestTaleLocalsMemory),
@@ -10986,6 +10987,72 @@ namespace CalradiaRemembers.Diagnostics
         ],
         ""endings"": { ""fed"": { ""consequences"": [ { ""type"": ""item"", ""item"": ""wine"", ""count"": 2 } ] } }
       }";
+
+      private static string TestEdictEffects(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("edict_effects");
+
+         Edicts.EdictBehavior b = Edicts.EdictBehavior.Instance;
+         if (t.Abort(b == null || Campaign.Current?.Models == null, "edicts are not running")) return t.Line();
+         Edicts.EdictModelPatches.EnsureOnActiveModels();
+         t.Note($"attached: {string.Join(", ", Edicts.EdictModelPatches.Attached)}");
+
+         Settlement place = Settlement.All.FirstOrDefault(s => s.IsTown && s.OwnerClan?.Leader is Hero h && h != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(h)
+                                                              && b.Ledger.HoldingOn(s.StringId, s.OwnerClan.Kingdom?.StringId) == null && b.Ledger.LastEndedOn(s.StringId) == null);
+         if (t.Skip(place == null, "no town held by a lord, free of any edict")) return t.Line();
+         Town town = place.Town;
+         Hero holder = place.OwnerClan.Leader;
+         Hero stranger = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.Clan != null && h.Clan != place.OwnerClan && h != Hero.MainHero);
+         var models = Campaign.Current.Models;
+
+         float influenceBefore = holder.Clan.Influence, loyaltyBefore = town.Loyalty;
+         int newsBefore = WorldEvents.WorldEventStore.Instance?.All().Count ?? 0;
+         Logic.Edicts.Edict e = null;
+         try
+         {
+            if (holder.Clan.Influence < Logic.Edicts.EdictCatalog.TownInfluenceCost) ChangeClanInfluenceAction.Apply(holder.Clan, Logic.Edicts.EdictCatalog.TownInfluenceCost);
+            float influenceReady = holder.Clan.Influence;
+            float loyaltyChange = models.SettlementLoyaltyModel.CalculateLoyaltyChange(town).ResultNumber;
+            float tax = models.SettlementTaxModel.CalculateTownTax(town).ResultNumber;
+
+            e = b.Decree(holder, Logic.Edicts.EdictScope.Town, place, Logic.Edicts.EdictKind.HeavyLevy, 40, "the Test Levy", out string refusal);
+            t.Expect("theHolderDecreesIt", refusal, null);
+            if (t.Abort(e == null, "the decree was refused")) return t.Line();
+            t.Expect("theInfluenceIsSpent", (int) Math.Round(influenceReady - holder.Clan.Influence), Logic.Edicts.EdictCatalog.TownInfluenceCost);
+
+            ExplainedNumber loyalty = models.SettlementLoyaltyModel.CalculateLoyaltyChange(town, true);
+            t.Expect("theGamesOwnLoyaltyNamesTheEdict", loyalty.GetLines().Any(l => l.name.Contains("the Test Levy") && Math.Abs(l.number + 1f) < 0.01f), true);
+            t.Note($"loyalty a day {loyaltyChange:0.00} -> {loyalty.ResultNumber:0.00}; tax {tax:0} -> {models.SettlementTaxModel.CalculateTownTax(town).ResultNumber:0}");
+            t.Expect("theTaxRises", models.SettlementTaxModel.CalculateTownTax(town).ResultNumber > tax || tax <= 0f, true);
+
+            b.Decree(holder, Logic.Edicts.EdictScope.Town, place, Logic.Edicts.EdictKind.TaxRelief, 40, null, out string second);
+            t.Expect("aSecondEdictWaits", second?.Contains("already") == true, true);
+            if (stranger != null)
+            {
+               b.Decree(stranger, Logic.Edicts.EdictScope.Town, place, Logic.Edicts.EdictKind.TaxRelief, 40, null, out string notHis);
+               t.Expect("aStrangerCannotDecreeForIt", notHis?.Contains("head of the house") == true, true);
+            }
+
+            town.Loyalty = 10f;
+            e.Grievance[place.StringId] = Logic.Edicts.EdictPolicy.RepealedAfterDays - 1;
+            e.ContestedIn.Add(place.StringId);
+            b.Daily(Edicts.EdictBehavior.Today);
+            t.Expect("thePeopleForceItOff", e.Status, Logic.Edicts.EdictStatus.Repealed);
+            t.Expect("andTheLineIsGone", models.SettlementLoyaltyModel.CalculateLoyaltyChange(town, true).GetLines().Any(l => l.name.Contains("the Test Levy")), false);
+         }
+         finally
+         {
+            town.Loyalty = loyaltyBefore;
+            ChangeClanInfluenceAction.Apply(holder.Clan, influenceBefore - holder.Clan.Influence);
+            if (e != null) b.Ledger.Edicts.Remove(e);
+            WorldEvents.WorldEventStore store = WorldEvents.WorldEventStore.Instance;
+            if (store != null)
+               foreach (WorldEvents.WorldEvent news in store.All().Skip(newsBefore).Where(n => n.Summary?.Contains("the Test Levy") == true).ToList())
+                  store.Remove(news.Id);
+         }
+
+         return t.Line();
+      }
 
       private static string TestPlayerFame(NpcMemoryCampaignBehavior behavior)
       {

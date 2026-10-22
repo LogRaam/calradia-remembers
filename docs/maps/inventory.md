@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 543 types in 61 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 546 types in 62 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1242 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
@@ -93,7 +93,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
-| `ModCheats` | public static class, partial over 59 files | Exposes diagnostic commands to the Bannerlord cheat console. |
+| `ModCheats` | public static class, partial over 60 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
 | `ProseInterpretTestRunner` | internal static class | The runner behind cr.prose_interpret_test. |
 | `SingleCallProbeRunner` | internal static class | The runner behind cr.single_call_probe: sends each scenario as one composer+extractor call and reports. |
@@ -324,6 +324,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | Type | Kind | What it is |
 |---|---|---|
 | `SuccessionBehavior` | public class | Reframes all stored NPC memories through the lens of the new heir on player death. |
+
+### CalradiaRemembers.Edicts (3)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `EdictBehavior` | public class | The campaign's edicts: decreed, applied (through EdictModelPatches), contested, ended. |
+| `EdictModelPatches` | public static class | Adds the edict holding on a town to the game's own loyalty, security, prosperity, militia, food and tax. |
+| `EdictNews` | public class | One piece of realm news an edict makes (a decree, a contest, a repeal), told through EdictBehavior.News. |
 
 ### CalradiaRemembers.Encyclopedia (38)
 

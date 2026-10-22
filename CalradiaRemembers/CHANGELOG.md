@@ -13,6 +13,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   reputation, the name carries what the game says of the player (merciless, merciful, keeps or breaks his word). A
   character who heard of one of the player's deeds knows him by reputation at least, and the first impression is
   unchanged. Nothing is saved (`PlayerFamePolicy`). cr.testall `player_fame`.
+- **Edicts** (Gabriel 21/10: "ville et royaume. Les PNJ peuvent aussi. Un edit peut etre conteste."). A ruler's lasting,
+  bounded decision on one town or on every town of a realm, from a closed list of eight, each a gain bought with a cost:
+  tax relief, heavy levy, doubled watch, militia muster, grain requisition, market charter, curfew, feast days. Applied
+  through the game's own loyalty, security, prosperity, militia, food and tax, so the town's tooltip shows a line named
+  for the edict. 30 to 90 days, 25 influence for a town, 100 for a realm; one per town at a time, the town's own over its
+  realm's; ten days' rest between two. It lapses when whoever decreed it loses the town or the throne. A burdened town
+  under 40 loyalty grows a grievance: it contests the edict openly after 10 days and forces it off after 25. With the new
+  MCM switch "Edicts of the world's lords" (off by default) the world's lords answer their towns' sorest needs and rulers
+  a need most of their towns share, seldom, at most two per realm. Every decree, contest and repeal is realm news.
+  `cr.edict` lists them and pulls the levers; cr.testall `edict_effects`.
 
 ## v2.7.19.. open
 

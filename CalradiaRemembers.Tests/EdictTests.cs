@@ -138,13 +138,13 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_town_in_need_WHEN_its_lord_weighs_an_edict_THEN_he_answers_the_sorest_need()
       {
-         var calm = new EdictTownFacts {FoodDaysLeft = 99, Loyalty = 50, Security = 50, Prosperity = 4000, Militia = 200};
+         var calm = new EdictTownFacts {FoodDaysLeft = 99, Loyalty = 50, Security = 50, Prosperity = 4000, Militia = 200, HolderGold = 20000};
          EdictCounselPolicy.Answer(calm).Should().BeNull();
          EdictCounselPolicy.Answer(new EdictTownFacts {FoodDaysLeft = 5, Loyalty = 10, Security = 10}).Should().Be(EdictKind.GrainRequisition);
          EdictCounselPolicy.Answer(new EdictTownFacts {FoodDaysLeft = 99, Loyalty = 10, Security = 10}).Should().Be(EdictKind.TaxRelief);
          EdictCounselPolicy.Answer(new EdictTownFacts {FoodDaysLeft = 99, Loyalty = 50, Security = 10}).Should().Be(EdictKind.DoubledWatch);
          EdictCounselPolicy.Answer(new EdictTownFacts {FoodDaysLeft = 99, Loyalty = 50, Security = 50, AtWar = true, Militia = 40}).Should().Be(EdictKind.MilitiaMuster);
-         EdictCounselPolicy.Answer(new EdictTownFacts {FoodDaysLeft = 99, Loyalty = 80, Security = 80, Prosperity = 4000, HolderShortOfCoin = true}).Should().Be(EdictKind.HeavyLevy);
+         EdictCounselPolicy.Answer(new EdictTownFacts {FoodDaysLeft = 99, Loyalty = 80, Security = 80, Prosperity = 4000, HolderGold = 1000}).Should().Be(EdictKind.HeavyLevy);
       }
 
       // STAKE: a ruler decrees for the whole realm only for a need most of its towns share; a single hungry town is its

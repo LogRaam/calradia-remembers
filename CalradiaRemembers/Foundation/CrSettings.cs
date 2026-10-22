@@ -344,6 +344,13 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Relationships}Relationships", GroupOrder = 8)]
       public bool ShowSecretMemories { get; set; } = false;
 
+      // Gabriel (21/10/2026), edicts: "les PNJ peuvent aussi". OFF by default for the first build; the player's own work either way.
+      [SettingPropertyBool("{=CR_MCM_EnableNpcEdicts}Edicts of the world's lords", RequireRestart = false, Order = 10,
+         HintText = "{=CR_MCM_EnableNpcEdicts_Hint}Off (default). On: the world's lords decree edicts on their own towns, and rulers on their realms, " +
+                    "to answer a sore need (hunger, unrest, lawlessness), told as realm news. Your own edicts work either way.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Relationships}Relationships", GroupOrder = 8)]
+      public bool EnableNpcEdicts { get; set; } = false;
+
       [SettingPropertyBool("{=CR_MCM_EnablePostDuelConversation}Post-duel conversation", RequireRestart = false, Order = 0,
          HintText = "{=CR_MCM_EnablePostDuelConversation_Hint}On (default): after a duel the conversation reopens and resumes what led to it. The loser concedes (a " +
                     "beaten character of honour may grant a favour you ask); the victor says what they now expect. Off: only " +
