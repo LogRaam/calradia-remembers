@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-571 rules read 443 facts.
+572 rules read 443 facts.
 
 ## Facts read by more than one rule
 
@@ -195,6 +195,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ConversationManager.IsConversationInProgress` (2) | `DuelStagingSupport.ReadyToOpenTheSquare`, `SquareReadinessFacts` |
 | `DialogFlow.Profile` (2) | `PendingSummaryJob`, `SpeakerProfileSelector.Select` |
 | `DiplomacyModel.GetInfluenceCostOfProposingWar` (2) | `PressForWarFacts`, `PressForWarPolicy.WhyNot` |
+| `Effect.Describe` (2) | `EdictConfirmationFacts`, `EdictNoteFacts` |
 | `EndCaptivityDetail.Death` (2) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
 | `EndCaptivityDetail.Ransom` (2) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
 | `EndCaptivityDetail.ReleasedAfterEscape` (2) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
@@ -482,6 +483,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `EdictCounselPolicy.DecreesThisWeek`: `OwnerClan.Kingdom`, `Settlement.Find`
 - `EdictDecreeFacts`: `Clan.Influence`, `Clan.Kingdom`, `Kingdom.Leader`, `Ledger.LastEndedOn`, `Ledger.OfRealm`, `Ledger.OwnOf`, `OwnerClan.Leader`, `Settlement.IsTown`, `Settlement.OwnerClan`
 - `EdictGrievanceFacts`: `Effect.BurdensThePeople`, `Town.Loyalty`
+- `EdictNoteFacts`: `Effect.Describe`
 - `EdictStandingFacts`: `Kingdom.Leader`, `OwnerClan.Leader`, `Settlement.Find`, `Settlement.OwnerClan`
 - `EdictTownFacts`: `Leader.Gold`, `OwnerClan.Kingdom`, `Town.FoodStocks`, `Town.Loyalty`, `Town.Militia`, `Town.Prosperity`, `Town.Security`, `Town.Settlement`
 - `ElopementFacts`: `Clan.Leader`, `Hero.Clan`, `Hero.GovernorOf`, `Hero.IsPregnant`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Spouse`, `PartyBelongedTo.LeaderHero`

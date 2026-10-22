@@ -22,7 +22,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   under 40 loyalty grows a grievance: it contests the edict openly after 10 days and forces it off after 25. With the new
   MCM switch "Edicts of the world's lords" (off by default) the world's lords answer their towns' sorest needs and rulers
   a need most of their towns share, seldom, at most two per realm. Every decree, contest and repeal is realm news.
-  `cr.edict` lists them and pulls the levers; cr.testall `edict_effects`.
+  The player decrees through a member of his house, the governor of one of his towns, or, when he rules, a lord of his
+  realm (`enact_edict`): he is asked first, "Decree the Bread Edict (a grain requisition) for Pravend: loyalty -1 a day,
+  food +4 a day, for 60 days, at 25 influence?", and nothing is proclaimed before his yes. The people of a town, and its
+  lords, know the edicts where they live: who decreed it, what it does, how long it holds, whether they grumble or
+  contest it, and one they forced off. `cr.edict` lists them and pulls the levers; cr.testall `edict_effects`,
+  `enact_edict`. For Compact users: each action's description in the interpreter is cut at 86 characters (was 88).
 
 ## v2.7.19.. open
 

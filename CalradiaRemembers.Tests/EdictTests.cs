@@ -170,6 +170,19 @@ namespace CalradiaRemembers.Tests
          }).Should().Be("Decree the Bread Edict (a grain requisition) for Pravend: loyalty -1 a day, food +4 a day, for 60 days, at 25 influence?");
       }
 
+      // STAKE: an edict the town's tooltip shows is one its people speak of: who decreed it (the one speaking owns it),
+      // what it does, how long it holds, and whether the people grumble or contest it; and one they forced off.
+      [Test]
+      public void GIVEN_an_edict_where_a_character_lives_WHEN_told_to_them_THEN_they_know_who_what_how_long_and_the_mood()
+      {
+         var levy = new EdictNoteFacts {Name = "the Bread Edict", EnactorName = "Derthert", Where = "Pravend", Effects = "loyalty -1 a day, food +4 a day", DaysLeft = 12};
+         EdictNote.Line(levy).Should().Be("- the Bread Edict, decreed by Derthert, holds in Pravend: loyalty -1 a day, food +4 a day; 12 days left.");
+         EdictNote.Line(new EdictNoteFacts {Name = "the Bread Edict", SpeakerDecreedIt = true, Where = "Pravend", Effects = "x", DaysLeft = 3, Contested = true})
+                  .Should().Be("- the Bread Edict, you decreed it, holds in Pravend: x; 3 days left. Its people openly contest it.");
+         EdictNote.Line(new EdictNoteFacts {Name = "the Bread Edict", EnactorName = "Derthert", Where = "Pravend", ForcedOff = true})
+                  .Should().Be("- the Bread Edict (decreed by Derthert) no longer holds in Pravend: its people forced it off.");
+      }
+
       // STAKE: the world's lords decree seldom and a realm carries few at once, so edicts stay news the player meets,
       // not a simulation of every town he never visits.
       [Test]

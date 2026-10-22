@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 548 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1243 types in 46 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 549 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1245 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -537,7 +537,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (33)
+### CalradiaRemembers.Mapping (34)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -546,6 +546,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilSeatNoteResolver` | internal static class | Resolves one council seat's modder note from council_seat.txt and that seat's own variables. |
 | `CulturalTraditionsLoader` | public static class | Loads and caches the cultural_traditions.json file from the mod's own ModuleData folder (and, if present, ModuleData/Custom first). |
 | `DayMoodReader` | public static class | Draws a character's mood of the day from the live game. |
+| `EdictNoteResolver` | public static class | The "edicts where you live" lines for a character, or null. |
 | `EncounterContextBuilder` | public static class | Constructs an EncounterContext for a given NPC, using the game state bridge for live data and the stored profile for historical data (last-meeting computation). |
 | `FirstImpressionResolver` | public static class | Builds the ready-to-inject "first impression" line for a barely-known noble, or null. |
 | `GameRelations` | public static class | Reads a character's own relation with the player and, when there is another to read, their clan leader's. |
@@ -1863,7 +1864,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SuccessionMemoryPolicy` | public static class | The rule for which recorded events survive a succession (are inherited by the heir). |
 | `SuccessionTrigger` | public static class | Classifies a change of player character, so only a real succession reframes memories. |
 
-### CalradiaRemembers.Logic.Edicts (15)
+### CalradiaRemembers.Logic.Edicts (17)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1876,6 +1877,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EdictGrievanceStep` | public class | The day's reading of a town under an edict: its grievance after today, and what is said aloud. |
 | `EdictKind` | public enum | The edicts a ruler may decree; what each does is in EdictCatalog. |
 | `EdictLedger` | public class | The campaign's edicts and which one holds where. |
+| `EdictNote` | public static class | The line a character is given about one edict where they live. |
+| `EdictNoteFacts` | public class | One edict as a character near it knows it. |
 | `EdictPolicy` | public static class | The rules of a decree's life: may it be made, does it still hold, and is it contested. |
 | `EdictScope` | public enum | Where an edict holds: one town, or every town of a realm. |
 | `EdictStandingFacts` | public class | What keeps an edict holding. |
