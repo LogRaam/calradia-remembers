@@ -282,7 +282,7 @@ namespace CalradiaRemembers.Quests
                // the player is told where, once the chat is up.
                if (TryDeliveryFor(hero, out string key, out int count))
                {
-                  string hint = $"{hero.Name} awaits {count} {Items.SupplyItemMatcher.Label(key)}: hand them over with the bag.";
+                  string hint = $"{hero.Name} awaits {count} {Items.SupplyItemMatcher.Label(key)}: hand them over with the bag once you carry them.";
                   MainThreadDispatcher.Enqueue(() => ChatManager.ActiveViewModel?.AppendSystemMessage(hint, true));
                }
 
@@ -1978,6 +1978,11 @@ namespace CalradiaRemembers.Quests
 
          return key != null && count > 0;
       }
+
+      /// <summary>How many of the party's goods answer this key (a tale's `bring`): the bag offers the hand-over only when they reach the count.</summary>
+      internal static int PartyHolds(string key)
+         => MobileParty.MainParty?.ItemRoster?.Where(e => e.EquipmentElement.Item != null && e.Amount > 0 && Items.SupplyItemMatcher.Matches(e.EquipmentElement.Item, key))
+                                             .Sum(e => e.Amount) ?? 0;
 
       /// <summary>
       ///   The goods the player chose in the bag's picker, handed to this person (tashmetu, 20/10/2026): exactly the count

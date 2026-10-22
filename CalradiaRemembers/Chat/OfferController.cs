@@ -72,10 +72,12 @@ namespace CalradiaRemembers.Chat
 
          List<Hero> prisoners = Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners();
 
-         // Goods a tale asks this person to be handed (tashmetu, 20/10/2026): the same picker as a supply task.
+         // Goods a tale asks this person to be handed (tashmetu, 20/10/2026): the same picker as a supply task, once the
+         // party carries the whole count; until then the bag gives as it always did (a gift, gold, a captive he asked for).
          string taleKey = null;
          var taleCount = 0;
-         bool taleAsks = AuthoredQuestBehavior.Instance?.TryDeliveryFor(host.Npc, out taleKey, out taleCount) == true;
+         bool taleAsks = AuthoredQuestBehavior.Instance?.TryDeliveryFor(host.Npc, out taleKey, out taleCount) == true
+                         && AuthoredQuestBehavior.PartyHolds(taleKey) >= taleCount;
 
          switch (OfferFlowGate.WithTale(OfferFlowGate.Route(bargain != null, supply != null, prisoners.Count), taleAsks))
          {
@@ -241,8 +243,8 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   Hands the chosen goods over for the tale; on a full hand-over the line is framed as done, so the person reacts to
-      ///   receiving them in one turn, as a gift does.
+      ///   Hands the chosen goods over for the tale and says what happened, as a supply task does. No line is put in the
+      ///   player's mouth: a worded hand-over would read as a give_item of the leftover goods.
       /// </summary>
       private void HandOverForTale(IOfferHost host, List<ItemOffer> offers)
       {
@@ -252,9 +254,7 @@ namespace CalradiaRemembers.Chat
             bool done = AuthoredQuestBehavior.Instance != null && AuthoredQuestBehavior.Instance.HandOver(host.Npc, offers, out message);
             if (message == null) return;
             host.AppendSystemMessageLine(message, done);
-            if (!done) return;
-            host.NotifyOfferItemVisibilityChanged();
-            host.SetInputText("*I hand over what you asked of me.*");
+            if (done) host.NotifyOfferItemVisibilityChanged();
          }
          catch (Exception ex) { ModLog.Error($"[TALE] HandOverForTale failed: {ex.Message}"); }
       }

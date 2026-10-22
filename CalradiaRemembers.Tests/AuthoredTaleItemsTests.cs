@@ -73,6 +73,18 @@ namespace CalradiaRemembers.Tests
          TaleItemPolicy.UnknownItems(AuthoredTales.Load(Grain), Categories.Contains, Items.Contains).Should().BeEmpty();
       }
 
+      // STAKE: an item given when the player loses to a tale's band is checked as an ending's is, or the tale would be offered
+      // and promise, on a defeat, an item the game cannot give.
+      [Test]
+      public void GIVEN_an_unknown_item_given_on_a_defeat_WHEN_checked_THEN_it_is_reported_as_an_endings_would_be()
+      {
+         var q = new AuthoredQuest {Id = "cr_test_defeat", Stages = {
+            new AuthoredStage {Id = "fight", Objective = new AuthoredObjective {Type = "defeat_party", Spawn = new AuthoredSpawn {
+               Id = "band", OnDefeat = new AuthoredDefeat {Consequences = {new AuthoredConsequence {Type = "item", Item = "a_mods_sword"}}}}}}}};
+
+         TaleItemPolicy.UnknownItems(q, Categories.Contains, Items.Contains).Should().ContainSingle(p => p.Contains("a_mods_sword"));
+      }
+
       // STAKE: an ending that gives "a horse" would give whichever horse loads first, a different one on every install:
       // what is given is one item the file names.
       [Test]

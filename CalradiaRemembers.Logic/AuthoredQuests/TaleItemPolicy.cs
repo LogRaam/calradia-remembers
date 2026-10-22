@@ -74,7 +74,8 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             if (BringKey(o.Item, isCategory, isItem) == null)
                problems.Add($"quest '{q.Id}': bring asks for '{o.Item}', which is no kind (horses, livestock, grain), item category or item this game knows; the tale is not offered.");
 
-         IEnumerable<AuthoredOutcome> outcomes = new[] {q.Reward, q.Failure}.Concat(q.Endings?.Values ?? Enumerable.Empty<AuthoredOutcome>());
+         IEnumerable<AuthoredOutcome> outcomes = new[] {q.Reward, q.Failure}.Concat(q.Endings?.Values ?? Enumerable.Empty<AuthoredOutcome>())
+                                                                            .Concat(objectives.Where(o => o?.Spawn?.OnDefeat != null).Select(o => o.Spawn.OnDefeat.AsOutcome()));
          IEnumerable<AuthoredConsequence> consequences = outcomes.Where(o => o != null).SelectMany(o => o.Consequences ?? new List<AuthoredConsequence>())
                                                                  .Concat(q.Stages.Where(s => s != null).SelectMany(s => s.OnEnter ?? new List<AuthoredConsequence>()));
          foreach (AuthoredConsequence c in consequences.Where(c => c?.Type == "item" && !string.IsNullOrWhiteSpace(c.Item)))
