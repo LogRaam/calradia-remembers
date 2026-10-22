@@ -3323,7 +3323,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 
 | Constant | Value | What it is |
 |---|---|---|
-| `LeanDescriptionChars` | 88 | What one action's description is cut to in Lean. |
+| `LeanDescriptionChars` | 86 | What one action's description is cut to in Lean. |
 
 ### AttractionEvolutionPolicy
 

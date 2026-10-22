@@ -92,7 +92,7 @@ namespace CalradiaRemembers.Mapping
       private const int QueryRelevantMaxLines = 3;
 
       /// <summary>Registration order of the court verbs taught AFTER pledge_against, in <see cref="VerbRegistry" />.</summary>
-      private static readonly string[] CourtVerbsAfterPledge = {"release_prisoner", "press_for_war"};
+      private static readonly string[] CourtVerbsAfterPledge = {"release_prisoner", "press_for_war", "enact_edict"};
 
       /// <summary>Registration order of the court verbs taught BEFORE pledge_against, in <see cref="VerbRegistry" />.</summary>
       private static readonly string[] CourtVerbsBeforePledge = {"give_influence", "lend_troops", "sway_opinion"};

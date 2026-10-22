@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 546 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1242 types in 46 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 548 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1243 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 21500+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 22000+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -794,7 +794,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrSpikeScreen` | internal class | The one screen the probe uses, pushed BOTH ways so the measurement compares mechanisms rather than screens. |
 | `CrSpikeState` | public class | The spike's game state: deliberately empty, it exists only to be pushed so a screen binds to it. |
 
-### CalradiaRemembers.Verbs (26)
+### CalradiaRemembers.Verbs (28)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -802,6 +802,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ArrangeMatchVerb` | public class | arrange_match (fkasad, Nexus, 01/10/2026: "Playing wingman for a guy trying hard to get a girl married?"; Gabriel: a real marriage): the head of a lady's house (or the lady herself, when she answers for herself) gives he... |
 | `BuyPrisonerVerb` | public class | buy_prisoner: the NPC pays the player gold for a hero captive the player's party holds. |
 | `DeliverRecruitsVerb` | public class | deliver_recruits (Lordfadooboo, Nexus, 01/10/2026: "recruitment quests"): the player hands over the fresh recruits of his own people a lord asked for, and they join that lord's party. |
+| `EdictRequest` | internal class | What the player decrees, read from the action and the world. |
+| `EnactEdictVerb` | public class | enact_edict: the player decrees an edict of the catalogue for one of his towns, or his realm, through this character. |
 | `EndMarriageVerb` | public class | end_marriage: the player persuades the NPC to begin ending THEIR OWN marriage (never the player's own spouse — that is Phase 2, out of scope here). |
 | `ExchangePrisonersVerb` | public class | exchange_prisoners: the player gives a hero captive he holds and receives one the NPC's clan holds, with gold evening an uneven swap. |
 | `ExternalVerbAdapter` | public class | Wraps an externally-supplied ExternalVerbContract (an SDK-shaped, engine-agnostic verb defined by ANOTHER mod) as an IConversationVerb. |
@@ -1351,13 +1353,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WorldFactRelevance` | public struct | The result of scoring one world-fact candidate against the player's message. |
 | `WorldFactRelevancePolicy` | public static class | Pure, engine-free scoring of how much a world fact bears on what the player just said. |
 
-### CalradiaRemembers.Logic.Actions (19)
+### CalradiaRemembers.Logic.Actions (20)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ActionConfirmationPolicy` | public static class | Pure policy for the terminal-style "confirm this action?" prompt shown in chat before a consequential LLM action (moving coin or committing to a service) is applied. |
 | `ActionsPanelGate` | public static class | Decides whether the Actions tile opens the new panel or the vanilla menu it replaces. |
 | `ConfirmationAnswer` | public enum | How the player answered a pending in-chat confirmation prompt. |
+| `EdictConfirmationFacts` | public class | What the question about an edict the player decrees names (enact_edict, Gabriel 21/10/2026). |
 | `HandConfirmationFacts` | public class | What the arrange_match confirmation names (BuildHandQuestion). |
 | `ItemConfirmationFacts` | public class | What the question about an item leaving the player's hands names. |
 | `ManualActionAvailability` | public static class | Decides, from a ManualActionFacts snapshot, exactly which ManualActionCatalog entries the manual menu may offer for THIS conversation right now. |

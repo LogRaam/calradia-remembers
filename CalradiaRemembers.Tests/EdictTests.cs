@@ -10,6 +10,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Logic.Actions;
 using CalradiaRemembers.Logic.Edicts;
 using FluentAssertions;
 using NUnit.Framework;
@@ -156,6 +157,17 @@ namespace CalradiaRemembers.Tests
          var calm = new EdictTownFacts {FoodDaysLeft = 99, Loyalty = 50, Security = 50, Prosperity = 4000, Militia = 200};
          EdictCounselPolicy.AnswerForRealm(new[] {hungry, hungry, calm}).Should().Be(EdictKind.GrainRequisition);
          EdictCounselPolicy.AnswerForRealm(new[] {hungry, calm, calm}).Should().BeNull();
+      }
+
+      // STAKE: gating before declaration: the player says yes to what the edict really does, its term and its price,
+      // before the one carrying it proclaims anything; a decree is never applied unasked.
+      [Test]
+      public void GIVEN_an_edict_the_player_decrees_WHEN_asked_to_confirm_THEN_the_question_names_its_effect_term_and_price()
+      {
+         ActionConfirmationPolicy.RequiresConfirmation("enact_edict").Should().BeTrue();
+         ActionConfirmationPolicy.BuildEdictQuestion(new EdictConfirmationFacts {
+            EdictName = "the Bread Edict", Title = "Grain requisition", Where = "Pravend", Effects = EdictCatalog.Of(EdictKind.GrainRequisition).Describe(), Days = 60, Influence = 25
+         }).Should().Be("Decree the Bread Edict (a grain requisition) for Pravend: loyalty -1 a day, food +4 a day, for 60 days, at 25 influence?");
       }
 
       // STAKE: the world's lords decree seldom and a realm carries few at once, so edicts stay news the player meets,

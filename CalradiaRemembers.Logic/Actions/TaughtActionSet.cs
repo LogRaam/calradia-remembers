@@ -197,7 +197,8 @@ namespace CalradiaRemembers.Logic.Actions
          "hear_account",
          "grudge_terms",
          "pledge_against",
-         "press_for_war"
+         "press_for_war",
+         "enact_edict"
       };
 
       /// <summary>

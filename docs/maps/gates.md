@@ -214,6 +214,13 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - $"({verdict.Message})"
   - $"(No place by that name to patrol: name a real town, castle or village for {npcHero.Name}.)"
 
+### enact_edict
+
+- executor: `Execute`
+- taught in: no prompt section names it
+- taught when: no gate found
+- the bridge refuses: never
+
 ### end_affair
 
 - executor: `ExecuteEndAffair`

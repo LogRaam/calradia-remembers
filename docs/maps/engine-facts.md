@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-568 rules read 440 facts.
+571 rules read 443 facts.
 
 ## Facts read by more than one rule
 
@@ -156,6 +156,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.MaxHitPoints` (3) | `BodyHurtPolicy.Read`, `CaptiveActionOutcomePolicy.Succeeds`, `CaptiveActionOutcomePolicy.SuccessChance` |
 | `ItemRosterElement.Amount` (3) | `GiftQuantityPolicy.Resolve`, `ItemSaleFacts`, `WarLevyPayment.GoodsCredit` |
 | `Kingdom.Clans` (3) | `ArrestPolicy.CouncilSeats`, `AuthoredRivalPolicy.Choose`, `TrialVerdictPolicy.DefaultConviction` |
+| `Kingdom.Name` (3) | `EdictCatalog.InfluenceCost`, `EdictCatalog.Term`, `EdictConfirmationFacts` |
 | `LeaderHero.Clan` (3) | `PlayerStandingFacts`, `PlayerStandingPolicy.Resolve`, `PrisonerRecruitmentPolicy.Evaluate` |
 | `MarketData.GetPriceFactor` (3) | `MarketReading`, `ProvideGoodsPolicy.MarketKey`, `TownNeedsPolicy.MostLacking` |
 | `MemberRoster.GetTroopRoster` (3) | `AuthoredBandMakeupFacts`, `CompanionCounselPolicy.Select`, `PartyCounselFacts` |
@@ -474,6 +475,9 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `EarnRegardPolicy.MayBeNamed`: `Hero.IsChild`
 - `EarnRegardTargetFacts`: `Hero.IsChild`
 - `Edict`: `Clan.Kingdom`, `Hero.Name`
+- `EdictCatalog.InfluenceCost`: `Kingdom.Name`
+- `EdictCatalog.Term`: `Kingdom.Name`
+- `EdictConfirmationFacts`: `Effect.Describe`, `Effect.Title`, `Kingdom.Name`
 - `EdictCounselPolicy.Answer`: `Leader.Gold`, `OwnerClan.Kingdom`, `Town.FoodStocks`, `Town.Loyalty`, `Town.Militia`, `Town.Prosperity`, `Town.Security`, `Town.Settlement`
 - `EdictCounselPolicy.DecreesThisWeek`: `OwnerClan.Kingdom`, `Settlement.Find`
 - `EdictDecreeFacts`: `Clan.Influence`, `Clan.Kingdom`, `Kingdom.Leader`, `Ledger.LastEndedOn`, `Ledger.OfRealm`, `Ledger.OwnOf`, `OwnerClan.Leader`, `Settlement.IsTown`, `Settlement.OwnerClan`
