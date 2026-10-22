@@ -435,7 +435,8 @@ input[type="number"] { max-width: 160px; }
       "wait",
       "war_ends",
       "dies",
-      "weds_player"
+      "weds_player",
+      "bring"
     ],
     "ChoiceObjectiveTypes": [
       "talk_to",
@@ -446,7 +447,8 @@ input[type="number"] { max-width: 160px; }
       "wait",
       "war_ends",
       "dies",
-      "weds_player"
+      "weds_player",
+      "bring"
     ],
     "HazardEffects": [
       "injure",
@@ -459,7 +461,8 @@ input[type="number"] { max-width: 160px; }
       "grudge",
       "conception",
       "elope",
-      "return_spouse"
+      "return_spouse",
+      "item"
     ],
     "GiverRoles": [
       "lord",
@@ -1155,7 +1158,8 @@ input[type="number"] { max-width: 160px; }
             "wait",
             "war_ends",
             "dies",
-            "weds_player"
+            "weds_player",
+            "bring"
           ],
           "x-closed-list": "ObjectiveTypes"
         },
@@ -1178,7 +1182,7 @@ input[type="number"] { max-width: 160px; }
         "count": {
           "type": "integer",
           "x-kind": "int",
-          "description": "talk_to_locals: how many different notables of the place.",
+          "description": "talk_to_locals: how many different notables of the place. bring: how many of the goods (1 to 200).",
           "default": 1
         },
         "radius": {
@@ -1226,8 +1230,7 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "Read but not played yet.",
-          "x-played": false
+          "description": "bring: the goods asked, as the game names them: a kind (horses, livestock, grain), an item category (wine, iron, tools) or one item's id."
         },
         "to": {
           "type": [
@@ -1235,8 +1238,7 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "Read but not played yet.",
-          "x-played": false
+          "description": "bring: who the goods are handed to, a role ({giver} when empty)."
         }
       }
     },
@@ -1375,14 +1377,15 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "memory, world_event, grudge, conception, elope (she leaves her husband with the player) or return_spouse (she goes back to him).",
+          "description": "memory, world_event, grudge, conception, elope (she leaves her husband with the player), return_spouse (she goes back to him) or item (the player is given an item).",
           "enum": [
             "memory",
             "world_event",
             "grudge",
             "conception",
             "elope",
-            "return_spouse"
+            "return_spouse",
+            "item"
           ],
           "x-closed-list": "ConsequenceTypes"
         },
@@ -1445,6 +1448,20 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "number",
           "description": "conception: the chance of a child, 0 to 1; the game's own 0.15 when left out. The woman of the two carries it; two women or two men conceive nothing.",
           "default": 0.15
+        },
+        "item": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "item: the item given to the player, by its id in the game (\"wine\", \"sumpter_horse\")."
+        },
+        "count": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "item: how many are given (1 to 200).",
+          "default": 1
         },
         "if": {
           "$ref": "#/$defs/flags",
@@ -2827,6 +2844,7 @@ input[type="number"] { max-width: 160px; }
         if (c != null && (c.type === 'elope' || c.type === 'return_spouse') && (blank(c.spouse) || String(c.spouse).trim() === '{husband}')
             && (q.requires == null || q.requires.husband == null))
           blocking.push("consequence '" + c.type + "' names the giver's husband, but no husband is bound: add \"husband\" to \"requires\".");
+        if (c != null && c.type === 'item') itemShapeProblems("consequence '" + c.type + "'", 'item', c.item, c.count).forEach(function (p) { blocking.push(p); });
         if (c != null && c.chance != null && (Number(c.chance) < 0 || Number(c.chance) > 1))
           blocking.push("consequence '" + (c.type == null ? '' : c.type) + "' has a chance of " + String(Number(c.chance)) + ', which must be from 0 to 1.');
       });
@@ -3189,7 +3207,18 @@ input[type="number"] { max-width: 160px; }
       case 'weds_player':
         if (blank(o.hero)) blocking.push(where + ': ' + o.type + ' needs "hero".');
         break;
+      case 'bring':
+        itemShapeProblems(where, 'bring', o.item, o.count).forEach(function (p) { blocking.push(p); });
+        break;
     }
+  }
+
+  /** Items in tales (tashmetu, 20/10/2026): TaleItemPolicy.ShapeProblems, word for word. */
+  function itemShapeProblems(where, type, item, count) {
+    var out = [], n = count == null ? 1 : Number(count);
+    if (blank(item)) out.push(where + ': ' + type + ' needs "item": what is asked or given, as the game names it ("grain", "wine", "horses").');
+    if (n < 1 || n > 200) out.push(where + ': ' + type + ' needs a "count" from 1 to 200.');
+    return out;
   }
 
   function validateScene(where, scene, hasChoices, blocking, cosmetic) {
@@ -4058,7 +4087,7 @@ input[type="number"] { max-width: 160px; }
     AuthoredSpawn: ['id', 'template', 'size', 'name', 'near', 'behavior', 'flee_after_days', 'scale_with_player', 'on_defeat'],
     AuthoredDefeat: ['next', 'regard', 'memory', 'journal', 'consequences'],
     AuthoredOutcome: ['days', 'regard', 'gold', 'memory', 'journal', 'consequences'],
-    AuthoredConsequence: ['type', 'who', 'against', 'spouse', 'text', 'summary', 'magnitude', 'place', 'chance', 'if'],
+    AuthoredConsequence: ['type', 'who', 'against', 'spouse', 'text', 'summary', 'magnitude', 'place', 'chance', 'item', 'count', 'if'],
 
     /** Which fields of an objective each type uses; the rest stay hidden for that type. */
     objectiveFields: {
@@ -4072,7 +4101,8 @@ input[type="number"] { max-width: 160px; }
       wait: ['days'],
       war_ends: ['hero'],
       dies: ['hero'],
-      weds_player: ['hero']
+      weds_player: ['hero'],
+      bring: ['item', 'count', 'to']
     },
 
     /** Which fields of a consequence each type uses. */
@@ -4082,7 +4112,8 @@ input[type="number"] { max-width: 160px; }
       grudge: ['who', 'against', 'text', 'magnitude', 'if'],
       conception: ['who', 'chance', 'if'],
       elope: ['who', 'spouse', 'if'],
-      return_spouse: ['who', 'spouse', 'if']
+      return_spouse: ['who', 'spouse', 'if'],
+      item: ['item', 'count', 'if']
     }
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
@@ -4981,7 +5012,7 @@ input[type="number"] { max-width: 160px; }
     var types = ofChoice ? list('ChoiceObjectiveTypes') : list('ObjectiveTypes');
     var labels = {talk_to: 'talk to someone', 'return': 'return to the giver', talk_to_locals: 'question the locals', be_at: 'be at a place',
       keep_watch: 'keep watch at night', explore: 'a scene in the chat', defeat_party: 'defeat a band', wait: 'let days pass',
-      war_ends: 'the war with them ends', dies: 'they die', weds_player: 'they wed the player'};
+      war_ends: 'the war with them ends', dies: 'they die', weds_player: 'they wed the player', bring: 'hand over goods'};
     var box = h('div');
     box.appendChild(h('div.grid', selectField(key + '/objective.type', 'What the game checks', 'AuthoredObjective', 'type', o,
       types.map(function (t) { return {value: t, label: t + ' (' + labels[t] + ')'}; }), {empty: o.type ? undefined : '(choose)'})));
@@ -4989,7 +5020,9 @@ input[type="number"] { max-width: 160px; }
     var g = h('div.grid');
     if (used.indexOf('hero') >= 0) g.appendChild(roleField(key + '/objective.hero', 'Who', 'AuthoredObjective', 'hero', o, {placeholder: '{giver}'}));
     if (used.indexOf('place') >= 0) g.appendChild(roleField(key + '/objective.place', 'Where', 'AuthoredObjective', 'place', o, {placeholder: '{village}'}));
-    if (used.indexOf('count') >= 0) g.appendChild(numberField(key + '/objective.count', 'How many locals', 'AuthoredObjective', 'count', o, {min: 1}));
+    if (used.indexOf('item') >= 0) g.appendChild(textField(key + '/objective.item', 'Goods', 'AuthoredObjective', 'item', o, {mono: true, placeholder: 'grain'}));
+    if (used.indexOf('count') >= 0) g.appendChild(numberField(key + '/objective.count', o.type === 'bring' ? 'How many' : 'How many locals', 'AuthoredObjective', 'count', o, {min: 1}));
+    if (used.indexOf('to') >= 0) g.appendChild(roleField(key + '/objective.to', 'Handed to', 'AuthoredObjective', 'to', o, {placeholder: '{giver}'}));
     if (used.indexOf('radius') >= 0) g.appendChild(numberField(key + '/objective.radius', 'How near', 'AuthoredObjective', 'radius', o, {min: 1}));
     if (used.indexOf('nights') >= 0) g.appendChild(pairField(key + '/objective.nights', 'Nights', 'AuthoredObjective', 'nights', o, ['from night', 'surely by night']));
     if (used.indexOf('chance') >= 0) g.appendChild(numberField(key + '/objective.chance', 'Chance each night', 'AuthoredObjective', 'chance', o, {min: 0, max: 1}));
@@ -4997,9 +5030,6 @@ input[type="number"] { max-width: 160px; }
     if (g.childNodes.length) box.appendChild(g);
     if (used.indexOf('scene') >= 0) box.appendChild(sceneEditor(key, o));
     if (used.indexOf('spawn') >= 0) box.appendChild(spawnEditor(key, o));
-    var idle = ['item', 'to'].filter(function (f) { return o[f] !== undefined; });
-    var extras = h('div.grid', textField(key + '/objective.item', 'Item', 'AuthoredObjective', 'item', o), roleField(key + '/objective.to', 'To', 'AuthoredObjective', 'to', o));
-    box.appendChild(h('details', {open: idle.length ? true : null}, h('summary', {style: 'cursor:pointer;color:var(--text-3);font-size:12px;margin-bottom:8px'}, 'Fields read but not played yet'), extras));
     return box;
   }
 
@@ -5349,6 +5379,8 @@ input[type="number"] { max-width: 160px; }
       if (used.indexOf('magnitude') >= 0) g.appendChild(numberField(ck + '/magnitude', grudge ? 'How deep' : 'How loud', 'AuthoredConsequence', 'magnitude', c, {min: 0, max: 100}));
       if (used.indexOf('place') >= 0) g.appendChild(roleField(ck + '/place', 'Where', 'AuthoredConsequence', 'place', c, {placeholder: '{village}'}));
       if (used.indexOf('chance') >= 0) g.appendChild(numberField(ck + '/chance', 'Chance of a child', 'AuthoredConsequence', 'chance', c, {min: 0, max: 1}));
+      if (used.indexOf('item') >= 0) g.appendChild(textField(ck + '/item', 'Item given', 'AuthoredConsequence', 'item', c, {mono: true, placeholder: 'wine'}));
+      if (used.indexOf('count') >= 0) g.appendChild(numberField(ck + '/count', 'How many', 'AuthoredConsequence', 'count', c, {min: 1, max: 200}));
       g.appendChild(flagsField(ck + '/if', 'Only if', 'AuthoredConsequence', 'if', c, {placeholder: 'always'}));
       var body = [g];
       if (used.indexOf('text') >= 0) body.push(textField(ck + '/text', grudge ? 'The cause, in their words' : 'What they remember', 'AuthoredConsequence', 'text', c, {multiline: true, short: true, wide: true}));
@@ -5416,6 +5448,7 @@ input[type="number"] { max-width: 160px; }
       case 'war_ends': return 'the war with ' + (o.hero || '?') + ' ends';
       case 'dies': return (o.hero || '?') + ' dies';
       case 'weds_player': return (o.hero || '?') + ' weds you';
+      case 'bring': return 'bring ' + (o.count || 1) + ' ' + (o.item || '?') + ' to ' + (o.to || '{giver}');
       default: return o.type;
     }
   }
@@ -5423,7 +5456,7 @@ input[type="number"] { max-width: 160px; }
   function kindLetter(s) {
     var t = s && s.objective && s.objective.type;
     if (!t) return s && arr(s.choices).length ? '?' : '-';
-    return {talk_to: 'T', 'return': 'R', talk_to_locals: 'L', be_at: 'B', keep_watch: 'W', explore: 'S', defeat_party: 'F', wait: 'D'}[t] || '?';
+    return {talk_to: 'T', 'return': 'R', talk_to_locals: 'L', be_at: 'B', keep_watch: 'W', explore: 'S', defeat_party: 'F', wait: 'D', bring: 'G'}[t] || '?';
   }
 
   function graph() {

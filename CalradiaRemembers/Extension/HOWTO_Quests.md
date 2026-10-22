@@ -275,10 +275,28 @@ rounds the frame to whole pixels and the picture trembles; zoom with sub-pixel p
 | `war_ends` | The war between that person's realm and the player's is over: it was seen during this stage, and now the two are at peace. A stage begun before its war is declared waits for the war first. | `hero`: a role |
 | `dies` | That person is no longer in the world (dead, or taken out of it by the game). A captive is still in the world. | `hero`: a role |
 | `weds_player` | That person is married to the player. | `hero`: a role |
+| `bring` | The player hands that person the goods, with the bag in a conversation with them. | `item`, `count` (default 1, at most 200), `to`: a role (`{giver}` when left out) |
 
 The last three are ways out the world takes, not the player: read once a day, on a stage or a choice. They let a
 stage with no time limit end however the world turns, which matters since only one tale runs at a time: a war stage
 nothing could leave would block every other tale. Since 2.7.17.
+
+**Goods asked: `bring`** (since 2.7.19). `"objective": { "type": "bring", "item": "grain", "count": 30 }` asks the
+player for 30 grain for the giver. The player hands them over with the bag (the chat's give button) in a conversation
+with `to`: the bag opens on the party's goods that answer, he picks them, and on his confirmation exactly `count` leave
+the party, never more; then the stage is done, or the choice taken. Short of the count, nothing leaves and the tale
+waits. Merely talking to the giver with the grain in the baggage takes nothing. When the conversation opens, the chat
+reminds the player that the goods go over with the bag; say it in the stage's journal line too.
+
+`item` names the goods as the game does:
+- a kind: `horses` (riding and war horses, not pack animals), `livestock` (cows, sheep, hogs...), `grain` (also
+  `food`, `wheat`);
+- an item category: `wine`, `iron`, `tools`, `salt`, `fish`, `beer`, `oil`, `linen`... Any item of the category
+  counts. The game's trade goods carry one item each, named as their category;
+- one item, by its id (`sumpter_horse`), when no kind or category says it.
+
+The checker cannot know the game's items: a misspelt name is found when the game loads the tale. It is then listed by
+`cr.story_check`, and the tale is never offered.
 
 A night counts once, read an hour past midnight, with the player's party inside the radius. Waiting inside the
 village counts; say so in the stage's journal line, since players will wander off into the wood otherwise. The tale's
@@ -408,7 +426,9 @@ reaches. `failure` is what the tale leaves when its time runs out before any end
 | `gold` | Paid to the player by the game. Negative (since 2.7.19): the player pays it to the giver (a fine, a bribe, a child's keep). A choice whose `next` leads straight to such an ending is offered only while the player has that much, so the tale never says he paid what he could not; an ending reached otherwise (a failure, a defeat) takes what he has, up to the amount. Do not make such a choice a scene's `default`. |
 | `memory` | What the giver remembers, in the giver's own voice. |
 | `journal` | The last line written in the journal when the tale ends this way. |
-| `consequences` | `memory`: `who` (a role or `locals_of:{place}`) remembers `text`. A `locals_of` memory leaves out anyone the same ending already gives a memory to by name (the giver, when the ending has a `memory`, or a role with a `memory` of its own), so a giver who lives in that place does not remember the moment twice. `world_event`: news that spreads through the realm (`summary`, `magnitude` 0 to 100, `place`). `grudge`: `who` (a role) holds `text`, the cause in their words, `against` another role, `magnitude` 0 to 100 deep (30 when left out); it fades with time like every grudge. `conception`: a chance of a child between the player and `who` (a role, `{giver}` when left out), `chance` 0 to 1 (the game's own 0.15 when left out); the woman of the two carries it, through the same conception as every intimate scene (of age, not already with child, the Life and Death Cycle on), and two women or two men conceive nothing. `elope`: `who` (the giver when left out) leaves her husband `spouse` (`{husband}` when left out) with the player: her marriage ends through the game's own divorce, she rides in the player's party as a guest and may later marry the player, and her husband holds a grudge; nothing happens if the marriage cannot end (she is with child, a captive, or leads her house). `return_spouse`: she goes back to him, wed again, and leaves the player's party; nothing happens if either has wed someone else, or if she now heads a house of her own. If he is away on campaign (in an army or a battle) or either is a captive, she goes to his house's home and the wedding waits, tried again each day for up to 60 days. Any of them may carry `if`: it is carried out only when its flags hold. |
+| `consequences` | `memory`: `who` (a role or `locals_of:{place}`) remembers `text`. A `locals_of` memory leaves out anyone the same ending already gives a memory to by name (the giver, when the ending has a `memory`, or a role with a `memory` of its own), so a giver who lives in that place does not remember the moment twice. `world_event`: news that spreads through the realm (`summary`, `magnitude` 0 to 100, `place`). `grudge`: `who` (a role) holds `text`, the cause in their words, `against` another role, `magnitude` 0 to 100 deep (30 when left out); it fades with time like every grudge. `conception`: a chance of a child between the player and `who` (a role, `{giver}` when left out), `chance` 0 to 1 (the game's own 0.15 when left out); the woman of the two carries it, through the same conception as every intimate scene (of age, not already with child, the Life and Death Cycle on), and two women or two men conceive nothing. `elope`: `who` (the giver when left out) leaves her husband `spouse` (`{husband}` when left out) with the player: her marriage ends through the game's own divorce, she rides in the player's party as a guest and may later marry the player, and her husband holds a grudge; nothing happens if the marriage cannot end (she is with child, a captive, or leads her house). `item` (since 2.7.19): the player is given `count` (1 when left out, at most 200) of `item`, one item by its id
+(`"wine"`, `"sumpter_horse"`), into the party's baggage; a kind or a category is refused, since "a horse" would be
+whichever horse the game loaded first. `return_spouse`: she goes back to him, wed again, and leaves the player's party; nothing happens if either has wed someone else, or if she now heads a house of her own. If he is away on campaign (in an army or a battle) or either is a captive, she goes to his house's home and the wedding waits, tried again each day for up to 60 days. Any of them may carry `if`: it is carried out only when its flags hold. |
 | `failure.days` | The tale fails that many days after it was accepted. Without it, the tale never fails on its own. |
 
 Every ending closes the journal entry as completed; the time-out closes it as failed.
@@ -514,8 +534,7 @@ nothing with them yet:
   real companion to escort);
 - `behavior` on a spawn (every band patrols around its place);
 - `party` on an `alert` effect;
-- `hours` on a `lose_time` effect;
-- `item` and `to` on an objective.
+- `hours` on a `lose_time` effect.
 
 Planned for later versions: the giver seeking out the player, ambushes that turn a scene into a
 battle, escorts, quarrels between two lords left by a tale, and more consequence types.

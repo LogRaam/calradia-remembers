@@ -38,6 +38,10 @@ namespace CalradiaRemembers.Items
                     if (CraftWeaponPolicy.KindOfKey(categoryKey) != null)
                         return CraftWeaponPolicy.Answers(item.IsCraftedByPlayer, item.WeaponComponent?.PrimaryWeapon?.WeaponClass.ToString(), categoryKey);
 
+                    // One exact item a tale asks for (tashmetu, 20/10/2026, items in tales).
+                    string itemId = ProvideGoodsPolicy.ItemIdOf(categoryKey);
+                    if (itemId != null) return item.StringId == itemId;
+
                     // A good a town lacks (fkasad, 01/10/2026): its own item category, exactly.
                     string marketId = ProvideGoodsPolicy.MarketCategoryId(categoryKey);
 
@@ -51,8 +55,15 @@ namespace CalradiaRemembers.Items
                 ProvideGoodsPolicy.Horses => "horses",
                 ProvideGoodsPolicy.Livestock => "livestock",
                 ProvideGoodsPolicy.Grain => "grain",
-                _ => ForgeLabel(categoryKey) ?? MarketLabel(categoryKey) ?? "goods"
+                _ => ForgeLabel(categoryKey) ?? MarketLabel(categoryKey) ?? ItemLabel(categoryKey) ?? "goods"
             };
+
+        private static string ItemLabel(string categoryKey)
+        {
+            string id = ProvideGoodsPolicy.ItemIdOf(categoryKey);
+
+            return id == null ? null : MBObjectManager.Instance?.GetObject<ItemObject>(id)?.Name?.ToString() ?? id;
+        }
 
         private static string ForgeLabel(string categoryKey)
         {

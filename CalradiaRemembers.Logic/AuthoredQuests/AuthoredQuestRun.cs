@@ -308,6 +308,27 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          return AuthoredStep.Nothing;
       }
 
+      /// <summary>
+      ///   The `bring` open now in a conversation with this hero: the stage's own, else the first open choice's (tashmetu,
+      ///   20/10/2026, items in tales). Null when nothing is to be handed to them. The bag offers the hand-over from it.
+      /// </summary>
+      public static AuthoredWay DeliveryFor(AuthoredQuestRun run, AuthoredQuest q, string heroId)
+         => string.IsNullOrEmpty(heroId)
+            ? null
+            : Ways(run, q).FirstOrDefault(w => w.Objective.Type == "bring" && heroId == Bound(run, TaleItemPolicy.Receiver(w.Objective)));
+
+      /// <summary>
+      ///   The goods of the open `bring` were handed to this hero, the whole count (the hand-over took them, or nothing):
+      ///   the way is taken as a conversation takes one, so they speak from where it leads.
+      /// </summary>
+      public static AuthoredStep Delivered(AuthoredQuestRun run, AuthoredQuest q, string heroId, int today)
+      {
+         AuthoredStage s = Active(run, q);
+         AuthoredWay way = DeliveryFor(run, q, heroId);
+
+         return s == null || way == null ? AuthoredStep.Nothing : Spoken(run, q, s, way, heroId, today);
+      }
+
       /// <summary>The conversation with this hero closed: they stop speaking of the stage it completed.</summary>
       public static void ConversationClosed(AuthoredQuestRun run, string heroId)
       {

@@ -32,13 +32,14 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
-## APPROVED 2026-10-20, PHASE 2 (Gabriel: "les objets ... dans une deuxieme phase car ca peut etre plus complique"): items in tales
+## BUILT 2026-10-21 for 2.7.19 (Gabriel: "fait la phase 2"): items in tales
 
 tashmetu (20/10/2026): "A tale that asks for things ('bring 30 grain to {giver}'), and a thing given in an ending."
-Today `item` and `to` on an objective are read but not played (HOWTO section 11), and no consequence gives an item.
-Open for the design: a `bring` objective (which inventory counts: the party's; whether the items leave on delivery,
-through the give_item road with its confirmation), an item consequence (by id or by kind, "30 grain"), how a tale
-declares an amount the player cannot reach (gating before declaration), and the editor's forms.
+Decided in the build: the party's goods count; they leave only through the bag's supply picker, on the player's
+confirmation, exactly the count, all at once (no partial tally, so the save is untouched); short of the count nothing
+leaves (gating before declaration). The goods are gone to the receiver (not into a market). `item` reads as a kind, then
+an item category, then one item's id; the `item` consequence takes an item's id only. Unknown goods keep the tale from
+being offered. Later, if asked: a partial hand-over over several visits; goods into the giver's town market.
 
 ## BUILT 2026-10-20 for 2.7.19 (tashmetu, approved by Gabriel): a match for a daughter of the player's house
 

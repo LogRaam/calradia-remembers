@@ -72,8 +72,18 @@ namespace CalradiaRemembers.Chat
 
          List<Hero> prisoners = Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners();
 
-         switch (OfferFlowGate.Route(bargain != null, supply != null, prisoners.Count))
+         // Goods a tale asks this person to be handed (tashmetu, 20/10/2026): the same picker as a supply task.
+         string taleKey = null;
+         var taleCount = 0;
+         bool taleAsks = AuthoredQuestBehavior.Instance?.TryDeliveryFor(host.Npc, out taleKey, out taleCount) == true;
+
+         switch (OfferFlowGate.WithTale(OfferFlowGate.Route(bargain != null, supply != null, prisoners.Count), taleAsks))
          {
+            case OfferRoute.TaleDelivery:
+               ItemPickerService.ShowSupplyPicker(taleKey, taleCount, offers => HandOverForTale(host, offers));
+
+               return;
+
             case OfferRoute.ItemBargain:
                ItemPickerService.ShowBargainPicker(
                   bargain.RequiredItemValue, offers => SettleItemBargain(host, bargain, offers));
@@ -228,6 +238,25 @@ namespace CalradiaRemembers.Chat
          {
             return null;
          }
+      }
+
+      /// <summary>
+      ///   Hands the chosen goods over for the tale; on a full hand-over the line is framed as done, so the person reacts to
+      ///   receiving them in one turn, as a gift does.
+      /// </summary>
+      private void HandOverForTale(IOfferHost host, List<ItemOffer> offers)
+      {
+         try
+         {
+            string message = null;
+            bool done = AuthoredQuestBehavior.Instance != null && AuthoredQuestBehavior.Instance.HandOver(host.Npc, offers, out message);
+            if (message == null) return;
+            host.AppendSystemMessageLine(message, done);
+            if (!done) return;
+            host.NotifyOfferItemVisibilityChanged();
+            host.SetInputText("*I hand over what you asked of me.*");
+         }
+         catch (Exception ex) { ModLog.Error($"[TALE] HandOverForTale failed: {ex.Message}"); }
       }
 
       /// <summary>

@@ -26,7 +26,8 @@
       "wait",
       "war_ends",
       "dies",
-      "weds_player"
+      "weds_player",
+      "bring"
     ],
     "ChoiceObjectiveTypes": [
       "talk_to",
@@ -37,7 +38,8 @@
       "wait",
       "war_ends",
       "dies",
-      "weds_player"
+      "weds_player",
+      "bring"
     ],
     "HazardEffects": [
       "injure",
@@ -50,7 +52,8 @@
       "grudge",
       "conception",
       "elope",
-      "return_spouse"
+      "return_spouse",
+      "item"
     ],
     "GiverRoles": [
       "lord",
@@ -746,7 +749,8 @@
             "wait",
             "war_ends",
             "dies",
-            "weds_player"
+            "weds_player",
+            "bring"
           ],
           "x-closed-list": "ObjectiveTypes"
         },
@@ -769,7 +773,7 @@
         "count": {
           "type": "integer",
           "x-kind": "int",
-          "description": "talk_to_locals: how many different notables of the place.",
+          "description": "talk_to_locals: how many different notables of the place. bring: how many of the goods (1 to 200).",
           "default": 1
         },
         "radius": {
@@ -817,8 +821,7 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "Read but not played yet.",
-          "x-played": false
+          "description": "bring: the goods asked, as the game names them: a kind (horses, livestock, grain), an item category (wine, iron, tools) or one item's id."
         },
         "to": {
           "type": [
@@ -826,8 +829,7 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "Read but not played yet.",
-          "x-played": false
+          "description": "bring: who the goods are handed to, a role ({giver} when empty)."
         }
       }
     },
@@ -966,14 +968,15 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "memory, world_event, grudge, conception, elope (she leaves her husband with the player) or return_spouse (she goes back to him).",
+          "description": "memory, world_event, grudge, conception, elope (she leaves her husband with the player), return_spouse (she goes back to him) or item (the player is given an item).",
           "enum": [
             "memory",
             "world_event",
             "grudge",
             "conception",
             "elope",
-            "return_spouse"
+            "return_spouse",
+            "item"
           ],
           "x-closed-list": "ConsequenceTypes"
         },
@@ -1036,6 +1039,20 @@
           "x-kind": "number",
           "description": "conception: the chance of a child, 0 to 1; the game's own 0.15 when left out. The woman of the two carries it; two women or two men conceive nothing.",
           "default": 0.15
+        },
+        "item": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "item: the item given to the player, by its id in the game (\"wine\", \"sumpter_horse\")."
+        },
+        "count": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "item: how many are given (1 to 200).",
+          "default": 1
         },
         "if": {
           "$ref": "#/$defs/flags",

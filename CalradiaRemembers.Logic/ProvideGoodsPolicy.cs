@@ -91,6 +91,22 @@ namespace CalradiaRemembers.Logic
                 ? key.Substring(MarketKeyPrefix.Length)
                 : null;
 
+        /// <summary>
+        ///   The prefix of a key naming one exact item by its id ("item:sumpter_horse"): a tale's `bring` that names an item
+        ///   no kind or category covers (tashmetu, 20/10/2026, items in tales).
+        /// </summary>
+        public const string ItemKeyPrefix = "item:";
+
+        /// <summary>The key for one exact item.</summary>
+        public static string ItemKey(string itemId)
+            => string.IsNullOrWhiteSpace(itemId) ? null : ItemKeyPrefix + itemId.Trim();
+
+        /// <summary>The exact item's id, or null when the key names a kind or a category.</summary>
+        public static string ItemIdOf(string key)
+            => key != null && key.StartsWith(ItemKeyPrefix, System.StringComparison.Ordinal) && key.Length > ItemKeyPrefix.Length
+                ? key.Substring(ItemKeyPrefix.Length)
+                : null;
+
         /// <summary>True when the running tally of handed-over goods meets a positive required count.</summary>
         public static bool IsSatisfied(int handedOverCount, int requiredCount)
             => requiredCount > 0 && handedOverCount >= requiredCount;

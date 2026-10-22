@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 542 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1219 types in 45 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1220 types in 45 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1540,7 +1540,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HistoryRelationStep` | public class | One relation move to make now. |
 | `HistoryWorldFacts` | public class | The campaign as the validation sees it. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (86)
+### CalradiaRemembers.Logic.AuthoredQuests (87)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1623,6 +1623,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TaleConceptionPolicy` | public static class | Who would carry a child from a tale's ending, and on what chance. |
 | `TaleElopementPolicy` | public static class | When a tale's elopement and return can really happen. |
 | `TaleGrudge` | public class | A grudge a tale's ending plants between two of its heroes. |
+| `TaleItemPolicy` | public static class | How a tale's goods are named, matched and handed over. |
 | `TaleJournalFacts` | public class | One open journal entry of a tale, against the tale the game is running. |
 | `TaleJournalPolicy` | public static class | tashmetu (07/10/2026): "a finished tale stays listed twice, under Old Quests and still under Active Quests". |
 | `TaleJournalVerdict` | public enum | What becomes of a tale's journal entry. |

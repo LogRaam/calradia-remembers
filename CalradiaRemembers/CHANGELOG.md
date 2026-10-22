@@ -25,6 +25,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   who did not do it (`TraumaPagePolicy`, `TraumaPageReader`). cr.testall `trauma_page`; on Gabriel's word ("c'est une
   sauvegarde de test") `heart_page` and `trauma_page` now keep what they record on a companion of the player's, so the
   pages can be opened afterwards.
+- **Items in tales** (tashmetu 20/10: "a tale that asks for things ('bring 30 grain to {giver}'), and a thing given in
+  an ending"; Gabriel approved it for a second phase). A `bring` objective, on a stage or a choice: `item` (a kind,
+  horses, livestock or grain; an item category, wine or iron; or one item's id), `count` up to 200, `to` a role, the
+  giver when left out. The player hands the goods over with the bag in a conversation with that person, through the
+  same picker as a lord's supply task: on his confirmation exactly the count leaves the party, short of it nothing does
+  and the tale waits, and a mere greeting with the goods in the baggage takes nothing. The chat reminds him the goods go
+  over with the bag. An `item` consequence gives the player `count` of one item named by its id; a kind or a category is
+  refused, since "a horse" would be whichever loaded first. Goods this game does not know are listed at load and keep
+  the tale from being offered. The bag still settles a bargain or a supply task owed to that person first
+  (`TaleItemPolicy`, `OfferFlowGate.WithTale`). Editor forms; HOWTO_Quests.md sections 6 and 8. cr.testall `tale_items`.
 - A romantic bond now keeps the day it last changed and the day it became intimate (`RomanticProfile.StatusSinceDay`,
   `LoversSinceDay`, `MoveTo`/`NoteChangeFrom`, SDK). A rebuilt romantic profile (an orientation fix) now carries
   everything lived (`CarryRelationshipFrom`): until now the secret lover's day, open terms and her own lover were lost.

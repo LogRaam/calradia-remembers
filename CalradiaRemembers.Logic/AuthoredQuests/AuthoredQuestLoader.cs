@@ -34,19 +34,19 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
    public static class AuthoredQuestLoader
    {
       /// <summary>The objectives the game can verify.</summary>
-      public static readonly IReadOnlyList<string> ObjectiveTypes = new[] {"talk_to", "talk_to_locals", "be_at", "keep_watch", "explore", "defeat_party", "return", "wait", "war_ends", "dies", "weds_player"};
+      public static readonly IReadOnlyList<string> ObjectiveTypes = new[] {"talk_to", "talk_to_locals", "be_at", "keep_watch", "explore", "defeat_party", "return", "wait", "war_ends", "dies", "weds_player", "bring"};
 
       /// <summary>
       ///   The objectives a CHOICE may carry. keep_watch and explore open a scene of the stage that follows, so they are
       ///   that stage's own objective, never one way out among several.
       /// </summary>
-      public static readonly IReadOnlyList<string> ChoiceObjectiveTypes = new[] {"talk_to", "return", "talk_to_locals", "be_at", "defeat_party", "wait", "war_ends", "dies", "weds_player"};
+      public static readonly IReadOnlyList<string> ChoiceObjectiveTypes = new[] {"talk_to", "return", "talk_to_locals", "be_at", "defeat_party", "wait", "war_ends", "dies", "weds_player", "bring"};
 
       /// <summary>The hazard effects the game carries out.</summary>
       public static readonly IReadOnlyList<string> HazardEffects = new[] {"injure", "alert", "lose_time"};
 
       /// <summary>The consequences the game carries out.</summary>
-      public static readonly IReadOnlyList<string> ConsequenceTypes = new[] {"memory", "world_event", "grudge", "conception", "elope", "return_spouse"};
+      public static readonly IReadOnlyList<string> ConsequenceTypes = new[] {"memory", "world_event", "grudge", "conception", "elope", "return_spouse", "item"};
 
       /// <summary>Who may give a tale (anything else is read as "any").</summary>
       public static readonly IReadOnlyList<string> GiverRoles = new[] {"lord", "notable", "gang_leader", "spouse", "companion", "any"};
@@ -205,6 +205,8 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             if (c != null && (c.Type == "elope" || c.Type == "return_spouse") && (string.IsNullOrWhiteSpace(c.Spouse) || c.Spouse.Trim() == "{husband}")
                 && q.Requires?.Husband == null)
                blocking.Add($"consequence '{c.Type}' names the giver's husband, but no husband is bound: add \"husband\" to \"requires\".");
+            // Items in tales (tashmetu, 20/10/2026): what is given is named, in a count the game can carry.
+            if (c?.Type == "item") blocking.AddRange(TaleItemPolicy.ShapeProblems($"consequence '{c.Type}'", "item", c.Item, c.Count));
             if (c != null && !TaleConceptionPolicy.IsAChance(c.Chance))
                blocking.Add($"consequence '{c.Type}' has a chance of {c.Chance.ToString(CultureInfo.InvariantCulture)}, which must be from 0 to 1.");
          }
@@ -579,6 +581,9 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             case "dies":
             case "weds_player":
                if (string.IsNullOrWhiteSpace(o.Hero)) blocking.Add($"{where}: {o.Type} needs \"hero\".");
+               break;
+            case "bring":
+               blocking.AddRange(TaleItemPolicy.ShapeProblems(where, "bring", o.Item, o.Count));
                break;
          }
       }

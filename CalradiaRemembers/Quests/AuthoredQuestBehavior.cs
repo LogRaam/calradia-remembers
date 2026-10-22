@@ -30,6 +30,7 @@ using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.ModuleManager;
 using TaleWorlds.MountAndBlade;
+using TaleWorlds.ObjectSystem;
 
 #endregion
 
@@ -181,6 +182,7 @@ namespace CalradiaRemembers.Quests
          {
             string folder = FolderOf(q);
             _problems.AddRange(AuthoredTaleImages.Problems(q, name => folder != null && File.Exists(AuthoredTaleImages.PathIn(folder, name))));
+            _problems.AddRange(TaleItemPolicy.UnknownItems(q, IsCategory, IsItem));
          }
 
          ModLog.Info($"[TALE] {_quests.Count} authored quest(s) loaded from {files.Count} file(s); {_problems.Count} problem(s).");
@@ -276,6 +278,13 @@ namespace CalradiaRemembers.Quests
             if (_run is {Status: AuthoredQuestStatus.Active} && _quests.TryGetValue(_run.QuestId, out AuthoredQuest q))
             {
                Apply(q, AuthoredQuestEngine.ConversationOpened(_run, q, hero.StringId, LocalOf(hero), today));
+               // Items in tales (tashmetu, 20/10/2026): the goods are handed over with the bag, never taken on a greeting;
+               // the player is told where, once the chat is up.
+               if (TryDeliveryFor(hero, out string key, out int count))
+               {
+                  string hint = $"{hero.Name} awaits {count} {Items.SupplyItemMatcher.Label(key)}: hand them over with the bag.";
+                  MainThreadDispatcher.Enqueue(() => ChatManager.ActiveViewModel?.AppendSystemMessage(hint, true));
+               }
 
                return;
             }
@@ -374,6 +383,15 @@ namespace CalradiaRemembers.Quests
          ids = new Dictionary<string, string>();
          names = new Dictionary<string, string>();
          whyNot = null;
+         // Items in tales (tashmetu, 20/10/2026): goods this game does not know could never be brought nor given.
+         string unknownGoods = TaleItemPolicy.UnknownItems(q, IsCategory, IsItem).FirstOrDefault();
+         if (unknownGoods != null)
+         {
+            whyNot = "it names goods this game does not know (cr.story_check lists them)";
+
+            return false;
+         }
+
          if (giver == null || giver == Hero.MainHero || !Mapping.ActionGate.Allows(giver, Logic.ActionKind.Witness))
          {
             whyNot = "they cannot take part right now (not free, not of age, or not in the world)";
@@ -1476,6 +1494,8 @@ namespace CalradiaRemembers.Quests
                   results.Add(Elope(c));
                else if (c.Type == "return_spouse")
                   results.Add(ReturnSpouse(c));
+               else if (c.Type == "item")
+                  results.Add(GiveItem(c));
                else if (c.Type == "world_event")
                {
                   bool told = WorldEventStore.Instance != null;
@@ -1937,6 +1957,95 @@ namespace CalradiaRemembers.Quests
       }
 
       /// <summary>Self-test only: forgets that a quest was played or declined, so a test leaves no trace.</summary>
+      // ── Goods (items in tales) ───────────────────────────────────────────
+
+      private static bool IsItem(string id) => !string.IsNullOrEmpty(id) && MBObjectManager.Instance?.GetObject<ItemObject>(id) != null;
+
+      private static bool IsCategory(string id) => !string.IsNullOrEmpty(id) && MBObjectManager.Instance?.GetObject<ItemCategory>(id) != null;
+
+      /// <summary>
+      ///   The goods the tale asks this person to be handed now (a `bring` open on the stage or a choice): the key the bag's
+      ///   supply picker matches the party's goods against, and the count. False when the tale asks nothing of them.
+      /// </summary>
+      internal bool TryDeliveryFor(Hero hero, out string key, out int count)
+      {
+         key = null;
+         count = 0;
+         if (hero == null || _run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return false;
+         AuthoredWay way = AuthoredQuestEngine.DeliveryFor(_run, q, hero.StringId);
+         key = way == null ? null : TaleItemPolicy.BringKey(way.Objective.Item, IsCategory, IsItem);
+         count = way?.Objective.Count ?? 0;
+
+         return key != null && count > 0;
+      }
+
+      /// <summary>
+      ///   The goods the player chose in the bag's picker, handed to this person (tashmetu, 20/10/2026): exactly the count
+      ///   asked leaves the party and the tale takes the way the `bring` leads, or, short of it, nothing leaves and the tale
+      ///   waits (gating before declaration: the tale never says he brought what he did not). Says what happened.
+      /// </summary>
+      internal bool HandOver(Hero hero, IReadOnlyList<GameState.ItemOffer> offers, out string message)
+      {
+         message = null;
+         ItemRoster roster = MobileParty.MainParty?.ItemRoster;
+         if (roster == null || !TryDeliveryFor(hero, out string key, out int asked) || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return false;
+
+         string label = Items.SupplyItemMatcher.Label(key);
+         var held = new List<(ItemObject item, int count)>();
+         foreach (GameState.ItemOffer offer in offers ?? new List<GameState.ItemOffer>())
+         {
+            ItemRosterElement el = roster.FirstOrDefault(e => e.EquipmentElement.Item?.StringId == offer.ItemId && e.Amount > 0);
+            ItemObject item = el.EquipmentElement.Item;
+            if (item == null || offer.Count <= 0 || !Items.SupplyItemMatcher.Matches(item, key) || held.Any(h => h.item == item)) continue;
+            held.Add((item, Math.Min(offer.Count, el.Amount)));
+         }
+
+         int offered = held.Sum(h => h.count);
+         if (TaleItemPolicy.Taken(offered, asked) == 0)
+         {
+            message = $"{hero.Name}: that is only {offered} of the {asked} {label} I asked for.";
+
+            return false;
+         }
+
+         int remaining = asked;
+         foreach ((ItemObject item, int c) in held)
+         {
+            if (remaining <= 0) break;
+            int take = Math.Min(c, remaining);
+            roster.AddToCounts(item, -take);
+            remaining -= take;
+         }
+
+         message = $"You hand {asked} {label} to {hero.Name}.";
+         ModLog.Info($"[TALE] '{q.Id}': {asked} {label} handed to {hero.Name} ({key}).");
+         Apply(q, AuthoredQuestEngine.Delivered(_run, q, hero.StringId, (int) CampaignTime.Now.ToDays));
+
+         return true;
+      }
+
+      /// <summary>An `item` consequence: the item the file names, given to the player's party (tashmetu, 20/10/2026).</summary>
+      private CrTaleConsequence GiveItem(AuthoredConsequence c)
+      {
+         string id = TaleItemPolicy.GiftItemId(c.Item, IsItem);
+         ItemObject item = id == null ? null : MBObjectManager.Instance.GetObject<ItemObject>(id);
+         ItemRoster roster = MobileParty.MainParty?.ItemRoster;
+         if (item == null || roster == null)
+            return Result(c, Hero.MainHero?.StringId, null, CrTaleConsequenceStatus.NotDone, item == null ? $"no item '{c.Item}' in this game" : "the player has no party");
+
+         int count = Math.Max(1, Math.Min(c.Count, TaleItemPolicy.MaxCount));
+         roster.AddToCounts(item, count);
+         string notice = count == 1 ? $"You receive {item.Name}." : $"You receive {item.Name} x{count}.";
+         MBInformationManager.AddQuickInformation(new TaleWorlds.Localization.TextObject(notice));
+         ChatManager.ActiveViewModel?.AppendSystemMessage(notice, true);
+         ModLog.Info($"[TALE] '{_run?.QuestId}': the player is given {count} {id}.");
+
+         return Result(c, Hero.MainHero?.StringId, null, CrTaleConsequenceStatus.Done, null);
+      }
+
+      /// <summary>cr.testall tale_items: an `item` consequence through the real giving.</summary>
+      internal CrTaleConsequence DebugGiveItem(AuthoredConsequence c) => GiveItem(c);
+
       internal void ForgetPlayed(string questId)
       {
          _done.Remove(questId);

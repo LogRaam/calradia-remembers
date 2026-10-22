@@ -372,7 +372,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [QuestField("The place, as a role (\"{village}\").")]
       [JsonProperty("place")] public string Place { get; set; }
 
-      [QuestField("talk_to_locals: how many different notables of the place.")]
+      [QuestField("talk_to_locals: how many different notables of the place. bring: how many of the goods (1 to 200).")]
       [JsonProperty("count")] public int Count { get; set; } = 1;
 
       [QuestField("be_at, keep_watch: how near the place the party must be (default 5).")]
@@ -396,10 +396,11 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [QuestField("defeat_party: the band spawned near the place.")]
       [JsonProperty("spawn")] public AuthoredSpawn Spawn { get; set; }
 
-      [QuestField("Read but not played yet.", Played = false)]
+      /// <summary>bring (tashmetu, 20/10/2026): the goods asked; see TaleItemPolicy.BringKey for how the name is read.</summary>
+      [QuestField("bring: the goods asked, as the game names them: a kind (horses, livestock, grain), an item category (wine, iron, tools) or one item's id.")]
       [JsonProperty("item")] public string Item { get; set; }
 
-      [QuestField("Read but not played yet.", Played = false)]
+      [QuestField("bring: who the goods are handed to, a role ({giver} when empty).")]
       [JsonProperty("to")] public string To { get; set; }
    }
 
@@ -608,7 +609,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
    public sealed class AuthoredConsequence
    {
       /// <summary>memory, world_event (increment 1); the rest of the closed list later.</summary>
-      [QuestField("memory, world_event, grudge, conception, elope (she leaves her husband with the player) or return_spouse (she goes back to him).", ClosedList = nameof(AuthoredQuestLoader.ConsequenceTypes))]
+      [QuestField("memory, world_event, grudge, conception, elope (she leaves her husband with the player), return_spouse (she goes back to him) or item (the player is given an item).", ClosedList = nameof(AuthoredQuestLoader.ConsequenceTypes))]
       [JsonProperty("type")] public string Type { get; set; }
 
       [QuestField("memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role. conception: the player's partner, a role ({giver} when empty). elope, return_spouse: the lady who leaves or goes back ({giver} when empty).")]
@@ -636,6 +637,13 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>Gabriel (10/10/2026): "Une chance de tomber enceinte"; see TaleConceptionPolicy.</summary>
       [QuestField("conception: the chance of a child, 0 to 1; the game's own 0.15 when left out. The woman of the two carries it; two women or two men conceive nothing.")]
       [JsonProperty("chance")] public double Chance { get; set; } = TaleConceptionPolicy.DefaultChance;
+
+      /// <summary>item (tashmetu, 20/10/2026): the item given to the player, by its id; see TaleItemPolicy.GiftItemId.</summary>
+      [QuestField("item: the item given to the player, by its id in the game (\"wine\", \"sumpter_horse\").")]
+      [JsonProperty("item")] public string Item { get; set; }
+
+      [QuestField("item: how many are given (1 to 200).")]
+      [JsonProperty("count")] public int Count { get; set; } = 1;
 
       [QuestField("Flags that must hold for this consequence to be carried out.")]
       [JsonProperty("if")]

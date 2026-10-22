@@ -1,1 +1,1 @@
-cosmetic_on_defeat_ending_and_unknown_consequence.json: quest 'fx_tale': consequence 'rumour' is not carried out yet (known: memory, world_event, grudge, conception, elope, return_spouse); it is skipped.
+cosmetic_on_defeat_ending_and_unknown_consequence.json: quest 'fx_tale': consequence 'rumour' is not carried out yet (known: memory, world_event, grudge, conception, elope, return_spouse, item); it is skipped.

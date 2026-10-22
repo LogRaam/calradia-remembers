@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-557 rules read 429 facts.
+558 rules read 430 facts.
 
 ## Facts read by more than one rule
 
@@ -782,6 +782,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `SwapFacts`: `Clan.Kingdom`, `Hero.Clan`, `Kingdom.Leader`
 - `TaleElopementPolicy.MustReleasePost`: `Clan.Leader`, `Hero.Clan`, `Hero.GovernorOf`, `Hero.IsPregnant`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Spouse`, `PartyBelongedTo.LeaderHero`
 - `TaleElopementPolicy.WhyNotElope`: `Clan.Leader`, `Hero.Clan`, `Hero.GovernorOf`, `Hero.IsPregnant`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Spouse`, `PartyBelongedTo.LeaderHero`
+- `TaleItemPolicy.BringKey`: `Objective.Item`
 - `TaleJournalFacts`: `List.Last`
 - `TaleVillagePolicy.GiverLostIt`: `Settlement.Find`
 - `TaleVillagePolicy.LostLine`: `Settlement.Find`

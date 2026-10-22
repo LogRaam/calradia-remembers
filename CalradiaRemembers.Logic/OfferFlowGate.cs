@@ -19,7 +19,10 @@ namespace CalradiaRemembers.Logic
         CategoryChoice,
 
         /// <summary>Nothing outstanding and no captives held: go straight to the item/gold picker.</summary>
-        InventoryDirect
+        InventoryDirect,
+
+        /// <summary>A tale asks the goods this person is to be handed (a `bring`): the supply picker hands them over.</summary>
+        TaleDelivery
     }
 
     /// <summary>
@@ -43,5 +46,13 @@ namespace CalradiaRemembers.Logic
 
             return OfferRoute.InventoryDirect;
         }
+
+        /// <summary>
+        ///   The route once a tale's `bring` is weighed (tashmetu, 20/10/2026, items in tales): the goods a tale asks of this
+        ///   person come before a free gift or a prisoner, but never before a bargain or a supply task already owed to them,
+        ///   which the bag settles first as it always has.
+        /// </summary>
+        public static OfferRoute WithTale(OfferRoute route, bool taleAsksGoodsHere)
+            => taleAsksGoodsHere && route is OfferRoute.CategoryChoice or OfferRoute.InventoryDirect ? OfferRoute.TaleDelivery : route;
     }
 }
