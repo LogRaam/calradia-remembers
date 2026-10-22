@@ -94,6 +94,14 @@ namespace CalradiaRemembers.Mapping
       /// <summary>Registration order of the court verbs taught AFTER pledge_against, in <see cref="VerbRegistry" />.</summary>
       private static readonly string[] CourtVerbsAfterPledge = {"release_prisoner", "press_for_war"};
 
+      /// <summary>
+      ///   The task and match verbs (reinforce_garrison, share_intel, deliver_recruits, arrange_match): registered since
+      ///   2.6.10 to 2.7.19 but in no list until 22/10/2026, so their own teaching (the garrison's count, the match the
+      ///   head of house is asked to give, tashmetu's groom-side ask of 20/10/2026) never reached a prompt; only their
+      ///   catalogue line did. Each gates itself on a live task or match, so most characters are taught nothing here.
+      /// </summary>
+      private static readonly string[] TaskVerbs = {"reinforce_garrison", "share_intel", "deliver_recruits", "arrange_match"};
+
       /// <summary>Registration order of the court verbs taught BEFORE pledge_against, in <see cref="VerbRegistry" />.</summary>
       private static readonly string[] CourtVerbsBeforePledge = {"give_influence", "lend_troops", "sway_opinion"};
 
@@ -1726,6 +1734,9 @@ namespace CalradiaRemembers.Mapping
 
          // release_prisoner: migrated to the IConversationVerb contract as well (see above).
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, CourtVerbsAfterPledge));
+
+         // The task and match verbs, each taught only while its task or match is live.
+         sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, TaskVerbs));
 
          // Prisoner trade: buy (the NPC pays for a captive the player holds) and sell (the player pays
          // for one the NPC's clan holds). Each verb gates itself on the live holdings.
