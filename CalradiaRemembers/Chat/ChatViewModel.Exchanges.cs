@@ -701,6 +701,14 @@ namespace CalradiaRemembers.Chat
          // recap left dangling by an early return (a witness exchange, a scene pause) never fires on a later turn.
          if (!isOutcomeReaction && !suppressGroupTail) _pendingOutcomeRecap = null;
 
+         // Backstop: any other turn that starts while the character's scene is still being written takes the floor from
+         // it (a send path missed, the round table, another mod's PromptReply), so two turns never run side by side.
+         if (!isSceneOpener && _sceneOpenerInFlight && !_sceneOpenerCommitted)
+         {
+            ModLog.Info("[SCENE] another turn began before the scene arrived; the scene is set aside.");
+            SetSceneOpenerAside();
+         }
+
          // A line the character speaks first (an opening, a voice in the ensemble, a reaction) has no player message to
          // set the language, only an English stage direction: the direction names it (RaveN017Mod, 17/10/2026: whoever
          // came to him on the map opened in English).
@@ -965,6 +973,7 @@ namespace CalradiaRemembers.Chat
             if (isSceneOpener)
             {
                if (_sceneOpenerAbandoned) return;
+               _sceneOpenerCommitted = true;
                IsSendEnabled = false;
             }
 
@@ -1096,6 +1105,16 @@ namespace CalradiaRemembers.Chat
             if (!suppressPlayerLine && DialogueHeuristics.HasAction(response, "challenge_duel"))
             {
                ResolveDuelChallenge(placeholder, speaker, profile, npcLine, response);
+
+               return;
+            }
+
+            // A scene that came back with nothing to show, or a refusal, is no scene: the greeting stays as it was.
+            if (isSceneOpener && (string.IsNullOrWhiteSpace(npcLine) && string.IsNullOrWhiteSpace(response?.Narration)
+                                  || DialogueHeuristics.LooksLikeRefusal(npcLine) || DialogueHeuristics.LooksLikeRefusal(response?.Narration)))
+            {
+               ModLog.Info("[SCENE] the scene came back empty or refused; the greeting stands.");
+               SettleSceneOpener(SceneOpenerOutcome.Failed);
 
                return;
             }
@@ -1832,7 +1851,8 @@ namespace CalradiaRemembers.Chat
             // Takes precedence over the model-driven 15C auto-exchange: instead of hoping the model
             // volunteered [WITNESS_REACTION]s, give each present witness a deterministic turn (they may
             // address one another), capped, then return control to the player. Model-independent.
-            if (!suppressGroupTail && _roundTable.TryConsumeForMainReply(new RoundTableGate.FloorTurnFacts {SpeakerIsMain = speaker.IsMain, IsCaptiveEncounter = IsCaptiveEncounter, ConversationEnded = _conversationEnded}))
+            // The scene opener never opens a lap or an exchange: one more call nobody asked for, and the player waiting.
+            if (!suppressGroupTail && !isSceneOpener && _roundTable.TryConsumeForMainReply(new RoundTableGate.FloorTurnFacts {SpeakerIsMain = speaker.IsMain, IsCaptiveEncounter = IsCaptiveEncounter, ConversationEnded = _conversationEnded}))
             {
                foreach (var (wName, wHeroId, wText) in witnessReactions)
                   RecordTranscript(false, wName, wHeroId, wText); // preserve order: any reactions precede the lap
@@ -1866,7 +1886,7 @@ namespace CalradiaRemembers.Chat
             if (waitsForThePlayer && anyWitnessSpoke && speaker.IsMain)
                ModLog.Info($"[15C] {speaker.Name} asked the player a question; the bystander exchange waits for the answer.");
 
-            if (!suppressGroupTail && anyWitnessSpoke && speaker.IsMain && !IsCaptiveEncounter && !waitsForThePlayer
+            if (!suppressGroupTail && !isSceneOpener && anyWitnessSpoke && speaker.IsMain && !IsCaptiveEncounter && !waitsForThePlayer
                 && _witnessExchangesThisRound < WitnessExchangeCap && !_conversationEnded)
             {
                _witnessExchangesThisRound++;

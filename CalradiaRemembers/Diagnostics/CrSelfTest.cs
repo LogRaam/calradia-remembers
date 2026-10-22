@@ -11786,7 +11786,8 @@ namespace CalradiaRemembers.Diagnostics
          try
          {
             GetOrCreate(behavior, lord);
-            // Staged, not ordinary: an ordinary open would consume (and its close would keep) a sitting of the player's own.
+            // Staged, not ordinary: every open drops a kept sitting, but only an ordinary one puts it back on screen, and
+            // only an ordinary close keeps one, which would leave this test's lines waiting for the player's next talk.
             Chat.ChatManager.Open(lord.Name.ToString(), opening: Chat.ChatOpening.Staged);
             Chat.ChatViewModel vm = Chat.ChatManager.ActiveViewModel;
             if (t.Skip(vm == null, "the conversation did not open")) return t.Line();
@@ -11796,6 +11797,9 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("theSceneIsBeingWritten", vm.SceneOpenerInFlightForDiagnostics, true);
             // STAKE: nobody waits on the model to be greeted: the greeting is on screen from the first frame.
             t.Expect("theGreetingShowsMeanwhile", vm.ShowsLineForDiagnostics(greeting), true);
+            // STAKE: unlike every other opener, the player keeps the floor: he can type and send while it is written.
+            t.Expect("thePlayerCanType", vm.IsChatInputVisible, true);
+            t.Expect("thePlayerCanSend", vm.IsSendEnabled, true);
 
             vm.SetSceneOpenerAsideForDiagnostics();
             // STAKE: the player who spoke first keeps the floor: the greeting stands and is what the character said.

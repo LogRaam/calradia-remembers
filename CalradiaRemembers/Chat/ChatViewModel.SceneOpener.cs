@@ -23,6 +23,7 @@ namespace CalradiaRemembers.Chat
       private CancellationTokenSource _sceneOpenerCancel;
       private bool _sceneOpenerInFlight;
       private bool _sceneOpenerAbandoned;
+      private bool _sceneOpenerCommitted; // the scene arrived and is being applied: it holds the floor until then
 
       /// <summary>True when a sitting kept from earlier today was put back as this chat opened.</summary>
       public bool ResumedASitting { get; private set; }
@@ -49,6 +50,7 @@ namespace CalradiaRemembers.Chat
          _sceneOpenerCancel = CancellationTokenSource.CreateLinkedTokenSource(_windowClosing.Token);
          _sceneOpenerInFlight = true;
          _sceneOpenerAbandoned = false;
+         _sceneOpenerCommitted = false;
          ModLog.Info($"[SCENE] {speaker.Name} sets the scene; the greeting stands until it arrives.");
          _ = RunLlmExchangeAsync(SceneOpenerPolicy.Cue, speaker, _sceneOpenerGreeting, true, isSceneOpener: true);
       }
@@ -62,7 +64,7 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private void SetSceneOpenerAside()
       {
-         if (!_sceneOpenerInFlight || _sceneOpenerAbandoned) return;
+         if (!_sceneOpenerInFlight || _sceneOpenerAbandoned || _sceneOpenerCommitted) return;
 
          _sceneOpenerAbandoned = true;
          SettleSceneOpener(SceneOpenerOutcome.Abandoned);
@@ -100,6 +102,7 @@ namespace CalradiaRemembers.Chat
       private void EndSceneOpenerFlight()
       {
          _sceneOpenerInFlight = false;
+         _sceneOpenerCommitted = false;
          _sceneOpenerGreeting = null;
          _sceneOpenerCancel?.Dispose();
          _sceneOpenerCancel = null;
