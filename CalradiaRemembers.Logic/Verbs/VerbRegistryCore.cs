@@ -20,6 +20,10 @@ namespace CalradiaRemembers.Logic.Verbs
    {
       private readonly List<IVerb<TContext, TAction, TResult>> _verbs = new();
 
+      /// <summary>The names of the registered verbs that <paramref name="include" /> keeps, in registration order.</summary>
+      public List<string> NamesWhere(Func<IVerb<TContext, TAction, TResult>, bool> include)
+         => _verbs.Where(v => include == null || include(v)).Select(v => v.Name).ToList();
+
       /// <summary>Composes the teaching text of every currently-eligible registered verb, in registration order.</summary>
       public string ComposeTeachings(TContext ctx, Action<Exception> onFault = null)
          => ComposeTeachings(ctx, _verbs.Select(v => v.Name), onFault);

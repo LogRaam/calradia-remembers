@@ -93,6 +93,20 @@ namespace CalradiaRemembers.Tests
          registry.ComposeTeachingsWhere("ctx", v => v.Name == "nothing").Should().BeNull();
       }
 
+      // The coverage guard (cr.testall every_verb_taught, 22/10/2026) reads CR's own verb names from here: four verbs
+      // and admit_secret_lover sat in no teaching list for weeks, so a name missed here would hide the next one.
+      [Test]
+      public void GIVEN_verbs_of_two_kinds_WHEN_listing_the_names_of_one_kind_THEN_exactly_those_come_back_in_registration_order()
+      {
+         var registry = new VerbRegistryCore<string, string, string>();
+         registry.Register(new FakeVerb("own_b", false, null!));
+         registry.Register(new FakeVerb("ext_a", true, "EXT\n"));
+         registry.Register(new FakeVerb("own_a", true, "OWN\n"));
+
+         registry.NamesWhere(v => v.Name.StartsWith("own_")).Should().Equal("own_b", "own_a");
+         registry.NamesWhere(null).Should().Equal("own_b", "ext_a", "own_a");
+      }
+
       // With no explicit order, teachings must concatenate in the order verbs were Register()ed, not some
       // other order (alphabetical, reversed): an external verb registered after CR's own built-ins should
       // append after them, never reshuffle the whole teaching block a modder didn't ask to touch.

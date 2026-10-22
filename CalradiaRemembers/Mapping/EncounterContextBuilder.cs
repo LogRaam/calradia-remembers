@@ -114,6 +114,24 @@ namespace CalradiaRemembers.Mapping
       /// </summary>
       private static readonly string[] GrudgeVerbs = {"make_amends", "grudge_terms", "hear_account"};
 
+      /// <summary>
+      ///   admit_secret_lover: the player owning a whispered secret bond. Registered since 05/09/2026 and taught only
+      ///   while there is a bond this NPC does not already know, but in no list until 22/10/2026, so its teaching never
+      ///   reached a prompt and the model was left with the catalogue line alone.
+      /// </summary>
+      private static readonly string[] ConfessionVerbs = {"admit_secret_lover"};
+
+      /// <summary>
+      ///   CR's own verbs taught by another path, so they belong in no list here: pay_for_silence inline in the held-secret
+      ///   section (its TeachingText is null), rob_npc, assault_npc and kill_npc by their catalogue line alone.
+      /// </summary>
+      internal static readonly string[] VerbsTaughtElsewhere = {"pay_for_silence", "rob_npc", "assault_npc", "kill_npc"};
+
+      /// <summary>Every verb name a teaching list here composes, for the coverage guard (cr.testall every_verb_taught).</summary>
+      internal static IEnumerable<string> VerbsInTeachingLists
+         => CourtVerbsBeforePledge.Concat(ReciprocalCourtVerbs).Concat(CourtVerbsAfterPledge).Concat(TaskVerbs).Concat(PrisonerTradeVerbs)
+                                  .Concat(DivorceVerbs).Concat(GrudgeVerbs).Concat(ConfessionVerbs);
+
       // Prisoner trade (08/07/2026): the NPC may BUY a captive the player holds, or SELL one his clan holds.
       private static readonly string[] PrisonerTradeVerbs = {"buy_prisoner", "sell_prisoner", "exchange_prisoners"};
 
@@ -1747,6 +1765,9 @@ namespace CalradiaRemembers.Mapping
 
          // make_amends + grudge_terms (Grudges pillar, resolution + discovery halves): taught last of all.
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, GrudgeVerbs));
+
+         // admit_secret_lover, only while the player has a secret bond this NPC does not know.
+         sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, ConfessionVerbs));
 
          // Another mod's actions (CrActions.Register): each one's TeachingText while its IsEligible holds. They had
          // no place in the name lists above, so until 05/10/2026 they were taught nothing but their catalog entry

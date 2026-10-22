@@ -76,6 +76,9 @@ namespace CalradiaRemembers.Verbs
       // TODO Extension Surface actions volet: public Register(...) with Feed.Record-style validation
       // (source id, quota, name collision) for a verb registered at runtime by another mod.
 
+      /// <summary>The names of CR's own verbs (not another mod's), in registration order.</summary>
+      public List<string> OwnNames => _core.NamesWhere(v => !(v is ExternalVerbAdapter));
+
       /// <summary>Adds a verb, in the order its teaching should appear when composed without an explicit order.</summary>
       public void Register(IConversationVerb verb) => _core.Register(verb);
 
