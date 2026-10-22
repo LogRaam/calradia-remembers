@@ -79,6 +79,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   afterwards is no betrayal. cr.testall `mercenary_dismissed`.
 
 ### Fixed
+- **Five deeds are now taught to the character who can do them, not only listed.** arrange_match (the head of house
+  giving a hand, and since this version the groom's side asking the player for his daughter's or sister's, tashmetu
+  20/10), reinforce_garrison, share_intel, deliver_recruits and admit_secret_lover were registered and worked when
+  emitted, but sat in no teaching list, so the model saw only their one-line catalogue entry and rarely used them
+  right. Each is now taught in full while its task, match or secret is live. cr.testall `every_verb_taught` checks that
+  every one of CR's own deeds is taught by a list or named as taught another way; `registered_match` and
+  `admit_secret_lover` now also check the teaching reaches the real prompt.
 - **A character no longer asks the player the same question again after a bystander speaks** (Lordfadooboo 20/10: on
   the road with Apolanea and a companion invited in, the question came back two or three times before he could answer).
   The bystander exchange (NPC Cross-Talk) re-called the character after every bystander line without looking at its own
