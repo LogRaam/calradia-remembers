@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 543 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1227 types in 45 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1242 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1851,6 +1851,26 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SuccessionKinship` | public static class | Maps a predecessor's family relation to the heir into the word an NPC would use. |
 | `SuccessionMemoryPolicy` | public static class | The rule for which recorded events survive a succession (are inherited by the heir). |
 | `SuccessionTrigger` | public static class | Classifies a change of player character, so only a real succession reframes memories. |
+
+### CalradiaRemembers.Logic.Edicts (15)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `Edict` | public class | One edict decreed in this campaign (saved as JSON; every field additive). |
+| `EdictCatalog` | public static class | The closed list of edicts, and how a name the model writes finds one. |
+| `EdictCounselPolicy` | public static class | The counsel a lord takes on his own towns, and a ruler on his realm. |
+| `EdictDecreeFacts` | public class | What deciding a decree reads. |
+| `EdictEffect` | public class | What one edict does to a town each day, through the game's own models; 0 leaves a channel alone. |
+| `EdictGrievanceFacts` | public class | A town's mood under an edict, read each day. |
+| `EdictGrievanceStep` | public class | The day's reading of a town under an edict: its grievance after today, and what is said aloud. |
+| `EdictKind` | public enum | The edicts a ruler may decree; what each does is in EdictCatalog. |
+| `EdictLedger` | public class | The campaign's edicts and which one holds where. |
+| `EdictPolicy` | public static class | The rules of a decree's life: may it be made, does it still hold, and is it contested. |
+| `EdictScope` | public enum | Where an edict holds: one town, or every town of a realm. |
+| `EdictStandingFacts` | public class | What keeps an edict holding. |
+| `EdictStatus` | public enum | How an edict stands. |
+| `EdictTownFacts` | public class | A town as its lord sees it when weighing an edict. |
+| `EdictUnrest` | public enum | What a day of grievance comes to. |
 
 ### CalradiaRemembers.Logic.Escort (7)
 

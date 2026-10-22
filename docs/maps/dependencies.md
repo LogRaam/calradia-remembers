@@ -212,6 +212,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic.Extension` | 0 | 1 |
 | `CalradiaRemembers.Logic.Grudges.TraitFacts` | 0 | 1 |
 | `CalradiaRemembers.Logic.Styles` | 0 | 1 |
+| `CalradiaRemembers.Logic.Edicts` | 0 | 0 |
 
 ## Pairs that use each other directly
 
@@ -916,6 +917,11 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 - uses: `NpcMemoryService.Core.Models`
 - used by: `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dynasty`
+
+### CalradiaRemembers.Logic.Edicts
+
+- uses: nothing
+- used by: nothing
 
 ### CalradiaRemembers.Logic.Escort
 
