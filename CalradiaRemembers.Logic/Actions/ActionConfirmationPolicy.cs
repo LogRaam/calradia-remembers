@@ -56,6 +56,9 @@ namespace CalradiaRemembers.Logic.Actions
 
       /// <summary>The price was brought down to what the buyer can pay.</summary>
       public bool ClampedToPurse { get; init; }
+
+      /// <summary>The count a tale asks of this person when the gift is its goods (ItemName then names the goods); 0 otherwise.</summary>
+      public int TaleCount { get; init; }
    }
 
    /// <summary>What the question about a captive's counter_offer names.</summary>
@@ -160,6 +163,8 @@ namespace CalradiaRemembers.Logic.Actions
 
          if (string.Equals(f?.ActionType, "sell_item", StringComparison.OrdinalIgnoreCase))
             return $"Sell {item} to {npc} for {f.Price} coins{(f.ClampedToPurse ? " (all they have)" : "")}?";
+
+         if (f?.TaleCount > 0) return $"Hand {f.TaleCount} {item} to {npc}, as they asked?";
 
          return $"Give {item} to {npc}?";
       }

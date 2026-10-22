@@ -31,7 +31,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   giver when left out. The player hands the goods over with the bag in a conversation with that person, through the
   same picker as a lord's supply task: on his confirmation exactly the count leaves the party, short of it nothing does
   and the tale waits, and a mere greeting with the goods in the baggage takes nothing. The chat reminds him the goods go
-  over with the bag. An `item` consequence gives the player `count` of one item named by its id; a kind or a category is
+  over with the bag. A hand-over written in the chat counts too (Gabriel, 21/10): the give_item is asked first naming
+  the count the tale takes, then exactly that count leaves; short of it, nothing leaves and he is told why. An `item` consequence gives the player `count` of one item named by its id; a kind or a category is
   refused, since "a horse" would be whichever loaded first. Goods this game does not know are listed at load and keep
   the tale from being offered. The bag still settles a bargain or a supply task owed to that person first
   (`TaleItemPolicy`, `OfferFlowGate.WithTale`). Editor forms; HOWTO_Quests.md sections 6 and 8. cr.testall `tale_items`.

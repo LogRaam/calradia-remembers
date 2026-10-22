@@ -286,7 +286,9 @@ player for 30 grain for the giver. The player hands them over with the bag (the 
 with `to`: the bag opens on the party's goods that answer, he picks them, and on his confirmation exactly `count` leave
 the party, never more; then the stage is done, or the choice taken. Short of the count, nothing leaves and the tale
 waits. Merely talking to the giver with the grain in the baggage takes nothing. When the conversation opens, the chat
-reminds the player that the goods go over with the bag; say it in the stage's journal line too.
+reminds the player that the goods go over with the bag; say it in the stage's journal line too. A hand-over written in
+the chat ("here are your 30 sacks") counts as well: the player is asked "Hand 30 grain to ..., as they asked?" and, on
+his yes, exactly `count` leave as with the bag; short of the count, nothing leaves and he is told why.
 
 `item` names the goods as the game does:
 - a kind: `horses` (riding and war horses, not pack animals), `livestock` (cows, sheep, hogs...), `grain` (also

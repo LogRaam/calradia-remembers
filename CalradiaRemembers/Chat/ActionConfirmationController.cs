@@ -10,6 +10,7 @@ using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Actions;
+using CalradiaRemembers.Logic.AuthoredQuests;
 using CalradiaRemembers.Logic.Items;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -137,6 +138,18 @@ namespace CalradiaRemembers.Chat
          ItemPreview item = BannerlordGameStateBridge.PreviewItem(action, context);
          if (item == null) return ActionDisposition.ExecuteInline; // the bridge refuses it, saying why
 
+         // The goods a tale asks of this person (Gabriel, 21/10/2026: a typed hand-over counts): the question names the
+         // count that will leave; short of it, the bridge says why nothing does.
+         int taleCount = 0;
+         string taleLabel = null;
+         if (!sale && Quests.AuthoredQuestBehavior.Instance is { } tales)
+         {
+            int asked = tales.AskedOfGift(npc, item.Id, out int held, out taleLabel);
+            TaleGiftReading reading = TaleItemPolicy.ReadGift(asked, held);
+            if (reading == TaleGiftReading.Short) return ActionDisposition.ExecuteInline;
+            if (reading == TaleGiftReading.HandOver) taleCount = asked;
+         }
+
          int agreed = ExtractAmount(action);
          ItemSaleDecision deal = sale
             ? ItemSalePolicy.Settle(new ItemSaleFacts {AgreedPrice = agreed, BuyerPurse = npc?.Gold ?? 0, PlayerStillHolds = true, ItemValue = item.Value})
@@ -164,8 +177,8 @@ namespace CalradiaRemembers.Chat
             Context = pinned,
             Amount = deal?.Price ?? 0,
             Question = ActionConfirmationPolicy.BuildItemQuestion(new ItemConfirmationFacts {
-               ActionType = type, ItemName = item.Name, NpcName = npc?.Name?.ToString() ?? profile?.Name ?? "them",
-               Price = deal?.Price ?? 0, ClampedToPurse = deal?.ClampedToPurse == true
+               ActionType = type, ItemName = taleCount > 0 ? taleLabel : item.Name, NpcName = npc?.Name?.ToString() ?? profile?.Name ?? "them",
+               Price = deal?.Price ?? 0, ClampedToPurse = deal?.ClampedToPurse == true, TaleCount = taleCount
             })
          });
 

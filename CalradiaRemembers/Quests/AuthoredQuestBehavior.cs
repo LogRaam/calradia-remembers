@@ -2029,6 +2029,35 @@ namespace CalradiaRemembers.Quests
          return true;
       }
 
+      /// <summary>
+      ///   What the tale asks this person for when this item is among the goods (a give_item worded in the chat, Gabriel
+      ///   21/10/2026): the count asked, how many of the goods the party carries and their name; 0 when it asks none of it.
+      /// </summary>
+      internal int AskedOfGift(Hero hero, string itemId, out int held, out string label)
+      {
+         held = 0;
+         label = null;
+         ItemObject item = string.IsNullOrEmpty(itemId) ? null : MBObjectManager.Instance?.GetObject<ItemObject>(itemId);
+         if (item == null || !TryDeliveryFor(hero, out string key, out int asked) || !Items.SupplyItemMatcher.Matches(item, key)) return 0;
+         held = PartyHolds(key);
+         label = Items.SupplyItemMatcher.Label(key);
+
+         return asked;
+      }
+
+      /// <summary>The tale's goods handed over from all the party carries of them, the item named first (a worded hand-over).</summary>
+      internal bool HandOverHeld(Hero hero, string itemId, out string message)
+      {
+         message = null;
+         if (!TryDeliveryFor(hero, out string key, out _)) return false;
+         List<GameState.ItemOffer> offers = MobileParty.MainParty?.ItemRoster?
+                                                       .Where(e => e.EquipmentElement.Item != null && e.Amount > 0 && Items.SupplyItemMatcher.Matches(e.EquipmentElement.Item, key))
+                                                       .OrderByDescending(e => e.EquipmentElement.Item.StringId == itemId)
+                                                       .Select(e => new GameState.ItemOffer(e.EquipmentElement.Item.StringId, e.Amount)).ToList();
+
+         return HandOver(hero, offers, out message);
+      }
+
       /// <summary>An `item` consequence: the item the file names, given to the player's party (tashmetu, 20/10/2026).</summary>
       private CrTaleConsequence GiveItem(AuthoredConsequence c)
       {

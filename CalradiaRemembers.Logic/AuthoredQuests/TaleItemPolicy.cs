@@ -46,6 +46,14 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>How many a hand-over takes: exactly the count asked when enough was offered; none when it falls short.</summary>
       public static int Taken(int offered, int asked) => asked > 0 && offered >= asked ? asked : 0;
 
+      /// <summary>
+      ///   What a give_item of the goods a tale asks of that person does (Gabriel, 21/10/2026: a hand-over worded in the
+      ///   chat counts as the bag's): nothing of the tale when it asks none of them; the hand-over of exactly the count when
+      ///   the party carries it; nothing leaves when it falls short, as with the bag.
+      /// </summary>
+      public static TaleGiftReading ReadGift(int asked, int held)
+         => asked <= 0 ? TaleGiftReading.NotTheTale : held >= asked ? TaleGiftReading.HandOver : TaleGiftReading.Short;
+
       /// <summary>The one who receives a `bring`: the role the file names, the giver when it names none.</summary>
       public static string Receiver(AuthoredObjective o) => string.IsNullOrWhiteSpace(o?.To) ? "{giver}" : o.To.Trim();
 
@@ -84,5 +92,18 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
          return problems;
       }
+   }
+
+   /// <summary>What a give_item of a tale's goods to the one who receives them comes to (<see cref="TaleItemPolicy.ReadGift" />).</summary>
+   public enum TaleGiftReading
+   {
+      /// <summary>The tale asks none of these goods of this person: a plain gift.</summary>
+      NotTheTale,
+
+      /// <summary>The party carries the count: exactly that leaves, and the tale moves.</summary>
+      HandOver,
+
+      /// <summary>The party carries less: nothing leaves, and the tale waits.</summary>
+      Short
    }
 }

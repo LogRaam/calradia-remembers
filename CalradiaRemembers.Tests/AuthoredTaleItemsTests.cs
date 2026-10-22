@@ -10,6 +10,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Actions;
 using CalradiaRemembers.Logic.AuthoredQuests;
 using FluentAssertions;
 using NUnit.Framework;
@@ -162,6 +163,29 @@ namespace CalradiaRemembers.Tests
          AuthoredTales.Read(Grain.Replace("\"count\": 30", "\"count\": 1000")).Problems.Should().Contain(p => p.Contains("bring needs a \"count\""));
          AuthoredTales.Read(Grain.Replace("\"count\": 5", "\"count\": 0")).Problems.Should().Contain(p => p.Contains("item needs a \"count\""));
          AuthoredTales.Read(Grain).Problems.Should().BeEmpty();
+      }
+
+      // STAKE: Gabriel (21/10/2026), a hand-over worded in the chat counts: "here are your 30 grain" typed instead of the
+      // bag moves the tale, short of the count nothing leaves (the grain would vanish with no credit), and grain given
+      // to someone the tale asks nothing of stays a plain gift.
+      [Test]
+      public void GIVEN_a_give_item_of_the_goods_asked_WHEN_the_party_carries_enough_or_less_or_none_is_asked_THEN_hand_over_short_or_a_plain_gift()
+      {
+         TaleItemPolicy.ReadGift(30, 45).Should().Be(TaleGiftReading.HandOver);
+         TaleItemPolicy.ReadGift(30, 30).Should().Be(TaleGiftReading.HandOver);
+         TaleItemPolicy.ReadGift(30, 20).Should().Be(TaleGiftReading.Short);
+         TaleItemPolicy.ReadGift(0, 45).Should().Be(TaleGiftReading.NotTheTale);
+      }
+
+      // STAKE: the player says yes to what leaves: a worded "a few sacks" for a tale asking 30 takes 30, so the question
+      // names 30, not the model's count.
+      [Test]
+      public void GIVEN_a_worded_hand_over_of_a_tales_goods_WHEN_asked_to_confirm_THEN_the_question_names_the_count_the_tale_takes()
+      {
+         ActionConfirmationPolicy.BuildItemQuestion(new ItemConfirmationFacts {ActionType = "give_item", ItemName = "grain", NpcName = "Derthert", TaleCount = 30})
+                                 .Should().Be("Hand 30 grain to Derthert, as they asked?");
+         ActionConfirmationPolicy.BuildItemQuestion(new ItemConfirmationFacts {ActionType = "give_item", ItemName = "Grain", NpcName = "Derthert"})
+                                 .Should().Be("Give Grain to Derthert?");
       }
 
       // STAKE: the bag settles what is owed first, as it always did: a tale's goods never hide a bargain or a lord's supply

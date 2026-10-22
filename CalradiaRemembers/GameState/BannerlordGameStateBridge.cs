@@ -18,6 +18,7 @@ using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.Logic.AuthoredQuests;
 using CalradiaRemembers.Logic.Captivity;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Items;
@@ -2059,6 +2060,24 @@ namespace CalradiaRemembers.GameState
 
             if (fuzzy)
                ModLog.Info($"[ACTION] give_item: fuzzy-resolved '{itemName}' -> '{found.EquipmentElement.Item.Name}'");
+
+            // The goods a tale asks of this person, worded in the chat rather than handed with the bag (Gabriel,
+            // 21/10/2026: a typed hand-over counts): exactly the count asked leaves and the tale moves, whatever count was
+            // said (the confirmation named it); short of it nothing leaves, as with the bag.
+            string giftId = found.EquipmentElement.Item.StringId;
+            AuthoredQuestBehavior tales = AuthoredQuestBehavior.Instance;
+            int taleHeld = 0;
+            string taleLabel = null;
+            int taleAsked = tales == null ? 0 : tales.AskedOfGift(npcHero, giftId, out taleHeld, out taleLabel);
+            switch (TaleItemPolicy.ReadGift(taleAsked, taleHeld))
+            {
+               case TaleGiftReading.HandOver:
+                  return tales.HandOverHeld(npcHero, giftId, out string handed)
+                     ? new ActionOutcome(handed, false)
+                     : ActionOutcome.Refused($"({handed ?? "Nothing changed hands."})");
+               case TaleGiftReading.Short:
+                  return ActionOutcome.Refused($"({npcHero?.Name} awaits {taleAsked} {taleLabel}; you carry {taleHeld}, so you keep them until you have them all.)");
+            }
 
             // Honour the STATED quantity, clamped to what the player holds (player report: "I give you 10 ingots"
             // moved a single one). The pure GiftQuantityPolicy decides; a missing count is one item.

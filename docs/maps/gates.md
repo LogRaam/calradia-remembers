@@ -333,6 +333,8 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - SilentRefusalMessages.GiveItemNoneNamed()
   - "(You don't seem to have anything like that to give.)"
   - $"(You don't seem to have '{label}' to give.)"
+  - $"({handed ?? "Nothing changed hands."})"
+  - $"({npcHero?.Name} awaits {taleAsked} {taleLabel}; you carry {taleHeld}, so you keep them until you have them all.)"
   - "(You don't seem to have any of that left to give.)"
 
 ### give_prisoner

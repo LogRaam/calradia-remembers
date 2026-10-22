@@ -387,7 +387,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 #### `CalradiaRemembers.Chat` and `CalradiaRemembers.Quests`
 
-- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Quests` in 4 files: `Chat/ChatViewModel.CouncilResolutions.cs`, `Chat/ChatViewModel.Exchanges.cs`, `Chat/CouncilLift.cs`, and 1 more
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Quests` in 5 files: `Chat/ActionConfirmationController.cs`, `Chat/ChatViewModel.CouncilResolutions.cs`, `Chat/ChatViewModel.Exchanges.cs`, and 2 more
 - `CalradiaRemembers.Quests` uses `CalradiaRemembers.Chat` in 1 file(s): `Quests/AuthoredQuestBehavior.cs`
 
 #### `CalradiaRemembers.Chat` and `CalradiaRemembers.Services`
