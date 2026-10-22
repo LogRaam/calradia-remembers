@@ -94,6 +94,14 @@ namespace CalradiaRemembers.Mapping
       /// <summary>Registration order of the court verbs taught AFTER pledge_against, in <see cref="VerbRegistry" />.</summary>
       private static readonly string[] CourtVerbsAfterPledge = {"release_prisoner", "press_for_war"};
 
+      /// <summary>
+      ///   The task and match verbs (reinforce_garrison, share_intel, deliver_recruits, arrange_match): registered since
+      ///   2.6.10 to 2.7.19 but in no list until 22/10/2026, so their own teaching (the garrison's count, the match the
+      ///   head of house is asked to give, tashmetu's groom-side ask of 20/10/2026) never reached a prompt; only their
+      ///   catalogue line did. Each gates itself on a live task or match, so most characters are taught nothing here.
+      /// </summary>
+      private static readonly string[] TaskVerbs = {"reinforce_garrison", "share_intel", "deliver_recruits", "arrange_match"};
+
       /// <summary>Registration order of the court verbs taught BEFORE pledge_against, in <see cref="VerbRegistry" />.</summary>
       private static readonly string[] CourtVerbsBeforePledge = {"give_influence", "lend_troops", "sway_opinion"};
 
@@ -105,6 +113,24 @@ namespace CalradiaRemembers.Mapping
       ///   verb above.
       /// </summary>
       private static readonly string[] GrudgeVerbs = {"make_amends", "grudge_terms", "hear_account"};
+
+      /// <summary>
+      ///   admit_secret_lover: the player owning a whispered secret bond. Registered since 05/09/2026 and taught only
+      ///   while there is a bond this NPC does not already know, but in no list until 22/10/2026, so its teaching never
+      ///   reached a prompt and the model was left with the catalogue line alone.
+      /// </summary>
+      private static readonly string[] ConfessionVerbs = {"admit_secret_lover"};
+
+      /// <summary>
+      ///   CR's own verbs taught by another path, so they belong in no list here: pay_for_silence inline in the held-secret
+      ///   section (its TeachingText is null), rob_npc, assault_npc and kill_npc by their catalogue line alone.
+      /// </summary>
+      internal static readonly string[] VerbsTaughtElsewhere = {"pay_for_silence", "rob_npc", "assault_npc", "kill_npc"};
+
+      /// <summary>Every verb name a teaching list here composes, for the coverage guard (cr.testall every_verb_taught).</summary>
+      internal static IEnumerable<string> VerbsInTeachingLists
+         => CourtVerbsBeforePledge.Concat(ReciprocalCourtVerbs).Concat(CourtVerbsAfterPledge).Concat(TaskVerbs).Concat(PrisonerTradeVerbs)
+                                  .Concat(DivorceVerbs).Concat(GrudgeVerbs).Concat(ConfessionVerbs);
 
       // Prisoner trade (08/07/2026): the NPC may BUY a captive the player holds, or SELL one his clan holds.
       private static readonly string[] PrisonerTradeVerbs = {"buy_prisoner", "sell_prisoner", "exchange_prisoners"};
@@ -1727,6 +1753,9 @@ namespace CalradiaRemembers.Mapping
          // release_prisoner: migrated to the IConversationVerb contract as well (see above).
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, CourtVerbsAfterPledge));
 
+         // The task and match verbs, each taught only while its task or match is live.
+         sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, TaskVerbs));
+
          // Prisoner trade: buy (the NPC pays for a captive the player holds) and sell (the player pays
          // for one the NPC's clan holds). Each verb gates itself on the live holdings.
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, PrisonerTradeVerbs));
@@ -1736,6 +1765,9 @@ namespace CalradiaRemembers.Mapping
 
          // make_amends + grudge_terms (Grudges pillar, resolution + discovery halves): taught last of all.
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, GrudgeVerbs));
+
+         // admit_secret_lover, only while the player has a secret bond this NPC does not know.
+         sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, ConfessionVerbs));
 
          // Another mod's actions (CrActions.Register): each one's TeachingText while its IsEligible holds. They had
          // no place in the name lists above, so until 05/10/2026 they were taught nothing but their catalog entry

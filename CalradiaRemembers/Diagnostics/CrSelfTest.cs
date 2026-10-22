@@ -358,7 +358,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("self_esteem_climb", Severity.Light, "fkasad (Nexus, 01/10/2026): lords at 100 from chores. A lord set high (shift +60) wins a battle through the real service: the gain must shrink to almost nothing; set low (shift -60), the same win lands whole. Restores his shift exactly. Uses the MCM Self-Esteem Climb as set.", TestSelfEsteemClimb),
          new SelfTest("spouse_status_at_wedding", Severity.Light, "brorespeta123 (Nexus, 01/10/2026): a new wife 'forgot who I was'. A marriage through the game's own proposal left her romantic status stale until the next load. Gives a lord's CR profile a stale SecretLover status, runs the same heal the wedding now runs, expects Committed, then restores the profile exactly. Weds nobody.", TestSpouseStatusAtWedding),
          new SelfTest("wedding_day_line", Severity.Light, "fkasad (10/10/2026): a marriage CR never saw reads as years old when the couple's eldest living child is 2 or more (checked on a real lord when one exists). raphareish (Nexus, 01/10/2026): a character wed days before spoke of her spouse as if married for years. Takes a married lord, sets his wedding day to three days ago for a moment, expects his family line to call them newlyweds, then forgets the day and expects the line as before. Weds nobody.", TestWeddingDayLine),
-         new SelfTest("registered_match", Severity.Light, "tashmetu (Nexus, 16/10/2026): a head of house agreed in the chat to a match another mod had proposed, and nothing happened. Finds a lawful match of another house at peace, wins the bride over and the head's regard for the player (a disposable test game), registers it through the PUBLIC CrMatches.Register, checks a decider with no say is refused at the door, that the head is taught the match, then settles it through the REAL bridge (arrange_match): the game weds them, CrMatches.Settled reports it, and the match is no longer pending. Restores the head's regard; the marriage stays", TestRegisteredMatch),
+         new SelfTest("every_verb_taught", Severity.Light, "22/10/2026: arrange_match (tashmetu's groom-side ask of 20/10/2026), reinforce_garrison, share_intel, deliver_recruits and admit_secret_lover were registered and executable but sat in no teaching list, so their own teaching never reached a prompt; each testall drove the bridge directly and passed. Reads the LIVE VerbRegistry and asserts every one of CR's own verbs is composed by a teaching list of EncounterContextBuilder or named among the verbs taught by another path (pay_for_silence inline, the violence verbs by their catalogue line). Changes nothing", TestEveryVerbTaught),
+         new SelfTest("registered_match", Severity.Light, "tashmetu (Nexus, 16/10/2026): a head of house agreed in the chat to a match another mod had proposed, and nothing happened. Finds a lawful match of another house at peace, wins the bride over and the head's regard for the player (a disposable test game), registers it through the PUBLIC CrMatches.Register, checks a decider with no say is refused at the door, that the head is taught the match (and that the teaching reaches his REAL prompt, EncounterContextBuilder.Build), then settles it through the REAL bridge (arrange_match): the game weds them, CrMatches.Settled reports it, and the match is no longer pending. Restores the head's regard; the marriage stays", TestRegisteredMatch),
          new SelfTest("trauma_page", Severity.Light, "Gabriel (20/10/2026): at Hardcore, a Trauma section on a character's page documents the aggressions they lived through, and never on the player's own page ('on ne decide pas a la place du joueur ce qui est traumatisant pour lui'). Arranges a companion of the player's (reused, or minted into the party) as the victim, records through the ledger the scenes use that a named captor tortured them before the player's eyes, then reads the page through the reader's seam with the MCM adult level set in turn: at Hardcore the line names the captor and the season and year; at Explicit nothing shows; the player's own page shows nothing even at Hardcore; the same aggression recorded twice is listed once; a purse the player took by force reads as the player's own deed ('oui, ajoute le vol'). Restores the adult level only: on a test save what is recorded stays, so the page can be opened afterwards (Gabriel, 20/10/2026)", TestTraumaPage),
          new SelfTest("heart_page", Severity.Light, "Gabriel (20/10/2026): love stories were kept and shown nowhere; the encyclopedia now has a Heart section on the page of a character engaged with the player, in the second person, and a recap on the player's own page. Arranges a companion of the other sex (reused, or minted into the party), gives her a profile that became the player's lover on a known day 100 days ago through the same dating helper the game's actions use, and reads the page's lines through the mixin's seam: her page says she has been the player's lover since that season and year, the date is the calendar's (today formats as CampaignTime.Now's season and year, the check that catches a wrong day base), a later night does not move it, and the player's own page lists her. She stays the player's lover: on a test save the story is kept so the pages can be opened afterwards (Gabriel, 20/10/2026)", TestHeartPage),
          new SelfTest("match_asks_the_player", Severity.Light, "tashmetu (20/10/2026): when the bride is the player's daughter or sister, the player holds the say over her hand and the door refused. Takes an unwed woman of the player's house and a lawful groom of another house at peace, registers the match through the PUBLIC CrMatches.Register with the groom's side (the head of his house, or the groom) as the decider: it is taken as asking the player, the groom's side is taught to ask for her hand, and the chat's [Y/n] names her and the groom. Settles nothing (no daughter is wed by a test); withdraws the match. When the player's house holds no unwed woman with a lawful groom, mints one into the house (no parent named) and removes her after", TestMatchAsksThePlayer),
@@ -8913,6 +8914,9 @@ namespace CalradiaRemembers.Diagnostics
             behavior.Store.Set(subjectProfile);
             gossip.ForgetKnows(npc, subject.StringId); // clean slate
 
+            string prompted = EncounterContextBuilder.Build(npc, npcProfile, behavior.GameStateBridge, "About the whispers.").ExtraActionTeachings;
+            bool taughtBefore = prompted?.Contains("type: admit_secret_lover") == true;
+
             ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
                new GameAction {Type = "admit_secret_lover"}, npc, new ActionContext(npcProfile, null));
 
@@ -8921,6 +8925,8 @@ namespace CalradiaRemembers.Diagnostics
             t.Note($"npc={npc.Name} subject={subject.Name}");
             t.Expect("confession upheld", outcome.IsPositive, true);
             t.Expect("the lord now knows the identity", gossip.Knows(npc.StringId, subject.StringId), true);
+            // STAKE: and before he knew, the confession was taught in his REAL prompt: the verb sat in no list until 22/10/2026.
+            t.Expect("the confession was taught in his prompt", taughtBefore, true);
             t.Expect("the confession is remembered", (npcProfile.Events?.Count ?? 0) > memoryCountBefore, true);
             // The identity is never deduced, only confessed: a lord who was NOT told stays ignorant.
             t.Expect("an untold lord stays ignorant", gossip.Knows("cr_never_told_lord", subject.StringId), false);
@@ -8935,6 +8941,24 @@ namespace CalradiaRemembers.Diagnostics
                while (npcProfile.Events.Count > memoryCountBefore) npcProfile.Events.RemoveAt(npcProfile.Events.Count - 1);
             behavior.Store.Set(npcProfile);
          }
+
+         return t.Line();
+      }
+
+      private static string TestEveryVerbTaught(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("every_verb_taught");
+
+         List<string> own = Verbs.VerbRegistry.Instance.OwnNames;
+         if (t.Abort(own.Count == 0, "the verb registry is empty")) return t.Line();
+
+         var covered = new HashSet<string>(EncounterContextBuilder.VerbsInTeachingLists.Concat(EncounterContextBuilder.VerbsTaughtElsewhere), StringComparer.OrdinalIgnoreCase);
+         List<string> untaught = own.Where(n => !covered.Contains(n)).ToList();
+         t.Note($"verbs={own.Count}");
+         // STAKE: a verb in no list is executable but never taught: the model meets it as a bare catalogue line.
+         t.Expect("untaught", string.Join(",", untaught), "");
+         // STAKE: a name in a list that no verb carries is a typo, and the verb it meant is untaught.
+         t.Expect("listedButUnregistered", string.Join(",", covered.Where(n => !own.Contains(n, StringComparer.OrdinalIgnoreCase))), "");
 
          return t.Line();
       }
@@ -12214,6 +12238,9 @@ namespace CalradiaRemembers.Diagnostics
             PendingMatch taught = behavior.GameStateBridge.MatchToArrange(head);
             // STAKE: the head of house is taught the match another mod proposed.
             t.Expect("theHeadIsTaughtTheMatch", taught?.BrideName == bride.Name.ToString() && taught?.SuitorName == suitor.Name.ToString(), true);
+            // STAKE: and the teaching reaches his real prompt: the verb sat in no teaching list until 22/10/2026.
+            string prompted = EncounterContextBuilder.Build(head, GetOrCreate(behavior, head), behavior.GameStateBridge, "About the match.").ExtraActionTeachings;
+            t.Expect("theMatchReachesHisPrompt", prompted?.Contains("type: arrange_match") == true, true);
 
             CrMatches.Settled += OnSettled;
             ActionOutcome outcome = behavior.GameStateBridge.SettleMatch(head);
