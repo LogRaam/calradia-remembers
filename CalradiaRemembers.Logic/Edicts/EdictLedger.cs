@@ -77,8 +77,11 @@ namespace CalradiaRemembers.Logic.Edicts
       /// <summary>The towns that forced a realm edict off: it no longer holds there.</summary>
       public List<string> RepealedIn { get; set; } = new();
 
-      /// <summary>What it does.</summary>
-      public EdictEffect Effect => EdictCatalog.Of(Kind);
+      /// <summary>
+      ///   What it does, read from the catalogue each time. A method, not a property: a save must never carry the
+      ///   catalogue's numbers, or loading an old save would write them back into the shared catalogue.
+      /// </summary>
+      public EdictEffect Effect() => EdictCatalog.Of(Kind);
 
       /// <summary>Days left in force (0 once ended or run out).</summary>
       public int DaysLeft(int today) => Status != EdictStatus.Active ? 0 : System.Math.Max(0, EndDay - today);
@@ -96,16 +99,22 @@ namespace CalradiaRemembers.Logic.Edicts
       /// <summary>The last id number handed out.</summary>
       public int LastId { get; set; }
 
-      /// <summary>The edicts in force.</summary>
-      public IEnumerable<Edict> InForce => Edicts.Where(e => e.Status == EdictStatus.Active);
+      /// <summary>The edicts in force (a method, so a save never carries it).</summary>
+      public IEnumerable<Edict> InForce() => Edicts.Where(e => e.Status == EdictStatus.Active);
+
+      /// <summary>
+      ///   Drops edicts of a kind this build does not know (a save from a later build): the ledger loads with the rest
+      ///   rather than failing whole. Returns how many were dropped.
+      /// </summary>
+      public int DropUnknownKinds() => Edicts.RemoveAll(e => e == null || !System.Enum.IsDefined(typeof(EdictKind), e.Kind));
 
       /// <summary>The town's own edict in force, or null.</summary>
       public Edict OwnOf(string townId)
-         => string.IsNullOrEmpty(townId) ? null : InForce.FirstOrDefault(e => e.Scope == EdictScope.Town && e.TargetId == townId);
+         => string.IsNullOrEmpty(townId) ? null : InForce().FirstOrDefault(e => e.Scope == EdictScope.Town && e.TargetId == townId);
 
       /// <summary>The realm's edict in force, or null.</summary>
       public Edict OfRealm(string kingdomId)
-         => string.IsNullOrEmpty(kingdomId) ? null : InForce.FirstOrDefault(e => e.Scope == EdictScope.Realm && e.TargetId == kingdomId);
+         => string.IsNullOrEmpty(kingdomId) ? null : InForce().FirstOrDefault(e => e.Scope == EdictScope.Realm && e.TargetId == kingdomId);
 
       /// <summary>
       ///   The edict that holds on this town: its own first, else its realm's unless this town forced it off; null when

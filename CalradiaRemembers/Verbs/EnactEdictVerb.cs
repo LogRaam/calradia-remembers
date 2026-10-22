@@ -60,7 +60,7 @@ namespace CalradiaRemembers.Verbs
             foreach (EdictEffect e in EdictCatalog.All) sb.AppendLine($"- {e.Key}: {e.Describe()}.");
             sb.AppendLine($"It costs {player} {EdictCatalog.TownInfluenceCost} influence for a town{(realm != null ? $", {EdictCatalog.RealmInfluenceCost} for the realm" : "")}; one edict per town at a time.");
             IEnumerable<string> inForce = towns.Select(t => EdictBehavior.Instance.HoldingOn(t.Town)).Where(e => e != null).Distinct()
-                                               .Select(e => $"{e.Name} ({e.Effect.Key}, {e.DaysLeft(EdictBehavior.Today)} days left)");
+                                               .Select(e => $"{e.Name} ({e.Effect().Key}, {e.DaysLeft(EdictBehavior.Today)} days left)");
             string held = string.Join("; ", inForce);
             if (held.Length > 0) sb.AppendLine($"In force now: {held}.");
             sb.AppendLine($"{player} is asked to confirm it before it is proclaimed: never say it is proclaimed or in force before then.");

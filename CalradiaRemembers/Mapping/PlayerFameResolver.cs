@@ -24,12 +24,16 @@ namespace CalradiaRemembers.Mapping
    /// <summary>Builds the "what you know of their name" line for a character who does not know the player in person, or null.</summary>
    public static class PlayerFameResolver
    {
-      /// <summary>The line for this speaker, or null when none is due.</summary>
-      public static string Resolve(Hero npc, NpcProfile profile, IGameStateBridge bridge)
+      /// <summary>
+      ///   The line for this speaker, or null when none is due. <paramref name="memoriesAtOpening" /> is how many memories
+      ///   they held when this conversation opened: what the first exchange records must not make them forget, from the
+      ///   second turn on, that they had never met the player.
+      /// </summary>
+      public static string Resolve(Hero npc, NpcProfile profile, IGameStateBridge bridge, int? memoriesAtOpening = null)
       {
          try
          {
-            PlayerFameFacts facts = Facts(npc, profile, bridge);
+            PlayerFameFacts facts = Facts(npc, profile, bridge, memoriesAtOpening);
 
             return facts == null ? null : PlayerFamePolicy.Line(PlayerFamePolicy.Read(facts), Hero.MainHero.Name?.ToString());
          }
@@ -42,13 +46,15 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>What the policy reads for this speaker; null when they know the player in person (no line).</summary>
-      internal static PlayerFameFacts Facts(Hero npc, NpcProfile profile, IGameStateBridge bridge)
+      internal static PlayerFameFacts Facts(Hero npc, NpcProfile profile, IGameStateBridge bridge, int? memoriesAtOpening = null)
       {
          Hero player = Hero.MainHero;
          if (npc == null || player == null || npc == player) return null;
          if (npc.Clan != null && npc.Clan == Clan.PlayerClan) return null;
-         if (EncounterContextBuilder.IsPlayerHousehold(npc, profile) || FirstImpressionResolver.IsAlreadyKnown(npc, profile, bridge)) return null;
-         if (profile?.Events?.Count > 0) return null; // they have met: the line would say they never did
+         if (EncounterContextBuilder.IsPlayerHousehold(npc, profile)) return null;
+         // They had met before this conversation (the line would say they never did), or a bond already stands.
+         if ((memoriesAtOpening ?? profile?.Events?.Count ?? 0) > 0) return null;
+         if (FirstImpressionResolver.HasStandingBond(npc, profile, bridge)) return null;
 
          IFaction realm = npc.MapFaction;
          Kingdom playerKingdom = Clan.PlayerClan?.Kingdom;
@@ -63,6 +69,7 @@ namespace CalradiaRemembers.Mapping
             SameCulture = npc.Culture != null && npc.Culture == player.Culture,
             DeedsInObserversRealm = realm == null || store == null ? 0 : store.All().Count(e => e.InvolvesPlayer && InRealm(e.PlaceId, realm)),
             HeardADeed = store?.GetKnownEventsRated(npc, today, 8)?.Any(r => r.Event.InvolvesPlayer) == true,
+            LivesUnderThePlayer = npc.HomeSettlement?.OwnerClan == Clan.PlayerClan || (playerKingdom != null && playerKingdom.Leader == player && realm == playerKingdom),
             PlayerMercy = player.GetTraitLevel(DefaultTraits.Mercy),
             PlayerHonor = player.GetTraitLevel(DefaultTraits.Honor)
          };

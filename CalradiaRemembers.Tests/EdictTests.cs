@@ -13,6 +13,7 @@ using System.Linq;
 using CalradiaRemembers.Logic.Actions;
 using CalradiaRemembers.Logic.Edicts;
 using FluentAssertions;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 #endregion
@@ -181,6 +182,26 @@ namespace CalradiaRemembers.Tests
                   .Should().Be("- the Bread Edict, you decreed it, holds in Pravend: x; 3 days left. Its people openly contest it.");
          EdictNote.Line(new EdictNoteFacts {Name = "the Bread Edict", EnactorName = "Derthert", Where = "Pravend", ForcedOff = true})
                   .Should().Be("- the Bread Edict (decreed by Derthert) no longer holds in Pravend: its people forced it off.");
+      }
+
+      // STAKE: a save carries the edicts, never the catalogue's numbers: loading a save made before a retune must give
+      // the edicts back and leave every edict doing what this build says, and an edict of a kind a later build added
+      // is dropped alone instead of losing the whole ledger.
+      [Test]
+      public void GIVEN_a_saved_ledger_WHEN_loaded_THEN_the_edicts_come_back_and_the_catalogue_is_untouched()
+      {
+         var ledger = new EdictLedger();
+         ledger.Decree(new Edict {Kind = EdictKind.TaxRelief, Scope = EdictScope.Town, TargetId = "town_a", Name = "the Mercy", EndDay = 40});
+         string json = JsonConvert.SerializeObject(ledger);
+         json.Should().NotContain("TaxFactor");
+
+         EdictLedger back = JsonConvert.DeserializeObject<EdictLedger>(json.Replace("\"Kind\":0", "\"Kind\":0,\"Effect\":{\"TaxFactor\":9.0}"));
+         back.HoldingOn("town_a", null).Name.Should().Be("the Mercy");
+         EdictCatalog.Of(EdictKind.TaxRelief).TaxFactor.Should().Be(-0.3f);
+
+         EdictLedger later = JsonConvert.DeserializeObject<EdictLedger>(json.Replace("\"Kind\":0", "\"Kind\":99"));
+         later.DropUnknownKinds().Should().Be(1);
+         later.Edicts.Should().BeEmpty();
       }
 
       // STAKE: the world's lords decree seldom and a realm carries few at once, so edicts stay news the player meets,

@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-572 rules read 443 facts.
+571 rules read 443 facts.
 
 ## Facts read by more than one rule
 
@@ -154,6 +154,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.IsFactionLeader` (3) | `ManualActionAvailability.Describe`, `ManualActionFacts`, `PeaceMediationPolicy.CanMediate` |
 | `Hero.IsWounded` (3) | `BodyHurtPolicy.Read`, `DuelChallengeContext`, `DuelChallengePolicy.Evaluate` |
 | `Hero.MaxHitPoints` (3) | `BodyHurtPolicy.Read`, `CaptiveActionOutcomePolicy.Succeeds`, `CaptiveActionOutcomePolicy.SuccessChance` |
+| `HomeSettlement.OwnerClan` (3) | `PlayerFameFacts`, `PlayerFamePolicy.Line`, `PlayerFamePolicy.Read` |
 | `ItemRosterElement.Amount` (3) | `GiftQuantityPolicy.Resolve`, `ItemSaleFacts`, `WarLevyPayment.GoodsCredit` |
 | `Kingdom.Clans` (3) | `ArrestPolicy.CouncilSeats`, `AuthoredRivalPolicy.Choose`, `TrialVerdictPolicy.DefaultConviction` |
 | `Kingdom.Name` (3) | `EdictCatalog.InfluenceCost`, `EdictCatalog.Term`, `EdictConfirmationFacts` |
@@ -195,7 +196,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ConversationManager.IsConversationInProgress` (2) | `DuelStagingSupport.ReadyToOpenTheSquare`, `SquareReadinessFacts` |
 | `DialogFlow.Profile` (2) | `PendingSummaryJob`, `SpeakerProfileSelector.Select` |
 | `DiplomacyModel.GetInfluenceCostOfProposingWar` (2) | `PressForWarFacts`, `PressForWarPolicy.WhyNot` |
-| `Effect.Describe` (2) | `EdictConfirmationFacts`, `EdictNoteFacts` |
 | `EndCaptivityDetail.Death` (2) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
 | `EndCaptivityDetail.Ransom` (2) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
 | `EndCaptivityDetail.ReleasedAfterEscape` (2) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
@@ -482,8 +482,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `EdictCounselPolicy.Answer`: `Leader.Gold`, `OwnerClan.Kingdom`, `Town.FoodStocks`, `Town.Loyalty`, `Town.Militia`, `Town.Prosperity`, `Town.Security`, `Town.Settlement`
 - `EdictCounselPolicy.DecreesThisWeek`: `OwnerClan.Kingdom`, `Settlement.Find`
 - `EdictDecreeFacts`: `Clan.Influence`, `Clan.Kingdom`, `Kingdom.Leader`, `Ledger.LastEndedOn`, `Ledger.OfRealm`, `Ledger.OwnOf`, `OwnerClan.Leader`, `Settlement.IsTown`, `Settlement.OwnerClan`
-- `EdictGrievanceFacts`: `Effect.BurdensThePeople`, `Town.Loyalty`
-- `EdictNoteFacts`: `Effect.Describe`
+- `EdictGrievanceFacts`: `Town.Loyalty`
 - `EdictStandingFacts`: `Kingdom.Leader`, `OwnerClan.Leader`, `Settlement.Find`, `Settlement.OwnerClan`
 - `EdictTownFacts`: `Leader.Gold`, `OwnerClan.Kingdom`, `Town.FoodStocks`, `Town.Loyalty`, `Town.Militia`, `Town.Prosperity`, `Town.Security`, `Town.Settlement`
 - `ElopementFacts`: `Clan.Leader`, `Hero.Clan`, `Hero.GovernorOf`, `Hero.IsPregnant`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Spouse`, `PartyBelongedTo.LeaderHero`
@@ -666,9 +665,9 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `PlayerChangeFacts`: `CharacterStates.Disabled`, `Hero.HeroState`, `Hero.IsDead`
 - `PlayerDivorceConsentFacts`: `Hero.GetRelation`
 - `PlayerDressPolicy.Classify`: `Hero.BattleEquipment`, `Hero.CivilianEquipment`
-- `PlayerFameFacts`: `Clan.Kingdom`, `Clan.Renown`, `Event.InvolvesPlayer`, `Hero.Culture`, `Hero.GetTraitLevel`, `Hero.IsLord`, `Hero.IsNotable`, `Hero.MapFaction`, `IFaction.IsKingdomFaction`, `Kingdom.Leader`
-- `PlayerFamePolicy.Line`: `Clan.Kingdom`, `Clan.Renown`, `Event.InvolvesPlayer`, `Hero.Culture`, `Hero.GetTraitLevel`, `Hero.IsLord`, `Hero.IsNotable`, `Hero.MapFaction`, `IFaction.IsKingdomFaction`, `Kingdom.Leader`
-- `PlayerFamePolicy.Read`: `Clan.Kingdom`, `Clan.Renown`, `Event.InvolvesPlayer`, `Hero.Culture`, `Hero.GetTraitLevel`, `Hero.IsLord`, `Hero.IsNotable`, `Hero.MapFaction`, `IFaction.IsKingdomFaction`, `Kingdom.Leader`
+- `PlayerFameFacts`: `Clan.Kingdom`, `Clan.Renown`, `Event.InvolvesPlayer`, `Hero.Culture`, `Hero.GetTraitLevel`, `Hero.IsLord`, `Hero.IsNotable`, `Hero.MapFaction`, `HomeSettlement.OwnerClan`, `IFaction.IsKingdomFaction`, `Kingdom.Leader`
+- `PlayerFamePolicy.Line`: `Clan.Kingdom`, `Clan.Renown`, `Event.InvolvesPlayer`, `Hero.Culture`, `Hero.GetTraitLevel`, `Hero.IsLord`, `Hero.IsNotable`, `Hero.MapFaction`, `HomeSettlement.OwnerClan`, `IFaction.IsKingdomFaction`, `Kingdom.Leader`
+- `PlayerFamePolicy.Read`: `Clan.Kingdom`, `Clan.Renown`, `Event.InvolvesPlayer`, `Hero.Culture`, `Hero.GetTraitLevel`, `Hero.IsLord`, `Hero.IsNotable`, `Hero.MapFaction`, `HomeSettlement.OwnerClan`, `IFaction.IsKingdomFaction`, `Kingdom.Leader`
 - `PlayerForcePolicy.Resolve`: `Army.LeaderParty`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `MemberRoster.TotalManCount`, `MobileParty.Army`
 - `PlayerPartnersText.LateSpouses`: `Hero.Father`, `Hero.IsFemale`, `Hero.Mother`
 - `PlayerPartnersText.OtherPartners`: `Hero.Father`, `Hero.IsFemale`, `Hero.Mother`

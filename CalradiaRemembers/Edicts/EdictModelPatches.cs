@@ -84,7 +84,7 @@ namespace CalradiaRemembers.Edicts
          try
          {
             Edict e = On(args);
-            float v = e == null ? 0f : channel(e.Effect);
+            float v = e == null ? 0f : channel(e.Effect());
             if (v != 0f) result.Add(v, new TextObject(e.Name));
          }
          catch
@@ -108,7 +108,7 @@ namespace CalradiaRemembers.Edicts
          try
          {
             Edict e = On(__args);
-            if (e != null && e.Effect.TaxFactor != 0f) __result.AddFactor(e.Effect.TaxFactor, new TextObject(e.Name));
+            if (e != null && e.Effect().TaxFactor != 0f) __result.AddFactor(e.Effect().TaxFactor, new TextObject(e.Name));
          }
          catch
          {

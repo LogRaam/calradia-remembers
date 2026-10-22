@@ -80,6 +80,12 @@ namespace CalradiaRemembers.Logic.Social
       /// <summary>A deed of the player has already reached this character by word (the rumour path).</summary>
       public bool HeardADeed { get; init; }
 
+      /// <summary>
+      ///   The observer lives under the player: the player's house holds their home, or the player rules their realm. One
+      ///   cannot be a stranger to the name of one's own lord, and the player can check who holds a town.
+      /// </summary>
+      public bool LivesUnderThePlayer { get; init; }
+
       /// <summary>The game's Mercy trait of the player (-2 to 2).</summary>
       public int PlayerMercy { get; init; }
 
@@ -134,8 +140,9 @@ namespace CalradiaRemembers.Logic.Social
             : points >= KnownOfFrom ? FameBand.ByReputation
             : points >= NameHeardFrom ? FameBand.NameHeard
             : FameBand.Unknown;
-         // Whoever heard a deed of the player knows them by that much at least: fame never hides a deed.
-         if (f.HeardADeed && band < FameBand.ByReputation) band = FameBand.ByReputation;
+         // Whoever heard a deed of the player, or lives under him, knows him by that much at least: fame never hides a
+         // deed, and nobody is a stranger to the name of their own lord.
+         if ((f.HeardADeed || f.LivesUnderThePlayer) && band < FameBand.ByReputation) band = FameBand.ByReputation;
 
          return new PlayerFameReading {Band = band, Repute = band >= FameBand.ByReputation ? Repute(f.PlayerMercy, f.PlayerHonor) : FameRepute.None};
       }

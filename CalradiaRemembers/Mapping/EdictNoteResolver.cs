@@ -68,7 +68,7 @@ namespace CalradiaRemembers.Mapping
          int grievance = id != null && e.Grievance.TryGetValue(id, out int g) ? g : 0;
 
          return EdictNote.Line(new EdictNoteFacts {
-            Name = e.Name, EnactorName = enactor, SpeakerDecreedIt = e.EnactorId == npc.StringId, Where = where, Effects = e.Effect.Describe(),
+            Name = e.Name, EnactorName = enactor, SpeakerDecreedIt = e.EnactorId == npc.StringId, Where = where, Effects = e.Effect().Describe(),
             DaysLeft = e.DaysLeft(today), Contested = id != null && e.ContestedIn.Contains(id), Grumbling = grievance > 0, ForcedOff = forcedOff
          });
       }

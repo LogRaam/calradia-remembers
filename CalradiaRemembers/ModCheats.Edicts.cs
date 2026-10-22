@@ -44,7 +44,7 @@ namespace CalradiaRemembers
             }
             case "withdraw":
             {
-               Logic.Edicts.Edict e = args.Count > 1 ? b.Ledger.InForce.FirstOrDefault(x => x.Id == args[1]) : null;
+               Logic.Edicts.Edict e = args.Count > 1 ? b.Ledger.InForce().FirstOrDefault(x => x.Id == args[1]) : null;
 
                return b.Withdraw(e, "cr.edict") ? $"cr.edict: {e.Id} withdrawn." : "cr.edict withdraw <id>: no edict in force by that id.";
             }
@@ -63,7 +63,7 @@ namespace CalradiaRemembers
          {
             string where = e.Scope == EdictScope.Realm ? $"realm {e.TargetId}" : Settlement.Find(e.TargetId)?.Name?.ToString() ?? e.TargetId;
             string grief = e.Grievance.Count == 0 ? "" : $", grievance {string.Join(" ", e.Grievance.Select(g => $"{g.Key}:{g.Value}"))}";
-            lines.Add($"  {e.Id} {e.Status} '{e.Name}' ({e.Effect.Key}) on {where} by {e.EnactorId}{(e.ByPlayer ? " (player)" : "")}, day {e.EnactedDay} to {e.EndDay}"
+            lines.Add($"  {e.Id} {e.Status} '{e.Name}' ({e.Effect().Key}) on {where} by {e.EnactorId}{(e.ByPlayer ? " (player)" : "")}, day {e.EnactedDay} to {e.EndDay}"
                       + $"{grief}{(e.ContestedIn.Count > 0 ? ", contested in " + string.Join(" ", e.ContestedIn) : "")}{(e.RepealedIn.Count > 0 ? ", forced off in " + string.Join(" ", e.RepealedIn) : "")}");
          }
 

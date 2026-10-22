@@ -89,6 +89,10 @@ namespace CalradiaRemembers.Mapping
       ///   The NPC is no stranger: a real relationship (friend or enemy) exists, or they have a history of
       ///   recorded dealings with the player. First impressions are only for the barely-known.
       /// </summary>
+      /// <summary>A real relationship stands (friend or enemy, by the game's relation or the mod's own regard), events aside.</summary>
+      internal static bool HasStandingBond(Hero npc, NpcProfile profile, IGameStateBridge bridge)
+         => Math.Abs(bridge?.GetPlayerRelation(npc) ?? 0) >= KnownRelationThreshold || Math.Abs(profile?.ReputationWithPlayer ?? 0) >= KnownRelationThreshold;
+
       internal static bool IsAlreadyKnown(Hero npc, NpcProfile profile, IGameStateBridge bridge)
       {
          int relation = bridge?.GetPlayerRelation(npc) ?? 0;

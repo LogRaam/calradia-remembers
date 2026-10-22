@@ -66,6 +66,14 @@ namespace CalradiaRemembers.Tests
          Band(new PlayerFameFacts {PlayerRenown = 0, Observer = FameObserver.Commoner, HeardADeed = true}).Should().Be(FameBand.ByReputation);
       }
 
+      // STAKE: a notable of a town the player's house holds is never told his own lord's name is "faintly familiar": the
+      // player can see who holds the town.
+      [Test]
+      public void GIVEN_a_character_who_lives_under_the_player_WHEN_the_name_alone_would_be_faint_THEN_they_know_him_by_reputation()
+      {
+         Band(new PlayerFameFacts {PlayerRenown = 60, Observer = FameObserver.Notable, LivesUnderThePlayer = true}).Should().Be(FameBand.ByReputation);
+      }
+
       // STAKE: what is said of the player comes with the name: a merciless lord is said to be merciless, but only by
       // those who know the name, never by someone who has not heard it.
       [Test]

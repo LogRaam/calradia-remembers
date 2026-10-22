@@ -109,7 +109,12 @@ namespace CalradiaRemembers.Edicts
                // A save written before edicts: none.
             }
 
-            try { Ledger = bytes is {Length: > 0} ? JsonConvert.DeserializeObject<EdictLedger>(Encoding.UTF8.GetString(bytes)) ?? new EdictLedger() : new EdictLedger(); }
+            try
+            {
+               Ledger = bytes is {Length: > 0} ? JsonConvert.DeserializeObject<EdictLedger>(Encoding.UTF8.GetString(bytes)) ?? new EdictLedger() : new EdictLedger();
+               int dropped = Ledger.DropUnknownKinds();
+               if (dropped > 0) ModLog.Info($"[EDICT] {dropped} edict(s) of a kind this build does not know were dropped on load.");
+            }
             catch (Exception ex)
             {
                Ledger = new EdictLedger();
@@ -212,7 +217,7 @@ namespace CalradiaRemembers.Edicts
       /// <summary>Ends what ran out or lapsed, lets each burdened town grieve, and once a week lets the world's lords decree.</summary>
       internal void Daily(int today)
       {
-         foreach (Edict e in Ledger.InForce.ToList())
+         foreach (Edict e in Ledger.InForce().ToList())
          {
             Hero enactor = Hero.FindFirst(h => h.StringId == e.EnactorId);
             EdictStatus standing = EdictPolicy.Standing(new EdictStandingFacts {
@@ -259,7 +264,7 @@ namespace CalradiaRemembers.Edicts
          string id = town.Settlement.StringId;
          e.Grievance.TryGetValue(id, out int g);
          EdictGrievanceStep step = EdictPolicy.Grieve(new EdictGrievanceFacts {
-            BurdensThePeople = e.Effect.BurdensThePeople, Loyalty = town.Loyalty, Grievance = g, AlreadyContested = e.ContestedIn.Contains(id)
+            BurdensThePeople = e.Effect().BurdensThePeople, Loyalty = town.Loyalty, Grievance = g, AlreadyContested = e.ContestedIn.Contains(id)
          });
          e.Grievance[id] = step.Grievance;
 
@@ -285,7 +290,7 @@ namespace CalradiaRemembers.Edicts
       {
          foreach (Kingdom realm in Kingdom.All.Where(k => !k.IsEliminated && k.Leader != null))
          {
-            int worldEdicts = Ledger.InForce.Count(e => !e.ByPlayer && (e.TargetId == realm.StringId || RealmOf(Settlement.Find(e.TargetId))?.StringId == realm.StringId));
+            int worldEdicts = Ledger.InForce().Count(e => !e.ByPlayer && (e.TargetId == realm.StringId || RealmOf(Settlement.Find(e.TargetId))?.StringId == realm.StringId));
 
             Hero ruler = realm.Leader;
             if (ruler != Hero.MainHero && IsPresent(ruler) && EdictCounselPolicy.DecreesThisWeek(MBRandom.RandomFloat, worldEdicts)

@@ -15,7 +15,10 @@ using System.Linq;
 
 namespace CalradiaRemembers.Logic.Edicts
 {
-   /// <summary>The edicts a ruler may decree; what each does is in <see cref="EdictCatalog" />.</summary>
+   /// <summary>
+   ///   The edicts a ruler may decree; what each does is in <see cref="EdictCatalog" />. APPEND-ONLY: a save stores the
+   ///   number, so a reordered or removed member would load as another edict.
+   /// </summary>
    public enum EdictKind
    {
       /// <summary>Lighter taxes: the people breathe, the treasury thins.</summary>
