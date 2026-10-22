@@ -108,7 +108,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.WorldAlmanac` | 16 | 2 |
 | `CalradiaRemembers.Assemblies` | 15 | 8 |
 | `CalradiaRemembers.Jealousy` | 15 | 8 |
-| `CalradiaRemembers.Dialogue` | 14 | 2 |
+| `CalradiaRemembers.Dialogue` | 15 | 2 |
 | `CalradiaRemembers.Commitments` | 13 | 8 |
 | `CalradiaRemembers.Services` | 13 | 8 |
 | `CalradiaRemembers.Tournaments` | 13 | 3 |
@@ -182,9 +182,9 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Social` | 1 | 6 |
 | `CalradiaRemembers.Logic.Bastards` | 1 | 5 |
 | `CalradiaRemembers.Logic.War` | 1 | 5 |
+| `CalradiaRemembers.Logic.Chat` | 1 | 4 |
 | `CalradiaRemembers.Logic.RealmTidings` | 1 | 4 |
 | `CalradiaRemembers.Logic.Trauma` | 1 | 4 |
-| `CalradiaRemembers.Logic.Chat` | 1 | 3 |
 | `CalradiaRemembers.Logic.Diagnostics` | 1 | 3 |
 | `CalradiaRemembers.Logic.Quests` | 1 | 3 |
 | `CalradiaRemembers.Logic.WorldAlmanac` | 1 | 3 |
@@ -759,7 +759,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### CalradiaRemembers.Dialogue
 
-- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Companions`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Grudges`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Quests`, `CalradiaRemembers.Storage`, `CalradiaRemembers.Witnesses`, `NpcMemoryService.Core.Models`
+- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Companions`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Chat`, `CalradiaRemembers.Logic.Grudges`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Quests`, `CalradiaRemembers.Storage`, `CalradiaRemembers.Witnesses`, `NpcMemoryService.Core.Models`
 - used by: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Diagnostics`
 
 ### CalradiaRemembers.Duels
@@ -880,7 +880,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### CalradiaRemembers.Logic.Chat
 
 - uses: `CalradiaRemembers.Logic.Providers`
-- used by: `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Foundation`
+- used by: `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Foundation`
 
 ### CalradiaRemembers.Logic.Chronicle
 

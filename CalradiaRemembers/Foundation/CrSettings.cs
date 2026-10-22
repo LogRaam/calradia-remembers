@@ -529,6 +529,13 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool NpcsRaiseWorldNews { get; set; } = false;
 
+      // Lordfadooboo (Nexus, 21/10/2026): a conversation opened cold. Gabriel (22/10/2026): on by default, as captive
+      // scenes already open themselves; the switch is for a player who counts the cost (one more call per conversation).
+      [SettingPropertyBool("{=CR_MCM_CharactersSetTheScene}Characters Set The Scene", RequireRestart = false, Order = 3,
+         HintText = "{=CR_MCM_CharactersSetTheScene_Hint}On (default): when you start a conversation, the character opens it, what they were doing and their first words, while you may already type. One more model call per conversation. Off: the short greeting alone.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
+      public bool CharactersSetTheScene { get; set; } = true;
+
       [SettingPropertyDropdown("{=CR_MCM_InterceptionPacing}Lords Approaching You", RequireRestart = false, Order = 2,
          HintText = "{=CR_MCM_InterceptionPacing_Hint}How often a lord rides out to have a word with you on the road. Never switches it off " +
                     "entirely. Occasionally is the shipped feel.")]

@@ -343,6 +343,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("birth_house_known", Severity.Light, "Maifailun (Nexus, 07/10/2026): Lidia, wed into the Takhi, named her father but not the house she was born into, and claimed she was born a Takhi. Finds a married character living in another house than the one they were born into and checks their family line, as the prompt gets it, names the birth house.", TestBirthHouseKnown),
          new SelfTest("tale_local_band", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's last band was always looters, the weakest troop in the game. A \"local\" band is made of the bandits of the nearest hideout. Reads them for a few villages across the map and checks each finds real bandits; the log names them.", TestTaleLocalBand),
          new SelfTest("scene_surroundings_read", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's scene should read differently to an Aserai in a forest at night and a Battanian at noon. Reads the ground under the player, the season, the hour and the player's people from the live game, as the scene's narrator gets them, and checks the narrator's block is written from them.", TestSceneSurroundingsRead),
+         new SelfTest("scene_opener", Severity.Light, "Lordfadooboo (Nexus, 21/10/2026): a conversation opened cold; Gabriel (22/10/2026): the character sets the scene by default, as captive scenes do. Reads the LIVE opening facts (LlmDialogFlow.SceneFacts) and asserts a conversation opened by the greeting gets a scene while one opened any other way (an interception, a tale meeting) does not, nor one put back from earlier today, nor one carrying the game's own dialogue, nor any with the MCM switch off (set off for a moment, restored). Then, with a model available and nothing on screen, opens a REAL conversation with a lord, starts the scene on a test greeting and plays the player speaking first: the scene is set aside, the greeting stays on screen and is the line remembered, and the call is aborted. Closes the conversation", TestSceneOpener),
          new SelfTest("scene_image_shown", Severity.Light, "Gabriel (08/10/2026): a tale's stage may carry a picture, opening by itself beside the chat when its scene opens. Writes a small picture to a temporary file, opens a scene with it through the real door (its narration refused before any model call), checks the left panel shows that very file, then closes the scene and deletes the file.", TestSceneImageShown),
          new SelfTest("scene_close_gives_the_map_back", Severity.Light, "fkasad (Nexus, 07/10/2026): closing a tale's scene left a black screen with no way back. The close queued the backdrop's pop for the next frame, then wiped its own queue at the end. Opens a scene through the real door (its narration refused before any model call, so the log shows one [SCENE] error on purpose), closes it as the button does, runs one frame: the scene's own close must have run, what it queued must have run, and the map must be given back.", TestSceneCloseGivesTheMapBack),
          new SelfTest("scene_backdrop_suspends_the_map", Severity.Light, "Gabriel's play test (04/10/2026): closing a written tale's scene crashed the game natively; the scene had opened over the bare live map, which the hosting rule forbids. The scene's chat now sits on a pushed GameState. Opens that backdrop through the real host: the map must be suspended (a CrPanelState active, the settlement-visual tick suppressed), then given back exactly as it was, with the clock stopped. Opens no chat.", TestSceneBackdropSuspendsTheMap),
@@ -11748,6 +11749,65 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("thePlayersPeopleAreKnown", string.IsNullOrWhiteSpace(f.PlayerCulture), false);
          t.Expect("theHourIsKnown", f.Hour >= 0 && f.Hour <= 23, true);
          t.Expect("theNarratorIsToldOfThem", Logic.AuthoredQuests.SceneSurroundingsText.Compose(f) != null, true);
+
+         return t.Line();
+      }
+
+      private static string TestSceneOpener(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("scene_opener");
+         CrSettings settings = CrSettings.Instance;
+         if (t.Abort(settings == null, "no MCM settings instance")) return t.Line();
+
+         bool before = settings.CharactersSetTheScene;
+         bool model = behavior?.LlmServices?.IsAvailable == true;
+         try
+         {
+            settings.CharactersSetTheScene = true;
+            // STAKE: an interception or a tale meeting opens through the same door with its own opening: no second one.
+            t.Expect("notByTheGreetingNoScene", Logic.Chat.SceneOpenerPolicy.ShouldOpen(Dialogue.LlmDialogFlow.SceneFacts(null, false, false)), false);
+            // STAKE: the game's own dialogue already began the scene (a wanderer's backstory).
+            t.Expect("gameDialogueCarriedNoScene", Logic.Chat.SceneOpenerPolicy.ShouldOpen(Dialogue.LlmDialogFlow.SceneFacts(null, true, true)), false);
+            // STAKE: Lordfadooboo's cold open, the case the feature is for.
+            t.Expect("byTheGreetingASceneWhenAModelAnswers", Logic.Chat.SceneOpenerPolicy.ShouldOpen(Dialogue.LlmDialogFlow.SceneFacts(null, true, false)), model);
+            settings.CharactersSetTheScene = false;
+            // STAKE: a player who counts the cost turned it off and pays nothing more.
+            t.Expect("switchOffNoScene", Logic.Chat.SceneOpenerPolicy.ShouldOpen(Dialogue.LlmDialogFlow.SceneFacts(null, true, false)), false);
+         }
+         finally { settings.CharactersSetTheScene = before; }
+
+         if (t.Skip(!model, "no model available: the live half (a real conversation) needs one")) return t.Line();
+         if (t.Skip(Chat.ChatManager.IsOpen || Chat.ExplorationBackdrop.IsOpen || UI.CrPanelHost.AnyPanelOwnsScreen, "a window or panel already owns the screen")) return t.Line();
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && Mapping.HeroPresence.IsInTheWorld(h) && !h.IsPrisoner);
+         if (t.Skip(lord == null, "no lord to speak with")) return t.Line();
+
+         const string greeting = "[SELFTEST] Well met.";
+         CampaignTimeControlMode timeBefore = Campaign.Current.TimeControlMode;
+         try
+         {
+            GetOrCreate(behavior, lord);
+            // Staged, not ordinary: an ordinary open would consume (and its close would keep) a sitting of the player's own.
+            Chat.ChatManager.Open(lord.Name.ToString(), opening: Chat.ChatOpening.Staged);
+            Chat.ChatViewModel vm = Chat.ChatManager.ActiveViewModel;
+            if (t.Skip(vm == null, "the conversation did not open")) return t.Line();
+            vm.SetNpcHero(lord);
+
+            vm.OpenWithScene(greeting);
+            t.Expect("theSceneIsBeingWritten", vm.SceneOpenerInFlightForDiagnostics, true);
+            // STAKE: nobody waits on the model to be greeted: the greeting is on screen from the first frame.
+            t.Expect("theGreetingShowsMeanwhile", vm.ShowsLineForDiagnostics(greeting), true);
+
+            vm.SetSceneOpenerAsideForDiagnostics();
+            // STAKE: the player who spoke first keeps the floor: the greeting stands and is what the character said.
+            t.Expect("theGreetingStillShows", vm.ShowsLineForDiagnostics(greeting), true);
+            t.Expect("theGreetingIsRemembered", vm.LastRememberedLineForDiagnostics, greeting);
+         }
+         finally
+         {
+            if (Chat.ChatManager.IsOpen) Chat.ChatManager.Close();
+            MainThreadDispatcher.Pump();
+            Campaign.Current.TimeControlMode = timeBefore;
+         }
 
          return t.Line();
       }

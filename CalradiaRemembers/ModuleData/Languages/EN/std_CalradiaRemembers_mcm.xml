@@ -145,6 +145,8 @@
     <string id="CR_MCM_ReplyLanguage_Hint" text="Leave blank to use the game's language (an English game mirrors whatever language you write in). Name a language (e.g. Spanish) to force every reply, letter, memory, and the illuminated chronicle into it, no matter what you write." />
     <string id="CR_MCM_NpcsRaiseWorldNews" text="NPCs Raise World News" />
     <string id="CR_MCM_NpcsRaiseWorldNews_Hint" text="Off (default): an NPC approaches you only about something between the two of you. On: they may also stop you to ask what you make of distant news. Their own deeds and yours are always allowed either way." />
+    <string id="CR_MCM_CharactersSetTheScene" text="Characters Set The Scene" />
+    <string id="CR_MCM_CharactersSetTheScene_Hint" text="On (default): when you start a conversation, the character opens it, what they were doing and their first words, while you may already type. One more model call per conversation. Off: the short greeting alone." />
     <string id="CR_MCM_InterceptionPacing" text="Lords Approaching You" />
     <string id="CR_MCM_InterceptionPacing_Hint" text="How often a lord rides out to have a word with you on the road. Never switches it off entirely. Occasionally is the shipped feel." />
     <string id="CR_MCM_AuthoredQuests" text="Authored Quests (experimental)" />

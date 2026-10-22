@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 542 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1221 types in 45 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1224 types in 45 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -204,7 +204,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatScreen` | internal class | A minimal screen that carries the pre-built chat layer and takes focus when pushed. |
 | `ChatScrollablePanel` | public class | Custom ScrollablePanel that supports a deferred "scroll to bottom" request. |
 | `ChatSpeaker` | internal class | One participant of a chat exchange: the main NPC or a present witness, with the hero, stored profile and display colour used to route the turn and render the line. |
-| `ChatViewModel` | public class, partial over 8 files | (no summary) |
+| `ChatViewModel` | public class, partial over 9 files | (no summary) |
 | `CompanionAudiencePayload` | public class | The companion-audience specifics. |
 | `ComposeScrollablePanel` | public class | A plain ScrollablePanel for the composer's multi-line input. |
 | `ConversationMood` | public static class | How far the player has moved each character's mood in the current conversation. |
@@ -1692,7 +1692,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptureStake` | public enum | What the captive is to the one who hears of the capture. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 
-### CalradiaRemembers.Logic.Chat (16)
+### CalradiaRemembers.Logic.Chat (19)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1712,6 +1712,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryPanelPolicy` | public static class | Decides how a memory appears in the Memories panel. |
 | `MemoryPanelShow` | public enum | How one memory appears in the chat's Memories panel. |
 | `OverlayNeighbour` | public class | One layer beside the chat, as the arbiter needs to see it. |
+| `SceneOpenerFacts` | public class | What a conversation's opening knows when it decides whether the character sets the scene. |
+| `SceneOpenerOutcome` | public enum | How the character's scene-setting turn ended. |
+| `SceneOpenerPolicy` | public static class | Decides whether the character sets the scene, the direction they are given, and what becomes of the greeting. |
 
 ### CalradiaRemembers.Logic.Chronicle (1)
 

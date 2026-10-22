@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-558 rules read 430 facts.
+559 rules read 431 facts.
 
 ## Facts read by more than one rule
 
@@ -728,6 +728,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `SceneChoiceMenu.Read`: `Array.Empty`, `Ways.Invoke`
 - `SceneChoiceMenuFacts`: `Array.Empty`
 - `SceneCompanionMemory.Compose`: `FoundSoFar.Invoke`
+- `SceneOpenerPolicy.ShouldOpen`: `ModSettings.CharactersSetTheScene`
 - `SceneSurroundingsFacts`: `Current.MapSceneWrapper`, `MobileParty.Position`
 - `SchemeAdvancer.Advance`: `Hero.GetRelation`, `Hero.GetTraitLevel`
 - `SchemeAgentPolicy.ApplyPlayerAid`: `Hero.GetRelation`, `Hero.MapFaction`
