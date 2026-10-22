@@ -1223,12 +1223,13 @@ namespace CalradiaRemembers.Diagnostics
          ///   same-sex refusal. <paramref name="unwed" /> keeps a marriage test off somebody already somebody's
          ///   spouse. <paramref name="mustBeInMainParty" /> is for a test that reads the party roster itself
          ///   (presence, troop count, a mission dispatch); without it, a companion anywhere in the player's
-         ///   clan is reused untouched. Returns null only when neither an existing companion nor a single
+         ///   clan is reused untouched. <paramref name="reject" /> turns away anyone else the test cannot read
+         ///   cleanly (e.g. the player's former spouse for a test of a new romance). Returns null only when neither an existing companion nor a single
          ///   wanderer template exists at all (should not happen on a real install); callers still
          ///   t.Skip/t.Abort on a null result.
          /// </summary>
          public static ArrangedCompanion Get(NpcMemoryCampaignBehavior behavior, Hero exclude = null,
-            bool oppositeSexOfPlayer = false, bool unwed = false, bool mustBeInMainParty = false)
+            bool oppositeSexOfPlayer = false, bool unwed = false, bool mustBeInMainParty = false, Func<Hero, bool> reject = null)
          {
             bool playerFemale = Hero.MainHero?.IsFemale ?? false;
 
@@ -1249,7 +1250,8 @@ namespace CalradiaRemembers.Diagnostics
                && CompanionMissionBehavior.Instance?.IsAway(h.StringId) != true
                && h.IsPlayerCompanion
                && (!oppositeSexOfPlayer || h.IsFemale != playerFemale)
-               && (!unwed || h.Spouse == null);
+               && (!unwed || h.Spouse == null)
+               && reject?.Invoke(h) != true;
 
             Hero inPlace = Hero.AllAliveHeroes.FirstOrDefault(h =>
                Fits(h) && (!mustBeInMainParty || h.PartyBelongedTo == MobileParty.MainParty));
@@ -13729,7 +13731,10 @@ namespace CalradiaRemembers.Diagnostics
          var t = new TestRun("heart_page");
          if (t.Abort(behavior?.Store == null || Hero.MainHero == null, "the store is not ready")) return t.Line();
 
-         Hero lover = ArrangedCompanion.Get(behavior, oppositeSexOfPlayer: true, unwed: true)?.Companion;
+         // The player's former spouse is turned away: her page tells the dissolved marriage first, not a new love (Gabriel's
+         // save, 21/10/2026: Khilam, once wed to the player, was picked).
+         Hero lover = ArrangedCompanion.Get(behavior, oppositeSexOfPlayer: true, unwed: true,
+                                            reject: h => Hero.MainHero.ExSpouses?.Contains(h) == true)?.Companion;
          if (t.Abort(lover == null, "no companion of the other sex could be arranged")) return t.Line();
 
          NpcProfile profile = behavior.Store.Get(lover.StringId) ?? HeroProfileMapper.FromHero(lover);
