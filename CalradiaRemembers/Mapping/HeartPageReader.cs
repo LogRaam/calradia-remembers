@@ -3,6 +3,9 @@
 // the vanilla marriage, which outranks the romantic state since a divorce does not reset it; the wedding day CR recorded;
 // the children the two have, never a bastard still hidden; her own lover only once the player knows of him. The words are
 // HeartPagePolicy's. Shared by the page and cr.testall heart_page, so the test reads exactly what the player reads.
+// At Hardcore the nights and, on the player's page, the prisoners the player took by force (HeartIntimacyPolicy, Gabriel
+// 23/10/2026): the nights are the character's own Intimacy memories, which compression always keeps; the forced acts are
+// the Trauma ledger's records of the player's own deed.
 
 #region
 
@@ -11,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Bastards;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Romance;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
@@ -28,9 +32,27 @@ namespace CalradiaRemembers.Mapping
         {
             if (hero == null || Hero.MainHero == null) return Array.Empty<string>();
 
-            if (hero != Hero.MainHero) return HeartPagePolicy.Lines(FactsFor(hero), When);
+            bool intimate = HeartIntimacyPolicy.Shows(ModSettings.AdultContentLevel);
+            if (hero != Hero.MainHero)
+            {
+                var lines = HeartPagePolicy.Lines(FactsFor(hero), When).ToList();
+                string nights = intimate ? HeartIntimacyPolicy.NightsLine(NightsOf(hero), When) : null;
+                if (nights != null) lines.Add(nights);
 
-            return Partners().Select(h => HeartPagePolicy.RecapLine(FactsFor(h), When)).Where(l => l != null).ToList();
+                return lines;
+            }
+
+            List<string> recap = Partners().Select(h => HeartPagePolicy.RecapLine(FactsFor(h), When)).Where(l => l != null).ToList();
+            if (!intimate) return recap;
+
+            recap.AddRange(Lovers().Select(h => HeartIntimacyPolicy.NightsRecapLine(NightsOf(h), When)).Where(l => l != null));
+            foreach (HeartForcedActs acts in HeartIntimacyPolicy.ForcedByThePlayer(TraumaLedgerBehavior.All()))
+            {
+                Hero victim = Hero.FindFirst(x => x.StringId == acts.VictimId);
+                if (victim != null) recap.Add(HeartIntimacyPolicy.ForcedLine(acts, victim.Name?.ToString(), victim.IsFemale, When));
+            }
+
+            return recap;
         }
 
         /// <summary>The hero's bond with the player as another mod reads it (CrRomance.GetStatus), from the page's own facts.</summary>
@@ -80,6 +102,33 @@ namespace CalradiaRemembers.Mapping
                 if (h != null && h != main && seen.Add(h)) yield return h;
             }
         }
+
+        // Everyone who shared a night with the player, by the first night.
+        private static IEnumerable<Hero> Lovers()
+        {
+            var store = NpcMemoryCampaignBehavior.Instance?.Store;
+            if (store == null) return Enumerable.Empty<Hero>();
+
+            var lovers = new List<(Hero Hero, int First)>();
+            foreach (string id in store.ListIds())
+            {
+                int[] days = store.Get(id)?.Events?.Where(e => e != null && e.type == NotableEventType.Intimacy).Select(e => e.gameDay).ToArray();
+                if (days == null || days.Length == 0) continue;
+                Hero h = Hero.FindFirst(x => x.StringId == id);
+                if (h != null && h != Hero.MainHero) lovers.Add((h, days.Min()));
+            }
+
+            return lovers.OrderBy(l => l.First).Select(l => l.Hero);
+        }
+
+        private static HeartNightsFacts NightsOf(Hero hero)
+            => new HeartNightsFacts
+            {
+                Name = hero.Name?.ToString(),
+                NightDays = NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId)?.Events?
+                                                     .Where(e => e != null && e.type == NotableEventType.Intimacy).Select(e => e.gameDay).ToList()
+                            ?? new List<int>()
+            };
 
         private static HeartFacts FactsFor(Hero hero)
         {

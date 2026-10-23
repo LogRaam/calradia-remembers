@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 556 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1256 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1259 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2184,12 +2184,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RescueGratitudePolicy` | public static class | Decides how strongly an NPC reacts to being rescued (or to a loved one being rescued) by the player. |
 | `RescueTie` | public enum | How the freed prisoner relates to the player, deciding the shape of their gratitude. |
 
-### CalradiaRemembers.Logic.Romance (24)
+### CalradiaRemembers.Logic.Romance (27)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `HeartChild` | public class | A child the player and this character have together, as the page names it. |
 | `HeartFacts` | public class | What the player knows of one character's bond with them. |
+| `HeartForcedActs` | public class | The times the player took one prisoner by force. |
+| `HeartIntimacyPolicy` | public static class | The intimate lines of the Heart section: their gate and their words. |
+| `HeartNightsFacts` | public class | The nights the player shared with one character, as the page tells them. |
 | `HeartPagePolicy` | public static class | Tells a character's bond with the player for the Heart section, and the recap line on the player's page. |
 | `JealousStake` | public enum | Who the jealous party is, and why they have a stake: sets the reaction's flavour. |
 | `JealousyHearingPolicy` | public static class | Pure gate deciding whether a jealous party is close enough to a liaison's location to have heard word of it. |

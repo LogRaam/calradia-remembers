@@ -373,6 +373,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("wedding_day_line", Severity.Light, "fkasad (10/10/2026): a marriage CR never saw reads as years old when the couple's eldest living child is 2 or more (checked on a real lord when one exists). raphareish (Nexus, 01/10/2026): a character wed days before spoke of her spouse as if married for years. Takes a married lord, sets his wedding day to three days ago for a moment, expects his family line to call them newlyweds, then forgets the day and expects the line as before. Weds nobody.", TestWeddingDayLine),
          new SelfTest("every_verb_taught", Severity.Light, "22/10/2026: arrange_match (tashmetu's groom-side ask of 20/10/2026), reinforce_garrison, share_intel, deliver_recruits and admit_secret_lover were registered and executable but sat in no teaching list, so their own teaching never reached a prompt; each testall drove the bridge directly and passed. Reads the LIVE VerbRegistry and asserts every one of CR's own verbs is composed by a teaching list of EncounterContextBuilder or named among the verbs taught by another path (pay_for_silence inline, the violence verbs by their catalogue line). Changes nothing", TestEveryVerbTaught),
          new SelfTest("registered_match", Severity.Light, "tashmetu (Nexus, 16/10/2026): a head of house agreed in the chat to a match another mod had proposed, and nothing happened. Finds a lawful match of another house at peace, wins the bride over and the head's regard for the player (a disposable test game), registers it through the PUBLIC CrMatches.Register, checks a decider with no say is refused at the door, that the head is taught the match (and that the teaching reaches his REAL prompt, EncounterContextBuilder.Build), then settles it through the REAL bridge (arrange_match): the game weds them, CrMatches.Settled reports it, and the match is no longer pending. Restores the head's regard; the marriage stays", TestRegisteredMatch),
+         new SelfTest("heart_intimacy", Severity.Light, "Gabriel (23/10/2026): at Hardcore only, the nights the player shared with a character show in Heart on both pages, sober as a diary, and the player's page tells the prisoners the player took by force, never what was done to the player. Arranges a companion of the other sex with two nights (a hundred days ago and today, marked [SELFTEST] and replaced on a rerun) and a lord the player took by force while a prisoner, then reads both pages through HeartPageReader at Hardcore: her page counts the nights, the player's page names her nights and the forced act; at Explicit none of it shows. The adult level is put back; the nights and the record stay on the test save so the pages can be opened afterwards.", TestHeartIntimacy),
          new SelfTest("trauma_page", Severity.Light, "Gabriel (20/10/2026): at Hardcore, a Trauma section on a character's page documents the aggressions they lived through, and never on the player's own page ('on ne decide pas a la place du joueur ce qui est traumatisant pour lui'). Arranges a companion of the player's (reused, or minted into the party) as the victim, records through the ledger the scenes use that a named captor tortured them before the player's eyes, then reads the page through the reader's seam with the MCM adult level set in turn: at Hardcore the line names the captor and the season and year; at Explicit nothing shows; the player's own page shows nothing even at Hardcore; the same aggression recorded twice is listed once; a purse the player took by force reads as the player's own deed ('oui, ajoute le vol'). Restores the adult level only: on a test save what is recorded stays, so the page can be opened afterwards (Gabriel, 20/10/2026)", TestTraumaPage),
          new SelfTest("heart_page", Severity.Light, "Gabriel (20/10/2026): love stories were kept and shown nowhere; the encyclopedia now has a Heart section on the page of a character engaged with the player, in the second person, and a recap on the player's own page. Arranges a companion of the other sex (reused, or minted into the party), gives her a profile that became the player's lover on a known day 100 days ago through the same dating helper the game's actions use, and reads the page's lines through the mixin's seam: her page says she has been the player's lover since that season and year, the date is the calendar's (today formats as CampaignTime.Now's season and year, the check that catches a wrong day base), a later night does not move it, and the player's own page lists her. She stays the player's lover: on a test save the story is kept so the pages can be opened afterwards (Gabriel, 20/10/2026)", TestHeartPage),
          new SelfTest("match_asks_the_player", Severity.Light, "tashmetu (20/10/2026): when the bride is the player's daughter or sister, the player holds the say over her hand and the door refused. Takes an unwed woman of the player's house and a lawful groom of another house at peace, registers the match through the PUBLIC CrMatches.Register with the groom's side (the head of his house, or the groom) as the decider: it is taken as asking the player, the groom's side is taught to ask for her hand, and the chat's [Y/n] names her and the groom. Settles nothing (no daughter is wed by a test); withdraws the match. When the player's house holds no unwed woman with a lawful groom, mints one into the house (no parent named) and removes her after", TestMatchAsksThePlayer),
@@ -14087,6 +14088,48 @@ namespace CalradiaRemembers.Diagnostics
 
             CrSettings.Instance.AdultContentLevel.SelectedValue = "Explicit";
             t.Expect("belowHardcoreNothingShows", Mapping.TraumaPageReader.LinesFor(victim).Count, 0);
+         }
+         finally
+         {
+            CrSettings.Instance.AdultContentLevel.SelectedValue = keep;
+         }
+
+         return t.Line();
+      }
+
+      private static string TestHeartIntimacy(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("heart_intimacy");
+         if (t.Abort(CrSettings.Instance == null || behavior?.Store == null || Hero.MainHero == null, "the MCM settings or the store are not ready")) return t.Line();
+
+         Hero lover = ArrangedCompanion.Get(behavior, oppositeSexOfPlayer: true, unwed: true,
+                                            reject: h => Hero.MainHero.ExSpouses?.Contains(h) == true)?.Companion;
+         Hero prisoner = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h != lover && !h.IsChild);
+         if (t.Abort(lover == null || prisoner == null, "no companion of the other sex could be arranged or no lord stands as the prisoner")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         NpcProfile profile = behavior.Store.Get(lover.StringId) ?? HeroProfileMapper.FromHero(lover);
+         profile.Events.RemoveAll(e => e.type == NotableEventType.Intimacy && e.summary?.StartsWith("[SELFTEST]", StringComparison.Ordinal) == true);
+         profile.Events.Add(new NotableEvent(Math.Max(1, today - 100), NotableEventType.Intimacy, "[SELFTEST] Our first night together."));
+         profile.Events.Add(new NotableEvent(today, NotableEventType.Intimacy, "[SELFTEST] Another night together."));
+         behavior.Store.Set(profile);
+         Mapping.TraumaLedgerBehavior.Record(prisoner, null, Logic.Trauma.TraumaKind.Assaulted, Logic.Trauma.TraumaAuthor.Player);
+
+         string keep = CrSettings.Instance.AdultContentLevel.SelectedValue;
+         try
+         {
+            CrSettings.Instance.AdultContentLevel.SelectedValue = "Hardcore";
+            IReadOnlyList<string> herPage = Mapping.HeartPageReader.LinesFor(lover);
+            IReadOnlyList<string> playersPage = Mapping.HeartPageReader.LinesFor(Hero.MainHero);
+            t.Note($"{lover.Name}: {string.Join(" | ", herPage)}");
+            t.Note($"player: {string.Join(" | ", playersPage)}");
+            t.Expect("herPageCountsTheNights", herPage.Any(l => l.StartsWith("You have shared ", StringComparison.Ordinal) && l.Contains(" nights together")), true);
+            t.Expect("thePlayersPageNamesHerNights", playersPage.Any(l => l.Contains($" nights with {lover.Name}, ")), true);
+            t.Expect("thePlayersPageTellsTheForcedAct", playersPage.Any(l => l.StartsWith($"You took {prisoner.Name} by force while", StringComparison.Ordinal)), true);
+
+            CrSettings.Instance.AdultContentLevel.SelectedValue = "Explicit";
+            t.Expect("belowHardcoreNoNightOnHerPage", Mapping.HeartPageReader.LinesFor(lover).Any(l => l.Contains("night")), false);
+            t.Expect("belowHardcoreNothingOnThePlayersPage", Mapping.HeartPageReader.LinesFor(Hero.MainHero).Any(l => l.Contains("night") || l.Contains("by force")), false);
          }
          finally
          {

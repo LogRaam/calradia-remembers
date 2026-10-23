@@ -81,12 +81,14 @@ namespace CalradiaRemembers
          => SimulateRelation(args, NotableEventType.Intimacy, "cr.relation_intimate <delta> [name]");
 
       /// <summary>
-      ///   cr.heart_seed [days_ago] [name]
+      ///   cr.heart_seed [days_ago] [name] [forced]
       ///   Gives a character a love story with the player, begun &lt;days_ago&gt; days ago (default 120), so the encyclopedia's
       ///   Heart and Kindnesses sections can be seen without playing it out (Gabriel, 23/10/2026). Writes a first flirt, a
       ///   first night a third of the way in, and a night three days ago; moves the bond to Intimate, dated from the first
       ///   night; plants the kindness an intimate moment leaves (through the real TryPlant gate, which may refuse). A test
-      ///   tool: it writes into the save once the game is saved, and cr.forget_all undoes the memories.
+      ///   tool: it writes into the save once the game is saved, and cr.forget_all undoes the memories. With "forced" it
+      ///   instead records that the player took the character by force while a prisoner (the Trauma ledger), which the Heart
+      ///   of the player's page and the character's Trauma section show at Hardcore (Gabriel, 23/10/2026).
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("heart_seed", "cr")]
       public static string SeedHeart(List<string> args)
@@ -95,6 +97,8 @@ namespace CalradiaRemembers
 
          var daysAgo = 120;
          List<string> nameArgs = args ?? new List<string>();
+         bool forced = nameArgs.Count > 0 && string.Equals(nameArgs[nameArgs.Count - 1], "forced", StringComparison.OrdinalIgnoreCase);
+         if (forced) nameArgs = nameArgs.Take(nameArgs.Count - 1).ToList();
          if (nameArgs.Count > 0 && int.TryParse(nameArgs[0], out int parsed))
          {
             daysAgo = Math.Max(6, parsed);
@@ -102,7 +106,14 @@ namespace CalradiaRemembers
          }
 
          Hero hero = ResolveHero(nameArgs);
-         if (hero == null || hero == Hero.MainHero) return "Usage: cr.heart_seed [days_ago] [name] (or talk to someone first).";
+         if (hero == null || hero == Hero.MainHero) return "Usage: cr.heart_seed [days_ago] [name] [forced] (or talk to someone first).";
+
+         if (forced)
+         {
+            Mapping.TraumaLedgerBehavior.Record(hero, null, Logic.Trauma.TraumaKind.Assaulted, Logic.Trauma.TraumaAuthor.Player);
+
+            return $"{hero.Name}: recorded as taken by force by you while your prisoner, today (once a day at most). At Hardcore, your page's Heart and {hero.Name}'s Trauma section show it.";
+         }
 
          NpcProfile profile = GetOrCreateProfile(behavior, hero);
          if (profile.Romantic == null) return $"{hero.Name} has no romantic profile yet: talk to them once, then run this again.";

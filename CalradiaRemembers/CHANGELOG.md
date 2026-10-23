@@ -43,6 +43,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   lords, know the edicts where they live: who decreed it, what it does, how long it holds, whether they grumble or
   contest it, and one they forced off. `cr.edict` lists them and pulls the levers; cr.testall `edict_effects`,
   `enact_edict`. For Compact users: each action's description in the interpreter is cut at 86 characters (was 88).
+- **Nights in the Heart section, at Hardcore only** (Gabriel 23/10: consensual nights "apparaissent sur la page du
+  joueur", "les actes que le joueur a fait subir peuvent apparaitre", "les scenes forcees subies par le joueur ne sont pas
+  affichees", sober "du genre de quelque chose que le joueur aurait pu ecrire dans son journal intime"). A character's
+  page counts the nights shared with the player, the first and the last ("You have shared three nights together, the
+  first in spring 1091, the last in autumn 1093"); the player's page has a line per partner, and one per prisoner the
+  player took by force (from the Trauma ledger, the player's own deed only). Never the content of a night, never what was
+  done to the player; a forced act stays in its victim's Trauma section, not under Heart. The nights are the character's
+  own intimate memories, which compression always keeps, a day counted once (`HeartIntimacyPolicy`). `cr.heart_seed`
+  takes `forced`; cr.testall `heart_intimacy`.
 
 ### Changed
 - **Friends, enemies and houses as rows on the encyclopedia page** (Gabriel 22/10: "une liste ou chaque ligne serait
