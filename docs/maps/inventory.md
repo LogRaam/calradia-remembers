@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 542 types in 61 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1221 types in 45 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 549 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1245 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 21500+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 22000+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -93,7 +93,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
-| `ModCheats` | public static class, partial over 59 files | Exposes diagnostic commands to the Bannerlord cheat console. |
+| `ModCheats` | public static class, partial over 60 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
 | `ProseInterpretTestRunner` | internal static class | The runner behind cr.prose_interpret_test. |
 | `SingleCallProbeRunner` | internal static class | The runner behind cr.single_call_probe: sends each scenario as one composer+extractor call and reports. |
@@ -325,6 +325,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `SuccessionBehavior` | public class | Reframes all stored NPC memories through the lens of the new heir on player death. |
 
+### CalradiaRemembers.Edicts (3)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `EdictBehavior` | public class | The campaign's edicts: decreed, applied (through EdictModelPatches), contested, ended. |
+| `EdictModelPatches` | public static class | Adds the edict holding on a town to the game's own loyalty, security, prosperity, militia, food and tax. |
+| `EdictNews` | public class | One piece of realm news an edict makes (a decree, a contest, a repeal), told through EdictBehavior.News. |
+
 ### CalradiaRemembers.Encyclopedia (38)
 
 | Type | Kind | What it is |
@@ -529,7 +537,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (32)
+### CalradiaRemembers.Mapping (34)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -538,6 +546,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilSeatNoteResolver` | internal static class | Resolves one council seat's modder note from council_seat.txt and that seat's own variables. |
 | `CulturalTraditionsLoader` | public static class | Loads and caches the cultural_traditions.json file from the mod's own ModuleData folder (and, if present, ModuleData/Custom first). |
 | `DayMoodReader` | public static class | Draws a character's mood of the day from the live game. |
+| `EdictNoteResolver` | public static class | The "edicts where you live" lines for a character, or null. |
 | `EncounterContextBuilder` | public static class | Constructs an EncounterContext for a given NPC, using the game state bridge for live data and the stored profile for historical data (last-meeting computation). |
 | `FirstImpressionResolver` | public static class | Builds the ready-to-inject "first impression" line for a barely-known noble, or null. |
 | `GameRelations` | public static class | Reads a character's own relation with the player and, when there is another to read, their clan leader's. |
@@ -549,6 +558,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NarrativeLoader` | public static class | Loads narrative text files from the mod's ModuleData folder at session launch. |
 | `PairRegardReader` | internal static class | Reads what lies between two characters into PairRegardFacts, and assesses it. |
 | `PlayerDressResolver` | public static class | Resolves the player's live PlayerDressBand from Hero.MainHero's equipment. |
+| `PlayerFameResolver` | public static class | Builds the "what you know of their name" line for a character who does not know the player in person, or null. |
 | `PlayerPrisonBreakPatch` | public static class | Who the player is breaking out of prison right now, for the listeners of that release. |
 | `PromptProfileService` | internal static class | The prompt profile in use, and the layout each kind of character gets from it. |
 | `RealmFaceBehavior` | public class | Dresses each realm's queen in the face its faces file gives, and gives a former queen her own face back. |
@@ -785,7 +795,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrSpikeScreen` | internal class | The one screen the probe uses, pushed BOTH ways so the measurement compares mechanisms rather than screens. |
 | `CrSpikeState` | public class | The spike's game state: deliberately empty, it exists only to be pushed so a screen binds to it. |
 
-### CalradiaRemembers.Verbs (26)
+### CalradiaRemembers.Verbs (28)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -793,6 +803,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ArrangeMatchVerb` | public class | arrange_match (fkasad, Nexus, 01/10/2026: "Playing wingman for a guy trying hard to get a girl married?"; Gabriel: a real marriage): the head of a lady's house (or the lady herself, when she answers for herself) gives he... |
 | `BuyPrisonerVerb` | public class | buy_prisoner: the NPC pays the player gold for a hero captive the player's party holds. |
 | `DeliverRecruitsVerb` | public class | deliver_recruits (Lordfadooboo, Nexus, 01/10/2026: "recruitment quests"): the player hands over the fresh recruits of his own people a lord asked for, and they join that lord's party. |
+| `EdictRequest` | internal class | What the player decrees, read from the action and the world. |
+| `EnactEdictVerb` | public class | enact_edict: the player decrees an edict of the catalogue for one of his towns, or his realm, through this character. |
 | `EndMarriageVerb` | public class | end_marriage: the player persuades the NPC to begin ending THEIR OWN marriage (never the player's own spouse — that is Phase 2, out of scope here). |
 | `ExchangePrisonersVerb` | public class | exchange_prisoners: the player gives a hero captive he holds and receives one the NPC's clan holds, with gold evening an uneven swap. |
 | `ExternalVerbAdapter` | public class | Wraps an externally-supplied ExternalVerbContract (an SDK-shaped, engine-agnostic verb defined by ANOTHER mod) as an IConversationVerb. |
@@ -1342,13 +1354,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WorldFactRelevance` | public struct | The result of scoring one world-fact candidate against the player's message. |
 | `WorldFactRelevancePolicy` | public static class | Pure, engine-free scoring of how much a world fact bears on what the player just said. |
 
-### CalradiaRemembers.Logic.Actions (19)
+### CalradiaRemembers.Logic.Actions (20)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ActionConfirmationPolicy` | public static class | Pure policy for the terminal-style "confirm this action?" prompt shown in chat before a consequential LLM action (moving coin or committing to a service) is applied. |
 | `ActionsPanelGate` | public static class | Decides whether the Actions tile opens the new panel or the vanilla menu it replaces. |
 | `ConfirmationAnswer` | public enum | How the player answered a pending in-chat confirmation prompt. |
+| `EdictConfirmationFacts` | public class | What the question about an edict the player decrees names (enact_edict, Gabriel 21/10/2026). |
 | `HandConfirmationFacts` | public class | What the arrange_match confirmation names (BuildHandQuestion). |
 | `ItemConfirmationFacts` | public class | What the question about an item leaving the player's hands names. |
 | `ManualActionAvailability` | public static class | Decides, from a ManualActionFacts snapshot, exactly which ManualActionCatalog entries the manual menu may offer for THIS conversation right now. |
@@ -1851,6 +1864,28 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SuccessionMemoryPolicy` | public static class | The rule for which recorded events survive a succession (are inherited by the heir). |
 | `SuccessionTrigger` | public static class | Classifies a change of player character, so only a real succession reframes memories. |
 
+### CalradiaRemembers.Logic.Edicts (17)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `Edict` | public class | One edict decreed in this campaign (saved as JSON; every field additive). |
+| `EdictCatalog` | public static class | The closed list of edicts, and how a name the model writes finds one. |
+| `EdictCounselPolicy` | public static class | The counsel a lord takes on his own towns, and a ruler on his realm. |
+| `EdictDecreeFacts` | public class | What deciding a decree reads. |
+| `EdictEffect` | public class | What one edict does to a town each day, through the game's own models; 0 leaves a channel alone. |
+| `EdictGrievanceFacts` | public class | A town's mood under an edict, read each day. |
+| `EdictGrievanceStep` | public class | The day's reading of a town under an edict: its grievance after today, and what is said aloud. |
+| `EdictKind` | public enum | The edicts a ruler may decree; what each does is in EdictCatalog. |
+| `EdictLedger` | public class | The campaign's edicts and which one holds where. |
+| `EdictNote` | public static class | The line a character is given about one edict where they live. |
+| `EdictNoteFacts` | public class | One edict as a character near it knows it. |
+| `EdictPolicy` | public static class | The rules of a decree's life: may it be made, does it still hold, and is it contested. |
+| `EdictScope` | public enum | Where an edict holds: one town, or every town of a realm. |
+| `EdictStandingFacts` | public class | What keeps an edict holding. |
+| `EdictStatus` | public enum | How an edict stands. |
+| `EdictTownFacts` | public class | A town as its lord sees it when weighing an edict. |
+| `EdictUnrest` | public enum | What a day of grievance comes to. |
+
 ### CalradiaRemembers.Logic.Escort (7)
 
 | Type | Kind | What it is |
@@ -2175,10 +2210,16 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WarPressFacts` | public class | What a king weighs when a lord of his realm presses him toward war. |
 | `WarPressPolicy` | public static class | Whether a king goes to war when a lord presses him (PRESS_FOR_WAR). |
 
-### CalradiaRemembers.Logic.Social (2)
+### CalradiaRemembers.Logic.Social (8)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `FameBand` | public enum | How far the player's name has reached one character who does not know them in person. |
+| `FameObserver` | public enum | Who is hearing of the player: how widely word reaches someone of their station. |
+| `FameRepute` | public enum | What the player is said to be, once known by reputation (the game's own traits for the player). |
+| `PlayerFameFacts` | public class | What the rule reads: the player's standing and who is hearing of it. |
+| `PlayerFamePolicy` | public static class | The rule: renown and a crown carry the name; station, realm, culture and deeds done nearby carry it further. |
+| `PlayerFameReading` | public class | How far the player's name has reached this character, and what it carries (pure). |
 | `PresenceDescriber` | public static class | Renders the spatial "you are with the player like THIS" line, and gates the separate elapsed-gap note (handled by MeetingGapDescriber) so it never fires for someone who travels with the player daily. |
 | `PresenceTier` | public enum | Where an NPC stands relative to the player at this moment, from closest to farthest. |
 

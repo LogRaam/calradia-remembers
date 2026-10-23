@@ -92,7 +92,7 @@ namespace CalradiaRemembers.Mapping
       private const int QueryRelevantMaxLines = 3;
 
       /// <summary>Registration order of the court verbs taught AFTER pledge_against, in <see cref="VerbRegistry" />.</summary>
-      private static readonly string[] CourtVerbsAfterPledge = {"release_prisoner", "press_for_war"};
+      private static readonly string[] CourtVerbsAfterPledge = {"release_prisoner", "press_for_war", "enact_edict"};
 
       /// <summary>
       ///   The task and match verbs (reinforce_garrison, share_intel, deliver_recruits, arrange_match): registered since
@@ -736,6 +736,8 @@ namespace CalradiaRemembers.Mapping
                JealousyCultureLoader.GetCulture(hero?.Culture?.Name?.ToString())
                                     .ToleratesSharedPartners(StatureReader.Player.ClanTier),
             PlayerDeedsHeard = ResolvePlayerDeedsHeard(hero),
+            PlayerFameLine = PlayerFameResolver.Resolve(hero, profile, bridge, historyKnownThrough),
+            EdictsNote = EdictNoteResolver.Resolve(hero),
             QueryRelevantFactsBlock = ResolveQueryRelevantFacts(hero, playerMessage, (int) CampaignTime.Now.ToDays),
             PastOnMentionBlock = ResolvePastOnMention(hero, playerMessage, (int) CampaignTime.Now.ToDays),
             CompanionOnErrand = ResolveCompanionOnErrand(hero),

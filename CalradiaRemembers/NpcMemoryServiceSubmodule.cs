@@ -250,6 +250,15 @@ namespace CalradiaRemembers
          // LIVE-only source, mirroring ExecutedKinGrudgeBehavior). Console: cr.grudge_sway_test.
          campaignStarter.AddBehavior(new SwayExposureBehavior());
          campaignStarter.AddBehavior(new Verbs.PressForWarBehavior());
+         // Edicts (Gabriel, 21/10/2026): a ruler's lasting, bounded decision on a town or a realm, applied through the game's models.
+         campaignStarter.AddBehavior(new Edicts.EdictBehavior());
+         Edicts.EdictBehavior.IsPresent = Mapping.HeroPresence.IsInTheWorld;
+         Edicts.EdictBehavior.News = n => WorldEvents.WorldEventStore.Instance?.Record(new WorldEvents.WorldEvent {
+            Type = n.ByPlayer ? WorldEvents.WorldEventType.PlayerFeat : WorldEvents.WorldEventType.Other, Day = n.Day, PlaceId = n.PlaceId,
+            InvolvesPlayer = n.ByPlayer, Magnitude = n.Magnitude, Summary = n.Summary,
+            ActorIds = new System.Collections.Generic.List<string> {n.EnactorId},
+            FactionIds = n.RealmId != null ? new System.Collections.Generic.List<string> {n.RealmId} : new System.Collections.Generic.List<string>()
+         });
 
          campaignStarter.AddBehavior(new NemesisBehavior());
          // Nemesis pillar increment 2 (resolution layer): closes out a tracked nemesis on

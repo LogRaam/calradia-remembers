@@ -75,6 +75,19 @@ namespace CalradiaRemembers.Chat
          if (type.Equals("counter_offer", StringComparison.OrdinalIgnoreCase))
             return PreprocessCounterOffer(action, npc, profile, context);
 
+         // enact_edict (Gabriel, 21/10/2026): the player's own yes, always, naming the edict's effect, term and price.
+         if (type.Equals("enact_edict", StringComparison.OrdinalIgnoreCase))
+         {
+            string question = Verbs.EnactEdictVerb.Question(action, npc, out _);
+            if (question == null) return ActionDisposition.ExecuteInline; // the verb refuses it, saying why
+            string edictKey = $"enact_edict:{question}";
+            if (_resolvedKeys.Contains(edictKey)) return ActionDisposition.Skip;
+            _resolvedKeys.Add(edictKey);
+            _pending.Enqueue(new PendingConfirmation {Action = action, Npc = npc, Profile = profile, Context = context, Question = question});
+
+            return ActionDisposition.Queued;
+         }
+
          // arrange_match asking the player for a woman of his house (tashmetu, 20/10/2026): the player's own yes, always.
          if (type.Equals("arrange_match", StringComparison.OrdinalIgnoreCase) && BannerlordGameStateBridge.HandAskedOfThePlayer(npc) is { } hand)
          {

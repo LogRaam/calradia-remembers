@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (100)
+## Keys (101)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -62,6 +62,7 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_CrExpectingMothers_v1` | `PregnancyBirthBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_CrLoverChildren_v1` | `PregnancyBirthBehavior` | constant `LoverChildSaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_Divorce_v1bytes` | `DivorceProcessBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_Edicts_v1bytes` | `EdictBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_FiefAudienceCooldown_v1bytes` | `FiefAudienceBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_FollowEscorts_v1bytes` | `FollowMeBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_Grudges_v1bytes` | `GrudgeBehavior` | constant `SaveKey` passed to SyncData (fact) |

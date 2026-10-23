@@ -61,6 +61,28 @@ namespace CalradiaRemembers.Logic.Actions
       public int TaleCount { get; init; }
    }
 
+   /// <summary>What the question about an edict the player decrees names (enact_edict, Gabriel 21/10/2026).</summary>
+   public sealed class EdictConfirmationFacts
+   {
+      /// <summary>The name the player gave it, or null.</summary>
+      public string EdictName { get; init; }
+
+      /// <summary>The catalogue's title ("Heavy levy").</summary>
+      public string Title { get; init; }
+
+      /// <summary>Where it holds ("Pravend", "all the towns of Vlandia").</summary>
+      public string Where { get; init; }
+
+      /// <summary>What it does, in words (EdictEffect.Describe).</summary>
+      public string Effects { get; init; }
+
+      /// <summary>Its term, in days.</summary>
+      public int Days { get; init; }
+
+      /// <summary>The influence it costs the player.</summary>
+      public int Influence { get; init; }
+   }
+
    /// <summary>What the question about a captive's counter_offer names.</summary>
    public sealed class OfferConfirmationFacts
    {
@@ -142,7 +164,8 @@ namespace CalradiaRemembers.Logic.Actions
          if (string.IsNullOrEmpty(actionType)) return false;
 
          return string.Equals(actionType, "take_gold", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "join_party", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "free_prisoner", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(actionType, "sell_item", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "counter_offer", StringComparison.OrdinalIgnoreCase);
+                || string.Equals(actionType, "sell_item", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "counter_offer", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(actionType, "enact_edict", StringComparison.OrdinalIgnoreCase);
       }
 
       /// <summary>
@@ -180,6 +203,19 @@ namespace CalradiaRemembers.Logic.Actions
          string suitor = string.IsNullOrWhiteSpace(f?.SuitorName) ? "him" : f.SuitorName.Trim();
 
          return $"Give {bride} hand to {suitor}?";
+      }
+
+      /// <summary>
+      ///   "Decree the Bread Edict (a grain requisition) for Pravend: loyalty -1 a day, food +4 a day, for 60 days, at 25
+      ///   influence?": the player's own yes to an edict, naming what it really does, its term and its price, before the
+      ///   one carrying it proclaims anything (Gabriel, 21/10/2026).
+      /// </summary>
+      public static string BuildEdictQuestion(EdictConfirmationFacts f)
+      {
+         string title = string.IsNullOrWhiteSpace(f?.Title) ? "the edict" : f.Title.Trim().ToLowerInvariant();
+         string name = string.IsNullOrWhiteSpace(f?.EdictName) ? $"a {title}" : $"{f.EdictName.Trim()} (a {title})";
+
+         return $"Decree {name} for {f?.Where ?? "your town"}: {f?.Effects}, for {f?.Days} days, at {f?.Influence} influence?";
       }
 
       /// <summary>

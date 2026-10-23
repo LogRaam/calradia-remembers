@@ -2,6 +2,33 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.7.20.. open
+
+### New
+- **What a character knows of the player's name** (Gabriel 21/10, after reading another mod's notoriety per culture).
+  A character who has never met the player is now told how far the name has reached them: never heard of it, a name
+  heard, known by reputation, or famous ("you would know the banner anywhere"). It reads the player's renown, whether
+  he rules a realm, and the listener: a lord hears more than a notable, a notable more than a wanderer; the player's own
+  realm and culture talk of their own; deeds done in the listener's realm carry the name there. Once known by
+  reputation, the name carries what the game says of the player (merciless, merciful, keeps or breaks his word). A
+  character who heard of one of the player's deeds knows him by reputation at least, and the first impression is
+  unchanged. Nothing is saved (`PlayerFamePolicy`). cr.testall `player_fame`.
+- **Edicts** (Gabriel 21/10: "ville et royaume. Les PNJ peuvent aussi. Un edit peut etre conteste."). A ruler's lasting,
+  bounded decision on one town or on every town of a realm, from a closed list of eight, each a gain bought with a cost:
+  tax relief, heavy levy, doubled watch, militia muster, grain requisition, market charter, curfew, feast days. Applied
+  through the game's own loyalty, security, prosperity, militia, food and tax, so the town's tooltip shows a line named
+  for the edict. 30 to 90 days, 25 influence for a town, 100 for a realm; one per town at a time, the town's own over its
+  realm's; ten days' rest between two. It lapses when whoever decreed it loses the town or the throne. A burdened town
+  under 40 loyalty grows a grievance: it contests the edict openly after 10 days and forces it off after 25. With the new
+  MCM switch "Edicts of the world's lords" (off by default) the world's lords answer their towns' sorest needs and rulers
+  a need most of their towns share, seldom, at most two per realm. Every decree, contest and repeal is realm news.
+  The player decrees through a member of his house, the governor of one of his towns, or, when he rules, a lord of his
+  realm (`enact_edict`): he is asked first, "Decree the Bread Edict (a grain requisition) for Pravend: loyalty -1 a day,
+  food +4 a day, for 60 days, at 25 influence?", and nothing is proclaimed before his yes. The people of a town, and its
+  lords, know the edicts where they live: who decreed it, what it does, how long it holds, whether they grumble or
+  contest it, and one they forced off. `cr.edict` lists them and pulls the levers; cr.testall `edict_effects`,
+  `enact_edict`. For Compact users: each action's description in the interpreter is cut at 86 characters (was 88).
+
 ## v2.7.19.. 2026-10-22
 
 ### New

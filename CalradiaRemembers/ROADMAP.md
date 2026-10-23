@@ -32,6 +32,54 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## DESIGNED + BUILDING 2026-10-22 OVERNIGHT on branch night/fame-edicts (Gabriel, after reading AnimusForge): the player's name, and edicts
+
+Gabriel (21/10/2026), shown what another LLM mod (AnimusForge 1.6.4) does, picked two ideas: "2 et 3 m'interesse".
+Then, before bed: "ville et royaume. Les PNJ peuvent aussi. Un edit peut etre conteste. ... fait le maximum que tu
+peux, je te laisse prendre des decisions logique etant donne que tu connais la philosophie de CR. Je reviserai tout
+ca demain." Every choice below marked DECIDED OVERNIGHT is mine and waits for his ratification; every number is a
+named TUNE constant.
+
+### A. What a character knows of the player's NAME (fame)
+
+Today an NPC is told what deeds of the player reached them (WorldEvents, RumorAwareness), and a lord's first tone
+reads the player's renown, but nobody is told whether they have even HEARD the name. A famous king met by a village
+notable gets "You have never met this person" and nothing more; an upstart gets the same.
+
+- `PlayerFamePolicy` (pure): a band, Unknown / a name heard / known by reputation / famous, from the player's renown,
+  whether the player rules a realm, and the observer: lord, notable or commoner; same realm; same culture; how many
+  of the player's deeds took place in the observer's land. DECIDED OVERNIGHT: culture counts for everyone and realm
+  counts for everyone (Gabriel did not pick between them); no map distance (realm and culture already say "near").
+- A deed heard (the existing path) is a FLOOR: whoever heard a deed of the player knows them by reputation. Fame never
+  hides a deed, and the first impression is untouched.
+- What the name carries, once known by reputation: the player's own traits as the game keeps them (Mercy, Honor), worded
+  "said to be merciless", "said to keep their word". DECIDED OVERNIGHT: one axis, read from the game's traits, no new
+  ledger; the crime rating stays where it is (UnderworldPack).
+- Nothing saved: computed when the NPC speaks. One line in CURRENT ENCOUNTER. Someone who already knows the player
+  (regard, relation, shared events, kin, companions) gets no line.
+- Later: the player's page in the encyclopedia ("your name in Battania: known by reputation").
+
+### B. Edicts: a ruler's lasting, bounded decision on a town or a realm
+
+Nothing like it exists: the council's 26 resolutions move people, purses and pledges; no economy model is touched.
+
+- A CLOSED catalogue (`EdictCatalog`), each edict a gain bought with a cost, applied per day through the game's own
+  models: a described line on the town's ExplainedNumber (tax, loyalty, security, prosperity, militia, food), so the
+  game's own tooltip shows it ("Edict of Derthert: +1"). Never a hidden write, never faked.
+- Town edicts (on one town) and realm edicts (the same catalogue on every town of the realm). DECIDED OVERNIGHT: realm
+  edicts are CR's own, not the game's kingdom policies (those go through the game's vote, a later bridge).
+- One edict per town at a time (a realm edict counts on each of its towns); 30 to 90 days; it lapses when whoever
+  enacted it no longer holds the town or the throne.
+- The player enacts through his governor or his steward in conversation, ending in a [Y/n] that names the edict, its
+  effect and its term BEFORE anyone announces it (gating before declaration); a council resolution later.
+- NPC rulers enact too (Gabriel: "les PNJ peuvent aussi"): a pure choice from the town's state (hungry: grain;
+  lawless: watch; restless: relief), rare and capped per realm, told as realm news so the player meets them. DECIDED
+  OVERNIGHT: behind an MCM switch, OFF by default for the first build.
+- Contest (Gabriel: "un edit peut etre conteste"): a pure rule. A town whose loyalty falls under a threshold while an
+  edict that costs it is in force grows a grievance; its notables remember it and raise it; past a second threshold
+  the edict is repealed early, and the realm hears it. No riot mission in this build.
+- Save: one additive key, the edict ledger; an old save loads with none.
+
 ## BUILT 2026-10-21 for 2.7.19 (Gabriel: "fait la phase 2"): items in tales
 
 tashmetu (20/10/2026): "A tale that asks for things ('bring 30 grain to {giver}'), and a thing given in an ending."

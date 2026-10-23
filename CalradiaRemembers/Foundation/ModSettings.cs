@@ -157,6 +157,9 @@ namespace CalradiaRemembers.Foundation
       /// <summary>Vassal war duty (Maifailun, Gabriel, 15/10/2026): off by default; gates what the ruler does, not the ledger.</summary>
       public static bool EnableWarDuty => CrSettings.Instance?.EnableWarDuty ?? false;
 
+      /// <summary>Edicts by the world's lords (Gabriel, 21/10/2026: "les PNJ peuvent aussi"): off by default for the first build.</summary>
+      public static bool EnableNpcEdicts => CrSettings.Instance?.EnableNpcEdicts ?? false;
+
       /// <summary>Days of war a sworn vassal may go without serving (clamped by WarDutyPolicy.Window).</summary>
       public static int WarDutyWindowDays => Logic.WarDuty.WarDutyPolicy.Window(CrSettings.Instance?.WarDutyWindowDays ?? Logic.WarDuty.WarDutyPolicy.DefaultWindowDays);
 
