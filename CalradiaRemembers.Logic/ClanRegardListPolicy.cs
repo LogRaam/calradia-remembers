@@ -26,6 +26,9 @@ namespace CalradiaRemembers.Logic
         /// <summary>The house's name.</summary>
         public string Name { get; init; }
 
+        /// <summary>The house's id, so its row can show its banner.</summary>
+        public string Id { get; init; }
+
         /// <summary>What really happened between the two lords gives this verdict (Neither when nothing does).</summary>
         public PairRegardVerdict Derived { get; init; }
 
@@ -45,6 +48,35 @@ namespace CalradiaRemembers.Logic
         public string Through { get; init; }
     }
 
+    /// <summary>One house in a row of the houses list.</summary>
+    public sealed class ClanRegardHouse
+    {
+        /// <summary>The house's name.</summary>
+        public string Name { get; init; }
+
+        /// <summary>The house's id, for its banner.</summary>
+        public string Id { get; init; }
+
+        /// <summary>The two houses' realms are at war: marked under this house's banner.</summary>
+        public bool AtWar { get; init; }
+
+        /// <summary>The lord through whom the house is explained above, or null.</summary>
+        public string Through { get; init; }
+    }
+
+    /// <summary>One row of the houses list: a side, a reason, and the houses sharing it.</summary>
+    public sealed class ClanRegardGroup
+    {
+        /// <summary>Of affinity (pale green) rather than at odds (red).</summary>
+        public bool Affinity { get; init; }
+
+        /// <summary>The reason the houses share; null for the houses named through their lord above.</summary>
+        public string Reason { get; init; }
+
+        /// <summary>The houses of the row, strongest first.</summary>
+        public IReadOnlyList<ClanRegardHouse> Houses { get; init; }
+    }
+
     /// <summary>Sorts other houses into at odds and of affinity, each line with its reason and the war mark.</summary>
     public static class ClanRegardListPolicy
     {
@@ -57,41 +89,72 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public static (IReadOnlyList<string> AtOdds, IReadOnlyList<string> Affinity) Lists(IEnumerable<ClanRegardCandidate> houses)
         {
-            var odds = new List<(int Rank, string Reason, string House)>();
-            var affinity = new List<(int Rank, string Reason, string House)>();
+            (List<ClanRegardGroup> odds, List<ClanRegardGroup> affinity) = Sides(houses);
+
+            return (Lines(odds), Lines(affinity));
+        }
+
+        /// <summary>
+        ///   The same houses as rows (Gabriel, 22/10/2026: each with its banner): affinity first, then odds; one row per
+        ///   reason, ordered by its strongest house; the houses named through their lord in a last row of their side.
+        /// </summary>
+        public static IReadOnlyList<ClanRegardGroup> Groups(IEnumerable<ClanRegardCandidate> houses)
+        {
+            (List<ClanRegardGroup> odds, List<ClanRegardGroup> affinity) = Sides(houses);
+
+            return affinity.Concat(odds).ToList();
+        }
+
+        private static (List<ClanRegardGroup> Odds, List<ClanRegardGroup> Affinity) Sides(IEnumerable<ClanRegardCandidate> houses)
+        {
+            var odds = new List<(int Rank, string Reason, ClanRegardCandidate House)>();
+            var affinity = new List<(int Rank, string Reason, ClanRegardCandidate House)>();
             // A house named through its lord carries no reason of its own (Reason null).
 
             foreach (ClanRegardCandidate c in houses ?? Array.Empty<ClanRegardCandidate>())
             {
                 if (c == null || string.IsNullOrWhiteSpace(c.Name)) continue;
 
-                string house = c.AtWar ? $"{c.Name} (at war)" : c.Name;
                 if (c.Derived != PairRegardVerdict.Neither)
                 {
                     if (c.DerivedReason == null) continue; // a reason the player may not read lists the house nowhere
 
                     // A derived verdict outranks any vanilla number: it has a story.
                     bool through = !string.IsNullOrWhiteSpace(c.Through);
-                    (c.Derived == PairRegardVerdict.Enemy ? odds : affinity).Add((1000, through ? null : c.DerivedReason, through ? $"{house}, through {c.Through}" : house));
+                    (c.Derived == PairRegardVerdict.Enemy ? odds : affinity).Add((1000, through ? null : c.DerivedReason, c));
                 }
                 else if (c.VanillaRelation <= global::NpcMemoryService.Core.Standing.VanillaRelation.EnemyTier)
-                    odds.Add((-c.VanillaRelation, $"{ThirdPartyDescriptor.DescribeRelation(c.VanillaRelation)} between their lords", house));
+                    odds.Add((-c.VanillaRelation, $"{ThirdPartyDescriptor.DescribeRelation(c.VanillaRelation)} between their lords", c));
                 else if (c.VanillaRelation >= global::NpcMemoryService.Core.Standing.VanillaRelation.FriendTier)
-                    affinity.Add((c.VanillaRelation, $"{ThirdPartyDescriptor.DescribeRelation(c.VanillaRelation)} between their lords", house));
+                    affinity.Add((c.VanillaRelation, $"{ThirdPartyDescriptor.DescribeRelation(c.VanillaRelation)} between their lords", c));
             }
 
-            return (Grouped(odds), Grouped(affinity));
+            return (Grouped(odds, false), Grouped(affinity, true));
         }
 
-        // The six strongest houses (design 8.2), then one line per reason, ordered by its strongest house; the houses
-        // named through their lord close the last line, as tashmetu laid it out ("...: Dvarroving, Rungniring;
-        // Skylfing, through Hertogi Gornlautir").
-        private static IReadOnlyList<string> Grouped(IEnumerable<(int Rank, string Reason, string House)> side)
+        // The six strongest houses (design 8.2), then one row per reason, ordered by its strongest house; the houses
+        // named through their lord last, as tashmetu laid it out ("...: Dvarroving, Rungniring; Skylfing, through
+        // Hertogi Gornlautir").
+        private static List<ClanRegardGroup> Grouped(IEnumerable<(int Rank, string Reason, ClanRegardCandidate House)> side, bool affinity)
         {
             var top = side.OrderByDescending(x => x.Rank).Take(MaxPerList).ToList();
-            List<string> lines = top.Where(x => x.Reason != null).GroupBy(x => x.Reason)
-                                    .Select(g => $"{g.Key}: {string.Join(", ", g.Select(x => x.House))}").ToList();
-            string through = string.Join("; ", top.Where(x => x.Reason == null).Select(x => x.House));
+            List<ClanRegardGroup> groups = top.Where(x => x.Reason != null).GroupBy(x => x.Reason)
+                                              .Select(g => new ClanRegardGroup {Affinity = affinity, Reason = g.Key, Houses = g.Select(x => House(x.House, false)).ToList()})
+                                              .ToList();
+            List<ClanRegardHouse> through = top.Where(x => x.Reason == null).Select(x => House(x.House, true)).ToList();
+            if (through.Count > 0) groups.Add(new ClanRegardGroup {Affinity = affinity, Reason = null, Houses = through});
+
+            return groups;
+        }
+
+        private static ClanRegardHouse House(ClanRegardCandidate c, bool through)
+            => new() {Name = c.Name, Id = c.Id, AtWar = c.AtWar, Through = through ? c.Through : null};
+
+        // The text form: "reason: house, house (at war)", the houses named through their lord closing the last line.
+        private static IReadOnlyList<string> Lines(List<ClanRegardGroup> groups)
+        {
+            List<string> lines = groups.Where(g => g.Reason != null).Select(g => $"{g.Reason}: {string.Join(", ", g.Houses.Select(Label))}").ToList();
+            string through = string.Join("; ", groups.Where(g => g.Reason == null).SelectMany(g => g.Houses).Select(h => $"{Label(h)}, through {h.Through}"));
             if (through.Length == 0) return lines;
             if (lines.Count == 0) return new[] {through};
 
@@ -99,5 +162,7 @@ namespace CalradiaRemembers.Logic
 
             return lines;
         }
+
+        private static string Label(ClanRegardHouse h) => h.AtWar ? $"{h.Name} (at war)" : h.Name;
     }
 }

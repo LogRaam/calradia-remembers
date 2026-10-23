@@ -1,8 +1,41 @@
 <DummyRoot>
-  <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="StretchToParent"
-                          HorizontalAlignment="Left"
-                          Brush="Encyclopedia.Stat.ValueText"
-                          Brush.TextHorizontalAlignment="Left"
-                          Text="@CalradiaRegardWhyItems"
-                          MarginTop="2" MarginLeft="30" MarginBottom="4" />
+  <!-- Gabriel (22/10/2026): one row per friend or enemy, the portrait, the status, the reason, a pale green or red marker. -->
+  <ListPanel DataSource="{CalradiaRegardPeople}"
+             StackLayout.LayoutMethod="VerticalTopToBottom"
+             WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+             HorizontalAlignment="Left"
+             MarginTop="6" MarginLeft="30" MarginBottom="4">
+    <ItemTemplate>
+      <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginBottom="8">
+        <Children>
+          <Widget WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" SuggestedWidth="5" HorizontalAlignment="Left"
+                  Sprite="BlankWhiteSquare_9" Color="#9CCB8CFF" IsVisible="@IsFriend" />
+          <Widget WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" SuggestedWidth="5" HorizontalAlignment="Left"
+                  Sprite="BlankWhiteSquare_9" Color="#C0453CFF" IsHidden="@IsFriend" />
+          <ListPanel StackLayout.LayoutMethod="HorizontalLeftToRight"
+                     WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginLeft="5">
+            <Children>
+          <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="100" SuggestedHeight="100" MarginLeft="8">
+            <Children>
+              <EncyclopediaSubPageElement DataSource="{Person}" VerticalAlignment="Top" />
+            </Children>
+          </Widget>
+          <ListPanel StackLayout.LayoutMethod="VerticalTopToBottom"
+                     WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                     VerticalAlignment="Top" MarginLeft="10" MarginTop="4">
+            <Children>
+              <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                              Brush="Encyclopedia.Stat.DefinitionText" Brush.TextHorizontalAlignment="Left"
+                              Text="@Status" />
+              <AutoHideRichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                      Brush="Encyclopedia.Stat.ValueText" Brush.TextHorizontalAlignment="Left"
+                                      Text="@Reason" MarginTop="2" />
+            </Children>
+          </ListPanel>
+            </Children>
+          </ListPanel>
+        </Children>
+      </Widget>
+    </ItemTemplate>
+  </ListPanel>
 </DummyRoot>

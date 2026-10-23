@@ -1,33 +1,50 @@
 <DummyRoot>
-  <ListPanel StackLayout.LayoutMethod="VerticalTopToBottom"
-             HeightSizePolicy="CoverChildren" WidthSizePolicy="StretchToParent"
+  <!-- Gabriel (22/10/2026): one row per reason the houses share, their banners side by side, the reason above, a pale
+       green (affinity) or red (odds) marker; the war and "through" a lord under the house they belong to. -->
+  <ListPanel DataSource="{CalradiaRegardHouseRows}"
+             StackLayout.LayoutMethod="VerticalTopToBottom"
+             WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
              HorizontalAlignment="Left"
-             MarginLeft="30" MarginBottom="4">
-    <Children>
-      <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="CoverChildren"
-                              HorizontalAlignment="Left"
-                              Brush="Encyclopedia.Stat.DefinitionText"
-                              Brush.TextHorizontalAlignment="Left"
-                              Text="@CalradiaRegardHousesOddsLabel"
-                              MarginTop="2" MarginLeft="12" />
-      <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="StretchToParent"
-                              HorizontalAlignment="Left"
-                              Brush="Encyclopedia.Stat.ValueText"
-                              Brush.TextHorizontalAlignment="Left"
-                              Text="@CalradiaRegardHousesOddsItems"
-                              MarginTop="2" MarginLeft="24" />
-      <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="CoverChildren"
-                              HorizontalAlignment="Left"
-                              Brush="Encyclopedia.Stat.DefinitionText"
-                              Brush.TextHorizontalAlignment="Left"
-                              Text="@CalradiaRegardHousesAffinityLabel"
-                              MarginTop="6" MarginLeft="12" />
-      <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="StretchToParent"
-                              HorizontalAlignment="Left"
-                              Brush="Encyclopedia.Stat.ValueText"
-                              Brush.TextHorizontalAlignment="Left"
-                              Text="@CalradiaRegardHousesAffinityItems"
-                              MarginTop="2" MarginLeft="24" />
-    </Children>
+             MarginTop="6" MarginLeft="30" MarginBottom="4">
+    <ItemTemplate>
+      <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginBottom="8">
+        <Children>
+          <Widget WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" SuggestedWidth="5" HorizontalAlignment="Left"
+                  Sprite="BlankWhiteSquare_9" Color="#9CCB8CFF" IsVisible="@IsFriend" />
+          <Widget WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" SuggestedWidth="5" HorizontalAlignment="Left"
+                  Sprite="BlankWhiteSquare_9" Color="#C0453CFF" IsHidden="@IsFriend" />
+          <ListPanel StackLayout.LayoutMethod="HorizontalLeftToRight"
+                     WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginLeft="5">
+            <Children>
+          <ListPanel StackLayout.LayoutMethod="VerticalTopToBottom"
+                     WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                     VerticalAlignment="Top" MarginLeft="10">
+            <Children>
+              <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                              Brush="Encyclopedia.Stat.ValueText" Brush.TextHorizontalAlignment="Left"
+                              Text="@Reason" />
+              <ListPanel DataSource="{Houses}" StackLayout.LayoutMethod="HorizontalLeftToRight"
+                         WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" MarginTop="6">
+                <ItemTemplate>
+                  <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="100" SuggestedHeight="120">
+                    <Children>
+                      <EncyclopediaClanSubPageElement DataSource="{Faction}" Parameter.IsBig="false"
+                                                      HorizontalAlignment="Center" VerticalAlignment="Top" />
+                      <AutoHideRichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                              VerticalAlignment="Bottom"
+                                              Brush="Encyclopedia.SubPage.Element.Name.Text"
+                                              Brush.TextHorizontalAlignment="Center"
+                                              Text="@Note" />
+                    </Children>
+                  </Widget>
+                </ItemTemplate>
+              </ListPanel>
+            </Children>
+          </ListPanel>
+            </Children>
+          </ListPanel>
+        </Children>
+      </Widget>
+    </ItemTemplate>
   </ListPanel>
 </DummyRoot>

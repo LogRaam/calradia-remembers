@@ -681,8 +681,8 @@ for path, needle in [("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf
                      ("CalradiaRemembers/ModuleData/Quests/the_drowned_bridge/the_drowned_bridge.json", '"image"'),
                      ("CalradiaRemembers/ModuleData/scenarios/rhagaea_marriage.json", "rhagaea_marriage"),
                      # 2.7.15
-                     ("CalradiaRemembers/GUI/Prefabs/CR_HeroRegardWhyItems.xml", "CalradiaRegardWhyItems"),
-                     ("CalradiaRemembers/GUI/Prefabs/CR_HeroRegardHousesItems.xml", "CalradiaRegardHousesOddsItems"),   # 2.7.19: subtitles, one list each
+                     ("CalradiaRemembers/GUI/Prefabs/CR_HeroRegardWhyItems.xml", "CalradiaRegardPeople"),   # 2.7.20: rows with portraits
+                     ("CalradiaRemembers/GUI/Prefabs/CR_HeroRegardHousesItems.xml", "CalradiaRegardHouseRows"),   # 2.7.20: rows with banners
                      # 2.7.18
                      ("CalradiaRemembers/ModuleData/Languages/EN/language_data.xml", "std_CalradiaRemembers_mcm.xml"),
                      ("CalradiaRemembers/ModuleData/Languages/EN/std_CalradiaRemembers_mcm.xml", "CR_MCM_"),

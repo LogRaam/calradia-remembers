@@ -37,6 +37,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   contest it, and one they forced off. `cr.edict` lists them and pulls the levers; cr.testall `edict_effects`,
   `enact_edict`. For Compact users: each action's description in the interpreter is cut at 86 characters (was 88).
 
+### Changed
+- **Friends, enemies and houses as rows on the encyclopedia page** (Gabriel 22/10: "une liste ou chaque ligne serait
+  avec le portrait, le statut et la raison", a pale green marker for friends and red for enemies, the house's banner
+  instead of the portrait). Each friend or enemy with a reason is a row: the game's own portrait (it opens their page),
+  the status ("Manteos, enemy"; on the player's page how they hold him, "Deep affection (+42)"), the reason beneath. The
+  houses: one row per reason they share, their banners side by side (each opens the house's page), "at war" or
+  "through" a lord under the banner it belongs to; affinity rows first. The colour replaces the "At odds" / "Of
+  affinity" subtitles. The game's Friends and Enemies grids below are unchanged. `ClanRegardListPolicy.Groups`,
+  `RegardPersonRowVM`, `RegardHouseRowVM`; cr.testall `npc_regard_reason` extended.
+
 ## v2.7.19.. 2026-10-22
 
 ### New

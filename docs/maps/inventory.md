@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 549 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1248 types in 46 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 552 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1250 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -333,7 +333,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EdictModelPatches` | public static class | Adds the edict holding on a town to the game's own loyalty, security, prosperity, militia, food and tax. |
 | `EdictNews` | public class | One piece of realm news an edict makes (a decree, a contest, a repeal), told through EdictBehavior.News. |
 
-### CalradiaRemembers.Encyclopedia (38)
+### CalradiaRemembers.Encyclopedia (41)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -375,6 +375,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroPageStandingAccordsPatchB` | internal class | Appends the "Standing accords:" header line to the hero encyclopedia page. |
 | `HeroPageTraumaPatchA` | internal class | Appends the Trauma lines (the aggressions a character lived through, Hardcore only) to the hero page. |
 | `HeroPageTraumaPatchB` | internal class | Appends the "Trauma:" header line to the hero page. |
+| `RegardHouseRowVM` | public class | One reason the houses share: their banners side by side, the reason above, a pale green or red marker. |
+| `RegardHouseVM` | public class | One house of a row: the game's banner element, and a note beneath ("at war", "through Manteos"). |
+| `RegardPersonRowVM` | public class | One friend or enemy: the portrait, the status beside it, the reason beneath, a pale green or red marker. |
 
 ### CalradiaRemembers.Escort (1)
 
@@ -904,7 +907,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (445)
+### CalradiaRemembers.Logic (447)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -961,6 +964,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CharacterOverrideSet` | public class | The authored overrides as a whole, with the rule for picking one for a hero. |
 | `ChronicleCalendar` | public static class | The shared calendar constants and year math for the player chronicle and letter archive. |
 | `ClanRegardCandidate` | public class | One other house, as the page's house sees it. |
+| `ClanRegardGroup` | public class | One row of the houses list: a side, a reason, and the houses sharing it. |
+| `ClanRegardHouse` | public class | One house in a row of the houses list. |
 | `ClanRegardListPolicy` | public static class | Sorts other houses into at odds and of affinity, each line with its reason and the war mark. |
 | `ClanStandingSeed` | public struct | What the clan's standing does to one character's regard. |
 | `ClanStandingSeedFacts` | public class | The facts the seed is decided on. |

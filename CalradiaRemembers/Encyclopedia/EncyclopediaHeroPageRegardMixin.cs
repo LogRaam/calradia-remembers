@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.ViewModels;
 using CalradiaRemembers.Appreciations;
@@ -54,15 +55,39 @@ namespace CalradiaRemembers.Encyclopedia
          typeof(EncyclopediaHeroPageVM).GetMethod("OnAdditionalListsUpdated", BindingFlags.NonPublic | BindingFlags.Instance);
 
       private string _label;
-      private string _items;
       private string _housesLabel;
-      private string _oddsLabel, _oddsItems, _affinityLabel, _affinityItems;
+
+      // Gabriel (22/10/2026): the reasons and the houses as rows, portrait or banners, status, reason, a coloured marker.
+      private readonly MBBindingList<RegardPersonRowVM> _people = new();
+      private readonly MBBindingList<RegardHouseRowVM> _houseRows = new();
+
+      // cr.testall reaches a page's mixin through the page it built.
+      private static readonly ConditionalWeakTable<EncyclopediaHeroPageVM, EncyclopediaHeroPageRegardMixin> ByPage = new();
+
+      // cr.testall npc_regard_reason reads the rows through hooks set here, the first time a page is built: Diagnostics
+      // naming the encyclopedia (or the submodule doing it for them) would draw it into the namespace cycle.
+      static EncyclopediaHeroPageRegardMixin()
+      {
+         Diagnostics.CrSelfTest.RegardPeopleOf = page => Of(page as EncyclopediaHeroPageVM)?.PeopleForDiagnostics
+            .Select(r => (r.Person?.Hero, r.IsFriend, r.Reason)).ToList();
+         Diagnostics.CrSelfTest.RegardHouseRowsOf = page => Of(page as EncyclopediaHeroPageVM)?.HouseRowsForDiagnostics
+            .Select(r => (r.IsFriend, (IReadOnlyList<(IFaction, string)>) r.Houses.Select(h => (h.Faction?.Faction, h.Note)).ToList())).ToList();
+      }
+
+      /// <summary>cr.testall: the mixin UIExtenderEx attached to this page, or null.</summary>
+      internal static EncyclopediaHeroPageRegardMixin Of(EncyclopediaHeroPageVM page)
+         => page != null && ByPage.TryGetValue(page, out EncyclopediaHeroPageRegardMixin m) ? m : null;
 
       // The characters whose reason the Why block gives, so their house is named through them rather than said twice.
       private readonly HashSet<Hero> _explained = new();
 
       public EncyclopediaHeroPageRegardMixin(EncyclopediaHeroPageVM vm) : base(vm)
       {
+         if (vm != null)
+         {
+            ByPage.Remove(vm); // net472 has no AddOrUpdate
+            ByPage.Add(vm, this);
+         }
          Refresh();
 
          // A later vanilla refresh (RefreshValues) runs this mixin's OnRefresh BEFORE it refills the lists, so the
@@ -74,6 +99,7 @@ namespace CalradiaRemembers.Encyclopedia
       public override void OnFinalize()
       {
          if (ViewModel != null) ViewModel.PropertyChangedWithBoolValue -= OnPagePropertyChanged;
+         ClearRows();
          base.OnFinalize();
       }
 
@@ -95,18 +121,13 @@ namespace CalradiaRemembers.Encyclopedia
          }
       }
 
-      /// <summary>Gold lines, one reason per listed friend or enemy. Empty when none (auto-hides).</summary>
+      /// <summary>One row per listed friend or enemy: portrait, status, reason, marker. Empty when none.</summary>
       [DataSourceProperty]
-      public string CalradiaRegardWhyItems
-      {
-         get => _items;
-         set
-         {
-            if (_items == value) return;
-            _items = value;
-            ViewModel?.OnPropertyChanged();
-         }
-      }
+      public MBBindingList<RegardPersonRowVM> CalradiaRegardPeople => _people;
+
+      /// <summary>One row per reason the houses share: their banners, the reason, marker. Empty when none.</summary>
+      [DataSourceProperty]
+      public MBBindingList<RegardHouseRowVM> CalradiaRegardHouseRows => _houseRows;
 
       /// <summary>Cream header, "Houses:" or empty (auto-hides).</summary>
       [DataSourceProperty]
@@ -121,57 +142,11 @@ namespace CalradiaRemembers.Encyclopedia
          }
       }
 
-      /// <summary>Cream subtitle under "Houses:", "At odds" or empty (auto-hides).</summary>
-      [DataSourceProperty]
-      public string CalradiaRegardHousesOddsLabel
-      {
-         get => _oddsLabel;
-         set
-         {
-            if (_oddsLabel == value) return;
-            _oddsLabel = value;
-            ViewModel?.OnPropertyChanged();
-         }
-      }
+      /// <summary>cr.testall: the person rows as shown (status, reason, friend), in order.</summary>
+      internal IReadOnlyList<RegardPersonRowVM> PeopleForDiagnostics => _people.ToList();
 
-      /// <summary>Gold bullets under it, one per reason, the houses sharing it and the war mark.</summary>
-      [DataSourceProperty]
-      public string CalradiaRegardHousesOddsItems
-      {
-         get => _oddsItems;
-         set
-         {
-            if (_oddsItems == value) return;
-            _oddsItems = value;
-            ViewModel?.OnPropertyChanged();
-         }
-      }
-
-      /// <summary>Cream subtitle, "Of affinity" or empty (auto-hides).</summary>
-      [DataSourceProperty]
-      public string CalradiaRegardHousesAffinityLabel
-      {
-         get => _affinityLabel;
-         set
-         {
-            if (_affinityLabel == value) return;
-            _affinityLabel = value;
-            ViewModel?.OnPropertyChanged();
-         }
-      }
-
-      /// <summary>Gold bullets under it, as the houses at odds.</summary>
-      [DataSourceProperty]
-      public string CalradiaRegardHousesAffinityItems
-      {
-         get => _affinityItems;
-         set
-         {
-            if (_affinityItems == value) return;
-            _affinityItems = value;
-            ViewModel?.OnPropertyChanged();
-         }
-      }
+      /// <summary>cr.testall: the house rows as shown, in order.</summary>
+      internal IReadOnlyList<RegardHouseRowVM> HouseRowsForDiagnostics => _houseRows.ToList();
 
       public override void OnRefresh()
       {
@@ -183,12 +158,8 @@ namespace CalradiaRemembers.Encyclopedia
       private void Refresh()
       {
          CalradiaRegardWhyLabel = "";
-         CalradiaRegardWhyItems = "";
          CalradiaRegardHousesLabel = "";
-         CalradiaRegardHousesOddsLabel = "";
-         CalradiaRegardHousesOddsItems = "";
-         CalradiaRegardHousesAffinityLabel = "";
-         CalradiaRegardHousesAffinityItems = "";
+         ClearRows();
          _explained.Clear();
 
          try
@@ -231,11 +202,11 @@ namespace CalradiaRemembers.Encyclopedia
          ViewModel.AlliesText = "Hold you dear";
          ViewModel.EnemiesText = "Hold you in contempt";
 
-         var lines = new List<string>();
+         var rows = new List<RegardPersonRowVM>();
          foreach ((Hero h, int regard) in contempt.OrderBy(x => x.Regard).Concat(dear.OrderByDescending(x => x.Regard)).Take(MaxReasons))
-            lines.Add($"• {h.Name}: {WhyTowardThePlayer(h, regard) ?? $"{RegardBands.Describe(regard)} ({regard:+#;-#;0})"}");
+            rows.Add(new RegardPersonRowVM(h, $"{Capitalised(RegardBands.Describe(regard))} ({regard:+#;-#;0})", WhyTowardThePlayer(h, regard), regard >= Regard.WarmTier));
 
-         Show(lines, "Why:");
+         Show(rows, "Why:");
       }
 
       // The strongest grudge or kindness toward the player that the player knows of, the one that agrees with the regard
@@ -275,7 +246,7 @@ namespace CalradiaRemembers.Encyclopedia
                                    : PairRegardVerdict.Neither;
                if (v == PairRegardVerdict.Neither) continue;
                houses.Add(new ClanRegardCandidate {
-                  Name = c.Name?.ToString(), Derived = v, AtWar = atWar,
+                  Name = c.Name?.ToString(), Id = c.StringId, Derived = v, AtWar = atWar,
                   DerivedReason = WhyTowardThePlayer(other, p.ReputationWithPlayer) ?? $"{RegardBands.Describe(p.ReputationWithPlayer)} ({p.ReputationWithPlayer:+#;-#;0})"
                });
                continue;
@@ -283,30 +254,40 @@ namespace CalradiaRemembers.Encyclopedia
 
             PairRegard r = PairRegardReader.Assess(lord, other);
             houses.Add(new ClanRegardCandidate {
-               Name = c.Name?.ToString(), Derived = r.Verdict,
+               Name = c.Name?.ToString(), Id = c.StringId, Derived = r.Verdict,
                DerivedReason = PairRegardPolicy.WithoutThePair(PairRegardPolicy.PageReason(r), lord.Name?.ToString(), other.Name?.ToString()),
                VanillaRelation = CharacterRelationManager.GetHeroRelation(lord, other), AtWar = atWar,
                Through = lord == hero && _explained.Contains(other) ? other.Name?.ToString() : null
             });
          }
 
-         (IReadOnlyList<string> odds, IReadOnlyList<string> affinity) = ClanRegardListPolicy.Lists(houses);
-         if (odds.Count == 0 && affinity.Count == 0) return;
+         IReadOnlyList<ClanRegardGroup> groups = ClanRegardListPolicy.Groups(houses);
+         if (groups.Count == 0) return;
 
-         // Gabriel (20/10/2026): "At odds" and "Of affinity" as titles with a list under each, easier to read than
-         // the two words repeated at the head of every line.
+         // Gabriel (22/10/2026): one row per reason, the houses' banners side by side, pale green for affinity and red
+         // for odds (the colour replaces the "At odds" / "Of affinity" subtitles of 20/10); the war under its house.
          CalradiaRegardHousesLabel = "Houses:";
-         if (odds.Count > 0)
+         foreach (ClanRegardGroup g in groups)
          {
-            CalradiaRegardHousesOddsLabel = "At odds";
-            CalradiaRegardHousesOddsItems = string.Join("\n", odds.Select(l => "• " + Capitalised(l)));
-         }
+            var row = new RegardHouseRowVM(g.Reason == null ? "Named above, through their lord" : Capitalised(g.Reason), g.Affinity);
+            foreach (ClanRegardHouse h in g.Houses)
+            {
+               Clan clan = Clan.All.FirstOrDefault(c => c?.StringId == h.Id);
+               if (clan != null) row.Houses.Add(new RegardHouseVM(clan, HouseNote(h)));
+            }
 
-         if (affinity.Count > 0)
-         {
-            CalradiaRegardHousesAffinityLabel = "Of affinity";
-            CalradiaRegardHousesAffinityItems = string.Join("\n", affinity.Select(l => "• " + Capitalised(l)));
+            if (row.Houses.Count > 0) _houseRows.Add(row);
          }
+      }
+
+      // Under a house's banner: the war, and the lord through whom it is explained above.
+      private static string HouseNote(ClanRegardHouse h)
+      {
+         var parts = new List<string>();
+         if (h.AtWar) parts.Add("at war");
+         if (!string.IsNullOrWhiteSpace(h.Through)) parts.Add("through " + h.Through);
+
+         return string.Join(", ", parts);
       }
 
       // A character's page: vanilla's lists, corrected by what really happened, with the reasons.
@@ -342,11 +323,13 @@ namespace CalradiaRemembers.Encyclopedia
          List<Hero> enemies = derivedEnemies.Select(x => x.Hero).Concat(vanillaEnemies.Where(h => !turned.Contains(h))).ToList();
          Fill(friends, enemies);
 
-         var shown = derivedEnemies.Select(x => (x.Hero, x.Why, Word: "enemy")).Concat(derivedFriends.Select(x => (x.Hero, x.Why, Word: "friend"))).Take(MaxReasons).ToList();
+         var shown = derivedEnemies.Select(x => (x.Hero, x.Why, Friend: false)).Concat(derivedFriends.Select(x => (x.Hero, x.Why, Friend: true))).Take(MaxReasons).ToList();
          foreach (var s in shown) _explained.Add(s.Hero);
          // Gabriel (20/10/2026): under "Personal regard: unknown", a bare "Why:" read as the reason for the regard toward
          // the player, while these lines are the character's own friends and enemies. The label says whose they are.
-         Show(shown.Select(x => $"• {x.Hero.Name}, {x.Word}: {PairRegardPolicy.WithoutThePair(x.Why, hero.Name?.ToString(), x.Hero.Name?.ToString())}").ToList(), "Friends and enemies, and why:");
+         Show(shown.Select(x => new RegardPersonRowVM(x.Hero, $"{x.Hero.Name}, {(x.Friend ? "friend" : "enemy")}",
+                                                      Capitalised(PairRegardPolicy.WithoutThePair(x.Why, hero.Name?.ToString(), x.Hero.Name?.ToString())), x.Friend))
+                   .ToList(), "Friends and enemies, and why:");
       }
 
       // The other house lords of the hero's realm: the people a lord would have crossed before the campaign.
@@ -373,12 +356,20 @@ namespace CalradiaRemembers.Encyclopedia
       private static string Capitalised(string line)
          => string.IsNullOrEmpty(line) ? line : char.ToUpperInvariant(line[0]) + line.Substring(1);
 
-      private void Show(List<string> lines, string label)
+      private void Show(List<RegardPersonRowVM> rows, string label)
       {
-         if (lines.Count == 0) return;
+         if (rows.Count == 0) return;
 
          CalradiaRegardWhyLabel = label;
-         CalradiaRegardWhyItems = string.Join("\n", lines);
+         foreach (RegardPersonRowVM row in rows) _people.Add(row);
+      }
+
+      private void ClearRows()
+      {
+         foreach (RegardPersonRowVM row in _people) row.OnFinalize();
+         foreach (RegardHouseRowVM row in _houseRows) row.OnFinalize();
+         _people.Clear();
+         _houseRows.Clear();
       }
 
       #endregion

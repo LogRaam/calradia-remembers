@@ -8,6 +8,7 @@
 
 #region
 
+using System.Linq;
 using CalradiaRemembers.Logic;
 using FluentAssertions;
 using NUnit.Framework;
@@ -99,6 +100,63 @@ namespace CalradiaRemembers.Tests
          });
 
          lists.Affinity.Should().Equal("deep trust between their lords: Kjolding; Skylfing, through Hertogi Gornlautir");
+      }
+
+      // STAKE: Gabriel (22/10/2026): the houses become rows with each house's banner, one row per reason, so a reason five
+      // houses share is written once and its five banners sit side by side; affinity (pale green) before odds (red).
+      [Test]
+      public void GIVEN_houses_of_both_sides_WHEN_grouped_for_rows_THEN_one_row_per_reason_with_its_houses_and_affinity_first()
+      {
+         var groups = ClanRegardListPolicy.Groups(new[] {
+            new ClanRegardCandidate {Name = "Osticos", Id = "clan_o", VanillaRelation = -50},
+            new ClanRegardCandidate {Name = "dey Sargot-Meroc", Id = "clan_s", VanillaRelation = -50, AtWar = true},
+            new ClanRegardCandidate {Name = "Kjolding", Id = "clan_k", VanillaRelation = 50}
+         });
+
+         groups.Should().HaveCount(2);
+         groups[0].Affinity.Should().BeTrue();
+         groups[0].Houses.Should().ContainSingle().Which.Id.Should().Be("clan_k");
+         groups[1].Affinity.Should().BeFalse();
+         groups[1].Reason.Should().Be("resentment between their lords");
+         groups[1].Houses.Should().HaveCount(2);
+      }
+
+      // STAKE: the war mark stays on the house it belongs to, under its own banner, not on the whole row.
+      [Test]
+      public void GIVEN_one_house_at_war_among_a_reason_WHEN_grouped_for_rows_THEN_only_that_house_is_marked_at_war()
+      {
+         var groups = ClanRegardListPolicy.Groups(new[] {
+            new ClanRegardCandidate {Name = "Osticos", Id = "clan_o", VanillaRelation = -50},
+            new ClanRegardCandidate {Name = "dey Sargot-Meroc", Id = "clan_s", VanillaRelation = -50, AtWar = true}
+         });
+
+         groups[0].Houses.Should().Contain(h => h.Id == "clan_s" && h.AtWar).And.Contain(h => h.Id == "clan_o" && !h.AtWar);
+      }
+
+      // STAKE: a house whose lord is explained above has no reason of its own to repeat: it gets a row of its side,
+      // named through its lord, and keeps its colour.
+      [Test]
+      public void GIVEN_a_house_named_through_its_lord_WHEN_grouped_for_rows_THEN_it_is_in_a_row_of_its_side_without_a_reason()
+      {
+         var groups = ClanRegardListPolicy.Groups(new[] {
+            new ClanRegardCandidate {Name = "Skylfing", Id = "clan_sk", Derived = PairRegardVerdict.Enemy, DerivedReason = "burned his hall", Through = "Hertogi"}
+         });
+
+         groups.Should().ContainSingle();
+         groups[0].Affinity.Should().BeFalse();
+         groups[0].Reason.Should().BeNull();
+         groups[0].Houses.Should().ContainSingle().Which.Through.Should().Be("Hertogi");
+      }
+
+      // STAKE: the rows and the old text list are the same houses: the cap of six per side and what is left out hold.
+      [Test]
+      public void GIVEN_more_than_six_houses_on_a_side_WHEN_grouped_for_rows_THEN_the_six_strongest_are_kept()
+      {
+         var many = new ClanRegardCandidate[8];
+         for (int i = 0; i < many.Length; i++) many[i] = new ClanRegardCandidate {Name = "h" + i, Id = "c" + i, VanillaRelation = -40 - i};
+
+         ClanRegardListPolicy.Groups(many).SelectMany(g => g.Houses).Should().HaveCount(ClanRegardListPolicy.MaxPerList)
+                             .And.NotContain(h => h.Id == "c0" || h.Id == "c1");
       }
    }
 }

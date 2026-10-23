@@ -112,6 +112,15 @@ namespace CalradiaRemembers.Diagnostics
    /// </summary>
    public static class CrSelfTest
    {
+      /// <summary>
+      ///   npc_regard_reason: the person rows a hero page shows (portrait, red or green, reason). Set by the regard mixin
+      ///   when a page is first built: naming the encyclopedia here would draw it into a namespace cycle.
+      /// </summary>
+      public static Func<TaleWorlds.Library.ViewModel, IReadOnlyList<(Hero Person, bool IsFriend, string Reason)>> RegardPeopleOf { get; set; }
+
+      /// <summary>npc_regard_reason: the house rows a hero page shows (red or green, each house and the note under its banner).</summary>
+      public static Func<TaleWorlds.Library.ViewModel, IReadOnlyList<(bool IsFriend, IReadOnlyList<(IFaction Faction, string Note)> Houses)>> RegardHouseRowsOf { get; set; }
+
       /// <summary>Test-grudge magnitude planted on the SAME holder, to exercise the tarnish cross-interaction.</summary>
       private const int AppreciationFlowGrudgeMagnitude = 50;
 
@@ -328,7 +337,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("shared_past_draw", Severity.Light, "Gabriel's rulings on the generated shared past (NPC_REGARD.md section 7, 17/10/2026): drawn once and never re-rolled, written into the world's long-term memory before the campaign began, both adults then, a good share get nothing. Picks lords never drawn with a lord of their realm, drives the real draw (SharedPastBehavior.DrawFor) for up to six pairs: each is marked drawn; each past drawn is in the long-term memory, dated before the start, with both of age then; a second draw changes nothing. Forgets the pairs and their pasts after.", TestSharedPastDraw),
          new SelfTest("letter_from_another_mod", Severity.Light, "tashmetu (18/10/2026): R&S's tournament invitations, written as the lord's own letter, opened in the game's plain popup. CrLetters.Deliver from a lord CR knows queues the letter with its body as given and a courier riding out today, as CR's own letters ride; the player as sender and an empty body are refused. Since 2.7.19 (tashmetu, 20/10/2026: R&S read the reply by reflection and could not tell 'set aside' from 'not read yet'): DeliverWithId gives an id, GetStatus follows it on the road, delivered, set aside (raised once through the letter window's own notice) and answered, and Replied carries the id, the sender and the reply's text, read again by GetReply. Removes the letters after.", TestLetterFromAnotherMod),
          new SelfTest("pair_regard_source", Severity.Light, "tashmetu (18/10/2026): two lords R&S made close showed as neither on the page, beside its own tooltip. A source registered through CrPairRegard, for two lords of different houses with nothing between them here, makes the first a friend of the second with its reason, leaves the other way round untouched, counts at most PairRegardPolicy.OutsideCap however much it claims, and is gone once unregistered. Since 2.7.19 the same through the function form (tashmetu, 20/10/2026: for a mod that keeps CR optional), registered and taken away by its id.", TestPairRegardSource),
-         new SelfTest("npc_regard_reason", Severity.Light, "Gabriel (17/10/2026): every friend or enemy carries its reason (docs/design/NPC_REGARD.md section 9). Without touching the author's file, syncs a test betrayal of the past in which one lord wronged another, and drives the real name resolution (ContextualNameResolver.Resolve) on a message naming the betrayer: the wronged lord is told the betrayer is an enemy, for what lies between them, with the betrayal and how long ago; a lord of another house and realm asked the same is told nothing of it. The wronged lord's encyclopedia page (built here, then refreshed) lists the betrayer among his enemies and not his friends. Then the author's file alone is synced back.", TestNpcRegardReason),
+         new SelfTest("npc_regard_reason", Severity.Light, "Gabriel (17/10/2026): every friend or enemy carries its reason (docs/design/NPC_REGARD.md section 9). Without touching the author's file, syncs a test betrayal of the past in which one lord wronged another, and drives the real name resolution (ContextualNameResolver.Resolve) on a message naming the betrayer: the wronged lord is told the betrayer is an enemy, for what lies between them, with the betrayal and how long ago; a lord of another house and realm asked the same is told nothing of it. The wronged lord's encyclopedia page (built here, then refreshed) lists the betrayer among his enemies and not his friends; as rows (Gabriel, 22/10/2026), the betrayer has his portrait row marked red with the betrayal as reason, and his house its banner in a red row, named through him. Then the author's file alone is synced back.", TestNpcRegardReason),
          new SelfTest("companion_news_fresh", Severity.Light, "LapitaPolata (Nexus, 17/10/2026): a companion told of a castle being besieged after it had fallen, and of a war breaking out while the player was already riding to a siege in it. Records test news and reads it through the real glue (CompanionAudienceTopicResolver.FreshnessFacts): a siege fight at a place recorded as fallen since is overtaken; a war naming the player's own realm or clan is theirs; news ten days old is too old; fresh news of two other realms may still be brought. Removes the test news.", TestCompanionNewsFresh),
          new SelfTest("reply_language_everywhere", Severity.Light, "RaveN017Mod (Nexus, 17/10/2026): French game, Reply Language French, yet a character who came to him on the map and every council opened in English; he asked whether the mod could read the game's language. With the setting blank, the language resolved is the game's (none for an English game); with it set to Spanish, an opening cue ends naming Spanish and the council prompt carries Spanish. Restores the setting.", TestReplyLanguageEverywhere),
          new SelfTest("gossip_once_per_news", Severity.Light, "froggyluv (Nexus, 17/10/2026): with NPCs Raise World News on, notable after notable stopped him to ask what he knew of the same war, then the same capture. Turns the option on, records a great piece of news of two lords' realm, and drives the real candidate gathering (BuildRecentMatters): both lords could ask about it; once the first has offered it (an invitation naming it), the second no longer can, and the first still can, for when the player accepts. Restores the option, the news and the ledger.", TestGossipOncePerNews),
@@ -5295,6 +5304,21 @@ namespace CalradiaRemembers.Diagnostics
                t.Expect("notAsAFriend", Lists(page.Allies, page.AdditionalAllies), false);
                page.RefreshValues();
                t.Expect("stillAfterTheVanillaRefresh", Lists(page.Enemies, page.AdditionalEnemies), true);
+
+               // Gabriel (22/10/2026): the reasons and the houses are rows, a portrait or banners, a red or pale green marker.
+               var people = RegardPeopleOf?.Invoke(page);
+               var houseRows = RegardHouseRowsOf?.Invoke(page);
+               if (people == null || houseRows == null) t.Note("no regard rows on this page (UIExtenderEx not attached here)");
+               else
+               {
+                  var row = people.FirstOrDefault(r => r.Person == betrayer);
+                  t.Expect("theBetrayerHasARowWithHisPortrait", row.Person != null, true);
+                  t.Expect("markedAsAnEnemy", row.IsFriend, false);
+                  t.Expect("itsReasonIsTheBetrayal", row.Reason?.Contains("[SELFTEST]") == true, true);
+                  var houseRow = houseRows.FirstOrDefault(r => r.Houses.Any(h => h.Faction == betrayer.Clan));
+                  t.Expect("hisHouseHasItsBannerInARedRow", houseRow.Houses != null && !houseRow.IsFriend, true);
+                  t.Expect("namedThroughHim", houseRow.Houses?.FirstOrDefault(h => h.Faction == betrayer.Clan).Note?.Contains("through") == true, true);
+               }
                string vanillaRelation = TaleWorlds.Core.GameTexts.FindText("str_enc_sf_relation")?.ToString();
                if (page.Stats.Any(s => s.Definition == "Clan Relation" || s.Definition == vanillaRelation))
                   t.Expect("theClanRelationLabelSurvivesTheRefresh", page.Stats.Any(s => s.Definition == "Clan Relation"), true);
