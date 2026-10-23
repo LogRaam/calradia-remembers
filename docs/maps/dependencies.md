@@ -234,7 +234,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 #### `CalradiaRemembers` and `CalradiaRemembers.Diagnostics`
 
-- `CalradiaRemembers` uses `CalradiaRemembers.Diagnostics` in 12 files: `Extension/CrNpcMemory.cs`, `ModCheats.ActionBench.cs`, `ModCheats.MemoryBench.cs`, and 9 more
+- `CalradiaRemembers` uses `CalradiaRemembers.Diagnostics` in 13 files: `Extension/CrNpcMemory.cs`, `Extension/CrRomance.cs`, `ModCheats.ActionBench.cs`, and 10 more
 - `CalradiaRemembers.Diagnostics` uses `CalradiaRemembers` in 1 file(s): `Diagnostics/CrSelfTest.cs`
 
 #### `CalradiaRemembers` and `CalradiaRemembers.GameState`

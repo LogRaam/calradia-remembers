@@ -421,6 +421,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("mood_of_the_day", Severity.Light, "The mood of the day (ROADMAP, ruled 14/09 and 30/09/2026): reads real characters' days off the game and draws their mood. The same man drawn twice today is the same mood; a captive never draws an ordinary day or high spirits; the player draws none; a lift in conversation moves it one band and a new conversation starts from the day again. Lordfadooboo (18/10/2026): a coloured day has a cause, the same all day, and a death recorded on a met character names the dead on a grim or guarded day (restored after).", TestMoodOfTheDay),
          new SelfTest("action_gate", Severity.Light, "The one gate every character's action asks (Gabriel, 30/09/2026: a baby son asked to discuss warfare, then a dead father sat at a council). On the live population: no child takes an adult's act (lords by occupation included), no child under 13 sits at a council, no captive acts outside marriage, duels, witnessing and a held scene, no one dead or disabled acts at all, the player never acts toward themselves, and a free adult lord may do everything. Read-only.", TestActionGate),
          new SelfTest("letter_place_and_audience_age", Severity.Light, "Two reports (30/09/2026): Lordfadooboo's lone player placed \"on the march with your own retinue\" (the writer's) in a wanderer's letter, and Nexusrrr's baby son asking for an audience about warfare. Checks the phrase that places the player in a letter never borrows the writer's \"your\" and says alone when alone, and that no child is among those who may ask for an audience in any town. Read-only.", TestLetterAndAudienceSeekers),
+         new SelfTest("romance_status_door", Severity.Light, "LapitaPolata (22/10/2026): a secret lover made in CR's chat existed only in CR, so Affairs of Calradia never knew; Gabriel (23/10/2026) approved a door for bridges. Arranges a companion of the other sex, moves her bond through the real romantic state (courting, then the player's secret lover today), and checks CrRomance.GetStatus reads each bond and a CrRomance.StatusChanged listener hears courting -> secret_lover with the day, marked as a test's change. Her romantic state is put back, the restoration is announced like any change, and the listener removed.", TestRomanceStatusDoor),
          new SelfTest("regard_changed", Severity.Light, "The public regard-change door (29/09/2026, for tashmetu's bridge): raises a real character's regard by 1 and lowers it back through the one place regard changes, and checks a CrNpcMemory.RegardChanged listener hears both with before and after, reported as self_test (a test's change, which a mirroring mod must not keep). Regard is restored and the listener removed.", TestRegardChanged),
          new SelfTest("correspondence_rank", Severity.Light, "Gabriel (28/09/2026): the Empress wrote in her own hand to a landless newcomer, and rode out herself to find him. Reads a real ruler against the player as they stand: far above an unbonded player, her letters come from her chancellery (a title, no invented clerk) and she does not ride out in person; a love letter is always her own. Writes nothing.", TestCorrespondenceRank),
          new SelfTest("balance_survey", Severity.Light, "The balance-of-power survey (Gabriel, 28/09/2026: measure before building a balancing lever). Reads every living realm as the weekly survey does: one row each, fief shares adding up to the whole map, and rows that survive the survey file's round trip. Writes nothing.", TestBalanceSurvey),
@@ -14128,6 +14129,70 @@ namespace CalradiaRemembers.Diagnostics
 
          IReadOnlyList<string> recap = Mapping.HeartPageReader.LinesFor(Hero.MainHero);
          t.Expect("thePlayersPageListsHer", recap.Any(l => l.StartsWith($"{lover.Name}, your lover", StringComparison.Ordinal)), true);
+
+         return t.Line();
+      }
+
+      private static string TestRomanceStatusDoor(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("romance_status_door");
+         if (t.Abort(behavior?.Store == null || Hero.MainHero == null, "the store is not ready")) return t.Line();
+
+         Hero lover = ArrangedCompanion.Get(behavior, oppositeSexOfPlayer: true, unwed: true,
+                                            reject: h => Hero.MainHero.ExSpouses?.Contains(h) == true)?.Companion;
+         if (t.Abort(lover == null, "no companion of the other sex could be arranged")) return t.Line();
+
+         NpcProfile profile = behavior.Store.Get(lover.StringId) ?? HeroProfileMapper.FromHero(lover);
+         profile.Romantic ??= new RomanticProfile();
+         RomanticProfile r = profile.Romantic;
+         (RomanticStatus status, int? since, int? lovers, bool secret, int? secretSince) kept = (r.Status, r.StatusSinceDay, r.LoversSinceDay, r.IsSecretLover, r.SecretLoverSinceDay);
+         var heard = new List<CrRomanceStatusChange>();
+         void Listen(CrRomanceStatusChange c)
+         {
+            if (c.NpcId == lover.StringId) heard.Add(c);
+         }
+
+         CrRomance.CheckForChanges(); // whatever moved before the test is announced now, not counted as the test's
+         CrRomance.StatusChanged += Listen;
+         try
+         {
+            var today = (int) CampaignTime.Now.ToDays;
+            r.IsSecretLover = false;
+            r.SecretLoverSinceDay = null;
+            r.Status = RomanticStatus.Courting;
+            behavior.Store.Set(profile);
+            CrRomance.CheckForChanges();
+            t.Expect("aCourtshipReadsCourting", CrRomance.GetStatus(lover.StringId)?.Bond, "courting");
+            heard.Clear();
+
+            // As take_as_secret_lover sets it: the flag, the day, and the state.
+            r.MoveTo(RomanticStatus.SecretLover, today);
+            r.IsSecretLover = true;
+            r.SecretLoverSinceDay = today;
+            behavior.Store.Set(profile);
+            CrRomance.CheckForChanges();
+
+            CrRomanceStatus now = CrRomance.GetStatus(lover.StringId);
+            t.Note($"{lover.Name}: {now?.Bond} since day {now?.SinceDay}");
+            t.Expect("sheReadsSecretLover", now?.Bond, "secret_lover");
+            t.Expect("sinceToday", now?.SinceDay, (int?) today);
+            t.Expect("theChangeIsHeardOnce", heard.Count, 1);
+            t.Expect("fromCourting", heard.FirstOrDefault()?.Before?.Bond, "courting");
+            t.Expect("toSecretLover", heard.FirstOrDefault()?.After?.Bond, "secret_lover");
+            // STAKE: a bridge mirroring bonds into its own mod must be able to skip a test's change.
+            t.Expect("markedAsATestsChange", heard.FirstOrDefault()?.DuringSelfTest, true);
+         }
+         finally
+         {
+            r.Status = kept.status;
+            r.StatusSinceDay = kept.since;
+            r.LoversSinceDay = kept.lovers;
+            r.IsSecretLover = kept.secret;
+            r.SecretLoverSinceDay = kept.secretSince;
+            behavior.Store.Set(profile);
+            CrRomance.CheckForChanges();
+            CrRomance.StatusChanged -= Listen;
+         }
 
          return t.Line();
       }

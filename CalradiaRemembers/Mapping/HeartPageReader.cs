@@ -33,6 +33,25 @@ namespace CalradiaRemembers.Mapping
             return Partners().Select(h => HeartPagePolicy.RecapLine(FactsFor(h), When)).Where(l => l != null).ToList();
         }
 
+        /// <summary>The hero's bond with the player as another mod reads it (CrRomance.GetStatus), from the page's own facts.</summary>
+        internal static RomanceBondReading BondOf(Hero hero)
+            => hero == null || Hero.MainHero == null || hero == Hero.MainHero ? new RomanceBondReading() : RomanceBondPolicy.Read(FactsFor(hero));
+
+        /// <summary>Every character with a bond with the player now, by hero id (CrRomance's change check).</summary>
+        internal static IReadOnlyDictionary<string, RomanceBondReading> BondsNow()
+        {
+            var bonds = new Dictionary<string, RomanceBondReading>();
+            if (Hero.MainHero == null) return bonds;
+
+            foreach (Hero h in Partners())
+            {
+                RomanceBondReading r = BondOf(h);
+                if (r.Bond != RomanceBondPolicy.None || r.OpenTerms) bonds[h.StringId] = r;
+            }
+
+            return bonds;
+        }
+
         /// <summary>A game day as the page names it: "spring 1091". The days are counted from the calendar's start.</summary>
         internal static string When(int day)
         {

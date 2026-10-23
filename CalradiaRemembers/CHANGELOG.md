@@ -5,6 +5,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ## v2.7.20.. open
 
 ### New
+- **Romance status for other mods** (LapitaPolata 22/10: "I managed to have a secret lover, the relationship only
+  exists in my and her memory. Affairs of Calradia does not know about it"; Gabriel 23/10: a door, the bridge does the
+  rest). `CrRomance.GetStatus(npcId)` reads a character's bond with the player as one word (`RomanceBondPolicy.Read`,
+  over the Heart page's own facts so a bridge never contradicts the encyclopedia) with its day and open terms;
+  `CrRomance.StatusChanged` announces a change (`RomanceBondWatch`, read when a conversation closes and hourly by
+  `RomanceBondWatchBehavior`; a loaded save's bonds are learned, not announced; `DuringSelfTest` marks a test's change).
+  `HeartPagePolicy.Dates` is public for it. Not done: writing into any other mod. testall `romance_status_door`.
 - **Characters set the scene** (Lordfadooboo 21/10: "instead of doing a cold open... the ai would set the stage a
   little before your first word"; Gabriel 22/10: by default, as captive scenes already open themselves). A conversation
   the player starts opens with the character: what they were doing as he came, whether they notice him, their first

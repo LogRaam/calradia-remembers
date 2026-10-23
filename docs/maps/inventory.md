@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 552 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1250 types in 46 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 555 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1254 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -43,7 +43,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (50)
+### CalradiaRemembers (53)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -73,7 +73,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrPatrols` | public static class | The companion patrols, read-only, and their public events. |
 | `CrPrompt` | public static class | The public facade a third-party mod calls to register (or unregister) one live prompt variable. |
 | `CrRegardChange` | public class | One change of a character's personal regard for the player (see CrNpcMemory.RegardChanged). |
-| `CrRomance` | public static class | Reads and records intimacy with the player, held to the bar CR's own chat holds. |
+| `CrRomance` | public static class | Reads and records intimacy with the player, held to the bar CR's own chat holds; reads the bond and its changes. |
+| `CrRomanceStatus` | public class | A character's bond with the player (see CrRomance.GetStatus). |
+| `CrRomanceStatusChange` | public class | One change of a character's bond with the player (see CrRomance.StatusChanged). |
 | `CrSpeechLine` | public class | One line as it is DISPLAYED in a conversation, delivered in real time by CrConversation.LineSpoken. |
 | `CrTaleConsequence` | public class | One consequence of a stage or an ending, and what became of it. |
 | `CrTaleConsequenceStatus` | public enum | Whether a tale's consequence really happened. |
@@ -96,6 +98,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ModCheats` | public static class, partial over 60 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
 | `ProseInterpretTestRunner` | internal static class | The runner behind cr.prose_interpret_test. |
+| `RomanceBondWatchBehavior` | internal class | Reads the bonds with the player at session start and every hour, for CrRomance.StatusChanged. |
 | `SingleCallProbeRunner` | internal static class | The runner behind cr.single_call_probe: sends each scenario as one composer+extractor call and reports. |
 
 ### CalradiaRemembers.Aims (2)
@@ -2178,7 +2181,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RescueGratitudePolicy` | public static class | Decides how strongly an NPC reacts to being rescued (or to a loved one being rescued) by the player. |
 | `RescueTie` | public enum | How the freed prisoner relates to the player, deciding the shape of their gratitude. |
 
-### CalradiaRemembers.Logic.Romance (20)
+### CalradiaRemembers.Logic.Romance (24)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2195,6 +2198,10 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `JealousyTriggerPolicy` | public static class | Pure gate deciding whether a recorded romantic act is plausible COURTSHIP worth a jealous reaction. |
 | `OpenPartnerLoverPolicy` | public static class | Pure rules for an OPEN partner autonomously taking a lover of her own: the neglect-scaled weekly chance that she strays, and whether a given candidate is a plausible lover. |
 | `OpenRelationshipPolicy` | public static class | Pure gate: does a reciprocal open-relationship arrangement suppress this partner's jealousy? |
+| `RomanceBondChange` | public class | One change of a bond, between two readings. |
+| `RomanceBondPolicy` | public static class | Reads the bond word from the Heart page's facts, and tells a change from the reading before. |
+| `RomanceBondReading` | public class | A character's bond with the player, as another mod reads it. |
+| `RomanceBondWatch` | public class | Remembers the last reading of each character and tells what changed at the next pass. |
 | `RomanticActTier` | public enum | How serious the romantic act is: drives grudge severity and letter likelihood. |
 | `SecretLoverAdmissionPolicy` | public static class | Decides whether the player admitting a secret-lover bond to a given NPC reveals anything, and about whom. |
 | `SecretLoverLeakPolicy` | public static class | Gates when the EXISTENCE of a secret lover may begin to leak: after a delay, once, never before. |

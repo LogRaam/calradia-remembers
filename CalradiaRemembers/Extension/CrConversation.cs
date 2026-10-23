@@ -92,6 +92,8 @@ namespace CalradiaRemembers
          if (string.IsNullOrWhiteSpace(npcId)) return;
 
          Invoke(Ended, new CrConversationLog(npcId, CurrentSaveId(), gameDay, lines ?? new List<CrTranscriptLine>(), _sequencer.SessionId));
+         // A bond the conversation moved is announced now, not at the next hour.
+         CrRomance.CheckForChanges();
       }
 
       internal static void RaiseLineSpoken(CrSpeechLine line)

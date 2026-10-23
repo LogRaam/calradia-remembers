@@ -376,6 +376,28 @@ moves it. It is refused, writing nothing (`NotWelcome`), whenever the chat would
 `WouldAcceptIntimacy` before offering the night. Regard is not moved. A plain `Intimacy` memory through `AddMemory`
 stays a memory only: it never moves the romance arc.
 
+**The bond itself (since 2.7.20).** A bond made in CR's chat (a courtship, a secret lover, a consort) lives in CR; read
+it, and hear when it changes, to carry it into your own mod (LapitaPolata: "Affairs of Calradia does not know about it"):
+
+```csharp
+CrRomanceStatus s = CrRomance.GetStatus(npcId);   // null for an unknown hero or no campaign
+// s.Bond: "none", "curious", "courting", "lovers", "secret_lover", "committed", "consort", "spouse",
+//         "former_spouse", "estranged" or "broken"; s.SinceDay (null when no day was recorded); s.OpenTerms
+
+CrRomance.StatusChanged += change =>
+{
+    if (change.DuringSelfTest) return;            // cr.testall moves a bond and puts it back
+    // change.NpcId, change.Before.Bond, change.After.Bond, change.After.SinceDay, change.GameDay, change.SaveId
+};
+```
+
+The bond is read as the encyclopedia's Heart section tells it: the game's marriage first (an ex-spouse is
+"former_spouse" even when CR's romance still reads committed), then CR's own romance. "secret_lover" is any love kept
+hidden: the player's own secret lover, or a married character's affair with the player. New words may be added: treat
+an unknown one as "none". Bonds are read when a conversation closes and every in-game hour, so the event may come up
+to an hour after the change; a loaded save's bonds are never announced, read them with `GetStatus` at session start.
+CR never writes into your mod: what a bond means there is your bridge's call.
+
 CR also writes, on its own, the memory a quest giver keeps of the game's own quests (begun, done, failed, let lapse):
 do not inject those.
 

@@ -134,8 +134,11 @@ namespace CalradiaRemembers.Logic.Romance
          return line;
       }
 
-      // The day the first line tells, so the lovers' day is not said twice.
-      private static int? Dates(HeartFacts f)
+      /// <summary>
+      ///   The day the bond as told began (the wedding, the consort's day, the lovers' day...), or null when none was
+      ///   recorded. The first line tells it, so the lovers' day is not said twice; RomanceBondPolicy hands it to other mods.
+      /// </summary>
+      public static int? Dates(HeartFacts f)
       {
          if (f.IsSpouse || f.IsExSpouse) return f.WeddedOnDay;
          if (f.IsConsort) return f.StatusSinceDay;
