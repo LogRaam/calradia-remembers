@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 560 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1260 types in 46 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 562 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1262 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -546,7 +546,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (35)
+### CalradiaRemembers.Mapping (37)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -557,6 +557,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DayMoodReader` | public static class | Draws a character's mood of the day from the live game. |
 | `EdictNoteResolver` | public static class | The "edicts where you live" lines for a character, or null. |
 | `EncounterContextBuilder` | public static class | Constructs an EncounterContext for a given NPC, using the game state bridge for live data and the stored profile for historical data (last-meeting computation). |
+| `ExecutionDetail` | internal static class | Reads the game's kill detail as an execution or not. |
 | `FirstImpressionResolver` | public static class | Builds the ready-to-inject "first impression" line for a barely-known noble, or null. |
 | `GameRelations` | public static class | Reads a character's own relation with the player and, when there is another to read, their clan leader's. |
 | `HeartPageReader` | internal static class | Reads a hero's bond with the player for the Heart section. |
@@ -564,6 +565,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroProfileMapper` | public static class | (no summary) |
 | `HeroSeats` | public static class | The places a character answers for, closest first. |
 | `IntimacyBargainEligibility` | public static class | Resolves the adult-gated, archetype-filtered eligibility for the intimacy-as-currency dynamic. |
+| `MisdeedLedgerBehavior` | public class | The ledger of the player's misdeeds no other source records as a deed, one record per deed and day. |
 | `MisdeedsPageReader` | internal static class | Reads what the player did of their own will for the Misdeeds section. |
 | `NarrativeLoader` | public static class | Loads narrative text files from the mod's ModuleData folder at session launch. |
 | `PairRegardReader` | internal static class | Reads what lies between two characters into PairRegardFacts, and assesses it. |
@@ -2270,12 +2272,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TournamentStanding` | public class | A hero's standing in one tournament relative to the player: the decisive relation, whether they took the crown, and the round it turned on. |
 | `TournamentTraitFacts` | public class | The hero's own character traits that colour how they carry a tournament result (Bannerlord trait levels, roughly -2..2). |
 
-### CalradiaRemembers.Logic.Trauma (6)
+### CalradiaRemembers.Logic.Trauma (8)
 
 | Type | Kind | What it is |
 |---|---|---|
-| `MisdeedFacts` | public class | One kind of deed the player did to one character, every time it happened. |
-| `MisdeedsPagePolicy` | public static class | The Misdeeds section's gate, its gathering and its words. |
+| `MisdeedFacts` | public class | One kind of deed the player did to one victim, every time it happened. |
+| `MisdeedKind` | public enum | What the player did. |
+| `MisdeedRecord` | public class | One deed of the player, as a source gives it. |
+| `MisdeedsPagePolicy` | public static class | The Misdeeds section's gate, its gathering, its words and its ledger's save form. |
 | `TraumaAuthor` | public enum | Who did it, as the player saw it. |
 | `TraumaKind` | public enum | What was done. |
 | `TraumaPagePolicy` | public static class | The Trauma section's words, its gate, and the ledger's save form. |

@@ -50,13 +50,22 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   first in spring 1091, the last in autumn 1093"); the player's page has a line per partner. Never the content of a
   night. The nights are the character's own intimate memories, which compression always keeps, a day counted once
   (`HeartIntimacyPolicy`). `cr.heart_seed` takes `forced`; cr.testall `heart_intimacy`.
-- **Misdeeds, a section of the player's own page, at Hardcore only** (Gabriel 23/10: "Heart doit etre une section sur
-  l'amour et le desir. L'evenement 'take by force' devrait etre une autre section avec des actions reprehensibles").
-  What the player did of their own will to a character, one line per character and deed, counted and dated: "You took
-  Phenoria by force while she was your prisoner, twice, the first in spring 1091, the last in summer 1092", "You
-  tortured Lucon while he was your prisoner, in summer 1092", "You robbed Ira by force". Read from the same ledger as
-  each victim's Trauma section, so the two pages agree. Never what a captor did, nor what a captor forced the player's
-  hands to do (`MisdeedsPagePolicy`).
+- **Misdeeds, a section of the player's own page** (Gabriel 23/10: "Heart doit etre une section sur l'amour et le
+  desir. L'evenement 'take by force' devrait etre une autre section avec des actions reprehensibles", then "trahisons,
+  extortions, et tout autres gestes qui pourraient etres classes comme misdeeds", "divorce est un choix de vie. adultere
+  est un misdeed"). What the player did of their own will, one line per victim and deed, counted and dated: "You took
+  Phenoria by force while she was your prisoner, twice, the first in spring 1091, the last in summer 1092", "You had
+  Derthert put to death", "You killed Ira outside of battle", "You broke your word to Lucon on a task he gave you",
+  "You handed Monchug over to his enemies while he was your prisoner", "You were unfaithful to Ira", "You lay with
+  Lucon's wife", "You took Lucon's wife from him", "You forsook your oath to Vlandia", beatings and robberies. The
+  captive scenes (force, torture, interrogation under duress, torment) show at Hardcore only, the rest at every level.
+  Each kind comes from one source so a deed is told once: the Trauma ledger (the same records each victim's Trauma
+  section reads), the game's own death log, the tasks the player gave up or let lapse (not a bandit lair that could not
+  be found), and a new misdeeds ledger (additive save key) for adultery found out, a captive handed to his enemies, a
+  realm forsaken and a murder of a man of no house; on older saves the grudges of a captive handed over and of a spouse
+  taken stand in. Adultery and realms forsaken count from this version on. Never what a captor did, nor what a captor
+  forced the player's hands to do; a divorce is a life choice and stays out. Extortion and the raiding of villages are
+  not recorded anywhere yet. `MisdeedsPagePolicy`; cr.testall `misdeeds_page`.
 
 ### Changed
 - **Friends, enemies and houses as rows on the encyclopedia page** (Gabriel 22/10: "une liste ou chaque ligne serait
@@ -75,6 +84,9 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   sharing one row. `ClanRegardListPolicy.HeadsLine`.
 
 ### Fixed
+- **A lord executed right after a battle was not seen as executed.** The game marks that popup's execution apart from
+  the prisoners screen's, and every listener checked only the latter: no vendetta from his kin, no chronicle line, a
+  Nemesis not resolved as executed, a rumour saying he "died". All now read both (`ExecutionDetail`).
 - **Bounties and their hunters** (froggyluv 22/10: hunters of Vlandia and the Southern Empire again and again, charging
   him inside a 2000-strong army, "I've disabled that in options but they're still showing up", and no way to settle;
   Gabriel 23/10). Turning "Arrests and outlaws" off now lifts every bounty as an amnesty lifts it (crime rating, the war

@@ -63,16 +63,16 @@ mentions: an event with seven ways to happen and a listener that names one of th
 | `HeroComesOfAgeEvent` | `BastardBehavior.OnHeroComesOfAge` |  |
 | `HeroKilledEvent` | `BastardBehavior.OnHeroKilled` | KillCharacterActionDetail: (none named, takes them all) |
 | `HeroKilledEvent` | `CompanionPatrolBehavior.OnHeroKilled` | KillCharacterActionDetail: (none named, takes them all) |
-| `HeroKilledEvent` | `ExecutedKinGrudgeBehavior.OnHeroKilled` | KillCharacterActionDetail: Executed |
+| `HeroKilledEvent` | `ExecutedKinGrudgeBehavior.OnHeroKilled` | KillCharacterActionDetail: (none named, takes them all) |
 | `HeroKilledEvent` | `GrudgeBehavior.OnHeroKilled` | KillCharacterActionDetail: (none named, takes them all) |
 | `HeroKilledEvent` | `MarriageApprovalBehavior.OnHeroKilled` | KillCharacterActionDetail: (none named, takes them all) |
-| `HeroKilledEvent` | `NemesisResolutionBehavior.OnHeroKilled` | KillCharacterActionDetail: Executed |
+| `HeroKilledEvent` | `NemesisResolutionBehavior.OnHeroKilled` | KillCharacterActionDetail: (none named, takes them all) |
 | `HeroKilledEvent` | `NpcMemoryCampaignBehavior.OnHeroKilled` | KillCharacterActionDetail: (none named, takes them all) |
 | `HeroKilledEvent` | `PregnancyBirthBehavior.OnHeroKilled` | KillCharacterActionDetail: (none named, takes them all) |
 | `HeroKilledEvent` | `QuestDeedTracker.OnHeroKilled` | KillCharacterActionDetail: (none named, takes them all) |
 | `HeroKilledEvent` | `ScenarioBehavior.OnHeroKilled` | KillCharacterActionDetail: (none named, takes them all) |
 | `HeroKilledEvent` | `SelfEsteemBehavior.OnHeroKilled` | KillCharacterActionDetail: (none named, takes them all) |
-| `HeroKilledEvent` | `WorldEventFeeders.OnHeroKilled` | KillCharacterActionDetail: DiedInBattle, Executed |
+| `HeroKilledEvent` | `WorldEventFeeders.OnHeroKilled` | KillCharacterActionDetail: DiedInBattle |
 | `HeroPrisonerReleased` | `NemesisBehavior.OnHeroPrisonerReleased` | EndCaptivityDetail: Death, ReleasedAfterEscape, ReleasedByChoice |
 | `HeroPrisonerReleased` | `QuestDeedTracker.OnHeroPrisonerReleased` | EndCaptivityDetail: Death, Ransom, ReleasedAfterBattle, ReleasedAfterEscape, ReleasedAfterPeace, ReleasedByChoice, ReleasedByCompensation |
 | `HeroPrisonerReleased` | `RescueBehavior.OnHeroPrisonerReleased` | EndCaptivityDetail: ReleasedAfterBattle, ReleasedByChoice |

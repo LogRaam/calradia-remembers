@@ -116,6 +116,7 @@ namespace CalradiaRemembers.Verbs
                         GrudgeBehavior.Instance?.TryPlant(captive, Hero.MainHero, GrudgeSource.DeliveredPrisoner,
                             "The player sold me to my enemy.",
                             proposal.Magnitude, proposal.KnownToPlayer, today);
+                    if (toEnemy) Mapping.MisdeedLedgerBehavior.Record(captive.StringId, Logic.Trauma.MisdeedKind.HandedToEnemy); // Gabriel 23/10: a misdeed
                 }
                 catch (Exception ex)
                 {

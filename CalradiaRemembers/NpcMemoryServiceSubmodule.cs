@@ -351,6 +351,7 @@ namespace CalradiaRemembers
          // The bonds with the player, read hourly for CrRomance.StatusChanged (LapitaPolata, 22/10/2026).
          campaignStarter.AddBehavior(new RomanceBondWatchBehavior());
          campaignStarter.AddBehavior(new Mapping.TraumaLedgerBehavior());
+         campaignStarter.AddBehavior(new Mapping.MisdeedLedgerBehavior()); // the player's misdeeds (Gabriel, 23/10/2026)
          campaignStarter.AddBehavior(new Marriage.ForeignDivorceBehavior());
          campaignStarter.AddBehavior(new Quests.AuthoredQuestBehavior());
          campaignStarter.AddBehavior(new Mapping.RealmFaceBehavior()); // queens with a chosen face (Gabriel, 12/10/2026)

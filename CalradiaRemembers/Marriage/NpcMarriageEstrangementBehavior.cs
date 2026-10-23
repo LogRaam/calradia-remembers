@@ -330,6 +330,7 @@ namespace CalradiaRemembers.Marriage
          int magnitude = StolenSpouseGrudgePolicy.Magnitude(jiltedRelationToDeparted, jiltedMercy);
          GrudgeBehavior.Instance?.TryPlant(jilted, Hero.MainHero, GrudgeSource.StolenSpouse,
             $"the player carried on with {npc.Name} until our marriage came apart", magnitude, true, today);
+         Mapping.MisdeedLedgerBehavior.Record(jilted.StringId, Logic.Trauma.MisdeedKind.StoleSpouse);
 
          ModLog.Info($"[STOLEN_LOVE] {npc.Name} has left {jilted.Name} for the player; a StolenSpouse grudge (magnitude {magnitude}) is planted on {jilted.Name}.");
       }

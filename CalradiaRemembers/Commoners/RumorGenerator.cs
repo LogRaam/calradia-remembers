@@ -68,7 +68,8 @@ namespace CalradiaRemembers.Commoners
          {
             case "DiedInBattle": return "fallen in battle";
             case "DiedOfOldAge": return "died of old age";
-            case "Executed": return "been executed";
+            case "Executed":
+            case "ExecutionAfterMapEvent": return "been executed";
             case "Murdered": return "been murdered";
             default: return "died";
          }

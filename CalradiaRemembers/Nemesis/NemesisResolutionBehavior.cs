@@ -182,7 +182,7 @@ namespace CalradiaRemembers.Nemesis
         {
             SafeRun.Step("NemesisResolutionBehavior.OnHeroKilled", () =>
             {
-                Resolve(victim, killer, detail == KillCharacterAction.KillCharacterActionDetail.Executed);
+                Resolve(victim, killer, Mapping.ExecutionDetail.IsExecution(detail));
             });
         }
 

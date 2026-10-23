@@ -5724,6 +5724,7 @@ namespace CalradiaRemembers.GameState
                   GrudgeBehavior.Instance?.TryPlant(prisonerHero, Hero.MainHero, GrudgeSource.DeliveredPrisoner,
                      grudgeCause, proposal.Magnitude, proposal.KnownToPlayer, today);
                }
+               if (toEnemy) Mapping.MisdeedLedgerBehavior.Record(prisonerHero.StringId, Logic.Trauma.MisdeedKind.HandedToEnemy); // Gabriel 23/10: a misdeed
             }
             catch (Exception ex)
             {

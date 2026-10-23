@@ -199,6 +199,8 @@ namespace CalradiaRemembers.Violence
             default:
                // The victim keeps no memory of their own death; what the world makes of it is a later increment.
                KillCharacterAction.ApplyByMurder(target, Hero.MainHero);
+               // The game's death log keeps only a victim of a house; a wanderer or a notable killed here needs this record.
+               Mapping.MisdeedLedgerBehavior.Record(target.StringId, Logic.Trauma.MisdeedKind.Murdered);
 
                return new ActionOutcome($"You kill {target.Name}.", false);
          }

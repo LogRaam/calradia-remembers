@@ -84,7 +84,7 @@ namespace CalradiaRemembers.Mapping
          {
             if (kin == null || !kin.IsDead || kin.DeathMarkKillerHero != other) continue;
 
-            bool executed = kin.DeathMark == KillCharacterAction.KillCharacterActionDetail.Executed;
+            bool executed = ExecutionDetail.IsExecution(kin.DeathMark);
             int deathDay = (int) kin.DeathDay.ToDays;
             bool dated = deathDay > 0 && deathDay <= today;
             int years = dated ? (today - deathDay) / Math.Max(1, age.DaysInYear) : 0;

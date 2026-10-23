@@ -117,7 +117,7 @@ namespace CalradiaRemembers.Grudges
             SafeRun.Step("ExecutedKinGrudgeBehavior.OnHeroKilled", () =>
             {
                 if (victim == null || Hero.MainHero == null || killer != Hero.MainHero) return;
-                if (detail != KillCharacterAction.KillCharacterActionDetail.Executed) return;
+                if (!Mapping.ExecutionDetail.IsExecution(detail)) return; // the popup after a battle too
 
                 var today = (int) CampaignTime.Now.ToDays;
                 string cause = $"{Hero.MainHero.Name} had {victim.Name} put to death.";

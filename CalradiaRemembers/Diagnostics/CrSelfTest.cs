@@ -374,6 +374,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("every_verb_taught", Severity.Light, "22/10/2026: arrange_match (tashmetu's groom-side ask of 20/10/2026), reinforce_garrison, share_intel, deliver_recruits and admit_secret_lover were registered and executable but sat in no teaching list, so their own teaching never reached a prompt; each testall drove the bridge directly and passed. Reads the LIVE VerbRegistry and asserts every one of CR's own verbs is composed by a teaching list of EncounterContextBuilder or named among the verbs taught by another path (pay_for_silence inline, the violence verbs by their catalogue line). Changes nothing", TestEveryVerbTaught),
          new SelfTest("registered_match", Severity.Light, "tashmetu (Nexus, 16/10/2026): a head of house agreed in the chat to a match another mod had proposed, and nothing happened. Finds a lawful match of another house at peace, wins the bride over and the head's regard for the player (a disposable test game), registers it through the PUBLIC CrMatches.Register, checks a decider with no say is refused at the door, that the head is taught the match (and that the teaching reaches his REAL prompt, EncounterContextBuilder.Build), then settles it through the REAL bridge (arrange_match): the game weds them, CrMatches.Settled reports it, and the match is no longer pending. Restores the head's regard; the marriage stays", TestRegisteredMatch),
          new SelfTest("heart_intimacy", Severity.Light, "Gabriel (23/10/2026): at Hardcore only, the nights the player shared with a character show in Heart on both pages, sober as a diary; the prisoners the player took by force are told in the player's Misdeeds section, not under Heart ('Heart doit etre une section sur l'amour et le desir'), never what was done to the player. Arranges a companion of the other sex with two nights (a hundred days ago and today, marked [SELFTEST] and replaced on a rerun) and a lord the player took by force while a prisoner, then reads both pages through HeartPageReader and MisdeedsPageReader at Hardcore: her page counts the nights, the player's Heart names her nights and not the forced act, the player's Misdeeds tells it; at Explicit none of it shows. The adult level is put back; the nights and the record stay on the test save so the pages can be opened afterwards.", TestHeartIntimacy),
+         new SelfTest("misdeeds_page", Severity.Light, "Gabriel (23/10/2026): the player's page has a Misdeeds section, 'trahisons, extortions, et tout autres gestes qui pourraient etres classes comme misdeeds', 'adultere est un misdeed'; the captive scenes at Hardcore only, the rest at every level. Arranges, on the test save, an adultery against a companion of the other sex, a lord prisoner handed to his enemies, robbed and taken by force, and the oath to a realm forsaken, then reads the player's page through MisdeedsPageReader with adult content Off: the adultery, the prisoner handed over, the robbery and the realm show, the act of force does not; at Hardcore it does; a character's page has no Misdeeds. The adult level is put back; the records stay on the test save.", TestMisdeedsPage),
          new SelfTest("trauma_page", Severity.Light, "Gabriel (20/10/2026): at Hardcore, a Trauma section on a character's page documents the aggressions they lived through, and never on the player's own page ('on ne decide pas a la place du joueur ce qui est traumatisant pour lui'). Arranges a companion of the player's (reused, or minted into the party) as the victim, records through the ledger the scenes use that a named captor tortured them before the player's eyes, then reads the page through the reader's seam with the MCM adult level set in turn: at Hardcore the line names the captor and the season and year; at Explicit nothing shows; the player's own page shows nothing even at Hardcore; the same aggression recorded twice is listed once; a purse the player took by force reads as the player's own deed ('oui, ajoute le vol'). Restores the adult level only: on a test save what is recorded stays, so the page can be opened afterwards (Gabriel, 20/10/2026)", TestTraumaPage),
          new SelfTest("heart_page", Severity.Light, "Gabriel (20/10/2026): love stories were kept and shown nowhere; the encyclopedia now has a Heart section on the page of a character engaged with the player, in the second person, and a recap on the player's own page. Arranges a companion of the other sex (reused, or minted into the party), gives her a profile that became the player's lover on a known day 100 days ago through the same dating helper the game's actions use, and reads the page's lines through the mixin's seam: her page says she has been the player's lover since that season and year, the date is the calendar's (today formats as CampaignTime.Now's season and year, the check that catches a wrong day base), a later night does not move it, and the player's own page lists her. She stays the player's lover: on a test save the story is kept so the pages can be opened afterwards (Gabriel, 20/10/2026)", TestHeartPage),
          new SelfTest("match_asks_the_player", Severity.Light, "tashmetu (20/10/2026): when the bride is the player's daughter or sister, the player holds the say over her hand and the door refused. Takes an unwed woman of the player's house and a lawful groom of another house at peace, registers the match through the PUBLIC CrMatches.Register with the groom's side (the head of his house, or the groom) as the decider: it is taken as asking the player, the groom's side is taught to ask for her hand, and the chat's [Y/n] names her and the groom. Settles nothing (no daughter is wed by a test); withdraws the match. When the player's house holds no unwed woman with a lawful groom, mints one into the house (no parent named) and removes her after", TestMatchAsksThePlayer),
@@ -14134,7 +14135,49 @@ namespace CalradiaRemembers.Diagnostics
             CrSettings.Instance.AdultContentLevel.SelectedValue = "Explicit";
             t.Expect("belowHardcoreNoNightOnHerPage", Mapping.HeartPageReader.LinesFor(lover).Any(l => l.Contains("night")), false);
             t.Expect("belowHardcoreNothingOnThePlayersPage", Mapping.HeartPageReader.LinesFor(Hero.MainHero).Any(l => l.Contains("night")), false);
-            t.Expect("belowHardcoreNoMisdeeds", Mapping.MisdeedsPageReader.LinesFor(Hero.MainHero).Count, 0);
+            t.Expect("belowHardcoreNoForcedActInMisdeeds", Mapping.MisdeedsPageReader.LinesFor(Hero.MainHero).Any(l => l.Contains("by force while")), false);
+         }
+         finally
+         {
+            CrSettings.Instance.AdultContentLevel.SelectedValue = keep;
+         }
+
+         return t.Line();
+      }
+
+      private static string TestMisdeedsPage(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("misdeeds_page");
+         if (t.Abort(CrSettings.Instance == null || behavior?.Store == null || Hero.MainHero == null, "the MCM settings or the store are not ready")) return t.Line();
+
+         Hero wronged = ArrangedCompanion.Get(behavior, oppositeSexOfPlayer: true, unwed: true,
+                                              reject: h => Hero.MainHero.ExSpouses?.Contains(h) == true)?.Companion;
+         Hero prisoner = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h != wronged && !h.IsChild);
+         Kingdom realm = Kingdom.All.FirstOrDefault(k => !k.IsEliminated);
+         if (t.Abort(wronged == null || prisoner == null || realm == null, "no companion, lord or realm could be arranged")) return t.Line();
+
+         Mapping.MisdeedLedgerBehavior.Record(wronged.StringId, Logic.Trauma.MisdeedKind.Unfaithful);
+         Mapping.MisdeedLedgerBehavior.Record(prisoner.StringId, Logic.Trauma.MisdeedKind.HandedToEnemy);
+         Mapping.MisdeedLedgerBehavior.Record(realm.StringId, Logic.Trauma.MisdeedKind.ForsookRealm);
+         Mapping.TraumaLedgerBehavior.Record(prisoner, null, Logic.Trauma.TraumaKind.Robbed, Logic.Trauma.TraumaAuthor.Player);
+         Mapping.TraumaLedgerBehavior.Record(prisoner, null, Logic.Trauma.TraumaKind.Assaulted, Logic.Trauma.TraumaAuthor.Player);
+
+         string keep = CrSettings.Instance.AdultContentLevel.SelectedValue;
+         try
+         {
+            CrSettings.Instance.AdultContentLevel.SelectedValue = "Off";
+            IReadOnlyList<string> off = Mapping.MisdeedsPageReader.LinesFor(Hero.MainHero);
+            t.Note($"off: {string.Join(" | ", off)}");
+            t.Expect("theAdulteryShows", off.Any(l => l.StartsWith($"You were unfaithful to {wronged.Name}", StringComparison.Ordinal)), true);
+            t.Expect("thePrisonerHandedOverShows", off.Any(l => l.StartsWith($"You handed {prisoner.Name} over to ", StringComparison.Ordinal)), true);
+            t.Expect("theRobberyShows", off.Any(l => l.StartsWith($"You robbed {prisoner.Name} by force", StringComparison.Ordinal)), true);
+            t.Expect("theRealmForsakenShows", off.Any(l => l.StartsWith($"You forsook your oath to {realm.Name}", StringComparison.Ordinal)), true);
+            t.Expect("theActOfForceWaitsForHardcore", off.Any(l => l.Contains("by force while")), false);
+
+            CrSettings.Instance.AdultContentLevel.SelectedValue = "Hardcore";
+            IReadOnlyList<string> hardcore = Mapping.MisdeedsPageReader.LinesFor(Hero.MainHero);
+            t.Expect("atHardcoreTheActOfForceShows", hardcore.Any(l => l.StartsWith($"You took {prisoner.Name} by force while", StringComparison.Ordinal)), true);
+            t.Expect("aCharactersPageHasNoMisdeeds", Mapping.MisdeedsPageReader.LinesFor(wronged).Count, 0);
          }
          finally
          {

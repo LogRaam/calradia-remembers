@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (101)
+## Keys (102)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -75,6 +75,7 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_MarriageAppliedSwings_v1` | `MarriageApprovalBehavior` | constant `AppliedSwingsSaveKey` passed to `Save`, which reaches SyncData (fact) |
 | `CalradiaRemembers_MarriageApprovals_v1` | `MarriageApprovalBehavior` | constant `LegacySaveKey` passed to `Load`, which reaches SyncData (fact) |
 | `CalradiaRemembers_MarriageApprovals_v2bytes` | `MarriageApprovalBehavior` | constant `SaveKey` passed to `Save`, which reaches SyncData (fact) |
+| `CalradiaRemembers_MisdeedLedger_v1` | `MisdeedLedgerBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_Nemesis_v1bytes` | `NemesisBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_NpcProfiles_v1` | `BannerlordNpcMemoryStore` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_NpcProfiles_v2bytes` | `BannerlordNpcMemoryStore` | constant `SaveKeyBytes` passed to SyncData (fact) |

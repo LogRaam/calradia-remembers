@@ -14,6 +14,7 @@ using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Romance;
+using CalradiaRemembers.Logic.Trauma;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Social;
 using CalradiaRemembers.WorldEvents;
@@ -417,6 +418,9 @@ namespace CalradiaRemembers.Jealousy
 
          string grievance = JealousyReaction.BuildGrievance(stake, competition, pj.CourtedName);
          profile.Events.Add(new NotableEvent(today, NotableEventType.Jealousy, grievance));
+         // Gabriel (23/10/2026): "adultere est un misdeed", on the player's own page once found out.
+         MisdeedKind? adultery = MisdeedsPagePolicy.AdulteryOf(stake, tier, competition || (profile.Romantic?.AcceptsPlayersOtherPartners ?? false));
+         if (adultery.HasValue) Mapping.MisdeedLedgerBehavior.Record(party.StringId, adultery.Value);
          behavior.Store.Set(profile);
 
          ModLog.Info($"[JEALOUSY] {party.Name} ({stake}{(competition ? "/competition" : "")}) turns on the player " +

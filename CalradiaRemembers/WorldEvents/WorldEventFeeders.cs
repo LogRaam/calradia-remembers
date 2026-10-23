@@ -535,7 +535,7 @@ namespace CalradiaRemembers.WorldEvents
 
             return;
          }
-         if (detail != KillCharacterAction.KillCharacterActionDetail.Executed) return; // only deliberate executions are news
+         if (!Mapping.ExecutionDetail.IsExecution(detail)) return; // only deliberate executions are news, after a battle too
          try
          {
             bool playerIn = killer == Hero.MainHero;
@@ -927,6 +927,7 @@ namespace CalradiaRemembers.WorldEvents
                   break;
                case ChangeKingdomAction.ChangeKingdomActionDetail.JoinKingdomByDefection:
                   RecordDefection(oldKingdom, newKingdom);
+                  Mapping.MisdeedLedgerBehavior.Record(oldKingdom?.StringId, Logic.Trauma.MisdeedKind.ForsookRealm); // Gabriel 23/10: a betrayal
                   MercenaryReputationBehavior.Instance?.OnJoined(newKingdom);
 
                   break;
@@ -942,11 +943,13 @@ namespace CalradiaRemembers.WorldEvents
                   // fkasad (24/09/2026): a vassal holding no fief is judged by the mercenary grid, the oath counted;
                   // the plain departure when it holds fiefs, the realm is at peace, or nothing could be judged.
                   if (MercenaryReputationBehavior.Instance?.OnLeftAsVassal(oldKingdom) != true) RecordDeparture(oldKingdom);
+                  Mapping.MisdeedLedgerBehavior.Record(oldKingdom?.StringId, Logic.Trauma.MisdeedKind.ForsookRealm); // a sworn oath, not a contract
 
                   break;
                case ChangeKingdomAction.ChangeKingdomActionDetail.LeaveWithRebellion:
                   ModLog.Info($"[WORLD] player clan left {oldKingdom?.Name} (detail={detail}); CR observed this vanilla event, it did not initiate it.");
                   RecordDeparture(oldKingdom);
+                  Mapping.MisdeedLedgerBehavior.Record(oldKingdom?.StringId, Logic.Trauma.MisdeedKind.ForsookRealm);
 
                   break;
                default:
