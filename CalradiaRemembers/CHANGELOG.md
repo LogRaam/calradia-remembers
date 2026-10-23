@@ -100,6 +100,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   sharing one row. `ClanRegardListPolicy.HeadsLine`.
 
 ### Fixed
+- **A fight's deeds could be told as another's.** The battle journal kept the last mission's deeds until the next
+  mission began, so a tournament followed by an auto-resolved battle (which has no mission) told the tournament's
+  deeds as the battle's. The journal is now bound to the battle it was fought for and knows a tournament from a
+  battle; each reader takes only its own. It also counts every hero's own part now, not only the player's (felled,
+  bested, struck down, by whom), ready for the battle memory below.
 - **A lord executed right after a battle was not seen as executed.** The game marks that popup's execution apart from
   the prisoners screen's, and every listener checked only the latter: no vendetta from his kin, no chronicle line, a
   Nemesis not resolved as executed, a rumour saying he "died". All now read both (`ExecutionDetail`).

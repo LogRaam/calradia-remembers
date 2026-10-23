@@ -374,6 +374,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("every_verb_taught", Severity.Light, "22/10/2026: arrange_match (tashmetu's groom-side ask of 20/10/2026), reinforce_garrison, share_intel, deliver_recruits and admit_secret_lover were registered and executable but sat in no teaching list, so their own teaching never reached a prompt; each testall drove the bridge directly and passed. Reads the LIVE VerbRegistry and asserts every one of CR's own verbs is composed by a teaching list of EncounterContextBuilder or named among the verbs taught by another path (pay_for_silence inline, the violence verbs by their catalogue line). Changes nothing", TestEveryVerbTaught),
          new SelfTest("registered_match", Severity.Light, "tashmetu (Nexus, 16/10/2026): a head of house agreed in the chat to a match another mod had proposed, and nothing happened. Finds a lawful match of another house at peace, wins the bride over and the head's regard for the player (a disposable test game), registers it through the PUBLIC CrMatches.Register, checks a decider with no say is refused at the door, that the head is taught the match (and that the teaching reaches his REAL prompt, EncounterContextBuilder.Build), then settles it through the REAL bridge (arrange_match): the game weds them, CrMatches.Settled reports it, and the match is no longer pending. Restores the head's regard; the marriage stays", TestRegisteredMatch),
          new SelfTest("heart_intimacy", Severity.Light, "Gabriel (23/10/2026): at Hardcore only, the nights the player shared with a character show in Heart on both pages, sober as a diary; the prisoners the player took by force are told in the player's Misdeeds section, not under Heart ('Heart doit etre une section sur l'amour et le desir'), never what was done to the player. Arranges a companion of the other sex with two nights (a hundred days ago and today, marked [SELFTEST] and replaced on a rerun) and a lord the player took by force while a prisoner, then reads both pages through HeartPageReader and MisdeedsPageReader at Hardcore: her page counts the nights, the player's Heart names her nights and not the forced act, the player's Misdeeds tells it; at Explicit none of it shows. The adult level is put back; the nights and the record stay on the test save so the pages can be opened afterwards.", TestHeartIntimacy),
+         new SelfTest("combat_journal", Severity.Light, "chmidt (Nexus, 23/10/2026): companions 'can't remember the last battle you fought with them, how many kills they had or if they were downed'. Gabriel: one capture for every fight and every hero, read by a battle, a tournament or a duel reader. Feeds the real journal through its seams (a hero who felled seven men, bested one lord and was struck down by another) and reads his own part through BattleFeatReporter as a battle (cut down, bested, struck down) and as a tournament (out of the lists, no one cut down); then checks the journal's binding: a tournament's journal is never taken for a battle, a battle's never for a tournament, and each is consumed once.", TestCombatJournal),
          new SelfTest("deed_regard", Severity.Light, "Gabriel (23/10/2026): 'il faudrait que pour chaque action il y a un impact sur l'estime, qu'il soit positif ou negatif', after Arcor, whose wife the player took, was missing from 'Hold you in contempt'. Picks a lord the player never spoke to (no profile) with a living spouse, applies the deed 'took his spouse' through DeedRegardApplier (the one path every deed site calls), and checks his profile was made and his regard fell by DeedRegardPolicy's number into contempt, and his spouse's by the kin number; then a gift of 2,000 denars warms by the gift scale. Every regard is put back and a profile the test made is removed.", TestDeedRegard),
          new SelfTest("misdeeds_page", Severity.Light, "Gabriel (23/10/2026): the player's page has a Misdeeds section, 'trahisons, extortions, et tout autres gestes qui pourraient etres classes comme misdeeds', 'adultere est un misdeed'; the captive scenes at Hardcore only, the rest at every level. Arranges, on the test save, an adultery against a companion of the other sex, a lord prisoner handed to his enemies, robbed and taken by force, and the oath to a realm forsaken, then reads the player's page through MisdeedsPageReader with adult content Off: the adultery, the prisoner handed over, the robbery and the realm show, the act of force does not; at Hardcore it does; a character's page has no Misdeeds. The adult level is put back; the records stay on the test save.", TestMisdeedsPage),
          new SelfTest("trauma_page", Severity.Light, "Gabriel (20/10/2026): at Hardcore, a Trauma section on a character's page documents the aggressions they lived through, and never on the player's own page ('on ne decide pas a la place du joueur ce qui est traumatisant pour lui'). Arranges a companion of the player's (reused, or minted into the party) as the victim, records through the ledger the scenes use that a named captor tortured them before the player's eyes, then reads the page through the reader's seam with the MCM adult level set in turn: at Hardcore the line names the captor and the season and year; at Explicit nothing shows; the player's own page shows nothing even at Hardcore; the same aggression recorded twice is listed once; a purse the player took by force reads as the player's own deed ('oui, ajoute le vol'). Restores the adult level only: on a test save what is recorded stays, so the page can be opened afterwards (Gabriel, 20/10/2026)", TestTraumaPage),
@@ -14141,6 +14142,45 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             CrSettings.Instance.AdultContentLevel.SelectedValue = keep;
+         }
+
+         return t.Line();
+      }
+
+      private static string TestCombatJournal(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("combat_journal");
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h.IsLord && !h.IsChild && h != Hero.MainHero).Take(3).ToList();
+         if (t.Abort(lords.Count < 3, "fewer than three lords stand in the world")) return t.Line();
+
+         var journal = new CalradiaRemembers.Battles.BattleFeatJournal();
+         journal.DebugTally(lords[0].StringId, 7, lords[1].StringId, lords[2].StringId);
+         string battle = CalradiaRemembers.Battles.BattleFeatReporter.OwnPartOf(journal, lords[0].StringId, arena: false);
+         string lists = CalradiaRemembers.Battles.BattleFeatReporter.OwnPartOf(journal, lords[0].StringId, arena: true);
+         t.Note($"battle: {battle}");
+         t.Note($"lists: {lists}");
+         t.Expect("hisKillsAreTold", battle.Contains("cut down seven of their men"), true);
+         t.Expect("theLordHeBestedIsNamed", battle.Contains("bested " + lords[1].Name), true);
+         t.Expect("whoStruckHimDownIsNamed", battle.Contains(lords[2].Name + " struck me down"), true);
+         t.Expect("aTournamentKillsNoOne", lists.Contains("out of the lists") && !lists.Contains("cut down"), true);
+         t.Expect("someoneWhoDidNothingHasNoLine", CalradiaRemembers.Battles.BattleFeatReporter.OwnPartOf(journal, Hero.MainHero.StringId, false), "");
+
+         try
+         {
+            journal.DebugBind(null, tournament: true);
+            CalradiaRemembers.Battles.BattleFeatJournal.DebugPark(journal);
+            t.Expect("aTournamentIsNeverTakenForABattle", CalradiaRemembers.Battles.BattleFeatJournal.ConsumeFor(MobileParty.MainParty?.MapEvent) == null, true);
+            t.Expect("theTournamentReaderTakesIt", CalradiaRemembers.Battles.BattleFeatJournal.ConsumeTournament() == journal, true);
+            t.Expect("andOnlyOnce", CalradiaRemembers.Battles.BattleFeatJournal.ConsumeTournament() == null, true);
+
+            var field = new CalradiaRemembers.Battles.BattleFeatJournal();
+            field.DebugBind(null, tournament: false);
+            CalradiaRemembers.Battles.BattleFeatJournal.DebugPark(field);
+            t.Expect("aBattleIsNeverTakenForATournament", CalradiaRemembers.Battles.BattleFeatJournal.ConsumeTournament() == null, true);
+         }
+         finally
+         {
+            CalradiaRemembers.Battles.BattleFeatJournal.ConsumeCompleted(); // nothing of the test is left for a real fight
          }
 
          return t.Line();

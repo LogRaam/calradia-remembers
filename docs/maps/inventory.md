@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 563 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1265 types in 46 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 564 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1268 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -169,7 +169,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BastardBehavior` | public class | Tracks the player's bastards and drives their consequences each season: discovery, the mother's recurring blackmail, and (at coming of age) a prestige-gated claim. |
 | `BlackmailState` | internal class | Per-bastard blackmail clock: the season a demand was raised (-1 none), the gold it asks, and the season paid silence runs to. |
 
-### CalradiaRemembers.Battles (5)
+### CalradiaRemembers.Battles (6)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -178,6 +178,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BattleFeatReport` | public class | What one battle left behind, rendered PER RECIPIENT. A witness saw the deeds; the man a deed is ABOUT lived them, and must speak of them in his own voice, or his memory would read "I saw you best Lucon" when he IS Lucon. |
 | `BattleFeatReporter` | public static class | Builds the distilled, first-hand deed lines for the battle that just ended. |
 | `CaptureMemoryBehavior` | public class | Writes the captor's memory of taking the player prisoner. |
+| `HeroTally` | public class | One hero's raw part in one mission, by hero id; CombatTally is its worded form. |
 
 ### CalradiaRemembers.Behaviors (1)
 
@@ -1681,7 +1682,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BastardScandalPolicy` | public static class | Scales the cost of a discovered bastard scandal (the standing hit and how far it spreads) by the culture's outrage at infidelity — the same JealousyOutrage the jealousy system reads. |
 | `HushMoneyPolicy` | public static class | The numeric contract for hush money paid to a lord who holds the player's secret-lover identity. |
 
-### CalradiaRemembers.Logic.Battles (15)
+### CalradiaRemembers.Logic.Battles (18)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1695,11 +1696,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CombatFeatOutcome` | public enum | What actually became of a foe the player put out of the fight. |
 | `CombatFeatTier` | public enum | How remarkable a deed is, which decides how far word of it may travel. |
 | `CombatProwessPolicy` | public static class | Rates a single victory: an exploit, a plain deed, or something nobody would remark on. |
+| `CombatTally` | public class | What one hero did and suffered in one fight. |
+| `CombatTallyText` | public static class | The words a hero's own memory keeps of their part in a fight. |
 | `CombatantFacts` | public class | The fighting facts of one combatant, as the game itself knows them; the policy turns these into a prowess score. |
 | `SkirmishFacts` | public class | The facts of one small fight a companion shared with the player, as its memory line reads them. |
 | `SkirmishFoe` | public class | The other side of a small fight, as the game knows it. |
 | `SkirmishLine` | public class | A memory line already in a companion's profile, as the fold reads it. |
 | `SkirmishMemoryText` | public static class | Pure: the folded "small fights" memory a companion keeps of the skirmishes shared with the player. |
+| `TalliedFoe` | public class | One foe a hero put out of the fight, with the campaign's verdict on them afterwards. |
 
 ### CalradiaRemembers.Logic.Captivity (20)
 

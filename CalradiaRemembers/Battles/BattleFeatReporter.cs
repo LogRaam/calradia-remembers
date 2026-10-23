@@ -17,6 +17,7 @@ using CalradiaRemembers.Logic.Battles;
 using CalradiaRemembers.Tournaments;
 using CalradiaRemembers.WorldEvents;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.MapEvents;
 
 #endregion
 
@@ -33,12 +34,13 @@ namespace CalradiaRemembers.Battles
 
       /// <summary>
       ///   What this battle leaves in the memory of those who saw it, rendered PER RECIPIENT (see
-      ///   <see cref="BattleFeatReport.LinesFor" />). Consumes the finished journal, so a battle yields its deeds
-      ///   exactly once; never null.
+      ///   <see cref="BattleFeatReport.LinesFor" />). Consumes the finished journal of the mission fought for
+      ///   <paramref name="mapEvent" /> (never another fight's: a tournament's deeds are not this battle's), so a battle
+      ///   yields its deeds exactly once; never null.
       /// </summary>
-      public static BattleFeatReport ConsumeReport(string engagement)
+      public static BattleFeatReport ConsumeReport(MapEvent mapEvent, string engagement)
       {
-         BattleFeatJournal journal = BattleFeatJournal.ConsumeCompleted();
+         BattleFeatJournal journal = BattleFeatJournal.ConsumeFor(mapEvent);
 
          return journal == null ? BattleFeatReport.Empty : BuildReport(journal, engagement);
       }
@@ -52,7 +54,7 @@ namespace CalradiaRemembers.Battles
          string downedById = journal.DownedThePlayer.FirstOrDefault();
 
          BattleFeatDigest digest = BattleFeatDistiller.Distil(feats, NameOf(downedById), journal.TroopsFelled);
-         if (digest.IsEmpty) return BattleFeatReport.Empty;
+         if (digest.IsEmpty) return new BattleFeatReport(null, null, engagement, journal); // every hero's own part remains
 
          // Only an EXPLOIT leaves the field (Gabriel's rule); everything else stays with those who saw it.
          if (digest.BestFeat != null && CombatProwessPolicy.TravelsAsGossip(digest.BestFeat.Tier))
@@ -62,8 +64,32 @@ namespace CalradiaRemembers.Battles
          if (digest.BestFeat != null) RecordRivalryEncounter(digest.BestFeat.FoeId, playerWon: true);
          if (!string.IsNullOrEmpty(downedById)) RecordRivalryEncounter(downedById, playerWon: false);
 
-         return new BattleFeatReport(digest, downedById, engagement);
+         return new BattleFeatReport(digest, downedById, engagement, journal);
       }
+
+      /// <summary>
+      ///   One hero's own part in the fight a journal recorded, worded for their memory (CombatTallyText), each foe named
+      ///   and judged by the campaign's verdict afterwards; empty when they did and suffered nothing.
+      /// </summary>
+      public static string OwnPartOf(BattleFeatJournal journal, string heroId, bool arena)
+      {
+         HeroTally t = journal?.TallyOf(heroId);
+         if (t == null) return string.Empty;
+
+         return CombatTallyText.OwnPart(new CombatTally {
+            TroopsFelled = t.TroopsFelled,
+            HeroesDowned = t.HeroesDowned.Select(FindHero).Where(h => h != null)
+                            .Select(h => new TalliedFoe {Name = Label(h), Died = h.IsDead}).ToList(),
+            WasDowned = t.WasDowned,
+            DownedBy = t.DownedById == null ? null : Label(FindHero(t.DownedById))
+         }, arena);
+      }
+
+      private static Hero FindHero(string heroId)
+         => string.IsNullOrEmpty(heroId) ? null : Hero.Find(heroId) ?? Hero.FindFirst(h => h.StringId == heroId);
+
+      private static string Label(Hero h)
+         => h == null ? null : HeroLabel.Describe(new HeroLabel.HeroNaming {Name = h.Name?.ToString(), ClanName = h.Clan?.Name?.ToString(), CultureName = h.Culture?.Name?.ToString()});
 
       // A battlefield head-to-head feeds the same standing-rivalry ledger the arena uses, so a lord the player keeps
       // meeting sword to sword becomes a worthy rival or a bitter one by his own character.
@@ -175,13 +201,21 @@ namespace CalradiaRemembers.Battles
       private readonly BattleFeatDigest _digest;
       private readonly string _downedThePlayerId;
       private readonly string _engagement;
+      private readonly BattleFeatJournal _journal;
 
-      internal BattleFeatReport(BattleFeatDigest digest, string downedThePlayerId, string engagement)
+      internal BattleFeatReport(BattleFeatDigest digest, string downedThePlayerId, string engagement, BattleFeatJournal journal = null)
       {
          _digest = digest;
          _downedThePlayerId = downedThePlayerId;
          _engagement = engagement;
+         _journal = journal;
       }
+
+      /// <summary>
+      ///   The recipient's OWN part in the fight (chmidt, 23/10/2026: what they felled, whether they were downed), to
+      ///   append to their memory of it; empty for an auto-resolved battle, which has no mission to tell it.
+      /// </summary>
+      public string OwnPartFor(string recipientHeroId) => BattleFeatReporter.OwnPartOf(_journal, recipientHeroId, arena: false);
 
       /// <summary>The player as these memory lines name them, never "you": see BattleMemoryText.NameOrPlayer.</summary>
       private static string PlayerName => Hero.MainHero?.Name?.ToString() ?? "the player";

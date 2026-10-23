@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-581 rules read 446 facts.
+582 rules read 446 facts.
 
 ## Facts read by more than one rule
 
@@ -150,6 +150,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `GameStateBridge.GetCurrentGameDay` (3) | `ConversationResumeIdentity`, `JealousyTriggerPolicy.IsPlausibleCourtship`, `PendingSummaryJob` |
 | `GetPosition2D.DistanceSquared` (3) | `AuthoredMapTriggerPolicy.WhyNot`, `CaptureFacts`, `MapTriggerFacts` |
 | `Hero.BattleEquipment` (3) | `GiftEquipFacts`, `PlayerDressPolicy.Classify`, `ScatteredLootItem` |
+| `Hero.Find` (3) | `CombatTally`, `HistoryKnowledgeFacts`, `LongTermHistoryPolicy.WouldKnow` |
 | `Hero.HitPoints` (3) | `BodyHurtPolicy.Read`, `CaptiveActionOutcomePolicy.Succeeds`, `CaptiveActionOutcomePolicy.SuccessChance` |
 | `Hero.IsFactionLeader` (3) | `ManualActionAvailability.Describe`, `ManualActionFacts`, `PeaceMediationPolicy.CanMediate` |
 | `Hero.IsWounded` (3) | `BodyHurtPolicy.Read`, `DuelChallengeContext`, `DuelChallengePolicy.Evaluate` |
@@ -210,7 +211,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `HeartPageReader.When` (2) | `MisdeedsPagePolicy.Line`, `TraumaPagePolicy.Line` |
 | `Hero.CivilianEquipment` (2) | `GiftEquipFacts`, `PlayerDressPolicy.Classify` |
 | `Hero.DeadOrDisabledHeroes` (2) | `AuthoredHistoryLoader.Validate`, `HistoryRelationLedger.Plan` |
-| `Hero.Find` (2) | `HistoryKnowledgeFacts`, `LongTermHistoryPolicy.WouldKnow` |
 | `Hero.HasMet` (2) | `AudienceWhoFacts`, `WeddingFacts` |
 | `Hero.HeroState` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `Hero.IsDead` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
@@ -391,6 +391,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `CoercionFacts`: `Hero.GetTraitLevel`
 - `CoerciveSceneEventPolicy.ShouldDropRomanticEvent`: `NewEventData.Type`
 - `CombatProwessPolicy.TravelsAsGossip`: `BestFeat.Tier`
+- `CombatTally`: `Hero.Find`
 - `CombatantFacts`: `Hero.GetSkillValue`, `Hero.Level`, `StatureReader.Of`
 - `CommonerChatContext`: `ConversationManager.OneToOneConversationCharacter`, `Hero.CurrentSettlement`, `Hero.OneToOneConversationHero`, `Settlement.IsCastle`, `Settlement.IsTown`, `Settlement.IsVillage`
 - `CompanionAmbitionFacts`: `Clan.Leader`, `Hero.GovernorOf`, `MobileParty.EffectiveEngineer`, `MobileParty.EffectiveQuartermaster`, `MobileParty.EffectiveScout`, `MobileParty.EffectiveSurgeon`, `PartyBelongedTo.LeaderHero`, `Town.Governor`

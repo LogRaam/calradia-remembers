@@ -154,7 +154,7 @@ namespace CalradiaRemembers.WorldEvents
          // PHRASE from ChronicleEngagement ("the siege of X"), never placeClause (already shaped as " at the
          // siege of X"); passing placeClause here doubled the preposition into "cut down 168 of them at at the
          // siege of Thorios Castle".
-         BattleFeatReport deeds = BattleFeatReporter.ConsumeReport(engagement);
+         BattleFeatReport deeds = BattleFeatReporter.ConsumeReport(mapEvent, engagement);
 
          foreach (BattleSideEnum side in new[] {BattleSideEnum.Attacker, BattleSideEnum.Defender})
          {
