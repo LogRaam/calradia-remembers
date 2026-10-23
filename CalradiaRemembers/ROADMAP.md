@@ -32,6 +32,23 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## WISHED 2026-10-23 (Lordfadooboo, Nexus), ROADMAPPED, NOT DESIGNED: the player rides in another character's train
+
+"could it be possible to do the reverse? to join another characters party without it needing to be an army? think
+something similar to the 'serve as soldier' mod." The reverse already exists: `follow_me` (a lord leading a party
+follows the player) and `ride_with_me` (a partyless lord rides in the player's roster). Gabriel (23/10/2026): roadmap it.
+
+Why it is a pillar and not a verb: the game has no way to put the main party inside another party outside an army.
+Serve as Soldier gets there by hiding the main party and tying it to the lord's. A design has to answer:
+- **Following.** The main party hidden and moved with the lord's, or kept visible and escorting him; what the player can
+  still do on the map (enter a town, leave at will).
+- **Battles.** Joining every battle the lord fights, on his side, and what happens when the player refuses.
+- **The player's own troops.** Merged into his roster, left in a garrison, or riding along as a separate escort.
+- **Ending it.** Leaving by choice, the lord dismissing the player, war between their realms, the lord captured.
+- **What CR adds.** The lord remembers the service; a verb in conversation to ask to ride with him (and to leave).
+
+---
+
 ## DESIGNED + BUILDING 2026-10-22 OVERNIGHT on branch night/fame-edicts (Gabriel, after reading AnimusForge): the player's name, and edicts
 
 Gabriel (21/10/2026), shown what another LLM mod (AnimusForge 1.6.4) does, picked two ideas: "2 et 3 m'interesse".
