@@ -88,6 +88,19 @@ namespace CalradiaRemembers.Chat
             return ActionDisposition.Queued;
          }
 
+         // pay_bounty (froggyluv and Gabriel, 23/10/2026): gold leaves the player, so his own yes, naming lord, realm, price.
+         if (type.Equals("pay_bounty", StringComparison.OrdinalIgnoreCase))
+         {
+            string question = Verbs.PayBountyVerb.Question(npc, out _);
+            if (question == null) return ActionDisposition.ExecuteInline; // the verb refuses it, saying why
+            string bountyKey = $"pay_bounty:{npc?.MapFaction?.StringId}";
+            if (_resolvedKeys.Contains(bountyKey)) return ActionDisposition.Skip;
+            _resolvedKeys.Add(bountyKey);
+            _pending.Enqueue(new PendingConfirmation {Action = action, Npc = npc, Profile = profile, Context = context, Question = question});
+
+            return ActionDisposition.Queued;
+         }
+
          // arrange_match asking the player for a woman of his house (tashmetu, 20/10/2026): the player's own yes, always.
          if (type.Equals("arrange_match", StringComparison.OrdinalIgnoreCase) && BannerlordGameStateBridge.HandAskedOfThePlayer(npc) is { } hand)
          {

@@ -109,6 +109,7 @@ namespace CalradiaRemembers.Logic
             case "pledge_against": return "Pledged against a foe";
             case "press_for_war": return "Resolved to press for war";
             case "enact_edict": return "An edict decreed";
+            case "pay_bounty": return "A bounty paid off";
             case "grant_blessing": return "A blessing given";
             case "mediate_peace": return "Peace brokered";
 

@@ -546,6 +546,13 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - $"({npcHero.Name} holds no demand over you to settle.)"
   - $"You cannot cover the {owed} denars {npcHero.Name} demands for her silence."
 
+### pay_bounty
+
+- executor: `Execute`
+- taught in: no prompt section names it
+- taught when: no gate found
+- the bridge refuses: never
+
 ### pay_for_silence
 
 - executor: `Execute`

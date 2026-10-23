@@ -87,7 +87,7 @@
     <string id="CR_MCM_AllowKillingCharacters" text="Allow killing characters" />
     <string id="CR_MCM_AllowKillingCharacters_Hint" text="Off (default): you may rob or beat someone in conversation, never kill. On: a killing attempt is possible, never a formality (it turns on how you compare and whether they are alone). The world answers: a crime, lost standing, kin who remember." />
     <string id="CR_MCM_EnableArrests" text="Arrests and outlaws" />
-    <string id="CR_MCM_EnableArrests_Hint" text="Off (default). On: as a vassal or mercenary, a grave act brings a warrant: surrender and face your liege's council, or flee as an outlaw with a price on your head. Robbing merchants in peace makes you a brigand. Never a kingdom's ruler." />
+    <string id="CR_MCM_EnableArrests_Hint" text="Off (default). On: as a vassal or mercenary, a grave act brings a warrant: face your liege's council or flee as an outlaw with a price on your head. Robbing merchants in peace makes you a brigand. Never a ruler. Off lifts every bounty." />
     <string id="CR_MCM_JudgeMercenaryDepartures" text="Mercenary departures are judged" />
     <string id="CR_MCM_JudgeMercenaryDepartures_Hint" text="On (default): when a contract ends, the realm's lords judge it. Leaving a losing war, or going to its enemy, costs their regard, which fades over a year. A contract renewed within days is no departure. Off: never judged." />
     <string id="CR_MCM_EnableWarDuty" text="Vassal war duty" />

@@ -291,12 +291,14 @@ namespace CalradiaRemembers.Foundation
       public bool AllowKillingCharacters { get; set; } = false;
 
       // Arrests in the King's name (Gabriel, 26/09/2026): OFF by default (it can cost the player their fiefs and put
-      // them at war). Gates only what OPENS a case (a warrant, a brigandage); a case already open runs to its end, so
-      // turning it off mid-way never strands the player in a cell or an outlawry with no way out.
+      // them at war). Gates what OPENS a case (a warrant, a brigandage); a trial or a sentence already under way runs to its
+      // end, so turning it off mid-way never strands the player in a cell. Since 23/10/2026 (froggyluv: "I've disabled that
+      // in options but they're still showing up") turning it off also lifts every bounty, as an amnesty would, and stops
+      // the hunters.
       [SettingPropertyBool("{=CR_MCM_EnableArrests}Arrests and outlaws", RequireRestart = false, Order = 3,
-         HintText = "{=CR_MCM_EnableArrests_Hint}Off (default). On: as a vassal or mercenary, a grave act brings a warrant: surrender and face your " +
-                    "liege's council, or flee as an outlaw with a price on your head. Robbing merchants in peace " +
-                    "makes you a brigand. Never a kingdom's ruler.")]
+         HintText = "{=CR_MCM_EnableArrests_Hint}Off (default). On: as a vassal or mercenary, a grave act brings a warrant: face your " +
+                    "liege's council or flee as an outlaw with a price on your head. Robbing merchants in peace " +
+                    "makes you a brigand. Never a ruler. Off lifts every bounty.")]
       [SettingPropertyGroup("{=CR_MCM_Group_Relationships}Relationships", GroupOrder = 8)]
       public bool EnableArrests { get; set; } = false;
 

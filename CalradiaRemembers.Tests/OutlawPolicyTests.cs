@@ -2,7 +2,9 @@
 // Documents outlawry, bounties and amnesty (arrests Inc 5; Gabriel's rulings, 26/09/2026). The stakes: a bounty from
 // the wrong realm would set the whole map on a player who robbed one caravan; a sovereign branded a brigand breaks the
 // line Gabriel drew; a bounty that never ended, or ended too easily, would make outlawry either a life sentence or
-// nothing at all.
+// nothing at all. froggyluv (22/10/2026) found the other side of it: the option turned off and the hunters still came,
+// even at a 2000-strong army, with no way to settle; Gabriel (23/10/2026): off lifts the bounties, no hunters against a
+// player in another's army, and a bounty can be paid to a lord of the realm.
 
 #region
 
@@ -119,6 +121,58 @@ namespace CalradiaRemembers.Tests
          c.LiegeId.Should().Be("king_of_sturgia");
          c.Charges.Should().Equal(ArrestCharge.Brigandage);
          c.BountyOnHead.Should().BeFalse();
+      }
+
+      // STAKE: froggyluv: "I've disabled that in options but they're still showing up". Off must mean no price stands.
+      [Test]
+      public void GIVEN_the_option_turned_off_WHEN_the_player_roams_free_THEN_the_bounties_are_lifted()
+      {
+         OutlawPolicy.BountiesLiftedWhenOff(arrestsOn: false, lawHoldsThePlayer: false).Should().BeTrue();
+      }
+
+      // STAKE: the option's own promise since 26/09: turning it off never strands a player mid-trial or in the cells.
+      [Test]
+      public void GIVEN_the_option_turned_off_WHEN_the_law_already_holds_the_player_THEN_the_case_runs_to_its_end()
+      {
+         OutlawPolicy.BountiesLiftedWhenOff(arrestsOn: false, lawHoldsThePlayer: true).Should().BeFalse();
+      }
+
+      // STAKE: with the option on, a bounty stands until paid, pardoned or collected.
+      [Test]
+      public void GIVEN_the_option_on_WHEN_the_hour_passes_THEN_no_bounty_is_lifted()
+      {
+         OutlawPolicy.BountiesLiftedWhenOff(arrestsOn: true, lawHoldsThePlayer: false).Should().BeFalse();
+      }
+
+      // STAKE: froggyluv: the hunters "will charge me no matter what, even if I'm part of a 2000+ strong army".
+      [Test]
+      public void GIVEN_the_player_marching_in_another_lords_army_WHEN_the_hunters_would_ride_THEN_they_hold_off()
+      {
+         OutlawPolicy.HuntersMayRide(new HuntFacts {ArrestsOn = true, InAnotherLeadersArmy = true}).Should().BeFalse();
+      }
+
+      // STAKE: a player alone on the road, or leading their own army, is still hunted: the bounty stays a real danger.
+      [Test]
+      public void GIVEN_the_player_on_their_own_WHEN_the_hunters_would_ride_THEN_they_ride()
+      {
+         OutlawPolicy.HuntersMayRide(new HuntFacts {ArrestsOn = true}).Should().BeTrue();
+      }
+
+      // STAKE: the option off, not one band rides, whatever the save holds.
+      [Test]
+      public void GIVEN_the_option_off_WHEN_the_hunters_would_ride_THEN_they_do_not()
+      {
+         OutlawPolicy.HuntersMayRide(new HuntFacts {ArrestsOn = false}).Should().BeFalse();
+      }
+
+      // STAKE: Gabriel: the bounty can be paid to a lord of the realm. Defying the sovereign's own law costs more than
+      // robbing his merchants; both are within a mid-game purse, so paying is a real choice, not a formality.
+      [Test]
+      public void GIVEN_each_cause_of_a_bounty_WHEN_the_player_pays_it_off_THEN_a_flight_costs_more_than_brigandage()
+      {
+         OutlawPolicy.BountyPrice(BountyReason.Brigandage).Should().Be(OutlawPolicy.BrigandageBountyPrice);
+         OutlawPolicy.BountyPrice(BountyReason.Flight).Should().Be(OutlawPolicy.FlightBountyPrice);
+         OutlawPolicy.FlightBountyPrice.Should().BeGreaterThan(OutlawPolicy.BrigandageBountyPrice);
       }
 
       // An amnesty from the realm the player fled ends the outlawry outright.

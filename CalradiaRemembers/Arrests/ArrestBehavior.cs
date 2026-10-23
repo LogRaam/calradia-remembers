@@ -37,6 +37,12 @@
 // clan instead (OutlawPolicy.ModeFor). Beaten, the player is taken; whoever takes them (the hunters, or any party of a
 // realm that wants them), the bounty is collected and the player handed to that realm's sovereign, to be tried by
 // that realm's council, the bounty's cause charged. Like the sergeants, hunters are never saved.
+//
+// froggyluv (Nexus, 22/10/2026): hunters of two realms on him again and again, charging him inside a 2000-strong army,
+// "I've disabled that in options but they're still showing up", and no way to settle. Gabriel (23/10/2026): with the
+// option off every bounty is lifted as an amnesty lifts it (unless the law already holds the player); no hunters ride
+// against a player marching in another lord's army; a bounty can be paid to a lord of the realm (pay_bounty). The day
+// each realm last sent hunters is now saved: a load no longer sends a fresh band at once.
 
 #region
 
@@ -91,9 +97,6 @@ namespace CalradiaRemembers.Arrests
       // Set while the law itself frees the player, so the release is not mistaken for an escape.
       private bool _freeing;
 
-      // realm id -> the day its last band was sent, so a lost band is not replaced the next morning.
-      private readonly Dictionary<string, int> _huntersSentDay = new();
-
       // The realm whose bounty the player was just taken on, handed over on the next hour (never inside the battle's
       // own capture call, which is still running when the capture event fires).
       private string _pendingHandoverRealmId;
@@ -115,6 +118,31 @@ namespace CalradiaRemembers.Arrests
          _state = JsonConvert.DeserializeObject<SavedState>(json ?? "{}") ?? new SavedState();
          _state.Case ??= new ArrestCase();
          _state.Bounties ??= new List<Bounty>();
+         _state.HuntersSentDay ??= new Dictionary<string, int>();
+      }
+
+      /// <summary>The realm's price on the player's head, or null when it has none.</summary>
+      internal Bounty BountyOf(IFaction realm)
+         => realm == null ? null : _state.Bounties.FirstOrDefault(b => b.RealmId == realm.StringId);
+
+      /// <summary>
+      ///   The player pays a lord of the realm to have its price lifted (pay_bounty, Gabriel 23/10/2026): the gold goes to
+      ///   the lord, and the bounty is lifted as an amnesty lifts it. Null on success, else why it cannot be done.
+      /// </summary>
+      internal string PayBounty(Hero lord)
+      {
+         IFaction realm = lord?.MapFaction;
+         Bounty bounty = BountyOf(realm);
+         if (bounty == null) return $"{realm?.Name?.ToString() ?? "This realm"} has no price on your head";
+         if (HoldsPlayer) return "the law already holds you; your case is for the court now";
+
+         int price = OutlawPolicy.BountyPrice(bounty.Reason);
+         if (Hero.MainHero.Gold < price) return $"you cannot cover the {price} denars it costs";
+
+         GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, lord, price);
+         LiftBounty(bounty, $"You pay {price} denars to {lord.Name}. The price on your head in {realm.Name} is lifted.", $"paid {price} to {lord.Name}");
+
+         return null;
       }
 
       /// <summary>True while the law holds the player: awaiting trial, or serving the sentence.</summary>
@@ -267,6 +295,7 @@ namespace CalradiaRemembers.Arrests
             _state = JsonConvert.DeserializeObject<SavedState>(Encoding.UTF8.GetString(loaded)) ?? new SavedState();
             _state.Case ??= new ArrestCase();
             _state.Bounties ??= new List<Bounty>();
+            _state.HuntersSentDay ??= new Dictionary<string, int>();
          }
          catch (Exception ex)
          {
@@ -318,6 +347,7 @@ namespace CalradiaRemembers.Arrests
                return;
             }
 
+            LiftBountiesWhenOff(ModSettings.EnableArrests);
             TickHunters();
 
             if (Case.Stage != ArrestStage.WarrantOut)
@@ -487,29 +517,52 @@ namespace CalradiaRemembers.Arrests
          try
          {
             foreach (Bounty bounty in _state.Bounties.ToList())
-            {
-               if (!OutlawPolicy.AmnestyDeclared(MBRandom.RandomFloat)) continue;
-
-               IFaction realm = Campaign.Current?.Factions?.FirstOrDefault(f => f.StringId == bounty.RealmId);
-               _state.Bounties.Remove(bounty);
-               if (realm == null) continue;
-
-               if (realm.MainHeroCrimeRating > 0f) ChangeCrimeRatingAction.Apply(realm, -realm.MainHeroCrimeRating);
-               IFaction mine = Hero.MainHero?.MapFaction;
-               if (mine != null && mine != realm && realm.IsAtWarWith(mine) && mine.Leader == Hero.MainHero && Clan.PlayerClan.Kingdom == null)
-                  MakePeaceAction.Apply(realm, mine);
-
-               if (Case.Stage == ArrestStage.Outlaw && Liege()?.MapFaction == realm) Case.Pardon();
-
-               MBInformationManager.AddQuickInformation(new TextObject($"{realm.Name} has declared an amnesty. The price on your head there is lifted."));
-               ModLog.Info($"[ARREST] amnesty from {realm.Name}: bounty lifted.");
-            }
+               if (OutlawPolicy.AmnestyDeclared(MBRandom.RandomFloat))
+                  LiftBounty(bounty, $"{RealmName(bounty.RealmId)} has declared an amnesty. The price on your head there is lifted.", "amnesty");
          }
          catch (Exception ex)
          {
             ModLog.Error($"[ARREST] weekly amnesty failed: {ex.GetType().Name}: {ex.Message}");
          }
       }
+
+      /// <summary>
+      ///   Lifts a realm's price on the player's head, whatever lifted it (an amnesty, a payment, the option turned off):
+      ///   the bounty, the crime rating it raised, the war it brought on an independent clan, a fled outlaw's case, and
+      ///   the realm's hunters. One road, so a bounty can never be half lifted.
+      /// </summary>
+      private void LiftBounty(Bounty bounty, string notice, string why)
+      {
+         _state.Bounties.Remove(bounty);
+         TransientPartyRegistry.Instance?.Release(TransientPartyRegistry.Instance.WithTag(HuntersRole, bounty.RealmId));
+         IFaction realm = Campaign.Current?.Factions?.FirstOrDefault(f => f.StringId == bounty.RealmId);
+         if (realm == null) return;
+
+         if (realm.MainHeroCrimeRating > 0f) ChangeCrimeRatingAction.Apply(realm, -realm.MainHeroCrimeRating);
+         IFaction mine = Hero.MainHero?.MapFaction;
+         if (mine != null && mine != realm && realm.IsAtWarWith(mine) && mine.Leader == Hero.MainHero && Clan.PlayerClan.Kingdom == null)
+            MakePeaceAction.Apply(realm, mine);
+
+         if (Case.Stage == ArrestStage.Outlaw && Liege()?.MapFaction == realm) Case.Pardon();
+
+         MBInformationManager.AddQuickInformation(new TextObject(notice));
+         ModLog.Info($"[ARREST] {realm.Name}'s bounty lifted ({why}).");
+      }
+
+      /// <summary>
+      ///   froggyluv (22/10/2026): the option off and the hunters still came. Off, no bounty stands, unless the law already
+      ///   holds the player. Called each hour with the option's value (cr.testall passes it).
+      /// </summary>
+      internal void LiftBountiesWhenOff(bool arrestsOn)
+      {
+         if (_state.Bounties.Count == 0 || !OutlawPolicy.BountiesLiftedWhenOff(arrestsOn, HoldsPlayer)) return;
+
+         foreach (Bounty bounty in _state.Bounties.ToList())
+            LiftBounty(bounty, $"With arrests and outlaws turned off, the price on your head in {RealmName(bounty.RealmId)} is lifted.", "the option is off");
+      }
+
+      private static string RealmName(string realmId)
+         => Campaign.Current?.Factions?.FirstOrDefault(f => f.StringId == realmId)?.Name?.ToString() ?? realmId;
 
       /// <summary>
       ///   One hour of the law's hold: an escape is a flight; the trial is convened once, when the player is in the
@@ -603,13 +656,23 @@ namespace CalradiaRemembers.Arrests
          MobileParty main = MobileParty.MainParty;
          if (main == null || Hero.MainHero.IsPrisoner || main.IsCurrentlyAtSea || _state.Bounties.Count == 0) return;
 
+         // A band riding when the player joins another lord's army is called off, its cooldown untouched: no hunt was had.
+         if (!OutlawPolicy.HuntersMayRide(new HuntFacts {
+                ArrestsOn = ModSettings.EnableArrests, InAnotherLeadersArmy = main.Army != null && main.Army.LeaderParty != main
+             }))
+         {
+            DespawnHunters();
+
+            return;
+         }
+
          foreach (Bounty bounty in _state.Bounties.ToList())
          {
             MobileParty hunters = TransientPartyRegistry.Instance?.WithTag(HuntersRole, bounty.RealmId);
 
             if (hunters == null)
             {
-               int? last = _huntersSentDay.TryGetValue(bounty.RealmId, out int d) ? d : (int?) null;
+               int? last = _state.HuntersSentDay.TryGetValue(bounty.RealmId, out int d) ? d : (int?) null;
                if (!OutlawPolicy.MaySendHunters(last, Today)) continue;
 
                hunters = SendHunters(bounty.RealmId);
@@ -653,7 +716,7 @@ namespace CalradiaRemembers.Arrests
          // Restored where they stood once a save is over, so a save never sends them back to their town.
          TransientPartyRegistry.Instance?.Track(hunters, HuntersRole, realmId,
             onRestore: at => SpawnHunters(realm, at, origin, strength, colours));
-         _huntersSentDay[realmId] = Today;
+         _state.HuntersSentDay[realmId] = Today;
          MBInformationManager.AddQuickInformation(new TextObject($"Word reaches you: {realm.Name} has sent bounty hunters after you."));
          ModLog.Info($"[ARREST] {realm.Name} sends {strength} bounty hunters from {origin.Name} (under {colours.Name}).");
 
@@ -823,6 +886,12 @@ namespace CalradiaRemembers.Arrests
 
          /// <summary>Every realm's price on the player's head.</summary>
          public List<Bounty> Bounties { get; set; } = new();
+
+         /// <summary>
+         ///   Realm id -> the day its last band was sent, so a lost band is not replaced the next morning. Saved since
+         ///   23/10/2026 (froggyluv): unsaved, every load sent a fresh band at once. Absent (null) on an older save.
+         /// </summary>
+         public Dictionary<string, int> HuntersSentDay { get; set; } = new();
       }
 
       #endregion

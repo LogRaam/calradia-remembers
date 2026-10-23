@@ -110,6 +110,7 @@ namespace CalradiaRemembers.Verbs
          registry.Register(new HearAccountVerb());
          registry.Register(new GrudgeTermsVerb());
          registry.Register(new AdmitSecretLoverVerb());
+         registry.Register(new PayBountyVerb());
          registry.Register(new PayForSilenceVerb());
          registry.Register(new CalradiaRemembers.Violence.PlayerViolenceVerb(CalradiaRemembers.Logic.Violence.ViolentAct.Rob));
          registry.Register(new CalradiaRemembers.Violence.PlayerViolenceVerb(CalradiaRemembers.Logic.Violence.ViolentAct.Assault));

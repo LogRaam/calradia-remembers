@@ -95,7 +95,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.GameState` | 39 | 20 |
 | `CalradiaRemembers.Letters` | 37 | 11 |
 | `CalradiaRemembers.Quests` | 31 | 10 |
-| `CalradiaRemembers.Verbs` | 25 | 7 |
+| `CalradiaRemembers.Verbs` | 26 | 7 |
 | `CalradiaRemembers.WorldEvents` | 23 | 31 |
 | `CalradiaRemembers.Missions` | 23 | 10 |
 | `CalradiaRemembers.Behaviors` | 22 | 39 |
@@ -127,7 +127,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Chronicle` | 9 | 2 |
 | `CalradiaRemembers.RealmTidings` | 9 | 2 |
 | `NpcMemoryService.Core.Prompts` | 8 | 18 |
-| `CalradiaRemembers.Arrests` | 8 | 6 |
+| `CalradiaRemembers.Arrests` | 8 | 7 |
 | `CalradiaRemembers.Battles` | 8 | 5 |
 | `CalradiaRemembers.Commoners` | 8 | 2 |
 | `CalradiaRemembers.Memory` | 8 | 2 |
@@ -475,7 +475,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 #### `CalradiaRemembers.GameState` and `CalradiaRemembers.Verbs`
 
 - `CalradiaRemembers.GameState` uses `CalradiaRemembers.Verbs` in 1 file(s): `GameState/BannerlordGameStateBridge.cs`
-- `CalradiaRemembers.Verbs` uses `CalradiaRemembers.GameState` in 25 files: `Verbs/AdmitSecretLoverVerb.cs`, `Verbs/ArrangeMatchVerb.cs`, `Verbs/BuyPrisonerVerb.cs`, and 22 more
+- `CalradiaRemembers.Verbs` uses `CalradiaRemembers.GameState` in 26 files: `Verbs/AdmitSecretLoverVerb.cs`, `Verbs/ArrangeMatchVerb.cs`, `Verbs/BuyPrisonerVerb.cs`, and 23 more
 
 #### `CalradiaRemembers.GameState` and `CalradiaRemembers.WorldEvents`
 
@@ -540,7 +540,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 #### `CalradiaRemembers.Mapping` and `CalradiaRemembers.Verbs`
 
 - `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Verbs` in 1 file(s): `Mapping/EncounterContextBuilder.cs`
-- `CalradiaRemembers.Verbs` uses `CalradiaRemembers.Mapping` in 2 file(s): `Verbs/ExternalVerbAdapter.cs`, `Verbs/PressForWarVerb.cs`
+- `CalradiaRemembers.Verbs` uses `CalradiaRemembers.Mapping` in 3 file(s): `Verbs/ExternalVerbAdapter.cs`, `Verbs/PayBountyVerb.cs`, `Verbs/PressForWarVerb.cs`
 
 #### `CalradiaRemembers.Stance` and `CalradiaRemembers.WorldEvents`
 
@@ -707,7 +707,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### CalradiaRemembers.Arrests
 
 - uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Assemblies`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Travel`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Assemblies`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Violence`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Assemblies`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Verbs`, `CalradiaRemembers.Violence`
 
 ### CalradiaRemembers.Assemblies
 
@@ -1196,7 +1196,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### CalradiaRemembers.Verbs
 
-- uses: `CalradiaRemembers.Appreciations`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Edicts`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Actions`, `CalradiaRemembers.Logic.Appreciations`, `CalradiaRemembers.Logic.Bastards`, `CalradiaRemembers.Logic.Edicts`, `CalradiaRemembers.Logic.Grudges`, `CalradiaRemembers.Logic.Prisoners`, `CalradiaRemembers.Logic.Romance`, `CalradiaRemembers.Logic.Verbs`, `CalradiaRemembers.Logic.Violence`, `CalradiaRemembers.Logic.WarDuty`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Stance`, `CalradiaRemembers.Violence`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.Extension`, `NpcMemoryService.Core.Models`
+- uses: `CalradiaRemembers.Appreciations`, `CalradiaRemembers.Arrests`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Edicts`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Actions`, `CalradiaRemembers.Logic.Appreciations`, `CalradiaRemembers.Logic.Bastards`, `CalradiaRemembers.Logic.Edicts`, `CalradiaRemembers.Logic.Grudges`, `CalradiaRemembers.Logic.Prisoners`, `CalradiaRemembers.Logic.Romance`, `CalradiaRemembers.Logic.Verbs`, `CalradiaRemembers.Logic.Violence`, `CalradiaRemembers.Logic.WarDuty`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Stance`, `CalradiaRemembers.Violence`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.Extension`, `NpcMemoryService.Core.Models`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Violence`
 
 ### CalradiaRemembers.Video

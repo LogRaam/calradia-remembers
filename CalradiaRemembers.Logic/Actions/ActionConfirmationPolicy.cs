@@ -83,6 +83,19 @@ namespace CalradiaRemembers.Logic.Actions
       public int Influence { get; init; }
    }
 
+   /// <summary>What the question about paying off a bounty names (pay_bounty, froggyluv and Gabriel 23/10/2026).</summary>
+   public sealed class BountyConfirmationFacts
+   {
+      /// <summary>The lord the gold goes to.</summary>
+      public string LordName { get; init; }
+
+      /// <summary>The realm whose price on the player's head is lifted.</summary>
+      public string RealmName { get; init; }
+
+      /// <summary>The denars it costs (OutlawPolicy.BountyPrice).</summary>
+      public int Price { get; init; }
+   }
+
    /// <summary>What the question about a captive's counter_offer names.</summary>
    public sealed class OfferConfirmationFacts
    {
@@ -165,7 +178,7 @@ namespace CalradiaRemembers.Logic.Actions
 
          return string.Equals(actionType, "take_gold", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "join_party", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "free_prisoner", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(actionType, "sell_item", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "counter_offer", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(actionType, "enact_edict", StringComparison.OrdinalIgnoreCase);
+                || string.Equals(actionType, "enact_edict", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "pay_bounty", StringComparison.OrdinalIgnoreCase);
       }
 
       /// <summary>
@@ -217,6 +230,10 @@ namespace CalradiaRemembers.Logic.Actions
 
          return $"Decree {name} for {f?.Where ?? "your town"}: {f?.Effects}, for {f?.Days} days, at {f?.Influence} influence?";
       }
+
+      /// <summary>"Pay Count Aldric 3000 denars to lift the price on your head in Vlandia?": who is paid, how much, for which realm.</summary>
+      public static string BuildBountyQuestion(BountyConfirmationFacts f)
+         => $"Pay {f?.LordName ?? "them"} {f?.Price ?? 0} denars to lift the price on your head in {f?.RealmName ?? "the realm"}?";
 
       /// <summary>
       ///   "Accept Adrichea's offer (swear her house to the Northern Empire, 3000 coins) and set her free?": the

@@ -421,6 +421,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("mood_of_the_day", Severity.Light, "The mood of the day (ROADMAP, ruled 14/09 and 30/09/2026): reads real characters' days off the game and draws their mood. The same man drawn twice today is the same mood; a captive never draws an ordinary day or high spirits; the player draws none; a lift in conversation moves it one band and a new conversation starts from the day again. Lordfadooboo (18/10/2026): a coloured day has a cause, the same all day, and a death recorded on a met character names the dead on a grim or guarded day (restored after).", TestMoodOfTheDay),
          new SelfTest("action_gate", Severity.Light, "The one gate every character's action asks (Gabriel, 30/09/2026: a baby son asked to discuss warfare, then a dead father sat at a council). On the live population: no child takes an adult's act (lords by occupation included), no child under 13 sits at a council, no captive acts outside marriage, duels, witnessing and a held scene, no one dead or disabled acts at all, the player never acts toward themselves, and a free adult lord may do everything. Read-only.", TestActionGate),
          new SelfTest("letter_place_and_audience_age", Severity.Light, "Two reports (30/09/2026): Lordfadooboo's lone player placed \"on the march with your own retinue\" (the writer's) in a wanderer's letter, and Nexusrrr's baby son asking for an audience about warfare. Checks the phrase that places the player in a letter never borrows the writer's \"your\" and says alone when alone, and that no child is among those who may ask for an audience in any town. Read-only.", TestLetterAndAudienceSeekers),
+         new SelfTest("bounty_settled", Severity.Light, "froggyluv (22/10/2026): hunters kept coming after the option was turned off, a load sent a fresh band at once, and no way to settle a bounty; Gabriel (23/10/2026): pay it to a lord of the realm, the option off lifts it. Arranges a brigandage bounty from a realm other than the player's own and checks: a lord of that realm is taught pay_bounty with its exact price and the confirmation names lord, realm and price; the verb takes the gold to that lord and lifts the bounty; arranged again, the option off lifts it; the day hunters were last sent survives the save's JSON. The law's state, the player's gold and the realm's crime rating are put back.", TestBountySettled),
          new SelfTest("romance_status_door", Severity.Light, "LapitaPolata (22/10/2026): a secret lover made in CR's chat existed only in CR, so Affairs of Calradia never knew; Gabriel (23/10/2026) approved a door for bridges. Arranges a companion of the other sex, moves her bond through the real romantic state (courting, then the player's secret lover today), and checks CrRomance.GetStatus reads each bond and a CrRomance.StatusChanged listener hears courting -> secret_lover with the day, marked as a test's change. Her romantic state is put back, the restoration is announced like any change, and the listener removed.", TestRomanceStatusDoor),
          new SelfTest("regard_changed", Severity.Light, "The public regard-change door (29/09/2026, for tashmetu's bridge): raises a real character's regard by 1 and lowers it back through the one place regard changes, and checks a CrNpcMemory.RegardChanged listener hears both with before and after, reported as self_test (a test's change, which a mirroring mod must not keep). Regard is restored and the listener removed.", TestRegardChanged),
          new SelfTest("correspondence_rank", Severity.Light, "Gabriel (28/09/2026): the Empress wrote in her own hand to a landless newcomer, and rode out herself to find him. Reads a real ruler against the player as they stand: far above an unbonded player, her letters come from her chancellery (a title, no invented clerk) and she does not ride out in person; a love letter is always her own. Writes nothing.", TestCorrespondenceRank),
@@ -14129,6 +14130,69 @@ namespace CalradiaRemembers.Diagnostics
 
          IReadOnlyList<string> recap = Mapping.HeartPageReader.LinesFor(Hero.MainHero);
          t.Expect("thePlayersPageListsHer", recap.Any(l => l.StartsWith($"{lover.Name}, your lover", StringComparison.Ordinal)), true);
+
+         return t.Line();
+      }
+
+      private static string TestBountySettled(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("bounty_settled");
+         Arrests.ArrestBehavior law = Arrests.ArrestBehavior.Instance;
+         if (t.Abort(law == null || behavior?.GameStateBridge == null || Hero.MainHero == null, "the law or the bridge is not ready")) return t.Line();
+         if (t.Skip(law.HoldsPlayer, "the law holds the player")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && !h.IsPrisoner && h.Clan != null && h.Clan != Clan.PlayerClan
+                                                             && h.MapFaction is Kingdom k && k != Clan.PlayerClan?.Kingdom && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(lord == null, "no lord of another realm")) return t.Line();
+
+         IFaction realm = lord.MapFaction;
+         string kept = law.DebugSnapshot();
+         int gold = Hero.MainHero.Gold;
+         int lordGold = lord.Gold;
+         float crime = realm.MainHeroCrimeRating;
+         var today = (int) CampaignTime.Now.ToDays;
+         string Arranged() => "{\"Bounties\":[{\"RealmId\":\"" + realm.StringId + "\",\"Reason\":1,\"PlacedDay\":" + today + "}],\"HuntersSentDay\":{\"" + realm.StringId + "\":" + today + "}}";
+         try
+         {
+            law.DebugRestore(Arranged());
+            t.Note($"{lord.Name} of {realm.Name}");
+            // STAKE: a load must not send a fresh band at once: the day survives the save's own serialisation.
+            t.Expect("theHuntersDaySurvivesTheSave", law.DebugSnapshot().Contains($"\"{realm.StringId}\":{today}"), true);
+
+            NpcProfile profile = behavior.Store?.Get(lord.StringId) ?? HeroProfileMapper.FromHero(lord);
+            var verbCtx = new VerbContext(lord, profile, behavior.GameStateBridge, null, null);
+            string teaching = VerbRegistry.Instance.ComposeTeachings(verbCtx, new[] {"pay_bounty"}) ?? "";
+            t.Expect("theLordIsTaughtTheExactPrice", teaching.Contains($"exactly {OutlawPolicy.BrigandageBountyPrice} denars"), true);
+            string question = Verbs.PayBountyVerb.Question(lord, out _);
+            t.Expect("theQuestionNamesLordRealmAndPrice", question, $"Pay {lord.Name} {OutlawPolicy.BrigandageBountyPrice} denars to lift the price on your head in {realm.Name}?");
+
+            if (Hero.MainHero.Gold < OutlawPolicy.BrigandageBountyPrice)
+               GiveGoldAction.ApplyBetweenCharacters(null, Hero.MainHero, OutlawPolicy.BrigandageBountyPrice - Hero.MainHero.Gold, true);
+            int before = Hero.MainHero.Gold;
+            ActionOutcome paid = VerbRegistry.Instance.Execute(new GameAction {Type = "pay_bounty"}, verbCtx);
+            t.Note(paid?.Message);
+            t.Expect("theGoldLeaves", before - Hero.MainHero.Gold, OutlawPolicy.BrigandageBountyPrice);
+            t.Expect("theBountyIsLifted", law.BountyOf(realm) == null, true);
+            t.Expect("noLongerTaught", VerbRegistry.Instance.ComposeTeachings(verbCtx, new[] {"pay_bounty"}) ?? "", "");
+
+            law.DebugRestore(Arranged());
+            law.LiftBountiesWhenOff(arrestsOn: true);
+            t.Expect("onTheBountyStands", law.BountyOf(realm) != null, true);
+            law.LiftBountiesWhenOff(arrestsOn: false);
+            // STAKE: froggyluv: "I've disabled that in options but they're still showing up".
+            t.Expect("offTheBountyIsLifted", law.BountyOf(realm) == null, true);
+         }
+         finally
+         {
+            law.DebugRestore(kept);
+            int give = gold - Hero.MainHero.Gold;
+            if (give > 0) GiveGoldAction.ApplyBetweenCharacters(null, Hero.MainHero, give, true);
+            else if (give < 0) GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, null, -give, true);
+            int back = lord.Gold - lordGold;
+            if (back > 0) GiveGoldAction.ApplyBetweenCharacters(lord, null, back, true);
+            float drift = crime - realm.MainHeroCrimeRating;
+            if (Math.Abs(drift) > 0.01f) ChangeCrimeRatingAction.Apply(realm, drift, false);
+         }
 
          return t.Line();
       }

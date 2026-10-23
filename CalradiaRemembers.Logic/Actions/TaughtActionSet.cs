@@ -198,7 +198,8 @@ namespace CalradiaRemembers.Logic.Actions
          "grudge_terms",
          "pledge_against",
          "press_for_war",
-         "enact_edict"
+         "enact_edict",
+         "pay_bounty"
       };
 
       /// <summary>

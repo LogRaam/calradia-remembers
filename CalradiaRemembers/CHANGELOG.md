@@ -54,6 +54,21 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   affinity" subtitles. The game's Friends and Enemies grids below are unchanged. `ClanRegardListPolicy.Groups`,
   `RegardPersonRowVM`, `RegardHouseRowVM`; cr.testall `npc_regard_reason` extended.
 
+### Fixed
+- **Bounties and their hunters** (froggyluv 22/10: hunters of Vlandia and the Southern Empire again and again, charging
+  him inside a 2000-strong army, "I've disabled that in options but they're still showing up", and no way to settle;
+  Gabriel 23/10). Turning "Arrests and outlaws" off now lifts every bounty as an amnesty lifts it (crime rating, the war
+  on an independent clan, a fled outlaw's case, the hunters), unless the law already holds the player
+  (`OutlawPolicy.BountiesLiftedWhenOff`, one road `ArrestBehavior.LiftBounty` for amnesty, payment and the option). No
+  hunters ride against a player marching in another lord's army; a band already riding is called off
+  (`OutlawPolicy.HuntersMayRide`). The day each realm last sent hunters is saved (`HuntersSentDay`, additive): a load
+  sent a fresh band at once. New verb `pay_bounty`: a lord of a realm with a price on the player's head takes it off for
+  `OutlawPolicy.BountyPrice` (3000 brigandage, 6000 flight, TUNE), taught with the exact price, confirmed [Y/n] naming
+  lord, realm and price; the gold goes to the lord. SDK: catalogue line and three bench phrasings;
+  `ActionVocabularyPolicy.LeanDescriptionChars` 86 -> 84 (the Compact interpreter head was 35 over). Not changed: a
+  caravan attack still brings a bounty from its sender and its destination (Gabriel's ruling of 26/09), pending
+  froggyluv's log. testall `bounty_settled`.
+
 ## v2.7.19.. 2026-10-22
 
 ### New

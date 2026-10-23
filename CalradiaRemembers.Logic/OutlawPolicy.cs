@@ -11,6 +11,11 @@
 //     kingdom cannot be warred on alone, so outlaw hunters come for them instead.
 //   - Captured, the player is handed to the sovereign who wanted them, and tried by that realm's council.
 //   - A bounty ends only by AMNESTY, which a realm declares rarely.
+//
+// froggyluv (Nexus, 22/10/2026): hunters of two realms "constantly" on him, even inside a 2000-strong army, and "I've
+// disabled that in options but they're still showing up"; a ransom broker offered no way to settle. Gabriel (23/10/2026):
+// the option off lifts every bounty; no hunters against a player marching in another's army; the bounty can be PAID to a
+// lord of the realm, in conversation. So a bounty now also ends when paid, or when the option is turned off.
 
 #region
 
@@ -63,9 +68,43 @@ namespace CalradiaRemembers.Logic
       OutlawHunters
    }
 
+   /// <summary>Where the player stands when the hunters would ride.</summary>
+   public sealed class HuntFacts
+   {
+      /// <summary>The MCM option "Arrests and outlaws" is on. Off, no bounty stands (they are lifted) and no hunter rides.</summary>
+      public bool ArrestsOn { get; init; }
+
+      /// <summary>The player marches in an army another lord leads: the hunters will not charge a lord's host.</summary>
+      public bool InAnotherLeadersArmy { get; init; }
+   }
+
    /// <summary>The rules of outlawry, bounties and amnesty. Pure.</summary>
    public static class OutlawPolicy
    {
+      /// <summary>TUNE: the denars that buy off a brigandage bounty, paid to a lord of the realm.</summary>
+      public const int BrigandageBountyPrice = 3000;
+
+      /// <summary>TUNE: the denars that buy off a flight from the realm's own law, dearer: it defied the sovereign himself.</summary>
+      public const int FlightBountyPrice = 6000;
+
+      /// <summary>What it costs the player to have a realm lift its price on their head.</summary>
+      public static int BountyPrice(BountyReason reason)
+         => reason == BountyReason.Flight ? FlightBountyPrice : BrigandageBountyPrice;
+
+      /// <summary>
+      ///   True when the realm's hunters may ride against the player now: never with the option off, and never against a
+      ///   player marching in another lord's army (a band of sixty does not charge a host).
+      /// </summary>
+      public static bool HuntersMayRide(HuntFacts facts)
+         => facts != null && facts.ArrestsOn && !facts.InAnotherLeadersArmy;
+
+      /// <summary>
+      ///   True when the bounties are lifted because the option was turned off: always, except while the law already holds
+      ///   the player (on trial or in the cells), a case that runs to its end so the player is never stranded mid-way.
+      /// </summary>
+      public static bool BountiesLiftedWhenOff(bool arrestsOn, bool lawHoldsThePlayer)
+         => !arrestsOn && !lawHoldsThePlayer;
+
       /// <summary>TUNE: the fewest men a band of bounty hunters rides with.</summary>
       public const int MinHunters = 15;
 

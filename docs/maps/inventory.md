@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 555 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1254 types in 46 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 556 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1256 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -801,7 +801,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrSpikeScreen` | internal class | The one screen the probe uses, pushed BOTH ways so the measurement compares mechanisms rather than screens. |
 | `CrSpikeState` | public class | The spike's game state: deliberately empty, it exists only to be pushed so a screen binds to it. |
 
-### CalradiaRemembers.Verbs (28)
+### CalradiaRemembers.Verbs (29)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -821,6 +821,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `IConversationVerb` | public interface | One self-contained conversation verb (e.g. give_influence): its eligibility, the prompt text it teaches the LLM, and its execution when the LLM emits the matching [ACTION]. |
 | `LendTroopsVerb` | public class | lend_troops (RP with teeth, increment 1): an NPC leading their own party gives the player some of their own soldiers to keep. |
 | `MakeAmendsVerb` | public class | make_amends: the player sincerely apologises or offers, in words, to set right a grievance this NPC KNOWINGLY holds against them. |
+| `PayBountyVerb` | public class | pay_bounty: the player pays a lord of a realm to lift its price on their head. |
 | `PayForSilenceVerb` | public class | pay_for_silence: the player pays a lord who holds their secret-lover identity to buy his silence. |
 | `PressForWarBehavior` | public class | The pressings under way: a persuaded lord's house files the game's own war proposal when he reaches court, if the game still allows it then (a peace made meanwhile, another proposal, an emptied treasury of influence each... |
 | `PressForWarVerb` | public class | press_for_war: a lord, truly persuaded by the player, resolves to press his realm's court toward war against a named realm. |
@@ -910,7 +911,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (447)
+### CalradiaRemembers.Logic (448)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1073,6 +1074,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HolderGearStock` | public class | Everything a single holder Hero has accumulated from the player's escapes, additive across however many times the player has fled that holder's hold. |
 | `HouseLeaning` | public enum | How the lord's house stands on the war, by the game's own support for it. |
 | `HouseholdKinPolicy` | public static class | Decides who in the player's house is family, and therefore never a retainer to be given away. |
+| `HuntFacts` | public class | Where the player stands when the hunters would ride. |
 | `HuntMode` | public enum | How the realm comes after an outlaw. |
 | `IHistoryRecord` | public interface | A long-term entry as eviction sees it. |
 | `IManagedPortrait` | public interface | A UI element that owns exactly one character portrait — which, on screen, is backed by a GPU render-target (a character tableau). |
@@ -1362,12 +1364,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WorldFactRelevance` | public struct | The result of scoring one world-fact candidate against the player's message. |
 | `WorldFactRelevancePolicy` | public static class | Pure, engine-free scoring of how much a world fact bears on what the player just said. |
 
-### CalradiaRemembers.Logic.Actions (20)
+### CalradiaRemembers.Logic.Actions (21)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ActionConfirmationPolicy` | public static class | Pure policy for the terminal-style "confirm this action?" prompt shown in chat before a consequential LLM action (moving coin or committing to a service) is applied. |
 | `ActionsPanelGate` | public static class | Decides whether the Actions tile opens the new panel or the vanilla menu it replaces. |
+| `BountyConfirmationFacts` | public class | What the question about paying off a bounty names (pay_bounty, froggyluv and Gabriel 23/10/2026). |
 | `ConfirmationAnswer` | public enum | How the player answered a pending in-chat confirmation prompt. |
 | `EdictConfirmationFacts` | public class | What the question about an edict the player decrees names (enact_edict, Gabriel 21/10/2026). |
 | `HandConfirmationFacts` | public class | What the arrange_match confirmation names (BuildHandQuestion). |
