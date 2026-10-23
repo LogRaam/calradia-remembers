@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 564 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1270 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1272 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 22000+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 22500+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -2267,14 +2267,16 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StyleCatalogPolicy` | public static class | Resolves which narrative style NAME applies, given the player's request and the set of style files that currently exist on disk (one .txt per style under ModuleData/Styles). |
 | `StylePersistencePolicy` | public static class | Pure rules for persisting and restoring the chat-picked narrative style SELECTION (a single global name). |
 
-### CalradiaRemembers.Logic.Tournaments (10)
+### CalradiaRemembers.Logic.Tournaments (12)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `TournamentAftermath` | public enum | What the encounter leaves behind between the hero and the player. |
+| `TournamentAudiencePolicy` | public static class | Pure: who watched, and the spectator's memory line. |
 | `TournamentBout` | public class | One match the PLAYER fought in a tournament: which round, the heroes they faced, and whether they advanced. |
 | `TournamentMemoryPolicy` | public static class | Decides a hero's standing in a tournament relative to the player, and how they would carry it. |
 | `TournamentMemoryTone` | public enum | How a hero would speak of their tournament result against the player. |
+| `TournamentOnlooker` | public class | One hero in the town when the tournament ended. |
 | `TournamentRelation` | public enum | How a given hero stands relative to the PLAYER in a tournament, which decides what they would carry away. |
 | `TournamentResult` | public class | A whole tournament read from the player's point of view: their bouts, who took the crown, and where they fell. |
 | `TournamentRivalryFlavor` | public enum | What a standing tournament rivalry has become between a lord and the player. |

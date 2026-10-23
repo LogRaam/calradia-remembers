@@ -1266,16 +1266,22 @@ namespace CalradiaRemembers.Letters
       }
 
       /// <summary>Tournament victories are naturally rare per town, so no further anti-spam guard is needed.</summary>
-      private static void RecordTournamentVictoryChronicle(int today, Town town)
+      internal static void RecordTournamentVictoryChronicle(int today, Town town) // internal: cr.testall tournament_audience
       {
          try
          {
             string townName = town?.Name?.ToString() ?? "the arena";
+            // chmidt (23/10/2026): with no place and no realm the victory weighed 40 against an awareness threshold of 50,
+            // so no one could hear of it. The town and its realm now carry it (realm +25, the country around by nearness).
+            Settlement place = town?.Settlement;
             WorldEventStore.Instance?.Record(new WorldEvent {
+               Id = place == null ? null : $"cr_tourney_won_{place.StringId}_{today}",
                Type = WorldEventType.PlayerFeat,
                Day = today,
                Magnitude = 40,
                InvolvesPlayer = true,
+               PlaceId = place?.StringId,
+               FactionIds = place?.MapFaction == null ? new List<string>() : new List<string> {place.MapFaction.StringId},
                Summary = $"{Hero.MainHero.Name} won the tournament at {townName}.",
                ActorIds = new List<string> {Hero.MainHero.StringId},
                ChronicleLine = $"{Hero.MainHero.Name} took the prize of the tourney at {townName}, and the crowd hailed the victor"

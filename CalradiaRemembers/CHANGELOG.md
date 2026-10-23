@@ -53,6 +53,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   tell; a companion it left wounded says only that. A foe is slain only when the campaign says dead. A siege begun and
   a siege lifted are now news, naming the besieger and both realms, which the two realms and the country around it
   hear of; a capture was already. cr.testall `battle_reader`.
+- **A tournament is remembered by the town that held it** (chmidt 23/10: "the lady of Hargard couldn't even remember
+  that I won a tournament at her city, with her completely forgetting that there was even one to begin with"). Only
+  the heroes the player faced kept a memory, and the player's victory was news no one could hear (no place, no realm).
+  Now the lords and ladies of the house that holds the town, if they are in town, keep "I watched the tourney at
+  Hargard, where the player took the crown" (or where the player fell), as do the lords and notables in town the player
+  already knows; at most eight, the holding house first. The victory carries the town and its realm, so the realm and
+  the country around hear of it. Each fighter's memory of the lists ends with their own part ("I put two opponents out
+  of the lists and bested Lucon, before Ira put me out of the lists"). cr.testall `tournament_audience`.
 - **Nights in the Heart section, at Hardcore only** (Gabriel 23/10: consensual nights "apparaissent sur la page du
   joueur", "les actes que le joueur a fait subir peuvent apparaitre", "les scenes forcees subies par le joueur ne sont pas
   affichees", sober "du genre de quelque chose que le joueur aurait pu ecrire dans son journal intime"). A character's

@@ -6,6 +6,9 @@
 // left to the lord's own character when the LLM speaks the approach, exactly as the recent-matter LIVED register
 // intends. A champion who beat the player also seeds a world-gossip event so lords who were NOT there can ask about
 // it. The appreciation/grudge aftermath and rivalries are a later increment.
+// chmidt (Nexus, 23/10/2026): the lady of Hargard forgot the tournament the player won in her town. The lords and ladies
+// in town and the notables the player knows now keep a spectator's memory (TournamentAudiencePolicy), and each fighter's
+// memory ends with their own part in the lists, read from the combat journal of the tournament.
 
 #region
 
@@ -22,6 +25,7 @@ using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements;
 
 #endregion
 
@@ -34,28 +38,71 @@ namespace CalradiaRemembers.Tournaments
       private const int MaxTournamentLetters = 2;      // a couple of grounded notes at most, so a tourney never floods the mailbox
 
       /// <summary>Records a first-hand tournament memory on every hero the player had a decisive result against, queues up to a couple of grounded letters (brag / gracious), and seeds a gossip event for a champion who beat the player.</summary>
-      public static void Apply(TournamentResult result)
+      public static void Apply(TournamentResult result, Settlement town = null)
       {
          NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
          if (result == null || behavior?.Store == null) return;
 
+         // The tournament's own combat journal: the mission is still running when the final resolves.
+         BattleFeatJournal journal = BattleFeatJournal.Current;
          var seen = new HashSet<string>();
          var lettersLeft = MaxTournamentLetters;
 
          foreach (TournamentBout bout in result.Bouts)
             foreach (string heroId in bout.OpponentHeroIds)
-               if (!string.IsNullOrEmpty(heroId) && seen.Add(heroId) && RecordMemoryFor(behavior, result, heroId, lettersLeft > 0))
+               if (!string.IsNullOrEmpty(heroId) && seen.Add(heroId) && RecordMemoryFor(behavior, result, heroId, lettersLeft > 0, journal))
                   lettersLeft--;
 
-         if (!string.IsNullOrEmpty(result.ChampionHeroId) && seen.Add(result.ChampionHeroId) && RecordMemoryFor(behavior, result, result.ChampionHeroId, lettersLeft > 0))
+         if (!string.IsNullOrEmpty(result.ChampionHeroId) && seen.Add(result.ChampionHeroId) && RecordMemoryFor(behavior, result, result.ChampionHeroId, lettersLeft > 0, journal))
             lettersLeft--;
 
          RecordChampionGossip(result);
+         RecordAudience(behavior, result, town, seen);
+      }
+
+      /// <summary>
+      ///   The town's onlookers keep a spectator's memory (chmidt, 23/10/2026): the lords and ladies of the holding house
+      ///   in town, even never spoken to, and the lords and notables the player knows. Returns how many were written.
+      /// </summary>
+      internal static int RecordAudience(NpcMemoryCampaignBehavior behavior, TournamentResult result, Settlement town, ISet<string> fought)
+      {
+         if (town == null || behavior?.Store == null || result == null) return 0;
+
+         var inTown = new List<Hero>();
+         if (town.HeroesWithoutParty != null) inTown.AddRange(town.HeroesWithoutParty);
+         if (town.Parties != null) inTown.AddRange(town.Parties.Select(p => p?.LeaderHero));
+         if (town.Notables != null) inTown.AddRange(town.Notables);
+         Clan holder = town.OwnerClan;
+
+         var onlookers = inTown.Where(h => h != null && h != Hero.MainHero && !h.IsChild && HeroPresence.IsInTheWorld(h))
+                               .Distinct()
+                               .Select(h => new TournamentOnlooker {
+                                  Id = h.StringId, IsLord = h.IsLord, OfTheHoldingHouse = holder != null && h.Clan == holder,
+                                  KnownToThePlayer = behavior.Store.Get(h.StringId) != null, FoughtInIt = fought != null && fought.Contains(h.StringId)
+                               })
+                               .ToList();
+
+         string line = TournamentAudiencePolicy.SpectatorMemory(result);
+         var written = 0;
+         foreach (string id in TournamentAudiencePolicy.Who(onlookers))
+         {
+            Hero h = inTown.First(x => x != null && x.StringId == id);
+            NpcProfile profile = behavior.Store.Get(id) ?? HeroProfileMapper.FromHero(h);
+            if (profile == null) continue;
+
+            profile.Events.Add(new NotableEvent(result.Day, NotableEventType.Other, line));
+            behavior.Store.Set(profile);
+            written++;
+         }
+
+         if (written > 0) Foundation.ModLog.Info($"[TOURNEY] {written} onlooker(s) at {result.TownName} remember the tourney.");
+
+         return written;
       }
 
       // Writes the LIVED memory and, when allowed, may queue a grounded letter (brag/gracious). Returns true only
       // when a letter was actually queued, so the caller can hold the tournament to a small letter budget.
-      private static bool RecordMemoryFor(NpcMemoryCampaignBehavior behavior, TournamentResult result, string heroId, bool mayQueueLetter)
+      private static bool RecordMemoryFor(NpcMemoryCampaignBehavior behavior, TournamentResult result, string heroId, bool mayQueueLetter, BattleFeatJournal journal = null)
       {
          TournamentStanding standing = TournamentMemoryPolicy.Classify(result, heroId);
          if (standing.Relation == TournamentRelation.None) return false;
@@ -66,7 +113,9 @@ namespace CalradiaRemembers.Tournaments
          NpcProfile profile = behavior.Store.Get(heroId) ?? HeroProfileMapper.FromHero(hero);
          if (profile == null) return false;
 
-         profile.Events.Add(new NotableEvent(result.Day, NotableEventType.Other, ComposeMemory(result, standing)));
+         string ownPart = BattleFeatReporter.OwnPartOf(journal, heroId, arena: true);
+         string memory = ComposeMemory(result, standing);
+         profile.Events.Add(new NotableEvent(result.Day, NotableEventType.Other, string.IsNullOrEmpty(ownPart) ? memory : $"{memory} {ownPart}"));
 
          // A face-to-face result (not a champion who never met the player) is a head-to-head that builds a rivalry.
          if (standing.Relation == TournamentRelation.BeatThePlayer || standing.Relation == TournamentRelation.LostToThePlayer)

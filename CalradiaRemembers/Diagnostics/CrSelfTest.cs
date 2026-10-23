@@ -374,6 +374,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("every_verb_taught", Severity.Light, "22/10/2026: arrange_match (tashmetu's groom-side ask of 20/10/2026), reinforce_garrison, share_intel, deliver_recruits and admit_secret_lover were registered and executable but sat in no teaching list, so their own teaching never reached a prompt; each testall drove the bridge directly and passed. Reads the LIVE VerbRegistry and asserts every one of CR's own verbs is composed by a teaching list of EncounterContextBuilder or named among the verbs taught by another path (pay_for_silence inline, the violence verbs by their catalogue line). Changes nothing", TestEveryVerbTaught),
          new SelfTest("registered_match", Severity.Light, "tashmetu (Nexus, 16/10/2026): a head of house agreed in the chat to a match another mod had proposed, and nothing happened. Finds a lawful match of another house at peace, wins the bride over and the head's regard for the player (a disposable test game), registers it through the PUBLIC CrMatches.Register, checks a decider with no say is refused at the door, that the head is taught the match (and that the teaching reaches his REAL prompt, EncounterContextBuilder.Build), then settles it through the REAL bridge (arrange_match): the game weds them, CrMatches.Settled reports it, and the match is no longer pending. Restores the head's regard; the marriage stays", TestRegisteredMatch),
          new SelfTest("heart_intimacy", Severity.Light, "Gabriel (23/10/2026): at Hardcore only, the nights the player shared with a character show in Heart on both pages, sober as a diary; the prisoners the player took by force are told in the player's Misdeeds section, not under Heart ('Heart doit etre une section sur l'amour et le desir'), never what was done to the player. Arranges a companion of the other sex with two nights (a hundred days ago and today, marked [SELFTEST] and replaced on a rerun) and a lord the player took by force while a prisoner, then reads both pages through HeartPageReader and MisdeedsPageReader at Hardcore: her page counts the nights, the player's Heart names her nights and not the forced act, the player's Misdeeds tells it; at Explicit none of it shows. The adult level is put back; the nights and the record stay on the test save so the pages can be opened afterwards.", TestHeartIntimacy),
+         new SelfTest("tournament_audience", Severity.Light, "chmidt (Nexus, 23/10/2026): 'the lady of Hargard couldn't even remember that I won a tournament at her city'. Records the player's tournament victory as the game does at a real town and asserts a lord of the town's realm KNOWS it through WorldEventStore.GetKnownEvents (it weighed 40 with no place or realm before, under the threshold of 50, so no one could). Then, at a town where a lord or lady of the holding house stands, drives the real audience path (TournamentMemoryFeeder.RecordAudience) and asserts she keeps 'I watched the tourney at ..., where the player took the crown'. Removes the event and the memory lines.", TestTournamentAudience),
          new SelfTest("battle_reader", Severity.Light, "chmidt (Nexus, 23/10/2026): companions forget their own part in a fight, and a lord will not believe his city was besieged, knowing only who holds it. Arranges a companion in the main party with no profile, feeds a small fight's journal (the companion felled four men and was struck down) to the real small-fights path twice: the folded line still counts both fights and ends with the companion's own part in the last. Then records a siege begun on a real town by a real lord's party: the news names the besieger, and the town's holder and a lord of the besieger's realm both KNOW it through WorldEventStore.GetKnownEvents (not merely written). The profile and the event are put back.", TestBattleReader),
          new SelfTest("combat_journal", Severity.Light, "chmidt (Nexus, 23/10/2026): companions 'can't remember the last battle you fought with them, how many kills they had or if they were downed'. Gabriel: one capture for every fight and every hero, read by a battle, a tournament or a duel reader. Feeds the real journal through its seams (a hero who felled seven men, bested one lord and was struck down by another) and reads his own part through BattleFeatReporter as a battle (cut down, bested, struck down) and as a tournament (out of the lists, no one cut down); then checks the journal's binding: a tournament's journal is never taken for a battle, a battle's never for a tournament, and each is consumed once.", TestCombatJournal),
          new SelfTest("deed_regard", Severity.Light, "Gabriel (23/10/2026): 'il faudrait que pour chaque action il y a un impact sur l'estime, qu'il soit positif ou negatif', after Arcor, whose wife the player took, was missing from 'Hold you in contempt'. Picks a lord the player never spoke to (no profile) with a living spouse, applies the deed 'took his spouse' through DeedRegardApplier (the one path every deed site calls), and checks his profile was made and his regard fell by DeedRegardPolicy's number into contempt, and his spouse's by the kin number; then a gift of 2,000 denars warms by the gift scale. Every regard is put back and a profile the test made is removed.", TestDeedRegard),
@@ -14143,6 +14144,59 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             CrSettings.Instance.AdultContentLevel.SelectedValue = keep;
+         }
+
+         return t.Line();
+      }
+
+      private static string TestTournamentAudience(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tournament_audience");
+         if (t.Abort(behavior?.Store == null || WorldEventStore.Instance == null || Hero.MainHero == null, "the store or the world events are not ready")) return t.Line();
+
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+         Settlement hargard = Settlement.All.FirstOrDefault(s => s.IsTown && s.OwnerClan != null && s.OwnerClan != Clan.PlayerClan
+                                                                 && (s.HeroesWithoutParty.Any(h => h.Clan == s.OwnerClan && h.IsLord && !h.IsChild)
+                                                                     || s.Parties.Any(p => p.LeaderHero != null && p.LeaderHero.Clan == s.OwnerClan)))
+                              ?? Settlement.All.FirstOrDefault(s => s.IsTown && s.MapFaction != null && s.OwnerClan != Clan.PlayerClan);
+         if (t.Skip(hargard == null, "no town stands outside the player's house")) return t.Line();
+
+         string eventId = $"cr_tourney_won_{hargard.StringId}_{today}";
+         var lady = (Hero) null;
+         NpcProfile ladyBefore = null;
+         int ladyEvents = 0;
+         try
+         {
+            CalradiaRemembers.Letters.LetterTriggerEvaluator.RecordTournamentVictoryChronicle(today, hargard.Town);
+            Hero ofTheRealm = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.MapFaction == hargard.MapFaction && h != Hero.MainHero && h.Clan != Clan.PlayerClan);
+            if (ofTheRealm != null)
+               t.Expect("aLordOfTheTownsRealmKnowsTheVictory", WorldEventStore.Instance.GetKnownEvents(ofTheRealm, today, 200).Any(e => e.Id == eventId), true);
+
+            lady = hargard.HeroesWithoutParty.FirstOrDefault(h => h.Clan == hargard.OwnerClan && h.IsLord && !h.IsChild)
+                   ?? hargard.Parties.Select(p => p.LeaderHero).FirstOrDefault(h => h != null && h.Clan == hargard.OwnerClan);
+            if (t.Skip(lady == null, $"no lord or lady of the holding house stands in {hargard.Name} today")) return t.Line();
+
+            ladyBefore = behavior.Store.Get(lady.StringId);
+            ladyEvents = ladyBefore?.Events.Count ?? 0;
+            var result = new CalradiaRemembers.Logic.Tournaments.TournamentResult(hargard.Name.ToString(), today, true, 0, null, new List<CalradiaRemembers.Logic.Tournaments.TournamentBout>());
+            int written = CalradiaRemembers.Tournaments.TournamentMemoryFeeder.RecordAudience(behavior, result, hargard, new HashSet<string>());
+            NpcProfile after = behavior.Store.Get(lady.StringId);
+            string line = after?.Events.LastOrDefault()?.summary ?? "";
+            t.Note($"{lady.Name} of {hargard.Name}: written={written}, '{line}'");
+            t.Expect("theHoldingHouseRemembersTheTourney", line.StartsWith($"I watched the tourney at {hargard.Name}, where the player took the crown", StringComparison.Ordinal), true);
+         }
+         finally
+         {
+            WorldEventStore.Instance.Remove(eventId);
+            if (lady != null)
+            {
+               if (ladyBefore == null) behavior.Store.Remove(lady.StringId);
+               else
+               {
+                  NpcProfile p = behavior.Store.Get(lady.StringId);
+                  if (p != null && p.Events.Count > ladyEvents) p.Events.RemoveRange(ladyEvents, p.Events.Count - ladyEvents);
+               }
+            }
          }
 
          return t.Line();

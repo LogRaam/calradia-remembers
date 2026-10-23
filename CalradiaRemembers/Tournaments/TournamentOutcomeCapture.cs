@@ -40,7 +40,7 @@ namespace CalradiaRemembers.Tournaments
             if (!_captured.Add(__instance)) return;        // once per tournament
 
             TournamentResult result = Build(__instance);
-            if (result != null) TournamentMemoryFeeder.Apply(result);
+            if (result != null) TournamentMemoryFeeder.Apply(result, __instance.Settlement);
          }
          catch (Exception ex) { ModLog.Error($"[TOURNEY] outcome capture failed: {ex.GetType().Name}: {ex.Message}"); }
       }
