@@ -2792,9 +2792,35 @@ namespace CalradiaRemembers.Mapping
             IsBeingRaided = place.IsUnderRaid,
             IsLooted = place.Village != null && place.Village.VillageState == Village.VillageStates.Looted,
             IsInRebellion = place.InRebelliousState,
-            IsStarving = place.IsStarving
+            IsStarving = place.IsStarving,
+            // chmidt (23/10/2026): who lays the siege, and who sits in its dungeon (and whether the player left them).
+            BesiegerName = place.IsUnderSiege ? Labelled(place.SiegeEvent?.BesiegerCamp?.LeaderParty?.LeaderHero) : null,
+            PrisonersOfNote = PrisonersOfNote(place)
          };
       }
+
+      // The prisoners of rank in a place's dungeon, labelled, with who left them when it was the player.
+      private static List<string> PrisonersOfNote(Settlement place)
+      {
+         var named = new List<string>();
+         if (place?.Party?.PrisonRoster == null) return named;
+
+         string player = Hero.MainHero?.Name?.ToString();
+         foreach (TaleWorlds.CampaignSystem.Roster.TroopRosterElement el in place.Party.PrisonRoster.GetTroopRoster())
+         {
+            Hero h = el.Character?.HeroObject;
+            if (h == null || !h.IsLord || h == Hero.MainHero) continue;
+
+            string label = Labelled(h);
+            named.Add(PlayerDungeons.LeftThereByThePlayer(h) && player != null ? $"{label}, left there by {player}" : label);
+            if (named.Count >= SeatFacts.MaxPrisonersNamed) break;
+         }
+
+         return named;
+      }
+
+      private static string Labelled(Hero h)
+         => h == null ? null : HeroLabel.Describe(new HeroLabel.HeroNaming {Name = h.Name?.ToString(), ClanName = h.Clan?.Name?.ToString()});
 
       private static NpcMemoryService.Core.Knowledge.SettlementKind KindOf(Settlement place)
       {

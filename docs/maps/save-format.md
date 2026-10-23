@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (102)
+## Keys (103)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -79,6 +79,7 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_Nemesis_v1bytes` | `NemesisBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_NpcProfiles_v1` | `BannerlordNpcMemoryStore` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_NpcProfiles_v2bytes` | `BannerlordNpcMemoryStore` | constant `SaveKeyBytes` passed to SyncData (fact) |
+| `CalradiaRemembers_PlayerDungeons_v1` | `PrisonerMemoryBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_PressForWar_v1bytes` | `PressForWarBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_Rescues_v1` | `RescueBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_Retainers_v1bytes` | `RetainerBehavior` | constant `SaveKey` passed to SyncData (fact) |

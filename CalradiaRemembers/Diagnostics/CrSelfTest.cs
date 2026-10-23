@@ -374,6 +374,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("every_verb_taught", Severity.Light, "22/10/2026: arrange_match (tashmetu's groom-side ask of 20/10/2026), reinforce_garrison, share_intel, deliver_recruits and admit_secret_lover were registered and executable but sat in no teaching list, so their own teaching never reached a prompt; each testall drove the bridge directly and passed. Reads the LIVE VerbRegistry and asserts every one of CR's own verbs is composed by a teaching list of EncounterContextBuilder or named among the verbs taught by another path (pay_for_silence inline, the violence verbs by their catalogue line). Changes nothing", TestEveryVerbTaught),
          new SelfTest("registered_match", Severity.Light, "tashmetu (Nexus, 16/10/2026): a head of house agreed in the chat to a match another mod had proposed, and nothing happened. Finds a lawful match of another house at peace, wins the bride over and the head's regard for the player (a disposable test game), registers it through the PUBLIC CrMatches.Register, checks a decider with no say is refused at the door, that the head is taught the match (and that the teaching reaches his REAL prompt, EncounterContextBuilder.Build), then settles it through the REAL bridge (arrange_match): the game weds them, CrMatches.Settled reports it, and the match is no longer pending. Restores the head's regard; the marriage stays", TestRegisteredMatch),
          new SelfTest("heart_intimacy", Severity.Light, "Gabriel (23/10/2026): at Hardcore only, the nights the player shared with a character show in Heart on both pages, sober as a diary; the prisoners the player took by force are told in the player's Misdeeds section, not under Heart ('Heart doit etre une section sur l'amour et le desir'), never what was done to the player. Arranges a companion of the other sex with two nights (a hundred days ago and today, marked [SELFTEST] and replaced on a rerun) and a lord the player took by force while a prisoner, then reads both pages through HeartPageReader and MisdeedsPageReader at Hardcore: her page counts the nights, the player's Heart names her nights and not the forced act, the player's Misdeeds tells it; at Explicit none of it shows. The adult level is put back; the nights and the record stay on the test save so the pages can be opened afterwards.", TestHeartIntimacy),
+         new SelfTest("prisoner_memory", Severity.Light, "chmidt (Nexus, 23/10/2026): 'Lords and ladies should also know who I put in their dungeons, which they refuse to acknowledge if I tell them that I put an enemy lord in their own town dungeon.' Drives the real dungeon path (PrisonerMemoryBehavior.RecordLeftInDungeon, the one the game's prisoner donation calls) with a real lord and a real town held by another house: the captive keeps 'the player left me in the dungeon of X' and the head of the holding house keeps 'the player left <captive> in my dungeon at X'. The memory lines and the dungeon note are removed afterwards.", TestPrisonerMemory),
          new SelfTest("tournament_audience", Severity.Light, "chmidt (Nexus, 23/10/2026): 'the lady of Hargard couldn't even remember that I won a tournament at her city'. Records the player's tournament victory as the game does at a real town and asserts a lord of the town's realm KNOWS it through WorldEventStore.GetKnownEvents (it weighed 40 with no place or realm before, under the threshold of 50, so no one could). Then, at a town where a lord or lady of the holding house stands, drives the real audience path (TournamentMemoryFeeder.RecordAudience) and asserts she keeps 'I watched the tourney at ..., where the player took the crown'. Removes the event and the memory lines.", TestTournamentAudience),
          new SelfTest("battle_reader", Severity.Light, "chmidt (Nexus, 23/10/2026): companions forget their own part in a fight, and a lord will not believe his city was besieged, knowing only who holds it. Arranges a companion in the main party with no profile, feeds a small fight's journal (the companion felled four men and was struck down) to the real small-fights path twice: the folded line still counts both fights and ends with the companion's own part in the last. Then records a siege begun on a real town by a real lord's party: the news names the besieger, and the town's holder and a lord of the besieger's realm both KNOW it through WorldEventStore.GetKnownEvents (not merely written). The profile and the event are put back.", TestBattleReader),
          new SelfTest("combat_journal", Severity.Light, "chmidt (Nexus, 23/10/2026): companions 'can't remember the last battle you fought with them, how many kills they had or if they were downed'. Gabriel: one capture for every fight and every hero, read by a battle, a tournament or a duel reader. Feeds the real journal through its seams (a hero who felled seven men, bested one lord and was struck down by another) and reads his own part through BattleFeatReporter as a battle (cut down, bested, struck down) and as a tournament (out of the lists, no one cut down); then checks the journal's binding: a tournament's journal is never taken for a battle, a battle's never for a tournament, and each is consumed once.", TestCombatJournal),
@@ -14144,6 +14145,47 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             CrSettings.Instance.AdultContentLevel.SelectedValue = keep;
+         }
+
+         return t.Line();
+      }
+
+      private static string TestPrisonerMemory(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("prisoner_memory");
+         if (t.Abort(behavior?.Store == null || Hero.MainHero == null, "the store is not ready")) return t.Line();
+
+         Settlement town = Settlement.All.FirstOrDefault(s => s.IsTown && s.OwnerClan?.Leader != null && s.OwnerClan != Clan.PlayerClan);
+         Hero captive = town == null ? null : Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && h.Clan != town.OwnerClan);
+         if (t.Skip(town == null || captive == null, "no town held by another house, or no lord to stand as the prisoner")) return t.Line();
+         Hero keeper = town.OwnerClan.Leader;
+
+         var before = new Dictionary<string, (bool Had, int Count)>();
+         foreach (Hero h in new[] {captive, keeper, town.Town?.Governor}.Where(h => h != null).Distinct())
+         {
+            NpcProfile p = behavior.Store.Get(h.StringId);
+            before[h.StringId] = (p != null, p?.Events.Count ?? 0);
+         }
+
+         try
+         {
+            CalradiaRemembers.Battles.PrisonerMemoryBehavior.RecordLeftInDungeon(captive, town);
+            string player = Hero.MainHero.Name.ToString();
+            string captiveLine = behavior.Store.Get(captive.StringId)?.Events.LastOrDefault()?.summary ?? "";
+            string keeperLine = behavior.Store.Get(keeper.StringId)?.Events.LastOrDefault()?.summary ?? "";
+            t.Note($"{captive.Name}: '{captiveLine}' | {keeper.Name}: '{keeperLine}'");
+            t.Expect("theCaptiveRemembersTheDungeon", captiveLine, $"{player} left me in the dungeon of {town.Name}.");
+            t.Expect("theHoldingHouseKnowsWhoItHolds", keeperLine.StartsWith($"{player} left {captive.Name}", StringComparison.Ordinal) && keeperLine.EndsWith($"in my dungeon at {town.Name}.", StringComparison.Ordinal), true);
+         }
+         finally
+         {
+            CalradiaRemembers.Battles.PrisonerMemoryBehavior.DebugForget(captive.StringId);
+            foreach (KeyValuePair<string, (bool Had, int Count)> b in before)
+            {
+               if (!b.Value.Had) { behavior.Store.Remove(b.Key); continue; }
+               NpcProfile p = behavior.Store.Get(b.Key);
+               if (p != null && p.Events.Count > b.Value.Count) p.Events.RemoveRange(b.Value.Count, p.Events.Count - b.Value.Count);
+            }
          }
 
          return t.Line();

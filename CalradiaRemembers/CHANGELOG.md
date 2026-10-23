@@ -53,6 +53,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   tell; a companion it left wounded says only that. A foe is slain only when the campaign says dead. A siege begun and
   a siege lifted are now news, naming the besieger and both realms, which the two realms and the country around it
   hear of; a capture was already. cr.testall `battle_reader`.
+- **Lords know who sits in their dungeons, and the player's prisoners remember** (chmidt 23/10: "Lords and ladies
+  should also know who I put in their dungeons, which they refuse to acknowledge if I tell them that I put an enemy
+  lord in their own town dungeon"). A lord's own seat now says who sits in its dungeon, at most three of rank, and
+  "left there by Arwa" when the player did, in Compact too; and who lays siege to it, by name. A lord the player
+  takes remembers being taken ("Taken prisoner by Arwa after the battle near Pravend"); a prisoner the player leaves
+  in a dungeon remembers it, and so do the head of the house that holds the place and its governor ("Arwa left Lucon
+  of the dey Meroc in my dungeon at Hargard"); when such a captivity ends the captive remembers how (ransomed, peace,
+  freed in battle, escaped, set free). Where the player left each prisoner is kept in the save (additive key).
+  cr.testall `prisoner_memory`.
 - **A tournament is remembered by the town that held it** (chmidt 23/10: "the lady of Hargard couldn't even remember
   that I won a tournament at her city, with her completely forgetting that there was even one to begin with"). Only
   the heroes the player faced kept a memory, and the player's victory was news no one could hear (no place, no realm).
