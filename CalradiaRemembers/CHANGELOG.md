@@ -5,6 +5,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ## v2.7.20.. open
 
 ### New
+- **Characters set the scene** (Lordfadooboo 21/10: "instead of doing a cold open... the ai would set the stage a
+  little before your first word"; Gabriel 22/10: by default, as captive scenes already open themselves). A conversation
+  the player starts opens with the character: what they were doing as he came, whether they notice him, their first
+  gesture or words. The short greeting shows at once and the scene replaces it; the player may type meanwhile, and a
+  message sent first sets the scene aside (the greeting stands, his words open the scene). A failed call leaves the
+  greeting, never an error line. Not for an interception, a tale meeting, a conversation picked up from earlier today
+  or one that follows the game's own dialogue. One more model call per conversation: MCM "Characters Set The Scene"
+  (Content, on by default) turns it off (`SceneOpenerPolicy`, `ChatViewModel.SceneOpener`). cr.testall `scene_opener`.
 - **What a character knows of the player's name** (Gabriel 21/10, after reading another mod's notoriety per culture).
   A character who has never met the player is now told how far the name has reached them: never heard of it, a name
   heard, known by reputation, or famous ("you would know the banner anywhere"). It reads the player's renown, whether

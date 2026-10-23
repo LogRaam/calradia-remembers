@@ -19,6 +19,7 @@ using CalradiaRemembers.Logic.Conversation;
 using CalradiaRemembers.Logic.Actions;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.Logic.Chat;
 using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.Logic.Providers;
 using CalradiaRemembers.Logic.Romance;
@@ -693,11 +694,20 @@ namespace CalradiaRemembers.Chat
                                              ChatMessageViewModel placeholder,
                                              bool suppressPlayerLine = false,
                                              bool suppressGroupTail = false,
-                                             bool isOutcomeReaction = false)
+                                             bool isOutcomeReaction = false,
+                                             bool isSceneOpener = false)
       {
          // A recap follow-up is itself a turn; clear any prior capture so THIS top-level turn starts clean and a
          // recap left dangling by an early return (a witness exchange, a scene pause) never fires on a later turn.
          if (!isOutcomeReaction && !suppressGroupTail) _pendingOutcomeRecap = null;
+
+         // Backstop: any other turn that starts while the character's scene is still being written takes the floor from
+         // it (a send path missed, the round table, another mod's PromptReply), so two turns never run side by side.
+         if (!isSceneOpener && _sceneOpenerInFlight && !_sceneOpenerCommitted)
+         {
+            ModLog.Info("[SCENE] another turn began before the scene arrived; the scene is set aside.");
+            SetSceneOpenerAside();
+         }
 
          // A line the character speaks first (an opening, a voice in the ensemble, a reaction) has no player message to
          // set the language, only an English stage direction: the direction names it (RaveN017Mod, 17/10/2026: whoever
@@ -736,6 +746,7 @@ namespace CalradiaRemembers.Chat
 
             if (behavior == null || profile == null || session == null)
             {
+               if (isSceneOpener) { SettleSceneOpener(SceneOpenerOutcome.Failed); return; }
                if (FellSilentAsEnsembleVoice(suppressGroupTail, placeholder, speaker, "not initialized")) return;
                ReplacePlaceholder(placeholder, "(I can't seem to gather my thoughts...)", speaker);
                ModLog.Error("LLM pipeline: behavior/profile/session not initialized.");
@@ -750,6 +761,9 @@ namespace CalradiaRemembers.Chat
             // "Continue" (the continuation path).
             if (IsCaptiveEncounter && !suppressPlayerLine)
                _director?.DevelopInPlace();
+
+            // The player spoke while the scene was waiting on the transcript: his turn opens the scene, this one is over.
+            if (isSceneOpener && _sceneOpenerAbandoned) return;
 
             // Rebuild context each turn so it reflects events added during this session
             // (avoids stale "never met" after the first exchange adds a FirstMeeting event).
@@ -829,6 +843,7 @@ namespace CalradiaRemembers.Chat
 
             if (behavior.LlmServices is not {IsAvailable: true})
             {
+               if (isSceneOpener) { SettleSceneOpener(SceneOpenerOutcome.Failed); return; }
                if (FellSilentAsEnsembleVoice(suppressGroupTail, placeholder, speaker, "AI unavailable")) return;
                ReplacePlaceholder(placeholder,
                   behavior.LlmServices?.DescribeUnavailability() ?? "(The AI services are not available — check CalradiaRemembers.log.)", speaker);
@@ -928,7 +943,7 @@ namespace CalradiaRemembers.Chat
             bool usedProseFallback = false;
 
             NpcChatResult result;
-            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_windowClosing.Token))
+            using (var cts = CancellationTokenSource.CreateLinkedTokenSource(_windowClosing.Token, isSceneOpener ? SceneOpenerToken : CancellationToken.None))
             {
                // Absorb any fault into a Failure result so the SwitchToMainThread below
                // ALWAYS runs — otherwise a throw here would land the catch off-thread.
@@ -953,6 +968,15 @@ namespace CalradiaRemembers.Chat
             // in flight — a stale continuation must not mutate UI or apply game actions.
             if (!ReferenceEquals(ChatManager.ActiveViewModel, this)) return;
 
+            // A scene the player spoke over is dropped whole: the greeting already stands, nothing of it is applied.
+            // One that arrived holds the floor until its reply is applied, so no player turn runs alongside it.
+            if (isSceneOpener)
+            {
+               if (_sceneOpenerAbandoned) return;
+               _sceneOpenerCommitted = true;
+               IsSendEnabled = false;
+            }
+
             long elapsedMs = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond - startMs;
 
             if (!result.IsSuccess)
@@ -961,6 +985,15 @@ namespace CalradiaRemembers.Chat
                // that voice simply stays quiet this beat while the others speak. The turn made N sequential calls,
                // so a single slow model is far likelier to trip here than on a lone 1:1 reply (player report,
                // Ira's second voice timed out at 120s while Itaria's had already answered).
+               if (isSceneOpener)
+               {
+                  // No error line for a scene nobody asked for: the greeting stays as it was.
+                  ModLog.Info($"[SCENE] the scene did not come ({result.ErrorMessage}); the greeting stands.");
+                  SettleSceneOpener(SceneOpenerOutcome.Failed);
+
+                  return;
+               }
+
                if (FellSilentAsEnsembleVoice(suppressGroupTail, placeholder, speaker, result.ErrorMessage)) return;
                ReplacePlaceholder(placeholder, "(My words escape me...)", speaker);
                ModLog.Error($"LLM call failed in {elapsedMs} ms: {result.ErrorMessage}");
@@ -1072,6 +1105,16 @@ namespace CalradiaRemembers.Chat
             if (!suppressPlayerLine && DialogueHeuristics.HasAction(response, "challenge_duel"))
             {
                ResolveDuelChallenge(placeholder, speaker, profile, npcLine, response);
+
+               return;
+            }
+
+            // A scene that came back with nothing to show, or a refusal, is no scene: the greeting stays as it was.
+            if (isSceneOpener && (string.IsNullOrWhiteSpace(npcLine) && string.IsNullOrWhiteSpace(response?.Narration)
+                                  || DialogueHeuristics.LooksLikeRefusal(npcLine) || DialogueHeuristics.LooksLikeRefusal(response?.Narration)))
+            {
+               ModLog.Info("[SCENE] the scene came back empty or refused; the greeting stands.");
+               SettleSceneOpener(SceneOpenerOutcome.Failed);
 
                return;
             }
@@ -1808,7 +1851,8 @@ namespace CalradiaRemembers.Chat
             // Takes precedence over the model-driven 15C auto-exchange: instead of hoping the model
             // volunteered [WITNESS_REACTION]s, give each present witness a deterministic turn (they may
             // address one another), capped, then return control to the player. Model-independent.
-            if (!suppressGroupTail && _roundTable.TryConsumeForMainReply(new RoundTableGate.FloorTurnFacts {SpeakerIsMain = speaker.IsMain, IsCaptiveEncounter = IsCaptiveEncounter, ConversationEnded = _conversationEnded}))
+            // The scene opener never opens a lap or an exchange: one more call nobody asked for, and the player waiting.
+            if (!suppressGroupTail && !isSceneOpener && _roundTable.TryConsumeForMainReply(new RoundTableGate.FloorTurnFacts {SpeakerIsMain = speaker.IsMain, IsCaptiveEncounter = IsCaptiveEncounter, ConversationEnded = _conversationEnded}))
             {
                foreach (var (wName, wHeroId, wText) in witnessReactions)
                   RecordTranscript(false, wName, wHeroId, wText); // preserve order: any reactions precede the lap
@@ -1842,7 +1886,7 @@ namespace CalradiaRemembers.Chat
             if (waitsForThePlayer && anyWitnessSpoke && speaker.IsMain)
                ModLog.Info($"[15C] {speaker.Name} asked the player a question; the bystander exchange waits for the answer.");
 
-            if (!suppressGroupTail && anyWitnessSpoke && speaker.IsMain && !IsCaptiveEncounter && !waitsForThePlayer
+            if (!suppressGroupTail && !isSceneOpener && anyWitnessSpoke && speaker.IsMain && !IsCaptiveEncounter && !waitsForThePlayer
                 && _witnessExchangesThisRound < WitnessExchangeCap && !_conversationEnded)
             {
                _witnessExchangesThisRound++;
@@ -1937,7 +1981,8 @@ namespace CalradiaRemembers.Chat
          }
          catch (Exception ex)
          {
-            ReplacePlaceholder(placeholder, "(My voice falters...)", speaker);
+            if (isSceneOpener) SettleSceneOpener(SceneOpenerOutcome.Failed);
+            else ReplacePlaceholder(placeholder, "(My voice falters...)", speaker);
             ModLog.Error($"RunLlmExchangeAsync threw {ex.GetType().Name}: {ex.Message}");
             ModLog.Error($"Stack: {ex.StackTrace}");
          }
@@ -1945,7 +1990,12 @@ namespace CalradiaRemembers.Chat
          {
             // A bag offer is consumed by the turn it was sent with — clear it so a later, unrelated
             // give_item never re-transfers the previously picked item.
-            _offer.ClearOfferedItem();
+            // A scene opener never carried the offer: one the player made meanwhile belongs to his own turn.
+            if (!isSceneOpener) _offer.ClearOfferedItem();
+
+            // A scene the player spoke over leaves the input to his turn, which owns it now.
+            bool sceneSetAside = isSceneOpener && _sceneOpenerAbandoned;
+            if (isSceneOpener) EndSceneOpenerFlight();
 
             // The NPC's opening turn (if any) is delivered now — reveal the chat input (unless the scene paused,
             // which hides it in its own right). Notify so the InputBox/Send/"<" reappear.
@@ -1960,7 +2010,7 @@ namespace CalradiaRemembers.Chat
             // is in flight, if a scene continuation is pending, or if we are paused waiting
             // for the player to press Continue / Try something. Each async path re-enables
             // input in its own finally when it terminates.
-            if (!suppressGroupTail && !_npcWitnessExchangePending && !_sceneContinuationPending && !_isScenePaused)
+            if (!suppressGroupTail && !sceneSetAside && !_npcWitnessExchangePending && !_sceneContinuationPending && !_isScenePaused)
             {
                // Extension Surface: a deed resolved to an outcome AFTER the NPC's spoken reply this turn (an
                // external ActionResult.Recap). Fire ONE voice-only follow-up so the NPC speaks it, and leave input

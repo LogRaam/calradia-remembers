@@ -11,6 +11,7 @@ using CalradiaRemembers.Companions;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Interception;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Chat;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Mapping;
@@ -739,8 +740,33 @@ namespace CalradiaRemembers.Dialogue
       private void OpenChatWithGreeting(string greeting)
       {
          _pendingGreeting = greeting;
-         OnPlayerSelectedChat();
+         _openedByGreeting = true;
+         _sceneGreeting = null;
+         try { OnPlayerSelectedChat(); }
+         finally { _openedByGreeting = false; }
+
+         // Last, once the witnesses are seated: the character sets the scene where the greeting stands.
+         string scene = _sceneGreeting;
+         _sceneGreeting = null;
+         if (scene != null) ChatManager.ActiveViewModel?.OpenWithScene(scene);
       }
+
+      // Set only while the greeting path opens a chat: a tale meeting or an interception opens through the same door
+      // and must keep its own opening (Gabriel, 22/10/2026: tales keep the canned line).
+      private bool _openedByGreeting;
+
+      // The greeting the character's scene will stand in for, handed over once the chat is fully open.
+      private string _sceneGreeting;
+
+      /// <summary>The facts this opening is judged on, read live (cr.testall scene_opener drives the same seam).</summary>
+      internal static SceneOpenerFacts SceneFacts(ChatViewModel vm, bool openedByGreeting, bool vanillaLinesCarried)
+         => new() {
+            SettingOn = ModSettings.CharactersSetTheScene,
+            OpenedByGreeting = openedByGreeting,
+            ResumedSitting = vm?.ResumedASitting == true,
+            VanillaLinesCarried = vanillaLinesCarried,
+            ModelAvailable = NpcMemoryCampaignBehavior.Instance?.LlmServices?.IsAvailable == true
+         };
 
       /// <summary>
       ///   Picks the greeting shown in the chat window (and recorded to the story log) for
@@ -811,6 +837,7 @@ namespace CalradiaRemembers.Dialogue
          string npcName = Hero.OneToOneConversationHero?.Name?.ToString() ?? "They";
          string playerName = Hero.MainHero?.Name?.ToString() ?? "You";
 
+         var carried = false;
          foreach (VanillaDialogueRecorder.CapturedLine line in captured)
          {
             // Skip the CR-opener menu line: it is a UI trigger (the player chose to start a
@@ -821,6 +848,7 @@ namespace CalradiaRemembers.Dialogue
 
             if (line.IsPlayer) vm.AppendPlayerMessage(line.Text);
             else vm.AppendNpcMessage(line.Text);
+            carried |= !string.IsNullOrWhiteSpace(line.Text);
 
             if (!string.IsNullOrWhiteSpace(line.Text))
                history.AppendLine($"{(line.IsPlayer ? playerName : npcName)}: {line.Text.Trim()}");
@@ -833,6 +861,15 @@ namespace CalradiaRemembers.Dialogue
          // Append the relation-gated greeting as the most recent NPC line. The
          // recorder captures it too late to be in 'captured', so we add it here.
          if (string.IsNullOrEmpty(_pendingGreeting)) return;
+         // Lordfadooboo (21/10/2026): no cold open. The greeting is shown by the scene opener, which replaces it.
+         if (SceneOpenerPolicy.ShouldOpen(SceneFacts(vm, _openedByGreeting, carried)))
+         {
+            _sceneGreeting = _pendingGreeting;
+            _pendingGreeting = null;
+
+            return;
+         }
+
          vm.AppendNpcMessage(_pendingGreeting);
          Session.AddNpcMessage(_pendingGreeting);
          _pendingGreeting = null;

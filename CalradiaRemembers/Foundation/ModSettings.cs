@@ -323,6 +323,12 @@ namespace CalradiaRemembers.Foundation
       public static bool NpcsRaiseWorldNews => CrSettings.Instance?.NpcsRaiseWorldNews ?? false;
 
       /// <summary>
+      ///   Whether a conversation the player starts opens with the character setting the scene (Lordfadooboo, 21/10/2026).
+      ///   On by default; with no MCM, on as well.
+      /// </summary>
+      public static bool CharactersSetTheScene => CrSettings.Instance?.CharactersSetTheScene ?? true;
+
+      /// <summary>
       ///   A lord riding out to the player is held on course (on, the 2.6.8 behaviour Lordfadooboo asked for) or only
       ///   given the order, his own AI free to change its mind (off, as before; Fakade, 03/10/2026). On when MCM has
       ///   not loaded.

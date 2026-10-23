@@ -2647,6 +2647,9 @@ namespace CalradiaRemembers.Chat
          if (string.IsNullOrEmpty(text)) return;
          if (!IsSendEnabled) return;
 
+         // The player spoke before the character's scene arrived: the greeting stands, his words open the scene.
+         SetSceneOpenerAside();
+
          // Companion-briefing pillar, revised per Gabriel's ruling (2026-09-07): this must be a REAL
          // conversation, so the player's own words are captured as a pure side effect, THEN the ordinary
          // pipeline below runs unchanged, letting the anchor (or whichever chosen companion the player
@@ -3109,6 +3112,8 @@ namespace CalradiaRemembers.Chat
             opening == ChatOpening.OrdinaryConversation);
 
          if (kept == null) return;
+
+         ResumedASitting = true;
 
          // The same two steps the post-duel scene already uses, in the same order: seed the transcript (LLM
          // continuity), then render it (what the player sees). ReplayTranscriptToMessages never re-records, so
