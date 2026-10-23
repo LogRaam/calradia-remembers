@@ -47,11 +47,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   joueur", "les actes que le joueur a fait subir peuvent apparaitre", "les scenes forcees subies par le joueur ne sont pas
   affichees", sober "du genre de quelque chose que le joueur aurait pu ecrire dans son journal intime"). A character's
   page counts the nights shared with the player, the first and the last ("You have shared three nights together, the
-  first in spring 1091, the last in autumn 1093"); the player's page has a line per partner, and one per prisoner the
-  player took by force (from the Trauma ledger, the player's own deed only). Never the content of a night, never what was
-  done to the player; a forced act stays in its victim's Trauma section, not under Heart. The nights are the character's
-  own intimate memories, which compression always keeps, a day counted once (`HeartIntimacyPolicy`). `cr.heart_seed`
-  takes `forced`; cr.testall `heart_intimacy`.
+  first in spring 1091, the last in autumn 1093"); the player's page has a line per partner. Never the content of a
+  night. The nights are the character's own intimate memories, which compression always keeps, a day counted once
+  (`HeartIntimacyPolicy`). `cr.heart_seed` takes `forced`; cr.testall `heart_intimacy`.
+- **Misdeeds, a section of the player's own page, at Hardcore only** (Gabriel 23/10: "Heart doit etre une section sur
+  l'amour et le desir. L'evenement 'take by force' devrait etre une autre section avec des actions reprehensibles").
+  What the player did of their own will to a character, one line per character and deed, counted and dated: "You took
+  Phenoria by force while she was your prisoner, twice, the first in spring 1091, the last in summer 1092", "You
+  tortured Lucon while he was your prisoner, in summer 1092", "You robbed Ira by force". Read from the same ledger as
+  each victim's Trauma section, so the two pages agree. Never what a captor did, nor what a captor forced the player's
+  hands to do (`MisdeedsPagePolicy`).
 
 ### Changed
 - **Friends, enemies and houses as rows on the encyclopedia page** (Gabriel 22/10: "une liste ou chaque ligne serait

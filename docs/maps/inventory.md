@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 556 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1259 types in 46 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 560 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1260 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -336,7 +336,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EdictModelPatches` | public static class | Adds the edict holding on a town to the game's own loyalty, security, prosperity, militia, food and tax. |
 | `EdictNews` | public class | One piece of realm news an edict makes (a decree, a contest, a repeal), told through EdictBehavior.News. |
 
-### CalradiaRemembers.Encyclopedia (41)
+### CalradiaRemembers.Encyclopedia (44)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -349,6 +349,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EncyclopediaHeroPageHeartMixin` | public class | UIExtenderEx mixin for the Heart section of a hero page: @CalradiaHeartLabel (cream header) and @CalradiaHeartItems (gold lines). |
 | `EncyclopediaHeroPageKindnessesMixin` | public class | UIExtenderEx mixin that displays the kindnesses the player has EARNED knowledge of from this NPC, on that NPC's encyclopedia hero page. |
 | `EncyclopediaHeroPageLettersMixin` | public class | UIExtenderEx mixin adding a per-contact "Letters" button to the hero encyclopedia page. |
+| `EncyclopediaHeroPageMisdeedsMixin` | public class | UIExtenderEx mixin for the Misdeeds section of the player's page: @CalradiaMisdeedsLabel (cream header) and @CalradiaMisdeedsItems (gold lines). |
 | `EncyclopediaHeroPageNemesisMixin` | public class | UIExtenderEx mixin that displays the shared history the player has with a nemesis they have ALREADY ENCOUNTERED, on that nemesis's own encyclopedia hero page. |
 | `EncyclopediaHeroPagePersonalRelationMixin` | public class | UIExtenderEx mixin that surfaces the NPC's PERSONAL regard for the player (our per-hero score, independent of the clan-level relation Bannerlord shows) on the hero's encyclopedia page. |
 | `EncyclopediaHeroPageRegardMixin` | public class | Refills a hero page's Friends and Enemies from real regard, and says why in a "Why" block. |
@@ -367,6 +368,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroPageKindnessesPatchA` | internal class | Appends the kindnesses bullet list to the hero encyclopedia page. |
 | `HeroPageKindnessesPatchB` | internal class | Appends the "Kindnesses:" header line to the hero encyclopedia page. |
 | `HeroPageLettersPatch` | internal class | Inserts the per-contact "Letters" button into the hero encyclopedia page's info block. |
+| `HeroPageMisdeedsPatchA` | internal class | Appends the Misdeeds lines (what the player did of their own will, on the player's page, Hardcore only) to the hero page. |
+| `HeroPageMisdeedsPatchB` | internal class | Appends the "Misdeeds:" header line to the hero page. |
 | `HeroPageNemesisPatchA` | internal class | Appends the nemesis dossier bullet list to the hero encyclopedia page. |
 | `HeroPageNemesisPatchB` | internal class | Appends the "Nemesis:" header line to the hero encyclopedia page. |
 | `HeroPageRegardHousesPatchA` | internal class | Appends the houses at odds and of affinity to the hero encyclopedia page. |
@@ -543,7 +546,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (34)
+### CalradiaRemembers.Mapping (35)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -561,6 +564,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroProfileMapper` | public static class | (no summary) |
 | `HeroSeats` | public static class | The places a character answers for, closest first. |
 | `IntimacyBargainEligibility` | public static class | Resolves the adult-gated, archetype-filtered eligibility for the intimacy-as-currency dynamic. |
+| `MisdeedsPageReader` | internal static class | Reads what the player did of their own will for the Misdeeds section. |
 | `NarrativeLoader` | public static class | Loads narrative text files from the mod's ModuleData folder at session launch. |
 | `PairRegardReader` | internal static class | Reads what lies between two characters into PairRegardFacts, and assesses it. |
 | `PlayerDressResolver` | public static class | Resolves the player's live PlayerDressBand from Hero.MainHero's equipment. |
@@ -2184,13 +2188,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RescueGratitudePolicy` | public static class | Decides how strongly an NPC reacts to being rescued (or to a loved one being rescued) by the player. |
 | `RescueTie` | public enum | How the freed prisoner relates to the player, deciding the shape of their gratitude. |
 
-### CalradiaRemembers.Logic.Romance (27)
+### CalradiaRemembers.Logic.Romance (26)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `HeartChild` | public class | A child the player and this character have together, as the page names it. |
 | `HeartFacts` | public class | What the player knows of one character's bond with them. |
-| `HeartForcedActs` | public class | The times the player took one prisoner by force. |
 | `HeartIntimacyPolicy` | public static class | The intimate lines of the Heart section: their gate and their words. |
 | `HeartNightsFacts` | public class | The nights the player shared with one character, as the page tells them. |
 | `HeartPagePolicy` | public static class | Tells a character's bond with the player for the Heart section, and the recap line on the player's page. |
@@ -2267,10 +2270,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TournamentStanding` | public class | A hero's standing in one tournament relative to the player: the decisive relation, whether they took the crown, and the round it turned on. |
 | `TournamentTraitFacts` | public class | The hero's own character traits that colour how they carry a tournament result (Bannerlord trait levels, roughly -2..2). |
 
-### CalradiaRemembers.Logic.Trauma (4)
+### CalradiaRemembers.Logic.Trauma (6)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `MisdeedFacts` | public class | One kind of deed the player did to one character, every time it happened. |
+| `MisdeedsPagePolicy` | public static class | The Misdeeds section's gate, its gathering and its words. |
 | `TraumaAuthor` | public enum | Who did it, as the player saw it. |
 | `TraumaKind` | public enum | What was done. |
 | `TraumaPagePolicy` | public static class | The Trauma section's words, its gate, and the ledger's save form. |

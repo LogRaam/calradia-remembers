@@ -87,8 +87,8 @@ namespace CalradiaRemembers
       ///   first night a third of the way in, and a night three days ago; moves the bond to Intimate, dated from the first
       ///   night; plants the kindness an intimate moment leaves (through the real TryPlant gate, which may refuse). A test
       ///   tool: it writes into the save once the game is saved, and cr.forget_all undoes the memories. With "forced" it
-      ///   instead records that the player took the character by force while a prisoner (the Trauma ledger), which the Heart
-      ///   of the player's page and the character's Trauma section show at Hardcore (Gabriel, 23/10/2026).
+      ///   instead records that the player took the character by force while a prisoner (the Trauma ledger), which the
+      ///   Misdeeds section of the player's page and the character's Trauma section show at Hardcore (Gabriel, 23/10/2026).
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("heart_seed", "cr")]
       public static string SeedHeart(List<string> args)
@@ -112,7 +112,7 @@ namespace CalradiaRemembers
          {
             Mapping.TraumaLedgerBehavior.Record(hero, null, Logic.Trauma.TraumaKind.Assaulted, Logic.Trauma.TraumaAuthor.Player);
 
-            return $"{hero.Name}: recorded as taken by force by you while your prisoner, today (once a day at most). At Hardcore, your page's Heart and {hero.Name}'s Trauma section show it.";
+            return $"{hero.Name}: recorded as taken by force by you while your prisoner, today (once a day at most). At Hardcore, your page's Misdeeds and {hero.Name}'s Trauma section show it.";
          }
 
          NpcProfile profile = GetOrCreateProfile(behavior, hero);

@@ -1,17 +1,15 @@
 // Code written by Gabriel Mailhot, 23/10/2026.
 // The Heart section's intimate lines (Gabriel, 23/10/2026): at Hardcore only, the nights the player shared with a character
-// show on both pages, sober, "du genre de quelque chose que le joueur aurait pu ecrire dans son journal intime"; of the
-// forced captive scenes, "les actes que le joueur a fait subir peuvent apparaitre" on the player's page, and "les scenes
-// forcees subies par le joueur ne sont pas affichees sur la page du joueur". If this is wrong, a player below Hardcore reads
-// what they never opted into, a night is counted twice, a forced scene is told as a night of love, or what was done to the
-// player is written on the player's own page.
+// show on both pages, sober, "du genre de quelque chose que le joueur aurait pu ecrire dans son journal intime". Heart is
+// "une section sur l'amour et le desir": what the player took by force is told in the Misdeeds section instead
+// (MisdeedsPagePolicyTests). If this is wrong, a player below Hardcore reads what they never opted into, a night is counted
+// twice, or a forced scene is told as a night of love.
 
 #region
 
 using System.Collections.Generic;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Romance;
-using CalradiaRemembers.Logic.Trauma;
 using FluentAssertions;
 using NpcMemoryService.Core.Models;
 using NUnit.Framework;
@@ -94,62 +92,6 @@ namespace CalradiaRemembers.Tests
 
          HeartIntimacyPolicy.NightsRecapLine(one, When).Should().Be("A night with Ira, in spring 1091.");
          HeartIntimacyPolicy.NightsRecapLine(many, When).Should().Be("Two nights with Ajin the Hawk, the first in spring 1091, the last in summer 1092.");
-      }
-
-      // STAKE: Gabriel: "Les actes que le joueur a fait subir peuvent apparaitre": a prisoner the player took by force is
-      // named on the player's page, once per victim, counted and dated.
-      [Test]
-      public void GIVEN_the_player_took_a_prisoner_by_force_twice_WHEN_the_players_page_opens_THEN_one_line_tells_it()
-      {
-         var ledger = new List<TraumaRecord>
-         {
-            new TraumaRecord {VictimId = "phenoria", Kind = TraumaKind.Assaulted, Author = TraumaAuthor.Player, Day = 100},
-            new TraumaRecord {VictimId = "phenoria", Kind = TraumaKind.Assaulted, Author = TraumaAuthor.Player, Day = 200}
-         };
-
-         IReadOnlyList<HeartForcedActs> acts = HeartIntimacyPolicy.ForcedByThePlayer(ledger);
-
-         acts.Should().HaveCount(1);
-         HeartIntimacyPolicy.ForcedLine(acts[0], "Phenoria", true, When)
-                            .Should().Be("You took Phenoria by force while she was your prisoner, twice, the first in spring 1091, the last in summer 1092.");
-      }
-
-      // STAKE: one forced scene reads as one, dated.
-      [Test]
-      public void GIVEN_one_forced_scene_WHEN_the_players_page_opens_THEN_it_is_told_once_with_its_season()
-      {
-         var acts = new HeartForcedActs {VictimId = "lucon", Days = new[] {200}};
-
-         HeartIntimacyPolicy.ForcedLine(acts, "Lucon", false, When).Should().Be("You took Lucon by force while he was your prisoner, in summer 1092.");
-      }
-
-      // STAKE: Gabriel: "Les scenes forcees subies par le joueur ne sont pas affichees sur la page du joueur." A scene where
-      // the captor forced the player's own hands is also the player's ordeal, not the player's act.
-      [Test]
-      public void GIVEN_what_a_captor_did_or_forced_the_player_to_do_WHEN_the_players_page_opens_THEN_none_of_it_shows()
-      {
-         var ledger = new List<TraumaRecord>
-         {
-            new TraumaRecord {VictimId = "ira", Kind = TraumaKind.Assaulted, Author = TraumaAuthor.Captor, Day = 100},
-            new TraumaRecord {VictimId = "ira", Kind = TraumaKind.Assaulted, Author = TraumaAuthor.CaptorsMen, Day = 100},
-            new TraumaRecord {VictimId = "ira", Kind = TraumaKind.Assaulted, Author = TraumaAuthor.PlayerCoerced, Day = 100}
-         };
-
-         HeartIntimacyPolicy.ForcedByThePlayer(ledger).Should().BeEmpty();
-      }
-
-      // STAKE: the Heart section is about intimacy; a prisoner the player tortured or robbed belongs to her Trauma section,
-      // not to the player's love life.
-      [Test]
-      public void GIVEN_a_prisoner_the_player_tortured_WHEN_the_players_page_opens_THEN_the_heart_does_not_tell_it()
-      {
-         var ledger = new List<TraumaRecord>
-         {
-            new TraumaRecord {VictimId = "ira", Kind = TraumaKind.Tortured, Author = TraumaAuthor.Player, Day = 100},
-            new TraumaRecord {VictimId = "ira", Kind = TraumaKind.Robbed, Author = TraumaAuthor.Player, Day = 100}
-         };
-
-         HeartIntimacyPolicy.ForcedByThePlayer(ledger).Should().BeEmpty();
       }
 
       // STAKE: a forced captive scene must never be counted as a night of love: the romantic memory such a scene would leave

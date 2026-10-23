@@ -5,15 +5,15 @@
 // subies par le joueur ne sont pas affichees sur la page du joueur. Les actes que le joueur a fait subir peuvent apparaitre.
 // Les scenes intimes consentantes apparaissent sur la page du joueur"; a sober detail, "du genre de quelque chose que le
 // joueur aurait pu ecrire dans son journal intime"; lines added to Heart. So: the nights counted and dated, never their
-// content; on the player's page the prisoners the player took by force. A forced act already shows on its victim's page in
-// the Trauma section, so it is not repeated under Heart, which would tell an assault as romance.
+// content. The prisoners the player took by force were first told here too; Gabriel (23/10/2026): "Heart doit etre une
+// section sur l'amour et le desir. L'evenement 'take by force' devrait etre une autre section avec des actions
+// reprehensibles", so they moved to the player's Misdeeds section (MisdeedsPagePolicy).
 
 #region
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CalradiaRemembers.Logic.Trauma;
 using NpcMemoryService.Core.Models;
 
 #endregion
@@ -28,16 +28,6 @@ namespace CalradiaRemembers.Logic.Romance
 
       /// <summary>The in-game days of the character's intimate memories with the player; a day held twice is one night.</summary>
       public IReadOnlyList<int> NightDays { get; init; } = Array.Empty<int>();
-   }
-
-   /// <summary>The times the player took one prisoner by force.</summary>
-   public sealed class HeartForcedActs
-   {
-      /// <summary>The prisoner's hero id.</summary>
-      public string VictimId { get; init; }
-
-      /// <summary>The in-game days, oldest first.</summary>
-      public IReadOnlyList<int> Days { get; init; } = Array.Empty<int>();
    }
 
    /// <summary>The intimate lines of the Heart section: their gate and their words.</summary>
@@ -66,29 +56,6 @@ namespace CalradiaRemembers.Logic.Romance
          if (nights.Count == 1) return $"A night with {f.Name}, in {when(nights[0])}.";
 
          return $"{Capitalised(Count(nights.Count))} nights with {f.Name}, {Span(nights, when)}.";
-      }
-
-      /// <summary>
-      ///   The prisoners the player took by force, one entry per prisoner, oldest first. Only the player's own deed: never
-      ///   what a captor did, nor what a captor forced the player's hands to do, and never a deed that was not intimate.
-      /// </summary>
-      public static IReadOnlyList<HeartForcedActs> ForcedByThePlayer(IEnumerable<TraumaRecord> ledger)
-         => (ledger ?? Enumerable.Empty<TraumaRecord>())
-            .Where(r => r != null && r.Kind == TraumaKind.Assaulted && r.Author == TraumaAuthor.Player && !string.IsNullOrEmpty(r.VictimId))
-            .GroupBy(r => r.VictimId)
-            .Select(g => new HeartForcedActs {VictimId = g.Key, Days = g.Select(r => r.Day).Distinct().OrderBy(d => d).ToList()})
-            .OrderBy(a => a.Days[0])
-            .ToList();
-
-      /// <summary>The line on the player's page for one prisoner taken by force.</summary>
-      public static string ForcedLine(HeartForcedActs acts, string victimName, bool victimIsFemale, Func<int, string> when)
-      {
-         string lead = $"You took {victimName} by force while {(victimIsFemale ? "she" : "he")} was your prisoner";
-         IReadOnlyList<int> days = acts?.Days ?? Array.Empty<int>();
-         if (days.Count == 0) return $"{lead}.";
-         if (days.Count == 1) return $"{lead}, in {when(days[0])}.";
-
-         return $"{lead}, {(days.Count == 2 ? "twice" : $"{Count(days.Count)} times")}, {Span(days, when)}.";
       }
 
       private static IReadOnlyList<int> Nights(HeartNightsFacts f)

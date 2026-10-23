@@ -57,7 +57,7 @@ namespace CalradiaRemembers.Mapping
          catch (Exception ex) { ModLog.Error($"[TRAUMA] not recorded: {ex.GetType().Name}: {ex.Message}"); }
       }
 
-      /// <summary>Every record, for the Heart section's account of what the player did (HeartIntimacyPolicy.ForcedByThePlayer).</summary>
+      /// <summary>Every record, for the Misdeeds section's account of what the player did (MisdeedsPagePolicy.Of).</summary>
       public static IReadOnlyList<TraumaRecord> All() => _ledger.ToList();
 
       /// <summary>What <paramref name="victim" /> lived through, oldest first.</summary>
