@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 564 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1268 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1270 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -30,6 +30,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 1500+ | Mod | `Chat/ChatManager.cs` |
 | 1500+ | Mod | `GameState/CourtActionResolver.cs` |
 | 1500+ | Mod | `Interception/InterceptionBehavior.cs` |
+| 1500+ | Mod | `WorldEvents/WorldEventFeeders.cs` |
 | 1000+ | Sdk | `Actions/GameActionCatalog.cs` |
 | 1000+ | Logic | `Assemblies/ResolutionCatalog.cs` |
 | 1000+ | Mod | `Chat/ChatViewModel.Council.cs` |
@@ -39,7 +40,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 1000+ | Mod | `Letters/LetterTriggerEvaluator.cs` |
 | 1000+ | Sdk | `Parsing/SectionResponseParser.cs` |
 | 1000+ | Mod | `Services/LlmServices.cs` |
-| 1000+ | Mod | `WorldEvents/WorldEventFeeders.cs` |
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
@@ -1682,7 +1682,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BastardScandalPolicy` | public static class | Scales the cost of a discovered bastard scandal (the standing hit and how far it spreads) by the culture's outrage at infidelity — the same JealousyOutrage the jealousy system reads. |
 | `HushMoneyPolicy` | public static class | The numeric contract for hush money paid to a lord who holds the player's secret-lover identity. |
 
-### CalradiaRemembers.Logic.Battles (18)
+### CalradiaRemembers.Logic.Battles (20)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1699,6 +1699,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CombatTally` | public class | What one hero did and suffered in one fight. |
 | `CombatTallyText` | public static class | The words a hero's own memory keeps of their part in a fight. |
 | `CombatantFacts` | public class | The fighting facts of one combatant, as the game itself knows them; the policy turns these into a prowess score. |
+| `SiegeNews` | public class | The facts of one siege as the news tells it. |
+| `SiegeRecordText` | public static class | Pure: the summary lines and the weight of a siege's news. |
 | `SkirmishFacts` | public class | The facts of one small fight a companion shared with the player, as its memory line reads them. |
 | `SkirmishFoe` | public class | The other side of a small fight, as the game knows it. |
 | `SkirmishLine` | public class | A memory line already in a companion's profile, as the fold reads it. |

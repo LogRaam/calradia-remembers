@@ -374,6 +374,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("every_verb_taught", Severity.Light, "22/10/2026: arrange_match (tashmetu's groom-side ask of 20/10/2026), reinforce_garrison, share_intel, deliver_recruits and admit_secret_lover were registered and executable but sat in no teaching list, so their own teaching never reached a prompt; each testall drove the bridge directly and passed. Reads the LIVE VerbRegistry and asserts every one of CR's own verbs is composed by a teaching list of EncounterContextBuilder or named among the verbs taught by another path (pay_for_silence inline, the violence verbs by their catalogue line). Changes nothing", TestEveryVerbTaught),
          new SelfTest("registered_match", Severity.Light, "tashmetu (Nexus, 16/10/2026): a head of house agreed in the chat to a match another mod had proposed, and nothing happened. Finds a lawful match of another house at peace, wins the bride over and the head's regard for the player (a disposable test game), registers it through the PUBLIC CrMatches.Register, checks a decider with no say is refused at the door, that the head is taught the match (and that the teaching reaches his REAL prompt, EncounterContextBuilder.Build), then settles it through the REAL bridge (arrange_match): the game weds them, CrMatches.Settled reports it, and the match is no longer pending. Restores the head's regard; the marriage stays", TestRegisteredMatch),
          new SelfTest("heart_intimacy", Severity.Light, "Gabriel (23/10/2026): at Hardcore only, the nights the player shared with a character show in Heart on both pages, sober as a diary; the prisoners the player took by force are told in the player's Misdeeds section, not under Heart ('Heart doit etre une section sur l'amour et le desir'), never what was done to the player. Arranges a companion of the other sex with two nights (a hundred days ago and today, marked [SELFTEST] and replaced on a rerun) and a lord the player took by force while a prisoner, then reads both pages through HeartPageReader and MisdeedsPageReader at Hardcore: her page counts the nights, the player's Heart names her nights and not the forced act, the player's Misdeeds tells it; at Explicit none of it shows. The adult level is put back; the nights and the record stay on the test save so the pages can be opened afterwards.", TestHeartIntimacy),
+         new SelfTest("battle_reader", Severity.Light, "chmidt (Nexus, 23/10/2026): companions forget their own part in a fight, and a lord will not believe his city was besieged, knowing only who holds it. Arranges a companion in the main party with no profile, feeds a small fight's journal (the companion felled four men and was struck down) to the real small-fights path twice: the folded line still counts both fights and ends with the companion's own part in the last. Then records a siege begun on a real town by a real lord's party: the news names the besieger, and the town's holder and a lord of the besieger's realm both KNOW it through WorldEventStore.GetKnownEvents (not merely written). The profile and the event are put back.", TestBattleReader),
          new SelfTest("combat_journal", Severity.Light, "chmidt (Nexus, 23/10/2026): companions 'can't remember the last battle you fought with them, how many kills they had or if they were downed'. Gabriel: one capture for every fight and every hero, read by a battle, a tournament or a duel reader. Feeds the real journal through its seams (a hero who felled seven men, bested one lord and was struck down by another) and reads his own part through BattleFeatReporter as a battle (cut down, bested, struck down) and as a tournament (out of the lists, no one cut down); then checks the journal's binding: a tournament's journal is never taken for a battle, a battle's never for a tournament, and each is consumed once.", TestCombatJournal),
          new SelfTest("deed_regard", Severity.Light, "Gabriel (23/10/2026): 'il faudrait que pour chaque action il y a un impact sur l'estime, qu'il soit positif ou negatif', after Arcor, whose wife the player took, was missing from 'Hold you in contempt'. Picks a lord the player never spoke to (no profile) with a living spouse, applies the deed 'took his spouse' through DeedRegardApplier (the one path every deed site calls), and checks his profile was made and his regard fell by DeedRegardPolicy's number into contempt, and his spouse's by the kin number; then a gift of 2,000 denars warms by the gift scale. Every regard is put back and a profile the test made is removed.", TestDeedRegard),
          new SelfTest("misdeeds_page", Severity.Light, "Gabriel (23/10/2026): the player's page has a Misdeeds section, 'trahisons, extortions, et tout autres gestes qui pourraient etres classes comme misdeeds', 'adultere est un misdeed'; the captive scenes at Hardcore only, the rest at every level. Arranges, on the test save, an adultery against a companion of the other sex, a lord prisoner handed to his enemies, robbed and taken by force, and the oath to a realm forsaken, then reads the player's page through MisdeedsPageReader with adult content Off: the adultery, the prisoner handed over, the robbery and the realm show, the act of force does not; at Hardcore it does; a character's page has no Misdeeds. The adult level is put back; the records stay on the test save.", TestMisdeedsPage),
@@ -14142,6 +14143,63 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             CrSettings.Instance.AdultContentLevel.SelectedValue = keep;
+         }
+
+         return t.Line();
+      }
+
+      private static string TestBattleReader(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("battle_reader");
+         if (t.Abort(behavior?.Store == null || MobileParty.MainParty == null || WorldEventStore.Instance == null || behavior.WorldFeeders == null,
+                     "the store, the main party or the world feeders are not ready")) return t.Line();
+
+         using var arranged = ArrangedCompanion.Get(behavior, mustBeInMainParty: true);
+         if (t.Skip(arranged == null, "the player has no companion at all, and no wanderer template to arrange one")) return t.Line();
+         Hero companion = arranged.Companion;
+         NpcProfile original = behavior.Store.Get(companion.StringId);
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+         string player = Hero.MainHero?.Name?.ToString() ?? "the player";
+         WorldEvent siege = null;
+
+         try
+         {
+            behavior.Store.Remove(companion.StringId);
+            var first = new CalradiaRemembers.Battles.BattleFeatJournal();
+            first.DebugTally(companion.StringId, 2, null, null);
+            WorldEventFeeders.RecordCompanionSkirmishMemories(today, new SkirmishFacts {PlayerName = player, Foe = "a band of Looters", PlayerWon = true, PlaceClause = ""},
+                                                              CalradiaRemembers.Battles.BattleFeatReport.ForOwnParts(first));
+            var second = new CalradiaRemembers.Battles.BattleFeatJournal();
+            second.DebugTally(companion.StringId, 4, null, "");
+            WorldEventFeeders.RecordCompanionSkirmishMemories(today, new SkirmishFacts {PlayerName = player, Foe = "men of Vlandia", PlayerWon = false, PlaceClause = ""},
+                                                              CalradiaRemembers.Battles.BattleFeatReport.ForOwnParts(second));
+
+            NpcProfile profile = behavior.Store.Get(companion.StringId);
+            var lines = profile?.Events.Where(e => SkirmishMemoryText.CountIn(e?.summary, player) > 0).ToList() ?? new List<NotableEvent>();
+            string line = lines.LastOrDefault()?.summary ?? "";
+            t.Note($"{companion.Name}: {line}");
+            t.Expect("theFightsStillFoldIntoOneLine", lines.Count, 1);
+            t.Expect("theLineStillCountsBothFights", SkirmishMemoryText.CountIn(line, player), 2);
+            t.Expect("theCompanionTellsTheirOwnPartInTheLast", line.EndsWith("My own part: I cut down four of their men, before I was struck down.", StringComparison.Ordinal), true);
+
+            Settlement town = Settlement.All.FirstOrDefault(s => s.IsTown && s.Owner != null && s.Owner != Hero.MainHero && s.MapFaction != null);
+            MobileParty besieger = MobileParty.All.FirstOrDefault(p => p.LeaderHero is {IsLord: true} lh && lh != Hero.MainHero && p.MapFaction != null
+                                                                        && town != null && p.MapFaction != town.MapFaction && !p.MapFaction.IsBanditFaction);
+            if (t.Skip(town == null || besieger == null, "no town held by a lord, or no lord's party of another realm")) return t.Line();
+
+            siege = behavior.WorldFeeders.DebugRecordSiegeNews(town, besieger, lifted: false);
+            t.Note($"siege: {siege?.Summary}");
+            t.Expect("theNewsNamesTheBesieger", siege?.Summary?.Contains(besieger.LeaderHero.Name.ToString()) == true, true);
+            t.Expect("theTownsHolderKnowsIt", WorldEventStore.Instance.GetKnownEvents(town.Owner, today, 200).Any(e => e.Id == siege?.Id), true);
+            Hero ofTheBesiegersRealm = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.MapFaction == besieger.MapFaction && h != besieger.LeaderHero && h != Hero.MainHero);
+            if (ofTheBesiegersRealm != null)
+               t.Expect("aLordOfTheBesiegersRealmKnowsIt", WorldEventStore.Instance.GetKnownEvents(ofTheBesiegersRealm, today, 200).Any(e => e.Id == siege?.Id), true);
+         }
+         finally
+         {
+            if (original != null) behavior.Store.Set(original);
+            else behavior.Store.Remove(companion.StringId);
+            if (siege?.Id != null) WorldEventStore.Instance.Remove(siege.Id);
          }
 
          return t.Line();

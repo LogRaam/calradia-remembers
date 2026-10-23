@@ -217,6 +217,12 @@ namespace CalradiaRemembers.Battles
       /// </summary>
       public string OwnPartFor(string recipientHeroId) => BattleFeatReporter.OwnPartOf(_journal, recipientHeroId, arena: false);
 
+      /// <summary>The battle was fought in a mission (false for an auto-resolved one, which has no one's deeds to tell).</summary>
+      public bool HadAMission => _journal != null;
+
+      /// <summary>A report for a fight with a mission journal but no deed of the player's own (a small fight's).</summary>
+      internal static BattleFeatReport ForOwnParts(BattleFeatJournal journal) => new BattleFeatReport(null, null, null, journal);
+
       /// <summary>The player as these memory lines name them, never "you": see BattleMemoryText.NameOrPlayer.</summary>
       private static string PlayerName => Hero.MainHero?.Name?.ToString() ?? "the player";
 

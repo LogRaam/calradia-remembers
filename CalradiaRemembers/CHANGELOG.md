@@ -43,6 +43,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   lords, know the edicts where they live: who decreed it, what it does, how long it holds, whether they grumble or
   contest it, and one they forced off. `cr.edict` lists them and pulls the levers; cr.testall `edict_effects`,
   `enact_edict`. For Compact users: each action's description in the interpreter is cut at 86 characters (was 88).
+- **Companions remember their own part in a fight, and sieges are news** (chmidt 23/10: companions "can't remember
+  the last battle you fought with them, how many kills they had or if they were downed", and a lord would not believe
+  his city had been besieged, "only knowing who owned the city afterwards"). Every hero present now has their own
+  part counted in the fight (troops felled, foes of name bested, struck down and by whom), and their memory of it ends
+  with it: "My own part: I cut down seven of their men and bested Lucon, before Ira struck me down." For great battles
+  (lords who fought, companions in the party) and for small fights alike, where the companion's folded "small fights"
+  line now ends with their part in the last one (it was lost before). An auto-resolved battle has no one's deeds to
+  tell; a companion it left wounded says only that. A foe is slain only when the campaign says dead. A siege begun and
+  a siege lifted are now news, naming the besieger and both realms, which the two realms and the country around it
+  hear of; a capture was already. cr.testall `battle_reader`.
 - **Nights in the Heart section, at Hardcore only** (Gabriel 23/10: consensual nights "apparaissent sur la page du
   joueur", "les actes que le joueur a fait subir peuvent apparaitre", "les scenes forcees subies par le joueur ne sont pas
   affichees", sober "du genre de quelque chose que le joueur aurait pu ecrire dans son journal intime"). A character's

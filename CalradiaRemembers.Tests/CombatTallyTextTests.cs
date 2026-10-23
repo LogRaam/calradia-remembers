@@ -66,6 +66,13 @@ namespace CalradiaRemembers.Tests
          CombatTallyText.OwnPart(null).Should().BeEmpty();
       }
 
+      // STAKE: an auto-resolved battle has no mission; only the wound the campaign knows of is told, never invented kills.
+      [Test]
+      public void GIVEN_an_auto_resolved_battle_WHEN_a_wounded_companion_remembers_THEN_only_the_wound_is_told()
+      {
+         CombatTallyText.CameOutWounded().Should().Be("My own part: I came out of it wounded.");
+      }
+
       // STAKE: no one is cut down or slain in the lists; a tournament is told as one.
       [Test]
       public void GIVEN_a_tournament_WHEN_worded_THEN_it_speaks_of_the_lists()

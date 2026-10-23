@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-582 rules read 446 facts.
+585 rules read 446 facts.
 
 ## Facts read by more than one rule
 
@@ -56,6 +56,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.Children` (10) | `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `HeartFacts`, `HeartPagePolicy.Lines`, `HeartPagePolicy.RecapLine`, `RomanceBondPolicy.Read`, `SeductionFacts`, `ThirdPartyDescriptor.KnowledgeOf`, `ThirdPartyDescriptor.WhereaboutsClause`, `ThirdPartyFacts` |
 | `Hero.Name` (10) | `BattleRecordText.Summary`, `BattleSideFacts`, `BountyConfirmationFacts`, `Edict`, `OutlawPolicy.BountyPrice`, `QuestMenuEntry`, `SkirmishFacts`, `SkirmishFoe`, `SkirmishLine`, `SkirmishMemoryText.CountIn` |
 | `Hero.OneToOneConversationHero` (10) | `BriefingReturnDecision.Decide`, `BriefingReturnDecision.HostIsLive`, `CommonerChatContext`, `LandfallFacts`, `NemesisBountyRewardPolicy.ComputeGold`, `NemesisBountyRewardPolicy.ComputeRelation`, `NemesisRumorLine.Compose`, `RoadAudienceFacts`, `StagedStartFacts`, `StagingHostFacts` |
+| `MobileParty.LeaderHero` (10) | `DeedRefusal`, `EscortEligibilityPolicy.Refusal`, `EscortEligibilityPolicy.ShouldWarnOfMuster`, `EscortFacts`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `RideWithMeFacts`, `SiegeNews`, `SiegeRecordText.Lifted`, `SiegeRecordText.Started` |
 | `Romantic.IsConsort` (10) | `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Settlement.IsUnderSiege` (10) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts`, `AssemblyTravelFacts`, `AssemblyTravelOutcome.Evaluate`, `ChaseFacts`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `SettlementSafetyFacts` |
 | `Settlement.OwnerClan` (10) | `EdictDecreeFacts`, `EdictStandingFacts`, `FiefRewardFacts`, `HistoryKnowledgeFacts`, `LongTermHistoryPolicy.WouldKnow`, `PlayerStandingFacts`, `PlayerStandingPolicy.Resolve`, `PrisonerRecruitmentPolicy.Evaluate`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend` |
@@ -77,7 +78,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Clan.Influence` (7) | `ClaimantBackerFacts`, `CourtActionPolicy.CanAffordInfluenceGrant`, `CourtActionPolicy.ClanNeedsInfluence`, `EdictDecreeFacts`, `KingdomPowerFacts`, `PressForWarFacts`, `PressForWarPolicy.WhyNot` |
 | `DayMoodReader.Draw` (7) | `CorrespondencePreferenceParser.Parse`, `LetterRegardPolicy.ParseTone`, `LetterRegardPolicy.StripToneLine`, `LetterReplyDecisionParser.Parse`, `PatrolLetterText.OrdersStop`, `PatrolLetterText.StripOrderLine`, `PerceivedImageFacts` |
 | `GetPosition2D.Distance` (7) | `AuthoredQuestEngine.NightPassed`, `ChaseFacts`, `CompanionPatrolPolicy.ShouldReissue`, `NewsDestinationSelector.Choose`, `PatrolLeashFacts`, `RumorAwareness.Explain`, `SharedPastPairFacts` |
-| `MobileParty.LeaderHero` (7) | `DeedRefusal`, `EscortEligibilityPolicy.Refusal`, `EscortEligibilityPolicy.ShouldWarnOfMuster`, `EscortFacts`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `RideWithMeFacts` |
 | `MobileParty.Party` (7) | `GiftEquipFacts`, `GiftEquipPolicy.WearsOnBattleSet`, `InterceptionFacts`, `InterceptionPolicy.Choose`, `InterceptionPolicy.IsRoadValid`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend` |
 | `ModSettings.RelationWarmth` (7) | `CompanionSecretAffectionPolicy.MinRegardFor`, `CompanionSecretAffectionPolicy.ShouldConfideThisWeek`, `IntimacyPacingRules.Relief`, `LetterRegardFacts`, `RegardProposal`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `PartyBase.MapFaction` (7) | `CourierLossFacts`, `CourierSecretPolicy.BecomesSecret`, `CourierSecretPolicy.IsResent`, `CourierSecretPolicy.SenderLossMemory`, `HeroNaming`, `MeetingLeaveFacts`, `RescueCaptorFacts` |
@@ -786,6 +786,9 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `SettlementSafetyFacts`: `AccessLevel.FullAccess`, `Current.IsMainHeroDisguised`, `Hero.MapFaction`, `MapFaction.IsAtWarWith`, `Models.SettlementAccessModel`, `Settlement.IsUnderSiege`, `Settlement.IsVillage`, `Settlement.MapFaction`, `SettlementAccessModel.CanMainHeroEnterSettlement`, `Village.VillageState`, `VillageStates.BeingRaided`
 - `SharedIntimacyFacts`: `GameStateBridge.PermitsIntimacyWith`, `ModSettings.AdultContentLevel`
 - `SharedPastPairFacts`: `AgeModel.HeroComesOfAge`, `CharacterRelationManager.GetHeroRelation`, `Clan.Settlements`, `GetPosition2D.Distance`, `Hero.Clan`, `Hero.Culture`, `Hero.ExSpouses`, `Hero.GetTraitLevel`, `Hero.HomeSettlement`, `Hero.IsFemale`, `Hero.IsLord`, `Hero.MapFaction`, `Hero.Spouse`, `Settlement.GetPosition2D`, `Settlement.IsTown`
+- `SiegeNews`: `MobileParty.LeaderHero`
+- `SiegeRecordText.Lifted`: `MobileParty.LeaderHero`
+- `SiegeRecordText.Started`: `MobileParty.LeaderHero`
 - `SkirmishFacts`: `BattleTypes.Raid`, `Hero.Name`, `LeaderParty.LeaderHero`, `MapEvent.EventType`, `MapEvent.GetMapEventSide`, `MapEvent.MapEventSettlement`, `MapEvent.WinningSide`, `MapEventSide.LeaderParty`, `MapFaction.IsBanditFaction`, `Party.LeaderHero`
 - `SkirmishFoe`: `Hero.Name`, `LeaderParty.LeaderHero`, `MapEvent.GetMapEventSide`, `MapEventSide.LeaderParty`, `MapFaction.IsBanditFaction`, `Party.LeaderHero`
 - `SkirmishLine`: `Character.HeroObject`, `Events.FindLastIndex`, `Hero.Clan`, `Hero.Name`, `Store.Set`

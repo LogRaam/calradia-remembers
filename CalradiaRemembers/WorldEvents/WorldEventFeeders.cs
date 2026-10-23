@@ -18,6 +18,7 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.MapEvents;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.CampaignSystem.Siege;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 
@@ -104,6 +105,9 @@ namespace CalradiaRemembers.WorldEvents
          CampaignEvents.OnGivenBirthEvent.AddNonSerializedListener(this, OnGivenBirth);
          CampaignEvents.HeroPrisonerTaken.AddNonSerializedListener(this, OnHeroPrisonerTaken);
          CampaignEvents.HeroPrisonerReleased.AddNonSerializedListener(this, OnHeroPrisonerReleased);
+         // chmidt (23/10/2026): a siege under way or lifted was news to no one; only a capture was recorded.
+         CampaignEvents.OnSiegeEventStartedEvent.AddNonSerializedListener(this, OnSiegeStarted);
+         CampaignEvents.OnSiegeEventEndedEvent.AddNonSerializedListener(this, OnSiegeEnded);
          ModLog.Info("WorldEventFeeders subscribed.");
       }
 
@@ -186,7 +190,7 @@ namespace CalradiaRemembers.WorldEvents
                string summary = ally
                   ? BattleMemoryText.AllySummary(playerWon, placeClause, sharedEffort, PlayerName)
                   : $"Faced {PlayerName} in battle and {(playerWon ? "saw them put my host to flight" : "held the field against them")}{placeClause}.";
-               profile.Events.Add(new NotableEvent(day, NotableEventType.Other, summary));
+               profile.Events.Add(new NotableEvent(day, NotableEventType.Other, WithOwnPart(summary, deeds, h)));
 
                // They were there, so they speak of the deeds first-hand (the LIVED register).
                foreach (string deed in deeds.LinesFor(h.StringId))
@@ -238,7 +242,7 @@ namespace CalradiaRemembers.WorldEvents
 
             if (companion == null) continue; // only companions the player has actually met
 
-            companion.Events.Add(new NotableEvent(day, NotableEventType.Other, BattleMemoryText.AllySummary(playerWon, placeClause, sharedEffort, PlayerName)));
+            companion.Events.Add(new NotableEvent(day, NotableEventType.Other, WithOwnPart(BattleMemoryText.AllySummary(playerWon, placeClause, sharedEffort, PlayerName), deeds, h)));
 
             // A companion rode at the player's shoulder, so they witnessed the deeds too.
             if (deeds != null)
@@ -250,6 +254,22 @@ namespace CalradiaRemembers.WorldEvents
 
             behavior.Store.Set(companion);
          }
+      }
+
+      /// <summary>
+      ///   A memory of a fight with the hero's OWN part appended (chmidt, 23/10/2026: what they felled, whether they were
+      ///   downed, by whom), in the same event so a fight stays one memory. Appended, never reworded: the openings are
+      ///   read elsewhere (SkirmishMemoryText.CountIn, LostBattleToPlayerRecently). An auto-resolved battle has no mission
+      ///   to tell deeds; a hero the campaign left wounded says only that. With no report at all (a self-test seam), the
+      ///   line is left as it was.
+      /// </summary>
+      private static string WithOwnPart(string line, BattleFeatReport deeds, Hero h)
+      {
+         if (deeds == null || h == null) return line;
+
+         string own = deeds.HadAMission ? deeds.OwnPartFor(h.StringId) : h.IsWounded ? CombatTallyText.CameOutWounded() : string.Empty;
+
+         return string.IsNullOrEmpty(own) ? line : $"{line} {own}";
       }
 
       /// <summary>
@@ -282,12 +302,17 @@ namespace CalradiaRemembers.WorldEvents
             ? BattleSetting.Raid
             : BattleSetting.OpenField;
 
+         // The small fight's own journal (it was lost before: only a notable battle consumed it), so each companion
+         // can say what they did in the last of their small fights.
+         BattleFeatJournal journal = BattleFeatJournal.ConsumeFor(mapEvent);
+         BattleFeatReport ownParts = journal == null ? BattleFeatReport.Empty : BattleFeatReport.ForOwnParts(journal);
+
          RecordCompanionSkirmishMemories(Today, new SkirmishFacts {
             PlayerName = PlayerName,
             Foe = foe,
             PlayerWon = mapEvent.WinningSide == playerSide,
             PlaceClause = BattleMemoryText.PlaceClause(setting, place?.Name?.ToString())
-         });
+         }, ownParts);
       }
 
       /// <summary>
@@ -295,7 +320,7 @@ namespace CalradiaRemembers.WorldEvents
       ///   same companions <see cref="RecordCompanionBattleMemories" /> visits), or starts that memory. Returns how
       ///   many companions it reached. Also the cr.testall seam (companion_skirmish_memory).
       /// </summary>
-      internal static int RecordCompanionSkirmishMemories(int day, SkirmishFacts fight)
+      internal static int RecordCompanionSkirmishMemories(int day, SkirmishFacts fight, BattleFeatReport ownParts = null)
       {
          var behavior = NpcMemoryCampaignBehavior.Instance;
 
@@ -325,7 +350,7 @@ namespace CalradiaRemembers.WorldEvents
                companion.Events.RemoveAt(at);
             }
 
-            companion.Events.Add(new NotableEvent(day, NotableEventType.Other, SkirmishMemoryText.Line(count, fight)));
+            companion.Events.Add(new NotableEvent(day, NotableEventType.Other, WithOwnPart(SkirmishMemoryText.Line(count, fight), ownParts, h)));
             behavior.Store.Set(companion);
             reached++;
          }
@@ -883,6 +908,91 @@ namespace CalradiaRemembers.WorldEvents
 
          return RecordSiegeCapture(settlement, taker, taker, oldOwner);
       }
+
+      // ── Sieges begun and lifted (chmidt, 23/10/2026) ───
+
+      // The realm that held each besieged place when the siege began, so its end can tell a lifting from a capture.
+      // Not saved: a siege that spans a reload ends without it, and then a capture is told by OnSettlementOwnerChanged
+      // and a lifting by the place still not belonging to the besieger's realm.
+      private readonly Dictionary<string, string> _siegeHolders = new Dictionary<string, string>();
+
+      private void OnSiegeStarted(SiegeEvent siege)
+      {
+         try
+         {
+            Settlement place = siege?.BesiegedSettlement;
+            if (place == null || Store == null) return;
+
+            _siegeHolders[place.StringId] = place.MapFaction?.StringId;
+            RecordSiegeNews(place, siege.BesiegerCamp?.LeaderParty, lifted: false);
+         }
+         catch (Exception ex) { ModLog.Error($"[WORLD] siege start feeder failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      private void OnSiegeEnded(SiegeEvent siege)
+      {
+         try
+         {
+            Settlement place = siege?.BesiegedSettlement;
+            if (place == null || Store == null) return;
+
+            _siegeHolders.TryGetValue(place.StringId, out string heldBy);
+            _siegeHolders.Remove(place.StringId);
+            MobileParty besieger = siege.BesiegerCamp?.LeaderParty;
+            bool stillHeld = heldBy != null
+               ? place.MapFaction?.StringId == heldBy
+               : besieger?.MapFaction != null && place.MapFaction != besieger.MapFaction;
+            if (stillHeld) RecordSiegeNews(place, besieger, lifted: true); // a capture is told by OnSettlementOwnerChanged
+         }
+         catch (Exception ex) { ModLog.Error($"[WORLD] siege end feeder failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>
+      ///   The news of a siege begun or lifted: the besieger and the place's holder as actors, both realms, the place, so
+      ///   the two realms and the country around it hear of it (RumorAwareness). Returns the event recorded.
+      /// </summary>
+      private WorldEvent RecordSiegeNews(Settlement place, MobileParty besiegerParty, bool lifted)
+      {
+         Hero besieger = besiegerParty?.LeaderHero;
+         Hero holder = place.Owner;
+         var news = new SiegeNews {
+            Besieger = besieger != null ? Named(besieger) : besiegerParty?.Name?.ToString(),
+            BesiegerRealm = besiegerParty?.MapFaction?.Name?.ToString(),
+            Place = place.Name?.ToString(),
+            PlaceRealm = place.MapFaction?.Name?.ToString()
+         };
+         bool playerIn = besiegerParty == MobileParty.MainParty || holder == Hero.MainHero;
+         var factions = new List<string>();
+         if (besiegerParty?.MapFaction != null) factions.Add(besiegerParty.MapFaction.StringId);
+         if (place.MapFaction != null && !factions.Contains(place.MapFaction.StringId)) factions.Add(place.MapFaction.StringId);
+
+         var e = new WorldEvent {
+            Id = $"cr_siege_{(lifted ? "lifted" : "begun")}_{place.StringId}_{Today}",
+            Type = playerIn ? WorldEventType.PlayerFeat : WorldEventType.Battle,
+            Day = Today,
+            PlaceId = place.StringId,
+            Magnitude = lifted ? SiegeRecordText.LiftedMagnitude : SiegeRecordText.StartedMagnitude,
+            InvolvesPlayer = playerIn,
+            Summary = lifted ? SiegeRecordText.Lifted(news) : SiegeRecordText.Started(news),
+            ActorIds = Ids(besieger, holder),
+            FactionIds = factions,
+            Status = lifted ? SiegeLiftedStatus : SiegeBegunStatus
+         };
+         Store.Record(e);
+         ModLog.Info($"[WORLD] {e.Summary}");
+
+         return e;
+      }
+
+      /// <summary>The Status of a siege begun (chmidt, 23/10/2026).</summary>
+      public const string SiegeBegunStatus = "siege_begun";
+
+      /// <summary>The Status of a siege lifted.</summary>
+      public const string SiegeLiftedStatus = "siege_lifted";
+
+      /// <summary>Self-test seam (cr.testall battle_reader): records a siege's news as the listeners would.</summary>
+      public WorldEvent DebugRecordSiegeNews(Settlement place, MobileParty besieger, bool lifted)
+         => place == null || Store == null ? null : RecordSiegeNews(place, besieger, lifted);
 
       // ── Political ascent (vassalage, defection, rulership) — player clan only ───
 

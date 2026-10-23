@@ -92,6 +92,12 @@ namespace CalradiaRemembers.Logic.Battles
          return fall.Length == 0 ? $"My own part: {done}." : $"My own part: {done}, before {fall}.";
       }
 
+      /// <summary>
+      ///   An auto-resolved battle has no mission to tell anyone's deeds; the campaign still knows who came out of it
+      ///   wounded, and nothing more is claimed.
+      /// </summary>
+      public static string CameOutWounded() => "My own part: I came out of it wounded.";
+
       private static string Count(int n) => n < Numbers.Length ? Numbers[n] : n.ToString();
    }
 }
