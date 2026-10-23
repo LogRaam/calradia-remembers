@@ -15,7 +15,9 @@
 // froggyluv (Nexus, 22/10/2026): hunters of two realms "constantly" on him, even inside a 2000-strong army, and "I've
 // disabled that in options but they're still showing up"; a ransom broker offered no way to settle. Gabriel (23/10/2026):
 // the option off lifts every bounty; no hunters against a player marching in another's army; the bounty can be PAID to a
-// lord of the realm, in conversation. So a bounty now also ends when paid, or when the option is turned off.
+// lord of the realm, in conversation. So a bounty now also ends when paid, or when the option is turned off. Asked again
+// whether a caravan should still bring two bounties, Gabriel (23/10/2026) kept both: a caravan is business between two
+// realms, and both suffer its loss.
 
 #region
 

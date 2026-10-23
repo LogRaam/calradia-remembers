@@ -66,8 +66,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   `OutlawPolicy.BountyPrice` (3000 brigandage, 6000 flight, TUNE), taught with the exact price, confirmed [Y/n] naming
   lord, realm and price; the gold goes to the lord. SDK: catalogue line and three bench phrasings;
   `ActionVocabularyPolicy.LeanDescriptionChars` 86 -> 84 (the Compact interpreter head was 35 over). Not changed: a
-  caravan attack still brings a bounty from its sender and its destination (Gabriel's ruling of 26/09), pending
-  froggyluv's log. testall `bounty_settled`.
+  caravan attack still brings a bounty from its sender and its destination (Gabriel's ruling of 26/09, kept 23/10: a
+  caravan is business between two realms, and both suffer its loss). testall `bounty_settled`.
 
 ## v2.7.19.. 2026-10-22
 
