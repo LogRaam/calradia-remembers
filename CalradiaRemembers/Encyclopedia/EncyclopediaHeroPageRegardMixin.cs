@@ -257,7 +257,8 @@ namespace CalradiaRemembers.Encyclopedia
                Name = c.Name?.ToString(), Id = c.StringId, Derived = r.Verdict,
                DerivedReason = PairRegardPolicy.WithoutThePair(PairRegardPolicy.PageReason(r), lord.Name?.ToString(), other.Name?.ToString()),
                VanillaRelation = CharacterRelationManager.GetHeroRelation(lord, other), AtWar = atWar,
-               Through = lord == hero && _explained.Contains(other) ? other.Name?.ToString() : null
+               Through = lord == hero && _explained.Contains(other) ? other.Name?.ToString() : null,
+               Lord = lord.Name?.ToString(), OtherLord = other.Name?.ToString()
             });
          }
 
@@ -266,14 +267,16 @@ namespace CalradiaRemembers.Encyclopedia
 
          // Gabriel (22/10/2026): one row per reason, the houses' banners side by side, pale green for affinity and red
          // for odds (the colour replaces the "At odds" / "Of affinity" subtitles of 20/10); the war under its house.
+         // Gabriel (23/10/2026): a house on the vanilla number alone has its own row, the banner then the line naming
+         // both heads of house, the war on that line.
          CalradiaRegardHousesLabel = "Houses:";
          foreach (ClanRegardGroup g in groups)
          {
-            var row = new RegardHouseRowVM(g.Reason == null ? "Named above, through their lord" : Capitalised(g.Reason), g.Affinity);
+            var row = new RegardHouseRowVM(g.Reason == null ? "Named above, through their lord" : Capitalised(g.Reason), g.Affinity, g.OneHouse);
             foreach (ClanRegardHouse h in g.Houses)
             {
                Clan clan = Clan.All.FirstOrDefault(c => c?.StringId == h.Id);
-               if (clan != null) row.Houses.Add(new RegardHouseVM(clan, HouseNote(h)));
+               if (clan != null) row.Houses.Add(new RegardHouseVM(clan, g.OneHouse ? "" : HouseNote(h)));
             }
 
             if (row.Houses.Count > 0) _houseRows.Add(row);

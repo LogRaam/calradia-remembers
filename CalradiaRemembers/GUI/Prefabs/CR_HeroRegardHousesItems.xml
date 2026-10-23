@@ -1,6 +1,9 @@
 <DummyRoot>
   <!-- Gabriel (22/10/2026): one row per reason the houses share, their banners side by side, the reason above, a pale
-       green (affinity) or red (odds) marker; the war and "through" a lord under the house they belong to. -->
+       green (affinity) or red (odds) marker; the war and "through" a lord under the house they belong to.
+       Gabriel (23/10/2026): a house on the vanilla number alone is a row of its own, its banner then its line (the two
+       heads of house named, the number, the war). A hidden widget measures zero (Widget.Measure, 1.4.8), so each row
+       shows one of the two layouts. -->
   <ListPanel DataSource="{CalradiaRegardHouseRows}"
              StackLayout.LayoutMethod="VerticalTopToBottom"
              WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
@@ -9,42 +12,71 @@
     <ItemTemplate>
       <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginBottom="8">
         <Children>
-          <!-- The marker has a fixed height (a line of reason over the banners): a StretchToParent child inside a CoverChildren row is measured against
-               all the room the page offers (Widget.Measure, 1.4.8), so each row stood as tall as the page (Gabriel 23/10). -->
-          <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="5" SuggestedHeight="150" HorizontalAlignment="Left"
-                  VerticalAlignment="Top" Sprite="BlankWhiteSquare_9" Color="#9CCB8CFF" IsVisible="@IsFriend" />
-          <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="5" SuggestedHeight="150" HorizontalAlignment="Left"
-                  VerticalAlignment="Top" Sprite="BlankWhiteSquare_9" Color="#C0453CFF" IsHidden="@IsFriend" />
-          <ListPanel StackLayout.LayoutMethod="HorizontalLeftToRight"
-                     WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginLeft="5">
+          <!-- A reason over the banners that share it. -->
+          <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" IsHidden="@IsOneHouse">
             <Children>
-          <ListPanel StackLayout.LayoutMethod="VerticalTopToBottom"
-                     WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-                     VerticalAlignment="Top" MarginLeft="10">
-            <Children>
-              <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-                              Brush="Encyclopedia.Stat.ValueText" Brush.TextHorizontalAlignment="Left"
-                              Text="@Reason" />
-              <ListPanel DataSource="{Houses}" StackLayout.LayoutMethod="HorizontalLeftToRight"
-                         WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" MarginTop="6">
-                <ItemTemplate>
-                  <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="100" SuggestedHeight="120">
-                    <Children>
-                      <EncyclopediaClanSubPageElement DataSource="{Faction}" Parameter.IsBig="false"
-                                                      HorizontalAlignment="Center" VerticalAlignment="Top" />
-                      <AutoHideRichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
-                                              VerticalAlignment="Bottom"
-                                              Brush="Encyclopedia.SubPage.Element.Name.Text"
-                                              Brush.TextHorizontalAlignment="Center"
-                                              Text="@Note" />
-                    </Children>
-                  </Widget>
-                </ItemTemplate>
+              <!-- The marker has a fixed height (a line of reason over the banners): a StretchToParent child inside a CoverChildren row is measured against
+                   all the room the page offers (Widget.Measure, 1.4.8), so each row stood as tall as the page (Gabriel 23/10). -->
+              <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="5" SuggestedHeight="150" HorizontalAlignment="Left"
+                      VerticalAlignment="Top" Sprite="BlankWhiteSquare_9" Color="#9CCB8CFF" IsVisible="@IsFriend" />
+              <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="5" SuggestedHeight="150" HorizontalAlignment="Left"
+                      VerticalAlignment="Top" Sprite="BlankWhiteSquare_9" Color="#C0453CFF" IsHidden="@IsFriend" />
+              <ListPanel StackLayout.LayoutMethod="VerticalTopToBottom"
+                         WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                         VerticalAlignment="Top" MarginLeft="15">
+                <Children>
+                  <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                  Brush="Encyclopedia.Stat.ValueText" Brush.TextHorizontalAlignment="Left"
+                                  Text="@Reason" />
+                  <ListPanel DataSource="{Houses}" StackLayout.LayoutMethod="HorizontalLeftToRight"
+                             WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" MarginTop="6">
+                    <ItemTemplate>
+                      <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="100" SuggestedHeight="120">
+                        <Children>
+                          <EncyclopediaClanSubPageElement DataSource="{Faction}" Parameter.IsBig="false"
+                                                          HorizontalAlignment="Center" VerticalAlignment="Top" />
+                          <AutoHideRichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                                  VerticalAlignment="Bottom"
+                                                  Brush="Encyclopedia.SubPage.Element.Name.Text"
+                                                  Brush.TextHorizontalAlignment="Center"
+                                                  Text="@Note" />
+                        </Children>
+                      </Widget>
+                    </ItemTemplate>
+                  </ListPanel>
+                </Children>
               </ListPanel>
             </Children>
-          </ListPanel>
+          </Widget>
+          <!-- One house: its banner, then its line beside it. -->
+          <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" IsVisible="@IsOneHouse">
+            <Children>
+              <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="5" SuggestedHeight="120" HorizontalAlignment="Left"
+                      VerticalAlignment="Top" Sprite="BlankWhiteSquare_9" Color="#9CCB8CFF" IsVisible="@IsFriend" />
+              <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="5" SuggestedHeight="120" HorizontalAlignment="Left"
+                      VerticalAlignment="Top" Sprite="BlankWhiteSquare_9" Color="#C0453CFF" IsHidden="@IsFriend" />
+              <ListPanel StackLayout.LayoutMethod="HorizontalLeftToRight"
+                         WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginLeft="15">
+                <Children>
+                  <ListPanel DataSource="{Houses}" StackLayout.LayoutMethod="HorizontalLeftToRight"
+                             WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren" VerticalAlignment="Top">
+                    <ItemTemplate>
+                      <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="100" SuggestedHeight="120">
+                        <Children>
+                          <EncyclopediaClanSubPageElement DataSource="{Faction}" Parameter.IsBig="false"
+                                                          HorizontalAlignment="Center" VerticalAlignment="Top" />
+                        </Children>
+                      </Widget>
+                    </ItemTemplate>
+                  </ListPanel>
+                  <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                  VerticalAlignment="Center" MarginLeft="15"
+                                  Brush="Encyclopedia.Stat.ValueText" Brush.TextHorizontalAlignment="Left"
+                                  Text="@Reason" />
+                </Children>
+              </ListPanel>
             </Children>
-          </ListPanel>
+          </Widget>
         </Children>
       </Widget>
     </ItemTemplate>

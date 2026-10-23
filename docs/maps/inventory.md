@@ -378,7 +378,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroPageStandingAccordsPatchB` | internal class | Appends the "Standing accords:" header line to the hero encyclopedia page. |
 | `HeroPageTraumaPatchA` | internal class | Appends the Trauma lines (the aggressions a character lived through, Hardcore only) to the hero page. |
 | `HeroPageTraumaPatchB` | internal class | Appends the "Trauma:" header line to the hero page. |
-| `RegardHouseRowVM` | public class | One reason the houses share: their banners side by side, the reason above, a pale green or red marker. |
+| `RegardHouseRowVM` | public class | One reason the houses share: their banners side by side, the reason above, a pale green or red marker; or one house alone on the vanilla number, its banner then its line (Gabriel, 23/10/2026). |
 | `RegardHouseVM` | public class | One house of a row: the game's banner element, and a note beneath ("at war", "through Manteos"). |
 | `RegardPersonRowVM` | public class | One friend or enemy: the portrait, the status beside it, the reason beneath, a pale green or red marker. |
 

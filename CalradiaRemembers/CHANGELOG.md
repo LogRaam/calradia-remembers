@@ -62,6 +62,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   "through" a lord under the banner it belongs to; affinity rows first. The colour replaces the "At odds" / "Of
   affinity" subtitles. The game's Friends and Enemies grids below are unchanged. `ClanRegardListPolicy.Groups`,
   `RegardPersonRowVM`, `RegardHouseRowVM`; cr.testall `npc_regard_reason` extended.
+- **A house on the game's relation number names the two heads of house** (Gabriel 23/10: "deep trust between their
+  lords" was "pas tres clair", it read as every lord of both houses). The number is between the two heads of house only,
+  so such a house now has a row of its own, its banner then its line: "Hertogi and Ulfhild trust each other deeply
+  (+42)", "Hertogi and Lucon resent each other (-35); their realms are at war". The four bands: trust each other
+  deeply, hold each other in good regard, quietly distrust each other, resent each other. Houses sharing a story keep
+  sharing one row. `ClanRegardListPolicy.HeadsLine`.
 
 ### Fixed
 - **Bounties and their hunters** (froggyluv 22/10: hunters of Vlandia and the Southern Empire again and again, charging

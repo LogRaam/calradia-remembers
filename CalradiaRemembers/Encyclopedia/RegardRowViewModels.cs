@@ -50,15 +50,23 @@ namespace CalradiaRemembers.Encyclopedia
       }
    }
 
-   /// <summary>One reason the houses share: their banners side by side, the reason above, a pale green or red marker.</summary>
+   /// <summary>
+   ///   One reason the houses share: their banners side by side, the reason above, a pale green or red marker; or one
+   ///   house alone on the vanilla number, its banner then its line (Gabriel, 23/10/2026).
+   /// </summary>
    public sealed class RegardHouseRowVM : ViewModel
    {
-      public RegardHouseRowVM(string reason, bool isFriend)
+      public RegardHouseRowVM(string reason, bool isFriend, bool isOneHouse = false)
       {
          Reason = reason ?? "";
          IsFriend = isFriend;
+         IsOneHouse = isOneHouse;
          Houses = new MBBindingList<RegardHouseVM>();
       }
+
+      /// <summary>One house, its banner first and its line beside it, rather than a reason over banners.</summary>
+      [DataSourceProperty]
+      public bool IsOneHouse { get; }
 
       /// <summary>The reason the houses share.</summary>
       [DataSourceProperty]

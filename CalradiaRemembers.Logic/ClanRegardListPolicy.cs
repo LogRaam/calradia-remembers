@@ -8,6 +8,10 @@
 // as one dense block, "resentment between their lords" five or six times in a row, and a shared past shown twice, under
 // Why and again under the house. So the houses are grouped by reason, one line per reason, and a house whose lord is
 // already explained under Why is named through him instead of repeating the reason.
+// Gabriel (23/10/2026), on "deep trust between their lords": "c'est pas tres clair" (it read as every lord of both houses).
+// The vanilla number is between the two heads of house only, so a house that stands on it gets a row of its own, the two
+// heads named with the number ("Hertogi and Ulfhild trust each other deeply (+42)"), the banner first, the war on the
+// same line. A house with a story keeps sharing its row with the houses of the same story.
 
 #region
 
@@ -46,6 +50,12 @@ namespace CalradiaRemembers.Logic
         ///   listed "through" him rather than repeating it. Null otherwise.
         /// </summary>
         public string Through { get; init; }
+
+        /// <summary>The name of the page's head of house, one of the two the vanilla number is between.</summary>
+        public string Lord { get; init; }
+
+        /// <summary>The name of this house's head, the other of the two.</summary>
+        public string OtherLord { get; init; }
     }
 
     /// <summary>One house in a row of the houses list.</summary>
@@ -73,6 +83,12 @@ namespace CalradiaRemembers.Logic
         /// <summary>The reason the houses share; null for the houses named through their lord above.</summary>
         public string Reason { get; init; }
 
+        /// <summary>
+        ///   A house standing on the vanilla number alone: the row is that one house, its reason told after its banner,
+        ///   the war in the reason.
+        /// </summary>
+        public bool OneHouse { get; init; }
+
         /// <summary>The houses of the row, strongest first.</summary>
         public IReadOnlyList<ClanRegardHouse> Houses { get; init; }
     }
@@ -84,8 +100,9 @@ namespace CalradiaRemembers.Logic
         public const int MaxPerList = 6;
 
         /// <summary>
-        ///   The houses at odds and of affinity, one line per reason, the houses sharing it after it ("resentment between
-        ///   their lords: Osticos, dey Meroc (at war)"); the lines with a story first.
+        ///   The houses at odds and of affinity, one line per reason, the houses sharing it after it ("had his brother
+        ///   executed: Osticos, dey Meroc (at war)"); a house on the vanilla number alone, a line of its own ("Osticos:
+        ///   Hertogi and Ulfhild resent each other (-42); their realms are at war"); the lines with a story first.
         /// </summary>
         public static (IReadOnlyList<string> AtOdds, IReadOnlyList<string> Affinity) Lists(IEnumerable<ClanRegardCandidate> houses)
         {
@@ -107,8 +124,8 @@ namespace CalradiaRemembers.Logic
 
         private static (List<ClanRegardGroup> Odds, List<ClanRegardGroup> Affinity) Sides(IEnumerable<ClanRegardCandidate> houses)
         {
-            var odds = new List<(int Rank, string Reason, ClanRegardCandidate House)>();
-            var affinity = new List<(int Rank, string Reason, ClanRegardCandidate House)>();
+            var odds = new List<(int Rank, string Reason, bool OneHouse, ClanRegardCandidate House)>();
+            var affinity = new List<(int Rank, string Reason, bool OneHouse, ClanRegardCandidate House)>();
             // A house named through its lord carries no reason of its own (Reason null).
 
             foreach (ClanRegardCandidate c in houses ?? Array.Empty<ClanRegardCandidate>())
@@ -121,12 +138,12 @@ namespace CalradiaRemembers.Logic
 
                     // A derived verdict outranks any vanilla number: it has a story.
                     bool through = !string.IsNullOrWhiteSpace(c.Through);
-                    (c.Derived == PairRegardVerdict.Enemy ? odds : affinity).Add((1000, through ? null : c.DerivedReason, c));
+                    (c.Derived == PairRegardVerdict.Enemy ? odds : affinity).Add((1000, through ? null : c.DerivedReason, false, c));
                 }
                 else if (c.VanillaRelation <= global::NpcMemoryService.Core.Standing.VanillaRelation.EnemyTier)
-                    odds.Add((-c.VanillaRelation, $"{ThirdPartyDescriptor.DescribeRelation(c.VanillaRelation)} between their lords", c));
+                    odds.Add((-c.VanillaRelation, HeadsLine(c), true, c));
                 else if (c.VanillaRelation >= global::NpcMemoryService.Core.Standing.VanillaRelation.FriendTier)
-                    affinity.Add((c.VanillaRelation, $"{ThirdPartyDescriptor.DescribeRelation(c.VanillaRelation)} between their lords", c));
+                    affinity.Add((c.VanillaRelation, HeadsLine(c), true, c));
             }
 
             return (Grouped(odds, false), Grouped(affinity, true));
@@ -135,11 +152,14 @@ namespace CalradiaRemembers.Logic
         // The six strongest houses (design 8.2), then one row per reason, ordered by its strongest house; the houses
         // named through their lord last, as tashmetu laid it out ("...: Dvarroving, Rungniring; Skylfing, through
         // Hertogi Gornlautir").
-        private static List<ClanRegardGroup> Grouped(IEnumerable<(int Rank, string Reason, ClanRegardCandidate House)> side, bool affinity)
+        private static List<ClanRegardGroup> Grouped(IEnumerable<(int Rank, string Reason, bool OneHouse, ClanRegardCandidate House)> side, bool affinity)
         {
             var top = side.OrderByDescending(x => x.Rank).Take(MaxPerList).ToList();
-            List<ClanRegardGroup> groups = top.Where(x => x.Reason != null).GroupBy(x => x.Reason)
-                                              .Select(g => new ClanRegardGroup {Affinity = affinity, Reason = g.Key, Houses = g.Select(x => House(x.House, false)).ToList()})
+            List<ClanRegardGroup> groups = top.Where(x => x.Reason != null).GroupBy(x => (House: x.OneHouse ? x.House.Id ?? x.House.Name : null, x.Reason))
+                                              .Select(g => new ClanRegardGroup {
+                                                 Affinity = affinity, Reason = g.First().Reason, OneHouse = g.First().OneHouse,
+                                                 Houses = g.Select(x => House(x.House, false)).ToList()
+                                              })
                                               .ToList();
             List<ClanRegardHouse> through = top.Where(x => x.Reason == null).Select(x => House(x.House, true)).ToList();
             if (through.Count > 0) groups.Add(new ClanRegardGroup {Affinity = affinity, Reason = null, Houses = through});
@@ -150,10 +170,35 @@ namespace CalradiaRemembers.Logic
         private static ClanRegardHouse House(ClanRegardCandidate c, bool through)
             => new() {Name = c.Name, Id = c.Id, AtWar = c.AtWar, Through = through ? c.Through : null};
 
-        // The text form: "reason: house, house (at war)", the houses named through their lord closing the last line.
+        /// <summary>
+        ///   The line of a house standing on the vanilla number alone: the two heads of house named, how they hold each
+        ///   other, the number, and the war ("Hertogi and Ulfhild trust each other deeply (+42); their realms are at war").
+        /// </summary>
+        public static string HeadsLine(ClanRegardCandidate c)
+        {
+            string heads = string.IsNullOrWhiteSpace(c.Lord) || string.IsNullOrWhiteSpace(c.OtherLord)
+                ? "Their heads of house"
+                : $"{c.Lord} and {c.OtherLord}";
+            int r = c.VanillaRelation;
+            string how = r switch
+            {
+                >= 30 => "trust each other deeply",
+                >= 10 => "hold each other in good regard",
+                > -30 => "quietly distrust each other",
+                _ => "resent each other"
+            };
+            string line = $"{heads} {how} ({r:+#;-#;0})";
+
+            return c.AtWar ? line + "; their realms are at war" : line;
+        }
+
+        // The text form: "reason: house, house (at war)", the houses named through their lord closing the last line; a
+        // house of its own row "house: its line", the war already in the line.
         private static IReadOnlyList<string> Lines(List<ClanRegardGroup> groups)
         {
-            List<string> lines = groups.Where(g => g.Reason != null).Select(g => $"{g.Reason}: {string.Join(", ", g.Houses.Select(Label))}").ToList();
+            List<string> lines = groups.Where(g => g.Reason != null)
+                                       .Select(g => g.OneHouse ? $"{g.Houses[0].Name}: {g.Reason}" : $"{g.Reason}: {string.Join(", ", g.Houses.Select(Label))}")
+                                       .ToList();
             string through = string.Join("; ", groups.Where(g => g.Reason == null).SelectMany(g => g.Houses).Select(h => $"{Label(h)}, through {h.Through}"));
             if (through.Length == 0) return lines;
             if (lines.Count == 0) return new[] {through};
