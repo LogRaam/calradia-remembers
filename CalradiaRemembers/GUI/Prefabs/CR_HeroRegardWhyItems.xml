@@ -8,10 +8,12 @@
     <ItemTemplate>
       <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginBottom="8">
         <Children>
-          <Widget WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" SuggestedWidth="5" HorizontalAlignment="Left"
-                  Sprite="BlankWhiteSquare_9" Color="#9CCB8CFF" IsVisible="@IsFriend" />
-          <Widget WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" SuggestedWidth="5" HorizontalAlignment="Left"
-                  Sprite="BlankWhiteSquare_9" Color="#C0453CFF" IsHidden="@IsFriend" />
+          <!-- The marker has a fixed height (the portrait's): a StretchToParent child inside a CoverChildren row is measured against
+               all the room the page offers (Widget.Measure, 1.4.8), so each row stood as tall as the page (Gabriel 23/10). -->
+          <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="5" SuggestedHeight="100" HorizontalAlignment="Left"
+                  VerticalAlignment="Top" Sprite="BlankWhiteSquare_9" Color="#9CCB8CFF" IsVisible="@IsFriend" />
+          <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="5" SuggestedHeight="100" HorizontalAlignment="Left"
+                  VerticalAlignment="Top" Sprite="BlankWhiteSquare_9" Color="#C0453CFF" IsHidden="@IsFriend" />
           <ListPanel StackLayout.LayoutMethod="HorizontalLeftToRight"
                      WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginLeft="5">
             <Children>
