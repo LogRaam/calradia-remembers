@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.7.19.. open
+## v2.7.19.. 2026-10-22
 
 ### New
 - **Heart, in the encyclopedia** (Gabriel 20/10: love stories were kept and shown nowhere). On the page of a character

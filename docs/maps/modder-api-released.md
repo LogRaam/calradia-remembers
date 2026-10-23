@@ -1,4 +1,4 @@
-Released in v2.7.18
+Released in v2.7.19
 
 The modder API as it SHIPPED, the baseline for the vanished-member guard (see docs/maps/README.md). Recorded on
 purpose at each release cut with Tools/Update-Maps.ps1 -RecordReleasedApi; never by a plain regeneration.
@@ -22,12 +22,44 @@ _The outcome of CrActions.Register._
 - `RejectedDuplicate`
 - `RejectedInvalid`
 
+### AimResult
+
+_What became of an aim handed to CrAims.Register._
+
+- `Accepted`
+- `AlreadyExpired`
+- `EmptyWant`
+- `LordAlreadyHasAnAim`
+- `MissingIdentity`
+- `ReservedSource`
+- `SourceAtCapacity`
+- `UnknownHero`
+- `Updated`
+
 ### CrActions
 
 _The public facade a third-party mod calls to register (or unregister) one executable conversation action._
 
 - `static ActionRegistrationResult Register(ExternalActionSpec spec)`
 - `static bool Unregister(string name)`
+
+### CrAimRaised
+
+_A lord was given the floor for an aim (CrAims.Raised)._
+
+- `int GameDay { get; set; }`
+- `string AimId { get; set; }`
+- `string Channel { get; set; }`
+- `string NpcId { get; set; }`
+- `string SourceMod { get; set; }`
+
+### CrAims
+
+_The door through which other mods give lords aims of their own._
+
+- `static AimResult Register(ExternalAim aim)`
+- `static bool Retract(string sourceMod, string id)`
+- `static event Action<CrAimRaised> Raised`
 
 ### CrConversation
 
@@ -71,6 +103,11 @@ _Another mod's letters, delivered through CR's courier and letter window._
 
 - `const int MaxBodyLength = 4000`
 - `static bool Deliver(Hero sender, string body, string sourceMod)`
+- `static event Action<string, Hero, string> Replied`
+- `static event Action<string, Hero> SetAside`
+- `static string DeliverWithId(Hero sender, string body, string sourceMod)`
+- `static string GetReply(string letterId)`
+- `static string GetStatus(string letterId)`
 
 ### CrMatchOutcome
 
@@ -128,6 +165,12 @@ _A memory a mod takes back (philip0105, Vivid World, 10/10/2026: rumors forgotte
 - `string SourceMod { get; set; }`
 - `string Summary { get; set; }`
 
+### CrMercenaries
+
+_What another mod knows of the player's mercenary contracts._
+
+- `static void ContractEndedByEmployer(Kingdom kingdom)`
+
 ### CrNpcMemory
 
 _The public NPC-memory API. A caller identifies the NPC by its hero StringId (never a display name), reads its stored memories, and injects new ones._
@@ -144,7 +187,9 @@ _The public NPC-memory API. A caller identifies the NPC by its hero StringId (ne
 _The door through which other mods add to what one character thinks of another._
 
 - `static void RegisterPairRegardSource(IPairRegardSource source)`
+- `static void RegisterPairRegardSource(string sourceId, Func<Hero, Hero, int, IEnumerable<(int weight, string line, string pageLine, bool knownToPlayer)>> traces)`
 - `static void UnregisterPairRegardSource(IPairRegardSource source)`
+- `static void UnregisterPairRegardSource(string sourceId)`
 
 ### CrPatrolBattle
 
@@ -311,6 +356,19 @@ _Everything a third-party mod supplies to register one executable conversation a
 - `string Description { get; set; }`
 - `string Name { get; set; }`
 - `string SourceMod { get; set; }`
+
+### ExternalAim
+
+_A lord's aim of his own, as another mod hands it to CrAims.Register._
+
+- `List<string> Channels { get; set; }`
+- `int? ExpiresOnDay { get; set; }`
+- `string Id { get; set; }`
+- `string MissionId { get; set; }`
+- `string NpcId { get; set; }`
+- `string PlayerPart { get; set; }`
+- `string SourceMod { get; set; }`
+- `string Want { get; set; }`
 
 ### ExternalEventLifetime
 

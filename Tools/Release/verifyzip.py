@@ -587,6 +587,24 @@ MUST = [
     ("mod",   "trade_guidelines".encode("utf-16-le")),
     ("mod",   "override_not_inherited".encode("utf-16-le")),
     ("mod",   b"{=CR_MCM_"),   # attribute arguments are UTF-8 in the metadata blob
+    # 2.7.19
+    ("logic", b"HeartPagePolicy"),
+    ("logic", b"TraumaPagePolicy"),
+    ("logic", b"TaleItemPolicy"),
+    ("logic", b"WitnessExchangePolicy"),
+    ("logic", b"MemoryPanelPolicy"),
+    ("logic", b"ModLetterStatusPolicy"),
+    ("logic", b"AuthoredPlayerPolicy"),
+    ("mod",   b"TraumaLedgerBehavior"),
+    ("mod",   b"HeartPageReader"),
+    ("mod",   b"CrAims"),
+    ("mod",   b"CrMercenaries"),
+    ("mod",   b"VerbsTaughtElsewhere"),
+    ("mod",   b"CalradiaRemembers.Foundation"),
+    ("sdk",   b"LoversSinceDay"),
+    ("mod",   "every_verb_taught".encode("utf-16-le")),
+    ("mod",   "tale_items".encode("utf-16-le")),
+    ("mod",   "heart_page".encode("utf-16-le")),
 ]
 MUST_NOT = [
     ("mod",   b"HeroPagePersonalRelationPatch"),   # 2.7.18: renamed HeroPageRegardYouPatch (the file name sets the row order)
@@ -664,7 +682,7 @@ for path, needle in [("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf
                      ("CalradiaRemembers/ModuleData/scenarios/rhagaea_marriage.json", "rhagaea_marriage"),
                      # 2.7.15
                      ("CalradiaRemembers/GUI/Prefabs/CR_HeroRegardWhyItems.xml", "CalradiaRegardWhyItems"),
-                     ("CalradiaRemembers/GUI/Prefabs/CR_HeroRegardHousesItems.xml", "CalradiaRegardHousesItems"),
+                     ("CalradiaRemembers/GUI/Prefabs/CR_HeroRegardHousesItems.xml", "CalradiaRegardHousesOddsItems"),   # 2.7.19: subtitles, one list each
                      # 2.7.18
                      ("CalradiaRemembers/ModuleData/Languages/EN/language_data.xml", "std_CalradiaRemembers_mcm.xml"),
                      ("CalradiaRemembers/ModuleData/Languages/EN/std_CalradiaRemembers_mcm.xml", "CR_MCM_"),
