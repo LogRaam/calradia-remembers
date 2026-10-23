@@ -108,6 +108,7 @@ namespace CalradiaRemembers.WorldEvents
          // chmidt (23/10/2026): a siege under way or lifted was news to no one; only a capture was recorded.
          CampaignEvents.OnSiegeEventStartedEvent.AddNonSerializedListener(this, OnSiegeStarted);
          CampaignEvents.OnSiegeEventEndedEvent.AddNonSerializedListener(this, OnSiegeEnded);
+         CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, JudgeEndedSieges);
          ModLog.Info("WorldEventFeeders subscribed.");
       }
 
@@ -939,12 +940,38 @@ namespace CalradiaRemembers.WorldEvents
             _siegeHolders.TryGetValue(place.StringId, out string heldBy);
             _siegeHolders.Remove(place.StringId);
             MobileParty besieger = siege.BesiegerCamp?.LeaderParty;
-            bool stillHeld = heldBy != null
-               ? place.MapFaction?.StringId == heldBy
-               : besieger?.MapFaction != null && place.MapFaction != besieger.MapFaction;
-            if (stillHeld) RecordSiegeNews(place, besieger, lifted: true); // a capture is told by OnSettlementOwnerChanged
+            // Judged an hour later, never now: on a capture the game ends the siege (RemoveAllSiegeParties) BEFORE it
+            // hands the place over (KingdomManager.SiegeCompleted, 1.4.8), so the place still reads as its old realm's
+            // here and every fall would be told as "the walls held". The news is built now, while the besieger is known.
+            _endedSieges.Add((place, heldBy ?? NotOf(besieger), heldBy != null, BuildSiegeNews(place, besieger, lifted: true)));
          }
          catch (Exception ex) { ModLog.Error($"[WORLD] siege end feeder failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      // Sieges that ended, waiting for the hour that tells a lifting from a fall.
+      private readonly List<(Settlement Place, string Realm, bool RealmHeldIt, WorldEvent News)> _endedSieges = new List<(Settlement, string, bool, WorldEvent)>();
+
+      private static string NotOf(MobileParty besieger) => besieger?.MapFaction?.StringId;
+
+      private void JudgeEndedSieges()
+      {
+         if (_endedSieges.Count == 0 || Store == null) return;
+         try
+         {
+            foreach ((Settlement place, string realm, bool realmHeldIt, WorldEvent news) in _endedSieges)
+            {
+               string now = place?.MapFaction?.StringId;
+               // The realm that held it at the start still holds it; or, with no note of that (a reload), the besieger's
+               // realm does not hold it. A capture is OnSettlementOwnerChanged's news.
+               bool held = realmHeldIt ? now == realm : realm != null && now != realm;
+               if (!held || news == null) continue;
+
+               Store.Record(news);
+               ModLog.Info($"[WORLD] {news.Summary}");
+            }
+         }
+         catch (Exception ex) { ModLog.Error($"[WORLD] ended sieges not judged: {ex.GetType().Name}: {ex.Message}"); }
+         finally { _endedSieges.Clear(); }
       }
 
       /// <summary>
@@ -952,6 +979,15 @@ namespace CalradiaRemembers.WorldEvents
       ///   the two realms and the country around it hear of it (RumorAwareness). Returns the event recorded.
       /// </summary>
       private WorldEvent RecordSiegeNews(Settlement place, MobileParty besiegerParty, bool lifted)
+      {
+         WorldEvent e = BuildSiegeNews(place, besiegerParty, lifted);
+         Store.Record(e);
+         ModLog.Info($"[WORLD] {e.Summary}");
+
+         return e;
+      }
+
+      private WorldEvent BuildSiegeNews(Settlement place, MobileParty besiegerParty, bool lifted)
       {
          Hero besieger = besiegerParty?.LeaderHero;
          Hero holder = place.Owner;
@@ -961,14 +997,16 @@ namespace CalradiaRemembers.WorldEvents
             Place = place.Name?.ToString(),
             PlaceRealm = place.MapFaction?.Name?.ToString()
          };
-         bool playerIn = besiegerParty == MobileParty.MainParty || holder == Hero.MainHero;
+         // A siege the player LAID is their deed; one laid against the player's own town is news that concerns them.
+         bool playerLaidIt = besiegerParty == MobileParty.MainParty;
+         bool playerIn = playerLaidIt || holder == Hero.MainHero;
          var factions = new List<string>();
          if (besiegerParty?.MapFaction != null) factions.Add(besiegerParty.MapFaction.StringId);
          if (place.MapFaction != null && !factions.Contains(place.MapFaction.StringId)) factions.Add(place.MapFaction.StringId);
 
          var e = new WorldEvent {
             Id = $"cr_siege_{(lifted ? "lifted" : "begun")}_{place.StringId}_{Today}",
-            Type = playerIn ? WorldEventType.PlayerFeat : WorldEventType.Battle,
+            Type = playerLaidIt ? WorldEventType.PlayerFeat : WorldEventType.Battle,
             Day = Today,
             PlaceId = place.StringId,
             Magnitude = lifted ? SiegeRecordText.LiftedMagnitude : SiegeRecordText.StartedMagnitude,
@@ -978,8 +1016,6 @@ namespace CalradiaRemembers.WorldEvents
             FactionIds = factions,
             Status = lifted ? SiegeLiftedStatus : SiegeBegunStatus
          };
-         Store.Record(e);
-         ModLog.Info($"[WORLD] {e.Summary}");
 
          return e;
       }
