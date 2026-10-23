@@ -80,6 +80,55 @@ namespace CalradiaRemembers
       public static string SimulateRelationIntimate(List<string> args)
          => SimulateRelation(args, NotableEventType.Intimacy, "cr.relation_intimate <delta> [name]");
 
+      /// <summary>
+      ///   cr.heart_seed [days_ago] [name]
+      ///   Gives a character a love story with the player, begun &lt;days_ago&gt; days ago (default 120), so the encyclopedia's
+      ///   Heart and Kindnesses sections can be seen without playing it out (Gabriel, 23/10/2026). Writes a first flirt, a
+      ///   first night a third of the way in, and a night three days ago; moves the bond to Intimate, dated from the first
+      ///   night; plants the kindness an intimate moment leaves (through the real TryPlant gate, which may refuse). A test
+      ///   tool: it writes into the save once the game is saved, and cr.forget_all undoes the memories.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("heart_seed", "cr")]
+      public static string SeedHeart(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+
+         var daysAgo = 120;
+         List<string> nameArgs = args ?? new List<string>();
+         if (nameArgs.Count > 0 && int.TryParse(nameArgs[0], out int parsed))
+         {
+            daysAgo = Math.Max(6, parsed);
+            nameArgs = nameArgs.Skip(1).ToList();
+         }
+
+         Hero hero = ResolveHero(nameArgs);
+         if (hero == null || hero == Hero.MainHero) return "Usage: cr.heart_seed [days_ago] [name] (or talk to someone first).";
+
+         NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         if (profile.Romantic == null) return $"{hero.Name} has no romantic profile yet: talk to them once, then run this again.";
+
+         var today = (int) CampaignTime.Now.ToDays;
+         int start = Math.Max(1, today - daysAgo);
+         int firstNight = start + daysAgo / 3;
+         string player = Hero.MainHero.Name.ToString();
+         profile.Events.Add(new NotableEvent(start, NotableEventType.Flirt, $"{player} and I traded looks and teasing words all evening; I wanted more of it."));
+         profile.Events.Add(new NotableEvent(firstNight, NotableEventType.Intimacy, $"{player} and I spent our first night together, and I did not regret it in the morning."));
+         profile.Events.Add(new NotableEvent(today - 3, NotableEventType.Intimacy, $"{player} came to me again; we stole a night away from everyone."));
+         profile.Events.Sort((a, b) => a.gameDay.CompareTo(b.gameDay));
+
+         profile.Romantic.Status = RomanticStatus.Intimate;
+         profile.Romantic.StatusSinceDay = firstNight;
+         profile.Romantic.LoversSinceDay ??= firstNight;
+         behavior.Store.Set(profile);
+
+         bool kindness = Appreciations.AppreciationBehavior.Instance?.TryPlant(hero, Hero.MainHero, Logic.Appreciations.AppreciationSource.KindnessInScene,
+                            $"{player} was tender with me the night we first lay together.", 40, true, firstNight) == true;
+
+         return $"{hero.Name}: lovers since day {firstNight}, three memories added (a flirt, two nights), " +
+                $"kindness {(kindness ? "planted" : "refused by the anti-noise gate (see cr.appreciations)")}. " +
+                $"Open {hero.Name}'s encyclopedia page (Heart, Kindnesses) and your own (the recap). Save to keep it; cr.forget_all {hero.Name} clears the memories.";
+      }
+
       [CommandLineFunctionality.CommandLineArgumentFunction("relation_reset", "cr")]
       public static string ResetRelationCooldown(List<string> args)
       {

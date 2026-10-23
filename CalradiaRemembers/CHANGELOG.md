@@ -69,6 +69,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   caravan attack still brings a bounty from its sender and its destination (Gabriel's ruling of 26/09, kept 23/10: a
   caravan is business between two realms, and both suffer its loss). testall `bounty_settled`.
 
+### Developer tools
+- `cr.heart_seed [days_ago] [name]` (Gabriel 23/10, to see the encyclopedia's Heart without playing a romance out):
+  a flirt, a first night and a recent one in the character's memory, the bond Intimate dated from the first night, and
+  the kindness an intimate moment leaves (through `AppreciationBehavior.TryPlant`).
+
 ## v2.7.19.. 2026-10-22
 
 ### New
