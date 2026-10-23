@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 562 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1262 types in 46 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 563 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1265 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -546,7 +546,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (37)
+### CalradiaRemembers.Mapping (38)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -555,6 +555,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilSeatNoteResolver` | internal static class | Resolves one council seat's modder note from council_seat.txt and that seat's own variables. |
 | `CulturalTraditionsLoader` | public static class | Loads and caches the cultural_traditions.json file from the mod's own ModuleData folder (and, if present, ModuleData/Custom first). |
 | `DayMoodReader` | public static class | Draws a character's mood of the day from the live game. |
+| `DeedRegardApplier` | internal static class | Charges or rewards a deed of the player in personal regard, on the victim and their close kin. |
 | `EdictNoteResolver` | public static class | The "edicts where you live" lines for a character, or null. |
 | `EncounterContextBuilder` | public static class | Constructs an EncounterContext for a given NPC, using the game state bridge for live data and the stored profile for historical data (last-meeting computation). |
 | `ExecutionDetail` | internal static class | Reads the game's kill detail as an execution or not. |
@@ -917,7 +918,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (448)
+### CalradiaRemembers.Logic (451)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1018,6 +1019,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CraftWeaponPolicy` | public static class | The rules of a craft_weapon task. |
 | `DayMoodFactsPolicy` | public static class | Reads a character's day into the facts the mood draw weighs. |
 | `DayMoodReadings` | public class | What the host reads off the live game for a character's day. |
+| `DeedRegard` | public class | The regard a deed costs or earns. |
+| `DeedRegardPolicy` | public static class | The one table of what each deed does to personal regard. |
 | `DeedValence` | public enum | How a deed of the PLAYER's lands on an NPC who has only HEARD of it — the emotional colour the influence loop gives a lord who was not there. |
 | `DeliveryMatch` | public class | A delivery the player can make right now: the bargain it settles and the captive who settles it. |
 | `DeliveryQuestMatcher` | public static class | Decides which outstanding prisoner-delivery bargain a held captive settles. |
@@ -1191,6 +1194,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PersonaTraitIntensity` | public static class | How strongly a persona's traits are said. |
 | `PersonaTraitLevels` | public class | A hero's five personality trait levels, -2 to +2 as the game keeps them. |
 | `PlayerCompanyPolicy` | public static class | Who travels with the player, for inviting and for clearing the room. |
+| `PlayerDeed` | public enum | A deed of the player toward a character, as regard sees it. |
 | `PlayerDeedValence` | public static class | Classifies a player's deed from the observer's point of view, from two facts the host has already resolved against the game (faction membership, kinship). |
 | `PlayerDressBand` | public enum | The band an onlooker would perceive at a glance, from wholly bare to genuine battle harness. |
 | `PlayerDressPolicy` | public static class | Pure classification of the player's state of dress. |

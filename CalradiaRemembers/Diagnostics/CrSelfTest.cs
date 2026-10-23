@@ -374,6 +374,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("every_verb_taught", Severity.Light, "22/10/2026: arrange_match (tashmetu's groom-side ask of 20/10/2026), reinforce_garrison, share_intel, deliver_recruits and admit_secret_lover were registered and executable but sat in no teaching list, so their own teaching never reached a prompt; each testall drove the bridge directly and passed. Reads the LIVE VerbRegistry and asserts every one of CR's own verbs is composed by a teaching list of EncounterContextBuilder or named among the verbs taught by another path (pay_for_silence inline, the violence verbs by their catalogue line). Changes nothing", TestEveryVerbTaught),
          new SelfTest("registered_match", Severity.Light, "tashmetu (Nexus, 16/10/2026): a head of house agreed in the chat to a match another mod had proposed, and nothing happened. Finds a lawful match of another house at peace, wins the bride over and the head's regard for the player (a disposable test game), registers it through the PUBLIC CrMatches.Register, checks a decider with no say is refused at the door, that the head is taught the match (and that the teaching reaches his REAL prompt, EncounterContextBuilder.Build), then settles it through the REAL bridge (arrange_match): the game weds them, CrMatches.Settled reports it, and the match is no longer pending. Restores the head's regard; the marriage stays", TestRegisteredMatch),
          new SelfTest("heart_intimacy", Severity.Light, "Gabriel (23/10/2026): at Hardcore only, the nights the player shared with a character show in Heart on both pages, sober as a diary; the prisoners the player took by force are told in the player's Misdeeds section, not under Heart ('Heart doit etre une section sur l'amour et le desir'), never what was done to the player. Arranges a companion of the other sex with two nights (a hundred days ago and today, marked [SELFTEST] and replaced on a rerun) and a lord the player took by force while a prisoner, then reads both pages through HeartPageReader and MisdeedsPageReader at Hardcore: her page counts the nights, the player's Heart names her nights and not the forced act, the player's Misdeeds tells it; at Explicit none of it shows. The adult level is put back; the nights and the record stay on the test save so the pages can be opened afterwards.", TestHeartIntimacy),
+         new SelfTest("deed_regard", Severity.Light, "Gabriel (23/10/2026): 'il faudrait que pour chaque action il y a un impact sur l'estime, qu'il soit positif ou negatif', after Arcor, whose wife the player took, was missing from 'Hold you in contempt'. Picks a lord the player never spoke to (no profile) with a living spouse, applies the deed 'took his spouse' through DeedRegardApplier (the one path every deed site calls), and checks his profile was made and his regard fell by DeedRegardPolicy's number into contempt, and his spouse's by the kin number; then a gift of 2,000 denars warms by the gift scale. Every regard is put back and a profile the test made is removed.", TestDeedRegard),
          new SelfTest("misdeeds_page", Severity.Light, "Gabriel (23/10/2026): the player's page has a Misdeeds section, 'trahisons, extortions, et tout autres gestes qui pourraient etres classes comme misdeeds', 'adultere est un misdeed'; the captive scenes at Hardcore only, the rest at every level. Arranges, on the test save, an adultery against a companion of the other sex, a lord prisoner handed to his enemies, robbed and taken by force, and the oath to a realm forsaken, then reads the player's page through MisdeedsPageReader with adult content Off: the adultery, the prisoner handed over, the robbery and the realm show, the act of force does not; at Hardcore it does; a character's page has no Misdeeds. The adult level is put back; the records stay on the test save.", TestMisdeedsPage),
          new SelfTest("trauma_page", Severity.Light, "Gabriel (20/10/2026): at Hardcore, a Trauma section on a character's page documents the aggressions they lived through, and never on the player's own page ('on ne decide pas a la place du joueur ce qui est traumatisant pour lui'). Arranges a companion of the player's (reused, or minted into the party) as the victim, records through the ledger the scenes use that a named captor tortured them before the player's eyes, then reads the page through the reader's seam with the MCM adult level set in turn: at Hardcore the line names the captor and the season and year; at Explicit nothing shows; the player's own page shows nothing even at Hardcore; the same aggression recorded twice is listed once; a purse the player took by force reads as the player's own deed ('oui, ajoute le vol'). Restores the adult level only: on a test save what is recorded stays, so the page can be opened afterwards (Gabriel, 20/10/2026)", TestTraumaPage),
          new SelfTest("heart_page", Severity.Light, "Gabriel (20/10/2026): love stories were kept and shown nowhere; the encyclopedia now has a Heart section on the page of a character engaged with the player, in the second person, and a recap on the player's own page. Arranges a companion of the other sex (reused, or minted into the party), gives her a profile that became the player's lover on a known day 100 days ago through the same dating helper the game's actions use, and reads the page's lines through the mixin's seam: her page says she has been the player's lover since that season and year, the date is the calendar's (today formats as CampaignTime.Now's season and year, the check that catches a wrong day base), a later night does not move it, and the player's own page lists her. She stays the player's lover: on a test save the story is kept so the pages can be opened afterwards (Gabriel, 20/10/2026)", TestHeartPage),
@@ -14140,6 +14141,44 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             CrSettings.Instance.AdultContentLevel.SelectedValue = keep;
+         }
+
+         return t.Line();
+      }
+
+      private static string TestDeedRegard(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("deed_regard");
+         if (t.Abort(behavior?.Store == null || Hero.MainHero == null, "the store is not ready")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && h.Spouse is {IsAlive: true} s && s != Hero.MainHero
+                                                             && behavior.Store.Get(h.StringId) == null);
+         if (t.Abort(lord == null, "no married lord without a profile stands in the world")) return t.Line();
+
+         Hero wife = lord.Spouse;
+         bool wifeHadProfile = behavior.Store.Get(wife.StringId) != null;
+         int wifeBefore = behavior.Store.Get(wife.StringId)?.ReputationWithPlayer ?? 0;
+         try
+         {
+            Mapping.DeedRegardApplier.Apply(lord, Logic.PlayerDeed.StoleSpouse);
+            NpcProfile his = behavior.Store.Get(lord.StringId);
+            t.Note($"{lord.Name}: regard {his?.ReputationWithPlayer}; {wife.Name}: {wifeBefore} -> {behavior.Store.Get(wife.StringId)?.ReputationWithPlayer}");
+            t.Expect("aProfileIsMadeForAManNeverMet", his != null, true);
+            t.Expect("hisRegardFallsByTheTable", his?.ReputationWithPlayer, Math.Max(-100, Logic.DeedRegardPolicy.StoleSpouseVictim));
+            t.Expect("heHoldsThePlayerInContempt", (his?.ReputationWithPlayer ?? 0) <= NpcMemoryService.Core.Standing.Regard.WaryTier, true);
+            t.Expect("theFamilyCools", (behavior.Store.Get(wife.StringId)?.ReputationWithPlayer ?? 0) - wifeBefore,
+                     Math.Max(-100, wifeBefore + Logic.DeedRegardPolicy.StoleSpouseKin) - wifeBefore);
+
+            int beforeGift = his?.ReputationWithPlayer ?? 0;
+            Mapping.DeedRegardApplier.Apply(lord, Logic.PlayerDeed.Gift, Logic.DeedRegardPolicy.GiftRegard(2000, false));
+            t.Expect("aGiftWarmsByItsWorth", (behavior.Store.Get(lord.StringId)?.ReputationWithPlayer ?? 0) - beforeGift, Logic.DeedRegardPolicy.GiftRegard(2000, false));
+         }
+         finally
+         {
+            behavior.Store.Remove(lord.StringId);
+            NpcProfile w = behavior.Store.Get(wife.StringId);
+            if (w != null && !wifeHadProfile) behavior.Store.Remove(wife.StringId);
+            else if (w != null) NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(w, wifeBefore - w.ReputationWithPlayer, NpcMemoryService.Core.Standing.RegardCause.SelfTest);
          }
 
          return t.Line();

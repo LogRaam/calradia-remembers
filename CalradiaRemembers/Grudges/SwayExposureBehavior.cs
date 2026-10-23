@@ -231,6 +231,9 @@ namespace CalradiaRemembers.Grudges
                 pending.Cause ?? $"Word reached them that the player had turned {swayed}'s opinion against them.",
                 proposal.Magnitude, proposal.KnownToPlayer, today);
 
+            // A grudge the player cannot know of must not show as a regard drop on the player's page; only a known one.
+            if (planted && proposal.KnownToPlayer) Mapping.DeedRegardApplier.Apply(target, Logic.PlayerDeed.SwayExposed);
+
             if (planted)
                 ModLog.Info($"[GRUDGE] sway exposed: {target.Name} learns of the sway and nurses a hidden grudge (magnitude {proposal.Magnitude}).");
 

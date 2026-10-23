@@ -928,6 +928,7 @@ namespace CalradiaRemembers.WorldEvents
                case ChangeKingdomAction.ChangeKingdomActionDetail.JoinKingdomByDefection:
                   RecordDefection(oldKingdom, newKingdom);
                   Mapping.MisdeedLedgerBehavior.Record(oldKingdom?.StringId, Logic.Trauma.MisdeedKind.ForsookRealm); // Gabriel 23/10: a betrayal
+                  Mapping.DeedRegardApplier.ApplyToRealm(oldKingdom, Logic.PlayerDeed.ForsookRealm);
                   MercenaryReputationBehavior.Instance?.OnJoined(newKingdom);
 
                   break;
@@ -950,6 +951,7 @@ namespace CalradiaRemembers.WorldEvents
                   ModLog.Info($"[WORLD] player clan left {oldKingdom?.Name} (detail={detail}); CR observed this vanilla event, it did not initiate it.");
                   RecordDeparture(oldKingdom);
                   Mapping.MisdeedLedgerBehavior.Record(oldKingdom?.StringId, Logic.Trauma.MisdeedKind.ForsookRealm);
+                  Mapping.DeedRegardApplier.ApplyToRealm(oldKingdom, Logic.PlayerDeed.ForsookRealm); // a rebellion
 
                   break;
                default:

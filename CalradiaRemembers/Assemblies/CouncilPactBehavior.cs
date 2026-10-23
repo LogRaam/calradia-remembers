@@ -265,6 +265,8 @@ namespace CalradiaRemembers.Assemblies
                 GrudgeBehavior.Instance?.TryPlant(enemyLeader, Hero.MainHero, GrudgeSource.PactBroken,
                     "swore a pact of non-aggression with us, then broke it with steel", NonAggressionPactPolicy.BreachGrudgeMagnitude,
                     knownToPlayer: true, (int) CampaignTime.Now.ToDays);
+            if (playerAtFault && Mapping.HeroPresence.IsInTheWorld(enemyLeader) && Hero.MainHero != null)
+                Mapping.DeedRegardApplier.Apply(enemyLeader, Logic.PlayerDeed.PactBroken); // the personal regard too (Gabriel 23/10)
 
             if (Mapping.HeroPresence.IsInTheWorld(enemyLeader) && Hero.MainHero != null)
                 ChangeRelationAction.ApplyRelationChangeBetweenHeroes(enemyLeader, Hero.MainHero, NonAggressionPactPolicy.BreachRelationHit, false);

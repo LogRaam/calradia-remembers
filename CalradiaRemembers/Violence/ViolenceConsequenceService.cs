@@ -136,8 +136,10 @@ namespace CalradiaRemembers.Violence
       {
          if (relationHit >= 0 || victim.IsDead) return;
 
-         NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(victim.StringId);
-         if (profile == null) return;
+         // A victim the player never spoke to has no profile yet: one is made, or the beating would cost nothing
+         // (Gabriel, 23/10/2026: every deed moves regard).
+         if (NpcMemoryCampaignBehavior.Instance?.Store == null) return;
+         NpcProfile profile = NpcMemoryCampaignBehavior.Instance.Store.Get(victim.StringId) ?? Mapping.HeroProfileMapper.FromHero(victim);
 
          NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, relationHit, NpcMemoryService.Core.Standing.RegardCause.Violence);
          NpcMemoryCampaignBehavior.Instance.Store.Set(profile);

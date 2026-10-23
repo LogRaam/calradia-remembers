@@ -130,15 +130,22 @@ namespace CalradiaRemembers
          profile.Romantic.Status = RomanticStatus.Intimate;
          profile.Romantic.StatusSinceDay = firstNight;
          profile.Romantic.LoversSinceDay ??= firstNight;
+         // A lover holds the player dear (Gabriel 23/10/2026: the seeded lovers were missing from "Hold you dear").
+         if (profile.ReputationWithPlayer < SeededLoverRegard)
+            NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, SeededLoverRegard - profile.ReputationWithPlayer,
+                                                                               NpcMemoryService.Core.Standing.RegardCause.Deed);
          behavior.Store.Set(profile);
 
          bool kindness = Appreciations.AppreciationBehavior.Instance?.TryPlant(hero, Hero.MainHero, Logic.Appreciations.AppreciationSource.KindnessInScene,
                             $"{player} was tender with me the night we first lay together.", 40, true, firstNight) == true;
 
-         return $"{hero.Name}: lovers since day {firstNight}, three memories added (a flirt, two nights), " +
+         return $"{hero.Name}: lovers since day {firstNight}, three memories added (a flirt, two nights), regard {profile.ReputationWithPlayer}, " +
                 $"kindness {(kindness ? "planted" : "refused by the anti-noise gate (see cr.appreciations)")}. " +
                 $"Open {hero.Name}'s encyclopedia page (Heart, Kindnesses) and your own (the recap). Save to keep it; cr.forget_all {hero.Name} clears the memories.";
       }
+
+      // The regard cr.heart_seed raises a lover to, at least: devoted, well inside "Hold you dear" (WarmTier).
+      private const int SeededLoverRegard = NpcMemoryService.Core.Standing.Regard.DevotedTier;
 
       [CommandLineFunctionality.CommandLineArgumentFunction("relation_reset", "cr")]
       public static string ResetRelationCooldown(List<string> args)

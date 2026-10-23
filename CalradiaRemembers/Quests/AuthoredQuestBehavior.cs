@@ -1557,6 +1557,7 @@ namespace CalradiaRemembers.Quests
          Grudges.GrudgeBehavior.Instance?.TryPlant(him, Hero.MainHero, Logic.Grudges.GrudgeSource.StolenSpouse,
             $"the player took {her.Name}, my wife, from my own hall", magnitude, knownToPlayer: true, today: today);
          Mapping.MisdeedLedgerBehavior.Record(him.StringId, Logic.Trauma.MisdeedKind.StoleSpouse);
+         Mapping.DeedRegardApplier.Apply(him, Logic.PlayerDeed.StoleSpouse); // Gabriel 23/10: every deed moves regard
          Marriage.NpcMarriageEstrangementBehavior.Instance?.RecordElopement(her.StringId, him.StringId, today);
          ModLog.Info($"[TALE] '{_run?.QuestId}': {her.Name} has left {him.Name} and rides with the player; {him.Name} holds a grudge ({magnitude}).");
 

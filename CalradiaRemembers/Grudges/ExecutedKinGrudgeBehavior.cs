@@ -123,6 +123,7 @@ namespace CalradiaRemembers.Grudges
                 string cause = $"{Hero.MainHero.Name} had {victim.Name} put to death.";
 
                 PlantOnKinOf(victim, cause, today);
+                Mapping.DeedRegardApplier.Apply(victim, Logic.PlayerDeed.Executed); // the family's regard too (Gabriel 23/10)
             });
         }
 

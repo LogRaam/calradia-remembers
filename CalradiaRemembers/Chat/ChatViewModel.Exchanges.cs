@@ -1360,9 +1360,19 @@ namespace CalradiaRemembers.Chat
                         && int.TryParse(ds, out int d) && d < 0);
 
                      if (AppreciationTonePolicy.LeavesSceneKindness(relationLoweredThisTurn, IsCaptiveEncounter || _captorScene))
+                     {
                         AppreciationBehavior.Instance?.TryPlant(partner, Hero.MainHero,
                            AppreciationSource.KindnessInScene, "A tender moment we shared.",
                            AppreciationBackfillRules.KindnessInSceneMagnitude, true, gameDay);
+                        // Gabriel (23/10/2026): every deed moves regard. A night the conversation itself warmed is
+                        // counted there (RelationGate's intimacy bonus); one it did not, warms a little here.
+                        bool relationRaisedThisTurn = response.Actions != null && response.Actions.Any(a =>
+                           string.Equals(a.Type, "change_relation", StringComparison.OrdinalIgnoreCase)
+                           && a.Parameters != null && a.Parameters.TryGetValue("delta", out string rs) && int.TryParse(rs, out int r) && r > 0);
+                        // On this turn's own profile, which the exchange saves after.
+                        if (!relationRaisedThisTurn)
+                           ProfileMutator.ApplyReputationDelta(profile, Logic.DeedRegardPolicy.For(Logic.PlayerDeed.SharedNight).Victim, NpcMemoryService.Core.Standing.RegardCause.Deed);
+                     }
                   }
                }
             }

@@ -331,6 +331,7 @@ namespace CalradiaRemembers.Marriage
          GrudgeBehavior.Instance?.TryPlant(jilted, Hero.MainHero, GrudgeSource.StolenSpouse,
             $"the player carried on with {npc.Name} until our marriage came apart", magnitude, true, today);
          Mapping.MisdeedLedgerBehavior.Record(jilted.StringId, Logic.Trauma.MisdeedKind.StoleSpouse);
+         Mapping.DeedRegardApplier.Apply(jilted, Logic.PlayerDeed.StoleSpouse); // Gabriel 23/10: every deed moves regard
 
          ModLog.Info($"[STOLEN_LOVE] {npc.Name} has left {jilted.Name} for the player; a StolenSpouse grudge (magnitude {magnitude}) is planted on {jilted.Name}.");
       }

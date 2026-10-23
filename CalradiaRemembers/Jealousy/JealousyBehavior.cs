@@ -763,6 +763,10 @@ namespace CalradiaRemembers.Jealousy
 
       private void OnBeforeHeroesMarried(Hero firstHero, Hero secondHero, bool showNotification)
       {
+         // Gabriel (23/10/2026): every deed moves regard; a wedding warms the one wed, whatever the jealousy setting.
+         Hero wed = firstHero == Hero.MainHero ? secondHero : secondHero == Hero.MainHero ? firstHero : null;
+         if (wed != null) Mapping.DeedRegardApplier.Apply(wed, PlayerDeed.Married);
+
          // Inc 1: the jealousy MCM toggle also gates the marriage hook, so an OFF household sees no wedding-day
          // jealousy either. Default-safe: treated as ON when settings are unavailable.
          if (!ModSettings.EnableJealousy) return;

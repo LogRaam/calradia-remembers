@@ -410,6 +410,7 @@ namespace CalradiaRemembers.WorldEvents
          // 1. The wronged target turns on the player — affection falls, and trust collapses.
          ChangeRelationAction.ApplyRelationChangeBetweenHeroes(target, Hero.MainHero, -penalty, false);
          StanceService.OnTreacheryDiscovered(target);
+         Mapping.DeedRegardApplier.Apply(target, PlayerDeed.SchemeAbettedFoundOut); // the personal regard too (Gabriel 23/10)
 
          // Grudges pillar: the wronged target's grudge — public, once their own rumour spreads it below.
          GrudgeBehavior.Instance?.TryPlant(target, Hero.MainHero, GrudgeSource.SchemeAbetted,

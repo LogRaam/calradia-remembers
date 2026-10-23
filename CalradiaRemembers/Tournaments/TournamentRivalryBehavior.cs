@@ -128,12 +128,14 @@ namespace CalradiaRemembers.Tournaments
             GrudgeBehavior.Instance?.TryPlant(hero, Hero.MainHero, GrudgeSource.External,
                $"A bitter rivalry forged in {venue}.", TournamentRivalryPolicy.BitterMagnitude, knownToPlayer: true, today);
             ModLog.Info($"[TOURNEY] {hero.Name} nurses a bitter arena rivalry with the player.");
+            Mapping.DeedRegardApplier.Apply(hero, Logic.PlayerDeed.BitterRivalry);
          }
          else
          {
             AppreciationBehavior.Instance?.TryPlant(hero, Hero.MainHero, AppreciationSource.External,
                $"A worthy rivalry forged in {venue}.", TournamentRivalryPolicy.FriendlyMagnitude, knownToPlayer: true, today);
             ModLog.Info($"[TOURNEY] {hero.Name} and the player are worthy arena rivals now.");
+            Mapping.DeedRegardApplier.Apply(hero, Logic.PlayerDeed.FriendlyRivalry);
          }
       }
 

@@ -101,7 +101,7 @@ narrow is rarely a decision anybody made.
 
 ## What this table does not show yet, and why
 
-11 rules can be swept here. Against that, the code declares **92 regard-named thresholds**
+11 rules can be swept here. Against that, the code declares **93 regard-named thresholds**
 (constants whose name carries regard, relation or reputation). The difference is the gap: those thresholds are
 compared INLINE, at the place that wants the answer, so there is no function to call and nothing to sweep.
 
@@ -165,6 +165,7 @@ cannot. Each one moved into a rule adds a column here.
 - `MarriageApprovalBehavior.ApprovedRelationBonus = 40`
 - `MarriageApprovalBehavior.UnapprovedRelationPenalty = -40`
 - `MarriageGuardPolicy.MinBlessingRegard = 0`
+- `ModCheats.SeededLoverRegard = NpcMemoryService.Core.Standing.Regard.DevotedTier`
 - `NemesisBountyRewardPolicy.BaseRelation = 3`
 - `NemesisBountyRewardPolicy.MaxRelation = 10`
 - `NemesisBountyRewardPolicy.RelationPerRecapture = 1`

@@ -954,6 +954,7 @@ namespace CalradiaRemembers.GameState
             knownToPlayer: true, gameDay);
 
          ChangeRelationAction.ApplyRelationChangeBetweenHeroes(vassal, Hero.MainHero, FiefTransferPolicy.RevokeRelationHit, false);
+         Mapping.DeedRegardApplier.Apply(vassal, Logic.PlayerDeed.RevokedFief); // the personal regard too (Gabriel 23/10)
 
          return new RevokeFiefVerdict(RevokeFiefResult.Revoked, fief);
       }
@@ -1008,6 +1009,7 @@ namespace CalradiaRemembers.GameState
             knownToPlayer: true, gameDay);
 
          ChangeRelationAction.ApplyRelationChangeBetweenHeroes(companion, Hero.MainHero, ExpulsionPolicy.RelationHit, false);
+         Mapping.DeedRegardApplier.Apply(companion, Logic.PlayerDeed.Expelled); // the personal regard too (Gabriel 23/10)
 
          return new ExpelFromClanVerdict(ExpelFromClanResult.Expelled, wasGovernor, governedFief);
       }

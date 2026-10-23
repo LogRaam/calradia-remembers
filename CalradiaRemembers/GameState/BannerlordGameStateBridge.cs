@@ -1602,8 +1602,11 @@ namespace CalradiaRemembers.GameState
             // conversation and, being hidden, the player could not tell why. Coercion earns resentment, not thanks.
             var today = (int) CampaignTime.Now.ToDays;
             if (coercion.Outcome != CoercionOutcome.YieldsSofterTerms)
+            {
                AppreciationBehavior.Instance?.TryPlant(npcHero, Hero.MainHero, AppreciationSource.RansomedOrFreed,
                   "The player gave me back my freedom.", RansomedOrFreedMagnitude, true, today);
+               Mapping.DeedRegardApplier.Apply(npcHero, Logic.PlayerDeed.FreedPrisoner); // mercy, not a cowed yield
+            }
 
             // Grudges pillar (Deed gesture): freeing them is a verified real favour toward npcHero, a
             // channel separate from the trust bump and the appreciation plant above.
@@ -5353,8 +5356,14 @@ namespace CalradiaRemembers.GameState
             if (npcHero == null) return;
 
             var today = (int) CampaignTime.Now.ToDays;
+            // Gabriel (23/10/2026): a gift warms regard by its worth, once a day (the appreciation's own day, so a reload
+            // does not reopen it), before this gift renews that day.
+            bool givenToday = AppreciationBehavior.Instance?.AppreciationsFor(npcHero.StringId)?
+                                 .Any(a => a.Source == source && a.TargetId == Hero.MainHero.StringId && a.EventDay == today) == true;
             int magnitude = AppreciationValueScaling.FromValue(value);
             AppreciationBehavior.Instance?.TryPlant(npcHero, Hero.MainHero, source, cause, magnitude, true, today);
+            int warmth = Logic.DeedRegardPolicy.GiftRegard(value, givenToday);
+            if (warmth > 0) Mapping.DeedRegardApplier.Apply(npcHero, Logic.PlayerDeed.Gift, warmth);
          }
          catch (Exception ex)
          {
@@ -5725,6 +5734,7 @@ namespace CalradiaRemembers.GameState
                      grudgeCause, proposal.Magnitude, proposal.KnownToPlayer, today);
                }
                if (toEnemy) Mapping.MisdeedLedgerBehavior.Record(prisonerHero.StringId, Logic.Trauma.MisdeedKind.HandedToEnemy); // Gabriel 23/10: a misdeed
+               Mapping.DeedRegardApplier.Apply(prisonerHero, toEnemy ? Logic.PlayerDeed.HandedToEnemy : Logic.PlayerDeed.SoldAsChattel);
             }
             catch (Exception ex)
             {

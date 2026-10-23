@@ -2908,7 +2908,15 @@ namespace CalradiaRemembers.Chat
 
          // The Trauma page (Gabriel, 20/10/2026), under the same conduct gate as the grudge: only what the scene was, never
          // its ceiling, and whether or not the grudge itself takes.
-         Mapping.TraumaLedgerBehavior.Record(prisoner, null, Logic.Trauma.TraumaPagePolicy.KindOf(_captorSceneIntent), Logic.Trauma.TraumaAuthor.Player);
+         Logic.Trauma.TraumaKind sceneKind = Logic.Trauma.TraumaPagePolicy.KindOf(_captorSceneIntent);
+         Mapping.TraumaLedgerBehavior.Record(prisoner, null, sceneKind, Logic.Trauma.TraumaAuthor.Player);
+         // Gabriel (23/10/2026): every deed moves regard, the prisoner's and the family's.
+         Mapping.DeedRegardApplier.Apply(prisoner, sceneKind switch {
+            Logic.Trauma.TraumaKind.Assaulted => Logic.PlayerDeed.TookByForce,
+            Logic.Trauma.TraumaKind.Tortured => Logic.PlayerDeed.Tortured,
+            Logic.Trauma.TraumaKind.Interrogated => Logic.PlayerDeed.Interrogated,
+            _ => Logic.PlayerDeed.Tormented
+         });
 
          int today = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
          const string cause = "The player made me suffer while I was helpless, their prisoner to torment.";

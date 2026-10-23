@@ -255,6 +255,7 @@ namespace CalradiaRemembers.Verbs
                         toEnemy ? "The player traded me to my enemy." : "The player traded me off like chattel.",
                         proposal.Magnitude, proposal.KnownToPlayer, today);
                 if (toEnemy) Mapping.MisdeedLedgerBehavior.Record(captive.StringId, Logic.Trauma.MisdeedKind.HandedToEnemy); // Gabriel 23/10: a misdeed
+                if (toEnemy) Mapping.DeedRegardApplier.Apply(captive, Logic.PlayerDeed.HandedToEnemy);
             }
             catch (Exception ex)
             {

@@ -76,6 +76,22 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   "through" a lord under the banner it belongs to; affinity rows first. The colour replaces the "At odds" / "Of
   affinity" subtitles. The game's Friends and Enemies grids below are unchanged. `ClanRegardListPolicy.Groups`,
   `RegardPersonRowVM`, `RegardHouseRowVM`; cr.testall `npc_regard_reason` extended.
+- **Every deed moves regard, for the victim and the family** (Gabriel 23/10: "il faudrait que pour chaque action il y
+  a un impact sur l'estime, qu'il soit positif ou negatif. Car je pourrais complimenter un NPC et augmenter son estime,
+  pour ensuite commettre un mefait contre lui qui ne changerait pas sa perception de moi"; Arcor, whose wife the player
+  took, was missing from "Hold you in contempt"). Most misdeeds planted a grudge and left personal regard untouched, the
+  score "Hold you dear / in contempt" lists by. Now one table (`DeedRegardPolicy`) charges each deed on the victim and
+  on the close kin (spouse, parents, grown children, siblings): a spouse taken -60 / kin -20; a captive handed to his
+  enemies -50 / -15 (sold as chattel -15); an execution or a murder, kin -70; a prisoner taken by force or tortured
+  -60 / -20, tormented -40 / -20, interrogated under duress -30; a beating, kin -15; a fief revoked -40; cast out of
+  the clan -30; a plot abetted found out -25; opinion swayed found out -20; a pact broken -20 on the realm's leader; a
+  realm forsaken by defection or rebellion -15 on each of its lords; a bitter arena rivalry -10. And the kind side: a
+  prisoner freed by mercy +15 / kin +5; a wedding +20; a gift +1 to +6 by its worth, once a day; a shared night +3 when
+  the conversation itself raised nothing; a friendly arena rivalry +3. A character the player never spoke to now gets a
+  profile, so a husband never met feels it, and a beating or robbery of a stranger costs regard too. Deeds that already
+  moved regard keep their own number (beating -50, robbery -30, adultery found out, a task broken or done, an oath
+  broken, a departure, a rescue, a duel). A grudge the player cannot know of moves nothing yet, or the page would give
+  it away. `cr.heart_seed` raises a lover to at least +50. cr.testall `deed_regard`.
 - **A house on the game's relation number names the two heads of house** (Gabriel 23/10: "deep trust between their
   lords" was "pas tres clair", it read as every lord of both houses). The number is between the two heads of house only,
   so such a house now has a row of its own, its banner then its line: "Hertogi and Ulfhild trust each other deeply
