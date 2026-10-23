@@ -32,6 +32,33 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## WISHED 2026-10-23 (Gabriel), ROADMAPPED, NOT DESIGNED: extortion by the player, a misdeed with no deed yet
+
+Gabriel (23/10/2026), for the Misdeeds section of the player's page (`4679f2a`): "on pourrait aussi ajouter des
+trahisons, extortions, et tout autres gestes qui pourraient etres classes comme misdeeds". Extortion cannot be listed
+because the player cannot do it: no verb lets the player threaten or blackmail a character for gold, a favour or a
+secret. The existing `pay_for_silence` and the bastard mother's `pay_blackmail` run the other way (a character extorts
+the player). A design has to answer:
+- **The act.** A verb `extort` (threat of exposure, of violence, of ruin), gated like `rob_npc` (the player can fail),
+  or a lever on a secret the player holds (courier secrets, a discovered affair, a bastard).
+- **The price.** What the victim gives, what they remember, whether they pay again or strike back (a grudge source of
+  its own), the crime rating if a threat of violence.
+- **The record.** A `MisdeedKind.Extorted` written to `MisdeedLedgerBehavior` at the verb, so the page tells it ("You
+  extorted 2,000 denars from Lucon, twice, ..."), at every adult level.
+
+## WISHED 2026-10-23 (Gabriel), ROADMAPPED, NOT DESIGNED: villages raided and towns devastated, as misdeeds
+
+Same request as above. The player raiding a village, burning it, or choosing Devastate (or Pillage) after taking a
+town is a misdeed by most measures, and nothing keeps it: the game logs `VillageStateChangedLogEntry` and
+`SiegeAftermathLogEntry` for 7 days only (`LogEntryHistory.DeleteOutdatedLogs`, 1.4.8), and CR listens to neither.
+To do:
+- **Record as it happens.** Listen to the village looted / raid completed event and to the siege aftermath choice; when
+  the player led it, write `MisdeedKind.Raided` / `Devastated` / `Pillaged` to `MisdeedLedgerBehavior` with the
+  settlement's id as victim. The reader names a settlement as it names a realm.
+- **Decide with Gabriel.** Whether a raid on an enemy village in a war the player's realm declared is still a misdeed
+  (a lord ordered to raid?), and whether Show Mercy deserves a line elsewhere (a kindness, not a misdeed).
+- **Old saves.** Nothing to backfill: the 7-day log is gone. The page tells raids from the version that ships it on.
+
 ## WISHED 2026-10-23 (Lordfadooboo, Nexus), ROADMAPPED, NOT DESIGNED: the player rides in another character's train
 
 "could it be possible to do the reverse? to join another characters party without it needing to be an army? think
