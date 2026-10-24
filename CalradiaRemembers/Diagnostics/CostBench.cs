@@ -104,15 +104,21 @@ namespace CalradiaRemembers.Diagnostics
          "that will last as long as the treasuries, and of where the host would stand in battle. The host accepted an invitation to a feast after the " +
          "campaign and advised on the guests, warning against seating the old steward of the eastern march near anyone.";
 
-      /// <summary>The middle point: a warm-up line, then the measured one.</summary>
+      /// <summary>
+      ///   The middle point: a warm-up line, then the measured one. Never a question the synthetic history already asked: the
+      ///   first run reused two, and Gemini answered "You asked me that very question only moments ago" (24/10/2026).
+      /// </summary>
       private static readonly string[] MiddleLines = {
-         "The roads are full of deserters. Have your men had trouble with them?",
-         "I may need your help with the levies this season. Would you stand with me?"
+         "Tell me about the lands to the north. Is the hunting good this year?",
+         "The merchants complain of a new toll on the bridges. What do you make of it?"
       };
 
-      /// <summary>The long conversation: a warm-up line, then the measured one, which asks for what the recap holds.</summary>
+      /// <summary>
+      ///   The long conversation: a warm-up line no exchange has asked, then the measured one, which asks for what only the
+      ///   recap holds.
+      /// </summary>
       private static readonly string[] LongLines = {
-         "Grain prices are climbing in the towns. Should I worry?",
+         "Have you had any word from your brother in the east?",
          "Remind me, what did we agree about the levies earlier?"
       };
 
