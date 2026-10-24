@@ -206,6 +206,57 @@ namespace CalradiaRemembers.Tests
          table.Should().Contain("undercounts");
       }
 
+      // Gabriel (24/10/2026): response time beside cost. The seconds of every attempt of a reply (a retry, a fallback)
+      // are what the player waited for it; an interpreter's seconds are added to the prose's in the grid, since the
+      // two calls run one after the other.
+      [Test]
+      public void GIVEN_timed_attempts_WHEN_summed_THEN_a_reply_waits_for_all_its_attempts_and_the_grid_adds_both_roles()
+      {
+         var calls = new List<CostCall> {
+            new CostCall {ScenarioName = "Grok", Pass = CostPass.Prose, Phase = CostPhase.Prose, Turn = 8, Cost = 0.004, Seconds = 6.0},
+            new CostCall {ScenarioName = "Grok", Pass = CostPass.Prose, Phase = CostPhase.Fallback, Turn = 8, Cost = 0.001, Seconds = 3.5}
+         };
+
+         ProseRowResult p = CostBenchReport.SummarizeProse(GrokProse, calls, new[] {"a"});
+         var reads = new List<InterpretRowResult> {new InterpretRowResult {Row = GrokReads, PerReading = 0.002, SecondsPerReading = 2.0}};
+
+         p.MiddleSeconds.Should().BeApproximately(9.5, 1e-9);
+         CostBenchReport.NexusCode(new[] {p}, reads, "v2.7.20", new DateTime(2026, 10, 24)).Should().Contain("$0.0070 11.5 s");
+      }
+
+      // Gabriel: the sample an interpreter's score needs. 24 of 24 says much less than 290 of 296; the interval says how
+      // much, and stays honest near 100%.
+      [Test]
+      public void GIVEN_a_score_WHEN_its_interval_is_computed_THEN_a_small_perfect_sample_claims_far_less_than_a_large_one()
+      {
+         (int _, int _, double smallLow, double smallHigh) = CostBenchReport.Wilson(24, 24);
+         (int _, int _, double largeLow, double _) = CostBenchReport.Wilson(290, 296);
+
+         smallHigh.Should().Be(1);
+         smallLow.Should().BeLessThan(0.87);
+         largeLow.Should().BeGreaterThan(0.95);
+      }
+
+      // The first run's Grok calls read 128 cached tokens of 16,000 although Grok caches a stable prefix (probed): the
+      // bench names where a prose call's cacheable prefix stopped matching the previous one.
+      [Test]
+      public void GIVEN_two_prefixes_WHEN_compared_THEN_the_first_changed_character_is_found_and_a_mere_extension_is_none()
+      {
+         CostBenchReport.FirstDivergence("ROLE: lord. VERBS: give_gold, marry.", "ROLE: lord. VERBS: give_gold, duel.").Should().Be(30);
+         CostBenchReport.FirstDivergence("same", "same").Should().Be(-1);
+         CostBenchReport.FirstDivergence("same", "same and more").Should().Be(4);
+      }
+
+      // An interpret row may ask for a sample; blank means the whole catalog, the default.
+      [Test]
+      public void GIVEN_interpret_rows_WHEN_read_THEN_a_number_is_a_sample_and_blank_the_whole_catalog()
+      {
+         IReadOnlyList<CostScenario> rows = CostScenarioFile.Parse("[interpret]\nAll | a/b\nSome | c/d | 10\nBad | e/f | many", out List<string> problems);
+
+         rows.Select(r => (r.Name, r.CasesPerDifficulty)).Should().Equal(("All", 0), ("Some", 10));
+         problems.Should().ContainSingle().Which.Should().StartWith("line 4");
+      }
+
       // The cap keeps a long scenario file from emptying a player's credit: reached means stop, and none set means none.
       [Test]
       public void GIVEN_a_spend_cap_WHEN_spending_reaches_it_THEN_the_run_stops_and_no_cap_never_stops_it()

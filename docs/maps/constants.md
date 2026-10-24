@@ -25,7 +25,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 | `CooldownDays` | `CaptiveEncounterService` = 1; `CompanionAmbitionPolicy` = 30; `DuelChallengePolicy` = 7; `HushMoneyPolicy` = 14 |
 | `CooldownHours` | `RelationGate` = 8.0; `TeachSkillPolicy` = 24.0 |
 | `Default` | `ChatTemperaturePolicy` = 0.7f; `CompanionHappiness` = 60 |
-| `DefaultCap` | `CostBench` = 5.0; `RoundTablePolicy` = 3 |
+| `DefaultCap` | `CostBench` = 10.0; `RoundTablePolicy` = 3 |
 | `DefaultCooldownDays` | `CompanionAudiencePacingRules` = CompanionAudienceTopicPolicy.GlobalCooldownDays; `InterceptionPacingRules` = 30; `LetterTriggerEvaluator` = 15; `WarCouncilTriggerPolicy` = 3 |
 | `DefaultWindowDays` | `LetterPacingRules` = 7; `WarDutyPolicy` = 30 |
 | `DeliveryDays` | `CompanionHappinessBehavior` = 3; `StanceConsequenceBehavior` = 3 |
@@ -305,7 +305,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 | Constant | Value | What it is |
 |---|---|---|
 | `CasesPerDifficulty` | 6 | Readings per difficulty for each interpret row. |
-| `DefaultCap` | 5.0 | Dollars a run spends at most when no cap is typed: enough for the default rows, never a surprise. |
+| `DefaultCap` | 10.0 | Dollars a run spends at most when no cap is typed: enough for the default rows with each interpreter reading the whole catalog (about $6 measured on 24/10/2026 prices), never a surprise. |
 
 ### CouncilAttendanceResolver
 

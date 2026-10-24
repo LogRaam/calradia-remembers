@@ -16,10 +16,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   warm-up reply so the cache is as warm as in play (Gabriel 24/10: three points instead of twenty replies), then
   writes a letter (signals for repeats, refusals, sermons, Earth references, and whether turn 18 recalls what only the
   recap holds); [standard] the same in one call;
-  [interpret] each model reads the same scripted replies by difficulty (no action, simple, oblique, false lead) and is
-  scored, deeds invented counted apart; [fold] each Background model folds the same recap. Then the prose x interpret
-  grid by addition (the two calls share nothing). Nothing saved, no letter sent, settings restored, a spend cap
-  (default $5). Tables in Markdown and as [code] blocks for the Nexus page with the mod version and date, every billed
+  [interpret] each model reads the whole cr.action_bench catalog (about 300 replies; a number asks for a sample) plus
+  ordinary replies, by difficulty (no action, simple, oblique, false lead), scored with a 95% interval, deeds invented
+  counted apart; [fold] each Background model folds the same recap. Then the prose x interpret
+  grid by addition (the two calls share nothing), in dollars and in seconds the player waits (Gabriel 24/10: response
+  time beside cost). Each prose call's cacheable prefix is compared with the previous one of its row and any change is
+  named, where and how (Grok read 128 cached tokens of 16,000 on most calls of the first run although Grok caches a
+  stable prefix reliably, probed). Nothing saved, no letter sent, settings restored, a spend cap (default $10). Tables in Markdown and as [code] blocks for the Nexus page with the mod version and date, every billed
   call and the transcripts. Not part of cr.testall (spends credit).
 - **Counsel, not sermons** (fearente 24/10, on Gemini 3.8 Flash and Gemma 4: a harmless decision met "These lands have
   swallowed many arrogant people like you"; told of two Dromons bought at Diatma, his wife lectured on pride twice,

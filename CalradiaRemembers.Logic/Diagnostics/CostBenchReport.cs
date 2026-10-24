@@ -98,6 +98,12 @@ namespace CalradiaRemembers.Logic.Diagnostics
       /// <summary>MCM "NSFW model", the fallback that redoes a refused or cut reply (prose rows); blank keeps the player's own.</summary>
       public string FallbackModel { get; init; } = "";
 
+      /// <summary>
+      ///   Interpret rows: readings per difficulty, or 0 for the whole catalog (the default). Gabriel (24/10/2026): the sample
+      ///   an interpreter's score needs, inside this test; six per difficulty told 24/24 from 23/24 and nothing more.
+      /// </summary>
+      public int CasesPerDifficulty { get; init; }
+
       /// <summary>How the row's setup reads in a table.</summary>
       public string Setup
          => (Compact ? "Compact prompt" : "full prompt")
@@ -140,6 +146,9 @@ namespace CalradiaRemembers.Logic.Diagnostics
 
       /// <summary>The bill in US dollars; null when the provider did not say (the row then says it undercounts).</summary>
       public double? Cost { get; init; }
+
+      /// <summary>How long the player waited for this attempt, in seconds (Gabriel, 24/10/2026: response time beside cost).</summary>
+      public double Seconds { get; init; }
    }
 
    /// <summary>How an interpreter read one scripted reply.</summary>
@@ -175,6 +184,15 @@ namespace CalradiaRemembers.Logic.Diagnostics
 
       /// <summary>One letter; null when none was written.</summary>
       public double? Letter { get; init; }
+
+      /// <summary>Seconds the player waits for the first reply, a middle one and a late one (retries and fallback included).</summary>
+      public double StartSeconds { get; init; }
+
+      /// <summary>Seconds for the middle reply.</summary>
+      public double MiddleSeconds { get; init; }
+
+      /// <summary>Seconds for the late reply.</summary>
+      public double LongSeconds { get; init; }
 
       /// <summary>Of the tokens written, the share spent thinking (0 to 1).</summary>
       public double ThinkingShare { get; init; }
@@ -231,6 +249,12 @@ namespace CalradiaRemembers.Logic.Diagnostics
       /// <summary>The average cost of one reading over every case: the INTERPRET part of an ordinary reply.</summary>
       public double PerReading { get; init; }
 
+      /// <summary>The average seconds of one reading: what the INTERPRET call adds to the player's wait.</summary>
+      public double SecondsPerReading { get; init; }
+
+      /// <summary>Right readings over all cases, with its 95% interval (Wilson), so a small sample says how little it knows.</summary>
+      public (int Right, int Cases, double Low, double High) Accuracy { get; init; }
+
       /// <summary>True when some attempt came back without a price.</summary>
       public bool Unpriced { get; init; }
 
@@ -279,7 +303,7 @@ namespace CalradiaRemembers.Logic.Diagnostics
          var sb = new StringBuilder();
          sb.AppendLine("# cr.cost_bench scenarios. Model ids are OpenRouter's. Lines starting with # are ignored.");
          sb.AppendLine("# [prose]     name | model | Full or Compact | reasoning | NSFW fallback model   (blank = yours)");
-         sb.AppendLine("# [interpret] name | model");
+         sb.AppendLine("# [interpret] name | model | readings per difficulty (blank = the whole catalog, about 300)");
          sb.AppendLine("# [standard]  name | model | Full or Compact | reasoning");
          sb.AppendLine("# [fold]      name | model   (the Background model that folds a long conversation)");
          sb.AppendLine("# cr.cost_bench plan shows what a run would do.");
@@ -323,6 +347,19 @@ namespace CalradiaRemembers.Logic.Diagnostics
             if (section == null || f.Length < 2 || f[0].Length == 0 || f[1].Length == 0)
             {
                problems.Add(section == null ? $"line {i + 1}: a row before any [section]" : $"line {i + 1}: expected at least 'name | model'");
+               continue;
+            }
+
+            if (section == CostPass.Interpret)
+            {
+               int perClass = 0;
+               if (f.Length > 2 && f[2].Length > 0 && (!int.TryParse(f[2], out perClass) || perClass < 1))
+               {
+                  problems.Add($"line {i + 1}: readings per difficulty must be a number, or blank for the whole catalog");
+                  continue;
+               }
+
+               rows.Add(new CostScenario {Name = f[0], Pass = CostPass.Interpret, Model = f[1], CasesPerDifficulty = perClass});
                continue;
             }
 
@@ -481,8 +518,13 @@ namespace CalradiaRemembers.Logic.Diagnostics
          List<CostCall> writing = mine.Where(c => c.Phase != CostPhase.Fold).ToList();
          List<string> said = (replies ?? new List<string>()).ToList();
 
+         Dictionary<int, double> secondsPerTurn = mine.Where(c => c.Turn > 0).GroupBy(c => c.Turn).ToDictionary(g => g.Key, g => g.Sum(c => c.Seconds));
+
          return new ProseRowResult {
             Row = row,
+            StartSeconds = secondsPerTurn.TryGetValue(CostWindows.StartTurn, out double ss) ? ss : 0,
+            MiddleSeconds = Average(secondsPerTurn, CostWindows.MiddleTurns),
+            LongSeconds = Average(secondsPerTurn, CostWindows.LongTurns),
             Start = perTurn.TryGetValue(CostWindows.StartTurn, out double s) ? s : 0,
             Middle = Average(perTurn, CostWindows.MiddleTurns),
             Long = Average(perTurn, CostWindows.LongTurns),
@@ -521,6 +563,8 @@ namespace CalradiaRemembers.Logic.Diagnostics
             Row = row,
             ByDifficulty = byDifficulty,
             PerReading = read.Count > 0 ? mine.Sum(c => c.Cost ?? 0) / read.Count : 0,
+            SecondsPerReading = read.Count > 0 ? mine.Sum(c => c.Seconds) / read.Count : 0,
+            Accuracy = Wilson(read.Count(o => o.Right), read.Count),
             Unpriced = mine.Any(c => c.Cost == null),
             Note = note ?? ""
          };
@@ -537,7 +581,9 @@ namespace CalradiaRemembers.Logic.Diagnostics
             {
                CostPass.Prose => $"{CostWindows.OpeningTurns} replies played, then the middle and a long conversation (a warm-up and a measured reply each), a letter; about {turns} calls",
                CostPass.Standard => $"the same in one call each; about {turns} calls",
-               CostPass.Interpret => $"{casesPerDifficulty} readings of each of 4 difficulties; {casesPerDifficulty * 4} calls",
+               CostPass.Interpret => r.CasesPerDifficulty > 0
+                  ? $"{r.CasesPerDifficulty} readings of each of 4 difficulties; {r.CasesPerDifficulty * 4} calls"
+                  : $"the whole catalog and {casesPerDifficulty} ordinary replies; about {casesPerDifficulty + 300} calls",
                _ => "one fold of the reference recap; 1 call"
             };
             sb.AppendLine($"  [{r.Pass.ToString().ToLowerInvariant()}] {r.Name}: {r.Model}; {(r.Pass == CostPass.Interpret || r.Pass == CostPass.Fold ? "" : r.Setup + "; ")}{work}");
@@ -558,15 +604,15 @@ namespace CalradiaRemembers.Logic.Diagnostics
          sb.AppendLine("| Model | Role | Setup | Start (turn 1) | Middle (turn 8) | Long (turn 18, folded) | Letter | Thinking | From cache | Signals |");
          sb.AppendLine("|---|---|---|---|---|---|---|---|---|---|");
          foreach (ProseRowResult r in prose)
-            sb.AppendLine($"| {r.Row.Name} ({r.Row.Model}) | {(r.Row.Pass == CostPass.Standard ? "STANDARD" : "PROSE")} | {r.Row.Setup} | ${Money(r.Start)} | ${Money(r.Middle)} | ${Money(r.Long)} | {(r.Letter == null ? "-" : "$" + Money(r.Letter.Value))} | {Percent(r.ThinkingShare)} | {Percent(r.CachedShare)} | {r.Signals} |{Flags(r.Unpriced, r.Note)}");
+            sb.AppendLine($"| {r.Row.Name} ({r.Row.Model}) | {(r.Row.Pass == CostPass.Standard ? "STANDARD" : "PROSE")} | {r.Row.Setup} | ${Money(r.Start)}, {Secs(r.StartSeconds)} | ${Money(r.Middle)}, {Secs(r.MiddleSeconds)} | ${Money(r.Long)}, {Secs(r.LongSeconds)} | {(r.Letter == null ? "-" : "$" + Money(r.Letter.Value))} | {Percent(r.ThinkingShare)} | {Percent(r.CachedShare)} | {r.Signals} |{Flags(r.Unpriced, r.Note)}");
          sb.AppendLine("The middle and the long conversation answer over a synthetic history of the same size for every model (a warm-up reply first, billed, not counted): models are compared on the same input; a wordier model would weigh more on its own history in play.");
          sb.AppendLine();
 
          sb.AppendLine("INTERPRET, per reading, with right readings out of cases (and deeds invented):");
-         sb.AppendLine("| Model | No action | Simple | Oblique | False lead | Per reading |");
-         sb.AppendLine("|---|---|---|---|---|---|");
+         sb.AppendLine("| Model | No action | Simple | Oblique | False lead | Read right (95%) | Per reading |");
+         sb.AppendLine("|---|---|---|---|---|---|---|");
          foreach (InterpretRowResult r in interpret)
-            sb.AppendLine($"| {r.Row.Name} ({r.Row.Model}) | {Cell(r, InterpretDifficulty.NoAction)} | {Cell(r, InterpretDifficulty.Simple)} | {Cell(r, InterpretDifficulty.Oblique)} | {Cell(r, InterpretDifficulty.FalseLead)} | ${Money(r.PerReading)} |{Flags(r.Unpriced, r.Note)}");
+            sb.AppendLine($"| {r.Row.Name} ({r.Row.Model}) | {Cell(r, InterpretDifficulty.NoAction)} | {Cell(r, InterpretDifficulty.Simple)} | {Cell(r, InterpretDifficulty.Oblique)} | {Cell(r, InterpretDifficulty.FalseLead)} | {AccuracyText(r)} | ${Money(r.PerReading)}, {Secs(r.SecondsPerReading)} |{Flags(r.Unpriced, r.Note)}");
          sb.AppendLine();
 
          sb.AppendLine("FOLD, one fold of the same recap, per Background model:");
@@ -591,12 +637,11 @@ namespace CalradiaRemembers.Logic.Diagnostics
          sb.AppendLine($"[b]Measured costs[/b] (Calradia Remembers {version}, {measuredOn:yyyy-MM-dd}, OpenRouter's own bill for each call)");
          sb.Append(Code(new[] {new[] {"Prose model", "Setup", "1st reply", "Middle", "Long talk", "Letter"}}
                        .Concat(prose.Where(p => p.Row.Pass == CostPass.Prose).Select(p => new[] {
-                          p.Row.Name, p.Row.Setup, "$" + Money(p.Start), "$" + Money(p.Middle), "$" + Money(p.Long), p.Letter == null ? "-" : "$" + Money(p.Letter.Value)
+                          p.Row.Name, p.Row.Setup, $"${Money(p.Start)} {Secs(p.StartSeconds)}", $"${Money(p.Middle)} {Secs(p.MiddleSeconds)}",
+                          $"${Money(p.Long)} {Secs(p.LongSeconds)}", p.Letter == null ? "-" : "$" + Money(p.Letter.Value)
                        }))));
          sb.Append(Code(new[] {new[] {"Interpret model", "Per reply", "Read right"}}
-                       .Concat(interpret.Select(i => new[] {
-                          i.Row.Name, "$" + Money(i.PerReading), $"{i.ByDifficulty.Values.Sum(v => v.Right)}/{i.ByDifficulty.Values.Sum(v => v.Cases)}"
-                       }))));
+                       .Concat(interpret.Select(i => new[] {i.Row.Name, $"${Money(i.PerReading)} {Secs(i.SecondsPerReading)}", AccuracyText(i)}))));
          sb.Append(Grid(prose, interpret, nexus: true));
 
          return sb.ToString();
@@ -609,8 +654,9 @@ namespace CalradiaRemembers.Logic.Diagnostics
          if (writers.Count == 0 || interpret.Count == 0) return "";
 
          var rows = new List<string[]> {new[] {"Prose \\ Interpret"}.Concat(interpret.Select(i => i.Row.Name)).ToArray()};
-         rows.AddRange(writers.Select(p => new[] {p.Row.Name}.Concat(interpret.Select(i => "$" + Money(p.Middle + i.PerReading))).ToArray()));
-         const string caption = "Enhanced, one ordinary reply (middle of a conversation) = its PROSE part + its INTERPRET part. Computed: the two calls share nothing; a wordier prose model gives the interpreter a little more to read.";
+         rows.AddRange(writers.Select(p => new[] {p.Row.Name}
+                                 .Concat(interpret.Select(i => $"${Money(p.Middle + i.PerReading)} {Secs(p.MiddleSeconds + i.SecondsPerReading)}")).ToArray()));
+         const string caption = "Enhanced, one ordinary reply (middle of a conversation) = its PROSE part + its INTERPRET part, in dollars and in seconds the player waits (the two calls run one after the other). Computed: the two calls share nothing; a wordier prose model gives the interpreter a little more to read.";
 
          if (nexus) return caption + "\n" + Code(rows);
 
@@ -636,6 +682,13 @@ namespace CalradiaRemembers.Logic.Diagnostics
          return sb.ToString();
       }
 
+      private static string Secs(double seconds) => seconds.ToString("0.0", CultureInfo.InvariantCulture) + " s";
+
+      private static string AccuracyText(InterpretRowResult r)
+         => r.Accuracy.Cases == 0
+            ? "-"
+            : $"{r.Accuracy.Right}/{r.Accuracy.Cases} ({Percent(r.Accuracy.Low)}-{Percent(r.Accuracy.High)})";
+
       private static string Cell(InterpretRowResult r, InterpretDifficulty d)
          => r.ByDifficulty.TryGetValue(d, out (double Cost, int Right, int Cases, int Invented) v)
             ? $"${Money(v.Cost)}, {v.Right}/{v.Cases}{(v.Invented > 0 ? $" ({v.Invented} invented)" : "")}"
@@ -652,6 +705,37 @@ namespace CalradiaRemembers.Logic.Diagnostics
       }
 
       private static double Share(int part, int whole) => whole > 0 ? (double) part / whole : 0;
+
+      /// <summary>
+      ///   <paramref name="right" /> out of <paramref name="cases" /> with its 95% Wilson interval: honest at small samples and
+      ///   near 100%, where the plain interval claims a certainty it does not have.
+      /// </summary>
+      public static (int Right, int Cases, double Low, double High) Wilson(int right, int cases)
+      {
+         if (cases <= 0) return (0, 0, 0, 0);
+
+         const double z = 1.96;
+         double p = (double) right / cases, n = cases, z2 = z * z;
+         double centre = (p + z2 / (2 * n)) / (1 + z2 / n);
+         double half = z * Math.Sqrt(p * (1 - p) / n + z2 / (4 * n * n)) / (1 + z2 / n);
+
+         return (right, cases, Math.Max(0, centre - half), Math.Min(1, centre + half));
+      }
+
+      /// <summary>
+      ///   Where two prompts' cacheable prefixes first differ, or -1 when one is the start of the other. A provider caches a
+      ///   prompt's longest unchanged beginning: a change near the top makes every later token a fresh, full-price token.
+      /// </summary>
+      public static int FirstDivergence(string before, string now)
+      {
+         if (before == null || now == null) return -1;
+
+         int n = Math.Min(before.Length, now.Length);
+         for (var i = 0; i < n; i++)
+            if (before[i] != now[i]) return i;
+
+         return before.Length == now.Length ? -1 : n;
+      }
 
       private static string Flags(bool unpriced, string note)
          => (unpriced ? " some calls unpriced, undercounts" : "") + (string.IsNullOrEmpty(note) ? "" : $" {note}");

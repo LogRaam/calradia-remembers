@@ -128,8 +128,11 @@ namespace CalradiaRemembers.Diagnostics
       /// <summary>Readings per difficulty for each interpret row.</summary>
       private const int CasesPerDifficulty = 6;
 
-      /// <summary>Dollars a run spends at most when no cap is typed: enough for the default rows, never a surprise.</summary>
-      private const double DefaultCap = 5.0;
+      /// <summary>
+      ///   Dollars a run spends at most when no cap is typed: enough for the default rows with each interpreter reading the
+      ///   whole catalog (about $6 measured on 24/10/2026 prices), never a surprise.
+      /// </summary>
+      private const double DefaultCap = 10.0;
 
       // Ordinary replies in which nothing is done: the interpreter must emit no deed (a change of regard is allowed).
       private const string OrdinaryContext = "The player is speaking with a lord of the realm in his hall. No bargain, gift or request is pending.";
@@ -222,6 +225,11 @@ namespace CalradiaRemembers.Diagnostics
          string version = ModVersion();
          ILlmUsageObserver priorObserver = services.UsageObserver;
          services.UsageObserver = recorder;
+         // Where each prose call's cacheable prefix stops matching the previous one of its row: the first run (24/10/2026)
+         // read only 128 cached tokens on most Grok calls although Grok caches a stable prefix reliably (probed the same day).
+         var prefixWatch = new PrefixWatch(recorder);
+         ILlmWireObserver priorWire = services.WireObserver;
+         services.WireObserver = prefixWatch;
 
          try
          {
@@ -252,9 +260,13 @@ namespace CalradiaRemembers.Diagnostics
                   ? new FoldRowResult {Row = row, Note = "not run: cap reached"}
                   : FoldReference(services, row, reference, recorder));
          }
-         finally { services.UsageObserver = priorObserver; }
+         finally
+         {
+            services.UsageObserver = priorObserver;
+            services.WireObserver = priorWire;
+         }
 
-         string report = BuildReport(prose, interpret, folds, recorder, transcripts, version, speaker);
+         string report = BuildReport(prose, interpret, folds, recorder, transcripts, version, speaker, prefixWatch);
          try { File.AppendAllText(ReportPath, report); }
          catch (Exception ex) { ModLog.Error($"[COST] report not written: {ex.Message}"); }
 
@@ -467,8 +479,12 @@ namespace CalradiaRemembers.Diagnostics
          var cases = new List<(InterpretDifficulty Difficulty, ActionBenchCase Case)>();
          cases.AddRange(OrdinaryReplies.Take(CasesPerDifficulty).Select((p, i) =>
             (InterpretDifficulty.NoAction, ActionBenchCase.ExpectNone($"ordinary_{i + 1}", "none", OrdinaryContext, p, "none"))));
+         // The whole catalog unless the row asks for a sample: the score an interpreter is recommended on needs it.
          foreach (InterpretDifficulty d in new[] {InterpretDifficulty.Simple, InterpretDifficulty.Oblique, InterpretDifficulty.FalseLead})
-            cases.AddRange(InterpretCases.Pick(ActionBenchCatalog.All, d, CasesPerDifficulty).Select(c => (d, c)));
+            cases.AddRange((row.CasesPerDifficulty > 0
+                  ? InterpretCases.Pick(ActionBenchCatalog.All, d, row.CasesPerDifficulty)
+                  : ActionBenchCatalog.All.Where(c => InterpretCases.Classify(c) == d).ToList())
+               .Select(c => (d, c)));
 
          foreach ((InterpretDifficulty difficulty, ActionBenchCase test) in cases)
          {
@@ -524,7 +540,7 @@ namespace CalradiaRemembers.Diagnostics
       // ── Report ────────────────────────────────────────────────────────
 
       private static string BuildReport(List<ProseRowResult> prose, List<InterpretRowResult> interpret, List<FoldRowResult> folds, Recorder recorder,
-                                        StringBuilder transcripts, string version, Hero speaker)
+                                        StringBuilder transcripts, string version, Hero speaker, PrefixWatch prefixWatch)
       {
          var sb = new StringBuilder();
          sb.AppendLine();
@@ -537,9 +553,13 @@ namespace CalradiaRemembers.Diagnostics
          sb.AppendLine(CostBenchReport.Markdown(prose, interpret, folds, version, DateTime.Now));
          sb.AppendLine("For the Nexus description:");
          sb.AppendLine(CostBenchReport.NexusCode(prose, interpret, version, DateTime.Now));
+         sb.AppendLine("Cacheable prefix, prose calls compared with the previous one of their row (a change near the top makes the whole prompt full price):");
+         if (prefixWatch.Findings.Count == 0) sb.AppendLine("  unchanged on every call.");
+         foreach (string f in prefixWatch.Findings) sb.AppendLine("  " + f);
+         sb.AppendLine();
          sb.AppendLine("Every billed call:");
          foreach (CostCall c in recorder.Calls)
-            sb.AppendLine($"  [{c.Pass}] {c.ScenarioName} | turn {c.Turn} | {c.Phase}{(c.Phase == CostPhase.Interpreter ? " " + c.Difficulty : "")} | {c.Model} | in {c.PromptTokens} (cached {c.CachedTokens}) | out {c.CompletionTokens} (thinking {c.ReasoningTokens}) | {(c.Cost == null ? "unpriced" : "$" + CostBenchReport.Money(c.Cost.Value))}");
+            sb.AppendLine($"  [{c.Pass}] {c.ScenarioName} | turn {c.Turn} | {c.Phase}{(c.Phase == CostPhase.Interpreter ? " " + c.Difficulty : "")} | {c.Model} | in {c.PromptTokens} (cached {c.CachedTokens}) | out {c.CompletionTokens} (thinking {c.ReasoningTokens}) | {(c.Cost == null ? "unpriced" : "$" + CostBenchReport.Money(c.Cost.Value))} | {c.Seconds:0.0} s");
          sb.AppendLine();
          sb.AppendLine("Transcripts (read them: fearente's ships are turns 2 and 3, the recap is tested at turn 18):");
          sb.Append(transcripts);
@@ -580,6 +600,7 @@ namespace CalradiaRemembers.Diagnostics
       private sealed class Recorder : ILlmUsageObserver
       {
          private readonly object _gate = new object();
+         private readonly System.Diagnostics.Stopwatch _clock = new System.Diagnostics.Stopwatch();
          private CostScenario _row = new CostScenario();
          private CostPhase _phase;
          private int _turn;
@@ -588,6 +609,17 @@ namespace CalradiaRemembers.Diagnostics
          public List<CostCall> Calls { get; } = new List<CostCall>();
          public double Spent { get; private set; }
 
+         /// <summary>The row being played, for the prefix watch.</summary>
+         public CostScenario Row => _row;
+
+         /// <summary>The call being made, for the prefix watch.</summary>
+         public CostPhase Phase => _phase;
+
+         /// <summary>The turn being answered, for the prefix watch.</summary>
+         public int Turn => _turn;
+
+         // The clock restarts at each step and at each answered attempt, so an attempt's seconds are what the player waited
+         // for it, the bench's own bookkeeping excluded.
          public void Begin(CostScenario row, CostPhase phase, int turn, InterpretDifficulty difficulty = InterpretDifficulty.NoAction)
          {
             lock (_gate)
@@ -596,6 +628,7 @@ namespace CalradiaRemembers.Diagnostics
                _phase = phase;
                _turn = turn;
                _difficulty = difficulty;
+               _clock.Restart();
             }
          }
 
@@ -609,10 +642,50 @@ namespace CalradiaRemembers.Diagnostics
                Calls.Add(new CostCall {
                   ScenarioName = _row.Name, Pass = _row.Pass, Phase = _phase, Turn = _turn, Difficulty = _difficulty, Model = model ?? "",
                   PromptTokens = u.PromptTokens, CachedTokens = u.CachedPromptTokens ?? 0, CompletionTokens = u.CompletionTokens,
-                  ReasoningTokens = u.ReasoningTokens ?? 0, Cost = u.Cost
+                  ReasoningTokens = u.ReasoningTokens ?? 0, Cost = u.Cost, Seconds = _clock.Elapsed.TotalSeconds
                });
                Spent += u.Cost ?? 0;
+               _clock.Restart();
             }
+         }
+      }
+
+      /// <summary>
+      ///   Compares each prose call's cacheable prefix with the previous prose call of its row, and says where and how it
+      ///   changed. Every prose call of a row shares the speaker, the world and the setup, so its prefix should never change.
+      /// </summary>
+      private sealed class PrefixWatch : ILlmWireObserver
+      {
+         private readonly Recorder _recorder;
+         private readonly Dictionary<string, string> _last = new Dictionary<string, string>();
+
+         public PrefixWatch(Recorder recorder) => _recorder = recorder;
+
+         public List<string> Findings { get; } = new List<string>();
+
+         public void OnRequest(LlmWireSnapshot snapshot)
+         {
+            if (snapshot == null || _recorder.Phase != CostPhase.Prose) return;
+
+            string key = $"{_recorder.Row.Pass}:{_recorder.Row.Name}";
+            string now = snapshot.StablePrefix ?? "";
+            if (_last.TryGetValue(key, out string before))
+            {
+               int at = CostBenchReport.FirstDivergence(before, now);
+               if (at >= 0)
+                  Findings.Add($"[{_recorder.Row.Pass}] {_recorder.Row.Name} turn {_recorder.Turn}: prefix {now.Length:N0} chars, changed at char {at:N0} "
+                               + $"after \"{Clip(now, at - 80, 80)}\": was \"{Clip(before, at, 160)}\", now \"{Clip(now, at, 160)}\"");
+            }
+
+            _last[key] = now;
+         }
+
+         private static string Clip(string s, int from, int length)
+         {
+            from = Math.Max(0, from);
+            if (from >= s.Length) return "";
+
+            return s.Substring(from, Math.Min(length, s.Length - from)).Replace("\r", " ").Replace("\n", " / ");
          }
       }
 
