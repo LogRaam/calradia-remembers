@@ -32,6 +32,12 @@ namespace CalradiaRemembers.Logic.Diagnostics
       /// <summary>The character's reply (in a Standard row it carries its own tags).</summary>
       Prose,
 
+      /// <summary>
+      ///   The character setting the scene before the player's first word (MCM "Characters set the scene", on by default):
+      ///   one PROSE call and no interpreter, the first of a conversation, so the one that pays the cold prompt.
+      /// </summary>
+      Opener,
+
       /// <summary>The interpret model reading a reply for its actions.</summary>
       Interpreter,
 
@@ -173,7 +179,13 @@ namespace CalradiaRemembers.Logic.Diagnostics
       /// <summary>The row measured.</summary>
       public CostScenario Row { get; init; } = new CostScenario();
 
-      /// <summary>The first reply: nothing in the provider's cache yet.</summary>
+      /// <summary>The scene the character sets before the player speaks; null when the scene opener is off.</summary>
+      public double? Opener { get; init; }
+
+      /// <summary>Seconds for the scene opener.</summary>
+      public double OpenerSeconds { get; init; }
+
+      /// <summary>The first reply to the player: cold when there was no scene, warmed by it when there was.</summary>
       public double Start { get; init; }
 
       /// <summary>An ordinary reply in the middle of a conversation (turn 8), warm and before anything is folded.</summary>
@@ -515,6 +527,7 @@ namespace CalradiaRemembers.Logic.Diagnostics
          Dictionary<int, double> perTurn = mine.Where(c => c.Turn > 0 && c.Phase != CostPhase.Fold).GroupBy(c => c.Turn)
                                                .ToDictionary(g => g.Key, g => g.Sum(c => c.Cost ?? 0));
          List<CostCall> letter = mine.Where(c => c.Phase == CostPhase.Letter).ToList();
+         List<CostCall> opener = mine.Where(c => c.Phase == CostPhase.Opener).ToList();
          List<CostCall> writing = mine.Where(c => c.Phase != CostPhase.Fold).ToList();
          List<string> said = (replies ?? new List<string>()).ToList();
 
@@ -522,6 +535,8 @@ namespace CalradiaRemembers.Logic.Diagnostics
 
          return new ProseRowResult {
             Row = row,
+            Opener = opener.Count > 0 ? opener.Sum(c => c.Cost ?? 0) : (double?) null,
+            OpenerSeconds = opener.Sum(c => c.Seconds),
             StartSeconds = secondsPerTurn.TryGetValue(CostWindows.StartTurn, out double ss) ? ss : 0,
             MiddleSeconds = Average(secondsPerTurn, CostWindows.MiddleTurns),
             LongSeconds = Average(secondsPerTurn, CostWindows.LongTurns),
@@ -579,7 +594,7 @@ namespace CalradiaRemembers.Logic.Diagnostics
          {
             string work = r.Pass switch
             {
-               CostPass.Prose => $"{CostWindows.OpeningTurns} replies played, then the middle and a long conversation (a warm-up and a measured reply each), a letter; about {turns} calls",
+               CostPass.Prose => $"the scene opener, {CostWindows.OpeningTurns} replies played, then the middle and a long conversation (a warm-up and a measured reply each), a letter; about {turns} calls",
                CostPass.Standard => $"the same in one call each; about {turns} calls",
                CostPass.Interpret => r.CasesPerDifficulty > 0
                   ? $"{r.CasesPerDifficulty} readings of each of 4 difficulties; {r.CasesPerDifficulty * 4} calls"
@@ -601,10 +616,10 @@ namespace CalradiaRemembers.Logic.Diagnostics
          sb.AppendLine();
 
          sb.AppendLine("PROSE (Enhanced: the reply alone) and STANDARD (one call writes and tags), per reply:");
-         sb.AppendLine("| Model | Role | Setup | Start (turn 1) | Middle (turn 8) | Long (turn 18, folded) | Letter | Thinking | From cache | Signals |");
-         sb.AppendLine("|---|---|---|---|---|---|---|---|---|---|");
+         sb.AppendLine("| Model | Role | Setup | Scene opener | First reply (turn 1) | Middle (turn 8) | Long (turn 18, folded) | Letter | Thinking | From cache | Signals |");
+         sb.AppendLine("|---|---|---|---|---|---|---|---|---|---|---|");
          foreach (ProseRowResult r in prose)
-            sb.AppendLine($"| {r.Row.Name} ({r.Row.Model}) | {(r.Row.Pass == CostPass.Standard ? "STANDARD" : "PROSE")} | {r.Row.Setup} | ${Money(r.Start)}, {Secs(r.StartSeconds)} | ${Money(r.Middle)}, {Secs(r.MiddleSeconds)} | ${Money(r.Long)}, {Secs(r.LongSeconds)} | {(r.Letter == null ? "-" : "$" + Money(r.Letter.Value))} | {Percent(r.ThinkingShare)} | {Percent(r.CachedShare)} | {r.Signals} |{Flags(r.Unpriced, r.Note)}");
+            sb.AppendLine($"| {r.Row.Name} ({r.Row.Model}) | {(r.Row.Pass == CostPass.Standard ? "STANDARD" : "PROSE")} | {r.Row.Setup} | {(r.Opener == null ? "-" : $"${Money(r.Opener.Value)}, {Secs(r.OpenerSeconds)}")} | ${Money(r.Start)}, {Secs(r.StartSeconds)} | ${Money(r.Middle)}, {Secs(r.MiddleSeconds)} | ${Money(r.Long)}, {Secs(r.LongSeconds)} | {(r.Letter == null ? "-" : "$" + Money(r.Letter.Value))} | {Percent(r.ThinkingShare)} | {Percent(r.CachedShare)} | {r.Signals} |{Flags(r.Unpriced, r.Note)}");
          sb.AppendLine("The middle and the long conversation answer over a synthetic history of the same size for every model (a warm-up reply first, billed, not counted): models are compared on the same input; a wordier model would weigh more on its own history in play.");
          sb.AppendLine();
 
@@ -635,9 +650,10 @@ namespace CalradiaRemembers.Logic.Diagnostics
       {
          var sb = new StringBuilder();
          sb.AppendLine($"[b]Measured costs[/b] (Calradia Remembers {version}, {measuredOn:yyyy-MM-dd}, OpenRouter's own bill for each call)");
-         sb.Append(Code(new[] {new[] {"Prose model", "Setup", "1st reply", "Middle", "Long talk", "Letter"}}
+         sb.Append(Code(new[] {new[] {"Prose model", "Setup", "Scene", "1st reply", "Middle", "Long talk", "Letter"}}
                        .Concat(prose.Where(p => p.Row.Pass == CostPass.Prose).Select(p => new[] {
-                          p.Row.Name, p.Row.Setup, $"${Money(p.Start)} {Secs(p.StartSeconds)}", $"${Money(p.Middle)} {Secs(p.MiddleSeconds)}",
+                          p.Row.Name, p.Row.Setup, p.Opener == null ? "-" : $"${Money(p.Opener.Value)} {Secs(p.OpenerSeconds)}",
+                          $"${Money(p.Start)} {Secs(p.StartSeconds)}", $"${Money(p.Middle)} {Secs(p.MiddleSeconds)}",
                           $"${Money(p.Long)} {Secs(p.LongSeconds)}", p.Letter == null ? "-" : "$" + Money(p.Letter.Value)
                        }))));
          sb.Append(Code(new[] {new[] {"Interpret model", "Per reply", "Read right"}}

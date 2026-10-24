@@ -91,6 +91,25 @@ namespace CalradiaRemembers.Tests
                         .Signals.RecapRecalled.Should().BeFalse();
       }
 
+      // Gabriel (24/10/2026): the scene the character sets before the player's first word pays the cold prompt, and is
+      // PROSE only. It is priced on its own, so the first reply shows what it costs once the scene has warmed the cache.
+      [Test]
+      public void GIVEN_a_scene_opener_WHEN_summed_THEN_it_is_priced_apart_from_the_first_reply()
+      {
+         var calls = new List<CostCall> {
+            new CostCall {ScenarioName = "Grok", Pass = CostPass.Prose, Phase = CostPhase.Opener, Turn = 0, Cost = 0.02, Seconds = 7},
+            Call(GrokProse, CostPhase.Prose, 1, 0.005)
+         };
+
+         ProseRowResult r = CostBenchReport.SummarizeProse(GrokProse, calls, new[] {"a"});
+
+         r.Opener.Should().BeApproximately(0.02, 1e-9);
+         r.OpenerSeconds.Should().Be(7);
+         r.Start.Should().BeApproximately(0.005, 1e-9);
+         CostBenchReport.SummarizeProse(GrokProse, new List<CostCall> {Call(GrokProse, CostPhase.Prose, 1, 0.02)}, new[] {"a"})
+                        .Opener.Should().BeNull("with the scene opener off there is no scene to price");
+      }
+
       // A name may stand in several sections (Grok writes, reads and folds): its bills must never be mixed.
       [Test]
       public void GIVEN_one_model_in_two_roles_WHEN_summed_THEN_each_role_keeps_its_own_bill()

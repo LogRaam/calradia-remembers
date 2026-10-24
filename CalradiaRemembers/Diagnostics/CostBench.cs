@@ -29,6 +29,7 @@ using CalradiaRemembers.Chat;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Letters;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Chat;
 using CalradiaRemembers.Logic.Conversation;
 using CalradiaRemembers.Logic.Diagnostics;
 using CalradiaRemembers.Logic.Providers;
@@ -295,8 +296,12 @@ namespace CalradiaRemembers.Diagnostics
          var notes = new List<string>();
          transcripts.AppendLine($"--- [{row.Pass.ToString().ToLowerInvariant()}] {played.Name}: {played.Model}; {played.Setup} ---");
 
-         // The opening, for real: the cold first reply, and fearente's reassurance answered by the model itself.
+         // The opening, for real. Gabriel (24/10/2026): the scene the character sets before the player's first word is
+         // the call that pays the cold prompt, and it is PROSE only, never interpreted (the chat issues it with no player
+         // line, which keeps the interpreter out). Then fearente's reassurance answered by the model itself.
          var opening = new ConversationTranscript();
+         if (CrSettings.Instance?.CharactersSetTheScene ?? true)
+            SetTheScene(behavior, services, played, speaker, profile, opening, recorder, transcripts, replies, notes, cap);
          for (var i = 0; i < Opening.Length; i++)
             Answer(behavior, services, played, enhanced, speaker, profile, opening, playerName, Opening[i], i + 1, recorder, transcripts, replies, notes, cap);
 
@@ -321,6 +326,34 @@ namespace CalradiaRemembers.Diagnostics
          transcripts.AppendLine();
 
          return string.Join("; ", notes);
+      }
+
+      // The chat's scene opener (ChatViewModel.OpenWithScene): the cue as the message, the retry allowed, no interpreter; the
+      // scene alone enters the transcript, never the cue.
+      private static void SetTheScene(NpcMemoryCampaignBehavior behavior, LlmServices services, CostScenario row, Hero speaker, NpcProfile profile,
+                                      ConversationTranscript transcript, Recorder recorder, StringBuilder transcripts, List<string> replies, List<string> notes, double cap)
+      {
+         if (CostBenchReport.CapReached(recorder.Spent, cap)) return;
+
+         try
+         {
+            EncounterContext ctx = EncounterContextBuilder.Build(speaker, profile, behavior.GameStateBridge, SceneOpenerPolicy.Cue);
+            var world = new WorldState {CurrentDay = behavior.GameStateBridge.GetCurrentGameDay()};
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(15, ModSettings.LlmResponseTimeoutSeconds) * 3));
+            recorder.Begin(row, CostPhase.Opener, 0);
+            NpcChatResult result = Task.Run(() => services.ChatService.ChatAsync(profile, world, SessionFrom(transcript, speaker.StringId), SceneOpenerPolicy.Cue, ctx,
+                                                     cts.Token, allowTruncationRetry: true), cts.Token).GetAwaiter().GetResult();
+            string scene = (result?.Response?.Dialogue ?? "").Replace("\r", " ").Replace("\n", " ");
+            transcripts.AppendLine(result is {IsSuccess: true} ? $"[scene] {scene}" : $"[scene] ! {result?.ErrorMessage ?? "no reply"}");
+            if (result is not {IsSuccess: true}) { notes.Add("scene opener failed"); return; }
+
+            transcript.Record(new TranscriptLine {IsPlayer = false, SpeakerName = speaker.Name?.ToString(), SpeakerHeroId = speaker.StringId, Text = scene});
+         }
+         catch (Exception ex)
+         {
+            Exception inner = (ex as AggregateException)?.InnerException ?? ex;
+            notes.Add($"scene opener: {inner.GetType().Name}");
+         }
       }
 
       private static void RecordExchange(ConversationTranscript transcript, string playerName, Hero speaker, string player, string npc)
@@ -387,9 +420,10 @@ namespace CalradiaRemembers.Diagnostics
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(15, ModSettings.LlmResponseTimeoutSeconds) * 3));
             CancellationToken ct = cts.Token;
 
-            // Enhanced: the prose prompt without the tag teaching, exactly what the chat sends before the interpreter reads it.
+            // As the chat issues it: in Enhanced the prose call fails fast on a cut reply (no retry) so the fallback can take
+            // over; in Standard the client's own bigger-budget retry stands. The prompt is the same in both.
             recorder.Begin(row, CostPhase.Prose, turn);
-            NpcChatResult result = Task.Run(() => services.ChatService.ChatAsync(profile, world, session, line, ctx, ct, !enhanced), ct)
+            NpcChatResult result = Task.Run(() => services.ChatService.ChatAsync(profile, world, session, line, ctx, ct, allowTruncationRetry: !enhanced), ct)
                                        .GetAwaiter().GetResult();
             if (result is not {IsSuccess: true}) return result?.ErrorMessage ?? "no reply";
 
@@ -665,7 +699,7 @@ namespace CalradiaRemembers.Diagnostics
 
          public void OnRequest(LlmWireSnapshot snapshot)
          {
-            if (snapshot == null || _recorder.Phase != CostPhase.Prose) return;
+            if (snapshot == null || (_recorder.Phase != CostPhase.Prose && _recorder.Phase != CostPhase.Opener)) return;
 
             string key = $"{_recorder.Row.Pass}:{_recorder.Row.Name}";
             string now = snapshot.StablePrefix ?? "";
