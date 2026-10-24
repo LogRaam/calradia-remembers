@@ -1,0 +1,48 @@
+Version 2.7.20
+
+Characters who set the scene and know your name, companions and lords who remember the fights, the tourneys and the prisoners, edicts, a page for your misdeeds, and calls that cost less.
+
+New
+
+- Characters set the scene: a conversation you start opens with the character, what they were doing as you came and their first gesture or words, before you say anything. You can type meanwhile. On by default; MCM "Characters Set The Scene" (Content) turns it off. (Thank you, Lordfadooboo.)
+- What a character knows of your name: someone who has never met you now knows whether your name has reached them, from never heard of it to famous, depending on your renown, whether you rule, where your deeds were done, and who they are. Once known by reputation, what the game says of you (merciless, merciful, true to your word or not) goes with it.
+- Edicts: a ruler can decree a lasting edict for one town or a whole realm, from eight kinds (tax relief, heavy levy, doubled watch, militia muster, grain requisition, market charter, curfew, feast days), each a gain bought with a cost that shows in the town's own tooltip. A burdened town contests it and can force it off. You decree through a member of your house, a governor or a lord of your realm, and are asked to confirm first. A new MCM option, Edicts of the world's lords (off by default), lets the world's lords decree them too.
+- Companions remember their own part in a fight: the men they felled, the foes of name they bested, and who struck them down. Sieges begun and lifted are now news the realms hear of. (Thank you, chmidt.)
+- Lords know who sits in their dungeons and who besieges their seat, and know when you left a prisoner there. A lord you take prisoner remembers it, and so does the house that holds him; when the captivity ends, the captive remembers how. (Thank you, chmidt.)
+- A tournament is remembered by the town that held it: its lords and ladies in town watched you win or fall, and the realm hears of your victory. Each fighter remembers their own part in the lists. (Thank you, chmidt.)
+- Misdeeds, a new section of your own encyclopedia page: what you did of your own will, one line per victim and deed, counted and dated (betrayals, killings and executions, broken words, adultery, captives handed over, realms forsaken, beatings and robberies). What was done to captives shows at the Hardcore level only. Adultery and forsaken realms count from this version on.
+- Nights in the Heart section, at Hardcore only: how many nights you shared with a character, the first and the last. Never the content of a night.
+- Romance status for other mods: another mod can read a character's bond with you and hear when it changes, so a bond made here can be known there. (Thank you, LapitaPolata.)
+- What it costs, measured: the mod page now shows measured costs and speeds per model, and on OpenRouter each call asks for its own bill and is filed under the mod's name on your activity page. (Thank you, fearente.)
+
+Changed
+
+- The interpreter now defaults to DeepSeek V4.1 Flash: in a measure over the whole set of test replies it read the most right of every model tried, invented nothing, and costs about a tenth of Grok 4.20, in under a second. A new install starts on it. If you already set an Interpret model, yours is kept; to switch, type deepseek/deepseek-v4.1-flash in Interpret model.
+- Grok 4 no longer thinks at Low: Grok 4.20 thinks just as long at Minimal, Low or High, and that thinking was most of its price. On a Grok 4 model, Reasoning Effort Minimal and Low (the default) now mean no thinking: about half the price and five times faster, with the writing just as good in our tests. Medium and High still let it think. Other models keep their levels.
+- Counsel, not sermons: characters no longer lecture you on an ordinary plan or choice. A real danger is named once, and once you have answered it your word is taken; your spouse, kin and old friends stay on your side even when they disagree. (Thank you, fearente.)
+- Friends, enemies and houses on the encyclopedia page are now rows with the character's portrait or the house's banner, the status and the reason, marked green for friends and red for enemies.
+- Every deed now moves regard, for the person wronged and for their close family: taking a spouse, handing a captive to their enemies, an execution or a murder, revoking a fief and more cost regard; freeing a prisoner, a wedding, a gift or a friendly rivalry earn it. A husband you never met still feels his wife taken.
+- A house shown through the game's relation number now names the two heads of house it is between, with its own row.
+
+Fixed
+
+- Custom chat portraits no longer turn blue. Every portrait and picture is now loaded in the one encoding the game shows true. (Thank you, Lordfadooboo.)
+- Grok now keeps its cache from the first reply of a conversation instead of paying the whole prompt again, which made that reply about six times dearer.
+- Gemini as interpreter: Gemini cannot turn its thinking off, and it was left thinking at its full default, ran past its budget and was asked twice for each reply. It now thinks at the lowest level it allows, once. The same goes for memory summaries and other background calls.
+- Bounties: turning Arrests and outlaws off now lifts every bounty; no hunters ride against you inside another lord's army; loading a save no longer sends a fresh band at once; and a lord of the realm that wants you can take the price off your head for gold. (Thank you, froggyluv.)
+- A fight's deeds could be told as another fight's (a tournament's as the battle that followed).
+- A lord executed right after a battle is now known as executed: his kin seek vengeance and the chronicle records it.
+
+For modders
+
+- Romance status: CrRomance.GetStatus reads a character's bond with the player, and CrRomance.StatusChanged announces a change. See EXTENSION_API.md. (Thank you, LapitaPolata.)
+
+Developer tools
+
+- New cr.testall tests: scene_opener, player_fame, edict_effects, enact_edict, battle_reader, prisoner_memory, tournament_audience, heart_intimacy, misdeeds_page, deed_regard, romance_status_door, bounty_settled, portrait_channels; npc_regard_reason extended.
+- cr.cost_bench measures what each model costs to play, per role and by length of conversation, with speed and quality, and captures what it sends so the same conversations can be replayed outside the game.
+- cr.edict lists the edicts and pulls their levers; cr.heart_seed gives a character a love story to see the Heart section.
+
+Notes
+
+- Your existing saves load as they are.

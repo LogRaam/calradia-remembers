@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.7.20.. open
+## v2.7.20.. 2026-10-24
 
 ### New
 - **Grok 4 no longer thinks at Low** (cost bench 24/10: Grok 4.20 thinks as long at Minimal, Low or High, about 1,800
@@ -208,6 +208,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   caravan is business between two realms, and both suffer its loss). testall `bounty_settled`.
 
 ### Developer tools
+- **The cost bench outside the game** (Gabriel 24/10: "ça te donnerait la possibilité de vérifier des choses par
+  toi-même"). `cr.cost_bench run` captures every request its prose and standard rows send to
+  Logs/CalradiaRemembers_cost_capture.json; `CostReplayLiveTests` ([Explicit], CR_RUN_LIVE_LLM=1) replays them against
+  any model through the same client, each model over its own replies, after a free check that the bodies are the game's
+  byte for byte, and runs the interpreter sweep (302 readings). The synthetic history's gestures are now in the first
+  person (DeepSeek V4.1 Flash had answered "*He snorts*" over subjectless ones). SDK: `LlmWireSnapshot.Request`.
 - `cr.heart_seed [days_ago] [name]` (Gabriel 23/10, to see the encyclopedia's Heart without playing a romance out):
   a flirt, a first night and a recent one in the character's memory, the bond Intimate dated from the first night, and
   the kindness an intimate moment leaves (through `AppreciationBehavior.TryPlant`).

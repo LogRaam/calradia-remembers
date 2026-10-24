@@ -1,4 +1,4 @@
-Released in v2.7.19
+Released in v2.7.20
 
 The modder API as it SHIPPED, the baseline for the vanished-member guard (see docs/maps/README.md). Recorded on
 purpose at each release cut with Tools/Update-Maps.ps1 -RecordReleasedApi; never by a plain regeneration.
@@ -264,10 +264,32 @@ _One change of a character's personal regard for the player (see CrNpcMemory.Reg
 
 ### CrRomance
 
-_Reads and records intimacy with the player, held to the bar CR's own chat holds._
+_Reads and records intimacy with the player, held to the bar CR's own chat holds; reads the bond and its changes._
 
+- `static CrRomanceStatus GetStatus(string npcId)`
 - `static SharedIntimacyResult RecordSharedIntimacy(string npcId, string summary, string sourceMod)`
 - `static bool? WouldAcceptIntimacy(string npcId)`
+- `static event Action<CrRomanceStatusChange> StatusChanged`
+
+### CrRomanceStatus
+
+_A character's bond with the player (see CrRomance.GetStatus)._
+
+- `bool OpenTerms { get; set; }`
+- `int? SinceDay { get; set; }`
+- `string Bond { get; set; }`
+- `string NpcId { get; set; }`
+
+### CrRomanceStatusChange
+
+_One change of a character's bond with the player (see CrRomance.StatusChanged)._
+
+- `CrRomanceStatus After { get; set; }`
+- `CrRomanceStatus Before { get; set; }`
+- `bool DuringSelfTest { get; set; }`
+- `int GameDay { get; set; }`
+- `string NpcId { get; set; }`
+- `string SaveId { get; set; }`
 
 ### CrSpeechLine
 
