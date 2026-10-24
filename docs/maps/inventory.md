@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 567 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1281 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1290 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 267 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -283,7 +283,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ActionBench` | public static class | Runs the interpreter extraction bench in-game against the configured interpreter model. |
 | `ConsoleCommandHelp` | public static class | Every cr command, described. |
 | `ConsoleCommandIndex` | public static class | Every console command this assembly registers, by group, straight from the attributes. |
-| `CostBench` | public static class | Plays the cost scenarios through the real pipeline and writes the measured table. |
+| `CostBench` | public static class | Plays the cost passes through the real pipeline and writes the measured tables. |
 | `CrConsoleTextListPatch` | public static class | The same repair for the overload that receives the arguments already split. |
 | `CrConsoleTextPatch` | public static class | Repairs the text of a cr.* console command as the console typed it. |
 | `CrSelfTest` | public static class | End-to-end self-test harness. |
@@ -1848,23 +1848,32 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SummaryEnqueueOutcome` | public enum | What ConversationSummaryQueue.Enqueue actually did with the new job. |
 | `WitnessExchangePolicy` | public static class | Decides whether the bystander exchange must stop and leave the floor to the player. |
 
-### CalradiaRemembers.Logic.Diagnostics (13)
+### CalradiaRemembers.Logic.Diagnostics (22)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ConsoleTextRepair` | public static class | Undoes the console's UTF-8-read-as-Windows-1252 mangling of a command's text. |
 | `CostBenchReport` | public static class | The sums and the tables. |
 | `CostCall` | public class | One billed attempt, as OpenRouter reported it. |
+| `CostPass` | public enum | Which pass a row of the scenario file belongs to. |
 | `CostPhase` | public enum | Which kind of call a billed attempt belonged to. |
-| `CostScenario` | public class | One setup to measure: the models and the MCM choices a player makes. |
-| `CostScenarioFile` | public static class | The scenario file: one row per line, edited by hand. |
-| `CostScenarioResult` | public class | One scenario's measured costs. |
+| `CostScenario` | public class | One row of the scenario file. |
+| `CostScenarioFile` | public static class | The scenario file: sections of rows, edited by hand. |
+| `CostWindows` | public static class | Which replies of the scripted conversation are the start, the middle and a long conversation. |
 | `DiagnosticPick` | public class | The character picked, and the others who answered equally well. |
 | `DiagnosticSubject` | public class | A character a diagnostic command may pick: its hero id and its display name. |
 | `DiagnosticSubjectPicker` | public static class | Picks a diagnostic command's subject from what was typed. |
+| `FoldRowResult` | public class | A fold row: what one fold of the reference recap cost. |
+| `InterpretCases` | public static class | Picks and scores the interpreter's cases. |
+| `InterpretDifficulty` | public enum | How hard a scripted reply is for the interpreter. |
+| `InterpretOutcome` | public class | How an interpreter read one scripted reply. |
+| `InterpretRowResult` | public class | An interpret row's costs and score, by difficulty. |
 | `LogRotationPolicy` | public static class | Trims a session-delimited log to its most recent blocks. |
 | `MemoryAccentRepair` | public static class | Mends a profile's memories mangled by the console. |
 | `PngHeader` | public static class | Reads a PNG's colour type. |
+| `ProseRowResult` | public class | A prose (or standard) row's costs and signals. |
+| `ProseSignals` | public class | Advisory signals over a prose row's replies: they point the eye, the reader judges. |
+| `SermonSignal` | public static class | The fearente signal: a reply that still warns or lectures after the player has answered the concern. |
 
 ### CalradiaRemembers.Logic.Duels (25)
 

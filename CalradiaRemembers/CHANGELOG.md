@@ -8,12 +8,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 - **What a call costs, measured** (fearente 24/10: "$3.19 without particularly heavy usage" in a week the page priced
   at about $1, and no way to tell which calls were the mod's). On OpenRouter every call now names the mod (the activity
   page shows "Calradia Remembers" beside it) and asks for its bill; a retry is counted with the attempt it replaced
-  (it used to report the retry alone). Developer tool `cr.cost_bench [plan|run] [cap]`: plays the same six-line
-  ordinary conversation and one letter per scenario (Configs/CalradiaRemembers_cost_bench.txt, eight defaults:
-  Grok 4.20 three ways, Gemini 3.8 Flash, DeepSeek V4 Flash, GPT-6 Luna, Gemma 4 31B, DeepSeek prose with Grok
-  interpreting) through the real pipeline with that scenario's models and setup, restored after; nothing saved, no
-  letter sent; stops at the cap (default $3). Writes the table with the mod version and date (Markdown and a [code]
-  block for the Nexus page), every billed call, and the transcripts. Not part of cr.testall (spends credit).
+  (it used to report the retry alone). Developer tool `cr.cost_bench [plan|run] [cap]` (Gabriel 24/10: PROSE and
+  INTERPRET measured apart, by length of conversation, quality beside cost), four passes from
+  Configs/CalradiaRemembers_cost_bench.txt: [prose] each model plays the same twenty-line conversation in Enhanced
+  with no interpreter, folded as the chat folds it, then writes a letter (start, middle, long priced apart; signals for
+  repeats, refusals, sermons after the player's reassurance, Earth references); [standard] the same in one call;
+  [interpret] each model reads the same scripted replies by difficulty (no action, simple, oblique, false lead) and is
+  scored, deeds invented counted apart; [fold] each Background model folds the same recap. Then the prose x interpret
+  grid by addition (the two calls share nothing). Nothing saved, no letter sent, settings restored, a spend cap
+  (default $5). Tables in Markdown and as [code] blocks for the Nexus page with the mod version and date, every billed
+  call and the transcripts. Not part of cr.testall (spends credit).
 - **Counsel, not sermons** (fearente 24/10, on Gemini 3.8 Flash and Gemma 4: a harmless decision met "These lands have
   swallowed many arrogant people like you"; told of two Dromons bought at Diatma, his wife lectured on pride twice,
   through his reassurance). Every station's behavior guidelines (lord, companion, gang leader, notable, wanderer) and
