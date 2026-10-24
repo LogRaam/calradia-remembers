@@ -87,7 +87,7 @@ namespace CalradiaRemembers.Tests
                continue;
             }
 
-            OpenRouterClient client = Client(row.Model, ReasoningKeyword(row.Reasoning), recorder);
+            OpenRouterClient client = Client(row.Model, ReasoningKeyword(row.Model, row.Reasoning), recorder);
             results.Add(await CostReplayRunner.ReplayAsync(captured, row, client, recorder, transcripts, cap));
          }
 
@@ -125,7 +125,7 @@ namespace CalradiaRemembers.Tests
       {
          var replies = new Queue<string>(captured.Steps.Select(s => s.Reply));
          var handler = new EchoHandler(() => replies.Count > 0 ? replies.Dequeue() : "");
-         var client = new OpenRouterClient(new HttpClient(handler), Config(captured.Model, ReasoningKeyword(captured.Reasoning), "dry-run"));
+         var client = new OpenRouterClient(new HttpClient(handler), Config(captured.Model, ReasoningKeyword(captured.Model, captured.Reasoning), "dry-run"));
          await CostReplayRunner.ReplayAsync(captured, new CostScenario {Name = captured.Name, Pass = captured.Pass, Model = captured.Model}, client,
             new CostRecorder(), null, 0);
 
@@ -173,9 +173,14 @@ namespace CalradiaRemembers.Tests
             AppTitle = "Calradia Remembers (cost replay)", TimeoutSecondsProvider = () => 180
          };
 
-      // The MCM drop-down's words as the client reads them: "Default" leaves the model its own.
-      private static string ReasoningKeyword(string setting)
-         => string.IsNullOrWhiteSpace(setting) || string.Equals(setting, "Default", StringComparison.OrdinalIgnoreCase) ? null : setting.Trim().ToLowerInvariant();
+      // The MCM drop-down's words as the game sends them: "Default" leaves the model its own, and a model that only thinks or
+      // not reads Minimal and Low as Off (LlmServices.ResolveReasoningFor).
+      private static string ReasoningKeyword(string model, string setting)
+      {
+         setting = CalradiaRemembers.Logic.Providers.OnOffReasoningPolicy.ForModel(model, setting);
+
+         return string.IsNullOrWhiteSpace(setting) || string.Equals(setting, "Default", StringComparison.OrdinalIgnoreCase) ? null : setting.Trim().ToLowerInvariant();
+      }
 
       private static IReadOnlyList<CostScenario> Rows()
       {
