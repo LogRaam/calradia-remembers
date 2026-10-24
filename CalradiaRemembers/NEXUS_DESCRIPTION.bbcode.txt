@@ -333,7 +333,7 @@ A conversation can lead to real action. Here is the full set of things that can 
 
 ⚠️ [b][color=#ffd966]This mod needs an LLM to work.. there is no AI bundled with it.[/color][/b] You have two paths:
 
-[b][color=#ffd966]Cloud (OpenRouter or NanoGPT)[/color][/b].. pay-as-you-go, easy to set up, best quality. Costs are small per conversation but not zero.. you control the price through your model choice (about $0.46 per 100 replies on the default Grok 4.20, and from $0.06 to $0.37 on lighter models; measured figures under "Which model should I use?").
+[b][color=#ffd966]Cloud (OpenRouter or NanoGPT)[/color][/b].. pay-as-you-go, easy to set up, best quality. Costs are small per conversation but not zero.. you control the price through your model choice (about $0.44 per 100 replies on the default Grok 4.20, and from $0.06 to $0.37 on lighter models; measured figures under "Which model should I use?").
 
 [b][color=#ffd966]Local server (LM Studio, Ollama, vLLM…)[/color][/b].. free, private, no subscription, no data leaving your machine. Quality and speed depend entirely on your hardware and the model you load. Perfectly playable on a modern GPU; slower and more limited on CPU.
 
@@ -497,7 +497,7 @@ OPTION A.. SET UP OPENROUTER (CLOUD, ONE TIME)
   3. Go to openrouter.ai/keys and create an API key. Copy it.
   4. Browse openrouter.ai/models if you'd like to pick a specific model (optional).
 
-[b]HOW FAR DOES CREDIT GO[/b]? Measured on v2.7.20 (see "What it costs, measured" below): $5 buys about 1,100 ordinary replies on the default Grok 4.20, about 1,600 on Gemini 3.8 Flash, and about 8,000 on DeepSeek V4.1 Flash or GPT-6 Luna, with the default interpreter reading each one. Openings, letters and long captive scenes cost more than an ordinary reply, so count on somewhat fewer. You only pay for what you use.
+[b]HOW FAR DOES CREDIT GO[/b]? Measured on v2.7.20 (see "What it costs, measured" below): $5 buys about 1,100 ordinary replies on the default Grok 4.20, about 1,600 on Gemini 3.8 Flash, about 6,000 on DeepSeek V4.1 Flash and 8,000 on GPT-6 Luna, with the default interpreter reading each one. Openings, letters and long captive scenes cost more than an ordinary reply, so count on somewhat fewer. You only pay for what you use.
 
 [quote]🔒 Your key is stored locally on your machine only. Never share your config file or a screenshot of the key field.. treat the key like a password.[/quote]
 
@@ -629,16 +629,16 @@ Top-tier quality, still well under Grok's price. For when you want the very best
 
 [b]WHAT IT COSTS, MEASURED[/b] (Calradia Remembers v2.7.20, 24/10/2026, OpenRouter's own bill for every call). One ordinary (not adult) conversation with a lord, on the full prompt, reasoning effort Low (the default), Enhanced composition, played the same way on every model. [i]Middle[/i] is an ordinary reply eight turns in; [i]Long talk[/i] is turn 18, after the conversation was summed up; the seconds are what you wait.
 [code]
-Prose model               Scene opener   1st reply     Middle        Long talk     Letter
-Grok 4.20, thinking       $0.022 18 s    $0.0099 28 s  $0.0081 21 s  $0.0074 16 s  $0.020
-Grok 4.20 (default)       $0.021 3 s     $0.021 4 s    $0.0042 3 s   $0.022* 3 s   $0.018
-Grok Compact, thinking    $0.015 20 s    $0.015 19 s   $0.0057 13 s  $0.0055 12 s  $0.0078
-Gemini 3.8 Flash          $0.0030 33 s   $0.0023 3 s   $0.0026 4 s   $0.0025 3 s   $0.0029
-DeepSeek V4.1 Flash       $0.0018 7 s    $0.0003 10 s  $0.0002 4 s   $0.0002 5 s   $0.0014
-DeepSeek V4 Flash         $0.0036 105 s  $0.0019 27 s  $0.0007 4 s   $0.0007 2 s   $0.0016
-GPT-6 Luna                $0.0021 3 s    $0.0003 3 s   $0.0002 2 s   $0.0003 3 s   $0.0019
-Gemma 4 31B               $0.0021 17 s   $0.0028 18 s  $0.0021 11 s  $0.0022 21 s  $0.0022
-GLM 4.6                   $0.010 25 s    $0.010 51 s   $0.0033 23 s  $0.0081 18 s  $0.0086
+Prose model          Scene opener   1st reply     Middle        Long talk     Letter
+Grok 4.20 (default)  $0.021 3 s     $0.0040 3 s   $0.0040 2 s   $0.0041 3 s   $0.018
+Grok 4.20, thinking  $0.022 18 s    $0.0099 28 s  $0.0081 21 s  $0.0074 16 s  $0.020
+Grok 4.20, Compact   $0.011 2 s     $0.011 3 s    $0.0031 3 s   $0.012* 1 s   $0.0033
+Gemini 3.8 Flash     $0.0030 33 s   $0.0023 3 s   $0.0026 4 s   $0.0025 3 s   $0.0029
+DeepSeek V4.1 Flash  $0.0043 2 s    $0.0006 3 s   $0.0004 1 s   $0.0003 1 s   $0.0010
+DeepSeek V4 Flash    $0.0036 105 s  $0.0019 27 s  $0.0007 4 s   $0.0007 2 s   $0.0016
+GPT-6 Luna           $0.0021 3 s    $0.0003 3 s   $0.0002 2 s   $0.0003 3 s   $0.0019
+Gemma 4 31B          $0.0021 17 s   $0.0028 18 s  $0.0021 11 s  $0.0022 21 s  $0.0022
+GLM 4.6              $0.010 25 s    $0.010 51 s   $0.0033 23 s  $0.0081 18 s  $0.0086
 [/code]
 Enhanced reads every reply once more for its actions. Each interpreter below read the mod's whole catalog of 296 test cases (deeds plainly done, deeds done in passing, and look-alikes that must NOT count, such as a promise or a story):
 [code]
@@ -652,21 +652,21 @@ Mercury 2.5          246/296 (83%)  $0.0002 0.9 s
 [/code]
 So one ordinary reply in Enhanced, with the default interpreter, comes to:
 [code]
-Prose model               One reply     100 replies
-Grok 4.20, thinking       $0.0085 22 s  $0.85
-Grok 4.20 (default)       $0.0046 3 s   $0.46
-Grok Compact, thinking    $0.0061 14 s  $0.61
-Gemini 3.8 Flash          $0.0030 5 s   $0.30
-DeepSeek V4.1 Flash       $0.0006 5 s   $0.06
-DeepSeek V4 Flash         $0.0011 5 s   $0.11
-GPT-6 Luna                $0.0006 3 s   $0.06
-Gemma 4 31B               $0.0025 12 s  $0.25
-GLM 4.6                   $0.0037 23 s  $0.37
+Prose model          One reply     100 replies
+Grok 4.20 (default)  $0.0044 3 s   $0.44
+Grok 4.20, thinking  $0.0085 22 s  $0.85
+Grok 4.20, Compact   $0.0035 3 s   $0.35
+Gemini 3.8 Flash     $0.0030 5 s   $0.30
+DeepSeek V4.1 Flash  $0.0008 2 s   $0.08
+DeepSeek V4 Flash    $0.0011 5 s   $0.11
+GPT-6 Luna           $0.0006 3 s   $0.06
+Gemma 4 31B          $0.0025 12 s  $0.25
+GLM 4.6              $0.0037 23 s  $0.37
 [/code]
 [i]100 replies[/i] is computed (100 times one ordinary reply). Each conversation also pays its opening (the scene and the first reply, the dearest two), and now and then a letter or a summary.
 [list]
 [*]Every model above remembered what was agreed 18 turns earlier, and none refused or lectured.[/*]
-[*]Grok 4.20 has no thinking levels: at Minimal, Low, Medium or High alike it thinks about 1,800 hidden tokens before every reply, and that thinking is most of its price. So on Grok 4 the default Low now means no thinking at all: half the price and five times faster, and in this conversation the writing held (same voice, same memory, no lecture). Set Medium or High to let it think ([i]Grok 4.20, thinking[/i] above). (*) That turn missed the cache; its warm reply just before cost $0.0047.[/*]
+[*]Grok 4.20 has no thinking levels: at Minimal, Low, Medium or High alike it thinks about 1,800 hidden tokens before every reply, and that thinking is most of its price. So on Grok 4 the default Low now means no thinking at all: half the price and five times faster, and in this conversation the writing held (same voice, same memory, no lecture). Set Medium or High to let it think ([i]Grok 4.20, thinking[/i] above). Grok keeps a conversation's cache on one server and now finds it again from the first reply, but not every time: (*) that turn missed it.[/*]
 [*]DeepSeek V4 Flash is cheap and quick once a conversation is under way, but over-thinks about one opening in three (105 seconds for the scene once). DeepSeek V4.1 Flash does not, and costs less. GLM 4.6 is slow throughout.[/*]
 [*]Tolerance of the Explicit and Hardcore tiers was not part of this measure; see the picks above.[/*]
 [*]One evening, one lord, one run, prices of the day: a guide, not a quote. OpenRouter's Activity page shows your own bill, call by call.[/*]
