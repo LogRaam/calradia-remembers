@@ -94,9 +94,9 @@ namespace CalradiaRemembers.Portraits
         /// <summary>
         ///   Cached load by path: builds a sprite once per (file, options) and reuses it, so N chat lines
         ///   sharing one portrait hold ONE texture. A miss is cached as null so a missing file is not retried
-        ///   every line. <paramref name="correctRedBlue" /> applies the engine's BGR-read correction (needed
-        ///   for the JPG player portraits, but WRONG for a normal PNG that is already in the right order, so a
-        ///   UI sprite passes false). <paramref name="ninePatch" /> makes the sprite a stretchable frame.
+        ///   every line. <paramref name="correctRedBlue" /> (the name is historical) re-encodes the image as an RGBA
+        ///   PNG, the one encoding the engine shows true whatever the file was; false hands the file over as it is (CR's
+        ///   own RGBA icons). <paramref name="ninePatch" /> makes the sprite a stretchable frame.
         /// </summary>
         public static Sprite GetOrCreateCached(string fullPath, bool correctRedBlue = true, NinePatch ninePatch = default)
         {
@@ -148,11 +148,12 @@ namespace CalradiaRemembers.Portraits
 
                 string uniqueName = $"cr_rt_tex_{StableHash(fullPath):x8}";
 
-                // The 2D sprite renderer samples RED and BLUE swapped relative to how the engine decodes an
-                // image (warm skin rendered blue), so colour-correct the bytes IN MEMORY first (no temp file).
-                // Only when asked: this is right for the JPG player portraits but WRONG for a normal PNG that is
-                // already in the correct order (a UI sprite passes correctRedBlue:false and stays true to colour).
-                byte[] corrected = correctRedBlue ? SwapRedBlue(File.ReadAllBytes(fullPath)) : File.ReadAllBytes(fullPath);
+                // The engine shows a 24-bit image (a JPG, an RGB PNG) with red and blue swapped and an RGBA PNG true.
+                // Swapping every image fixed the first and turned the second blue (Lordfadooboo, 23/10/2026: his own
+                // PNG portraits with alpha). So every image is handed over in the one encoding that renders true (the
+                // encoding of every CR icon and of the political map), never guessed from the file's own format.
+                // cr.testall portrait_channels reads the engine's pixels back to check it.
+                byte[] corrected = correctRedBlue ? NormalizeToRgba(File.ReadAllBytes(fullPath)) : File.ReadAllBytes(fullPath);
                 engineTexture = EngTex.CreateFromMemory(corrected);
 
                 if (engineTexture == null)
@@ -230,51 +231,34 @@ namespace CalradiaRemembers.Portraits
         }
 
         /// <summary>
-        ///   The engine's <c>CreateFromMemory</c> decodes the file with RED and BLUE swapped relative to what
-        ///   the 2D sprite renderer samples (player report: warm skin rendered BLUE). Decode the image
-        ///   ourselves (GDI+), swap R and B on every pixel, and re-encode, so the engine's backwards read
-        ///   lands the colours the right way round. Any decode surprise falls back to the original bytes
-        ///   (worst case: the old swapped colours, never a missing portrait).
+        ///   Re-encodes any image GDI+ reads (JPG, RGB or RGBA PNG, palette or grey PNG) as a 32-bit RGBA PNG, colours
+        ///   untouched. The clone to 32bppArgb is what makes GDI+ write PNG colour type 6 even for an opaque image (a
+        ///   plain re-save keeps the source's own type). Anything unexpected falls back to the file's own bytes and says
+        ///   so: a portrait with the engine's own colours, never a missing one. Also the cr.testall seam.
         /// </summary>
-        private static byte[] SwapRedBlue(byte[] imageBytes)
+        internal static byte[] NormalizeToRgba(byte[] imageBytes)
         {
             try
             {
                 using (var input = new MemoryStream(imageBytes))
-                using (var bitmap = new System.Drawing.Bitmap(input))
+                using (var source = new System.Drawing.Bitmap(input))
+                using (System.Drawing.Bitmap rgba = source.Clone(new System.Drawing.Rectangle(0, 0, source.Width, source.Height),
+                           System.Drawing.Imaging.PixelFormat.Format32bppArgb))
+                using (var output = new MemoryStream())
                 {
-                    var rect = new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height);
-                    System.Drawing.Imaging.BitmapData data = bitmap.LockBits(
-                        rect, System.Drawing.Imaging.ImageLockMode.ReadWrite,
-                        System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-                    try
-                    {
-                        int count = Math.Abs(data.Stride) * data.Height;
-                        var pixels = new byte[count];
-                        System.Runtime.InteropServices.Marshal.Copy(data.Scan0, pixels, 0, count);
+                    rgba.Save(output, System.Drawing.Imaging.ImageFormat.Png);
+                    byte[] png = output.ToArray();
+                    int type = CalradiaRemembers.Logic.Diagnostics.PngHeader.ColorType(png);
+                    if (type == CalradiaRemembers.Logic.Diagnostics.PngHeader.Rgba) return png;
 
-                        for (var i = 0; i + 3 < count; i += 4)
-                        {
-                            byte blue = pixels[i]; // 32bppArgb lays out B,G,R,A per pixel
-                            pixels[i] = pixels[i + 2];
-                            pixels[i + 2] = blue;
-                        }
+                    ModLog.Error($"[PORTRAIT] RGBA re-encode came out as PNG colour type {type}; using the raw file bytes.");
 
-                        System.Runtime.InteropServices.Marshal.Copy(pixels, 0, data.Scan0, count);
-                    }
-                    finally { bitmap.UnlockBits(data); }
-
-                    using (var output = new MemoryStream())
-                    {
-                        bitmap.Save(output, System.Drawing.Imaging.ImageFormat.Png);
-
-                        return output.ToArray();
-                    }
+                    return imageBytes;
                 }
             }
             catch (Exception ex)
             {
-                ModLog.Error($"[PORTRAIT] channel swap failed ({ex.GetType().Name}: {ex.Message}); using the raw file bytes.");
+                ModLog.Error($"[PORTRAIT] RGBA re-encode failed ({ex.GetType().Name}: {ex.Message}); using the raw file bytes.");
 
                 return imageBytes;
             }

@@ -145,6 +145,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   sharing one row. `ClanRegardListPolicy.HeadsLine`.
 
 ### Fixed
+- **Custom chat portraits no longer turn blue** (Lordfadooboo 23/10: "any custom ones I added seemed to be blue, but in
+  the chat portrait files they all look completely normal"; Rhagaea, a JPG, was fine). The game shows a 24-bit image
+  (JPG, RGB PNG) with red and blue swapped and an RGBA PNG true, and the loader swapped red and blue on every image,
+  which turned PNGs with an alpha channel blue. Every portrait, tale picture and chat art image is now re-encoded as an
+  RGBA PNG, the encoding CR's icons and the political map already use and that renders true, whatever the file's
+  own format (Gabriel 24/10: detect, never assume from the format). PNG headers name a colour type, never a channel
+  order, so the engine is what is measured: cr.testall `portrait_channels` loads probes of one colour into the
+  engine and reads its pixels back.
 - **A fight's deeds could be told as another's.** The battle journal kept the last mission's deeds until the next
   mission began, so a tournament followed by an auto-resolved battle (which has no mission) told the tournament's
   deeds as the battle's. The journal is now bound to the battle it was fought for and knows a tournament from a

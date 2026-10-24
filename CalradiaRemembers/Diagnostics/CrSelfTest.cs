@@ -345,6 +345,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("authored_history", Severity.Light, "Gabriel (17/10/2026): a file per campaign of events from before it began, which can set a starting vanilla relation (docs/design/AUTHORED_HISTORY.md). Without touching the author's file, drives the real sync on the file's text plus one test event naming two real lords, dated ten years before the start, with a relation change of -15: the event is in the long-term memory as authored, the first lord knows it and a stranger does not, the pair's relation moved by exactly -15. Synced again: nothing moves (no stacking). An event dated inside the campaign is set aside. Then the author's file alone is synced back: the test event is gone and the relation is restored.", TestAuthoredHistory),
          new SelfTest("world_long_term_memory", Severity.Light, "Gabriel (17/10/2026): after 42 days a world event must switch to a long-term memory, used for the relations between NPCs and to speak of the past; the 7.7a bar accepted the same day. Records, dated 50 days ago, a battle of 400 men and a skirmish of 40 naming a real lord, through the real Record and its prune: the battle is in the long-term tier and gone from the news, the skirmish is gone entirely; the battle is not offered as news (his known events, a companion's news report); he knows it, and a lord of another realm and house, no kin of his, does not; cr.history lists it under his name. Then (Gabriel, 17/10/2026: a secret is tagged secret and known only to those who know it) cr.world_event_secret reaches the aged battle: a clanmate who knew it no longer does, he still does, cr.history marks it SECRET. Last (his answer 2, same day), a rising, a divorce and his fall in battle, each dated 50 days ago, reach the long-term tier. Removes them all after.", TestWorldLongTermMemory),
          new SelfTest("world_event_discretion", Severity.Light, "IdentityCrysys (Nexus, 03/10/2026): keep a world event from a character, or from all but those it names. Records a loud event naming two lords of a realm, then through the real console commands: public, a third lord hears it; secret, only the two do; hidden from the third, only he is unaware; removed, it is gone. Removes it after.", TestWorldEventDiscretion),
+         new SelfTest("portrait_channels", Severity.Light, "Lordfadooboo (Nexus, 23/10/2026): his own chat portraits, PNGs with an alpha channel, showed blue faces while Rhagaea's JPG did not; the loader swapped red and blue on every image, and the engine only shows 24-bit images swapped. Gabriel (24/10/2026): detect, do not assume. The loader now hands the engine every portrait as an RGBA PNG (the encoding of CR's icons and political map, which render true). Builds three small probes of one known colour (RGBA PNG as the reference, RGB PNG, JPG), loads each into the real engine and reads its pixels back (Texture.GetPixelData): each probe, once normalised by the real loader, must be stored exactly like the reference. Also notes, for the record, whether the engine stores the raw 24-bit probes swapped. Aborts with the reason when the pixels cannot be read back. Changes nothing.", TestPortraitChannels),
          new SelfTest("chat_art_loads", Severity.Light, "EmperorHaterius (Nexus, 04/10/2026): the Dark Leather window was see-through with no button, because its End Conversation and Memories labels are painted into art read from a hand-built path that missed his install (every shipped file read as not found). Checks the module folder is the one the engine found (SubModule.xml there), loads every chat image through the real loader (a failure writes its reason to the log as [IMAGE]), and checks that Dark Leather opens only when its art loads, Origin otherwise. Changes nothing.", TestChatArtLoads),
          new SelfTest("clan_standing_is_the_leaders", Severity.Light, "tashmetu (Nexus, 04/10/2026), Personal Relations: the prompt's clan standing was the character's own game relation, so under a per-hero relation mod a lord read +100 'clan' and 0 personal. Takes a real lord who is not his clan's leader: the clan standing must be the leader's relation, and his own is said apart only when it differs. Changes nothing.", TestClanStandingIsTheLeaders),
          new SelfTest("calendar_follows_the_game", Severity.Light, "tashmetu (Nexus, 04/10/2026): fast mode shortens the game's year and CR kept 21 x 4, so 'half a year ago' meant two of the game's years. Reads the game's own calendar and setting.json as loaded: the mod's calendar must be the game's wherever setting.json names nothing. Changes nothing.", TestCalendarFollowsTheGame),
@@ -11553,6 +11554,88 @@ namespace CalradiaRemembers.Diagnostics
          finally { store.Remove(e.Id); }
 
          return t.Line();
+      }
+
+      private static string TestPortraitChannels(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("portrait_channels");
+         byte[] reference = ChannelProbe(System.Drawing.Imaging.PixelFormat.Format32bppArgb, System.Drawing.Imaging.ImageFormat.Png);
+         byte[] rgbPng = ChannelProbe(System.Drawing.Imaging.PixelFormat.Format24bppRgb, System.Drawing.Imaging.ImageFormat.Png);
+         byte[] jpg = ChannelProbe(System.Drawing.Imaging.PixelFormat.Format24bppRgb, System.Drawing.Imaging.ImageFormat.Jpeg);
+         t.Expect("theReferenceIsAnRgbaPng", Logic.Diagnostics.PngHeader.ColorType(reference), Logic.Diagnostics.PngHeader.Rgba);
+         t.Expect("theRgbProbeIsAnRgbPng", Logic.Diagnostics.PngHeader.ColorType(rgbPng), Logic.Diagnostics.PngHeader.Rgb);
+
+         string referenceOrder = EngineChannelOrder(reference, out string why);
+         t.Note($"reference RGBA stored as {referenceOrder ?? "?"}");
+         if (t.Abort(referenceOrder == null, $"the engine's pixels could not be read back: {why}")) return t.Line();
+
+         foreach ((string name, byte[] probe) in new[] {("rgbPng", rgbPng), ("jpg", jpg)})
+         {
+            byte[] normalized = Portraits.RuntimePortraitFactory.NormalizeToRgba(probe);
+            t.Expect($"{name}IsHandedOverAsRgba", Logic.Diagnostics.PngHeader.ColorType(normalized), Logic.Diagnostics.PngHeader.Rgba);
+            string normalizedOrder = EngineChannelOrder(normalized, out string nWhy);
+            string rawOrder = EngineChannelOrder(probe, out _);
+            t.Note($"{name}: raw stored as {rawOrder ?? "?"}{(rawOrder != null && rawOrder != referenceOrder ? " (swapped against the reference)" : "")}, normalised as {normalizedOrder ?? nWhy}");
+            t.Expect($"{name}NormalisedIsStoredLikeTheReference", normalizedOrder, referenceOrder);
+         }
+
+         return t.Line();
+      }
+
+      // One colour, distinct in every channel so red and blue can never be mistaken for each other or for alpha.
+      private static readonly System.Drawing.Color ProbeColour = System.Drawing.Color.FromArgb(255, 220, 128, 30);
+
+      private static byte[] ChannelProbe(System.Drawing.Imaging.PixelFormat format, System.Drawing.Imaging.ImageFormat encoding)
+      {
+         using var bmp = new System.Drawing.Bitmap(16, 16, format);
+         using (System.Drawing.Graphics g = System.Drawing.Graphics.FromImage(bmp)) g.Clear(ProbeColour);
+         using var ms = new System.IO.MemoryStream();
+         bmp.Save(ms, encoding);
+
+         return ms.ToArray();
+      }
+
+      /// <summary>
+      ///   Where the engine put red and blue in the first texel of <paramref name="image" />: "R@0 B@2" and the like, or
+      ///   null with the reason. The buffer is sized well past MemorySize: the engine copies native memory into it.
+      /// </summary>
+      private static string EngineChannelOrder(byte[] image, out string why)
+      {
+         why = "";
+         TaleWorlds.Engine.Texture tex = null;
+         try
+         {
+            tex = TaleWorlds.Engine.Texture.CreateFromMemory(image);
+            if (tex == null) { why = "CreateFromMemory returned null"; return null; }
+
+            tex.PreloadTexture(true);
+            int w = Math.Max(1, tex.Width), h = Math.Max(1, tex.Height);
+            var pixels = new byte[Math.Max(0, tex.MemorySize) + w * h * 16 + 64];
+            tex.GetPixelData(pixels);
+
+            int red = IndexNear(pixels, ProbeColour.R), blue = IndexNear(pixels, ProbeColour.B);
+            if (red < 0 || blue < 0)
+            {
+               why = $"no texel of the probe colour in the first bytes ({string.Join(",", pixels.Take(8))}), {w}x{h}, MemorySize {tex.MemorySize}";
+               return null;
+            }
+
+            return $"R@{red} B@{blue}";
+         }
+         catch (Exception ex)
+         {
+            why = $"{ex.GetType().Name}: {ex.Message}";
+            return null;
+         }
+         finally { tex?.Release(); }
+      }
+
+      private static int IndexNear(byte[] bytes, byte value)
+      {
+         for (var i = 0; i < 4 && i < bytes.Length; i++)
+            if (Math.Abs(bytes[i] - value) <= 12) return i;
+
+         return -1;
       }
 
       private static string TestChatArtLoads(NpcMemoryCampaignBehavior behavior)

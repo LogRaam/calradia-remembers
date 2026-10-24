@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 567 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1280 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1281 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 267 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1848,7 +1848,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SummaryEnqueueOutcome` | public enum | What ConversationSummaryQueue.Enqueue actually did with the new job. |
 | `WitnessExchangePolicy` | public static class | Decides whether the bystander exchange must stop and leave the floor to the player. |
 
-### CalradiaRemembers.Logic.Diagnostics (12)
+### CalradiaRemembers.Logic.Diagnostics (13)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1864,6 +1864,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DiagnosticSubjectPicker` | public static class | Picks a diagnostic command's subject from what was typed. |
 | `LogRotationPolicy` | public static class | Trims a session-delimited log to its most recent blocks. |
 | `MemoryAccentRepair` | public static class | Mends a profile's memories mangled by the console. |
+| `PngHeader` | public static class | Reads a PNG's colour type. |
 
 ### CalradiaRemembers.Logic.Duels (25)
 

@@ -152,13 +152,13 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic.Romance` | 3 | 11 |
 | `CalradiaRemembers.Logic.Trauma` | 3 | 11 |
 | `CalradiaRemembers.Logic.Companions` | 3 | 10 |
+| `CalradiaRemembers.Portraits` | 3 | 8 |
 | `CalradiaRemembers.Appearance` | 3 | 6 |
 | `CalradiaRemembers.Logic.Letters` | 3 | 6 |
 | `CalradiaRemembers.Logic.AuthoredQuests` | 3 | 5 |
 | `CalradiaRemembers.Items` | 3 | 4 |
 | `NpcMemoryService.Core.Compression` | 3 | 2 |
 | `CalradiaRemembers.Logic.Items` | 2 | 8 |
-| `CalradiaRemembers.Portraits` | 2 | 8 |
 | `CalradiaRemembers.Travel` | 2 | 8 |
 | `NpcMemoryService.Core.Parsing` | 2 | 8 |
 | `CalradiaRemembers.Retainer` | 2 | 7 |
@@ -185,10 +185,10 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic.Bastards` | 1 | 5 |
 | `CalradiaRemembers.Logic.War` | 1 | 5 |
 | `CalradiaRemembers.Logic.Chat` | 1 | 4 |
+| `CalradiaRemembers.Logic.Diagnostics` | 1 | 4 |
 | `CalradiaRemembers.Logic.Quests` | 1 | 4 |
 | `CalradiaRemembers.Logic.RealmTidings` | 1 | 4 |
 | `CalradiaRemembers.Logic.Actions` | 1 | 3 |
-| `CalradiaRemembers.Logic.Diagnostics` | 1 | 3 |
 | `CalradiaRemembers.Logic.WorldAlmanac` | 1 | 3 |
 | `NpcMemoryService.Core.Memory` | 1 | 3 |
 | `CalradiaRemembers.Logic.AuthoredHistory` | 1 | 2 |
@@ -912,7 +912,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### CalradiaRemembers.Logic.Diagnostics
 
 - uses: `NpcMemoryService.Core.Models`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Foundation`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Portraits`
 
 ### CalradiaRemembers.Logic.Duels
 
@@ -1116,7 +1116,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### CalradiaRemembers.Portraits
 
-- uses: `CalradiaRemembers.Foundation`, `CalradiaRemembers.Paths`
+- uses: `CalradiaRemembers.Foundation`, `CalradiaRemembers.Logic.Diagnostics`, `CalradiaRemembers.Paths`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Map`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.WorldAlmanac`
 
 ### CalradiaRemembers.Quests
