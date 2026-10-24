@@ -140,7 +140,7 @@
     <string id="CR_MCM_NsfwReasoningEffort" text="Reasoning Effort (NSFW)" />
     <string id="CR_MCM_NsfwReasoningEffort_Hint" text="Reasoning effort while the chat is in NSFW mode. Lower or Off makes a reasoning model far less prone to moralizing refusals, and speeds up scenes. OpenRouter and NanoGPT." />
     <string id="CR_MCM_ReasoningEffort" text="Reasoning Effort (PROSE)" />
-    <string id="CR_MCM_ReasoningEffort_Hint" text="How hard the PROSE model thinks before replying. Higher can mean finer dialogue but slower replies, more truncation and more refusals on adult content; in Enhanced mode it writes captivity scenes too, so keep it Low or Medium. OpenRouter and NanoGPT." />
+    <string id="CR_MCM_ReasoningEffort_Hint" text="How hard the PROSE model thinks before replying. Higher can mean finer dialogue but slower replies, more truncation and more refusals on adult content; keep it Low or Medium. Grok 4 only thinks or not: Low means Off there. OpenRouter and NanoGPT." />
     <string id="CR_MCM_RelationshipWarmth" text="Relationship Pacing" />
     <string id="CR_MCM_RelationshipWarmth_Hint" text="How relationships grow through conversation: a philosophy, not a difficulty. Grounded keeps the core game's feel; Warm rewards good company; Storyteller is roleplay-first. Insults cost the same everywhere." />
     <string id="CR_MCM_ReplyLanguage" text="Reply Language" />

@@ -208,7 +208,9 @@ namespace CalradiaRemembers.Services
 
       // OpenRouter's app attribution (fearente, 24/10/2026, could not tell which calls on his bill were the mod's).
       private const string AppTitle = "Calradia Remembers";
-      private const string AppUrl = "https://www.nexusmods.com/mountandblade2bannerlord/mods/11658";
+      // OpenRouter files an app under the ORIGIN of this URL, and nexusmods.com already belonged to another mod ("AI Writing
+      // Companion" showed every Calradia Remembers call on the activity page, 24/10/2026). An origin of our own; Gabriel: "l'URL est ok".
+      private const string AppUrl = "https://lograam.github.io/calradia-remembers";
 
       /// <summary>
       ///   The dedicated client for the ACTION INTERPRETER role (Prose + Interpreter composition). Its base URL,
@@ -912,9 +914,9 @@ namespace CalradiaRemembers.Services
       ///   This round the effort stays exactly as before, keyed off the active role's kind rather than a per-role
       ///   dropdown.
       /// </summary>
-      private static string ResolveReasoning() => ResolveReasoningFor(ActiveMainRole());
+      private static string ResolveReasoning() => ResolveReasoningFor(ActiveMainRole(), ResolveModel());
 
-      private static string ResolveReasoningFor(ServiceRole role)
+      private static string ResolveReasoningFor(ServiceRole role, string model)
       {
          ProviderKind kind = ResolveKindForRole(role);
 
@@ -932,6 +934,9 @@ namespace CalradiaRemembers.Services
                : kind == ProviderKind.OpenAiCompatible
                   ? ModSettings.CustomReasoningEffort
                   : null;
+
+         // A model that only thinks or not (Grok 4) reads Minimal and Low as Off (Gabriel, 24/10/2026: "off par défaut").
+         if (kind == ProviderKind.OpenRouter || kind == ProviderKind.NanoGpt) keyword = OnOffReasoningPolicy.ForModel(model, keyword);
 
          if (ModSettings.VerboseLogging)
             ModLog.Info($"[LLM] reasoning: kind={kind}, effort={keyword ?? "(none)"}, "
@@ -1061,7 +1066,7 @@ namespace CalradiaRemembers.Services
             ModelProvider = () => model,
             BaseUrlProvider = () => BaseUrlFor(role, kind),
             UseSystemPromptCachingProvider = () => UseCachingFor(kind),
-            ReasoningProvider = () => ResolveReasoningFor(role),
+            ReasoningProvider = () => ResolveReasoningFor(role, model),
             ReasoningAsEffortStringProvider = () => ReasoningWirePolicy.UsesEffortString(kind),
             TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds,
             ParameterOptionsProvider = () => ParameterOptionsFor(kind, model),

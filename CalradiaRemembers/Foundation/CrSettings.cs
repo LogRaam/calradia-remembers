@@ -499,8 +499,8 @@ namespace CalradiaRemembers.Foundation
 
       [SettingPropertyDropdown("{=CR_MCM_ReasoningEffort}Reasoning Effort (PROSE)", RequireRestart = false, Order = 1,
          HintText = "{=CR_MCM_ReasoningEffort_Hint}How hard the PROSE model thinks before replying. Higher can mean finer dialogue but slower replies, more " +
-                    "truncation and more refusals on adult content; in Enhanced mode it writes captivity scenes too, so keep " +
-                    "it Low or Medium. OpenRouter and NanoGPT.")]
+                    "truncation and more refusals on adult content; keep it Low or Medium. Grok 4 only thinks or not: Low means " +
+                    "Off there. OpenRouter and NanoGPT.")]
       [SettingPropertyGroup("{=CR_MCM_Group_OpenRouter}OpenRouter", GroupOrder = 1)]
       public Dropdown<string> ReasoningEffort { get; set; } =
          new(new[] {"Default", "Off", "Minimal", "Low", "Medium", "High"}, 3); // default: Low

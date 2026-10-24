@@ -5,6 +5,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ## v2.7.20.. open
 
 ### New
+- **Grok 4 no longer thinks at Low** (cost bench 24/10: Grok 4.20 thinks as long at Minimal, Low or High, about 1,800
+  hidden tokens a reply, and that thinking was most of its price; only Off stops it, at half the price and about five
+  times faster, and the writing held). On a Grok 4 model, Reasoning Effort Minimal and Low (the default) now mean Off;
+  Medium and High still let it think. Other models keep their levels.
+- **Your OpenRouter activity page names the mod** (it filed every call under another app, "AI Writing Companion",
+  because OpenRouter groups apps by web address and the mod sent its Nexus page's). The mod now sends an address of its
+  own.
 - **The interpreter now defaults to DeepSeek V4.1 Flash** (cost bench 24/10, the whole action catalog of 296 cases on
   each candidate). DeepSeek V4.1 Flash read 291 right, invented no deed and fell for no false lead, at about $0.0004
   and under a second per reply; Grok 4.20, the old default, cost about ten times more for fewer right readings. A

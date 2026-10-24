@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-589 rules read 447 facts.
+590 rules read 448 facts.
 
 ## Facts read by more than one rule
 
@@ -168,7 +168,11 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MemberRoster.GetTroopRoster` (3) | `AuthoredBandMakeupFacts`, `CompanionCounselPolicy.Select`, `PartyCounselFacts` |
 | `MobileParty.Morale` (3) | `CompanionCounselPolicy.Select`, `PartyCounselFacts`, `PartyMoraleMood.DriverFor` |
 | `MobileParty.Position` (3) | `AuthoredQuestPrompt.Narrator`, `CouncilSceneImagePolicy.Resolve`, `SceneSurroundingsFacts` |
+| `ModSettings.ActionInterpreterProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
+| `ModSettings.CncProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.CompanionAudienceCadence` (3) | `CompanionAudiencePacingRules.CooldownDays`, `CompanionAudiencePacingRules.DailyChancePercent`, `CompanionAudiencePacingRules.IsOff` |
+| `ModSettings.HousekeepingProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
+| `ModSettings.RoleplayProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.WarLevyScale` (3) | `StandingAim`, `SummonsFacts`, `WarLevyFacts` |
 | `Objective.Spawn` (3) | `AuthoredBandSizeFacts`, `AuthoredQuestEngine.Bound`, `AuthoredQuestEngine.Fill` |
 | `OwnerClan.Kingdom` (3) | `EdictCounselPolicy.Answer`, `EdictCounselPolicy.DecreesThisWeek`, `EdictTownFacts` |
@@ -243,18 +247,16 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MobileParty.ShortTermBehavior` (2) | `CompanionPatrolPolicy.ShouldReissue`, `PatrolLeashFacts` |
 | `MobileParty.TargetSettlement` (2) | `CompanionPatrolPolicy.ShouldReissue`, `PatrolLeashFacts` |
 | `MobileParty.TotalWeightCarried` (2) | `CompanionCounselPolicy.Select`, `PartyCounselFacts` |
-| `ModSettings.ActionInterpreterProviderSelection` (2) | `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.AllowFiefAndMarriageQuestRewards` (2) | `FiefRewardFacts`, `MarriageRewardFacts` |
 | `ModSettings.AllowKillingCharacters` (2) | `ViolencePolicy.IsPermitted`, `ViolencePolicy.Resolve` |
 | `ModSettings.AllowOpenRouterProviderFallbacks` (2) | `ProviderPinFailurePolicy.Explain`, `ProviderPinFailurePolicy.RoutingJson` |
-| `ModSettings.CncProviderSelection` (2) | `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.EnableWarDuty` (2) | `LevyTroopFacts`, `TermsFacts` |
-| `ModSettings.HousekeepingProviderSelection` (2) | `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.LeanPrompt` (2) | `ConversationCompressionPolicy.ThresholdFor`, `TranscriptFold` |
 | `ModSettings.LettersFromNpcs` (2) | `LetterMailboxPolicy.SelectNext`, `LetterPacingRules.BudgetFor` |
 | `ModSettings.MarriageRegardThreshold` (2) | `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion` |
+| `ModSettings.NsfwReasoningEffort` (2) | `OnOffReasoningPolicy.ForModel`, `RoleSettings` |
+| `ModSettings.ReasoningEffort` (2) | `OnOffReasoningPolicy.ForModel`, `RoleSettings` |
 | `ModSettings.ReplyLanguage` (2) | `PendingSummaryJob`, `ReplyLanguagePolicy.WithLanguage` |
-| `ModSettings.RoleplayProviderSelection` (2) | `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.SelfEsteemClimb` (2) | `SelfEsteemClimb`, `SelfEsteemPolicy.Record` |
 | `ModSettings.WarDutyWindowDays` (2) | `WarDutyLive`, `WarDutyPolicy.Decide` |
 | `Models.MapDistanceModel` (2) | `CourierGateFacts`, `EscortCostPolicy.EscortPremium` |
@@ -641,6 +643,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `OathOfferFacts`: `Clan.Kingdom`, `Clan.Leader`, `Hero.Clan`, `Hero.Gold`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Kingdom.Leader`, `PartyBelongedTo.LeaderHero`
 - `ObserverStakeFacts`: `Hero.Clan`
 - `OfferConfirmationFacts`: `Hero.IsFemale`
+- `OnOffReasoningPolicy.ForModel`: `ModSettings.ActionInterpreterProviderSelection`, `ModSettings.CncProviderSelection`, `ModSettings.CustomReasoningEffort`, `ModSettings.HousekeepingProviderSelection`, `ModSettings.NsfwReasoningEffort`, `ModSettings.ReasoningEffort`, `ModSettings.RoleplayProviderSelection`
 - `OpenRelationshipPolicy.SuppressesJealousy`: `Romantic.IsOpenArrangement`
 - `OutlawPolicy.BountyPrice`: `Hero.Clan`, `Hero.IsLord`, `Hero.IsPrisoner`, `Hero.MapFaction`, `Hero.Name`
 - `OutlawPolicy.HunterStrength`: `MemberRoster.TotalManCount`
