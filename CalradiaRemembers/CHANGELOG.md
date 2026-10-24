@@ -155,6 +155,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   sharing one row. `ClanRegardListPolicy.HeadsLine`.
 
 ### Fixed
+- **Grok keeps its cache from the first reply** (cr.cost_bench 24/10: on OpenRouter the first reply after the scene
+  opener, and the first after a long talk was summed up, re-read the whole prompt at full price, about $0.020 instead
+  of $0.0035). Each request now tells the provider which cached prompt it continues (`prompt_cache_key`, named from
+  the character's stable prompt), and Grok finds it again: 3 tries out of 3 in a probe, against 0 before. OpenRouter
+  only.
+- **Gemini as interpreter reads at low effort, once** (cr.cost_bench 24/10: Gemini 3.8 Flash refuses reasoning off, was
+  then left to think at its own default, ran past the interpreter's budget and was asked twice per reply: 20 s and
+  about three times Grok's price for each reading). A call that wants no reasoning now goes at "low" when the model
+  cannot turn it off, and a Gemini 3 model gets "low" from its first call. The same holds for memory summaries and the
+  other background calls. Your prose keeps your own Reasoning Effort.
 - **Custom chat portraits no longer turn blue** (Lordfadooboo 23/10: "any custom ones I added seemed to be blue, but in
   the chat portrait files they all look completely normal"; Rhagaea, a JPG, was fine). The game shows a 24-bit image
   (JPG, RGB PNG) with red and blue swapped and an RGBA PNG true, and the loader swapped red and blue on every image,
