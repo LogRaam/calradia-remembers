@@ -6,8 +6,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ### New
 - **What a call costs, measured** (fearente 24/10: "$3.19 without particularly heavy usage" in a week the page priced
-  at about $1, and no way to tell which calls were the mod's). On OpenRouter every call now names the mod (the activity
-  page shows "Calradia Remembers" beside it) and asks for its bill; a retry is counted with the attempt it replaced
+  at about $1, and no way to tell which calls were the mod's). On OpenRouter every call now carries the mod's name and
+  asks for its bill; a retry is counted with the attempt it replaced
   (it used to report the retry alone). Developer tool `cr.cost_bench [plan|run] [cap]` (Gabriel 24/10: PROSE and
   INTERPRET measured apart, by length of conversation, quality beside cost), four passes from
   Configs/CalradiaRemembers_cost_bench.txt: [prose] each model plays the opening for real in Enhanced with no
