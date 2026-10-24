@@ -6,9 +6,9 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 566 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1274 types in 46 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 266 types in 17 namespaces, 9 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 567 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1280 types in 46 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 267 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -95,7 +95,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
-| `ModCheats` | public static class, partial over 60 files | Exposes diagnostic commands to the Bannerlord cheat console. |
+| `ModCheats` | public static class, partial over 61 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
 | `ProseInterpretTestRunner` | internal static class | The runner behind cr.prose_interpret_test. |
 | `RomanceBondWatchBehavior` | internal class | Reads the bonds with the player at session start and every hour, for CrRomance.StatusChanged. |
@@ -276,13 +276,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `CompanionBriefingCoordinator` | public static class | Offers the companion-briefing picker and opens the resulting private chat. |
 
-### CalradiaRemembers.Diagnostics (15)
+### CalradiaRemembers.Diagnostics (16)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ActionBench` | public static class | Runs the interpreter extraction bench in-game against the configured interpreter model. |
 | `ConsoleCommandHelp` | public static class | Every cr command, described. |
 | `ConsoleCommandIndex` | public static class | Every console command this assembly registers, by group, straight from the attributes. |
+| `CostBench` | public static class | Plays the cost scenarios through the real pipeline and writes the measured table. |
 | `CrConsoleTextListPatch` | public static class | The same repair for the overload that receives the arguments already split. |
 | `CrConsoleTextPatch` | public static class | Repairs the text of a cr.* console command as the console typed it. |
 | `CrSelfTest` | public static class | End-to-end self-test harness. |
@@ -1847,11 +1848,17 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SummaryEnqueueOutcome` | public enum | What ConversationSummaryQueue.Enqueue actually did with the new job. |
 | `WitnessExchangePolicy` | public static class | Decides whether the bystander exchange must stop and leave the floor to the player. |
 
-### CalradiaRemembers.Logic.Diagnostics (6)
+### CalradiaRemembers.Logic.Diagnostics (12)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ConsoleTextRepair` | public static class | Undoes the console's UTF-8-read-as-Windows-1252 mangling of a command's text. |
+| `CostBenchReport` | public static class | The sums and the tables. |
+| `CostCall` | public class | One billed attempt, as OpenRouter reported it. |
+| `CostPhase` | public enum | Which kind of call a billed attempt belonged to. |
+| `CostScenario` | public class | One setup to measure: the models and the MCM choices a player makes. |
+| `CostScenarioFile` | public static class | The scenario file: one row per line, edited by hand. |
+| `CostScenarioResult` | public class | One scenario's measured costs. |
 | `DiagnosticPick` | public class | The character picked, and the others who answered equally well. |
 | `DiagnosticSubject` | public class | A character a diagnostic command may pick: its hero id and its display name. |
 | `DiagnosticSubjectPicker` | public static class | Picks a diagnostic command's subject from what was typed. |
@@ -2557,11 +2564,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WorldClaimPolicy` | public static class | Decides whether a thing an NPC said may become a thing that is true. |
 | `WoundedBand` | public enum | How much of the company is fit to fight. |
 
-### NpcMemoryService.Core.LlmClient (3)
+### NpcMemoryService.Core.LlmClient (4)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ILlmClient` | public interface | Sends a completion request and returns a response, both expressed in our internal protocol. |
+| `ILlmUsageObserver` | public interface | Sees every HTTP attempt a client makes, with what the provider reported it cost. |
 | `ILlmWireObserver` | public interface | Sees each request as it goes out. |
 | `LlmWireSnapshot` | public record | One outgoing request, described in the terms its cost is decided by. |
 

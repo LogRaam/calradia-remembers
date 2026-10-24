@@ -174,10 +174,36 @@ namespace CalradiaRemembers.Services
 
       private ILlmWireObserver _wireObserver;
 
+      /// <summary>
+      ///   Optional seat that sees what every call COST (cr.cost_bench), null in normal play. Held here for the same reason
+      ///   as <see cref="WireObserver" />: clients are rebuilt when a model changes, and every client built later picks it up.
+      /// </summary>
+      public ILlmUsageObserver UsageObserver
+      {
+         get => _usageObserver;
+         set
+         {
+            _usageObserver = value;
+            Attach(LlmClient);
+            Attach(_interpreterClient);
+            Attach(_nsfwClient);
+            Attach(_housekeepingClient);
+         }
+      }
+
+      private ILlmUsageObserver _usageObserver;
+
       private void Attach(ILlmClient client)
       {
-         if (client is OpenRouterClient open) open.WireObserver = _wireObserver;
+         if (client is not OpenRouterClient open) return;
+
+         open.WireObserver = _wireObserver;
+         open.UsageObserver = _usageObserver;
       }
+
+      // OpenRouter's app attribution (fearente, 24/10/2026, could not tell which calls on his bill were the mod's).
+      private const string AppTitle = "Calradia Remembers";
+      private const string AppUrl = "https://www.nexusmods.com/mountandblade2bannerlord/mods/11658";
 
       /// <summary>
       ///   The dedicated client for the ACTION INTERPRETER role (Prose + Interpreter composition). Its base URL,
@@ -403,9 +429,12 @@ namespace CalradiaRemembers.Services
                TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds,
                ParameterOptionsProvider = () => ParameterOptionsFor(ActiveRoleKind(), ResolveModel()),
                ProviderSlugsProvider = ResolveProviderPin,
-               AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks
+               AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks,
+               IsOpenRouterProvider = () => ActiveRoleKind() == ProviderKind.OpenRouter,
+               AppTitle = AppTitle,
+               AppUrl = AppUrl
             };
-            LlmClient = new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver};
+            LlmClient = new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver, UsageObserver = _usageObserver};
 
             if (ResolveProvider() != ProviderCustom && string.IsNullOrWhiteSpace(ApiKeyFor(ServiceRole.Prose, DefaultKind())))
                ModLog.Info($"LLM stack built, but no {ResolveProvider()} API key is set yet. " +
@@ -603,6 +632,9 @@ namespace CalradiaRemembers.Services
       ///   layered over <see cref="DefaultKind" /> via <see cref="ProviderRolePolicy.ResolveRoleKind" />. A role
       ///   left on "(default)" returns the default kind. Read live so an MCM change applies immediately.
       /// </summary>
+      /// <summary>The provider a role resolves to now (cr.cost_bench prices OpenRouter's bill only).</summary>
+      internal static ProviderKind KindForRole(ServiceRole role) => ResolveKindForRole(role);
+
       private static ProviderKind ResolveKindForRole(ServiceRole role)
       {
          string selection;
@@ -1003,10 +1035,13 @@ namespace CalradiaRemembers.Services
             TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds,
             ParameterOptionsProvider = () => ParameterOptionsFor(kind, model),
             ProviderSlugsProvider = () => "",
-            AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks
+            AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks,
+            IsOpenRouterProvider = () => kind == ProviderKind.OpenRouter,
+            AppTitle = AppTitle,
+            AppUrl = AppUrl
          };
 
-         return new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver};
+         return new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver, UsageObserver = _usageObserver};
       }
 
       /// <summary>
@@ -1026,10 +1061,13 @@ namespace CalradiaRemembers.Services
             TimeoutSecondsProvider = () => ModSettings.LlmResponseTimeoutSeconds,
             ParameterOptionsProvider = () => ParameterOptionsFor(kind, model),
             ProviderSlugsProvider = () => ResolveProviderPinFor(role),
-            AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks
+            AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks,
+            IsOpenRouterProvider = () => kind == ProviderKind.OpenRouter,
+            AppTitle = AppTitle,
+            AppUrl = AppUrl
          };
 
-         return new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver};
+         return new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver, UsageObserver = _usageObserver};
       }
 
       private ILlmClient BuildInterpreterClient(ProviderKind kind, string model)
@@ -1052,10 +1090,13 @@ namespace CalradiaRemembers.Services
             ProviderSlugsProvider = () => kind == ProviderKind.OpenRouter
                ? ModelModePolicy.ResolveProviderPin(new ModelModePolicy.RoleSettings {Role = ServiceRole.Interpret, Prose = ModSettings.OpenRouterProviderPin, Nsfw = ModSettings.OpenRouterNsfwProviderPin, Interpret = ""})
                : "",
-            AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks
+            AllowProviderFallbacksProvider = () => ModSettings.AllowOpenRouterProviderFallbacks,
+            IsOpenRouterProvider = () => kind == ProviderKind.OpenRouter,
+            AppTitle = AppTitle,
+            AppUrl = AppUrl
          };
 
-         return new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver};
+         return new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver, UsageObserver = _usageObserver};
       }
 
       /// <summary>
