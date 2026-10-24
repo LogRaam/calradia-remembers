@@ -34,7 +34,7 @@ namespace CalradiaRemembers.Tests
         /// <summary>The sizes LeanRealPromptBudgetTests assumes. Change one, change both.</summary>
         private const int WorldTxtChars = 2432;
 
-        private const int BehaviorGuidelinesChars = 6629;
+        private const int BehaviorGuidelinesChars = 7101;
 
         /// <summary>
         ///   Tolerance for ordinary editing. Wide enough that fixing a typo is not a failed build, tight

@@ -5,6 +5,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ## v2.7.20.. open
 
 ### New
+- **Counsel, not sermons** (fearente 24/10, on Gemini 3.8 Flash and Gemma 4: a harmless decision met "These lands have
+  swallowed many arrogant people like you"; told of two Dromons bought at Diatma, his wife lectured on pride twice,
+  through his reassurance). Every station's behavior guidelines (lord, companion, gang leader, notable, wanderer) and
+  the built-in fallback now say: an ordinary plan meets interest, a practical question or an honest view said once; a
+  danger is named only when real, and once the player has answered it his word is taken; never a lecture on pride or
+  arrogance; a spouse, kin or old friend is on the player's side even in disagreement. Found by tracing the prompt: the
+  files licensed friction ("judge by deeds", "name the danger", "no yes-man") and nothing bounded a warning. The
+  Compact fallback (no file loaded) is left as it was, for its budget; the shipped file is what Compact sends. The
+  guidelines file grows by ~470 characters (budget constants moved in both repos, Lean guard green).
 - **Romance status for other mods** (LapitaPolata 22/10: "I managed to have a secret lover, the relationship only
   exists in my and her memory. Affairs of Calradia does not know about it"; Gabriel 23/10: a door, the bridge does the
   rest). `CrRomance.GetStatus(npcId)` reads a character's bond with the player as one word (`RomanceBondPolicy.Read`,
