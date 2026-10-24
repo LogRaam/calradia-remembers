@@ -10,9 +10,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   page shows "Calradia Remembers" beside it) and asks for its bill; a retry is counted with the attempt it replaced
   (it used to report the retry alone). Developer tool `cr.cost_bench [plan|run] [cap]` (Gabriel 24/10: PROSE and
   INTERPRET measured apart, by length of conversation, quality beside cost), four passes from
-  Configs/CalradiaRemembers_cost_bench.txt: [prose] each model plays the same twenty-line conversation in Enhanced
-  with no interpreter, folded as the chat folds it, then writes a letter (start, middle, long priced apart; signals for
-  repeats, refusals, sermons after the player's reassurance, Earth references); [standard] the same in one call;
+  Configs/CalradiaRemembers_cost_bench.txt: [prose] each model plays the opening for real in Enhanced with no
+  interpreter (fearente's ships and reassurance), then answers in the middle (turn 8) and late in a long conversation
+  (turn 18, ten exchanges folded into a recap) over a synthetic history the same for every model, each after a
+  warm-up reply so the cache is as warm as in play (Gabriel 24/10: three points instead of twenty replies), then
+  writes a letter (signals for repeats, refusals, sermons, Earth references, and whether turn 18 recalls what only the
+  recap holds); [standard] the same in one call;
   [interpret] each model reads the same scripted replies by difficulty (no action, simple, oblique, false lead) and is
   scored, deeds invented counted apart; [fold] each Background model folds the same recap. Then the prose x interpret
   grid by addition (the two calls share nothing). Nothing saved, no letter sent, settings restored, a spend cap

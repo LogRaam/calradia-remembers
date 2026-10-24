@@ -6,8 +6,9 @@
 // and MCM setups, a table in the description naming the version it was measured on; then: measure the PROSE and the
 // INTERPRET roles apart, "car la tache est differente pour les deux modes", and report each by the length of the
 // conversation (start, middle, long) with its quality and its cost.
-// cr.cost_bench runs four passes: PROSE (each model plays the same twenty-line conversation and writes a letter, the
-// conversation folded as the chat folds it), INTERPRET (each model reads the same scripted replies, by difficulty, and
+// cr.cost_bench runs four passes: PROSE (each model plays the opening of a conversation for real, then answers at the
+// middle and late in a long one over a synthetic history of the right size, folded as the chat folds it; Gabriel,
+// 24/10/2026: three points instead of twenty replies), INTERPRET (each model reads the same scripted replies, by difficulty, and
 // is scored against what each reply really did), STANDARD (one integrated call), FOLD (one fold of the same recap per
 // Background model). The prose x interpret grid is the sum of the two parts: the two calls share nothing in Enhanced.
 // This is the part that needs no game: the scenario file, the windows, the signals, the sums and the tables.
@@ -166,20 +167,14 @@ namespace CalradiaRemembers.Logic.Diagnostics
       /// <summary>The first reply: nothing in the provider's cache yet.</summary>
       public double Start { get; init; }
 
-      /// <summary>An ordinary reply in the middle of a conversation, before anything is folded.</summary>
+      /// <summary>An ordinary reply in the middle of a conversation (turn 8), warm and before anything is folded.</summary>
       public double Middle { get; init; }
 
-      /// <summary>A reply late in a long conversation, its older part folded into a recap.</summary>
+      /// <summary>A reply late in a long conversation (turn 18), its older part folded into a recap.</summary>
       public double Long { get; init; }
 
       /// <summary>One letter; null when none was written.</summary>
       public double? Letter { get; init; }
-
-      /// <summary>What the folds during the conversation cost in all (the Background model), and how many there were.</summary>
-      public double Folds { get; init; }
-
-      /// <summary>How many folds ran.</summary>
-      public int FoldCount { get; init; }
 
       /// <summary>Of the tokens written, the share spent thinking (0 to 1).</summary>
       public double ThinkingShare { get; init; }
@@ -215,8 +210,12 @@ namespace CalradiaRemembers.Logic.Diagnostics
       /// <summary>Replies naming Earth's faiths or figures.</summary>
       public int EarthReferences { get; init; }
 
+      /// <summary>Whether the late reply found, in the folded recap, what was agreed early in the conversation.</summary>
+      public bool RecapRecalled { get; init; }
+
       /// <summary>The signals as one cell.</summary>
-      public override string ToString() => $"repeats {Repeats}, refusals {Refusals}, sermons {Sermons}, earth {EarthReferences}";
+      public override string ToString()
+         => $"repeats {Repeats}, refusals {Refusals}, sermons {Sermons}, earth {EarthReferences}, recap {(RecapRecalled ? "recalled" : "missed")}";
    }
 
    /// <summary>An interpret row's costs and score, by difficulty.</summary>
@@ -348,20 +347,37 @@ namespace CalradiaRemembers.Logic.Diagnostics
       private static CostScenario Interpret(string name, string model) => new CostScenario {Name = name, Pass = CostPass.Interpret, Model = model};
    }
 
-   /// <summary>Which replies of the scripted conversation are the start, the middle and a long conversation. Pure.</summary>
+   /// <summary>
+   ///   The points a prose row is measured at. Gabriel (24/10/2026): play the opening for real, then build the middle and the
+   ///   long conversation from a synthetic history of the right size, instead of twenty replies. Each synthetic point is
+   ///   answered twice: a warm-up reply (billed, not counted) so the provider's cache is as warm as in play, then the
+   ///   measured one. Pure.
+   /// </summary>
    public static class CostWindows
    {
       /// <summary>The first reply: the cache is cold.</summary>
       public const int StartTurn = 1;
 
-      /// <summary>
-      ///   The middle: turns 6 to 8, warm and not yet folded (the chat folds once more than fourteen lines are unfolded,
-      ///   ConversationCompressionPolicy, so the first fold comes before turn 9 at the full prompt).
-      /// </summary>
-      public static readonly IReadOnlyList<int> MiddleTurns = new[] {6, 7, 8};
+      /// <summary>Replies played for real at the opening: the greeting, fearente's ships and his reassurance.</summary>
+      public const int OpeningTurns = 3;
 
-      /// <summary>A long conversation: turns 17 to 20, after two folds.</summary>
-      public static readonly IReadOnlyList<int> LongTurns = new[] {17, 18, 19, 20};
+      /// <summary>
+      ///   The middle: turn 8, after six synthetic exchanges and a warm-up at turn 7. Fourteen lines then stand unfolded,
+      ///   the most the chat leaves before it folds (ConversationCompressionPolicy.UnfoldedLineThreshold).
+      /// </summary>
+      public static readonly IReadOnlyList<int> MiddleTurns = new[] {8};
+
+      /// <summary>The middle's warm-up reply.</summary>
+      public const int MiddleWarmUp = 7;
+
+      /// <summary>
+      ///   A long conversation: turn 18, after ten exchanges folded into a recap, six kept verbatim and a warm-up at turn
+      ///   17, the shape the chat leaves after its folds.
+      /// </summary>
+      public static readonly IReadOnlyList<int> LongTurns = new[] {18};
+
+      /// <summary>The long conversation's warm-up reply.</summary>
+      public const int LongWarmUp = 17;
 
       /// <summary>
       ///   The player's reassurance line (fearente's ships): a warning in the reply to it, or after, is a sermon. fearente:
@@ -386,6 +402,23 @@ namespace CalradiaRemembers.Logic.Diagnostics
          string lower = reply.ToLowerInvariant();
 
          return Markers.Any(m => lower.Contains(m));
+      }
+   }
+
+   /// <summary>Whether a late reply found what the folded recap holds: the levies agreed early in the conversation. Pure.</summary>
+   public static class RecapSignal
+   {
+      /// <summary>The agreement the synthetic recap carries: forty spearmen for the levies, grain for her villages in return.</summary>
+      public const string Agreement = "forty spearmen";
+
+      /// <summary>True when <paramref name="reply" /> names the agreement. Advisory: the transcript is the judge.</summary>
+      public static bool Recalled(string reply)
+      {
+         if (string.IsNullOrWhiteSpace(reply)) return false;
+
+         string lower = reply.ToLowerInvariant();
+
+         return lower.Contains("forty") || lower.Contains("40");
       }
    }
 
@@ -445,7 +478,6 @@ namespace CalradiaRemembers.Logic.Diagnostics
          Dictionary<int, double> perTurn = mine.Where(c => c.Turn > 0 && c.Phase != CostPhase.Fold).GroupBy(c => c.Turn)
                                                .ToDictionary(g => g.Key, g => g.Sum(c => c.Cost ?? 0));
          List<CostCall> letter = mine.Where(c => c.Phase == CostPhase.Letter).ToList();
-         List<CostCall> folds = mine.Where(c => c.Phase == CostPhase.Fold).ToList();
          List<CostCall> writing = mine.Where(c => c.Phase != CostPhase.Fold).ToList();
          List<string> said = (replies ?? new List<string>()).ToList();
 
@@ -455,8 +487,6 @@ namespace CalradiaRemembers.Logic.Diagnostics
             Middle = Average(perTurn, CostWindows.MiddleTurns),
             Long = Average(perTurn, CostWindows.LongTurns),
             Letter = letter.Count > 0 ? letter.Sum(c => c.Cost ?? 0) : (double?) null,
-            Folds = folds.Sum(c => c.Cost ?? 0),
-            FoldCount = folds.Count,
             ThinkingShare = Share(writing.Sum(c => c.ReasoningTokens), writing.Sum(c => c.CompletionTokens)),
             CachedShare = Share(writing.Sum(c => c.CachedTokens), writing.Sum(c => c.PromptTokens)),
             Replies = perTurn.Count,
@@ -464,7 +494,8 @@ namespace CalradiaRemembers.Logic.Diagnostics
                Repeats = RoleplayBenchChecks.HasVerbatimRepeat(said),
                Refusals = said.Count(RoleplayBenchChecks.LooksLikeRefusal),
                Sermons = said.Skip(CostWindows.ReassuranceTurn - 1).Count(SermonSignal.Lectures),
-               EarthReferences = said.Count(RoleplayBenchChecks.MentionsEarthReference)
+               EarthReferences = said.Count(RoleplayBenchChecks.MentionsEarthReference),
+               RecapRecalled = said.Count > 0 && RecapSignal.Recalled(said[said.Count - 1])
             },
             Unpriced = mine.Any(c => c.Cost == null),
             Note = note ?? ""
@@ -504,8 +535,8 @@ namespace CalradiaRemembers.Logic.Diagnostics
          {
             string work = r.Pass switch
             {
-               CostPass.Prose => $"{turns} replies and a letter, folded as the chat folds; about {turns + 3} calls",
-               CostPass.Standard => $"{turns} replies in one call each and a letter; about {turns + 3} calls",
+               CostPass.Prose => $"{CostWindows.OpeningTurns} replies played, then the middle and a long conversation (a warm-up and a measured reply each), a letter; about {turns} calls",
+               CostPass.Standard => $"the same in one call each; about {turns} calls",
                CostPass.Interpret => $"{casesPerDifficulty} readings of each of 4 difficulties; {casesPerDifficulty * 4} calls",
                _ => "one fold of the reference recap; 1 call"
             };
@@ -524,10 +555,11 @@ namespace CalradiaRemembers.Logic.Diagnostics
          sb.AppendLine();
 
          sb.AppendLine("PROSE (Enhanced: the reply alone) and STANDARD (one call writes and tags), per reply:");
-         sb.AppendLine("| Model | Role | Setup | Start | Middle (turns 6-8) | Long (turns 17-20, folded) | Letter | Folds | Thinking | From cache | Signals |");
-         sb.AppendLine("|---|---|---|---|---|---|---|---|---|---|---|");
+         sb.AppendLine("| Model | Role | Setup | Start (turn 1) | Middle (turn 8) | Long (turn 18, folded) | Letter | Thinking | From cache | Signals |");
+         sb.AppendLine("|---|---|---|---|---|---|---|---|---|---|");
          foreach (ProseRowResult r in prose)
-            sb.AppendLine($"| {r.Row.Name} ({r.Row.Model}) | {(r.Row.Pass == CostPass.Standard ? "STANDARD" : "PROSE")} | {r.Row.Setup} | ${Money(r.Start)} | ${Money(r.Middle)} | ${Money(r.Long)} | {(r.Letter == null ? "-" : "$" + Money(r.Letter.Value))} | {r.FoldCount} for ${Money(r.Folds)} | {Percent(r.ThinkingShare)} | {Percent(r.CachedShare)} | {r.Signals} |{Flags(r.Unpriced, r.Note)}");
+            sb.AppendLine($"| {r.Row.Name} ({r.Row.Model}) | {(r.Row.Pass == CostPass.Standard ? "STANDARD" : "PROSE")} | {r.Row.Setup} | ${Money(r.Start)} | ${Money(r.Middle)} | ${Money(r.Long)} | {(r.Letter == null ? "-" : "$" + Money(r.Letter.Value))} | {Percent(r.ThinkingShare)} | {Percent(r.CachedShare)} | {r.Signals} |{Flags(r.Unpriced, r.Note)}");
+         sb.AppendLine("The middle and the long conversation answer over a synthetic history of the same size for every model (a warm-up reply first, billed, not counted): models are compared on the same input; a wordier model would weigh more on its own history in play.");
          sb.AppendLine();
 
          sb.AppendLine("INTERPRET, per reading, with right readings out of cases (and deeds invented):");

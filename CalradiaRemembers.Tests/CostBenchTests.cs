@@ -57,27 +57,38 @@ namespace CalradiaRemembers.Tests
          problems.Should().Contain(p => p.StartsWith("line 1")).And.Contain(p => p.StartsWith("line 4")).And.Contain(p => p.StartsWith("line 7"));
       }
 
-      // Gabriel: start, middle and long conversation priced apart. The first reply pays for the whole prompt; a middle
-      // reply reads it from cache; a long one carries a folded recap. Averaging them would price an ordinary turn wrongly,
-      // and a fold is the Background model's bill, not the reply's.
+      // Gabriel: start, middle and long conversation priced apart, the middle and the long one each answered after a
+      // warm-up reply. The first reply pays for the whole prompt; the warm-ups are billed but must not be counted, or the
+      // middle and the long conversation would be priced as cold as the start. A fallback that redoes the measured reply
+      // is still the prose's work.
       [Test]
-      public void GIVEN_a_twenty_line_conversation_WHEN_summed_THEN_start_middle_and_long_are_priced_apart_and_folds_kept_aside()
+      public void GIVEN_the_three_points_WHEN_summed_THEN_start_middle_and_long_are_priced_apart_without_their_warm_ups()
       {
-         var calls = new List<CostCall>();
-         for (var turn = 1; turn <= 20; turn++) calls.Add(Call(GrokProse, CostPhase.Prose, turn, turn == 1 ? 0.05 : turn <= 8 ? 0.004 : 0.006));
-         calls.Add(Call(GrokProse, CostPhase.Fallback, 7, 0.003));
-         calls.Add(Call(GrokProse, CostPhase.Fold, 9, 0.002));
-         calls.Add(Call(GrokProse, CostPhase.Fold, 15, 0.002));
-         calls.Add(Call(GrokProse, CostPhase.Letter, 0, 0.03));
+         var calls = new List<CostCall> {
+            Call(GrokProse, CostPhase.Prose, 1, 0.05), Call(GrokProse, CostPhase.Prose, 2, 0.004), Call(GrokProse, CostPhase.Prose, 3, 0.004),
+            Call(GrokProse, CostPhase.Prose, CostWindows.MiddleWarmUp, 0.04), Call(GrokProse, CostPhase.Prose, 8, 0.005),
+            Call(GrokProse, CostPhase.Fallback, 8, 0.003),
+            Call(GrokProse, CostPhase.Prose, CostWindows.LongWarmUp, 0.06), Call(GrokProse, CostPhase.Prose, 18, 0.007),
+            Call(GrokProse, CostPhase.Letter, 0, 0.03)
+         };
 
-         ProseRowResult r = CostBenchReport.SummarizeProse(GrokProse, calls, Enumerable.Repeat("Fine.", 20).ToList());
+         ProseRowResult r = CostBenchReport.SummarizeProse(GrokProse, calls, Enumerable.Repeat("Fine.", 7).ToList());
 
          r.Start.Should().BeApproximately(0.05, 1e-9);
-         r.Middle.Should().BeApproximately((0.004 + 0.007 + 0.004) / 3, 1e-9, "a redone reply is still the prose's work");
-         r.Long.Should().BeApproximately(0.006, 1e-9);
+         r.Middle.Should().BeApproximately(0.008, 1e-9);
+         r.Long.Should().BeApproximately(0.007, 1e-9);
          r.Letter.Should().BeApproximately(0.03, 1e-9);
-         r.FoldCount.Should().Be(2);
-         r.Folds.Should().BeApproximately(0.004, 1e-9);
+      }
+
+      // The long conversation's measured question asks for what only the folded recap holds (forty spearmen for the
+      // levies): whether the model found it is shown beside the cost.
+      [Test]
+      public void GIVEN_the_last_reply_WHEN_signalled_THEN_the_recap_is_recalled_only_when_the_agreement_is_named()
+      {
+         CostBenchReport.SummarizeProse(GrokProse, new List<CostCall>(), new[] {"a", "We agreed: forty spearmen, home before the sowing."})
+                        .Signals.RecapRecalled.Should().BeTrue();
+         CostBenchReport.SummarizeProse(GrokProse, new List<CostCall>(), new[] {"a", "I do not recall agreeing to anything."})
+                        .Signals.RecapRecalled.Should().BeFalse();
       }
 
       // A name may stand in several sections (Grok writes, reads and folds): its bills must never be mixed.
