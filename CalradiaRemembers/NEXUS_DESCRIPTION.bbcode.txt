@@ -333,7 +333,7 @@ A conversation can lead to real action. Here is the full set of things that can 
 
 ⚠️ [b][color=#ffd966]This mod needs an LLM to work.. there is no AI bundled with it.[/color][/b] You have two paths:
 
-[b][color=#ffd966]Cloud (OpenRouter or NanoGPT)[/color][/b].. pay-as-you-go, easy to set up, best quality. Costs are small per conversation but not zero.. you control the price through your model choice (~$1 for a heavy week of play on the default model).
+[b][color=#ffd966]Cloud (OpenRouter or NanoGPT)[/color][/b].. pay-as-you-go, easy to set up, best quality. Costs are small per conversation but not zero.. you control the price through your model choice (about $0.85 per 100 replies on the default Grok 4.20, and from $0.06 to $0.37 on lighter models; measured figures under "Which model should I use?").
 
 [b][color=#ffd966]Local server (LM Studio, Ollama, vLLM…)[/color][/b].. free, private, no subscription, no data leaving your machine. Quality and speed depend entirely on your hardware and the model you load. Perfectly playable on a modern GPU; slower and more limited on CPU.
 
@@ -497,7 +497,7 @@ OPTION A.. SET UP OPENROUTER (CLOUD, ONE TIME)
   3. Go to openrouter.ai/keys and create an API key. Copy it.
   4. Browse openrouter.ai/models if you'd like to pick a specific model (optional).
 
-[b]HOW FAR DOES CREDIT GO[/b]? Measured on the default model (Grok 4.20): a full week of heavy testing.. 146 exchanges, much of it long, prompt-hungry captive scenes.. came to about $1. That's roughly 130+ messages per dollar, so even $5 covers hundreds of exchanges.. comfortably dozens of full conversations.. and more for everyday chats. You only pay for what you use, and a lighter model stretches it further still.
+[b]HOW FAR DOES CREDIT GO[/b]? Measured on v2.7.20 (see "What it costs, measured" below): $5 buys about 550 ordinary replies on the default Grok 4.20, about 1,600 on Gemini 3.8 Flash, 4,500 on DeepSeek V4 Flash and 8,000 on GPT-6 Luna, with the default interpreter reading each one. Openings, letters and long captive scenes cost more than an ordinary reply, so count on somewhat fewer. You only pay for what you use.
 
 [quote]🔒 Your key is stored locally on your machine only. Never share your config file or a screenshot of the key field.. treat the key like a password.[/quote]
 
@@ -535,7 +535,7 @@ Popular options:
   1. Launch Bannerlord with the mod enabled, then open Options → Mod Options → Calradia Remembers.
   2. Set `LLM Provider` to OpenRouter or NanoGPT.. whichever you set up.
   3. Paste your key into that provider's API Key field.
-  4. Set the [b]PROSE model[/b] field.. the model that writes ordinary conversation (OpenRouter has a default, x-ai/grok-4.20; NanoGPT needs an id you paste from its catalog). That is all you need to start: on the default [b]Enhanced[/b] composition the [b]NSFW model[/b] (a reliable fallback for explicit beats) and the [b]Interpret model[/b] (which reads actions) both default to Grok 4.20 and simply work. Point any of the three at a different model, or its own provider, only if you want to. [i](Upgrading? Your provider, key and PROSE model carry over; the NSFW-fallback and Interpret roles default to Grok 4.20.)[/i]
+  4. Set the [b]PROSE model[/b] field.. the model that writes ordinary conversation (OpenRouter has a default, x-ai/grok-4.20; NanoGPT needs an id you paste from its catalog). That is all you need to start: on the default [b]Enhanced[/b] composition the [b]NSFW model[/b] (a reliable fallback for explicit beats) defaults to Grok 4.20 and the [b]Interpret model[/b] (which reads actions) to DeepSeek V4.1 Flash, and both simply work. Point any of the three at a different model, or its own provider, only if you want to. [i](Upgrading? Your provider, key and models carry over, your Interpret model included; to take the new interpreter, type deepseek/deepseek-v4.1-flash in Interpret model.)[/i]
   5. Click that provider's `Test Connection` button.. it validates your key and tests your configured models with a one-token prompt, so a mistyped model id is caught before you play.
   6. That's it. Settings apply immediately.. no restart, no save reload. Walk up to any lord and talk.
 
@@ -562,7 +562,7 @@ LLM Provider:
 [*]Manual Roleplay/NSFW switch in chat.. off by default. When on, a small switch appears in the chat window so you can choose, per scene, whether your Roleplay model or your NSFW model writes it. The automatic fallback still applies on top; this just lets you steer by hand, the way older versions did.[/*]
 [*]PROSE model.. the model that writes ordinary conversation, and in Enhanced mode the prose of every scene. Default on OpenRouter: x-ai/grok-4.20; NanoGPT and OpenAI-Compatible need an id you paste yourself. See "Which model should I use?" below for picks by quality, price, and adult-content tolerance.[/*]
 [*]NSFW model.. the more permissive model for explicit content: captivity scenes in Standard mode, and the hard-failure fallback in Enhanced mode (when the PROSE model truncates, empties, or refuses a beat). Default x-ai/grok-4.20; leave blank to reuse the PROSE model.[/*]
-[*]Interpret model.. Enhanced mode only.. the model whose sole job is to read the structured actions (relation shifts, gold, quests, duels…) out of the prose, so they fire reliably whatever writer you run. Default x-ai/grok-4.20; leave blank to reuse the PROSE model.[/*]
+[*]Interpret model.. Enhanced mode only.. the model whose sole job is to read the structured actions (relation shifts, gold, quests, duels…) out of the prose, so they fire reliably whatever writer you run. Default deepseek/deepseek-v4.1-flash (the most accurate and among the cheapest measured, see below); leave blank to reuse the PROSE model.[/*]
 [*]Per-role providers ([i]Roleplay / Prose provider[/i], [i]NSFW provider[/i], [i]Interpret provider[/i]).. each role can go to its own backend. The prose provider is the base; the other two inherit it on [i](default)[/i], or pick their own.. for instance prose in the cloud and the interpreter on a local model. When a role uses the OpenAI-Compatible provider, it can also point at its OWN Endpoint URL and carry its OWN API key, so you can split roles across different local servers even when each server requires its own key. Applies immediately.[/*]
 [*]Reasoning Effort (PROSE) / Reasoning Effort (NSFW).. how hard a reasoning model (like Grok) "thinks" before replying. In Enhanced mode the PROSE model writes captivity scenes too, so keep PROSE effort [b]Low or Medium[/b] (its default is Low).. higher can mean finer dialogue but slower replies, more truncation, and more refusals on adult content. NSFW defaults to "Same as PROSE" and is worth dropping to Low/Off for fewer refusals and faster scenes. On OpenRouter; and an [b]OpenAI-compatible / local[/b] endpoint now carries its own Reasoning Effort dial too, sent in the format those servers expect.[/*]
 [/list]
@@ -627,7 +627,46 @@ Comparable quality for a fraction of the cost (~5× cheaper input and output). S
 [b]DEEPSEEK V4 PRO[/b].. premium, still cheap    (model id: deepseek/deepseek-v4-pro)
 Top-tier quality, still well under Grok's price. For when you want the very best and don't mind paying a little more than V3.2.
 
-[b]WHAT IT COSTS, BY MODEL[/b]. Only Grok 4.20 is measured from real usage (the ~130 messages-per-dollar figure earlier); the others are extrapolated by price ratio, so treat them as ballpark. For the same play: DeepSeek V3.2 is about 5-6× cheaper than Grok 4.20, and DeepSeek V4 Pro about 3× cheaper. Concretely, the ~$1 week of heavy testing on Grok 4.20 would be roughly ~$0.18 on V3.2 or ~$0.38 on V4 Pro.. your exact cost still depends on conversation length and each model's own caching.
+[b]WHAT IT COSTS, MEASURED[/b] (Calradia Remembers v2.7.20, 24/10/2026, OpenRouter's own bill for every call). One ordinary (not adult) conversation with a lord, on the full prompt, reasoning effort Low (the default), Enhanced composition, played the same way on every model. [i]Middle[/i] is an ordinary reply eight turns in; [i]Long talk[/i] is turn 18, after the conversation was summed up; the seconds are what you wait.
+[code]
+Prose model         Scene opener   1st reply     Middle        Long talk     Letter
+Grok 4.20           $0.022 18 s    $0.0099 28 s  $0.0081 21 s  $0.0074 16 s  $0.020
+Grok 4.20, Compact  $0.015 20 s    $0.015 19 s   $0.0057 13 s  $0.0055 12 s  $0.0078
+Gemini 3.8 Flash    $0.0030 33 s   $0.0023 3 s   $0.0026 4 s   $0.0025 3 s   $0.0029
+DeepSeek V4 Flash   $0.0036 105 s  $0.0019 27 s  $0.0007 4 s   $0.0007 2 s   $0.0016
+GPT-6 Luna          $0.0021 3 s    $0.0003 3 s   $0.0002 2 s   $0.0003 3 s   $0.0019
+Gemma 4 31B         $0.0021 17 s   $0.0028 18 s  $0.0021 11 s  $0.0022 21 s  $0.0022
+GLM 4.6             $0.010 25 s    $0.010 51 s   $0.0033 23 s  $0.0081 18 s  $0.0086
+[/code]
+Enhanced reads every reply once more for its actions. Each interpreter below read the mod's whole catalog of 296 test cases (deeds plainly done, deeds done in passing, and look-alikes that must NOT count, such as a promise or a story):
+[code]
+Interpret model      Read right     Per reply
+DeepSeek V4.1 Flash  291/296 (98%)  $0.0004 0.8 s  (default)
+DeepSeek V4 Flash    283/296 (96%)  $0.0006 2.5 s
+Grok 4.20            273/296 (92%)  $0.0044 1.3 s
+Laguna S 2.1         258/296 (87%)  $0.0003 1.7 s
+Qwen 3.7 Flash       252/296 (85%)  $0.0007 2.6 s
+Mercury 2.5          246/296 (83%)  $0.0002 0.9 s
+[/code]
+So one ordinary reply in Enhanced, with the default interpreter, comes to:
+[code]
+Prose model         One reply     100 replies
+Grok 4.20           $0.0085 22 s  $0.85
+Grok 4.20, Compact  $0.0061 14 s  $0.61
+Gemini 3.8 Flash    $0.0030 5 s   $0.30
+DeepSeek V4 Flash   $0.0011 5 s   $0.11
+GPT-6 Luna          $0.0006 3 s   $0.06
+Gemma 4 31B         $0.0025 12 s  $0.25
+GLM 4.6             $0.0037 23 s  $0.37
+[/code]
+[i]100 replies[/i] is computed (100 times one ordinary reply). Each conversation also pays its opening (the scene and the first reply, the dearest two), and now and then a letter or a summary.
+[list]
+[*]Every model above remembered what was agreed 18 turns earlier, and none refused or lectured.[/*]
+[*]Grok 4.20 thinks before it writes even at Low (about 1,800 hidden tokens a reply), and that thinking is most of its price.[/*]
+[*]DeepSeek V4 Flash is cheap and quick once a conversation is under way, but slow to open one (105 seconds for the scene once). GLM 4.6 is slow throughout.[/*]
+[*]Tolerance of the Explicit and Hardcore tiers was not part of this measure; see the picks above.[/*]
+[*]One evening, one lord, one run, prices of the day: a guide, not a quote. OpenRouter's Activity page shows your own bill, call by call.[/*]
+[/list]
 
 [b]AVOID FOR ADULT PLAY[/b]: mainstream Claude and GPT models are superb writers but refuse Explicit / Hardcore content.. perfectly fine at Off / Mature, frustrating beyond it.
 
