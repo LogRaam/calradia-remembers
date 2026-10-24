@@ -12,6 +12,9 @@
 //              replies in which nothing is done) and is scored against what each reply really did.
 //   FOLD       each Background model folds the same recap once.
 // Nothing is saved: the speaker's profile is a copy, the letter is never sent, every forced setting is restored.
+// Each run also CAPTURES what its prose and standard rows sent, request by request (CalradiaRemembers_cost_capture.json
+// beside the report), so the conversation can be replayed outside the game against any model (Logic/Diagnostics/
+// CostReplay; Gabriel, 24/10/2026: "ça te donnerait la possibilité de vérifier des choses par toi-même").
 // Real-LLM, in-game, spends the player's credit: deliberately NOT part of cr.testall (like cr.rp_bench).
 
 #region
@@ -60,40 +63,42 @@ namespace CalradiaRemembers.Diagnostics
       };
 
       // The synthetic history (Gabriel, 24/10/2026: three points instead of twenty replies). The same for every model, so
-      // each is measured on the same input; replies of an ordinary length for a character in this mod.
+      // each is measured on the same input; replies of an ordinary length for a character in this mod. Gestures in the
+      // first person, as the prompt asks of every reply: written without a subject ("*A hard look.*"), DeepSeek V4.1 Flash
+      // took them for a narrator and answered "*He snorts*" over them, on those turns only (24/10/2026).
       private static readonly (string Player, string Npc)[] Exchanges = {
          ("What news from your lands these days?",
-          "*The cup is set down while the question is weighed.* Quiet enough, for once. The harvest came in thin along the river, but the granaries will hold until spring if the stewards stop selling to the caravans. A few raiders crossed the hills last month; my brother's men chased them back. Nothing that would trouble you, I think, though I would not mind a few more spears on the northern road."),
+          "*I set my cup down and weigh the question.* Quiet enough, for once. The harvest came in thin along the river, but the granaries will hold until spring if the stewards stop selling to the caravans. A few raiders crossed the hills last month; my brother's men chased them back. Nothing that would trouble you, I think, though I would not mind a few more spears on the northern road."),
          ("And how fares your family?",
-          "Well, thank you for asking. My mother complains of the cold in the hall and my youngest has taken to the sword like he was born holding one. *A faint smile.* He asked about you, in fact. He wants to know whether the stories about your last battle are true. I told him half of them were, and would not say which half."),
+          "Well, thank you for asking. My mother complains of the cold in the hall and my youngest has taken to the sword like he was born holding one. *I smile faintly.* He asked about you, in fact. He wants to know whether the stories about your last battle are true. I told him half of them were, and would not say which half."),
          ("I passed a burned village on the road. Do you know who did it?",
-          "*A hard look.* I heard of it. Deserters, most likely, men who left the eastern host with their pay unspent and their swords still sharp. Some say they ride under no banner at all. If you have seen them, tell my captain before you leave; he will want to know which way they went."),
+          "*I give you a hard look.* I heard of it. Deserters, most likely, men who left the eastern host with their pay unspent and their swords still sharp. Some say they ride under no banner at all. If you have seen them, tell my captain before you leave; he will want to know which way they went."),
          ("The roads are full of deserters. Have your men had trouble with them?",
-          "Twice this season. Once at the ford, once near the mill. We lost a cart of grain and two good men. *A shake of the head.* The trouble is not the deserters themselves, it is that nobody pays to hunt them. Every lord waits for another to do it, and the villages pay the price in the meantime."),
+          "Twice this season. Once at the ford, once near the mill. We lost a cart of grain and two good men. *I shake my head.* The trouble is not the deserters themselves, it is that nobody pays to hunt them. Every lord waits for another to do it, and the villages pay the price in the meantime."),
          ("I may need your help with the levies this season. Would you stand with me?",
-          "*A long, measuring look.* Perhaps. It depends on what you need and what it would cost my people. I cannot strip my villages bare before the winter, not with deserters on the roads. Tell me plainly how many men you want and for how long, and I will tell you plainly what I can give."),
+          "*I give you a long, measuring look.* Perhaps. It depends on what you need and what it would cost my people. I cannot strip my villages bare before the winter, not with deserters on the roads. Tell me plainly how many men you want and for how long, and I will tell you plainly what I can give."),
          ("What would you ask in return?",
-          "Grain, for one. My villages along the river will go hungry before the thaw if nothing changes. And your word that my men will not be thrown at a wall to spare your own. *Leaning back.* Give me that, and I can send you forty spearmen for the levies, no more, and I will want them home before the spring sowing."),
+          "Grain, for one. My villages along the river will go hungry before the thaw if nothing changes. And your word that my men will not be thrown at a wall to spare your own. *I lean back.* Give me that, and I can send you forty spearmen for the levies, no more, and I will want them home before the spring sowing."),
          ("That seems fair. Tell me, what did you make of our liege's last council?",
-          "*A dry laugh.* I made of it what everyone did: a great deal of shouting and very little decided. The old lords want peace because they are tired, the young ones want war because they are not. Our liege listened to both and promised each of them something. We will see which promise he keeps."),
+          "*I laugh, dryly.* I made of it what everyone did: a great deal of shouting and very little decided. The old lords want peace because they are tired, the young ones want war because they are not. Our liege listened to both and promised each of them something. We will see which promise he keeps."),
          ("Some say the war in the east will not last the winter. Do you believe it?",
-          "I believe it will last exactly as long as both sides can pay their men. Wars end in the treasury long before they end on the field. *A tap on the table.* Watch the price of bread in the eastern towns. When it doubles, someone will start talking about terms."),
+          "I believe it will last exactly as long as both sides can pay their men. Wars end in the treasury long before they end on the field. *I tap the table.* Watch the price of bread in the eastern towns. When it doubles, someone will start talking about terms."),
          ("If it comes to battle, where would you want to stand?",
           "Wherever my men can see me. I am no great captain, but I learned long ago that men hold a line better when the one who brought them there is standing in it too. Put me on the left, near the river, where I know the ground."),
          ("I have a mind to hold a feast when the campaign is done. Would you come?",
-          "*A softer look.* A feast. Now that is a better plan than half of what was said at council. Yes, I would come, if the roads allow it. Send word early; I will need time to find something to wear that is not covered in mud."),
+          "*My look softens.* A feast. Now that is a better plan than half of what was said at council. Yes, I would come, if the roads allow it. Send word early; I will need time to find something to wear that is not covered in mud."),
          ("Who else should I invite, in your view?",
-          "Invite the ones who fought, first. Then the ones you need for next year. And keep the two lists apart at the table, or you will spend the evening keeping old quarrels from becoming new ones. *A smile.* My brother, of course. He will be offended if you forget him."),
+          "Invite the ones who fought, first. Then the ones you need for next year. And keep the two lists apart at the table, or you will spend the evening keeping old quarrels from becoming new ones. *I smile.* My brother, of course. He will be offended if you forget him."),
          ("Is there anyone at court you would rather not sit beside?",
-          "*A hesitation, then a lower voice.* The old steward of the eastern march. He counts every cup of wine and remembers who drank it. Seat him near the door; he likes to leave early anyway, to tell everyone what he saw."),
+          "*I hesitate, then lower my voice.* The old steward of the eastern march. He counts every cup of wine and remembers who drank it. Seat him near the door; he likes to leave early anyway, to tell everyone what he saw."),
          ("I will keep that in mind. Have you heard any word of the caravans from the south?",
           "Late, all of them. Some blame the weather, some blame the raiders, and the merchants blame whoever is listening. One arrived last week with half its mules and a story nobody believed. Prices will climb before they fall, I fear."),
          ("Grain prices are climbing in the towns. Should I worry?",
-          "Worry, yes; panic, no. If you hold a town, open a granary before the people ask you to; they remember who fed them in a hard winter longer than who won a battle. *An even look.* And do not forget what you promised my villages."),
+          "Worry, yes; panic, no. If you hold a town, open a granary before the people ask you to; they remember who fed them in a hard winter longer than who won a battle. *I hold your gaze evenly.* And do not forget what you promised my villages."),
          ("How are your stables? I may need horses before the spring.",
           "Thin, like everything else this year. I could spare a few remounts, not warhorses. The best of the herd went east with my brother. If you need more than a dozen, try the horse fair at the crossroads; the prices are robbery, but the animals are sound."),
          ("Do you trust the new marshal?",
-          "*A pause.* I trust that he wants to win. Whether he wants to win for the realm or for himself, I have not decided. He has been generous with promises and careful with his own men. Watch where he places his own banner in the next battle; that will tell you more than any speech.")
+          "*I pause.* I trust that he wants to win. Whether he wants to win for the realm or for himself, I have not decided. He has been generous with promises and careful with his own men. Watch where he places his own banner in the next battle; that will tell you more than any speech.")
       };
 
       // What the chat's folds would have kept of the first ten exchanges: the recap a long conversation carries.
@@ -101,7 +106,7 @@ namespace CalradiaRemembers.Diagnostics
          "Arriving from Diatma with two newly bought dromons, the player spoke at length with the host, who shared news of a thin harvest, raiders " +
          "in the hills and deserters who burned a village and twice robbed the host's men. Asked to stand with the player for this season's levies, " +
          "the host agreed to send forty spearmen, no more, home before the spring sowing, in return for grain for the host's river villages and the " +
-         "player's word that those men would not be spent to spare his own. They spoke of the liege's indecisive council, of a war in the east " +
+         "player's word that those men would not be spent to spare the player's own. They spoke of the liege's indecisive council, of a war in the east " +
          "that will last as long as the treasuries, and of where the host would stand in battle. The host accepted an invitation to a feast after the " +
          "campaign and advised on the guests, warning against seating the old steward of the eastern march near anyone.";
 
@@ -135,18 +140,6 @@ namespace CalradiaRemembers.Diagnostics
       /// </summary>
       private const double DefaultCap = 10.0;
 
-      // Ordinary replies in which nothing is done: the interpreter must emit no deed (a change of regard is allowed).
-      private const string OrdinaryContext = "The player is speaking with a lord of the realm in his hall. No bargain, gift or request is pending.";
-
-      private static readonly string[] OrdinaryReplies = {
-         "*He nods slowly and pours two cups of wine.* Diatma, you say? A long ride. Sit, and tell me how the roads were.",
-         "The harvest was thin this year, but the granaries will hold till spring. My steward frets more than he needs to.",
-         "*She smiles despite herself.* My sons are well, thank you. The youngest has taken to the sword like his father.",
-         "I have heard nothing of that village. Bandits, most likely, or deserters. I will ask my men to keep their eyes open.",
-         "A feast? Perhaps. Send word when the campaign is done and I will see what my duties allow.",
-         "The caravans from the south have been late all season. Some blame the weather, some blame the raiders."
-      };
-
       private static readonly string LogFolder = Path.Combine(
          Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Mount and Blade II Bannerlord", "Logs");
 
@@ -154,6 +147,12 @@ namespace CalradiaRemembers.Diagnostics
          Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Mount and Blade II Bannerlord", "Configs", "CalradiaRemembers_cost_bench.txt");
 
       private static readonly string ReportPath = Path.Combine(LogFolder, "CalradiaRemembers_cost_bench.log");
+
+      /// <summary>What the last run's prose and standard rows sent, for a replay outside the game.</summary>
+      private static readonly string CapturePath = Path.Combine(LogFolder, "CalradiaRemembers_cost_capture.json");
+
+      // The run's prefix watch, which also captures: set for the length of a run (a console command, one at a time).
+      private static PrefixWatch _watch;
 
       /// <summary>cr.cost_bench [plan|run] [cap in dollars]: plan by default, since a run spends credit.</summary>
       public static string Execute(NpcMemoryCampaignBehavior behavior, IList<string> args)
@@ -216,7 +215,7 @@ namespace CalradiaRemembers.Diagnostics
          Hero speaker = PickSpeaker();
          if (speaker == null) return "cr.cost_bench: no adult character to talk to.";
 
-         var recorder = new Recorder();
+         var recorder = new CostRecorder();
          var prose = new List<ProseRowResult>();
          var interpret = new List<InterpretRowResult>();
          var folds = new List<FoldRowResult>();
@@ -229,8 +228,12 @@ namespace CalradiaRemembers.Diagnostics
          // Where each prose call's cacheable prefix stops matching the previous one of its row: the first run (24/10/2026)
          // read only 128 cached tokens on most Grok calls although Grok caches a stable prefix reliably (probed the same day).
          var prefixWatch = new PrefixWatch(recorder);
+         prefixWatch.Capture.Version = version;
+         prefixWatch.Capture.CapturedAtUtc = DateTime.UtcNow.ToString("o");
+         prefixWatch.Capture.Speaker = $"{speaker.Name} ({speaker.StringId})";
          ILlmWireObserver priorWire = services.WireObserver;
          services.WireObserver = prefixWatch;
+         _watch = prefixWatch;
 
          try
          {
@@ -265,7 +268,12 @@ namespace CalradiaRemembers.Diagnostics
          {
             services.UsageObserver = priorObserver;
             services.WireObserver = priorWire;
+            _watch = null;
          }
+
+         if (prefixWatch.Capture.Rows.Count > 0)
+            try { File.WriteAllText(CapturePath, prefixWatch.Capture.ToJson()); }
+            catch (Exception ex) { ModLog.Error($"[COST] capture not written: {ex.Message}"); }
 
          string report = BuildReport(prose, interpret, folds, recorder, transcripts, version, speaker, prefixWatch);
          try { File.AppendAllText(ReportPath, report); }
@@ -278,7 +286,7 @@ namespace CalradiaRemembers.Diagnostics
 
       // ── PROSE and STANDARD ─────────────────────────────────────────────
 
-      private static string PlayConversation(NpcMemoryCampaignBehavior behavior, LlmServices services, CostScenario row, Hero speaker, Recorder recorder,
+      private static string PlayConversation(NpcMemoryCampaignBehavior behavior, LlmServices services, CostScenario row, Hero speaker, CostRecorder recorder,
                                              StringBuilder transcripts, double cap, out CostScenario played, out List<string> replies,
                                              out ConversationTranscript transcript)
       {
@@ -331,7 +339,7 @@ namespace CalradiaRemembers.Diagnostics
       // The chat's scene opener (ChatViewModel.OpenWithScene): the cue as the message, the retry allowed, no interpreter; the
       // scene alone enters the transcript, never the cue.
       private static void SetTheScene(NpcMemoryCampaignBehavior behavior, LlmServices services, CostScenario row, Hero speaker, NpcProfile profile,
-                                      ConversationTranscript transcript, Recorder recorder, StringBuilder transcripts, List<string> replies, List<string> notes, double cap)
+                                      ConversationTranscript transcript, CostRecorder recorder, StringBuilder transcripts, List<string> replies, List<string> notes, double cap)
       {
          if (CostBenchReport.CapReached(recorder.Spent, cap)) return;
 
@@ -348,6 +356,7 @@ namespace CalradiaRemembers.Diagnostics
             if (result is not {IsSuccess: true}) { notes.Add("scene opener failed"); return; }
 
             transcript.Record(new TranscriptLine {IsPlayer = false, SpeakerName = speaker.Name?.ToString(), SpeakerHeroId = speaker.StringId, Text = scene});
+            _watch?.Kept(scene);
          }
          catch (Exception ex)
          {
@@ -364,7 +373,7 @@ namespace CalradiaRemembers.Diagnostics
 
       // One reply over the transcript as it stands, recorded into it as the chat records it.
       private static void Answer(NpcMemoryCampaignBehavior behavior, LlmServices services, CostScenario row, bool enhanced, Hero speaker, NpcProfile profile,
-                                 ConversationTranscript transcript, string playerName, string line, int turn, Recorder recorder, StringBuilder transcripts,
+                                 ConversationTranscript transcript, string playerName, string line, int turn, CostRecorder recorder, StringBuilder transcripts,
                                  List<string> replies, List<string> notes, double cap)
       {
          if (CostBenchReport.CapReached(recorder.Spent, cap))
@@ -376,6 +385,7 @@ namespace CalradiaRemembers.Diagnostics
          transcripts.AppendLine($"> ({turn}) {line}");
          string error = PlayTurn(behavior, services, row, enhanced, speaker, profile, SessionFrom(transcript, speaker.StringId), line, turn, recorder, out string reply);
          replies.Add(reply);
+         _watch?.Kept(reply);
          transcripts.AppendLine(error == null ? $"< {reply}" : $"! {error}");
          if (error != null) notes.Add($"turn {turn}: {error}");
          RecordExchange(transcript, playerName, speaker, line, reply);
@@ -410,7 +420,7 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       private static string PlayTurn(NpcMemoryCampaignBehavior behavior, LlmServices services, CostScenario row, bool enhanced, Hero speaker,
-                                     NpcProfile profile, ChatSession session, string line, int turn, Recorder recorder, out string reply)
+                                     NpcProfile profile, ChatSession session, string line, int turn, CostRecorder recorder, out string reply)
       {
          reply = "";
          try
@@ -454,7 +464,7 @@ namespace CalradiaRemembers.Diagnostics
 
       // One fold on the Background client (the chat's ConversationHistoryCompressor), its bill recorded: the background
       // client carries no observer in play, so it is lent one for this call only.
-      private static string Fold(LlmServices services, string existing, string newLines, Recorder recorder)
+      private static string Fold(LlmServices services, string existing, string newLines, CostRecorder recorder)
       {
          ILlmClient client = services.HousekeepingClient;
          var open = client as OpenRouterClient;
@@ -479,7 +489,7 @@ namespace CalradiaRemembers.Diagnostics
          }
       }
 
-      private static void WriteLetter(LlmServices services, CostScenario row, NpcProfile profile, Recorder recorder, StringBuilder transcripts)
+      private static void WriteLetter(LlmServices services, CostScenario row, NpcProfile profile, CostRecorder recorder, StringBuilder transcripts)
       {
          recorder.Begin(row, CostPhase.Letter, 0);
          using var done = new ManualResetEventSlim(false);
@@ -501,63 +511,24 @@ namespace CalradiaRemembers.Diagnostics
 
          bool written = done.Wait(TimeSpan.FromSeconds(Math.Max(15, ModSettings.LlmResponseTimeoutSeconds) * 3));
          string text = (body ?? "").Replace("\r", " ").Replace("\n", " ");
+         _watch?.Kept(text);
          transcripts.AppendLine(written ? $"[letter] {(text.Length > 400 ? text.Substring(0, 400) + "..." : text)}" : "[letter] not written in time");
       }
 
       // ── INTERPRET ─────────────────────────────────────────────────────
 
-      private static string ReadCases(LlmServices services, CostScenario row, Recorder recorder, List<InterpretOutcome> outcomes, double cap)
+      private static string ReadCases(LlmServices services, CostScenario row, CostRecorder recorder, List<InterpretOutcome> outcomes, double cap)
       {
          using var forced = new ForcedInterpreter(row.Model);
          ILlmClient client = services.InterpreterClient;
-         var cases = new List<(InterpretDifficulty Difficulty, ActionBenchCase Case)>();
-         cases.AddRange(OrdinaryReplies.Take(CasesPerDifficulty).Select((p, i) =>
-            (InterpretDifficulty.NoAction, ActionBenchCase.ExpectNone($"ordinary_{i + 1}", "none", OrdinaryContext, p, "none"))));
-         // The whole catalog unless the row asks for a sample: the score an interpreter is recommended on needs it.
-         foreach (InterpretDifficulty d in new[] {InterpretDifficulty.Simple, InterpretDifficulty.Oblique, InterpretDifficulty.FalseLead})
-            cases.AddRange((row.CasesPerDifficulty > 0
-                  ? InterpretCases.Pick(ActionBenchCatalog.All, d, row.CasesPerDifficulty)
-                  : ActionBenchCatalog.All.Where(c => InterpretCases.Classify(c) == d).ToList())
-               .Select(c => (d, c)));
 
-         foreach ((InterpretDifficulty difficulty, ActionBenchCase test) in cases)
-         {
-            if (CostBenchReport.CapReached(recorder.Spent, cap)) return "stopped early: cap reached";
-
-            recorder.Begin(row, CostPhase.Interpreter, 0, difficulty);
-            try
-            {
-               ActionBenchReport report = Task.Run(() => ActionBenchRunner.RunAsync(client, new[] {test})).GetAwaiter().GetResult();
-               ActionBenchResult r = report.Results.FirstOrDefault();
-               if (r == null || !r.CallSucceeded)
-               {
-                  outcomes.Add(new InterpretOutcome {ScenarioName = row.Name, Difficulty = difficulty});
-                  continue;
-               }
-
-               bool right, invented;
-               if (difficulty == InterpretDifficulty.NoAction)
-               {
-                  right = InterpretCases.NoActionReadRight((r.Emitted ?? new List<GameAction>()).Select(a => a.Type));
-                  invented = !right;
-               }
-               else (right, invented) = InterpretCases.Read(r.Verdict);
-
-               outcomes.Add(new InterpretOutcome {ScenarioName = row.Name, Difficulty = difficulty, Right = right, Invented = invented});
-            }
-            catch (Exception ex)
-            {
-               outcomes.Add(new InterpretOutcome {ScenarioName = row.Name, Difficulty = difficulty});
-               ModLog.Error($"[COST] interpret case {test.Id} failed: {ex.GetType().Name}: {ex.Message}");
-            }
-         }
-
-         return "";
+         // The same readings and the same scoring as the replay outside the game (Logic/Diagnostics/CostReplay).
+         return Task.Run(() => CostReplayRunner.ReadAsync(row, client, recorder, outcomes, cap)).GetAwaiter().GetResult();
       }
 
       // ── FOLD ──────────────────────────────────────────────────────────
 
-      private static FoldRowResult FoldReference(LlmServices services, CostScenario row, ConversationTranscript reference, Recorder recorder)
+      private static FoldRowResult FoldReference(LlmServices services, CostScenario row, ConversationTranscript reference, CostRecorder recorder)
       {
          if (reference == null || reference.Count < 6) return new FoldRowResult {Row = row, Note = "no prose conversation to fold"};
 
@@ -573,7 +544,7 @@ namespace CalradiaRemembers.Diagnostics
 
       // ── Report ────────────────────────────────────────────────────────
 
-      private static string BuildReport(List<ProseRowResult> prose, List<InterpretRowResult> interpret, List<FoldRowResult> folds, Recorder recorder,
+      private static string BuildReport(List<ProseRowResult> prose, List<InterpretRowResult> interpret, List<FoldRowResult> folds, CostRecorder recorder,
                                         StringBuilder transcripts, string version, Hero speaker, PrefixWatch prefixWatch)
       {
          var sb = new StringBuilder();
@@ -590,6 +561,10 @@ namespace CalradiaRemembers.Diagnostics
          sb.AppendLine("Cacheable prefix, prose calls compared with the previous one of their row (a change near the top makes the whole prompt full price):");
          if (prefixWatch.Findings.Count == 0) sb.AppendLine("  unchanged on every call.");
          foreach (string f in prefixWatch.Findings) sb.AppendLine("  " + f);
+         sb.AppendLine();
+         sb.AppendLine(prefixWatch.Capture.Rows.Count > 0
+            ? $"Captured for a replay outside the game: {CapturePath} ({prefixWatch.Capture.Rows.Count} row(s))."
+            : "Nothing captured (no prose or standard row ran).");
          sb.AppendLine();
          sb.AppendLine("Every billed call:");
          foreach (CostCall c in recorder.Calls)
@@ -630,76 +605,33 @@ namespace CalradiaRemembers.Diagnostics
          catch { return "(unknown version)"; }
       }
 
-      /// <summary>Records every billed attempt under the row, phase and turn the bench is playing. Calls are sequential.</summary>
-      private sealed class Recorder : ILlmUsageObserver
-      {
-         private readonly object _gate = new object();
-         private readonly System.Diagnostics.Stopwatch _clock = new System.Diagnostics.Stopwatch();
-         private CostScenario _row = new CostScenario();
-         private CostPhase _phase;
-         private int _turn;
-         private InterpretDifficulty _difficulty;
-
-         public List<CostCall> Calls { get; } = new List<CostCall>();
-         public double Spent { get; private set; }
-
-         /// <summary>The row being played, for the prefix watch.</summary>
-         public CostScenario Row => _row;
-
-         /// <summary>The call being made, for the prefix watch.</summary>
-         public CostPhase Phase => _phase;
-
-         /// <summary>The turn being answered, for the prefix watch.</summary>
-         public int Turn => _turn;
-
-         // The clock restarts at each step and at each answered attempt, so an attempt's seconds are what the player waited
-         // for it, the bench's own bookkeeping excluded.
-         public void Begin(CostScenario row, CostPhase phase, int turn, InterpretDifficulty difficulty = InterpretDifficulty.NoAction)
-         {
-            lock (_gate)
-            {
-               _row = row;
-               _phase = phase;
-               _turn = turn;
-               _difficulty = difficulty;
-               _clock.Restart();
-            }
-         }
-
-         public void OnAttempt(string model, LlmResponse response)
-         {
-            LlmUsage u = response?.Usage;
-            if (u == null) return; // a failed attempt is not billed
-
-            lock (_gate)
-            {
-               Calls.Add(new CostCall {
-                  ScenarioName = _row.Name, Pass = _row.Pass, Phase = _phase, Turn = _turn, Difficulty = _difficulty, Model = model ?? "",
-                  PromptTokens = u.PromptTokens, CachedTokens = u.CachedPromptTokens ?? 0, CompletionTokens = u.CompletionTokens,
-                  ReasoningTokens = u.ReasoningTokens ?? 0, Cost = u.Cost, Seconds = _clock.Elapsed.TotalSeconds
-               });
-               Spent += u.Cost ?? 0;
-               _clock.Restart();
-            }
-         }
-      }
-
       /// <summary>
       ///   Compares each prose call's cacheable prefix with the previous prose call of its row, and says where and how it
       ///   changed. Every prose call of a row shares the speaker, the world and the setup, so its prefix should never change.
+      ///   It also captures each call of a prose or standard row as it went, for a replay outside the game.
       /// </summary>
       private sealed class PrefixWatch : ILlmWireObserver
       {
-         private readonly Recorder _recorder;
+         private readonly CostRecorder _recorder;
          private readonly Dictionary<string, string> _last = new Dictionary<string, string>();
+         private readonly Dictionary<string, CaptureRow> _rows = new Dictionary<string, CaptureRow>();
+         private readonly HashSet<string> _seen = new HashSet<string>();
+         private CaptureRow _current;
 
-         public PrefixWatch(Recorder recorder) => _recorder = recorder;
+         public PrefixWatch(CostRecorder recorder) => _recorder = recorder;
 
          public List<string> Findings { get; } = new List<string>();
 
+         /// <summary>What the run's prose and standard rows sent, call by call.</summary>
+         public CostCaptureFile Capture { get; } = new CostCaptureFile();
+
          public void OnRequest(LlmWireSnapshot snapshot)
          {
-            if (snapshot == null || (_recorder.Phase != CostPhase.Prose && _recorder.Phase != CostPhase.Opener)) return;
+            if (snapshot == null) return;
+
+            CostPhase phase = _recorder.Phase;
+            if (phase == CostPhase.Prose || phase == CostPhase.Opener || phase == CostPhase.Letter) Record(snapshot, phase);
+            if (phase != CostPhase.Prose && phase != CostPhase.Opener) return;
 
             string key = $"{_recorder.Row.Pass}:{_recorder.Row.Name}";
             string now = snapshot.StablePrefix ?? "";
@@ -712,6 +644,40 @@ namespace CalradiaRemembers.Diagnostics
             }
 
             _last[key] = now;
+         }
+
+         /// <summary>The reply the conversation kept for the call just captured.</summary>
+         public void Kept(string reply)
+         {
+            CaptureStep last = _current?.Steps.LastOrDefault();
+            if (last != null && string.IsNullOrEmpty(last.Reply)) last.Reply = reply ?? "";
+         }
+
+         // The first attempt of each call only: a retry repeats the same request with a bigger budget, which the replay's
+         // own client does again by itself.
+         private void Record(LlmWireSnapshot snapshot, CostPhase phase)
+         {
+            CostScenario row = _recorder.Row;
+            LlmRequest request = snapshot.Request;
+            if (request == null || (row.Pass != CostPass.Prose && row.Pass != CostPass.Standard)) return;
+            if (!_seen.Add($"{row.Pass}:{row.Name}:{phase}:{_recorder.Turn}")) return;
+
+            string rowKey = $"{row.Pass}:{row.Name}";
+            if (!_rows.TryGetValue(rowKey, out CaptureRow captured))
+            {
+               captured = new CaptureRow {Name = row.Name, Model = row.Model, Pass = row.Pass, Compact = row.Compact, Reasoning = row.Reasoning};
+               _rows[rowKey] = captured;
+               Capture.Rows.Add(captured);
+            }
+
+            _current = captured;
+            captured.Steps.Add(new CaptureStep {
+               Phase = phase, Turn = _recorder.Turn, StablePrefix = snapshot.StablePrefix ?? "", DynamicTail = snapshot.DynamicTail ?? "",
+               Messages = CostReplayPolicy.Tag(request.Messages, captured.Steps.Select(s => s.Reply).ToList()),
+               MaxTokens = request.Parameters?.MaxTokens ?? 0, Creativity = request.Parameters?.Creativity ?? 0,
+               PresencePenalty = request.Parameters?.PresencePenalty ?? 0, AllowTruncationRetry = request.Parameters?.AllowTruncationRetry ?? true,
+               ReasoningOverride = request.Parameters?.ReasoningOverride ?? "", PayloadJson = snapshot.Json ?? ""
+            });
          }
 
          private static string Clip(string s, int from, int length)

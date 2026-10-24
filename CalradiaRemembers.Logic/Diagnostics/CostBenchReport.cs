@@ -21,6 +21,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using NpcMemoryService.Core.Actions;
+using NpcMemoryService.Core.Models;
 
 #endregion
 
@@ -512,6 +513,48 @@ namespace CalradiaRemembers.Logic.Diagnostics
       /// <summary>Whether a catalog verdict is a right reading, and whether it invented a deed.</summary>
       public static (bool Right, bool Invented) Read(ActionBenchVerdict verdict)
          => (verdict == ActionBenchVerdict.Hit || verdict == ActionBenchVerdict.CorrectWithhold, verdict == ActionBenchVerdict.FalsePositive);
+
+      /// <summary>Where the ordinary replies are said: nothing is pending, so nothing may be read as done.</summary>
+      public const string OrdinaryContext = "The player is speaking with a lord of the realm in his hall. No bargain, gift or request is pending.";
+
+      /// <summary>Ordinary replies in which nothing is done: the interpreter must emit no deed (a change of regard is allowed).</summary>
+      public static readonly IReadOnlyList<string> OrdinaryReplies = new[] {
+         "*He nods slowly and pours two cups of wine.* Diatma, you say? A long ride. Sit, and tell me how the roads were.",
+         "The harvest was thin this year, but the granaries will hold till spring. My steward frets more than he needs to.",
+         "*She smiles despite herself.* My sons are well, thank you. The youngest has taken to the sword like his father.",
+         "I have heard nothing of that village. Bandits, most likely, or deserters. I will ask my men to keep their eyes open.",
+         "A feast? Perhaps. Send word when the campaign is done and I will see what my duties allow.",
+         "The caravans from the south have been late all season. Some blame the weather, some blame the raiders."
+      };
+
+      /// <summary>
+      ///   The readings an interpret row makes, in the game and outside it alike: the ordinary replies, then the whole catalog
+      ///   by difficulty, or <see cref="CostScenario.CasesPerDifficulty" /> of each when the row asks for a sample.
+      /// </summary>
+      public static List<(InterpretDifficulty Difficulty, ActionBenchCase Case)> ForRow(CostScenario row, IReadOnlyList<ActionBenchCase> catalog)
+      {
+         var cases = new List<(InterpretDifficulty, ActionBenchCase)>();
+         cases.AddRange(OrdinaryReplies.Select((p, i) =>
+            (InterpretDifficulty.NoAction, ActionBenchCase.ExpectNone($"ordinary_{i + 1}", "none", OrdinaryContext, p, "none"))));
+         foreach (InterpretDifficulty d in new[] {InterpretDifficulty.Simple, InterpretDifficulty.Oblique, InterpretDifficulty.FalseLead})
+            cases.AddRange((row != null && row.CasesPerDifficulty > 0
+                  ? Pick(catalog, d, row.CasesPerDifficulty)
+                  : catalog.Where(c => Classify(c) == d).ToList())
+               .Select(c => (d, c)));
+
+         return cases;
+      }
+
+      /// <summary>One reading scored: an ordinary reply by what it emitted, a catalog case by its verdict.</summary>
+      public static (bool Right, bool Invented) Score(InterpretDifficulty difficulty, ActionBenchResult result)
+      {
+         if (result == null || !result.CallSucceeded) return (false, false);
+         if (difficulty != InterpretDifficulty.NoAction) return Read(result.Verdict);
+
+         bool right = NoActionReadRight((result.Emitted ?? new List<GameAction>()).Select(a => a.Type));
+
+         return (right, !right);
+      }
    }
 
    /// <summary>The sums and the tables. Pure.</summary>
