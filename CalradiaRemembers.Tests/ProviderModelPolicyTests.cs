@@ -85,6 +85,36 @@ namespace CalradiaRemembers.Tests
             ProviderModelPolicy.Resolve(Choice("  qwen3-30b  ", ProviderKind.OpenAiCompatible)).Should().Be("qwen3-30b");
         }
 
+        // STAKE (2.7.20): the Interpret field now ships DeepSeek V4.1 Flash. A player who points the interpreter at his
+        // own server without touching the field must not have that OpenRouter id sent to it, the very report this
+        // policy was written for.
+        [Test]
+        public void GIVEN_a_local_server_and_the_new_interpreter_default_untouched_WHEN_resolving_THEN_nothing_is_sent()
+        {
+            ProviderModelPolicy.Resolve(new ProviderModelPolicy.ModelChoice {
+                ConfiguredId = "deepseek/deepseek-v4.1-flash", Kind = ProviderKind.OpenAiCompatible, ShippedDefaultId = "deepseek/deepseek-v4.1-flash"
+            }).Should().BeEmpty();
+        }
+
+        // STAKE: a field saved before 2.7.20 still holds Grok, the id it shipped with then. On a local server it is
+        // just as untouched as it always was, whatever the field ships today.
+        [Test]
+        public void GIVEN_a_local_server_and_an_older_shipped_default_saved_in_the_field_WHEN_resolving_THEN_nothing_is_sent()
+        {
+            ProviderModelPolicy.Resolve(new ProviderModelPolicy.ModelChoice {
+                ConfiguredId = "x-ai/grok-4.20", Kind = ProviderKind.OpenAiCompatible, ShippedDefaultId = "deepseek/deepseek-v4.1-flash"
+            }).Should().BeEmpty();
+        }
+
+        // STAKE: on OpenRouter the new default is a real model, and it is what the interpreter runs on out of the box.
+        [Test]
+        public void GIVEN_openrouter_and_the_new_interpreter_default_WHEN_resolving_THEN_it_is_sent()
+        {
+            ProviderModelPolicy.Resolve(new ProviderModelPolicy.ModelChoice {
+                ConfiguredId = "deepseek/deepseek-v4.1-flash", Kind = ProviderKind.OpenRouter, ShippedDefaultId = "deepseek/deepseek-v4.1-flash"
+            }).Should().Be("deepseek/deepseek-v4.1-flash");
+        }
+
         // Unknown facts must refuse rather than throw: this is read on every single request.
         [Test]
         public void GIVEN_nothing_at_all_WHEN_resolving_THEN_it_says_nothing_instead_of_throwing()

@@ -481,7 +481,7 @@ namespace CalradiaRemembers.Foundation
                     "uses the PROSE model - and so does the shipped OpenRouter id if you point this role at " +
                     "your own server without naming ITS model.")]
       [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
-      public string ActionInterpreterModel { get; set; } = "x-ai/grok-4.20";
+      public string ActionInterpreterModel { get; set; } = "deepseek/deepseek-v4.1-flash";
 
       [SettingPropertyDropdown("{=CR_MCM_ActionInterpreterProvider}Interpret provider", RequireRestart = false, Order = 9,
          HintText = "{=CR_MCM_ActionInterpreterProvider_Hint}Which provider the Interpret model above is sent to. (default) uses the PROSE provider (set it " +

@@ -40,6 +40,10 @@ namespace CalradiaRemembers.Services
    public sealed class LlmServices : IDisposable
    {
       internal const string DefaultModel = "x-ai/grok-4.20"; // OpenRouter default
+
+      // The Interpret field's own default since 2.7.20 (Gabriel 24/10/2026, after the cost bench: "change le défaut
+      // pour deepseek v4.1 flash"): 291 of 296 readings right, no deed invented, $0.00044 and 0.8 s each.
+      internal const string DefaultInterpretModel = "deepseek/deepseek-v4.1-flash";
       private const string NanoGptApiKeyEnvVar = "NANOGPT_API_KEY";
       private const string NanoGptBaseUrl = "https://nano-gpt.com/api/v1";
 
@@ -818,9 +822,9 @@ namespace CalradiaRemembers.Services
       ///     question now, and it is answered in one place.
       ///   </para>
       /// </summary>
-      private static string ConfiguredModelFor(string mcmField, ProviderKind kind)
+      private static string ConfiguredModelFor(string mcmField, ProviderKind kind, string shippedDefault = DefaultModel)
          => ProviderModelPolicy.Resolve(new ProviderModelPolicy.ModelChoice {
-            ConfiguredId = mcmField, Kind = kind, ShippedDefaultId = DefaultModel
+            ConfiguredId = mcmField, Kind = kind, ShippedDefaultId = shippedDefault
          });
 
       /// <summary>
@@ -846,7 +850,7 @@ namespace CalradiaRemembers.Services
             Role = ActiveMainRole(),
             Prose = proseModel,
             Nsfw = ConfiguredModelFor(ModSettings.CncModel, ResolveKindForRole(ServiceRole.Nsfw)),
-            Interpret = ConfiguredModelFor(ModSettings.ActionInterpreterModel, ResolveKindForRole(ServiceRole.Interpret))
+            Interpret = ConfiguredModelFor(ModSettings.ActionInterpreterModel, ResolveKindForRole(ServiceRole.Interpret), DefaultInterpretModel)
          });
       }
 
@@ -861,7 +865,7 @@ namespace CalradiaRemembers.Services
          // Read against the INTERPRETER's own provider. An untouched field still holding the shipped OpenRouter
          // id says nothing to a local server, so it counts as unset and the scene's own model is used instead:
          // the same meaning a blank field has always had, now reached by the case that actually bit a player.
-         string configured = ConfiguredModelFor(ModSettings.ActionInterpreterModel, ResolveKindForRole(ServiceRole.Interpret));
+         string configured = ConfiguredModelFor(ModSettings.ActionInterpreterModel, ResolveKindForRole(ServiceRole.Interpret), DefaultInterpretModel);
 
          return string.IsNullOrWhiteSpace(configured)
             ? ResolveModel()

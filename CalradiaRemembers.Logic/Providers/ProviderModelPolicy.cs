@@ -44,6 +44,18 @@ namespace CalradiaRemembers.Logic.Providers
             public string ShippedDefaultId { get; set; }
         }
 
+        /// <summary>True when a model field has shipped holding this id at some version (see <see cref="EveryShippedId" />).</summary>
+        public static bool EverShipped(string id)
+            => id != null && System.Array.IndexOf(EveryShippedId, id.Trim()) >= 0;
+
+        /// <summary>
+        ///   Every OpenRouter id a model field has ever shipped holding. Since 2.7.20 the Interpret field ships DeepSeek
+        ///   V4.1 Flash (cost bench 24/10/2026: 291 of 296 readings right, $0.00044 and 0.8 s each, against Grok's $0.0044)
+        ///   while the others keep Grok; and a field saved before keeps Grok. On a provider that names its own models,
+        ///   any of them means the field was never touched.
+        /// </summary>
+        public static readonly string[] EveryShippedId = {"x-ai/grok-4.20", "deepseek/deepseek-v4.1-flash"};
+
         /// <summary>
         ///   True when the provider names its models in its own namespace, so an id meant for OpenRouter cannot
         ///   be assumed to mean anything to it. A local server and NanoGPT both do; OpenRouter is where the
@@ -63,8 +75,9 @@ namespace CalradiaRemembers.Logic.Providers
             if (choice == null || string.IsNullOrWhiteSpace(choice.ConfiguredId)) return false;
 
             return !OwnsItsOwnModelNamespace(choice.Kind)
-                || !string.Equals(choice.ConfiguredId.Trim(), (choice.ShippedDefaultId ?? "").Trim(),
-                                  System.StringComparison.Ordinal);
+                || !(string.Equals(choice.ConfiguredId.Trim(), (choice.ShippedDefaultId ?? "").Trim(),
+                                   System.StringComparison.Ordinal)
+                     || EverShipped(choice.ConfiguredId));
         }
 
         /// <summary>
