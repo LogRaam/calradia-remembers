@@ -175,8 +175,10 @@ namespace CalradiaRemembers.Services
       private ILlmWireObserver _wireObserver;
 
       /// <summary>
-      ///   Optional seat that sees what every call COST (cr.cost_bench), null in normal play. Held here for the same reason
-      ///   as <see cref="WireObserver" />: clients are rebuilt when a model changes, and every client built later picks it up.
+      ///   Optional seat that sees what every conversation and letter call COST (cr.cost_bench), null in normal play. Held
+      ///   here for the same reason as <see cref="WireObserver" />: clients are rebuilt when a model changes, and every
+      ///   client built later picks it up. Not the background client: a summary or a compression that fires during a
+      ///   measurement would be booked to whichever reply was playing.
       /// </summary>
       public ILlmUsageObserver UsageObserver
       {
@@ -187,7 +189,6 @@ namespace CalradiaRemembers.Services
             Attach(LlmClient);
             Attach(_interpreterClient);
             Attach(_nsfwClient);
-            Attach(_housekeepingClient);
          }
       }
 
@@ -1041,7 +1042,7 @@ namespace CalradiaRemembers.Services
             AppUrl = AppUrl
          };
 
-         return new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver, UsageObserver = _usageObserver};
+         return new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver};
       }
 
       /// <summary>

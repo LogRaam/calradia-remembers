@@ -131,8 +131,8 @@ namespace CalradiaRemembers.Diagnostics
                   continue;
                }
 
-               string note = PlayScenario(behavior, services, scenario, speaker, recorder, transcripts, cap);
-               results.Add(CostBenchReport.Summarize(scenario, recorder.Calls, note));
+               string note = PlayScenario(behavior, services, scenario, speaker, recorder, transcripts, cap, out CostScenario played);
+               results.Add(CostBenchReport.Summarize(played, recorder.Calls, note));
             }
          }
          finally { services.UsageObserver = priorObserver; }
@@ -147,9 +147,14 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       private static string PlayScenario(NpcMemoryCampaignBehavior behavior, LlmServices services, CostScenario scenario, Hero speaker,
-                                         Recorder recorder, StringBuilder transcripts, double cap)
+                                         Recorder recorder, StringBuilder transcripts, double cap, out CostScenario played)
       {
          using var forced = new ForcedSetup(services, scenario);
+         // The row always names the reasoning effort it was measured at: for a thinking model it is the price.
+         played = new CostScenario {
+            Name = scenario.Name, ProseModel = scenario.ProseModel, InterpreterModel = scenario.InterpreterModel, Enhanced = scenario.Enhanced,
+            Compact = scenario.Compact, Reasoning = forced.Reasoning
+         };
          NpcProfile profile = CopyOf(behavior.Store.Get(speaker.StringId) ?? HeroProfileMapper.FromHero(speaker));
          var session = new ChatSession();
          string note = "";
@@ -225,12 +230,20 @@ namespace CalradiaRemembers.Diagnostics
          recorder.Begin(scenario.Name, CostPhase.Letter, 0);
          using var done = new ManualResetEventSlim(false);
          string body = null;
-         LetterGenerationService.GenerateForDiagnostic(profile, LetterReason.RealmTidings, "News of the realm worth sharing with a friend.", services,
-            (where, content) =>
-            {
-               body = content;
-               done.Set();
-            });
+         // Started with no synchronization context, so none of the letter's awaits can wait for this thread, which blocks
+         // below until it is written.
+         SynchronizationContext priorContext = SynchronizationContext.Current;
+         SynchronizationContext.SetSynchronizationContext(null);
+         try
+         {
+            LetterGenerationService.GenerateForDiagnostic(profile, LetterReason.RealmTidings, "News of the realm worth sharing with a friend.", services,
+               (where, content) =>
+               {
+                  body = content;
+                  done.Set();
+               });
+         }
+         finally { SynchronizationContext.SetSynchronizationContext(priorContext); }
          bool written = done.Wait(TimeSpan.FromSeconds(Math.Max(15, ModSettings.LlmResponseTimeoutSeconds) * 3));
          string text = (body ?? "").Replace("\r", " ").Replace("\n", " ");
          transcripts.AppendLine(written ? $"[letter] {(text.Length > 400 ? text.Substring(0, 400) + "..." : text)}" : "[letter] not written in time");
@@ -334,6 +347,10 @@ namespace CalradiaRemembers.Diagnostics
          private readonly bool _priorCompact;
          private readonly int _priorReasoning;
          private readonly Dropdown<string> _reasoning;
+         private readonly ManualModelMode _priorMode;
+
+         /// <summary>The PROSE reasoning effort this run is measured at.</summary>
+         public string Reasoning => _reasoning?.SelectedValue ?? "";
 
          public ForcedSetup(LlmServices services, CostScenario scenario)
          {
@@ -344,7 +361,11 @@ namespace CalradiaRemembers.Diagnostics
             _priorCompact = settings?.LeanPrompt ?? false;
             _reasoning = settings?.ReasoningEffort;
             _priorReasoning = _reasoning?.SelectedIndex ?? -1;
+            _priorMode = LlmServices.ActiveModelMode;
 
+            // The in-chat switch decides the composition and the main role everywhere else: Enhanced or Roleplay (Standard),
+            // never the player's NSFW state.
+            LlmServices.ActiveModelMode = scenario.Enhanced ? ManualModelMode.Enhanced : ManualModelMode.Roleplay;
             LlmServices.TestModelOverride = scenario.ProseModel;
             if (settings != null)
             {
@@ -360,6 +381,7 @@ namespace CalradiaRemembers.Diagnostics
 
          public void Dispose()
          {
+            LlmServices.ActiveModelMode = _priorMode;
             LlmServices.TestModelOverride = _priorProseOverride;
             CrSettings settings = CrSettings.Instance;
             if (settings != null)
