@@ -33,21 +33,23 @@ namespace CalradiaRemembers.Tests
 
          problems.Should().BeEmpty();
          rows.Select(r => r.Name).Should().Equal(CostScenarioFile.Defaults.Select(d => d.Name));
-         rows.Select(r => (r.ProseModel, r.InterpreterModel, r.Enhanced, r.Compact))
-             .Should().Equal(CostScenarioFile.Defaults.Select(d => (d.ProseModel, d.InterpreterModel, d.Enhanced, d.Compact)));
+         rows.Select(r => (r.ProseModel, r.InterpreterModel, r.Enhanced, r.Compact, r.NsfwModel))
+             .Should().Equal(CostScenarioFile.Defaults.Select(d => (d.ProseModel, d.InterpreterModel, d.Enhanced, d.Compact, d.NsfwModel)));
       }
 
       // A typo in one line must not silently drop that model from the table while the others run: it is named.
       [Test]
       public void GIVEN_a_line_with_a_typo_WHEN_the_file_is_read_THEN_the_others_run_and_the_typo_is_named()
       {
-         const string text = "Good | a/b | a/b | Enhanced | Full |\nBad | a/b | a/b | Enhanced | Huge |\nMix | p/q | | Standard | Compact | Low";
+         const string text = "Good | a/b | a/b | Enhanced | Full | | x/nsfw\nBad | a/b | a/b | Enhanced | Huge |\nMix | p/q | | Standard | Compact | Low";
 
          IReadOnlyList<CostScenario> rows = CostScenarioFile.Parse(text, out List<string> problems);
 
          rows.Select(r => r.Name).Should().Equal("Good", "Mix");
          rows[1].InterpreterModel.Should().Be("p/q", "a blank interpret model means the prose model");
          rows[1].Reasoning.Should().Be("Low");
+         rows[0].NsfwModel.Should().Be("x/nsfw", "Gabriel's GLM row names Grok as its NSFW fallback");
+         rows[1].NsfwModel.Should().BeEmpty("an older six-column line keeps the player's own NSFW model");
          problems.Should().ContainSingle().Which.Should().StartWith("line 2");
       }
 
@@ -72,6 +74,24 @@ namespace CalradiaRemembers.Tests
          r.Replies.Should().Be(3);
          r.Total.Should().BeApproximately(0.089, 1e-9);
          r.HundredReplies.Should().BeApproximately(10 * 0.050 + 90 * 0.007, 1e-9);
+      }
+
+      // Gabriel (24/10/2026): the PROSE and INTERPRET calls do different work on different prompts, so a later reply's
+      // price is shown split between them; a model can be cheap at one and dear at the other.
+      [Test]
+      public void GIVEN_enhanced_replies_WHEN_summed_THEN_a_later_reply_is_split_between_prose_and_interpret()
+      {
+         var calls = new List<CostCall> {
+            Call(1, CostPhase.Prose, 0.030), Call(1, CostPhase.Interpreter, 0.020),
+            Call(2, CostPhase.Prose, 0.004), Call(2, CostPhase.Interpreter, 0.002),
+            Call(3, CostPhase.Prose, 0.003), Call(3, CostPhase.Fallback, 0.005)
+         };
+
+         CostScenarioResult r = CostBenchReport.Summarize(Grok, calls);
+
+         r.ProsePart.Should().BeApproximately((0.004 + 0.003 + 0.005) / 2, 1e-9, "a redone reply is still the prose's work");
+         r.InterpretPart.Should().BeApproximately(0.002 / 2, 1e-9);
+         CostBenchReport.Markdown(new[] {r}, "v2.7.20", new DateTime(2026, 10, 24)).Should().Contain("of which INTERPRET");
       }
 
       // A call the provider did not price counts as zero in the sum: the row must say it undercounts rather than look

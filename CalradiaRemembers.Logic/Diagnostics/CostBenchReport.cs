@@ -56,10 +56,17 @@ namespace CalradiaRemembers.Logic.Diagnostics
       /// <summary>MCM "Reasoning Effort (PROSE)" for this row; blank keeps the player's own.</summary>
       public string Reasoning { get; init; } = "";
 
+      /// <summary>
+      ///   MCM "NSFW model": in Enhanced it redoes a reply the prose model refused or cut short (the fallback), so it is
+      ///   billed only when that happens. Blank keeps the player's own.
+      /// </summary>
+      public string NsfwModel { get; init; } = "";
+
       /// <summary>How the row's setup reads in the table: "Enhanced, full prompt, reasoning Low".</summary>
       public string Setup
          => $"{(Enhanced ? "Enhanced" : "Standard")}, {(Compact ? "Compact prompt" : "full prompt")}"
-            + (string.IsNullOrWhiteSpace(Reasoning) ? "" : $", reasoning {Reasoning}");
+            + (string.IsNullOrWhiteSpace(Reasoning) ? "" : $", reasoning {Reasoning}")
+            + (string.IsNullOrWhiteSpace(NsfwModel) || !Enhanced ? "" : $", fallback {NsfwModel}");
 
       /// <summary>The models as they read in the table: one name when both roles share it.</summary>
       public string Models
@@ -111,6 +118,21 @@ namespace CalradiaRemembers.Logic.Diagnostics
       /// <summary>The average of every later reply, the price of an ordinary turn.</summary>
       public double LaterReply { get; init; }
 
+      /// <summary>
+      ///   Of a later reply, what the PROSE call cost (with the fallback when it redid the reply). Gabriel (24/10/2026):
+      ///   the prose and the interpreter do different work on different prompts, so each is priced on its own.
+      /// </summary>
+      public double ProsePart { get; init; }
+
+      /// <summary>Of a later reply, what the INTERPRET call cost; zero in Standard, where there is none.</summary>
+      public double InterpretPart { get; init; }
+
+      /// <summary>Of the PROSE calls' written tokens, the share spent thinking (0 to 1).</summary>
+      public double ProseReasoningShare { get; init; }
+
+      /// <summary>Of the INTERPRET calls' written tokens, the share spent thinking (0 to 1).</summary>
+      public double InterpretReasoningShare { get; init; }
+
       /// <summary>One letter; null when none was written.</summary>
       public double? Letter { get; init; }
 
@@ -149,7 +171,9 @@ namespace CalradiaRemembers.Logic.Diagnostics
          Row("DeepSeek V4 Flash", "deepseek/deepseek-v4-flash", "deepseek/deepseek-v4-flash", true, false),
          Row("GPT-6 Luna", "openai/gpt-6-luna", "openai/gpt-6-luna", true, false),
          Row("Gemma 4 31B", "google/gemma-4-31b-it", "google/gemma-4-31b-it", true, false),
-         Row("DeepSeek prose, Grok interprets", "deepseek/deepseek-v4-flash", "x-ai/grok-4.20", true, false)
+         Row("DeepSeek prose, Grok interprets", "deepseek/deepseek-v4-flash", "x-ai/grok-4.20", true, false),
+         // Gabriel (24/10/2026): GLM 4.6 writing, Grok 4.20 interpreting and standing by as the NSFW fallback.
+         Row("GLM 4.6 prose, Grok interprets and NSFW", "z-ai/glm-4.6", "x-ai/grok-4.20", true, false, "x-ai/grok-4.20")
       };
 
       /// <summary>The file written when none exists: a header that teaches the format, then the defaults.</summary>
@@ -157,10 +181,11 @@ namespace CalradiaRemembers.Logic.Diagnostics
       {
          var sb = new StringBuilder();
          sb.AppendLine("# cr.cost_bench scenarios. One per line:");
-         sb.AppendLine("#   name | prose model | interpret model | Enhanced or Standard | Full or Compact | reasoning (blank = yours)");
+         sb.AppendLine("#   name | prose model | interpret model | Enhanced or Standard | Full or Compact | reasoning | NSFW model");
+         sb.AppendLine("# A blank reasoning or NSFW model keeps yours. The NSFW model is billed only when it redoes a refused or cut reply.");
          sb.AppendLine("# Model ids are OpenRouter's. Lines starting with # are ignored. cr.cost_bench plan shows what a run would do.");
          foreach (CostScenario s in Defaults)
-            sb.AppendLine($"{s.Name} | {s.ProseModel} | {s.InterpreterModel} | {(s.Enhanced ? "Enhanced" : "Standard")} | {(s.Compact ? "Compact" : "Full")} | {s.Reasoning}");
+            sb.AppendLine($"{s.Name} | {s.ProseModel} | {s.InterpreterModel} | {(s.Enhanced ? "Enhanced" : "Standard")} | {(s.Compact ? "Compact" : "Full")} | {s.Reasoning} | {s.NsfwModel}");
 
          return sb.ToString();
       }
@@ -198,7 +223,7 @@ namespace CalradiaRemembers.Logic.Diagnostics
 
             rows.Add(new CostScenario {
                Name = f[0], ProseModel = f[1], InterpreterModel = f[2].Length == 0 ? f[1] : f[2], Enhanced = enhanced.Value,
-               Compact = compact.Value, Reasoning = f.Length > 5 ? f[5] : ""
+               Compact = compact.Value, Reasoning = f.Length > 5 ? f[5] : "", NsfwModel = f.Length > 6 ? f[6] : ""
             });
          }
 
@@ -210,8 +235,8 @@ namespace CalradiaRemembers.Logic.Diagnostics
             : string.Equals(value, no, StringComparison.OrdinalIgnoreCase) ? false
             : (bool?) null;
 
-      private static CostScenario Row(string name, string prose, string interpreter, bool enhanced, bool compact)
-         => new CostScenario {Name = name, ProseModel = prose, InterpreterModel = interpreter, Enhanced = enhanced, Compact = compact};
+      private static CostScenario Row(string name, string prose, string interpreter, bool enhanced, bool compact, string nsfw = "")
+         => new CostScenario {Name = name, ProseModel = prose, InterpreterModel = interpreter, Enhanced = enhanced, Compact = compact, NsfwModel = nsfw};
    }
 
    /// <summary>The sums and the tables. Pure.</summary>
@@ -229,6 +254,10 @@ namespace CalradiaRemembers.Logic.Diagnostics
          List<CostCall> letter = mine.Where(c => c.Phase == CostPhase.Letter).ToList();
          int sent = mine.Sum(c => c.PromptTokens);
          int written = mine.Sum(c => c.CompletionTokens);
+         List<CostCall> later = mine.Where(c => c.Turn > 1).ToList();
+         int laterTurns = later.Select(c => c.Turn).Distinct().Count();
+         List<CostCall> prose = mine.Where(c => c.Phase == CostPhase.Prose || c.Phase == CostPhase.Fallback).ToList();
+         List<CostCall> interpret = mine.Where(c => c.Phase == CostPhase.Interpreter).ToList();
 
          return new CostScenarioResult {
             Row = scenario,
@@ -237,12 +266,18 @@ namespace CalradiaRemembers.Logic.Diagnostics
             Letter = letter.Count > 0 ? letter.Sum(c => c.Cost ?? 0) : (double?) null,
             Total = mine.Sum(c => c.Cost ?? 0),
             Replies = perTurn.Count,
+            ProsePart = laterTurns > 0 ? later.Where(c => c.Phase == CostPhase.Prose || c.Phase == CostPhase.Fallback).Sum(c => c.Cost ?? 0) / laterTurns : 0,
+            InterpretPart = laterTurns > 0 ? later.Where(c => c.Phase == CostPhase.Interpreter).Sum(c => c.Cost ?? 0) / laterTurns : 0,
+            ProseReasoningShare = Share(prose.Sum(c => c.ReasoningTokens), prose.Sum(c => c.CompletionTokens)),
+            InterpretReasoningShare = Share(interpret.Sum(c => c.ReasoningTokens), interpret.Sum(c => c.CompletionTokens)),
             ReasoningShare = written > 0 ? (double) mine.Sum(c => c.ReasoningTokens) / written : 0,
             CachedShare = sent > 0 ? (double) mine.Sum(c => c.CachedTokens) / sent : 0,
             Unpriced = mine.Any(c => c.Cost == null),
             Note = note ?? ""
          };
       }
+
+      private static double Share(int part, int whole) => whole > 0 ? (double) part / whole : 0;
 
       /// <summary>What a run would do, with no call made.</summary>
       public static string Plan(IReadOnlyList<CostScenario> scenarios, int turns, bool letter, double cap)
@@ -264,10 +299,10 @@ namespace CalradiaRemembers.Logic.Diagnostics
          var sb = new StringBuilder();
          sb.AppendLine($"Measured with Calradia Remembers {version} on {measuredOn:yyyy-MM-dd}, OpenRouter's own bill for each call.");
          sb.AppendLine();
-         sb.AppendLine("| Model | Setup | First reply | Each later reply | A letter | 100 replies | Thinking | From cache |");
-         sb.AppendLine("|---|---|---|---|---|---|---|---|");
+         sb.AppendLine("| Model | Setup | First reply | Each later reply | of which PROSE | of which INTERPRET | A letter | 100 replies | Thinking (prose / interpret) | From cache |");
+         sb.AppendLine("|---|---|---|---|---|---|---|---|---|---|");
          foreach (CostScenarioResult r in results)
-            sb.AppendLine($"| {r.Row.Models} | {r.Row.Setup} | ${Money(r.FirstReply)} | ${Money(r.LaterReply)} | {LetterText(r)} | ${Money(r.HundredReplies)} | {Percent(r.ReasoningShare)} | {Percent(r.CachedShare)} |{Flags(r)}");
+            sb.AppendLine($"| {r.Row.Models} | {r.Row.Setup} | ${Money(r.FirstReply)} | ${Money(r.LaterReply)} | ${Money(r.ProsePart)} | {InterpretText(r)} | {LetterText(r)} | ${Money(r.HundredReplies)} | {Percent(r.ProseReasoningShare)} / {(r.Row.Enhanced ? Percent(r.InterpretReasoningShare) : "-")} | {Percent(r.CachedShare)} |{Flags(r)}");
 
          return sb.ToString();
       }
@@ -278,9 +313,10 @@ namespace CalradiaRemembers.Logic.Diagnostics
       /// </summary>
       public static string NexusCode(IReadOnlyList<CostScenarioResult> results, string version, DateTime measuredOn)
       {
-         var rows = new List<string[]> {new[] {"Model", "Setup", "1st reply", "Later reply", "Letter", "100 replies"}};
+         var rows = new List<string[]> {new[] {"Model", "Setup", "1st reply", "Later reply", "Prose", "Interpret", "Letter", "100 replies"}};
          rows.AddRange(results.Select(r => new[] {
-            r.Row.Name, r.Row.Setup, "$" + Money(r.FirstReply), "$" + Money(r.LaterReply), LetterText(r), "$" + Money(r.HundredReplies)
+            r.Row.Name, r.Row.Setup, "$" + Money(r.FirstReply), "$" + Money(r.LaterReply), "$" + Money(r.ProsePart), InterpretText(r), LetterText(r),
+            "$" + Money(r.HundredReplies)
          }));
          int[] widths = Enumerable.Range(0, rows[0].Length).Select(i => rows.Max(row => row[i].Length)).ToArray();
 
@@ -293,6 +329,8 @@ namespace CalradiaRemembers.Logic.Diagnostics
 
          return sb.ToString();
       }
+
+      private static string InterpretText(CostScenarioResult r) => r.Row.Enhanced ? "$" + Money(r.InterpretPart) : "-";
 
       private static string LetterText(CostScenarioResult r) => r.Letter == null ? "-" : "$" + Money(r.Letter.Value);
 

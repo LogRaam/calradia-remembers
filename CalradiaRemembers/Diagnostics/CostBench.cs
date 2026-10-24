@@ -153,7 +153,7 @@ namespace CalradiaRemembers.Diagnostics
          // The row always names the reasoning effort it was measured at: for a thinking model it is the price.
          played = new CostScenario {
             Name = scenario.Name, ProseModel = scenario.ProseModel, InterpreterModel = scenario.InterpreterModel, Enhanced = scenario.Enhanced,
-            Compact = scenario.Compact, Reasoning = forced.Reasoning
+            Compact = scenario.Compact, Reasoning = forced.Reasoning, NsfwModel = forced.NsfwModel
          };
          NpcProfile profile = CopyOf(behavior.Store.Get(speaker.StringId) ?? HeroProfileMapper.FromHero(speaker));
          var session = new ChatSession();
@@ -348,6 +348,10 @@ namespace CalradiaRemembers.Diagnostics
          private readonly int _priorReasoning;
          private readonly Dropdown<string> _reasoning;
          private readonly ManualModelMode _priorMode;
+         private readonly string _priorNsfw;
+
+         /// <summary>The NSFW (fallback) model this run is measured with.</summary>
+         public string NsfwModel => CrSettings.Instance?.CncModel ?? "";
 
          /// <summary>The PROSE reasoning effort this run is measured at.</summary>
          public string Reasoning => _reasoning?.SelectedValue ?? "";
@@ -362,6 +366,7 @@ namespace CalradiaRemembers.Diagnostics
             _reasoning = settings?.ReasoningEffort;
             _priorReasoning = _reasoning?.SelectedIndex ?? -1;
             _priorMode = LlmServices.ActiveModelMode;
+            _priorNsfw = settings?.CncModel;
 
             // The in-chat switch decides the composition and the main role everywhere else: Enhanced or Roleplay (Standard),
             // never the player's NSFW state.
@@ -371,6 +376,7 @@ namespace CalradiaRemembers.Diagnostics
             {
                settings.ActionInterpreterModel = scenario.InterpreterModel;
                settings.LeanPrompt = scenario.Compact;
+               if (!string.IsNullOrWhiteSpace(scenario.NsfwModel)) settings.CncModel = scenario.NsfwModel;
                if (_reasoning != null && !string.IsNullOrWhiteSpace(scenario.Reasoning)
                    && _reasoning.Any(v => string.Equals(v, scenario.Reasoning, StringComparison.OrdinalIgnoreCase)))
                   _reasoning.SelectedValue = _reasoning.First(v => string.Equals(v, scenario.Reasoning, StringComparison.OrdinalIgnoreCase));
@@ -388,6 +394,7 @@ namespace CalradiaRemembers.Diagnostics
             {
                settings.ActionInterpreterModel = _priorInterpreter;
                settings.LeanPrompt = _priorCompact;
+               settings.CncModel = _priorNsfw;
                if (_reasoning != null && _priorReasoning >= 0) _reasoning.SelectedIndex = _priorReasoning;
             }
 
