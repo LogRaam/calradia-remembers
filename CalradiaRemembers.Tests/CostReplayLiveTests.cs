@@ -54,8 +54,10 @@ namespace CalradiaRemembers.Tests
          if (string.IsNullOrWhiteSpace(_key)) Assert.Ignore("No OPENROUTER_API_KEY.");
       }
 
+      // STAKE: a model recommended on the Nexus page was measured on the conversation the game really sends, with its own
+      // replies, and on nothing the replay invented (the fidelity line says so before any credit is spent).
       [Test]
-      public async Task Replay()
+      public async Task GIVEN_a_capture_from_the_game_WHEN_replayed_for_each_prose_row_THEN_each_model_is_priced_on_the_game_s_own_conversation()
       {
          string capturePath = Env("CR_REPLAY_CAPTURE", Path.Combine(Documents, "Logs", "CalradiaRemembers_cost_capture.json"));
          CostCaptureFile capture = File.Exists(capturePath) ? CostCaptureFile.FromJson(File.ReadAllText(capturePath)) : null;
@@ -92,8 +94,10 @@ namespace CalradiaRemembers.Tests
          Write("replay", capture.Version, results, new List<InterpretRowResult>(), recorder, log, transcripts);
       }
 
+      // STAKE: an interpreter recommended as the default read the same 302 cases the game's bench reads, sent as the game's
+      // interpreter client sends them (reasoning off), so its score and price stand beside an in-game run.
       [Test]
-      public async Task Interpret()
+      public async Task GIVEN_the_interpret_rows_WHEN_each_reads_the_whole_catalog_THEN_each_model_is_scored_and_priced_as_the_game_reads()
       {
          double cap = Cap();
          List<CostScenario> rows = Rows().Where(r => r.Pass == CostPass.Interpret).ToList();

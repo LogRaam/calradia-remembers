@@ -631,7 +631,7 @@ Top-tier quality, still well under Grok's price. For when you want the very best
 [code]
 Prose model               Scene opener   1st reply     Middle        Long talk     Letter
 Grok 4.20                 $0.022 18 s    $0.0099 28 s  $0.0081 21 s  $0.0074 16 s  $0.020
-Grok 4.20, reasoning Off  $0.021 3 s     $0.021 4 s    $0.0042 3 s   $0.0047 3 s   $0.018
+Grok 4.20, reasoning Off  $0.021 3 s     $0.021 4 s    $0.0042 3 s   $0.022* 3 s   $0.018
 Grok 4.20, Compact        $0.015 20 s    $0.015 19 s   $0.0057 13 s  $0.0055 12 s  $0.0078
 Gemini 3.8 Flash          $0.0030 33 s   $0.0023 3 s   $0.0026 4 s   $0.0025 3 s   $0.0029
 DeepSeek V4.1 Flash       $0.0018 7 s    $0.0003 10 s  $0.0002 4 s   $0.0002 5 s   $0.0014
@@ -666,7 +666,7 @@ GLM 4.6                   $0.0037 23 s  $0.37
 [i]100 replies[/i] is computed (100 times one ordinary reply). Each conversation also pays its opening (the scene and the first reply, the dearest two), and now and then a letter or a summary.
 [list]
 [*]Every model above remembered what was agreed 18 turns earlier, and none refused or lectured.[/*]
-[*]Grok 4.20 ignores Low, Medium and High: it thinks about 1,800 hidden tokens before every reply at any of them, and that thinking is most of its price. Only [b]Off[/b] stops it: half the price and five times faster, and in this conversation the writing held (same voice, same memory, no lecture). The Long talk cell of the Off row is a warm reply; that run's own turn 18 missed the cache and paid $0.022.[/*]
+[*]Grok 4.20 ignores Low, Medium and High: it thinks about 1,800 hidden tokens before every reply at any of them, and that thinking is most of its price. Only [b]Off[/b] stops it: half the price and five times faster, and in this conversation the writing held (same voice, same memory, no lecture). (*) That turn missed the cache; its warm reply just before cost $0.0047.[/*]
 [*]DeepSeek V4 Flash is cheap and quick once a conversation is under way, but over-thinks about one opening in three (105 seconds for the scene once). DeepSeek V4.1 Flash does not, and costs less. GLM 4.6 is slow throughout.[/*]
 [*]Tolerance of the Explicit and Hardcore tiers was not part of this measure; see the picks above.[/*]
 [*]One evening, one lord, one run, prices of the day: a guide, not a quote. OpenRouter's Activity page shows your own bill, call by call.[/*]
