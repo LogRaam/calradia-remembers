@@ -8,8 +8,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 - **The interpreter now defaults to DeepSeek V4.1 Flash** (cost bench 24/10, the whole action catalog of 296 cases on
   each candidate). DeepSeek V4.1 Flash read 291 right, invented no deed and fell for no false lead, at about $0.0004
   and under a second per reply; Grok 4.20, the old default, cost about ten times more for fewer right readings. A
-  new install starts on it; if you already saved an Interpret model, yours is kept (clear the field and restart to
-  take the new default). Pointed at your own server, an untouched field still sends nothing, as before.
+  new install starts on it; if you already saved an Interpret model, yours is kept (to switch, type
+  deepseek/deepseek-v4.1-flash in Interpret model; a blank field reuses your PROSE model). Pointed at your own server, an untouched field still sends nothing, as before.
 - **What a call costs, measured** (fearente 24/10: "$3.19 without particularly heavy usage" in a week the page priced
   at about $1, and no way to tell which calls were the mod's). On OpenRouter every call now carries the mod's name and
   asks for its bill; a retry is counted with the attempt it replaced
