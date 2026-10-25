@@ -74,11 +74,36 @@ namespace CalradiaRemembers
                         .FirstOrDefault();
          if (seat == null) return $"jail: {lord.Name}'s house holds no town or castle";
 
+         // The engine frees a captive player at its next check unless the captor's realm is at war with the player's or holds
+         // a moderate or severe crime against them (PlayerCaptivityCampaignBehavior.CheckCaptivityChange, measured 24/10/2026:
+         // freed at once). A realm of the player's own frees him whatever happens.
+         IFaction realm = seat.MapFaction;
+         if (realm == Hero.MainHero.MapFaction) return $"jail: {seat.Name} belongs to the player's own realm, which never holds him";
+
+         string kept = "at war";
+         if (!FactionManager.IsAtWarAgainstFaction(realm, Hero.MainHero.MapFaction))
+         {
+            ChangeCrimeRatingAction.Apply(realm, Math.Max(0f, 40f - realm.MainHeroCrimeRating), false);
+            kept = $"crime rating raised to {realm.MainHeroCrimeRating:0} (moderate) so the realm keeps the player";
+         }
+
+         // A lord at the head of a party is moved with it: a lone teleport takes a party leader out of nothing.
+         MobileParty party = lord.PartyBelongedTo;
          if (lord.CurrentSettlement != seat && !lord.IsPrisoner)
-            TeleportHeroAction.ApplyImmediateTeleportToSettlement(lord, seat);
+         {
+            if (party != null && party.LeaderHero == lord && party.MapEvent == null)
+            {
+               if (party.Army != null) party.Army = null;
+               if (party.CurrentSettlement != null) LeaveSettlementAction.ApplyForParty(party);
+               party.Position = seat.GatePosition;
+               EnterSettlementAction.ApplyForParty(party, seat);
+            }
+            else TeleportHeroAction.ApplyImmediateTeleportToSettlement(lord, seat);
+         }
+
          TakePrisonerAction.Apply(seat.Party, Hero.MainHero);
 
-         return $"jail: the player is held in {seat.Name}; {lord.Name} is in {lord.CurrentSettlement?.Name?.ToString() ?? "(nowhere)"}\n" + State(lord);
+         return $"jail: the player is held in {seat.Name} ({kept}); {lord.Name} is in {lord.CurrentSettlement?.Name?.ToString() ?? "(nowhere)"}\n" + State(lord);
       }
 
       private static string Open(Hero lord, string door)
