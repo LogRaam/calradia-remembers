@@ -49,7 +49,12 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          // Gabriel (10/10/2026): the giver also speaks the moment of a stage decided by words with them, the conversation
          // that decides it being theirs (stages that are states of one conversation).
          bool decidedWithThem = !inTheirConversation && AuthoredQuestEngine.SaidChoicesFor(run, q, heroId).Count > 0;
-         bool speaks = heroId == AuthoredQuestEngine.Bound(run, "{giver}") && (offering || run.SpokenStageId == stage.Id || decidedWithThem);
+         // Gabriel (24/10/2026, the night in Rhagaea's chamber): a talk that completes as the conversation ends is that
+         // conversation, so the one it names speaks the stage's moment all through it (nothing was completed on opening).
+         bool inTheirClosingTalk = !inTheirConversation && run.Status == AuthoredQuestStatus.Active
+                                   && AuthoredQuestEngine.Ways(run, q).Any(w => w.Objective.Type == "talk_to" && AuthoredQuestEngine.EndsOnClose(w.Objective)
+                                                                               && heroId == AuthoredQuestEngine.Bound(run, w.Objective.Hero));
+         bool speaks = (heroId == AuthoredQuestEngine.Bound(run, "{giver}") && (offering || run.SpokenStageId == stage.Id || decidedWithThem)) || inTheirClosingTalk;
 
          if (choice != null && (choice.Canvas?.Count > 0 || choice.Facts?.Count > 0 || choice.Knowers?.Count > 0))
          {

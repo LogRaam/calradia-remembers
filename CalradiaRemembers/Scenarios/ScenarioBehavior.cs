@@ -195,7 +195,8 @@ namespace CalradiaRemembers.Scenarios
       // ON_CAPTIVE_NIGHT: once a night, at the hour the castle sleeps, while the player is a prisoner.
       private void OnHourlyTick()
       {
-         if (Hero.MainHero?.IsPrisoner != true || !CampaignTime.Now.IsNightTime || (int) CampaignTime.Now.CurrentHourInDay != CaptiveNightHour) return;
+         // From the hour on, not at it exactly: an hourly tick may read 22.9999, and the day guards it to once a night.
+         if (Hero.MainHero?.IsPrisoner != true || !CampaignTime.Now.IsNightTime || CampaignTime.Now.CurrentHourInDay < CaptiveNightHour) return;
 
          var today = (int) CampaignTime.Now.ToDays;
          if (today == _captiveNightDay) return;

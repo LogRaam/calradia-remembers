@@ -100,6 +100,22 @@ namespace CalradiaRemembers.Tests
          step.EndingId.Should().Be("dawn");
       }
 
+      // STAKE: Rhagaea must know the scene she is in for the whole night: with nothing completed as the chat opened, the
+      // giver of a talk that ends on the close still speaks the stage's moment and its facts.
+      [Test]
+      public void GIVEN_a_talk_that_completes_on_the_close_WHEN_its_giver_is_spoken_to_THEN_she_is_told_the_stages_moment()
+      {
+         string withMoment = Night.Replace("\"objective\": { \"type\": \"talk_to\", \"hero\": \"{giver}\", \"when\": \"closed\" },",
+            "\"objective\": { \"type\": \"talk_to\", \"hero\": \"{giver}\", \"when\": \"closed\" }, \"canvas\": \"Night in your chamber.\", \"facts\": [ \"Guards wait at the door.\" ],");
+         AuthoredQuest q = AuthoredTales.Load(withMoment);
+         AuthoredQuestRun run = AuthoredTales.At(q, "chamber");
+         AuthoredQuestEngine.ConversationOpened(run, q, AuthoredTales.Giver, null, 101);
+
+         string block = AuthoredQuestPrompt.ForCharacter(run, q, AuthoredTales.Giver, null, offering: false);
+
+         block.Should().Contain("Night in your chamber.").And.Contain("Guards wait at the door.");
+      }
+
       // STAKE: every tale written before still completes a talk as the conversation opens; the close changes nothing for it.
       [Test]
       public void GIVEN_an_ordinary_talk_WHEN_the_conversation_ends_THEN_it_was_already_met_on_the_opening_and_the_end_adds_nothing()
