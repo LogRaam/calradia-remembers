@@ -102,6 +102,19 @@ An `arc` on a `talk_to` objective (meant for `"when": "closed"`):
     rule that the game decides what happens, and the player's way of playing the scene still counts through the
     observed path.
 
+- **A strong intervention holds the beat** (Gabriel, 25/10/2026: "je garderais une intervention forte qui retient..
+  c'est un ajustement naturel au roleplay du joueur"). As in the captive director: when the player's message turns the
+  scene (a strong act or word of their own), the beat does not advance on that exchange and the direction tells the
+  model to answer it first; a second strong intervention in a row lets the beat advance, so the player can never stall
+  the arc. Who judges "strong" is the same reader as the signals (an implicit signal of every arc).
+- **Signals work in both compositions** (Gabriel, 25/10/2026: "en mode regulier non-enhanced, le LLM cherche aussi les
+  actions.. donc les signaux fonctionnent dans les deux modes"). In Enhanced the interpreter reads the reply; in
+  Standard (Integrated) the prose model writes its own `[ACTION]` tags, so the signals are taught to it there instead.
+  Found while checking (25/10/2026): `story_choice`, the precedent, is taught ONLY to the interpreter
+  (`StoryChoicesForInterpreter`, read by `ActionInterpreterContextBuilder` alone), so a tale's choices by words cannot be
+  taken in Standard composition today. Increment 2 teaches both to the prose model when no interpreter runs, which
+  mends that gap at the same time.
+
 ### Proposed, awaiting Gabriel
 
 - **The refusal** (asked 25/10/2026, not yet answered): a `refused` signal, observed, with `on_signal` to an exit beat
@@ -113,11 +126,8 @@ An `arc` on a `talk_to` objective (meant for `"when": "closed"`):
   even when the MCM "NPCs can end conversations" is off, since it is the tale's structure and not a character's whim.
 - **The player closes first:** the stage completes as today; signals never seen stay unset; the endings judge by what
   is known. Nothing new.
-- **Every reply counts as an exchange**, whatever the player wrote. Inside a beat, the direction asks the model to
-  answer the player's own move first, then carry the beat on. (The captive director's "a strong intervention holds the
-  beat one turn" is left for later, if play shows it is needed.)
-- **Roleplay (Integrated) composition** has no interpreter call, so no signal can be observed there: only the net roll
-  decides. The editor and the HOWTO say so. Enhanced is the default composition.
+- **Every reply counts as an exchange**, whatever the player wrote, except that a strong intervention holds the beat
+  (below). Inside a beat, the direction asks the model to answer the player's own move first, then carry the beat on.
 
 ### What the code already has (traced 25/10/2026)
 
