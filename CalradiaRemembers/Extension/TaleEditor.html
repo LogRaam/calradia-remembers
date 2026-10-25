@@ -6002,7 +6002,7 @@ input[type="number"] { max-width: 160px; }
     var ls = lines(v);
     if (!ls.length) return null;
     return h('ul.summary-list', ls.map(function (l) {
-      return h('li', l.when ? h('span.when', 'if ' + l.when + ': ') : null, clip(l.text, max || 240));
+      return h('li', l.when ? h('span.when', 'if ' + l.when + ': ') : null, l.text);
     }));
   }
 
@@ -6015,7 +6015,7 @@ input[type="number"] { max-width: 160px; }
     if (c.magnitude !== undefined) parts.push('magnitude ' + c.magnitude);
     if (!blank(c.item)) parts.push((c.count || 1) + ' ' + c.item);
     var said = c.text || c.summary;
-    return parts.join(' · ') + (blank(said) ? '' : ': ' + clip(said, 160));
+    return parts.join(' · ') + (blank(said) ? '' : ': ' + said);
   }
 
   function consequenceList(list) {
@@ -6059,11 +6059,11 @@ input[type="number"] { max-width: 160px; }
   /** A scene's opening or closing: a line of text, or a beat with its canvas and facts (Gabriel, 25/10/2026: "[object Object]"). */
   function beatOf(b) {
     if (b === null || b === undefined) return null;
-    if (typeof b !== 'object' || Array.isArray(b)) return lines(b).length ? h('div', lines(b).map(function (l) { return clip(l.text, 400); }).join(' ')) : null;
+    if (typeof b !== 'object' || Array.isArray(b)) return lines(b).length ? h('div', lines(b).map(function (l) { return l.text; }).join(' ')) : null;
     var said = lines(b.canvas), known = lines(b.facts);
     if (!said.length && !known.length) return null;
-    return h('div', said.length ? h('div', said.map(function (l) { return clip(l.text, 600); }).join(' ')) : null,
-      known.length ? h('ul.summary-list', known.map(function (l) { return h('li', l.when ? h('span.when', 'if ' + l.when + ': ') : null, clip(l.text, 240)); })) : null);
+    return h('div', said.length ? h('div', said.map(function (l) { return l.text; }).join(' ')) : null,
+      known.length ? h('ul.summary-list', known.map(function (l) { return h('li', l.when ? h('span.when', 'if ' + l.when + ': ') : null, l.text); })) : null);
   }
 
   /**
@@ -6112,7 +6112,7 @@ input[type="number"] { max-width: 160px; }
     if (s.knowers && typeof s.knowers === 'object') {
       var who = Object.keys(s.knowers).filter(function (k) { return lines(s.knowers[k]).length; });
       if (who.length) body.push(h('h4', 'Who knows what'), h('ul.summary-list', who.map(function (k) {
-        return h('li', h('span.mono', k), ': ' + lines(s.knowers[k]).map(function (l) { return clip(l.text, 120); }).join(' / '));
+        return h('li', h('span.mono', k), lineList(s.knowers[k]));
       })));
     }
     if (scene) {
@@ -6125,17 +6125,18 @@ input[type="number"] { max-width: 160px; }
       ]));
       var finds = arr(scene.findings).filter(function (f) { return f; });
       if (finds.length) body.push(h('h4', 'Findings'), h('ul.summary-list', finds.map(function (f) {
-        return h('li', h('span.mono', f.id || '?'), (f.required ? ' (required)' : '') + (blank(f.text) ? '' : ': ' + clip(f.text, 200)) + (f.sets ? '; sets ' + flagsToText(f.sets) : ''));
+        return h('li', h('span.mono', f.id || '?'), (f.required ? ' (required)' : '') + (blank(f.text) ? '' : ': ' + f.text) + (f.sets ? '; sets ' + flagsToText(f.sets) : ''));
       })));
       var hazards = arr(scene.hazards).filter(function (z) { return z; });
       if (hazards.length) body.push(h('h4', 'Hazards'), h('ul.summary-list', hazards.map(function (z) {
-        return h('li', h('span.mono', z.id || '?'), (blank(z.trigger) ? '' : ': ' + clip(z.trigger, 140)) + (blank(z.effect) ? '' : ' \u2192 ' + clip(z.effect, 140)));
+        return h('li', h('span.mono', z.id || '?'), (blank(z.trigger) ? '' : ': ' + z.trigger) + (blank(z.effect) ? '' : ' \u2192 ' + z.effect));
       })));
       var meets = arr(scene.encounters).filter(function (e) { return e; });
       if (meets.length) body.push(h('h4', 'Encounters'), h('ul.summary-list', meets.map(function (e) {
-        var knows = lines(e.knows);
-        return h('li', h('strong', e.name || e.id || '?'), (blank(e.persona) ? '' : ': ' + clip(e.persona, 220))
-          + (knows.length ? ' (knows ' + knows.length + ' thing' + (knows.length > 1 ? 's' : '') + ')' : '') + (e.sets ? '; sets ' + flagsToText(e.sets) : ''));
+        // Gabriel (25/10/2026): what each one knows, in full, for review ("plutot que de dire qu'ils savent un nombre de choses").
+        return h('li', h('strong', e.name || e.id || '?'), (blank(e.persona) ? '' : ': ' + e.persona) + (e.sets ? '; sets ' + flagsToText(e.sets) : ''),
+          lines(e.knows).length ? h('div', {style: 'margin-top:2px;color:var(--text-3);font-size:12px'}, 'Knows:') : null,
+          lineList(e.knows));
       })));
     }
     var cs = arr(s.choices).filter(function (c) { return c; });
