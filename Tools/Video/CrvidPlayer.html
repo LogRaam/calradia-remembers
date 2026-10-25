@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRVID Player</title>
+<!--
+  Code written by Gabriel Mailhot, 25/10/2026.
+  Gabriel (25/10/2026): "J'aimerais avoir un player pour visionner les videos." Plays Calradia Remembers' own videos (.crvid:
+  a stored zip of JPEG frames and a manifest, made by Tools/Video/make_crvid.py, read in game by Video/CrvidDecoder.cs) in
+  the browser, with no install and nothing sent anywhere: open files or a whole folder, or drop them on the page. The frames
+  are decoded a few ahead of the one shown, so a 600-frame clip never sits whole in memory.
+-->
+<style>
+  :root { --bg:#16181d; --panel:#1f2229; --line:#2e323c; --text:#e6e8ee; --dim:#9aa1b2; --accent:#d9a441; --sel:#2b3140; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font:14px/1.4 system-ui, Segoe UI, sans-serif; }
+  body { display:flex; }
+  #side { width:300px; min-width:240px; background:var(--panel); border-right:1px solid var(--line); display:flex; flex-direction:column; }
+  #side header { padding:12px; border-bottom:1px solid var(--line); }
+  #side h1 { font-size:15px; margin:0 0 8px; }
+  .row { display:flex; gap:6px; flex-wrap:wrap; }
+  button, select, label.btn { background:#2a2e37; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 10px; font:inherit; cursor:pointer; }
+  button:hover, label.btn:hover { border-color:var(--accent); }
+  button.on { background:var(--accent); color:#111; border-color:var(--accent); }
+  #list { flex:1; overflow:auto; margin:0; padding:0; list-style:none; }
+  #list li { padding:8px 12px; border-bottom:1px solid var(--line); cursor:pointer; }
+  #list li.cur { background:var(--sel); border-left:3px solid var(--accent); padding-left:9px; }
+  #list .n { font-weight:600; word-break:break-all; }
+  #list .m { color:var(--dim); font-size:12px; }
+  #main { flex:1; display:flex; flex-direction:column; min-width:0; }
+  #stage { flex:1; display:flex; align-items:center; justify-content:center; min-height:0; position:relative; }
+  #view { max-width:100%; max-height:100%; background:#000; }
+  #hint { position:absolute; color:var(--dim); text-align:center; padding:20px; }
+  #bar { border-top:1px solid var(--line); background:var(--panel); padding:10px 12px; }
+  #seek { width:100%; }
+  .info { color:var(--dim); font-size:12px; margin-left:auto; align-self:center; }
+  body.drag #stage { outline:2px dashed var(--accent); outline-offset:-8px; }
+  input[type=file] { display:none; }
+</style>
+</head>
+<body>
+<aside id="side">
+  <header>
+    <h1>CRVID Player</h1>
+    <div class="row">
+      <label class="btn">Open videos<input id="files" type="file" accept=".crvid" multiple></label>
+      <label class="btn">Open a folder<input id="folder" type="file" webkitdirectory></label>
+    </div>
+  </header>
+  <ul id="list"></ul>
+</aside>
+<main id="main">
+  <div id="stage">
+    <canvas id="view" width="2" height="2"></canvas>
+    <div id="hint">Open .crvid files or a folder, or drop them here.<br>Space: play / pause. Left / Right: a frame. Up / Down: the previous / next video. L: loop.</div>
+  </div>
+  <div id="bar">
+    <input id="seek" type="range" min="0" max="0" value="0">
+    <div class="row" style="margin-top:8px">
+      <button id="prev" title="Previous video (Up)">&#9198;</button>
+      <button id="play" title="Play / pause (Space)">&#9654;</button>
+      <button id="stop" title="Back to the first frame">&#9632;</button>
+      <button id="next" title="Next video (Down)">&#9197;</button>
+      <button id="loop" title="Loop this video (L)">Loop</button>
+      <button id="all" title="When a video ends, play the next one">Play all</button>
+      <select id="speed" title="Speed">
+        <option value="0.25">x0.25</option><option value="0.5">x0.5</option><option value="1" selected>x1</option>
+        <option value="1.5">x1.5</option><option value="2">x2</option>
+      </select>
+      <span class="info" id="info">No video</span>
+    </div>
+  </div>
+</main>
+<script>
+(function () {
+  'use strict';
+
+  // ---------- reading a .crvid (a zip, frames stored; a deflated entry is inflated by the browser) ----------
+  function u16(v, o) { return v.getUint16(o, true); }
+  function u32(v, o) { return v.getUint32(o, true); }
+
+  async function readZip(file) {
+    var buf = await file.arrayBuffer(), view = new DataView(buf), bytes = new Uint8Array(buf);
+    var eocd = -1;
+    for (var i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 65557); i--) if (u32(view, i) === 0x06054b50) { eocd = i; break; }
+    if (eocd < 0) throw new Error('not a zip');
+    var count = u16(view, eocd + 10), at = u32(view, eocd + 16), entries = {};
+    var dec = new TextDecoder();
+    for (var n = 0; n < count; n++) {
+      if (u32(view, at) !== 0x02014b50) throw new Error('broken zip directory');
+      var method = u16(view, at + 10), size = u32(view, at + 20), nameLen = u16(view, at + 28), extraLen = u16(view, at + 30),
+          commentLen = u16(view, at + 32), local = u32(view, at + 42);
+      var name = dec.decode(bytes.subarray(at + 46, at + 46 + nameLen));
+      var dataAt = local + 30 + u16(view, local + 26) + u16(view, local + 28);
+      entries[name] = {method: method, data: bytes.subarray(dataAt, dataAt + size)};
+      at += 46 + nameLen + extraLen + commentLen;
+    }
+    return entries;
+  }
+
+  async function entryBytes(e) {
+    if (e.method === 0) return e.data;
+    if (e.method === 8) return new Uint8Array(await new Response(new Blob([e.data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+    throw new Error('unknown zip method ' + e.method);
+  }
+
+  async function openCrvid(file) {
+    var entries = await readZip(file);
+    var m = entries['manifest.json'];
+    if (!m) throw new Error('no manifest.json');
+    var manifest = JSON.parse(new TextDecoder().decode(await entryBytes(m)));
+    var frames = Object.keys(entries).filter(function (k) { return /^frames\/.+\.jpe?g$/i.test(k); }).sort().map(function (k) { return entries[k]; });
+    if (!frames.length) throw new Error('no frame');
+    return {name: file.name, size: file.size, manifest: manifest, frames: frames, fps: Number(manifest.fps) || 30};
+  }
+
+  // ---------- the list ----------
+  var videos = [], cur = -1;
+  var list = document.getElementById('list');
+
+  function fmtTime(s) { s = Math.max(0, s); var m = Math.floor(s / 60); return m + ':' + ('0' + Math.floor(s % 60)).slice(-2); }
+  function natural(a, b) { return a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}); }
+
+  async function addFiles(fileList) {
+    var picked = Array.prototype.filter.call(fileList, function (f) { return /\.crvid$/i.test(f.name); });
+    if (!picked.length) return;
+    var added = [];
+    for (var i = 0; i < picked.length; i++) {
+      try { added.push(await openCrvid(picked[i])); }
+      catch (err) { added.push({name: picked[i].name, error: err.message}); }
+    }
+    var first = videos.length;
+    videos = videos.concat(added.sort(natural));
+    renderList();
+    if (cur < 0) select(first);
+  }
+
+  function renderList() {
+    list.innerHTML = '';
+    videos.forEach(function (v, i) {
+      var li = document.createElement('li');
+      if (i === cur) li.className = 'cur';
+      var meta = v.error ? 'cannot be read: ' + v.error
+        : v.frames.length + ' frames, ' + v.fps + ' fps, ' + fmtTime(v.frames.length / v.fps) + ', ' + (v.manifest.width || '?') + 'x' + (v.manifest.height || '?')
+          + ', ' + (v.size / 1048576).toFixed(1) + ' MB' + (v.manifest.loop ? ', loops in game' : '');
+      li.innerHTML = '<div class="n"></div><div class="m"></div>';
+      li.children[0].textContent = v.name;
+      li.children[1].textContent = meta;
+      li.onclick = function () { select(i); };
+      list.appendChild(li);
+    });
+  }
+
+  // ---------- playing: frames decoded a little ahead, never all at once ----------
+  var canvas = document.getElementById('view'), ctx = canvas.getContext('2d');
+  var seek = document.getElementById('seek'), info = document.getElementById('info');
+  var playBtn = document.getElementById('play'), loopBtn = document.getElementById('loop'), allBtn = document.getElementById('all');
+  var speedSel = document.getElementById('speed');
+  var AHEAD = 24;
+  var cache = new Map(), frame = 0, playing = false, startedAt = 0, startFrame = 0, loop = false, playAll = false, token = 0;
+
+  function video() { return cur >= 0 && !videos[cur].error ? videos[cur] : null; }
+
+  function bitmap(i) {
+    var v = video();
+    if (!v || i < 0 || i >= v.frames.length) return null;
+    if (!cache.has(i)) {
+      var mine = token;
+      cache.set(i, entryBytes(v.frames[i]).then(function (b) { return createImageBitmap(new Blob([b], {type: 'image/jpeg'})); })
+        .then(function (bmp) { if (mine !== token) { bmp.close(); return null; } return bmp; }));
+    }
+    return cache.get(i);
+  }
+
+  function prune(around) {
+    cache.forEach(function (p, i) {
+      if (i < around - 2 || i > around + AHEAD + 2) { p.then(function (b) { if (b) b.close(); }); cache.delete(i); }
+    });
+    for (var k = around; k <= around + AHEAD; k++) bitmap(k);
+  }
+
+  async function show(i) {
+    var v = video();
+    if (!v) return;
+    frame = Math.max(0, Math.min(v.frames.length - 1, i));
+    prune(frame);
+    var bmp = await bitmap(frame);
+    if (!bmp || video() !== v) return;
+    if (canvas.width !== bmp.width || canvas.height !== bmp.height) { canvas.width = bmp.width; canvas.height = bmp.height; }
+    ctx.drawImage(bmp, 0, 0);
+    seek.value = frame;
+    info.textContent = v.name + '   frame ' + (frame + 1) + ' / ' + v.frames.length + '   ' + fmtTime(frame / v.fps) + ' / ' + fmtTime(v.frames.length / v.fps);
+  }
+
+  function clearCache() {
+    token++;
+    cache.forEach(function (p) { p.then(function (b) { if (b) b.close(); }); });
+    cache.clear();
+  }
+
+  function select(i) {
+    if (i < 0 || i >= videos.length) return;
+    pause();
+    clearCache();
+    cur = i;
+    renderList();
+    var cur_li = list.children[i];
+    if (cur_li) cur_li.scrollIntoView({block: 'nearest'});
+    document.getElementById('hint').style.display = 'none';
+    var v = video();
+    if (!v) { info.textContent = videos[i].name + ': ' + videos[i].error; return; }
+    seek.max = v.frames.length - 1;
+    loop = !!v.manifest.loop && loop;
+    show(0);
+  }
+
+  function play() {
+    var v = video();
+    if (!v) return;
+    if (frame >= v.frames.length - 1) frame = 0;
+    playing = true;
+    startedAt = performance.now();
+    startFrame = frame;
+    playBtn.innerHTML = '&#10074;&#10074;';
+    requestAnimationFrame(tick);
+  }
+
+  function pause() { playing = false; playBtn.innerHTML = '&#9654;'; }
+
+  var drawing = false;
+  async function tick(now) {
+    if (!playing) return;
+    var v = video();
+    if (!v) return pause();
+    var speed = Number(speedSel.value) || 1;
+    var target = startFrame + Math.floor((now - startedAt) / 1000 * v.fps * speed);
+    if (target >= v.frames.length) {
+      if (loop) { startedAt = now; startFrame = 0; target = 0; }
+      else if (playAll && cur < videos.length - 1) { select(cur + 1); play(); return; }
+      else { await show(v.frames.length - 1); return pause(); }
+    }
+    if (!drawing && target !== frame) {
+      drawing = true;
+      try { await show(target); } finally { drawing = false; }
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function step(d) { pause(); show(frame + d); }
+
+  // ---------- controls ----------
+  playBtn.onclick = function () { playing ? pause() : play(); };
+  document.getElementById('stop').onclick = function () { pause(); show(0); };
+  document.getElementById('prev').onclick = function () { select(cur - 1); };
+  document.getElementById('next').onclick = function () { select(cur + 1); };
+  loopBtn.onclick = function () { loop = !loop; loopBtn.classList.toggle('on', loop); };
+  allBtn.onclick = function () { playAll = !playAll; allBtn.classList.toggle('on', playAll); };
+  speedSel.onchange = function () { if (playing) { startedAt = performance.now(); startFrame = frame; } };
+  seek.oninput = function () { var was = playing; pause(); show(Number(seek.value)).then(function () { if (was) play(); }); };
+  document.getElementById('files').onchange = function (e) { addFiles(e.target.files); e.target.value = ''; };
+  document.getElementById('folder').onchange = function (e) { addFiles(e.target.files); e.target.value = ''; };
+
+  document.addEventListener('keydown', function (e) {
+    if (e.target.tagName === 'SELECT') return;
+    if (e.code === 'Space') { e.preventDefault(); playing ? pause() : play(); }
+    else if (e.code === 'ArrowRight') { e.preventDefault(); step(1); }
+    else if (e.code === 'ArrowLeft') { e.preventDefault(); step(-1); }
+    else if (e.code === 'ArrowDown') { e.preventDefault(); select(cur + 1); }
+    else if (e.code === 'ArrowUp') { e.preventDefault(); select(cur - 1); }
+    else if (e.code === 'KeyL') loopBtn.onclick();
+    else if (e.code === 'Home') { pause(); show(0); }
+  });
+
+  ['dragenter', 'dragover'].forEach(function (t) { document.addEventListener(t, function (e) { e.preventDefault(); document.body.classList.add('drag'); }); });
+  ['dragleave', 'drop'].forEach(function (t) { document.addEventListener(t, function (e) { e.preventDefault(); document.body.classList.remove('drag'); }); });
+  document.addEventListener('drop', function (e) { if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files); });
+})();
+</script>
+</body>
+</html>
