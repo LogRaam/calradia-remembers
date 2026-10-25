@@ -165,7 +165,7 @@ namespace CalradiaRemembers.Duels
                .CivilianEquipment(false)
                .NoHorses(true);
 
-            Agent agent = Mission.SpawnAgent(build, false);
+            Agent agent = MissionSpawn.Spawn(Mission, build);
             agent.SetMortalityState(Agent.MortalityState.Invulnerable); // a plumbing spike, not a real fight: no one dies
             agent.WieldInitialWeapons(Agent.WeaponWieldActionType.InstantAfterPickUp);
 

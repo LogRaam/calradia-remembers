@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 567 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1302 types in 46 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 568 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1304 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 267 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -305,7 +305,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LlmDialogFlow` | public class | Registers Calradia Remembers' player option in the Bannerlord conversation flow. |
 | `VanillaDialogueRecorder` | public class | Captures the vanilla dialogue exchanged between the player and an NPC during a Bannerlord conversation, so that when the player switches to the Calradia Remembers chat window, the LLM (and the visible message list) start... |
 
-### CalradiaRemembers.Duels (15)
+### CalradiaRemembers.Duels (16)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -321,6 +321,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DuelSceneSpike` | public static class | Opens a throwaway field-combat scene to prove the wilderness launch path, and measures VRAM across the open and the return. |
 | `DuelSpikeMissionLogic` | public class | Spawns the two fighters into the spike field scene, then ends the mission on a timer. |
 | `EscapeOutcome` | public enum | How a captive-escape encounter ended. |
+| `MissionSpawn` | internal static class | Spawns an agent through whichever Mission.SpawnAgent overload the running game version has. |
 | `ScatteredLootBehavior` | public class | Persists the player's scattered captivity loot and returns it, a piece at a time, from defeated bandit bands. |
 | `TownDuelBehavior` | public class | Stages a duel in the town-centre scene, reusing the proven street-ambush injection recipe. |
 | `TownDuelMissionLogic` | public class | Adjudicates a non-lethal duel inside the town-centre scene: waits for the opponent, starts the fight, reports the winner. |
@@ -1886,7 +1887,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RecapSignal` | public static class | Whether a late reply found what the folded recap holds: the levies agreed early in the conversation. |
 | `SermonSignal` | public static class | The fearente signal: a reply that still warns or lectures after the player has answered the concern. |
 
-### CalradiaRemembers.Logic.Duels (25)
+### CalradiaRemembers.Logic.Duels (27)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1914,6 +1915,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DuelStakesPolicy` | public static class | The rules on what may be wagered, and what abandoning a duel costs before witnesses. |
 | `DuelVenue` | public enum | Where a duel is staged, or that it cannot be staged now. |
 | `DuelVenuePolicy` | public static class | Chooses the venue for a duel from where the player stands. |
+| `SpawnAgentSignaturePolicy` | public static class | Which Mission.SpawnAgent overload spawns a fighter from an AgentBuildData alone, whatever the game version: a public instance SpawnAgent whose first parameter is AgentBuildData and every other one optional (1.4.8 has one... |
+| `SpawnMethodShape` | public class | One method the game's Mission type offers, as reflection sees it. |
 | `SquareReadinessFacts` | public class | What the town square's opening waits on. |
 
 ### CalradiaRemembers.Logic.Dynasty (5)

@@ -294,6 +294,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("duel_consequence", Severity.Light, "Mechanical: the DUEL consequence glue (DuelOutcomeApplier), which no unit test can reach (it writes to the live campaign). Seed a courted lady's AttractionToPlayer to 0, then drive the REAL applier for a CourtshipRivalry duel: WIN raises her attraction by exactly CourtshipDuelPolicy.AdmirationOnWin, a following REFUSAL drops it by CowardiceOnRefuse (proving the forfeit path and that refusing costs MORE than losing), each duel records a world-event so she can learn of it, and a win lifts the player's renown. Restores her attraction afterwards", TestDuelConsequence),
          new SelfTest("menu", Severity.Light, "Mechanical: the in-chat Options button reaches the vanilla escape menu purely by REFLECTION, so a TaleWorlds rename would not throw, it would just go quiet while the log claimed success (exactly the bug SuperGraham339 reported across three versions). Asserts BOTH mechanisms the game answers ESC with still resolve: the MISSION view (a settlement, a conversation, a naval scene) and the map's navigation handler. Whichever one is missing is a screen the player's menu will never appear on", TestMenu),
          new SelfTest("panel_siege_guard", Severity.Light, "Mechanical: the full-map panel crash guard. Asserts the Harmony prefix that skips SettlementVisualManager.OnTick (the vanilla siege-bombardment visual tick, which runs on the frame loop and access-violates natively under a pushed CR panel: four confirmed 0xC0000005 crashes) is actually attached to the LIVE engine method. It resolves the target BY NAME, so a game update that renamed the type/method would silently stop protecting; this fires if that ever happens. Also asserts that with no panel open nothing is suppressed (siege visuals tick normally). No LLM, mutates nothing", TestPanelSiegeVisualGuard),
+         new SelfTest("spawn_agent_signature", Severity.Light, "tashmetu (Nexus, 25/10/2026): Mission.SpawnAgent(AgentBuildData, bool) is gone in the 1.5.5 beta (two optional parameters added), so a duel or a captive's escape compiled against 1.4.8 would throw MissingMethodException as its first fighter spawns. CR now finds the overload at run time. Asserts the running game offers one CR can call: public, on the mission, AgentBuildData first, every other parameter optional. Read-only, spawns nothing", TestSpawnAgentSignature),
          new SelfTest("setting_hints_fit", Severity.Light, "Mechanical: every MCM hint fits on screen. A shipped bug with a receipt - v2.5.6 repaired NINETEEN hints that ran off the edge, and because they read \"On (default): ... Off: ...\" the clipped half was always the one explaining the other position. They were fixed by hand with nothing left to stop the twentieth, which 2026-09-12 then added. Reads the ATTRIBUTES, so it holds whether or not MCM has loaded. Read-only", TestSettingHintsFit),
          new SelfTest("mcm_test_buttons_wired", Severity.Light, "Mechanical: the three MCM Test buttons (OpenRouter, OpenAI-Compatible endpoint, NanoGPT) reach the connection tester. Since 19/10/2026 the settings no longer name the tester (it reads them, and the two namespaces used each other): the submodule hands it over at load, so a button whose hook was never set would click and do nothing, with no error. Asserts each hook is set. Read-only, no call is made", TestMcmTestButtonsWired),
          new SelfTest("memory_panel_secrets", Severity.Light, "tashmetu (20/10/2026): a player read his wife's secret affair in her lover's Memories panel before it came to light. Gives a met character, through the REAL public door, a private memory from another mod, an open one from another mod, and a private one under CR's own name (the player's word to a companion), and asks the REAL panel rule: with Show secret memories off, only the other mod's secret is left out; on, it is listed marked secret. Restores the setting and removes the three memories", TestMemoryPanelSecrets),
@@ -13946,6 +13947,17 @@ namespace CalradiaRemembers.Diagnostics
       ///     loaded, and so a hint is checked as it was WRITTEN rather than as it happened to render here.
       ///   </para>
       /// </summary>
+      private static string TestSpawnAgentSignature(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("spawn_agent_signature");
+
+         MethodInfo method = Duels.MissionSpawn.Method;
+         t.Note(method == null ? "none found" : $"{method.Name}({string.Join(", ", method.GetParameters().Select(p => p.ParameterType.Name))})");
+         t.Expect("aDuelFighterCanBeSpawnedOnThisGameVersion", method != null, true);
+
+         return t.Line();
+      }
+
       private static string TestSettingHintsFit(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("setting_hints_fit");

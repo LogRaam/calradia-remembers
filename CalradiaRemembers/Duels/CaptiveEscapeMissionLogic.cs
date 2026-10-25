@@ -258,7 +258,7 @@ namespace CalradiaRemembers.Duels
                .NoHorses(true);
             if (equipment != null) build = build.Equipment(equipment);
 
-            Agent agent = Mission.SpawnAgent(build, false);
+            Agent agent = MissionSpawn.Spawn(Mission, build);
             if (club) agent.WieldInitialWeapons(Agent.WeaponWieldActionType.InstantAfterPickUp);
 
             return agent;

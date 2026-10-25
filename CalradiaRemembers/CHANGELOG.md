@@ -4,6 +4,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.21.. open
 
+### Fixed
+- **Duels and the captive's escape ready for the 1.5.5 beta** (tashmetu, Nexus 25/10, from a check of every mod DLL
+  against the beta): `Mission.SpawnAgent(AgentBuildData, bool)` gained two optional parameters in 1.5.5, so the
+  two-parameter call compiled against 1.4.8 would throw `MissingMethodException` as the first fighter spawned.
+  `MissionSpawn.Spawn` now finds the overload at run time (`SpawnAgentSignaturePolicy`: public, on the mission,
+  AgentBuildData first, every other parameter optional, the fewest parameters winning) and fills the rest with their
+  defaults; on 1.4.8 it calls the very same method. Used by `DuelMissionLogic`, `CaptiveEscapeMissionLogic` and
+  `DuelSpikeMissionLogic`. cr.testall `spawn_agent_signature`. Not run on 1.5.5 itself.
+
 ### For modders
 - **A tale a scenario opens, judged by what it left** (Gabriel 24/10, for the night Rhagaea sends for her prisoner).
   Scenarios: trigger `ON_CAPTIVE_NIGHT` (once a night, at 23:00, while the player is a prisoner); guards

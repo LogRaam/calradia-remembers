@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-590 rules read 451 facts.
+591 rules read 452 facts.
 
 ## Facts read by more than one rule
 
@@ -798,6 +798,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `SkirmishFoe`: `Hero.Name`, `LeaderParty.LeaderHero`, `MapEvent.GetMapEventSide`, `MapEventSide.LeaderParty`, `MapFaction.IsBanditFaction`, `Party.LeaderHero`
 - `SkirmishLine`: `Character.HeroObject`, `Events.FindLastIndex`, `Hero.Clan`, `Hero.Name`, `Store.Set`
 - `SkirmishMemoryText.CountIn`: `Character.HeroObject`, `Events.FindLastIndex`, `Hero.Clan`, `Hero.Name`, `Store.Set`
+- `SpawnMethodShape`: `ParameterType.Name`
 - `SpeakerNamesakePolicy.IsMerelyANamesake`: `Regex.Split`, `StringComparer.OrdinalIgnoreCase`
 - `SpeakerProfileSelector.Select`: `DialogFlow.Profile`
 - `SpouseDivorceDemandFacts`: `Event.Day`, `Event.InvolvesPlayer`, `Event.Summary`, `Event.Type`, `Hero.GetRelation`, `Hero.IsPregnant`, `Hero.IsPrisoner`, `Summary.IndexOf`
