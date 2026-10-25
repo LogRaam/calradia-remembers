@@ -1,0 +1,1 @@
+blocking_arc_without_beats.json: quest 'fx_tale': stage 'night': the arc has no beats. The quest is not loaded.

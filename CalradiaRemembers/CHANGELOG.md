@@ -4,6 +4,17 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.21.. open
 
+### New
+- **A tale's conversation can be paced beat by beat, and The Empress's Summons is** (Gabriel, 25/10/2026: "ca pourrait
+  etre trop court ou trop long", then the 3/3/3/5 night). A `talk_to` with `"when": "closed"` may carry an `arc`: beats
+  played in order, each for its number of exchanges, with its direction and who leads; the character is told each
+  reply which part it plays, and on its last reply that this reply ends the scene; the chat then closes softly (Leave)
+  and the stage completes as before, whatever the MCM says of characters ending conversations. `max_exchanges` caps
+  it. Logic `TaleArc` (tests `TaleArcTests`), loader checks mirrored in the tale editor with five parity fixtures, arc
+  cards in the editor, run state saved (`ArcBeatId`, `ArcBeatExchanges`, `ArcExchanges`, `ArcClosed`), HOWTO_Quests.
+  The Adult Tales' Rhagaea night plays 3 preliminaries, 3 where she leads, 3 where the player leads, 5 of talk in which
+  she asks for the secret. `cr.testall tale_arc`. Signals and transitions are the next increment.
+
 ### Changed
 - **The player's violence in words works in both compositions** (Gabriel 25/10: "enseigne la violence aux deux
   modes"). rob_npc, assault_npc and kill_npc were taught to the interpreter alone (PlayerViolenceVerb kept them out of

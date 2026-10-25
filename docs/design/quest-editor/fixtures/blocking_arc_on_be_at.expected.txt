@@ -1,0 +1,1 @@
+blocking_arc_on_be_at.json: quest 'fx_tale': stage 'night': an "arc" paces a talk_to's conversation only. The quest is not loaded.

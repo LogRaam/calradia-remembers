@@ -1876,6 +1876,13 @@ namespace CalradiaRemembers.Chat
             // Mark any delivered player letters read now that the NPC has responded.
             PlayerLetterService.MarkLettersRead(profile, behavior.Store);
 
+            // A tale's arc paces this conversation (Gabriel, 25/10/2026: "ca pourrait etre trop court ou trop long"): each
+            // reply of the character it names is one exchange, counted once its deeds are applied. Its last closes the chat
+            // softly, so the player reads the farewell and leaves; the stage then completes on the close as before.
+            if (!isSceneOpener && speaker.IsMain && !IsCaptiveEncounter && !_conversationEnded
+                && Quests.AuthoredQuestBehavior.Instance?.ArcExchanged(speaker.Hero) == true)
+               EndTaleArcSoftly();
+
             // ── Round table: the player opened the floor to the group this turn ──
             // Takes precedence over the model-driven 15C auto-exchange: instead of hoping the model
             // volunteered [WITNESS_REACTION]s, give each present witness a deterministic turn (they may

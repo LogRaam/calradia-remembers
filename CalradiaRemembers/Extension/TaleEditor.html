@@ -501,6 +501,10 @@ input[type="number"] { max-width: 160px; }
       "opened",
       "closed"
     ],
+    "ArcLeads": [
+      "npc",
+      "player"
+    ],
     "GiverRoles": [
       "lord",
       "notable",
@@ -1356,6 +1360,11 @@ input[type="number"] { max-width: 160px; }
           ],
           "x-kind": "string",
           "description": "bring: who the goods are handed to, a role ({giver} when empty)."
+        },
+        "arc": {
+          "$ref": "#/$defs/AuthoredArc",
+          "x-kind": "object:AuthoredArc",
+          "description": "talk_to with \"when\": \"closed\": the arc that paces the conversation, beat by beat, then closes it."
         }
       }
     },
@@ -1747,6 +1756,41 @@ input[type="number"] { max-width: 160px; }
         }
       }
     },
+    "AuthoredArc": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "The beats a stage's own conversation plays in order, each for a number of exchanges, then the close (TaleArc).",
+      "properties": {
+        "beats": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredArcBeat"
+          },
+          "x-kind": "object:AuthoredArcBeat[]",
+          "description": "The beats, played in order; each lasts its number of exchanges.",
+          "x-default-empty": true
+        },
+        "max_exchanges": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "The most exchanges the whole arc may last before it goes to its final beat (0 or empty: no cap).",
+          "default": 0
+        },
+        "final": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The beat the arc ends on, by id: once played, the conversation closes. Empty: the last beat."
+        }
+      }
+    },
     "AuthoredSaid": {
       "type": [
         "object",
@@ -2022,6 +2066,50 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "object:AuthoredConsequence[]",
           "description": "What else the defeat leaves in the world (memory, world_event, grudge). A consequence may hold only under a flag.",
           "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredArcBeat": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "One beat of an arc: what the character does in it, who leads, for how many exchanges.",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The beat's id (\"prelude\")."
+        },
+        "exchanges": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "How many exchanges it lasts: one player message and the reply to it (1 to 20).",
+          "default": 0
+        },
+        "lead": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Who drives the beat: \"npc\" (the character acts and proposes, the default) or \"player\" (the character follows).",
+          "enum": [
+            "npc",
+            "player"
+          ],
+          "x-closed-list": "ArcLeads"
+        },
+        "do": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The direction for this beat, in the voice of a canvas (\"Slow preliminaries: ...\")."
         }
       }
     },
@@ -3300,6 +3388,32 @@ input[type="number"] { max-width: 160px; }
     });
   }
 
+  // Gabriel (25/10/2026): an arc paces the conversation that IS the stage, so it lives on that talk_to alone (TaleArc).
+  function validateArc(where, o, ofChoice, blocking) {
+    var arc = o.arc;
+    if (ofChoice) blocking.push(where + ': an "arc" paces a stage\'s own conversation; a choice cannot carry one.');
+    if (String(o.when == null ? '' : o.when).trim().toLowerCase() !== 'closed') blocking.push(where + ': an "arc" needs "when": "closed", so the whole conversation is the stage.');
+    if (!Array.isArray(arc.beats) || arc.beats.length === 0) {
+      blocking.push(where + ': the arc has no beats.');
+      return;
+    }
+    var ids = {};
+    arc.beats.forEach(function (b, i) {
+      var at = where + ', arc beat ' + (i + 1);
+      if (b == null) { blocking.push(at + ' is empty.'); return; }
+      if (blank(b.id)) blocking.push(at + ' has no "id".');
+      else if (ids[String(b.id).trim()]) blocking.push(at + " repeats the id '" + b.id + "'.");
+      else ids[String(b.id).trim()] = true;
+      var n = Number(b.exchanges == null ? 0 : b.exchanges);
+      if (!(n >= 1 && n <= 20)) blocking.push(at + ' needs "exchanges" from 1 to 20.');
+      if (!blank(b.lead) && !has(LISTS.ArcLeads, String(b.lead).trim().toLowerCase()))
+        blocking.push(at + ': "lead" ' + "'" + b.lead + "' is neither " + LISTS.ArcLeads.join(' nor ') + '.');
+      if (blank(b['do'])) blocking.push(at + ' needs "do", the direction for the beat.');
+    });
+    if (!blank(arc.final) && !ids[String(arc.final).trim()]) blocking.push(where + ': the arc\'s "final" ' + "'" + arc.final + "' is not one of its beats.");
+    if (Number(arc.max_exchanges || 0) < 0) blocking.push(where + ': the arc\'s "max_exchanges" cannot be negative.');
+  }
+
   function validateObjective(where, o, ofChoice, sceneHasChoices, blocking, cosmetic) {
     if (o == null || blank(o.type)) {
       blocking.push(where + ' has no objective.');
@@ -3314,11 +3428,14 @@ input[type="number"] { max-width: 160px; }
       return;
     }
 
+    if (o.arc != null && o.type !== 'talk_to') blocking.push(where + ': an "arc" paces a talk_to\'s conversation only.');
+
     switch (o.type) {
       case 'talk_to':
         if (blank(o.hero)) blocking.push(where + ': talk_to needs "hero".');
         if (!blank(o.when) && !has(LISTS.TalkMoments, String(o.when).trim().toLowerCase()))
           blocking.push(where + ': talk_to "when" ' + "'" + o.when + "' is neither " + LISTS.TalkMoments.join(' nor ') + '.');
+        if (o.arc != null) validateArc(where, o, ofChoice, blocking);
         break;
       case 'talk_to_locals':
       case 'be_at':
@@ -4222,7 +4339,9 @@ input[type="number"] { max-width: 160px; }
     AuthoredChoice: ['id', 'label', 'journal', 'next', 'if', 'sets', 'default', 'objective', 'said', 'canvas', 'facts', 'knowers'],
     AuthoredSaid: ['to', 'meaning'],
     AuthoredLine: ['text', 'if'],
-    AuthoredObjective: ['type', 'hero', 'when', 'place', 'count', 'radius', 'nights', 'chance', 'days', 'scene', 'spawn', 'item', 'to'],
+    AuthoredObjective: ['type', 'hero', 'when', 'place', 'count', 'radius', 'nights', 'chance', 'days', 'scene', 'spawn', 'item', 'to', 'arc'],
+    AuthoredArc: ['beats', 'max_exchanges', 'final'],
+    AuthoredArcBeat: ['id', 'exchanges', 'lead', 'do'],
     AuthoredScene: ['title', 'opening', 'findings', 'hazards', 'encounters', 'closing', 'invite_prisoners'],
     AuthoredBeat: ['canvas', 'facts'],
     AuthoredFinding: ['id', 'required', 'text', 'sets', 'image'],
@@ -4236,7 +4355,7 @@ input[type="number"] { max-width: 160px; }
 
     /** Which fields of an objective each type uses; the rest stay hidden for that type. */
     objectiveFields: {
-      talk_to: ['hero', 'when'],
+      talk_to: ['hero', 'when', 'arc'],
       'return': [],
       talk_to_locals: ['place', 'count'],
       be_at: ['place', 'radius'],
@@ -5235,6 +5354,37 @@ input[type="number"] { max-width: 160px; }
     if (g.childNodes.length) box.appendChild(g);
     if (used.indexOf('scene') >= 0) box.appendChild(sceneEditor(key, o));
     if (used.indexOf('spawn') >= 0) box.appendChild(spawnEditor(key, o));
+    if (used.indexOf('arc') >= 0 && !ofChoice && (o.arc != null || String(o.when || '').toLowerCase() === 'closed')) box.appendChild(arcEditor(key, o));
+    return box;
+  }
+
+  // Gabriel (25/10/2026): "Ce plan ou cet arc devrait diriger l'experience que le LLM fait vivre au joueur." The beats of
+  // the conversation that IS the stage, each for its number of exchanges, then the close (TaleArc in the game).
+  function arcEditor(key, o) {
+    var k = key + '/objective.arc', on = o.arc != null && typeof o.arc === 'object';
+    var box = h('div', {dataset: {key: k}});
+    box.appendChild(h('div.field-problems'));
+    box.appendChild(h('div.subhead', 'The arc'));
+    box.appendChild(h('label.check', {style: 'margin-bottom:12px'}, h('input', {type: 'checkbox', checked: on, on: {change: function (e) {
+      var yes = e.target.checked;
+      edit(k, function () {
+        if (yes) o.arc = {beats: [{id: 'beat_1', exchanges: 3, lead: 'npc', 'do': ''}]};
+        else delete o.arc;
+      }, true);
+    }}}), 'Pace the conversation beat by beat, then close it'));
+    if (!on) return box;
+    var arc = o.arc;
+    box.appendChild(h('div.grid',
+      numberField(k + '.max_exchanges', 'Most exchanges in all', 'AuthoredArc', 'max_exchanges', arc, {min: 0}),
+      selectField(k + '.final', 'Ends on the beat', 'AuthoredArc', 'final', arc,
+        (arc.beats || []).filter(function (b) { return b && !blank(b.id); }).map(function (b) { return {value: b.id, label: b.id}; }), {empty: 'the last'})));
+    box.appendChild(cardList(k + '.beats', 'Beats', help('AuthoredArc', 'beats'), arc, 'beats', function (b, i, ck) {
+      return {title: b.id || '(no id)', chip: (b.exchanges || 0) + ' exchanges, ' + (b.lead || 'npc') + ' leads', body: [h('div.grid',
+        textField(ck + '/id', 'Id', 'AuthoredArcBeat', 'id', b, {mono: true}),
+        numberField(ck + '/exchanges', 'Exchanges', 'AuthoredArcBeat', 'exchanges', b, {min: 1, max: 20}),
+        selectField(ck + '/lead', 'Who leads', 'AuthoredArcBeat', 'lead', b, list('ArcLeads'), {empty: 'the character'})),
+        textField(ck + '/do', 'What happens in this beat', 'AuthoredArcBeat', 'do', b, {multiline: true, wide: true})]};
+    }, function () { return {id: 'beat_' + ((arc.beats || []).length + 1), exchanges: 3, lead: 'npc', 'do': ''}; }, 'Add a beat'));
     return box;
   }
 

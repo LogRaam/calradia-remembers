@@ -474,6 +474,20 @@ namespace CalradiaRemembers.Chat
          ModLog.Info($"[SCENE] director reached Conclude — scene ended after {_captiveBeatCount} beat(s).");
       }
 
+      /// <summary>
+      ///   A tale's arc played its final beat: the conversation is over, the input locks to a Leave button so the player reads
+      ///   the last reply. The arc's close holds whatever the MCM says of characters ending conversations: it is the tale's
+      ///   structure, not a character's whim (ROADMAP, the arc's proposed close).
+      /// </summary>
+      private void EndTaleArcSoftly()
+      {
+         _conversationEnded = true;
+         IsPrivateRequestVisible = false;
+         CloseButtonText = "Leave";
+         NotifyConversationEndedChanged();
+         ModLog.Info($"[TALE] the arc's last reply is in; the conversation with {_npcName} ends.");
+      }
+
       /// <summary>Ends the scene after a successful escape — input locks to a Leave button.</summary>
       private void EndSceneAfterEscape(NpcProfile profile)
       {

@@ -1,0 +1,48 @@
+{
+  "id": "fx_tale",
+  "title": "A Fixture",
+  "binds": {
+    "giver": "a lord"
+  },
+  "stages": [
+    {
+      "id": "night",
+      "journal": "The night with {giver}.",
+      "objective": {
+        "type": "talk_to",
+        "hero": "{giver}",
+        "when": "closed",
+        "arc": {
+          "max_exchanges": -1,
+          "final": "dawn",
+          "beats": [
+            {
+              "id": "prelude",
+              "exchanges": 0,
+              "lead": "npc",
+              "do": "Slow preliminaries."
+            },
+            {
+              "id": "prelude",
+              "exchanges": 3,
+              "lead": "her",
+              "do": "She lets {player} lead."
+            },
+            {
+              "id": "after",
+              "exchanges": 2,
+              "do": ""
+            }
+          ]
+        }
+      },
+      "canvas": "The chamber at night.",
+      "on_complete": {
+        "next": "reward"
+      }
+    }
+  ],
+  "reward": {
+    "regard": 5
+  }
+}

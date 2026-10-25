@@ -86,6 +86,18 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>Every choice taken, as "stage/choice", in the order taken: the path the player walked.</summary>
       public List<string> ChoicesTaken { get; set; } = new();
 
+      /// <summary>The arc of the stage's conversation (TaleArc): the beat playing, null before the first exchange.</summary>
+      public string ArcBeatId { get; set; }
+
+      /// <summary>Exchanges played in the current beat of the arc.</summary>
+      public int ArcBeatExchanges { get; set; }
+
+      /// <summary>Exchanges played in the whole arc, for its max_exchanges.</summary>
+      public int ArcExchanges { get; set; }
+
+      /// <summary>The arc played its final beat: the conversation is closing.</summary>
+      public bool ArcClosed { get; set; }
+
       /// <summary>The named ending the tale reached ("end:silence" gives "silence"); null for the reward, or still under way.</summary>
       public string EndingId { get; set; }
 
@@ -799,6 +811,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          run.ChoiceBands.Clear();
          run.WarsSeen.Clear();
          run.SceneChoiceId = null;
+         TaleArc.Reset(run);
          run.NightsWatched = 0;
          run.LastNightDay = -1;
          run.StageStartDay = today;

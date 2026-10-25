@@ -68,6 +68,10 @@
       "opened",
       "closed"
     ],
+    "ArcLeads": [
+      "npc",
+      "player"
+    ],
     "GiverRoles": [
       "lord",
       "notable",
@@ -923,6 +927,11 @@
           ],
           "x-kind": "string",
           "description": "bring: who the goods are handed to, a role ({giver} when empty)."
+        },
+        "arc": {
+          "$ref": "#/$defs/AuthoredArc",
+          "x-kind": "object:AuthoredArc",
+          "description": "talk_to with \"when\": \"closed\": the arc that paces the conversation, beat by beat, then closes it."
         }
       }
     },
@@ -1314,6 +1323,41 @@
         }
       }
     },
+    "AuthoredArc": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "The beats a stage's own conversation plays in order, each for a number of exchanges, then the close (TaleArc).",
+      "properties": {
+        "beats": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredArcBeat"
+          },
+          "x-kind": "object:AuthoredArcBeat[]",
+          "description": "The beats, played in order; each lasts its number of exchanges.",
+          "x-default-empty": true
+        },
+        "max_exchanges": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "The most exchanges the whole arc may last before it goes to its final beat (0 or empty: no cap).",
+          "default": 0
+        },
+        "final": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The beat the arc ends on, by id: once played, the conversation closes. Empty: the last beat."
+        }
+      }
+    },
     "AuthoredSaid": {
       "type": [
         "object",
@@ -1589,6 +1633,50 @@
           "x-kind": "object:AuthoredConsequence[]",
           "description": "What else the defeat leaves in the world (memory, world_event, grudge). A consequence may hold only under a flag.",
           "x-default-empty": true
+        }
+      }
+    },
+    "AuthoredArcBeat": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "One beat of an arc: what the character does in it, who leads, for how many exchanges.",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The beat's id (\"prelude\")."
+        },
+        "exchanges": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "How many exchanges it lasts: one player message and the reply to it (1 to 20).",
+          "default": 0
+        },
+        "lead": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "Who drives the beat: \"npc\" (the character acts and proposes, the default) or \"player\" (the character follows).",
+          "enum": [
+            "npc",
+            "player"
+          ],
+          "x-closed-list": "ArcLeads"
+        },
+        "do": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The direction for this beat, in the voice of a canvas (\"Slow preliminaries: ...\")."
         }
       }
     },

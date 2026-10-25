@@ -226,7 +226,12 @@ An `arc` on a `talk_to` objective (meant for `"when": "closed"`):
 
 1. **A straight arc**: beats, exchanges, lead, `do`, the direction in the prompt, `max_exchanges`, the soft close. This
    alone answers "too short or too long". Loader, editor checks (parity fixtures), save, `cr.testall tale_arc`, the
-   Rhagaea night written with it.
+   Rhagaea night written with it. BUILT 25/10/2026 (Gabriel: "continu"): `TaleArc` (Logic), the direction inside the
+   giver's tale block (`AuthoredQuestPrompt.ForCharacter`, below the marker, so no SDK field was needed), counted in
+   `ChatViewModel` once the reply's deeds are applied (main speaker, not the scene opener, not a captive scene: the chamber
+   opens as an ordinary chat through `StageTaleMeeting`), `EndTaleArcSoftly`. The proposed close was taken as the default:
+   it holds even with "NPCs can end conversations" off; Gabriel has not ruled on it. Every reply counts, synthetic ones
+   included. The editor's arc cards shipped with it (its field registry must cover every field the game reads).
 2. **Signals and transitions**: `listens`, `next` with `if`, `on_signal`, the `tale_signal` verb, the net roll.
 3. **The editor's arc cards** and the arc shown in the story map's summary panel (the JSON checks ship with 1 and 2,
    since the editor must refuse what the game refuses).

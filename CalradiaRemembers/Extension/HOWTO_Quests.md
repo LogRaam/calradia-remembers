@@ -308,6 +308,31 @@ The last three are ways out the world takes, not the player: read once a day, on
 stage with no time limit end however the world turns, which matters since only one tale runs at a time: a war stage
 nothing could leave would block every other tale. Since 2.7.17.
 
+**Pacing a conversation: `arc`** (since 2.7.21). A `talk_to` with `"when": "closed"` is a whole conversation, and on
+its own it lasts as long as the player keeps typing; the character has no clock and only guesses when "before the
+night ends" is. An `arc` paces it: beats played in order, each for a number of exchanges (one player message and the
+reply to it), then the conversation closes by itself after the last reply, and the stage completes as on any close.
+
+```json
+"objective": { "type": "talk_to", "hero": "{giver}", "when": "closed",
+  "arc": { "beats": [
+    { "id": "prelude",   "exchanges": 3, "lead": "npc",    "do": "Slow preliminaries: ..." },
+    { "id": "she_leads", "exchanges": 3, "lead": "npc",    "do": "She takes the initiative: ..." },
+    { "id": "yields",    "exchanges": 3, "lead": "player", "do": "She lets {player} lead: ..." },
+    { "id": "after",     "exchanges": 5, "lead": "npc",    "do": "Lying together, she talks; before dawn she asks for the secret." } ] } }
+```
+
+- `do` is the direction for the beat, in the voice of a canvas. The character is told, each reply, which part it plays
+  and that it must not hurry ahead; on the very last reply it is told that this reply ends the scene, so it closes it
+  itself rather than being cut off.
+- `lead`: `npc` (the default) has the character act and propose; `player` has it follow and answer the player.
+- `exchanges`: 1 to 20. `max_exchanges` (optional) caps the whole arc: reached, the arc goes to its `final` beat (by
+  id; the last beat when left out) whatever is playing.
+- The close holds even when "NPCs can end conversations" is off in the MCM: it is the tale's structure. The player may
+  still leave earlier; the stage then completes as it always did.
+- An arc lives only on a stage's own `talk_to` with `"when": "closed"`, never on a choice. Signals that turn the arc
+  (a beat repeated until something happens in the scene) come in a later version.
+
 **Goods asked: `bring`** (since 2.7.19). `"objective": { "type": "bring", "item": "grain", "count": 30 }` asks the
 player for 30 grain for the giver. The player hands them over with the bag (the chat's give button) in a conversation
 with `to`: the bag opens on the party's goods that answer, he picks them, and on his confirmation exactly `count` leave

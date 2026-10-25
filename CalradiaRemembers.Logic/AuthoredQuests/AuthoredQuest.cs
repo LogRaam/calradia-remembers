@@ -449,6 +449,42 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       [QuestField("bring: who the goods are handed to, a role ({giver} when empty).")]
       [JsonProperty("to")] public string To { get; set; }
+
+      /// <summary>
+      ///   Gabriel (25/10/2026), on the night in Rhagaea's chamber: "ca pourrait etre trop court ou trop long", then "Ce plan ou
+      ///   cet arc devrait diriger l'experience que le LLM fait vivre au joueur." See TaleArc.
+      /// </summary>
+      [QuestField("talk_to with \"when\": \"closed\": the arc that paces the conversation, beat by beat, then closes it.")]
+      [JsonProperty("arc")] public AuthoredArc Arc { get; set; }
+   }
+
+   /// <summary>The beats a stage's own conversation plays in order, each for a number of exchanges, then the close (TaleArc).</summary>
+   public sealed class AuthoredArc
+   {
+      [QuestField("The beats, played in order; each lasts its number of exchanges.")]
+      [JsonProperty("beats")] public List<AuthoredArcBeat> Beats { get; set; } = new();
+
+      [QuestField("The most exchanges the whole arc may last before it goes to its final beat (0 or empty: no cap).")]
+      [JsonProperty("max_exchanges")] public int MaxExchanges { get; set; }
+
+      [QuestField("The beat the arc ends on, by id: once played, the conversation closes. Empty: the last beat.")]
+      [JsonProperty("final")] public string Final { get; set; }
+   }
+
+   /// <summary>One beat of an arc: what the character does in it, who leads, for how many exchanges.</summary>
+   public sealed class AuthoredArcBeat
+   {
+      [QuestField("The beat's id (\"prelude\").")]
+      [JsonProperty("id")] public string Id { get; set; }
+
+      [QuestField("How many exchanges it lasts: one player message and the reply to it (1 to 20).")]
+      [JsonProperty("exchanges")] public int Exchanges { get; set; }
+
+      [QuestField("Who drives the beat: \"npc\" (the character acts and proposes, the default) or \"player\" (the character follows).", ClosedList = nameof(AuthoredQuestLoader.ArcLeads))]
+      [JsonProperty("lead")] public string Lead { get; set; }
+
+      [QuestField("The direction for this beat, in the voice of a canvas (\"Slow preliminaries: ...\").")]
+      [JsonProperty("do")] public string Do { get; set; }
    }
 
    /// <summary>An exploration scene: the chat with a narrator and no character, until someone is met.</summary>

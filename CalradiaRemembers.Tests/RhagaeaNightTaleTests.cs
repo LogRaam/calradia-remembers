@@ -62,6 +62,21 @@ namespace CalradiaRemembers.Tests
          facts.Should().Contain("prisoner").And.Contain("cannot escape").And.Contain("will not free");
       }
 
+      // STAKE: Gabriel (25/10/2026): "les 3 premiers servent aux preliminaires, les 3 suivants le NPC prend l'initiative,
+      // les 3 suivants il laisse au joueur l'initiative", then a conversation of 5 before dawn; the night is neither too short
+      // nor too long, and she asks for the secret in that last part rather than whenever the model guesses the night ends.
+      [Test]
+      public void GIVEN_the_chamber_WHEN_its_arc_is_read_THEN_it_plays_three_three_three_and_five_and_asks_the_secret_at_the_end()
+      {
+         AuthoredStage chamber = Tale().Stages.Single(s => s.Id == "chamber");
+         AuthoredArc arc = chamber.Objective.Arc;
+
+         arc.Beats.Select(b => b.Exchanges).Should().Equal(3, 3, 3, 5);
+         arc.Beats.Select(b => b.Lead).Should().Equal(TaleArc.NpcLeads, TaleArc.NpcLeads, TaleArc.PlayerLeads, TaleArc.NpcLeads);
+         TaleArc.FinalId(arc).Should().Be(arc.Beats.Last().Id);
+         arc.Beats.Last().Do.Should().Contain("secret");
+      }
+
       // STAKE: ten videos at least, a new one each playing, all in the tale's own folder names.
       [Test]
       public void GIVEN_the_chamber_WHEN_its_pictures_are_listed_THEN_it_holds_a_pool_of_ten_videos()

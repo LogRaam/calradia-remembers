@@ -1,0 +1,6 @@
+blocking_arc_bad_beats.json: quest 'fx_tale': stage 'night', arc beat 1 needs "exchanges" from 1 to 20. The quest is not loaded.
+blocking_arc_bad_beats.json: quest 'fx_tale': stage 'night', arc beat 2 repeats the id 'prelude'. The quest is not loaded.
+blocking_arc_bad_beats.json: quest 'fx_tale': stage 'night', arc beat 2: "lead" 'her' is neither npc nor player. The quest is not loaded.
+blocking_arc_bad_beats.json: quest 'fx_tale': stage 'night', arc beat 3 needs "do", the direction for the beat. The quest is not loaded.
+blocking_arc_bad_beats.json: quest 'fx_tale': stage 'night': the arc's "final" 'dawn' is not one of its beats. The quest is not loaded.
+blocking_arc_bad_beats.json: quest 'fx_tale': stage 'night': the arc's "max_exchanges" cannot be negative. The quest is not loaded.

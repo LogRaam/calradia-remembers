@@ -298,6 +298,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("setting_hints_fit", Severity.Light, "Mechanical: every MCM hint fits on screen. A shipped bug with a receipt - v2.5.6 repaired NINETEEN hints that ran off the edge, and because they read \"On (default): ... Off: ...\" the clipped half was always the one explaining the other position. They were fixed by hand with nothing left to stop the twentieth, which 2026-09-12 then added. Reads the ATTRIBUTES, so it holds whether or not MCM has loaded. Read-only", TestSettingHintsFit),
          new SelfTest("mcm_test_buttons_wired", Severity.Light, "Mechanical: the three MCM Test buttons (OpenRouter, OpenAI-Compatible endpoint, NanoGPT) reach the connection tester. Since 19/10/2026 the settings no longer name the tester (it reads them, and the two namespaces used each other): the submodule hands it over at load, so a button whose hook was never set would click and do nothing, with no error. Asserts each hook is set. Read-only, no call is made", TestMcmTestButtonsWired),
          new SelfTest("memory_panel_secrets", Severity.Light, "tashmetu (20/10/2026): a player read his wife's secret affair in her lover's Memories panel before it came to light. Gives a met character, through the REAL public door, a private memory from another mod, an open one from another mod, and a private one under CR's own name (the player's word to a companion), and asks the REAL panel rule: with Show secret memories off, only the other mod's secret is left out; on, it is listed marked secret. Restores the setting and removes the three memories", TestMemoryPanelSecrets),
+         new SelfTest("tale_arc", Severity.Light, "Gabriel (25/10/2026), on the night in Rhagaea's chamber: 'ca pourrait etre trop court ou trop long', then an arc of beats that 'devrait diriger l'experience que le LLM fait vivre au joueur'. A tale written into this test (a talk that completes as the conversation closes, with an arc of two beats of 2 and 1 exchanges) is opened through the REAL OPEN_TALE path with a lord. The lord's REAL prompt carries the first beat, not the second; after two exchanges counted by the same call the chat makes, the second beat is in the prompt and told it is the LAST reply; the third exchange closes the arc (the chat would close softly) and not before; the close then completes the stage on its ending. The tale is forgotten after.", TestTaleArc),
          new SelfTest("tale_opened_by_scenario", Severity.Light, "Gabriel (24/10/2026): a scenario opens a tale at night while the player is held (ON_CAPTIVE_NIGHT, IF_CAPTOR_IS, IF_PRESENT, IF_CHANCE, OPEN_TALE); the night is judged by the regard it left ('ca s'est bien passe si Rhagaea a gagne plus de Regards qu'elle en a perdu'), the memory stays either way, and each playing shows a new video of the stage's pool. A tale written into this test (on_scenario, a talk that completes as the conversation ends, an image_pool, three memories under regard_rose / regard_fell and a regard reward) is opened through the REAL OPEN_TALE check with a lord; the talk does not complete as the chat opens, and the lord is told the chamber's moment while it lasts; the lord's regard is raised by 4 during it; the close completes it with regard_rose, the warm memory and the +5 reward; a video of the pool is chosen. Then the same tale refused at its popup (decline_ending) ends at once: -2 regard and its memory. IF_CHANCE:1 holds and IF_CHANCE:0 does not; IF_CAPTOR_IS fails while the player is free. Regard, memories, pools and the tale are put back after.", TestTaleOpenedByScenario),
          new SelfTest("tale_keys", Severity.Light, "tashmetu (20/10/2026), four keys for written tales: requires.player.gender, a notable giver's trade, a town as the bound place, gold the player pays. A tale written into this test asks a merchant of a town and the player's own sex: a real town merchant binds, with the town as its place; a headman or a village notable is refused for the trade; its twin asking the other sex is refused for the player. One gold paid by the player through the REAL payment reaches the merchant, then is given back. Forgets the tales after", TestTaleKeys),
          new SelfTest("edict_effects", Severity.Light, "Gabriel (21/10/2026), edicts on towns and realms, by the player and by the world's lords, and contestable. Picks a real town held by a lord and has its holder decree a Heavy levy through the REAL decree (EdictBehavior.Decree): the influence is spent, the game's OWN loyalty model now carries a line named for the edict at -1 a day and its tax model a +25% factor (what the town's tooltip shows). A second edict on the same town and a decree by someone who does not hold it are refused before anything moves. A notable of the town is told the edict in his own prompt. Then the town is made restless with a long grievance and one day runs: its people force the edict off and the loyalty line is gone. Restores the town's loyalty, the holder's influence, and removes the edict and its news", TestEdictEffects),
@@ -14054,6 +14055,72 @@ namespace CalradiaRemembers.Diagnostics
       ///   The MCM Test buttons call CrSettings.ConnectionTest and its two siblings, which the submodule sets at load
       ///   (the settings live in Foundation and cannot name Services' tester). Unset, a button would do nothing.
       /// </summary>
+      private static string TestTaleArc(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tale_arc");
+
+         Quests.AuthoredQuestBehavior b = Quests.AuthoredQuestBehavior.Instance;
+         if (t.Skip(b == null || Hero.MainHero == null || behavior?.Store == null, "authored quests are not active")) return t.Line();
+         if (t.Skip(b.ActiveRun is {Status: Logic.AuthoredQuests.AuthoredQuestStatus.Active}, $"a tale is under way ('{b.ActiveRun?.QuestId}')")) return t.Line();
+         if (t.Skip(behavior.LlmServices?.ChatService?.PromptBuilder == null, "no prompt builder")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && h.Spouse != Hero.MainHero && !h.IsPrisoner
+                                                            && Mapping.ActionGate.Allows(h, Logic.ActionKind.Witness) && h.Clan != Clan.PlayerClan);
+         if (t.Skip(lord == null, "no free lord to play the tale with")) return t.Line();
+
+         const string id = "cr_selftest_arc";
+         const string json = @"{ ""id"": ""cr_selftest_arc"", ""title"": ""[SELFTEST] An Arc"", ""unique"": false,
+           ""requires"": { ""giver"": { ""role"": ""lord"", ""min_regard"": -100, ""not_at_war_with_player"": false } },
+           ""on_scenario"": { ""invitation"": ""[SELFTEST] {giver} asks to see you."" },
+           ""binds"": { ""giver"": ""a lord"" },
+           ""stages"": [
+             { ""id"": ""talk"", ""journal"": ""[SELFTEST] The talk."",
+               ""objective"": { ""type"": ""talk_to"", ""hero"": ""{giver}"", ""when"": ""closed"",
+                 ""arc"": { ""beats"": [
+                   { ""id"": ""first"", ""exchanges"": 2, ""do"": ""[SELFTEST] the first beat"" },
+                   { ""id"": ""last"", ""exchanges"": 1, ""lead"": ""player"", ""do"": ""[SELFTEST] the last beat"" } ] } },
+               ""canvas"": ""[SELFTEST] the talk"", ""on_complete"": { ""next"": ""end:done"" } } ],
+           ""endings"": { ""done"": { } } }";
+
+         string Prompt()
+         {
+            NpcProfile profile = behavior.Store.Get(lord.StringId) ?? Mapping.HeroProfileMapper.FromHero(lord);
+            EncounterContext context = Mapping.EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, null);
+            return behavior.LlmServices.ChatService.PromptBuilder.BuildSystemPrompt(profile, new WorldState {CurrentDay = behavior.GameStateBridge.GetCurrentGameDay()}, context);
+         }
+
+         try
+         {
+            t.Expect("theTaleLoads", string.Join(" | ", b.DebugLoadTale(json, "selftest_arc.json")), "");
+            b.ForgetPlayed(id);
+            t.Expect("itOpens", b.DebugOpenFromScenario(id, lord), null);
+            b.DebugConversationOpened(lord);
+            t.Expect("itWaitsForTheClose", b.ActiveRun?.StageId, "talk");
+
+            string first = Prompt();
+            t.Expect("theFirstBeatIsInHerPrompt", first.Contains("[SELFTEST] the first beat"), true);
+            t.Expect("andNotTheNext", first.Contains("[SELFTEST] the last beat"), false);
+
+            t.Expect("theFirstExchangeDoesNotClose", b.ArcExchanged(lord), false);
+            t.Expect("norTheSecond", b.ArcExchanged(lord), false);
+            string last = Prompt();
+            t.Expect("theLastBeatIsInHerPrompt", last.Contains("[SELFTEST] the last beat"), true);
+            t.Expect("andSheIsToldItIsHerLastReply", last.Contains("LAST reply of the scene"), true);
+            t.Expect("theThirdExchangeClosesTheArc", b.ArcExchanged(lord), true);
+
+            b.DebugConversationEnded(lord);
+            t.Expect("theCloseCompletesTheStage", $"{b.ActiveRun?.Status}/{b.ActiveRun?.EndingId}", "Completed/done");
+         }
+         finally
+         {
+            if (b.ActiveRun is {Status: Logic.AuthoredQuests.AuthoredQuestStatus.Active}) b.Abandon("Self-test.");
+            b.ForgetPlayed(id);
+            b.DebugForgetTale(id);
+         }
+
+         return t.Line();
+      }
+
       private static string TestTaleOpenedByScenario(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("tale_opened_by_scenario");

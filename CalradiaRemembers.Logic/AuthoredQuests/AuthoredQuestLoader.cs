@@ -60,6 +60,9 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>When a talk_to completes its stage: as the conversation opens (the default), or as it ends.</summary>
       public static readonly IReadOnlyList<string> TalkMoments = new[] {"opened", "closed"};
 
+      /// <summary>Who drives a beat of an arc (TaleArc): the character (the default) or the player.</summary>
+      public static readonly IReadOnlyList<string> ArcLeads = new[] {TaleArc.NpcLeads, TaleArc.PlayerLeads};
+
       /// <summary>Who may give a tale (anything else is read as "any").</summary>
       public static readonly IReadOnlyList<string> GiverRoles = new[] {"lord", "notable", "gang_leader", "spouse", "companion", "any"};
 
@@ -557,6 +560,45 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       ///   One objective, of a stage or of a choice (<paramref name="where" /> names which). A choice may not keep watch
       ///   or open a scene: those belong to a stage of their own.
       /// </summary>
+      // Gabriel (25/10/2026): an arc paces the conversation that IS the stage, so it lives on that talk_to alone.
+      private static void ValidateArc(string where, AuthoredObjective o, bool ofChoice, List<string> blocking)
+      {
+         AuthoredArc arc = o.Arc;
+         if (ofChoice) blocking.Add($"{where}: an \"arc\" paces a stage's own conversation; a choice cannot carry one.");
+         if (!EndsOnClose(o)) blocking.Add($"{where}: an \"arc\" needs \"when\": \"closed\", so the whole conversation is the stage.");
+         if (arc.Beats == null || arc.Beats.Count == 0)
+         {
+            blocking.Add($"{where}: the arc has no beats.");
+
+            return;
+         }
+
+         var ids = new HashSet<string>();
+         for (var i = 0; i < arc.Beats.Count; i++)
+         {
+            AuthoredArcBeat b = arc.Beats[i];
+            string at = $"{where}, arc beat {i + 1}";
+            if (b == null)
+            {
+               blocking.Add($"{at} is empty.");
+
+               continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(b.Id)) blocking.Add($"{at} has no \"id\".");
+            else if (!ids.Add(b.Id.Trim())) blocking.Add($"{at} repeats the id '{b.Id}'.");
+            if (b.Exchanges < 1 || b.Exchanges > 20) blocking.Add($"{at} needs \"exchanges\" from 1 to 20.");
+            if (!string.IsNullOrWhiteSpace(b.Lead) && !ArcLeads.Contains(b.Lead.Trim().ToLowerInvariant()))
+               blocking.Add($"{at}: \"lead\" '{b.Lead}' is neither {string.Join(" nor ", ArcLeads)}.");
+            if (string.IsNullOrWhiteSpace(b.Do)) blocking.Add($"{at} needs \"do\", the direction for the beat.");
+         }
+
+         if (!string.IsNullOrWhiteSpace(arc.Final) && !ids.Contains(arc.Final.Trim())) blocking.Add($"{where}: the arc's \"final\" '{arc.Final}' is not one of its beats.");
+         if (arc.MaxExchanges < 0) blocking.Add($"{where}: the arc's \"max_exchanges\" cannot be negative.");
+      }
+
+      private static bool EndsOnClose(AuthoredObjective o) => string.Equals(o?.When?.Trim(), "closed", StringComparison.OrdinalIgnoreCase);
+
       private static void ValidateObjective(string where, AuthoredObjective o, bool ofChoice, bool sceneHasChoices, List<string> blocking, List<string> cosmetic)
       {
          if (o == null || string.IsNullOrWhiteSpace(o.Type))
@@ -580,12 +622,15 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             return;
          }
 
+         if (o.Arc != null && o.Type != "talk_to") blocking.Add($"{where}: an \"arc\" paces a talk_to's conversation only.");
+
          switch (o.Type)
          {
             case "talk_to":
                if (string.IsNullOrWhiteSpace(o.Hero)) blocking.Add($"{where}: talk_to needs \"hero\".");
                if (!string.IsNullOrWhiteSpace(o.When) && !TalkMoments.Contains(o.When.Trim().ToLowerInvariant()))
                   blocking.Add($"{where}: talk_to \"when\" '{o.When}' is neither {string.Join(" nor ", TalkMoments)}.");
+               if (o.Arc != null) ValidateArc(where, o, ofChoice, blocking);
                break;
             case "talk_to_locals":
             case "be_at":

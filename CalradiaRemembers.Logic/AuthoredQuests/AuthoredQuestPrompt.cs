@@ -76,6 +76,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             if (!string.IsNullOrWhiteSpace(canvas)) sb.AppendLine("This moment: " + AuthoredQuestEngine.Fill(run, canvas));
             foreach (string f in AuthoredFlags.Said(factLines, run.Flags)) sb.AppendLine("Fact: " + AuthoredQuestEngine.Fill(run, f));
             if (offering) sb.AppendLine("You raise this with the player now and ask for their help; they may accept or refuse.");
+
+            // The tale's arc paces this conversation (Gabriel, 25/10/2026): the beat it plays, after the moment it belongs to.
+            string arc = inTheirClosingTalk ? TaleArc.Direction(run, q, heroId) : null;
+            if (arc != null) sb.AppendLine(arc);
          }
 
          sb.Append(Rule);

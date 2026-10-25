@@ -2053,6 +2053,32 @@ namespace CalradiaRemembers.Quests
       }
 
       /// <summary>
+      ///   One exchange of the conversation with this hero was played (their reply is in and its deeds applied): the tale's
+      ///   arc counts it (TaleArc, Gabriel 25/10/2026). True when it was the arc's last: the conversation is to close now.
+      /// </summary>
+      internal bool ArcExchanged(Hero hero)
+      {
+         if (hero == null || _run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return false;
+         try
+         {
+            string before = _run.ArcBeatId;
+            bool closed = TaleArc.Exchanged(_run, q, hero.StringId);
+            if (closed)
+               ModLog.Info($"[TALE] '{q.Id}': the arc played its final beat '{_run.ArcBeatId}' after {_run.ArcExchanges} exchange(s); the conversation closes.");
+            else if (_run.ArcBeatId != before)
+               ModLog.Info($"[TALE] '{q.Id}': the arc moves to beat '{_run.ArcBeatId}' ({_run.ArcExchanges} exchange(s) so far).");
+
+            return closed;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[TALE] arc count failed: {ex.GetType().Name}: {ex.Message}");
+
+            return false;
+         }
+      }
+
+      /// <summary>
       ///   The action interpreter reported a choice by words (the story_choice verb) in a conversation with this
       ///   character. Taken only when the current stage declares it, open, said to this very character; the step is
       ///   then carried out like any other. Returns the choice's words when taken, null when the game refused it.

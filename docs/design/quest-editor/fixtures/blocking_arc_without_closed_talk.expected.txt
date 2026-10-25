@@ -1,0 +1,1 @@
+blocking_arc_without_closed_talk.json: quest 'fx_tale': stage 'night': an "arc" needs "when": "closed", so the whole conversation is the stage. The quest is not loaded.
