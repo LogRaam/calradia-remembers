@@ -48,7 +48,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       ///   Gabriel (24/10/2026, the night Rhagaea sends for her prisoner): a tale only a scenario opens (OPEN_TALE), never
       ///   offered in a conversation nor begun on the map; see AuthoredScenarioTrigger.
       /// </summary>
-      [QuestField("The tale is opened only by a scenario rule (OPEN_TALE), never offered in a conversation nor begun on the map: the rule names the giver, and a popup asks the player.")]
+      [QuestField("The tale is opened only by a scenario rule (OPEN_TALE), never offered in a conversation nor begun on the map: the rule names the giver. With an invitation, a popup asks the player first; without, the tale begins at once (its second stage, a scene in the chat, can ask in role-play instead). A stage that is a conversation with someone opens by itself.")]
       [JsonProperty("on_scenario")] public AuthoredScenarioTrigger OnScenario { get; set; }
 
       /// <summary>The roles the story needs ({giver}, {village}...), with a word on each for the author.</summary>
@@ -125,7 +125,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
    /// <summary>The popup a scenario-opened tale shows (OPEN_TALE; Gabriel, 24/10/2026).</summary>
    public sealed class AuthoredScenarioTrigger
    {
-      [QuestField("The popup's text, which sets the scene; {giver} is filled with the giver's name.")]
+      [QuestField("The popup's text, which sets the scene; {giver} is filled with the giver's name. Empty: no popup, the tale begins at once.")]
       [JsonProperty("invitation")] public string Invitation { get; set; }
 
       [QuestField("The popup's yes, which begins the tale and opens the conversation with the giver.")]
@@ -138,7 +138,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       ///   Gabriel (25/10/2026): the player who will not follow the lady ends the tale, and Rhagaea is disappointed. A no
       ///   that is itself a way the story goes.
       /// </summary>
-      [QuestField("An ending of \"endings\" the popup's no leads to: the tale is played to that ending at once (its memory, regard and consequences, its cooldown), instead of passing for a season.")]
+      [QuestField("An ending of \"endings\" the popup's no leads to: the tale is played to that ending at once (its memory, regard and consequences, its cooldown), instead of passing for a season. Needs an invitation.")]
       [JsonProperty("decline_ending")] public string DeclineEnding { get; set; }
    }
 

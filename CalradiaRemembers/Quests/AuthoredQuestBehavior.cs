@@ -1367,6 +1367,7 @@ namespace CalradiaRemembers.Quests
             case AuthoredStepKind.OpenScene:
                ReleaseBands();
                PickPoolImage(q);
+               MeetIfSummoned(q);
                foreach (string line in AuthoredQuestEngine.JournalLines(_run, q)) journal?.Log(AuthoredQuestEngine.Fill(_run, line));
                AnnounceStage(AuthoredStageNotice.Text(q.Title, AuthoredQuestEngine.Fill(_run, AuthoredQuestEngine.Current(_run, q)?.Journal)));
                ModLog.Info($"[TALE] '{q.Id}': {step.FromStage} -> {step.ToStage}{taken}.");
@@ -1582,6 +1583,45 @@ namespace CalradiaRemembers.Quests
       private static int RegardOf(Hero hero)
          => hero == null ? 0 : NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId)?.ReputationWithPlayer ?? 0;
 
+      // Self-tests open a scenario tale without staging anything on screen.
+      private bool _stagingHeld;
+
+      /// <summary>
+      ///   A scenario tale brings its people to the player (Gabriel, 24-25/10/2026: the prisoner is fetched to the Empress's
+      ///   chamber; they cannot go to her): a stage that is a conversation with someone opens that conversation by itself,
+      ///   once no other chat is open (a scene that led there closes first).
+      /// </summary>
+      private void MeetIfSummoned(AuthoredQuest q)
+      {
+         if (q.OnScenario == null || _stagingHeld) return;
+
+         AuthoredObjective o = AuthoredQuestEngine.Current(_run, q)?.Objective;
+         Hero who = o?.Type == "talk_to" ? Find(AuthoredQuestEngine.Bound(_run, o.Hero)) : null;
+         if (who == null) return;
+
+         StageWhenFree(q.Id, who, 1800);
+      }
+
+      // Waits frame by frame (at most a few seconds' worth) for the chat to be closed, then stages the meeting, if the tale
+      // still waits for it.
+      private void StageWhenFree(string questId, Hero who, int framesLeft)
+      {
+         MainThreadDispatcher.Enqueue(() =>
+         {
+            if (_run is not {Status: AuthoredQuestStatus.Active} || _run.QuestId != questId) return;
+            if (ChatManager.IsOpen)
+            {
+               if (framesLeft > 0) StageWhenFree(questId, who, framesLeft - 1);
+               else ModLog.Notice($"the conversation with {who.Name} of your tale could not open: another chat stayed open.");
+
+               return;
+            }
+
+            ModLog.Info($"[TALE] '{questId}': the conversation with {who.Name} opens by itself.");
+            ChatSceneStager.StageTaleMeeting(who);
+         });
+      }
+
       /// <summary>
       ///   The stage just entered shows one picture of its image_pool for this playing of the tale: one not shown before, the
       ///   pool starting over once every one was (TaleImagePool).
@@ -1621,15 +1661,20 @@ namespace CalradiaRemembers.Quests
 
          AuthoredQuestRun run = AuthoredQuestEngine.Start(q, ids, names, today);
          ModLog.Info($"[TALE] '{q.Id}' opened by a scenario with {giver.Name}.");
+         // Gabriel (25/10/2026): the summons asked in role-play rather than by a popup: a tale with no invitation begins
+         // at once, and its next stage (a scene, or a conversation) opens by itself.
+         if (string.IsNullOrWhiteSpace(q.OnScenario.Invitation))
+         {
+            Accept(q, run);
+
+            return null;
+         }
+
          InformationManager.ShowInquiry(new InquiryData(
             q.Title,
             AuthoredQuestEngine.Fill(run, q.OnScenario.Invitation),
             true, true, AuthoredQuestEngine.Fill(run, q.OnScenario.Accept), AuthoredQuestEngine.Fill(run, q.OnScenario.Decline),
-            () =>
-            {
-               Accept(q, run);
-               ChatSceneStager.StageTaleMeeting(giver);
-            },
+            () => Accept(q, run),
             () =>
             {
                if (string.IsNullOrWhiteSpace(q.OnScenario.DeclineEnding))
@@ -2306,7 +2351,9 @@ namespace CalradiaRemembers.Quests
 
          AuthoredQuest q = _quests[questId];
          TryBind(q, giver, out Dictionary<string, string> ids, out Dictionary<string, string> names, out _);
-         Accept(q, AuthoredQuestEngine.Start(q, ids, names, (int) CampaignTime.Now.ToDays));
+         _stagingHeld = true;
+         try { Accept(q, AuthoredQuestEngine.Start(q, ids, names, (int) CampaignTime.Now.ToDays)); }
+         finally { _stagingHeld = false; }
 
          return null;
       }

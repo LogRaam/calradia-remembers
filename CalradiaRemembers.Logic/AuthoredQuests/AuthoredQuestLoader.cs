@@ -248,8 +248,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          if (q.OnScenario != null)
          {
             if (onMap != null) blocking.Add("on_scenario and on_map both say how the tale begins: keep one.");
-            if (string.IsNullOrWhiteSpace(q.OnScenario.Invitation)) blocking.Add("on_scenario.invitation is empty: the popup would ask the player nothing.");
             string declined = q.OnScenario.DeclineEnding?.Trim();
+            // Gabriel (25/10/2026): the summons asked in role-play, in a scene, rather than by a popup: no invitation, no popup.
+            if (string.IsNullOrWhiteSpace(q.OnScenario.Invitation) && !string.IsNullOrEmpty(declined))
+               cosmetic.Add("on_scenario.decline_ending is never played: with no invitation there is no popup to say no to.");
             if (!string.IsNullOrEmpty(declined) && (q.Endings == null || !q.Endings.ContainsKey(declined)))
                blocking.Add($"on_scenario.decline_ending '{declined}' is not among \"endings\".");
          }

@@ -2,7 +2,10 @@
 
 Gabriel, 24/10/2026: a Hardcore tale. While the player is Rhagaea's prisoner, in the town or castle where she is, at
 night, a lady of her household comes to the cell with two guards and the jailer: the Empress asks to see the player.
-In her bedchamber she waits in her bed; she is restless and has chosen to share her intimacy with her captive. Before
+Gabriel, 25/10/2026: the summons is played in role-play, a narrated scene at the cell door (the lady, the jailer and the
+two guards, `woman_cell.crvid` beside the chat), with no popup; the player follows her (the conversation with Rhagaea
+opens by itself) or stays (the tale ends, Rhagaea disappointed, -2 regard; closing the scene without following is
+staying). In her bedchamber she waits in her bed; she is restless and has chosen to share her intimacy with her captive. Before
 dawn she asks for the secret. Open to both sexes, no child, and the player stays a prisoner.
 
 How it went is judged by the game, never by the model: her regard for the player when the tale began against her
@@ -22,7 +25,7 @@ To try it: copy the tale folder into the module's `ModuleData/Custom/Quests/` an
 `ModuleData/Custom/scenarios/`; Authored Quests on and the content level at Hardcore in the MCM; make sure Rhagaea's
 regard for the player is above 0 (`cr.rep_set 10 Rhagaea`, checked with `cr.info Rhagaea`); then
 `cr.captive_talk_probe jail Rhagaea` (the player held in her house's nearest town or castle, Rhagaea brought there) and
-`cr.scenario_fire ON_CAPTIVE_NIGHT`. The popup opens; accept, play the night, close the chat; `cr.story_status` and
+`cr.scenario_fire ON_CAPTIVE_NIGHT`. The scene at the cell door opens; follow the lady, play the night, close the chat; `cr.story_status` and
 Rhagaea's memories show how it ended. `cr.captive_talk_probe free` ends the captivity.
 
 To ship it: move the two `ModuleData` folders under `CalradiaRemembers/ModuleData/` once the videos are there (the suite

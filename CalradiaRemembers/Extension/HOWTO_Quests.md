@@ -188,7 +188,10 @@ come to find them. No costs nothing, and the tale may come back after a season. 
 ```
 
 Such a tale is never offered in a conversation nor begun on the map: a scenario rule opens it with `OPEN_TALE:<tale
-id>,<giver>` (EXTENSION_API.md, scenarios), naming who gives it. The tale's own `requires` still hold for that giver
+id>,<giver>` (EXTENSION_API.md, scenarios), naming who gives it. Without an `invitation` there is no popup: the tale
+begins at once, and its second stage plays (a scene at a cell door can ask the question in role-play, its choices the
+ways out). In such a tale, a stage that is a conversation with someone opens that conversation by itself, once no other
+chat is open: the player is brought to them. The tale's own `requires` still hold for that giver
 (her regard, her sex, the content level), as do `unique` and `repeat_cooldown_days`, and nothing opens while another
 tale is under way. A popup shows `invitation`; yes begins the tale, its first stage being the invitation itself, and
 opens the conversation with the giver; no costs nothing for a season. With `"decline_ending": "refused"` (an ending of

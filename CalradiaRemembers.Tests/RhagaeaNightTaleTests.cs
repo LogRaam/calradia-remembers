@@ -97,10 +97,30 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_the_player_will_not_follow_the_lady_WHEN_the_tale_ends_THEN_she_is_disappointed_and_remembers_it()
       {
          AuthoredQuest q = Tale();
-         AuthoredOutcome refused = q.Endings[q.OnScenario.DeclineEnding];
+         AuthoredChoice stay = q.Stages.Single(s => s.Id == "cell").Choices.Single(c => c.Id == "stay");
+         AuthoredOutcome refused = q.Endings[AuthoredQuestLoader.EndingId(stay.Next)];
 
+         stay.Default.Should().BeTrue("closing the scene without following is staying");
          refused.Regard.Should().BeNegative();
          refused.Memory.Should().Contain("would not come");
+      }
+
+      // STAKE (Gabriel, 25/10/2026: the summons in role-play, the lady the principal of the scene, with the jailer and the
+      // two guards): no popup; the cell is a narrated scene with its video and its four people, whose two ways out are to
+      // follow her up to the chamber or to stay.
+      [Test]
+      public void GIVEN_the_summons_WHEN_read_THEN_it_is_a_scene_at_the_cell_door_with_its_people_and_two_ways_out()
+      {
+         AuthoredQuest q = Tale();
+         AuthoredStage cell = q.Stages.Single(s => s.Id == "cell");
+
+         string.IsNullOrWhiteSpace(q.OnScenario.Invitation).Should().BeTrue("the summons is played, not asked by a popup");
+         q.Stages[0].OnComplete.Next.Should().Be("cell");
+         cell.Objective.Type.Should().Be("explore");
+         cell.Image.Should().Be("woman_cell.crvid");
+         File.Exists(Path.Combine(Folder, cell.Image)).Should().BeTrue();
+         cell.Objective.Scene.Encounters.Select(e => e.Id).Should().Equal("lady", "jailer", "guards");
+         cell.Choices.Select(c => (c.Id, c.Next)).Should().Equal(("follow", "chamber"), ("stay", "end:refused"));
       }
 
       // STAKE: a night that never closes cleanly ends on its own, leaving her a plain memory, and blocks no other tale for long.

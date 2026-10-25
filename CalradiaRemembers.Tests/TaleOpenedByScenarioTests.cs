@@ -93,6 +93,17 @@ namespace CalradiaRemembers.Tests
          AuthoredQuestEngine.Declined(AuthoredTales.Start(q), q, 101).Kind.Should().Be(AuthoredStepKind.None);
       }
 
+      // STAKE (Gabriel, 25/10/2026: the summons asked in role-play): a scenario tale may have no popup at all; a no that
+      // names an ending is then never played, and the author is told.
+      [Test]
+      public void GIVEN_a_scenario_tale_without_an_invitation_WHEN_read_THEN_it_loads_and_an_unplayable_no_is_named()
+      {
+         AuthoredQuestLoadResult r = AuthoredTales.Read(Night.Replace("\"invitation\": \"A lady stands at your cell door: {giver} asks to see you.\", ", ""));
+
+         r.Quests.Should().ContainSingle();
+         r.Problems.Should().Contain(p => p.Contains("decline_ending is never played"));
+      }
+
       // STAKE: one way in. A tale that says both how a scenario opens it and how it begins on the map would be offered by both.
       [Test]
       public void GIVEN_a_tale_with_both_on_map_and_on_scenario_WHEN_read_THEN_the_loader_refuses_it()

@@ -173,7 +173,7 @@
         "on_scenario": {
           "$ref": "#/$defs/AuthoredScenarioTrigger",
           "x-kind": "object:AuthoredScenarioTrigger",
-          "description": "The tale is opened only by a scenario rule (OPEN_TALE), never offered in a conversation nor begun on the map: the rule names the giver, and a popup asks the player."
+          "description": "The tale is opened only by a scenario rule (OPEN_TALE), never offered in a conversation nor begun on the map: the rule names the giver. With an invitation, a popup asks the player first; without, the tale begins at once (its second stage, a scene in the chat, can ask in role-play instead). A stage that is a conversation with someone opens by itself."
         },
         "binds": {
           "type": [
@@ -352,7 +352,7 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "The popup's text, which sets the scene; {giver} is filled with the giver's name."
+          "description": "The popup's text, which sets the scene; {giver} is filled with the giver's name. Empty: no popup, the tale begins at once."
         },
         "accept": {
           "type": [
@@ -378,7 +378,7 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "An ending of \"endings\" the popup's no leads to: the tale is played to that ending at once (its memory, regard and consequences, its cooldown), instead of passing for a season."
+          "description": "An ending of \"endings\" the popup's no leads to: the tale is played to that ending at once (its memory, regard and consequences, its cooldown), instead of passing for a season. Needs an invitation."
         }
       }
     },
