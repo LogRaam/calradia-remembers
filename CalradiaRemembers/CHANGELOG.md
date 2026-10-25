@@ -29,7 +29,10 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   character, and a small model copied it. Every gesture example (dialogue style, narrative voice, the complete reply
   example) now follows the character's own gender, and the compact one touches nothing. A spouse is now told in
   every prompt that the player is their own husband or wife; before, only on an empty ledger or in the intimacy
-  rules that Adult Off removes. SDK `GestureExampleAndSpouseIdentityTests`.
+  rules that Adult Off removes. From his log, the same small model also told its own gestures in the first person
+  ("*I lean against the post*"): the compact prompt had no third-person rule (the Full one does), and the only person
+  rule it kept was the memory summary's "first person". It now asks for third-person stage directions, never "I",
+  in fewer characters than before. SDK `GestureExampleAndSpouseIdentityTests`.
 - **A failed action reading is tried once more** (Gabriel 25/10: "reessaie une fois l'interpreteur en ajoutant un log
   qui le specifie"). In Enhanced composition, when the action interpreter's call failed, timed out, came back empty or
   could not be parsed, the reply's deeds were lost with a log line only. It is now asked once more
