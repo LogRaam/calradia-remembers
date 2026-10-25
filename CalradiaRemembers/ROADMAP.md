@@ -32,6 +32,120 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## DESIGNED 2026-10-25 (Gabriel), AWAITING HIS REVIEW, NOT BUILT: an arc that paces a tale's conversation
+
+**The wish.** Gabriel (25/10/2026), on The Empress's Summons: "comment le LLM dirige le beat pour amener le joueur vers
+le ending dawn? Car ca pourrait etre trop court ou trop long." Then: "On pourrait creer un orchestrateur configurable
+comme on a fait pour les captivity events? [...] les 3 premiers servent aux preliminaires, les 3 suivants le NPC prend
+l'initiative, les 3 suivants il laisse au joueur l'initiative. A partir de la, une condition: si le NPC a eu un
+orgasme, le NPC a une conversation avec le joueur de 5 beats puis on ferme le stage vers dawn. Sinon, le NPC reprend
+le beat ou elle prend l'initiative. Ce plan ou cet arc devrait diriger l'experience que le LLM fait vivre au joueur."
+
+**What exists today, and why it is not enough.** A `talk_to` with `"when": "closed"` completes when the PLAYER closes
+the chat; the model has no clock (nothing in the prompt changes from one reply to the next within a stage) and no way
+to close the conversation. So the night lasts as long as the player keeps typing, and the stage's canvas can only say
+"before the night ends", which the model has to guess. The captive scenes solved the same problem in June with
+`CaptiveSceneDirector`: a stage machine the MOD owns, which hands the model ONE named beat per reply ("you already did
+X, Y; now do Z; do not repeat"). The arc is that idea, written by the tale's author instead of hard-coded.
+
+### The shape, in the tale file
+
+An `arc` on a `talk_to` objective (meant for `"when": "closed"`):
+
+```json
+"objective": {"type": "talk_to", "hero": "{giver}", "when": "closed",
+  "arc": {
+    "signals": [
+      {"id": "npc_climaxed", "means": "{giver} reaches her climax in this reply",
+       "net": {"after": 6, "chance": 0.5}},
+      {"id": "refused", "means": "{player} refuses or pushes {giver} away, in words or deeds"}
+    ],
+    "beats": [
+      {"id": "prelude",   "exchanges": 3, "lead": "npc",    "do": "Slow preliminaries: ..."},
+      {"id": "she_leads", "exchanges": 3, "lead": "npc",    "do": "She takes the initiative: ...", "listens": ["npc_climaxed"]},
+      {"id": "yields",    "exchanges": 3, "lead": "player", "do": "She lets {player} lead: ...",    "listens": ["npc_climaxed"],
+       "next": [{"if": "npc_climaxed", "to": "after"}, {"to": "she_leads"}]},
+      {"id": "after",     "exchanges": 5, "lead": "npc",    "do": "Lying together, she talks; before dawn she asks for the secret ...",
+       "next": [{"to": "close"}]},
+      {"id": "stung",     "exchanges": 2, "lead": "npc",    "do": "A refusal stings her pride; she answers as an empress, then sends {player} back down.",
+       "next": [{"to": "close"}]}
+    ],
+    "on_signal": {"refused": "stung"},
+    "max_exchanges": 30,
+    "final": "after"
+  }}
+```
+
+- **Beats** run in order unless a beat says `next`. `exchanges` counts one player message and the reply to it. `lead`
+  says who drives this beat (`npc`: she acts and proposes; `player`: she follows and answers what the player does).
+  `do` is the author's direction for the beat, in the same voice as a canvas.
+- **Transitions.** At the end of a beat, its `next` list is read top to bottom and the first whose `if` holds wins (the
+  flags the engine already has: `if` takes flag names and `!flag`). No `next` means the following beat; `"to": "close"`
+  ends the arc.
+- **Signals** are things the author wants the game to notice in the prose. A signal seen sets a tale FLAG of the same
+  name, so a transition, a later canvas line or an ENDING can test it (the dawn ending's memory can depend on
+  `npc_climaxed` as it depends on `regard_rose` today).
+- **`on_signal`** jumps at once, whatever beat is playing, when that signal is seen (the refusal).
+- **`max_exchanges`** is the hard cap: when reached, the arc goes to its `final` beat whatever happens, so a loop such as
+  yields -> she_leads -> yields always ends (the director's `MaxActs` in another form).
+
+### Rulings so far
+
+- **Who decides a condition: both** (Gabriel, 25/10/2026: "melange des deux, signaux observes avec tirage en filet").
+  - *Observed:* in every reply while a beat `listens` to a signal, the action interpreter is also asked whether that
+    signal happened in THIS reply. It answers with a new verb on the `story_choice` pattern (`tale_signal`, `id:`),
+    which the bridge re-validates (only a declared signal, only while the current beat listens to it) before the
+    game sets the flag.
+  - *Net:* a signal with `net` that has not been seen after `after` exchanges of listening is rolled by the game at the
+    end of each listening beat (`chance`). On success the game sets the flag AND the next beat's direction says it
+    happens ("in this beat she reaches her climax"): the game declares it, the model narrates it. This keeps the
+    rule that the game decides what happens, and the player's way of playing the scene still counts through the
+    observed path.
+
+### Proposed, awaiting Gabriel
+
+- **The refusal** (asked 25/10/2026, not yet answered): a `refused` signal, observed, with `on_signal` to an exit beat
+  where she answers as an empress and the arc closes. The stage then completes towards its usual ending, and the
+  memory follows the regard as today (a refusal will usually have cost regard, so the bitter memory).
+- **How the arc closes:** after the reply of the last beat, the conversation is ended softly, the way a captive scene
+  ends (`EndCaptiveSceneSoftly`: the input locks, the button reads "Leave"), so the player reads her last line; the
+  click closes the chat and the stage completes as `"when": "closed"` already does. Proposed: the arc's close applies
+  even when the MCM "NPCs can end conversations" is off, since it is the tale's structure and not a character's whim.
+- **The player closes first:** the stage completes as today; signals never seen stay unset; the endings judge by what
+  is known. Nothing new.
+- **Every reply counts as an exchange**, whatever the player wrote. Inside a beat, the direction asks the model to
+  answer the player's own move first, then carry the beat on. (The captive director's "a strong intervention holds the
+  beat one turn" is left for later, if play shows it is needed.)
+- **Roleplay (Integrated) composition** has no interpreter call, so no signal can be observed there: only the net roll
+  decides. The editor and the HOWTO say so. Enhanced is the default composition.
+
+### What the code already has (traced 25/10/2026)
+
+- The tale's stage text already sits BELOW the `CURRENT ENCOUNTER:` marker (`AuthoredQuestBlock`, PromptBuilder
+  `AppendEncounterContext`), so a direction that changes every reply costs no cache. The beat direction gets its own
+  field (`TaleBeatDirective`) and its own Tail section; the captive one cannot be reused (its gate is captivity only
+  and its text is hard-coded).
+- `story_choice` is the exact precedent for asking the interpreter about the tale: a block per turn in
+  `StoryChoicesForInterpreter`, a verb, a case in `BannerlordGameStateBridge`. `WithInterpretedTags` copies only
+  actions and events from the interpreter, so a signal rides as an action.
+- The single place where a player message and its reply are both done is the end of `RunLlmExchangeAsync`
+  (ChatViewModel.Exchanges), after the actions are applied: the arc counts there, with this reply's signals known.
+- `AuthoredQuestRun` is saved whole as JSON; new properties are additive (`GiverRegardAtStart`, `ImagePicks` did the
+  same). The arc keeps its beat, its exchanges in the beat and in all, and the beats done; all reset when the stage
+  changes.
+
+### Increments
+
+1. **A straight arc**: beats, exchanges, lead, `do`, the direction in the prompt, `max_exchanges`, the soft close. This
+   alone answers "too short or too long". Loader, editor checks (parity fixtures), save, `cr.testall tale_arc`, the
+   Rhagaea night written with it.
+2. **Signals and transitions**: `listens`, `next` with `if`, `on_signal`, the `tale_signal` verb, the net roll.
+3. **The editor's arc cards** and the arc shown in the story map's summary panel (the JSON checks ship with 1 and 2,
+   since the editor must refuse what the game refuses).
+
+Not in scope: a hard close that cuts the scene mid-sentence; arcs on stages other than `talk_to`; several characters
+taking turns inside one arc (the captive director's collective acts).
+
 ## WISHED 2026-10-23 (Gabriel), ROADMAPPED, NOT DESIGNED: extortion by the player, a misdeed with no deed yet
 
 Gabriel (23/10/2026), for the Misdeeds section of the player's page (`4679f2a`): "on pourrait aussi ajouter des
