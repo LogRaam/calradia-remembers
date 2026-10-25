@@ -237,8 +237,10 @@ An `arc` on a `talk_to` objective (meant for `"when": "closed"`):
    BUILT 25/10/2026: `TaleArc.SignalSeen`, `Exchanged` (on_signal jump, the `turned` hold, net rolls at the end of each
    listening beat, `next`), `SignalsForReader` joined to the tale's choices (`AuthoredQuestPrompt.ForActionReader`) so
    both readers are taught it; the bridge's `tale_signal` case; the parity map lists `tale_signal` (same for both).
-   The direction says LAST only when every way on closes (no conditional `next`, no `on_signal` to a beat). The hold
-   never applies on the arc's very last reply. The Rhagaea night plays the whole shape; the refusal exit beat is NOT in
+   The direction says LAST only when every way on closes (no conditional `next`). Neither the hold nor an `on_signal`
+   applies on the arc's very last reply (the farewell), and the cap holds on a jump (a refusal repeated every exchange
+   would otherwise keep the arc open); a jump to the beat already playing changes nothing. After a hold, the next reply
+   is told only that the part runs one reply longer (the reply that answered the turn is already written). The Rhagaea night plays the whole shape; the refusal exit beat is NOT in
    it (still awaiting Gabriel).
 3. **The editor's arc cards** and the arc shown in the story map's summary panel (the JSON checks ship with 1 and 2,
    since the editor must refuse what the game refuses).

@@ -122,15 +122,22 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          run.ArcExchanges++;
          string final = FinalId(arc);
 
-         string jump = seen.Where(s => s != TurnedSignal).Select(s => Target(arc.OnSignal, s)).FirstOrDefault(t => t != null);
+         // The arc's very last reply is the farewell: nothing turns it or holds it, so she can be told it is the last.
+         bool lastOfArc = run.ArcBeatExchanges + 1 >= Math.Max(1, beat.Exchanges) && AllPathsClose(run, arc, beat);
+
+         // A jump to the beat already playing changes nothing; the cap holds on a jump too, or a signal repeated every
+         // exchange would keep the arc open for ever.
+         string jump = lastOfArc
+            ? null
+            : seen.Where(s => s != TurnedSignal).Select(s => Target(arc.OnSignal, s)).FirstOrDefault(t => t != null && t != beat.Id);
          if (jump != null)
          {
             run.ArcHeld = false;
+            if (Capped(run, arc) && jump != Close) jump = final;
 
             return Go(run, jump);
          }
 
-         bool lastOfArc = run.ArcBeatExchanges + 1 >= Math.Max(1, beat.Exchanges) && AllPathsClose(run, arc, beat);
          if (seen.Contains(TurnedSignal) && !run.ArcHeld && !lastOfArc)
          {
             run.ArcHeld = true;
@@ -179,8 +186,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          int part = arc.Beats.IndexOf(beat) + 1;
          int reply = run.ArcBeatExchanges + 1;
          int of = Math.Max(1, beat.Exchanges);
-         bool lastReply = reply >= of && AllPathsClose(run, arc, beat)
-                          && !(arc.OnSignal ?? new Dictionary<string, string>()).Values.Any(v => (v ?? "").Trim() != Close);
+         bool lastReply = reply >= of && AllPathsClose(run, arc, beat);
 
          var sb = new StringBuilder();
          sb.AppendLine($"HOW THIS CONVERSATION IS PACED (never mention it): part {part} of {arc.Beats.Count}, reply {reply} of {of} in this part.");
@@ -190,7 +196,8 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          string declared = arc.Signals?.FirstOrDefault(s => s?.Id?.Trim() == run.ArcDeclared)?.Means;
          if (!string.IsNullOrWhiteSpace(declared))
             sb.AppendLine("The game has decided that this happens in this reply, before anything else: " + AuthoredQuestEngine.Fill(run, declared) + ". Narrate it.");
-         if (run.ArcHeld) sb.AppendLine("The player has just turned the scene: answer that fully first; this part goes on after.");
+         // The reply that answered the player's turn is already written; this one only learns the part runs a reply longer.
+         if (run.ArcHeld) sb.AppendLine("This part runs one reply longer than planned.");
          sb.AppendLine("This part: " + AuthoredQuestEngine.Fill(run, beat.Do));
          sb.Append(lastReply
             ? "This is your LAST reply of the scene: answer the player, then bring it to its close in this reply, as this part says; the conversation ends after it."

@@ -312,7 +312,7 @@ namespace CalradiaRemembers.Tests
          Step(run, q, signal: TaleArc.TurnedSignal);
 
          run.ArcBeatExchanges.Should().Be(1);
-         TaleArc.Direction(run, q, AuthoredTales.Giver).Should().Contain("turned the scene");
+         TaleArc.Direction(run, q, AuthoredTales.Giver).Should().Contain("one reply longer");
 
          Step(run, q, signal: TaleArc.TurnedSignal);
          run.ArcBeatExchanges.Should().Be(2);
@@ -346,6 +346,38 @@ namespace CalradiaRemembers.Tests
          for (var i = 0; i < 8; i++) Step(run, q);
 
          TaleArc.Direction(run, q, AuthoredTales.Giver).Should().NotContain("LAST reply");
+      }
+
+      // STAKE: a player who refuses at every turn cannot keep the night open for ever: the jump never escapes the cap.
+      [Test]
+      public void GIVEN_a_signal_that_turns_the_arc_seen_every_exchange_WHEN_exchanges_go_on_THEN_the_arc_still_closes_within_its_cap()
+      {
+         AuthoredQuest q = Tale(Looping);
+         AuthoredQuestRun run = AuthoredTales.At(q, "night");
+         var n = 0;
+         var closed = false;
+         while (!closed && n < 100)
+         {
+            closed = Step(run, q, signal: "refused");
+            n++;
+         }
+
+         closed.Should().BeTrue();
+         n.Should().BeLessThanOrEqualTo(30 + 5);
+      }
+
+      // STAKE: an arc that can turn at once must still tell her the farewell is the last reply, or she is cut off mid-scene.
+      [Test]
+      public void GIVEN_an_arc_with_a_signal_that_turns_it_WHEN_the_final_beats_last_reply_comes_THEN_she_is_told_it_ends_the_scene()
+      {
+         AuthoredQuest q = Tale(Looping);
+         AuthoredQuestRun run = AuthoredTales.At(q, "night");
+         for (var i = 0; i < 9; i++) Step(run, q, roll: 0.0);
+         for (var i = 0; i < 4; i++) Step(run, q);
+
+         BeatOf(run, q).Should().Be("after");
+         TaleArc.Direction(run, q, AuthoredTales.Giver).Should().Contain("LAST reply");
+         Step(run, q, signal: "refused").Should().BeTrue("a refusal on the farewell does not turn it");
       }
 
       // STAKE: whoever reads the turn's actions is taught exactly the signals the game would take now, and how to report them.

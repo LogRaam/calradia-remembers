@@ -354,7 +354,8 @@ reply to it), then the conversation closes by itself after the last reply, and t
   listening beat, at `chance`. The character is then told to narrate it first in its next reply.
 - **`next`** on a beat: read top to bottom when the beat is played out; the first whose `if` holds wins (`"to"` a beat
   or `"close"`). None holding, or none written: the next beat in the list.
-- **`on_signal`** on the arc: `{ "refused": "stung" }` jumps at once, whatever beat plays, when that signal is seen.
+- **`on_signal`** on the arc: `{ "refused": "stung" }` jumps at once, whatever beat plays, when that signal is seen
+  (not on the arc's very last reply, the farewell; `max_exchanges` holds on a jump too).
 - An arc that can go back to a beat already played needs `max_exchanges`: reached, it goes to its `final` beat.
 - The game watches one signal of its own in every arc, `turned` (the id is reserved): the player turning the scene with
   a strong act or word. It holds the beat for that exchange so the character answers it first; a second in a row does
