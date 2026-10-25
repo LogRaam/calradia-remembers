@@ -462,7 +462,16 @@ input[type="number"] { max-width: 160px; }
       "conception",
       "elope",
       "return_spouse",
-      "item"
+      "item",
+      "regard"
+    ],
+    "BuiltInFlags": [
+      "regard_rose",
+      "regard_fell"
+    ],
+    "TalkMoments": [
+      "opened",
+      "closed"
     ],
     "GiverRoles": [
       "lord",
@@ -569,6 +578,11 @@ input[type="number"] { max-width: 160px; }
           "$ref": "#/$defs/AuthoredMapTrigger",
           "x-kind": "object:AuthoredMapTrigger",
           "description": "The tale begins by itself on the map, never in a conversation: when the player's party has stood still long enough, by day, in the giver's own lands, on a chance each day. The giver must travel with the player (requires.giver.with_player)."
+        },
+        "on_scenario": {
+          "$ref": "#/$defs/AuthoredScenarioTrigger",
+          "x-kind": "object:AuthoredScenarioTrigger",
+          "description": "The tale is opened only by a scenario rule (OPEN_TALE), never offered in a conversation nor begun on the map: the rule names the giver, and a popup asks the player."
         },
         "binds": {
           "type": [
@@ -734,6 +748,41 @@ input[type="number"] { max-width: 160px; }
         }
       }
     },
+    "AuthoredScenarioTrigger": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "The popup a scenario-opened tale shows (OPEN_TALE; Gabriel, 24/10/2026).",
+      "properties": {
+        "invitation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The popup's text, which sets the scene; {giver} is filled with the giver's name."
+        },
+        "accept": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The popup's yes, which begins the tale and opens the conversation with the giver.",
+          "default": "Go to them"
+        },
+        "decline": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The popup's no: nothing is lost, and the tale may come back after a season.",
+          "default": "Not now"
+        }
+      }
+    },
     "AuthoredStage": {
       "type": [
         "object",
@@ -764,6 +813,12 @@ input[type="number"] { max-width: 160px; }
           ],
           "x-kind": "string",
           "description": "An image file of the tale's own folder (.png or .jpg), or a video (.crvid, whose first frame is its picture), opened beside the chat when this stage's scene opens, or a conversation of this stage (with its characters or the people of its place)."
+        },
+        "image_pool": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "Several pictures or videos for this stage: each time the tale is played, one the player has not seen yet is chosen (all seen, they start over), and it holds for the whole tale. It stands in for \"image\".",
+          "x-default-empty": true
         },
         "objective": {
           "$ref": "#/$defs/AuthoredObjective",
@@ -1171,6 +1226,19 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "string",
           "description": "talk_to: the character, as a role (\"{giver}\"). war_ends, dies, weds_player: the person the world is watched for."
         },
+        "when": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "talk_to: \"opened\" (the default) completes the stage as the conversation opens; \"closed\" when it ends, so the whole conversation belongs to the stage and its ending sees what came of it.",
+          "enum": [
+            "opened",
+            "closed"
+          ],
+          "x-closed-list": "TalkMoments"
+        },
         "place": {
           "type": [
             "string",
@@ -1377,7 +1445,7 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "memory, world_event, grudge, conception, elope (she leaves her husband with the player), return_spouse (she goes back to him) or item (the player is given an item).",
+          "description": "memory, world_event, grudge, conception, elope (she leaves her husband with the player), return_spouse (she goes back to him), item (the player is given an item) or regard (someone's regard for the player moves by amount).",
           "enum": [
             "memory",
             "world_event",
@@ -1385,7 +1453,8 @@ input[type="number"] { max-width: 160px; }
             "conception",
             "elope",
             "return_spouse",
-            "item"
+            "item",
+            "regard"
           ],
           "x-closed-list": "ConsequenceTypes"
         },
@@ -1395,7 +1464,7 @@ input[type="number"] { max-width: 160px; }
             "null"
           ],
           "x-kind": "string",
-          "description": "memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role. conception: the player's partner, a role ({giver} when empty). elope, return_spouse: the lady who leaves or goes back ({giver} when empty)."
+          "description": "memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role. conception: the player's partner, a role ({giver} when empty). elope, return_spouse: the lady who leaves or goes back ({giver} when empty). regard: whose regard moves, a role ({giver} when empty)."
         },
         "text": {
           "type": [
@@ -1462,6 +1531,12 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "int",
           "description": "item: how many are given (1 to 200).",
           "default": 1
+        },
+        "amount": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "regard: how far their regard for the player moves (negative lowers it), -100 to 100, never 0.",
+          "default": 0
         },
         "if": {
           "$ref": "#/$defs/flags",
@@ -2845,6 +2920,10 @@ input[type="number"] { max-width: 160px; }
             && (q.requires == null || q.requires.husband == null))
           blocking.push("consequence '" + c.type + "' names the giver's husband, but no husband is bound: add \"husband\" to \"requires\".");
         if (c != null && c.type === 'item') itemShapeProblems("consequence '" + c.type + "'", 'item', c.item, c.count).forEach(function (p) { blocking.push(p); });
+        if (c != null && c.type === 'regard') {
+          var amount = c.amount == null ? 0 : Number(c.amount);
+          if (amount === 0 || amount < -100 || amount > 100) blocking.push("consequence 'regard' moves regard by " + String(amount) + ', which must be from -100 to 100 and not 0.');
+        }
         if (c != null && c.chance != null && (Number(c.chance) < 0 || Number(c.chance) > 1))
           blocking.push("consequence '" + (c.type == null ? '' : c.type) + "' has a chance of " + String(Number(c.chance)) + ', which must be from 0 to 1.');
       });
@@ -2879,6 +2958,13 @@ input[type="number"] { max-width: 160px; }
       var still = onMap.still_hours == null ? 3 : Number(onMap.still_hours);
       if (still < 0) blocking.push('on_map.still_hours ' + String(still) + ' cannot be below 0.');
       if (blank(onMap.invitation)) blocking.push('on_map.invitation is empty: the popup would ask the player nothing.');
+    }
+
+    // A tale only a scenario opens (24/10/2026): one way in, and a popup that says something.
+    var onScenario = q.on_scenario;
+    if (onScenario != null && typeof onScenario === 'object') {
+      if (onMap != null && typeof onMap === 'object') blocking.push('on_scenario and on_map both say how the tale begins: keep one.');
+      if (blank(onScenario.invitation)) blocking.push('on_scenario.invitation is empty: the popup would ask the player nothing.');
     }
 
     // The giver's sex (11/10/2026): a word that is neither is refused, as the game does.
@@ -3115,7 +3201,7 @@ input[type="number"] { max-width: 160px; }
   }
 
   function validateFlags(q, cosmetic) {
-    var set = new Set(), tested = [];
+    var set = new Set(LISTS.BuiltInFlags || []), tested = [];
     function tests(conditions) {
       arr(conditions).forEach(function (c) {
         var name = (c == null ? '' : c).trim().replace(/^!+/, '').trim();
@@ -3175,6 +3261,8 @@ input[type="number"] { max-width: 160px; }
     switch (o.type) {
       case 'talk_to':
         if (blank(o.hero)) blocking.push(where + ': talk_to needs "hero".');
+        if (!blank(o.when) && !has(LISTS.TalkMoments, String(o.when).trim().toLowerCase()))
+          blocking.push(where + ': talk_to "when" ' + "'" + o.when + "' is neither " + LISTS.TalkMoments.join(' nor ') + '.');
         break;
       case 'talk_to_locals':
       case 'be_at':
@@ -4064,20 +4152,21 @@ input[type="number"] { max-width: 160px; }
 (function (root) {
   'use strict';
   root.TaleEditorFields = {
-    AuthoredQuest: ['id', 'title', 'author', 'unique', 'repeat_cooldown_days', 'weight', 'requires', 'on_map', 'binds', 'stages', 'reward', 'endings', 'failure'],
+    AuthoredQuest: ['id', 'title', 'author', 'unique', 'repeat_cooldown_days', 'weight', 'requires', 'on_map', 'on_scenario', 'binds', 'stages', 'reward', 'endings', 'failure'],
     AuthoredMapTrigger: ['still_hours', 'by_day', 'in_givers_lands', 'chance_per_day', 'invitation', 'accept', 'decline'],
+    AuthoredScenarioTrigger: ['invitation', 'accept', 'decline'],
     AuthoredRequires: ['giver', 'village', 'rival', 'husband', 'player', 'content'],
     GiverRequirement: ['role', 'holds', 'min_regard', 'not_at_war_with_player', 'culture', 'realm', 'gender', 'with_player', 'not_pregnant', 'married', 'not_clan_leader', 'not_of_players_realm', 'trade'],
     HusbandRequirement: ['role', 'rules_a_realm'],
     PlaceRequirement: ['type', 'near', 'culture'],
     RivalRequirement: ['role', 'same_realm_as'],
     PlayerRequirement: ['min_clan_tier', 'gender'],
-    AuthoredStage: ['id', 'journal', 'image', 'objective', 'on_complete', 'on_enter', 'canvas', 'facts', 'knowers', 'choices'],
+    AuthoredStage: ['id', 'journal', 'image', 'image_pool', 'objective', 'on_complete', 'on_enter', 'canvas', 'facts', 'knowers', 'choices'],
     AuthoredOnComplete: ['next'],
     AuthoredChoice: ['id', 'label', 'journal', 'next', 'if', 'sets', 'default', 'objective', 'said', 'canvas', 'facts', 'knowers'],
     AuthoredSaid: ['to', 'meaning'],
     AuthoredLine: ['text', 'if'],
-    AuthoredObjective: ['type', 'hero', 'place', 'count', 'radius', 'nights', 'chance', 'days', 'scene', 'spawn', 'item', 'to'],
+    AuthoredObjective: ['type', 'hero', 'when', 'place', 'count', 'radius', 'nights', 'chance', 'days', 'scene', 'spawn', 'item', 'to'],
     AuthoredScene: ['title', 'opening', 'findings', 'hazards', 'encounters', 'closing', 'invite_prisoners'],
     AuthoredBeat: ['canvas', 'facts'],
     AuthoredFinding: ['id', 'required', 'text', 'sets', 'image'],
@@ -4087,11 +4176,11 @@ input[type="number"] { max-width: 160px; }
     AuthoredSpawn: ['id', 'template', 'size', 'name', 'near', 'behavior', 'flee_after_days', 'scale_with_player', 'on_defeat'],
     AuthoredDefeat: ['next', 'regard', 'memory', 'journal', 'consequences'],
     AuthoredOutcome: ['days', 'regard', 'gold', 'memory', 'journal', 'consequences'],
-    AuthoredConsequence: ['type', 'who', 'against', 'spouse', 'text', 'summary', 'magnitude', 'place', 'chance', 'item', 'count', 'if'],
+    AuthoredConsequence: ['type', 'who', 'against', 'spouse', 'text', 'summary', 'magnitude', 'place', 'chance', 'item', 'count', 'amount', 'if'],
 
     /** Which fields of an objective each type uses; the rest stay hidden for that type. */
     objectiveFields: {
-      talk_to: ['hero'],
+      talk_to: ['hero', 'when'],
       'return': [],
       talk_to_locals: ['place', 'count'],
       be_at: ['place', 'radius'],
@@ -4113,7 +4202,8 @@ input[type="number"] { max-width: 160px; }
       conception: ['who', 'chance', 'if'],
       elope: ['who', 'spouse', 'if'],
       return_spouse: ['who', 'spouse', 'if'],
-      item: ['item', 'count', 'if']
+      item: ['item', 'count', 'if'],
+      regard: ['who', 'amount', 'if']
     }
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
@@ -4938,6 +5028,19 @@ input[type="number"] { max-width: 160px; }
         textField('tale/on_map.decline', 'No', 'AuthoredMapTrigger', 'decline', t.on_map)) : null
     ], {dataKey: 'tale/on_map'}));
 
+    // A tale only a scenario opens (24/10/2026): OPEN_TALE names the giver, a popup asks the player.
+    var scenarioOn = t.on_scenario && typeof t.on_scenario === 'object';
+    ed.appendChild(section('Opened by a scenario', help('AuthoredQuest', 'on_scenario'), [
+      h('label.check', {style: 'margin-bottom:12px'}, h('input', {type: 'checkbox', checked: scenarioOn, on: {change: function (e) {
+        var on = e.target.checked;
+        edit('tale/on_scenario', function () { if (on) t.on_scenario = {invitation: ''}; else delete t.on_scenario; }, true);
+      }}}), 'Only a scenario rule opens the tale (OPEN_TALE), never a conversation nor the map'),
+      scenarioOn ? h('div.grid',
+        textField('tale/on_scenario.invitation', "The popup's text", 'AuthoredScenarioTrigger', 'invitation', t.on_scenario, {multiline: true}),
+        textField('tale/on_scenario.accept', 'Yes', 'AuthoredScenarioTrigger', 'accept', t.on_scenario),
+        textField('tale/on_scenario.decline', 'No', 'AuthoredScenarioTrigger', 'decline', t.on_scenario)) : null
+    ], {dataKey: 'tale/on_scenario'}));
+
     var villageOn = r.village && typeof r.village === 'object';
     ed.appendChild(section('The village', help('AuthoredRequires', 'village'), [
       h('label.check', {style: 'margin-bottom:12px'}, h('input', {type: 'checkbox', checked: villageOn, on: {change: function (e) {
@@ -5019,6 +5122,7 @@ input[type="number"] { max-width: 160px; }
     var used = F.objectiveFields[o.type] || [];
     var g = h('div.grid');
     if (used.indexOf('hero') >= 0) g.appendChild(roleField(key + '/objective.hero', 'Who', 'AuthoredObjective', 'hero', o, {placeholder: '{giver}'}));
+    if (used.indexOf('when') >= 0) g.appendChild(selectField(key + '/objective.when', 'Completes', 'AuthoredObjective', 'when', o, list('TalkMoments'), {empty: 'as it opens'}));
     if (used.indexOf('place') >= 0) g.appendChild(roleField(key + '/objective.place', 'Where', 'AuthoredObjective', 'place', o, {placeholder: '{village}'}));
     if (used.indexOf('item') >= 0) g.appendChild(textField(key + '/objective.item', 'Goods', 'AuthoredObjective', 'item', o, {mono: true, placeholder: 'grain'}));
     if (used.indexOf('count') >= 0) g.appendChild(numberField(key + '/objective.count', o.type === 'bring' ? 'How many' : 'How many locals', 'AuthoredObjective', 'count', o, {min: 1}));
@@ -5202,7 +5306,8 @@ input[type="number"] { max-width: 160px; }
     ed.appendChild(section('Basics', null, h('div.grid',
       field(key + '/id', 'Id', 'AuthoredStage', 'id', idInput, {help: help('AuthoredStage', 'id') + ' Renaming it updates every path that leads here.'}),
       textField(key + '/journal', 'Journal', 'AuthoredStage', 'journal', s, {wide: true}),
-      stageImageField(key, s))));
+      stageImageField(key, s),
+      flagsField(key + '/image_pool', 'Image pool (one per playing)', 'AuthoredStage', 'image_pool', s, {placeholder: 'night_1.crvid, night_2.crvid', wide: true}))));
 
     var hasChoices = Array.isArray(s.choices) && s.choices.length > 0;
     var own = s.objective !== undefined && s.objective !== null;
@@ -5373,14 +5478,15 @@ input[type="number"] { max-width: 160px; }
     return cardList(key, 'Consequences', null, o, field || 'consequences', function (c, i, ck) {
       var used = F.consequenceFields[c.type] || ['who', 'text', 'summary', 'magnitude', 'place', 'if'];
       var g = h('div.grid', selectField(ck + '/type', 'Type', 'AuthoredConsequence', 'type', c, list('ConsequenceTypes'), {empty: c.type ? undefined : '(choose)'}));
-      var grudge = c.type === 'grudge';
-      if (used.indexOf('who') >= 0) g.appendChild(roleField(ck + '/who', grudge ? 'Who holds it' : 'Who remembers', 'AuthoredConsequence', 'who', c, grudge ? {placeholder: '{giver}'} : {locals: true, placeholder: 'locals_of:{village}'}));
+      var grudge = c.type === 'grudge', regard = c.type === 'regard';
+      if (used.indexOf('who') >= 0) g.appendChild(roleField(ck + '/who', grudge ? 'Who holds it' : regard ? 'Whose regard' : 'Who remembers', 'AuthoredConsequence', 'who', c, grudge || regard ? {placeholder: '{giver}'} : {locals: true, placeholder: 'locals_of:{village}'}));
       if (used.indexOf('against') >= 0) g.appendChild(roleField(ck + '/against', 'Against whom', 'AuthoredConsequence', 'against', c, {placeholder: '{rival}'}));
       if (used.indexOf('magnitude') >= 0) g.appendChild(numberField(ck + '/magnitude', grudge ? 'How deep' : 'How loud', 'AuthoredConsequence', 'magnitude', c, {min: 0, max: 100}));
       if (used.indexOf('place') >= 0) g.appendChild(roleField(ck + '/place', 'Where', 'AuthoredConsequence', 'place', c, {placeholder: '{village}'}));
       if (used.indexOf('chance') >= 0) g.appendChild(numberField(ck + '/chance', 'Chance of a child', 'AuthoredConsequence', 'chance', c, {min: 0, max: 1}));
       if (used.indexOf('item') >= 0) g.appendChild(textField(ck + '/item', 'Item given', 'AuthoredConsequence', 'item', c, {mono: true, placeholder: 'wine'}));
       if (used.indexOf('count') >= 0) g.appendChild(numberField(ck + '/count', 'How many', 'AuthoredConsequence', 'count', c, {min: 1, max: 200}));
+      if (used.indexOf('amount') >= 0) g.appendChild(numberField(ck + '/amount', 'By how much', 'AuthoredConsequence', 'amount', c, {min: -100, max: 100}));
       g.appendChild(flagsField(ck + '/if', 'Only if', 'AuthoredConsequence', 'if', c, {placeholder: 'always'}));
       var body = [g];
       if (used.indexOf('text') >= 0) body.push(textField(ck + '/text', grudge ? 'The cause, in their words' : 'What they remember', 'AuthoredConsequence', 'text', c, {multiline: true, short: true, wide: true}));

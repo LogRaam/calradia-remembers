@@ -15,6 +15,15 @@ namespace CalradiaRemembers.Logic.Scenarios
     public static class ScenarioArgs
     {
         /// <summary>
+        ///   IF_CHANCE:0.25 (Gabriel, 24/10/2026: a night in captivity that sometimes brings the tale): holds on a
+        ///   <paramref name="roll" /> (0 to 1) below the chance written. A chance that is no number never holds, so a typo
+        ///   never makes a rule fire every time.
+        /// </summary>
+        public static bool ChanceHolds(string payload, double roll)
+            => double.TryParse((payload ?? "").Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double p)
+               && roll < p;
+
+        /// <summary>
         ///   Splits a <c>target:delta</c> payload (e.g. <c>Rhagaea:+5</c>) into its target and a signed
         ///   integer. Splits on the LAST colon, so a target may itself contain colons. Returns false when
         ///   there is no colon, the target is empty, or the value is not an integer.

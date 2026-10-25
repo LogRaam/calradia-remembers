@@ -73,10 +73,11 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          return (stage.Choices ?? new List<AuthoredChoice>()).Any(c => c?.Said?.To != null && heroId == AuthoredQuestEngine.Bound(run, c.Said.To));
       }
 
-      /// <summary>The image of the stage under way, or null when it has none.</summary>
+      /// <summary>The image of the stage under way, or null when it has none: the one chosen from its pool, else its own.</summary>
       public static string ImageFor(AuthoredQuestRun run, AuthoredQuest q)
       {
-         string image = AuthoredQuestEngine.Current(run, q)?.Image;
+         AuthoredStage stage = AuthoredQuestEngine.Current(run, q);
+         string image = stage != null && run?.ImagePicks != null && run.ImagePicks.TryGetValue(stage.Id ?? "", out string picked) ? picked : stage?.Image;
 
          return IsAcceptedName(image) ? Resolve(image, run?.BoundIds) : null;
       }
@@ -142,6 +143,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          {
             if (s == null) continue;
             Check($"stage '{s.Id}'", s.Image);
+            foreach (string pooled in s.ImagePool ?? new List<string>()) Check($"stage '{s.Id}', image_pool", pooled);
             AuthoredScene scene = s.Objective?.Scene;
             if (scene == null) continue;
             foreach (AuthoredFinding f in scene.Findings ?? new List<AuthoredFinding>()) Check($"stage '{s.Id}', finding '{f?.Id}'", f?.Image);

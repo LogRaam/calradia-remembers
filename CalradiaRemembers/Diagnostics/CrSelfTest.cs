@@ -297,6 +297,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("setting_hints_fit", Severity.Light, "Mechanical: every MCM hint fits on screen. A shipped bug with a receipt - v2.5.6 repaired NINETEEN hints that ran off the edge, and because they read \"On (default): ... Off: ...\" the clipped half was always the one explaining the other position. They were fixed by hand with nothing left to stop the twentieth, which 2026-09-12 then added. Reads the ATTRIBUTES, so it holds whether or not MCM has loaded. Read-only", TestSettingHintsFit),
          new SelfTest("mcm_test_buttons_wired", Severity.Light, "Mechanical: the three MCM Test buttons (OpenRouter, OpenAI-Compatible endpoint, NanoGPT) reach the connection tester. Since 19/10/2026 the settings no longer name the tester (it reads them, and the two namespaces used each other): the submodule hands it over at load, so a button whose hook was never set would click and do nothing, with no error. Asserts each hook is set. Read-only, no call is made", TestMcmTestButtonsWired),
          new SelfTest("memory_panel_secrets", Severity.Light, "tashmetu (20/10/2026): a player read his wife's secret affair in her lover's Memories panel before it came to light. Gives a met character, through the REAL public door, a private memory from another mod, an open one from another mod, and a private one under CR's own name (the player's word to a companion), and asks the REAL panel rule: with Show secret memories off, only the other mod's secret is left out; on, it is listed marked secret. Restores the setting and removes the three memories", TestMemoryPanelSecrets),
+         new SelfTest("tale_opened_by_scenario", Severity.Light, "Gabriel (24/10/2026): a scenario opens a tale at night while the player is held (ON_CAPTIVE_NIGHT, IF_CAPTOR_IS, IF_PRESENT, IF_CHANCE, OPEN_TALE); the night is judged by the regard it left ('ca s'est bien passe si Rhagaea a gagne plus de Regards qu'elle en a perdu'), the memory stays either way, and each playing shows a new video of the stage's pool. A tale written into this test (on_scenario, a talk that completes as the conversation ends, an image_pool, three memories under regard_rose / regard_fell and a regard reward) is opened through the REAL OPEN_TALE check with a lord; the talk does not complete as the chat opens; the lord's regard is raised by 4 during it; the close completes it with regard_rose, the warm memory and the +5 reward; a video of the pool is chosen. IF_CHANCE:1 holds and IF_CHANCE:0 does not; IF_CAPTOR_IS fails while the player is free. Regard, memories, pools and the tale are put back after.", TestTaleOpenedByScenario),
          new SelfTest("tale_keys", Severity.Light, "tashmetu (20/10/2026), four keys for written tales: requires.player.gender, a notable giver's trade, a town as the bound place, gold the player pays. A tale written into this test asks a merchant of a town and the player's own sex: a real town merchant binds, with the town as its place; a headman or a village notable is refused for the trade; its twin asking the other sex is refused for the player. One gold paid by the player through the REAL payment reaches the merchant, then is given back. Forgets the tales after", TestTaleKeys),
          new SelfTest("edict_effects", Severity.Light, "Gabriel (21/10/2026), edicts on towns and realms, by the player and by the world's lords, and contestable. Picks a real town held by a lord and has its holder decree a Heavy levy through the REAL decree (EdictBehavior.Decree): the influence is spent, the game's OWN loyalty model now carries a line named for the edict at -1 a day and its tax model a +25% factor (what the town's tooltip shows). A second edict on the same town and a decree by someone who does not hold it are refused before anything moves. A notable of the town is told the edict in his own prompt. Then the town is made restless with a long grievance and one day runs: its people force the edict off and the loyalty line is gone. Restores the town's loyalty, the holder's influence, and removes the edict and its news", TestEdictEffects),
          new SelfTest("enact_edict", Severity.Light, "Gabriel (21/10/2026): the player decrees edicts for his towns and realm. With a town of the player's (none: skipped, since arranging one is a real settlement transfer that cannot be cleanly undone) and a member of his house to carry it, the verb is taught with the catalogue; a worded decree of Feast days named 'the Test Feast' is asked first, the question naming its effect, term and influence; then the REAL bridge decrees it for the player and the town's own loyalty model names it. An edict outside the catalogue is refused. Removes the edict and its news, restores the influence", TestEnactEdict),
@@ -13978,6 +13979,91 @@ namespace CalradiaRemembers.Diagnostics
       ///   The MCM Test buttons call CrSettings.ConnectionTest and its two siblings, which the submodule sets at load
       ///   (the settings live in Foundation and cannot name Services' tester). Unset, a button would do nothing.
       /// </summary>
+      private static string TestTaleOpenedByScenario(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tale_opened_by_scenario");
+
+         Quests.AuthoredQuestBehavior b = Quests.AuthoredQuestBehavior.Instance;
+         if (t.Skip(b == null || Hero.MainHero == null || behavior?.Store == null, "authored quests are not active")) return t.Line();
+         if (t.Skip(b.ActiveRun is {Status: Logic.AuthoredQuests.AuthoredQuestStatus.Active}, $"a tale is under way ('{b.ActiveRun?.QuestId}')")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && h.Spouse != Hero.MainHero && !h.IsPrisoner
+                                                            && Mapping.ActionGate.Allows(h, Logic.ActionKind.Witness) && h.Clan != Clan.PlayerClan);
+         if (t.Skip(lord == null, "no free lord to play the tale with")) return t.Line();
+
+         const string id = "cr_selftest_night";
+         const string json = @"{ ""id"": ""cr_selftest_night"", ""title"": ""[SELFTEST] A Summons by Night"", ""unique"": false,
+           ""requires"": { ""giver"": { ""role"": ""lord"", ""min_regard"": -100, ""not_at_war_with_player"": false } },
+           ""on_scenario"": { ""invitation"": ""[SELFTEST] {giver} asks to see you."" },
+           ""binds"": { ""giver"": ""a lord"" },
+           ""stages"": [
+             { ""id"": ""summoned"", ""journal"": ""[SELFTEST] {giver} sent for you."", ""objective"": { ""type"": ""talk_to"", ""hero"": ""{giver}"" },
+               ""on_complete"": { ""next"": ""chamber"" } },
+             { ""id"": ""chamber"", ""journal"": ""[SELFTEST] The night."", ""image_pool"": [ ""night_{giver_realm}_a.crvid"", ""night_{giver_realm}_b.crvid"" ],
+               ""objective"": { ""type"": ""talk_to"", ""hero"": ""{giver}"", ""when"": ""closed"" }, ""on_complete"": { ""next"": ""end:dawn"" } } ],
+           ""endings"": { ""dawn"": { ""consequences"": [
+             { ""type"": ""memory"", ""who"": ""{giver}"", ""text"": ""[SELFTEST] warm night"", ""if"": ""regard_rose"" },
+             { ""type"": ""regard"", ""amount"": 5, ""if"": ""regard_rose"" },
+             { ""type"": ""memory"", ""who"": ""{giver}"", ""text"": ""[SELFTEST] cold night"", ""if"": [ ""!regard_rose"", ""!regard_fell"" ] },
+             { ""type"": ""memory"", ""who"": ""{giver}"", ""text"": ""[SELFTEST] bad night"", ""if"": ""regard_fell"" } ] } } }";
+
+         NpcProfile existing = behavior.Store.Get(lord.StringId);
+         bool hadProfile = existing != null;
+         int regardBefore = existing?.ReputationWithPlayer ?? 0;
+         try
+         {
+            t.Expect("theTaleLoads", string.Join(" | ", b.DebugLoadTale(json, "selftest_night.json")), "");
+            b.ForgetPlayed(id);
+
+            var nobody = new Scenarios.ScenarioContext();
+            t.Expect("openTaleCanApply", Scenarios.ScenarioConsequenceExecutor.CanApply(Logic.KeywordToken.Parse("OPEN_TALE:" + id + "," + lord.StringId), nobody), true);
+            t.Expect("chanceOfOneHolds", Scenarios.ScenarioGuardResolver.Resolve(Logic.KeywordToken.Parse("IF_CHANCE:1"), nobody), true);
+            t.Expect("chanceOfZeroNeverHolds", Scenarios.ScenarioGuardResolver.Resolve(Logic.KeywordToken.Parse("IF_CHANCE:0"), nobody), false);
+            if (!Hero.MainHero.IsPrisoner)
+               t.Expect("aFreePlayerHasNoCaptor", Scenarios.ScenarioGuardResolver.Resolve(Logic.KeywordToken.Parse("IF_CAPTOR_IS:" + lord.StringId), nobody), false);
+
+            t.Expect("itOpens", b.DebugOpenFromScenario(id, lord), null);
+            Logic.AuthoredQuests.AuthoredQuestRun run = b.ActiveRun;
+            t.Expect("theStartIsNoted", run?.GiverRegardAtStart, regardBefore);
+            t.Expect("itWaitsInTheChamber", run?.StageId, "chamber");
+            string picked = run != null && run.ImagePicks.TryGetValue("chamber", out string p) ? p : null;
+            t.Note($"{lord.Name}: regard {regardBefore}, picture {picked ?? "(none)"}");
+            t.Expect("aVideoOfThePoolIsChosen", picked != null && picked.StartsWith("night_{giver_realm}_"), true);
+
+            b.DebugConversationOpened(lord);
+            t.Expect("theOpeningDoesNotEndTheNight", b.ActiveRun?.StageId, "chamber");
+
+            NpcProfile profile = behavior.Store.Get(lord.StringId) ?? Mapping.HeroProfileMapper.FromHero(lord);
+            ProfileMutator.ApplyReputationDelta(profile, 4, NpcMemoryService.Core.Standing.RegardCause.SelfTest);
+            behavior.Store.Set(profile);
+            b.DebugConversationEnded(lord);
+
+            NpcProfile after = behavior.Store.Get(lord.StringId);
+            t.Expect("theCloseEndsIt", run?.Status, Logic.AuthoredQuests.AuthoredQuestStatus.Completed);
+            t.Expect("theRegardRose", run?.Flags?.Contains(Logic.AuthoredQuests.TaleRegardFlags.Rose) == true, true);
+            t.Expect("theWarmMemoryAlone", string.Join(" | ", after?.Events.Where(e => e.summary != null && e.summary.Contains("[SELFTEST]")).Select(e => e.summary) ?? new string[0]), "[SELFTEST] warm night");
+            t.Expect("theRewardIsPaid", (after?.ReputationWithPlayer ?? 0) - regardBefore, 9);
+         }
+         finally
+         {
+            if (b.ActiveRun is {Status: Logic.AuthoredQuests.AuthoredQuestStatus.Active}) b.Abandon("Self-test.");
+            NpcProfile profile = behavior.Store.Get(lord.StringId);
+            if (profile != null)
+            {
+               profile.Events.RemoveAll(e => e.summary != null && e.summary.Contains("[SELFTEST]"));
+               ProfileMutator.ApplyReputationDelta(profile, regardBefore - profile.ReputationWithPlayer, NpcMemoryService.Core.Standing.RegardCause.SelfTest);
+               if (hadProfile) behavior.Store.Set(profile);
+               else behavior.Store.Remove(lord.StringId);
+            }
+
+            b.DebugForgetPools(id);
+            b.ForgetPlayed(id);
+            b.DebugForgetTale(id);
+         }
+
+         return t.Line();
+      }
+
       private static string TestTaleKeys(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("tale_keys");

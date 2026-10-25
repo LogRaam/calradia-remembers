@@ -9,6 +9,7 @@ using CalradiaRemembers.Logic;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.Party;
 
 #endregion
 
@@ -29,7 +30,13 @@ namespace CalradiaRemembers.Scenarios
       }
 
       /// <summary>The triggers this behavior feeds; a pack naming any other never fires (checked by cr.testall scenario_packs).</summary>
-      public static readonly IReadOnlyCollection<string> KnownTriggers = new[] {"ON_DEATH", "ON_MARRIAGE", "ON_WAR_DECLARED", "ON_PEACE", "ON_TALE"};
+      public static readonly IReadOnlyCollection<string> KnownTriggers = new[] {"ON_DEATH", "ON_MARRIAGE", "ON_WAR_DECLARED", "ON_PEACE", "ON_TALE", "ON_CAPTIVE_NIGHT"};
+
+      /// <summary>The hour of the night ON_CAPTIVE_NIGHT is fired at, once a night.</summary>
+      public const int CaptiveNightHour = 23;
+
+      // The day ON_CAPTIVE_NIGHT last fired (transient: a load fires that night again at most).
+      private int _captiveNightDay = -1;
 
       /// <summary>
       ///   A tale reached a stage, or an ending ("end:&lt;id&gt;"): ON_TALE:&lt;tale&gt;:&lt;where&gt;, carrying the tale's roles
@@ -88,6 +95,18 @@ namespace CalradiaRemembers.Scenarios
          CampaignEvents.BeforeHeroesMarried.AddNonSerializedListener(this, OnHeroesMarried);
          CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
          CampaignEvents.MakePeace.AddNonSerializedListener(this, OnMakePeace);
+         CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
+      }
+
+      /// <summary>
+      ///   What a night in captivity is about (Gabriel, 24/10/2026: the night Rhagaea sends for her prisoner): the player, held
+      ///   by the realm that holds him. Shared with cr.testall.
+      /// </summary>
+      public static ScenarioContext ForCaptiveNight()
+      {
+         PartyBase holder = Hero.MainHero?.PartyBelongedToAsPrisoner;
+
+         return new ScenarioContext(HeroList(Hero.MainHero), FactionList(holder?.MapFaction));
       }
 
       public override void SyncData(IDataStore dataStore)
@@ -171,6 +190,17 @@ namespace CalradiaRemembers.Scenarios
       {
          if (victim == null) return;
          Fire(KeywordToken.Parse("ON_DEATH"), ForDeath(victim, killer));
+      }
+
+      // ON_CAPTIVE_NIGHT: once a night, at the hour the castle sleeps, while the player is a prisoner.
+      private void OnHourlyTick()
+      {
+         if (Hero.MainHero?.IsPrisoner != true || !CampaignTime.Now.IsNightTime || (int) CampaignTime.Now.CurrentHourInDay != CaptiveNightHour) return;
+
+         var today = (int) CampaignTime.Now.ToDays;
+         if (today == _captiveNightDay) return;
+         _captiveNightDay = today;
+         Fire(KeywordToken.Parse("ON_CAPTIVE_NIGHT"), ForCaptiveNight());
       }
 
       private void OnMakePeace(IFaction faction1, IFaction faction2, MakePeaceAction.MakePeaceDetail detail)

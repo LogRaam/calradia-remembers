@@ -46,7 +46,16 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       public static readonly IReadOnlyList<string> HazardEffects = new[] {"injure", "alert", "lose_time"};
 
       /// <summary>The consequences the game carries out.</summary>
-      public static readonly IReadOnlyList<string> ConsequenceTypes = new[] {"memory", "world_event", "grudge", "conception", "elope", "return_spouse", "item"};
+      public static readonly IReadOnlyList<string> ConsequenceTypes = new[] {"memory", "world_event", "grudge", "conception", "elope", "return_spouse", "item", "regard"};
+
+      /// <summary>
+      ///   Flags the game sets itself as the tale ends, which no choice sets (Gabriel, 24/10/2026: a night went well when the
+      ///   giver's regard rose); see TaleRegardFlags.
+      /// </summary>
+      public static readonly IReadOnlyList<string> BuiltInFlags = new[] {TaleRegardFlags.Rose, TaleRegardFlags.Fell};
+
+      /// <summary>When a talk_to completes its stage: as the conversation opens (the default), or as it ends.</summary>
+      public static readonly IReadOnlyList<string> TalkMoments = new[] {"opened", "closed"};
 
       /// <summary>Who may give a tale (anything else is read as "any").</summary>
       public static readonly IReadOnlyList<string> GiverRoles = new[] {"lord", "notable", "gang_leader", "spouse", "companion", "any"};
@@ -207,6 +216,8 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
                blocking.Add($"consequence '{c.Type}' names the giver's husband, but no husband is bound: add \"husband\" to \"requires\".");
             // Items in tales (tashmetu, 20/10/2026): what is given is named, in a count the game can carry.
             if (c?.Type == "item") blocking.AddRange(TaleItemPolicy.ShapeProblems($"consequence '{c.Type}'", "item", c.Item, c.Count));
+            if (c?.Type == "regard" && (c.Amount == 0 || c.Amount < -100 || c.Amount > 100))
+               blocking.Add($"consequence 'regard' moves regard by {c.Amount}, which must be from -100 to 100 and not 0.");
             if (c != null && !TaleConceptionPolicy.IsAChance(c.Chance))
                blocking.Add($"consequence '{c.Type}' has a chance of {c.Chance.ToString(CultureInfo.InvariantCulture)}, which must be from 0 to 1.");
          }
@@ -231,6 +242,13 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
                blocking.Add($"on_map.chance_per_day {onMap.ChancePerDay.ToString(CultureInfo.InvariantCulture)} must be above 0 and at most 1.");
             if (onMap.StillHours < 0) blocking.Add($"on_map.still_hours {onMap.StillHours} cannot be below 0.");
             if (string.IsNullOrWhiteSpace(onMap.Invitation)) blocking.Add("on_map.invitation is empty: the popup would ask the player nothing.");
+         }
+
+         // A tale only a scenario opens (Gabriel, 24/10/2026): one way in, and a popup that says something.
+         if (q.OnScenario != null)
+         {
+            if (onMap != null) blocking.Add("on_scenario and on_map both say how the tale begins: keep one.");
+            if (string.IsNullOrWhiteSpace(q.OnScenario.Invitation)) blocking.Add("on_scenario.invitation is empty: the popup would ask the player nothing.");
          }
 
          string gender = q.Requires?.Giver?.Gender;
@@ -466,7 +484,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>A flag tested but set nowhere never holds: the author is told, since a choice or a line under it is dead.</summary>
       private static void ValidateFlags(AuthoredQuest q, List<string> cosmetic)
       {
-         var set = new HashSet<string>(StringComparer.Ordinal);
+         var set = new HashSet<string>(BuiltInFlags, StringComparer.Ordinal);
          var tested = new List<string>();
 
          void Tests(IEnumerable<string> conditions)
@@ -551,6 +569,8 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          {
             case "talk_to":
                if (string.IsNullOrWhiteSpace(o.Hero)) blocking.Add($"{where}: talk_to needs \"hero\".");
+               if (!string.IsNullOrWhiteSpace(o.When) && !TalkMoments.Contains(o.When.Trim().ToLowerInvariant()))
+                  blocking.Add($"{where}: talk_to \"when\" '{o.When}' is neither {string.Join(" nor ", TalkMoments)}.");
                break;
             case "talk_to_locals":
             case "be_at":

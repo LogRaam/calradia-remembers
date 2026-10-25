@@ -53,7 +53,16 @@
       "conception",
       "elope",
       "return_spouse",
-      "item"
+      "item",
+      "regard"
+    ],
+    "BuiltInFlags": [
+      "regard_rose",
+      "regard_fell"
+    ],
+    "TalkMoments": [
+      "opened",
+      "closed"
     ],
     "GiverRoles": [
       "lord",
@@ -160,6 +169,11 @@
           "$ref": "#/$defs/AuthoredMapTrigger",
           "x-kind": "object:AuthoredMapTrigger",
           "description": "The tale begins by itself on the map, never in a conversation: when the player's party has stood still long enough, by day, in the giver's own lands, on a chance each day. The giver must travel with the player (requires.giver.with_player)."
+        },
+        "on_scenario": {
+          "$ref": "#/$defs/AuthoredScenarioTrigger",
+          "x-kind": "object:AuthoredScenarioTrigger",
+          "description": "The tale is opened only by a scenario rule (OPEN_TALE), never offered in a conversation nor begun on the map: the rule names the giver, and a popup asks the player."
         },
         "binds": {
           "type": [
@@ -325,6 +339,41 @@
         }
       }
     },
+    "AuthoredScenarioTrigger": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "The popup a scenario-opened tale shows (OPEN_TALE; Gabriel, 24/10/2026).",
+      "properties": {
+        "invitation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The popup's text, which sets the scene; {giver} is filled with the giver's name."
+        },
+        "accept": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The popup's yes, which begins the tale and opens the conversation with the giver.",
+          "default": "Go to them"
+        },
+        "decline": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The popup's no: nothing is lost, and the tale may come back after a season.",
+          "default": "Not now"
+        }
+      }
+    },
     "AuthoredStage": {
       "type": [
         "object",
@@ -355,6 +404,12 @@
           ],
           "x-kind": "string",
           "description": "An image file of the tale's own folder (.png or .jpg), or a video (.crvid, whose first frame is its picture), opened beside the chat when this stage's scene opens, or a conversation of this stage (with its characters or the people of its place)."
+        },
+        "image_pool": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "Several pictures or videos for this stage: each time the tale is played, one the player has not seen yet is chosen (all seen, they start over), and it holds for the whole tale. It stands in for \"image\".",
+          "x-default-empty": true
         },
         "objective": {
           "$ref": "#/$defs/AuthoredObjective",
@@ -762,6 +817,19 @@
           "x-kind": "string",
           "description": "talk_to: the character, as a role (\"{giver}\"). war_ends, dies, weds_player: the person the world is watched for."
         },
+        "when": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "talk_to: \"opened\" (the default) completes the stage as the conversation opens; \"closed\" when it ends, so the whole conversation belongs to the stage and its ending sees what came of it.",
+          "enum": [
+            "opened",
+            "closed"
+          ],
+          "x-closed-list": "TalkMoments"
+        },
         "place": {
           "type": [
             "string",
@@ -968,7 +1036,7 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "memory, world_event, grudge, conception, elope (she leaves her husband with the player), return_spouse (she goes back to him) or item (the player is given an item).",
+          "description": "memory, world_event, grudge, conception, elope (she leaves her husband with the player), return_spouse (she goes back to him), item (the player is given an item) or regard (someone's regard for the player moves by amount).",
           "enum": [
             "memory",
             "world_event",
@@ -976,7 +1044,8 @@
             "conception",
             "elope",
             "return_spouse",
-            "item"
+            "item",
+            "regard"
           ],
           "x-closed-list": "ConsequenceTypes"
         },
@@ -986,7 +1055,7 @@
             "null"
           ],
           "x-kind": "string",
-          "description": "memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role. conception: the player's partner, a role ({giver} when empty). elope, return_spouse: the lady who leaves or goes back ({giver} when empty)."
+          "description": "memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role. conception: the player's partner, a role ({giver} when empty). elope, return_spouse: the lady who leaves or goes back ({giver} when empty). regard: whose regard moves, a role ({giver} when empty)."
         },
         "text": {
           "type": [
@@ -1053,6 +1122,12 @@
           "x-kind": "int",
           "description": "item: how many are given (1 to 200).",
           "default": 1
+        },
+        "amount": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "regard: how far their regard for the player moves (negative lowers it), -100 to 100, never 0.",
+          "default": 0
         },
         "if": {
           "$ref": "#/$defs/flags",

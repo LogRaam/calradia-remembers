@@ -74,6 +74,15 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>The flags set so far in this run (branching tales, 04/10/2026; absent from a run saved before).</summary>
       public List<string> Flags { get; set; } = new();
 
+      /// <summary>
+      ///   The giver's regard for the player when the tale began (Gabriel, 24/10/2026: a night went well when the regard rose);
+      ///   null on a run saved before it was kept. See TaleRegardFlags.
+      /// </summary>
+      public int? GiverRegardAtStart { get; set; }
+
+      /// <summary>The picture or video chosen from each stage's image_pool for this playing of the tale, by stage id.</summary>
+      public Dictionary<string, string> ImagePicks { get; set; } = new();
+
       /// <summary>Every choice taken, as "stage/choice", in the order taken: the path the player walked.</summary>
       public List<string> ChoicesTaken { get; set; } = new();
 
@@ -293,7 +302,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          foreach (AuthoredWay way in ways)
          {
             bool met = way.Objective.Type switch {
-               "talk_to" => heroId == Bound(run, way.Objective.Hero),
+               "talk_to" => heroId == Bound(run, way.Objective.Hero) && !EndsOnClose(way.Objective),
                "return" => heroId == Bound(run, "{giver}"),
 
                // The one whose conversation completes the questioning still speaks from it (Gabriel's play test, 04/10/2026:
@@ -328,6 +337,23 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
          return s == null || way == null ? AuthoredStep.Nothing : Spoken(run, q, s, way, heroId, today);
       }
+
+      /// <summary>
+      ///   The conversation with this hero ended: a talk_to that completes on the close ("when": "closed") is met now, so
+      ///   everything said in it already counts (Gabriel, 24/10/2026: a night judged by what it left).
+      /// </summary>
+      public static AuthoredStep ConversationEnded(AuthoredQuestRun run, AuthoredQuest q, string heroId, int today)
+      {
+         AuthoredStage s = Active(run, q);
+         if (s == null || string.IsNullOrEmpty(heroId)) return AuthoredStep.Nothing;
+
+         AuthoredWay way = Ways(run, q).FirstOrDefault(w => w.Objective.Type == "talk_to" && EndsOnClose(w.Objective) && heroId == Bound(run, w.Objective.Hero));
+
+         return way == null ? AuthoredStep.Nothing : GoTo(run, q, s, way.Choice, way.Next, today);
+      }
+
+      /// <summary>A talk_to that completes its stage when the conversation ends rather than when it opens.</summary>
+      public static bool EndsOnClose(AuthoredObjective o) => string.Equals(o?.When?.Trim(), "closed", StringComparison.OrdinalIgnoreCase);
 
       /// <summary>The conversation with this hero closed: they stop speaking of the stage it completed.</summary>
       public static void ConversationClosed(AuthoredQuestRun run, string heroId)

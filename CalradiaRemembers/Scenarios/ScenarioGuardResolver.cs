@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
 
 #endregion
 
@@ -21,7 +22,7 @@ namespace CalradiaRemembers.Scenarios
       public static readonly IReadOnlyCollection<string> KnownVerbs = new[]
       {
          "IF_PLAYER_RULES", "IF_PLAYER_IS_FEMALE", "IF_PLAYER_IS_MALE", "IF_PLAYER_INVOLVED", "IF_HERO_IS", "IF_PLAYER_AT_WAR",
-         "IF_AT_WAR", "IF_AT_PEACE", "IF_ALIVE", "IF_KINGDOM_EXISTS", "IF_RULES"
+         "IF_AT_WAR", "IF_AT_PEACE", "IF_ALIVE", "IF_KINGDOM_EXISTS", "IF_RULES", "IF_CAPTOR_IS", "IF_PRESENT", "IF_CHANCE"
       };
 
       public static bool Resolve(KeywordToken guard, ScenarioContext context)
@@ -42,6 +43,10 @@ namespace CalradiaRemembers.Scenarios
             case "IF_ALIVE":            return Mapping.HeroPresence.IsInTheWorld(context.ResolveHero(guard.Payload));
             case "IF_KINGDOM_EXISTS":   return context.ResolveFaction(guard.Payload) is Kingdom k && !k.IsEliminated;
             case "IF_RULES":            return Rules(guard, context);
+            // Gabriel (24/10/2026, the night Rhagaea sends for her prisoner): who holds the player, who is there, and a chance.
+            case "IF_CAPTOR_IS":        return CaptorIs(context.ResolveHero(guard.Payload));
+            case "IF_PRESENT":          return Present(context.ResolveHero(guard.Payload));
+            case "IF_CHANCE":           return Logic.Scenarios.ScenarioArgs.ChanceHolds(guard.Payload, TaleWorlds.Core.MBRandom.RandomFloat);
             default:
                ModLog.Info($"[SCENARIO] unknown guard '{guard.Verb}' — treated as failing (rule will not fire).");
                return false;
@@ -66,6 +71,25 @@ namespace CalradiaRemembers.Scenarios
          Kingdom kingdom = guard.Args.Count > 1 ? context.ResolveFaction(guard.Args[1]) as Kingdom : null;
 
          return hero != null && kingdom != null && !kingdom.IsEliminated && kingdom.Leader == hero;
+      }
+
+      // The player is a prisoner of this hero's house: in a dungeon of a town or castle the house holds, or in a party one of
+      // its members leads.
+      private static bool CaptorIs(Hero hero)
+      {
+         PartyBase holder = Hero.MainHero?.IsPrisoner == true ? Hero.MainHero.PartyBelongedToAsPrisoner : null;
+         if (hero?.Clan == null || holder == null) return false;
+
+         return holder.IsSettlement ? holder.Settlement?.OwnerClan == hero.Clan : holder.LeaderHero?.Clan == hero.Clan;
+      }
+
+      // This hero is where the captive player is held: in the same town or castle, or in the party that holds him.
+      private static bool Present(Hero hero)
+      {
+         PartyBase holder = Hero.MainHero?.IsPrisoner == true ? Hero.MainHero.PartyBelongedToAsPrisoner : null;
+         if (hero == null || holder == null || !Mapping.HeroPresence.IsInTheWorld(hero) || hero.IsPrisoner) return false;
+
+         return holder.IsSettlement ? hero.CurrentSettlement == holder.Settlement : hero.PartyBelongedTo != null && hero.PartyBelongedTo.Party == holder;
       }
 
       private static bool PlayerRules()

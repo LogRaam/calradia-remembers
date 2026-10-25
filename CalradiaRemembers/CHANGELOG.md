@@ -2,6 +2,23 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.7.21.. open
+
+### For modders
+- **A tale a scenario opens, judged by what it left** (Gabriel 24/10, for the night Rhagaea sends for her prisoner).
+  Scenarios: trigger `ON_CAPTIVE_NIGHT` (once a night, at 23:00, while the player is a prisoner); guards
+  `IF_CAPTOR_IS:hero` (the player is held by that hero's house, in a town or castle it holds or a party it leads),
+  `IF_PRESENT:hero` (that hero is where the player is held), `IF_CHANCE:p` (a roll below p; no number, never);
+  consequence `OPEN_TALE:tale,giver` (a tale with `on_scenario`, by its popup, its own rules holding). Tales:
+  `on_scenario` (only a rule opens it; never with `on_map`); `talk_to` with `"when": "closed"` completes as the
+  conversation ends, so all of it counts; the game sets `regard_rose` / `regard_fell` as a tale ends, from the giver's
+  regard when it began (`AuthoredQuestRun.GiverRegardAtStart`, `TaleRegardFlags`); consequence `regard` (`who`,
+  `amount`, under `if`); a stage's `image_pool` shows one picture or video not yet seen each time the tale is played
+  (`TaleImagePool`, shown pictures kept in the save, additive key).
+  Editor, schema, HOWTO_Quests, EXTENSION_API and the Scenario Composer updated; two editor fixtures. cr.testall
+  `tale_opened_by_scenario`. Engine spike `cr.captive_talk_probe` (24/10: a conversation opens while the player is held
+  in a town's dungeon and the captivity survives it; the backdrop is the map conversation's throne room).
+
 ## v2.7.20.. 2026-10-24
 
 ### New

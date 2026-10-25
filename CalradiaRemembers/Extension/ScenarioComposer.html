@@ -102,7 +102,8 @@ const VOCAB = {
     { key:"ON_MARRIAGE",     desc:"Two heroes wed. Scope with IF_HERO_IS / IF_PLAYER_INVOLVED." },
     { key:"ON_WAR_DECLARED", desc:"War was declared between two factions." },
     { key:"ON_PEACE",        desc:"Peace was made between two factions." },
-    { key:"ON_TALE",         ph:"cr_kings_hall:end:eloped", desc:"A written tale reached a stage, or an ending (end:<ending>). Name the tale alone to answer all of it. The tale's people are roles: {giver}, {husband}, {rival}, {player}." }
+    { key:"ON_TALE",         ph:"cr_kings_hall:end:eloped", desc:"A written tale reached a stage, or an ending (end:<ending>). Name the tale alone to answer all of it. The tale's people are roles: {giver}, {husband}, {rival}, {player}." },
+    { key:"ON_CAPTIVE_NIGHT", desc:"Once a night (at 23:00) while the player is a prisoner. Scope with IF_CAPTOR_IS, IF_PRESENT and IF_CHANCE." }
   ],
   guards: [
     { key:"IF_HERO_IS",         args:[{n:"hero", ph:"e.g. lord_1_14 (Rhagaea)"}],   desc:"The event is about this hero (a death: the one who died; a marriage: either spouse). Prefer the game id: names are translated." },
@@ -115,7 +116,10 @@ const VOCAB = {
     { key:"IF_AT_PEACE",        args:[{n:"faction A",ph:"e.g. empire"},{n:"faction B",ph:"e.g. empire_s"}], fmt:"comma", desc:"These two factions are at peace." },
     { key:"IF_ALIVE",           args:[{n:"hero", ph:"e.g. lord_1_14, or PLAYER"}], desc:"This hero is alive (and not disabled)." },
     { key:"IF_KINGDOM_EXISTS",  args:[{n:"kingdom", ph:"e.g. empire_s"}], desc:"This kingdom still stands (not eliminated)." },
-    { key:"IF_RULES",           args:[{n:"hero",ph:"e.g. lord_1_14, or {husband}"},{n:"kingdom",ph:"e.g. empire_s; empty: his own"}], fmt:"comma", desc:"This hero rules this kingdom (left empty: the kingdom he belongs to)." }
+    { key:"IF_RULES",           args:[{n:"hero",ph:"e.g. lord_1_14, or {husband}"},{n:"kingdom",ph:"e.g. empire_s; empty: his own"}], fmt:"comma", desc:"This hero rules this kingdom (left empty: the kingdom he belongs to)." },
+    { key:"IF_CAPTOR_IS",       args:[{n:"hero",ph:"e.g. lord_1_14 (Rhagaea)"}], desc:"The player is a prisoner of this hero's house: in a town or castle it holds, or a party one of its members leads." },
+    { key:"IF_PRESENT",         args:[{n:"hero",ph:"e.g. lord_1_14 (Rhagaea)"}], desc:"This hero is where the captive player is held: the same town or castle, or the party that holds him." },
+    { key:"IF_CHANCE",          args:[{n:"chance",ph:"e.g. 0.25"}], desc:"Holds on a roll below the chance (0 to 1), asked each time the rule is weighed. A chance that is no number never holds." }
   ],
   consequences: [
     { key:"DECLARE_WAR",     args:[{n:"faction A",ph:"e.g. empire (Northern Empire)"},{n:"faction B",ph:"e.g. empire_s (Southern Empire)"}], fmt:"comma",  desc:"Start a war between two factions." },
@@ -123,7 +127,8 @@ const VOCAB = {
     { key:"CHANGE_RELATION", args:[{n:"hero",ph:"name, id, or PLAYER"},{n:"delta",ph:"e.g. +10"}],                       fmt:"reldelta",desc:"Shift the player's relation with a hero." },
     { key:"CHANGE_INFLUENCE",args:[{n:"hero",ph:"PLAYER, or a hero (their clan)"},{n:"delta",ph:"e.g. +50"}],            fmt:"reldelta",desc:"Change a hero's clan influence (PLAYER = your clan)." },
     { key:"INJECT_MEMORY",   args:[{n:"hero",ph:"name or id"},{n:"text",ph:"what they now remember"}],                   fmt:"targetrest",desc:"Plant a memory on an NPC so they reference it in conversation." },
-    { key:"PRESS_FOR_WAR",   args:[{n:"who presses",ph:"e.g. {husband}"},{n:"against",ph:"e.g. {player} (their realm)"}], fmt:"comma",  desc:"A lord presses his king toward war against a realm; the king weighs it (his regard for him, his open wars, the strength he would face). A king pressing himself declares." }
+    { key:"PRESS_FOR_WAR",   args:[{n:"who presses",ph:"e.g. {husband}"},{n:"against",ph:"e.g. {player} (their realm)"}], fmt:"comma",  desc:"A lord presses his king toward war against a realm; the king weighs it (his regard for him, his open wars, the strength he would face). A king pressing himself declares." },
+    { key:"OPEN_TALE",       args:[{n:"tale id",ph:"e.g. rhagaea_night"},{n:"giver",ph:"e.g. lord_1_14 (Rhagaea)"}], fmt:"comma", desc:"Opens a written tale that has on_scenario, with this giver, by its popup. The tale's own rules hold (the giver's conditions, its content level, once or again after its cooldown, never while another tale is under way)." }
   ]
 };
 

@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (103)
+## Keys (104)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -99,6 +99,7 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_StolenLoveEstrangement_v1bytes` | `NpcMarriageEstrangementBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_SwayExposure_v1bytes` | `SwayExposureBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_TakenFromFoe_v1` | `RescueBehavior` | constant `TakenFromFoeSaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_TaleImagePoolShown_v1` | `AuthoredQuestBehavior` | constant `PoolShownKey` passed to SyncData (fact) |
 | `CalradiaRemembers_TaleReturnsWaiting_v1` | `AuthoredQuestBehavior` | constant `PendingReturnsKey` passed to SyncData (fact) |
 | `CalradiaRemembers_TournamentRivalry_v1bytes` | `TournamentRivalryBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_TraumaLedger_v1` | `TraumaLedgerBehavior` | constant `SaveKey` passed to SyncData (fact) |

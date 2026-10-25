@@ -147,6 +147,14 @@ reference to CR. Packs are read in this order: CR's own (`ModuleData/scenarios`)
   The rule's message names them too ("{husband}'s realm goes to war"). `PRESS_FOR_WAR:{husband},{player}`: a lord
   presses his king toward war; the king weighs his regard for him, the wars he already fights and the strength he
   would face, and declares or not (a king pressing himself declares).
+- **A night in captivity, and a tale a rule opens** (since 2.7.21): `ON_CAPTIVE_NIGHT` fires once a night (at 23:00)
+  while the player is a prisoner. `IF_CAPTOR_IS:hero` holds when the player is a prisoner of that hero's house (in a town
+  or castle it holds, or in a party one of its members leads); `IF_PRESENT:hero` when that hero is where the player is
+  held; `IF_CHANCE:0.25` on a roll below the chance (a chance that is no number never holds). `OPEN_TALE:tale,giver`
+  opens a written tale that has `on_scenario` (HOWTO_Quests.md), with that giver, by its popup; the tale's own rules
+  hold, and the rule does not play when they refuse it. Rhagaea's night, written as a rule:
+  `ON_CAPTIVE_NIGHT` with `IF_CAPTOR_IS:lord_1_14`, `IF_PRESENT:lord_1_14`, `IF_CHANCE:0.25`, then
+  `OPEN_TALE:rhagaea_night,lord_1_14`.
 
 ### Tale progress (`CalradiaRemembers.CrTales`, since 2.7.12)
 

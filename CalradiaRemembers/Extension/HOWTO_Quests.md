@@ -178,6 +178,21 @@ come to find them. No costs nothing, and the tale may come back after a season. 
 | `chance_per_day` | Above 0, at most 1. Default 0.15. |
 | `invitation`, `accept`, `decline` | The popup's text and its two answers. `{giver}` is filled. |
 
+### A tale a scenario opens: `on_scenario` (since 2.7.21)
+
+```json
+"on_scenario": {
+  "invitation": "The bolt slides back. A lady stands in the torchlight: {giver} asks to see you.",
+  "accept": "Follow her", "decline": "Stay in your cell"
+}
+```
+
+Such a tale is never offered in a conversation nor begun on the map: a scenario rule opens it with `OPEN_TALE:<tale
+id>,<giver>` (EXTENSION_API.md, scenarios), naming who gives it. The tale's own `requires` still hold for that giver
+(her regard, her sex, the content level), as do `unique` and `repeat_cooldown_days`, and nothing opens while another
+tale is under way. A popup shows `invitation`; yes begins the tale, its first stage being the invitation itself, and
+opens the conversation with the giver; no costs nothing for a season. A tale has `on_map` or `on_scenario`, not both.
+
 When the quest is offered, each role is bound to a real hero or place, and every `{role}` in your
 text is filled with its name. The roles the game binds are `{giver}`, `{village}` (with
 `requires.village`) and `{rival}` (with `requires.rival`). List every role you use under `binds`,
@@ -252,6 +267,11 @@ in the top-left corner, so the character stays in view. A click on it enlarges i
 played in Vlandia. Put one file per realm in the tale's folder; a realm with no file shows no picture.
 `{giver_realm}` in a line of text names the realm.
 
+**A new picture each time** (since 2.7.21): `"image_pool": ["night_1.crvid", "night_2.crvid", "night_3.crvid"]` on a
+stage gives several pictures or videos. Each time the tale is played, one the player has not seen yet is chosen, and it
+holds for the whole tale; once every one was seen, they start over. It stands in for `"image"`. For a tale that comes
+back (`"unique": false` with a `repeat_cooldown_days`).
+
 **A picture that moves** (since 2.7.9): the image may be a video, a `.crvid` (CR's own format: the frames as JPEG in a
 zip, with a small manifest). Its first frame IS its picture. It plays once where the picture would show, then rests on its
 first frame; PLAY, STOP and LOOP (on/off) sit at its bottom-right corner. On the Classic skin the first frame shows still.
@@ -264,7 +284,7 @@ rounds the frame to whole pixels and the picture trembles; zoom with sub-pixel p
 
 | `type` | Done when | Fields |
 |---|---|---|
-| `talk_to` | The player opens a conversation with that hero. | `hero`: a role, `"{giver}"` or `"{rival}"` |
+| `talk_to` | The player opens a conversation with that hero. With `"when": "closed"` (since 2.7.21), the stage completes when that conversation ENDS, so everything said in it counts first (the regard the giver gained or lost, for `regard_rose`). | `hero`: a role, `"{giver}"` or `"{rival}"`; `when`: `opened` (the default) or `closed` |
 | `return` | The player speaks with the giver again. | none |
 | `talk_to_locals` | The player has spoken with `count` different notables of the place. | `place`, `count` |
 | `be_at` | The player's party comes within `radius` of the place. | `place`, `radius` (default 5) |
@@ -430,7 +450,7 @@ reaches. `failure` is what the tale leaves when its time runs out before any end
 | `journal` | The last line written in the journal when the tale ends this way. |
 | `consequences` | `memory`: `who` (a role or `locals_of:{place}`) remembers `text`. A `locals_of` memory leaves out anyone the same ending already gives a memory to by name (the giver, when the ending has a `memory`, or a role with a `memory` of its own), so a giver who lives in that place does not remember the moment twice. `world_event`: news that spreads through the realm (`summary`, `magnitude` 0 to 100, `place`). `grudge`: `who` (a role) holds `text`, the cause in their words, `against` another role, `magnitude` 0 to 100 deep (30 when left out); it fades with time like every grudge. `conception`: a chance of a child between the player and `who` (a role, `{giver}` when left out), `chance` 0 to 1 (the game's own 0.15 when left out); the woman of the two carries it, through the same conception as every intimate scene (of age, not already with child, the Life and Death Cycle on), and two women or two men conceive nothing. `elope`: `who` (the giver when left out) leaves her husband `spouse` (`{husband}` when left out) with the player: her marriage ends through the game's own divorce, she rides in the player's party as a guest and may later marry the player, and her husband holds a grudge; nothing happens if the marriage cannot end (she is with child, a captive, or leads her house). `item` (since 2.7.19): the player is given `count` (1 when left out, at most 200) of `item`, one item by its id
 (`"wine"`, `"sumpter_horse"`), into the party's baggage; a kind or a category is refused, since "a horse" would be
-whichever horse the game loaded first. `return_spouse`: she goes back to him, wed again, and leaves the player's party; nothing happens if either has wed someone else, or if she now heads a house of her own. If he is away on campaign (in an army or a battle) or either is a captive, she goes to his house's home and the wedding waits, tried again each day for up to 60 days. Any of them may carry `if`: it is carried out only when its flags hold. |
+whichever horse the game loaded first. `return_spouse`: she goes back to him, wed again, and leaves the player's party; nothing happens if either has wed someone else, or if she now heads a house of her own. If he is away on campaign (in an army or a battle) or either is a captive, she goes to his house's home and the wedding waits, tried again each day for up to 60 days. `regard` (since 2.7.21): the regard of `who` (a role, `{giver}` when left out) for the player moves by `amount` (-100 to 100, never 0), on CR's own ledger; unlike an ending's own `regard`, it may carry `if`, so a reward only some paths earn. Any of them may carry `if`: it is carried out only when its flags hold. |
 | `failure.days` | The tale fails that many days after it was accepted. Without it, the tale never fails on its own. |
 
 Every ending closes the journal entry as completed; the time-out closes it as failed.
@@ -457,6 +477,10 @@ text.
   them). A required finding told when a scene closes sets its flags too.
 - **Tested** by `"if"`: `"saw_light"` holds when the flag is set, `"!saw_light"` when it is not. A
   list (`["saw_light", "!refused"]`) holds when every name in it does.
+- **Set by the game as the tale ends** (since 2.7.21): `regard_rose` when the giver holds the player higher than when
+  the tale began, `regard_fell` when lower, neither when unmoved. An ending's consequences may test them (a warm memory
+  under `regard_rose`, a cold one under `regard_fell`, a neutral one under `["!regard_rose", "!regard_fell"]`). No choice
+  sets them, and they are not read before the ending.
 
 `if` works on choices (open or not), on knower lines, canvas and fact lines, and on consequences. A
 line may be a plain string, or an object with a condition:

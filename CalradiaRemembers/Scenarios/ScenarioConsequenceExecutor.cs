@@ -26,8 +26,14 @@ namespace CalradiaRemembers.Scenarios
       /// <summary>The consequences <see cref="Execute" /> performs; any other is skipped (checked by cr.testall scenario_packs).</summary>
       public static readonly IReadOnlyCollection<string> KnownVerbs = new[]
       {
-         "DECLARE_WAR", "MAKE_PEACE", "CHANGE_RELATION", "CHANGE_INFLUENCE", "INJECT_MEMORY", "PRESS_FOR_WAR"
+         "DECLARE_WAR", "MAKE_PEACE", "CHANGE_RELATION", "CHANGE_INFLUENCE", "INJECT_MEMORY", "PRESS_FOR_WAR", "OPEN_TALE"
       };
+
+      /// <summary>
+      ///   Opens a written tale with a giver (OPEN_TALE), set by the authored quests behaviour so the scenarios never depend on
+      ///   it: (tale id, giver, dry run) returns null when the tale opens (or would), else why not.
+      /// </summary>
+      public static Func<string, Hero, bool, string> TaleOpener { get; set; }
 
       /// <summary>
       ///   Whether the consequence can really apply in the world as it is now (Gabriel, 11/10/2026: a rule plays only when
@@ -55,6 +61,8 @@ namespace CalradiaRemembers.Scenarios
                case "CHANGE_INFLUENCE":
                   return ScenarioArgs.TryParseTargetDelta(consequence.Payload, out string whose, out int amount) && amount != 0
                          && context.ResolveHero(whose)?.Clan != null;
+               case "OPEN_TALE":
+                  return OpenTale(consequence, context, dryRun: true);
                case "INJECT_MEMORY":
                   return ScenarioArgs.TryParseTargetRest(consequence.Payload, out string target, out _)
                          && context.ResolveHero(target) is { } remembers && remembers != Hero.MainHero
@@ -93,6 +101,7 @@ namespace CalradiaRemembers.Scenarios
                case "CHANGE_RELATION":  ChangeRelation(consequence, context); break;
                case "CHANGE_INFLUENCE": ChangeInfluence(consequence, context); break;
                case "INJECT_MEMORY":    InjectMemory(consequence, context); break;
+               case "OPEN_TALE":        OpenTale(consequence, context, dryRun: false); break;
                default:
                   ModLog.Info($"[SCENARIO] unknown consequence '{consequence.Verb}' — skipped.");
                   break;
@@ -191,6 +200,21 @@ namespace CalradiaRemembers.Scenarios
 
          ChangeClanInfluenceAction.Apply(clan, delta);
          ModLog.Info($"[SCENARIO] CHANGE_INFLUENCE: {clan.Name} {(delta >= 0 ? "+" : "")}{delta}.");
+      }
+
+      // OPEN_TALE:tale_id,Giver (Gabriel, 24/10/2026: a scenario opens the night Rhagaea sends for her prisoner): the tale's
+      // popup opens with that giver, when the tale's own rules allow it.
+      private static bool OpenTale(KeywordToken c, ScenarioContext ctx, bool dryRun)
+      {
+         string taleId = c.Args.Count > 0 ? c.Args[0] : null;
+         Hero giver = c.Args.Count > 1 ? ctx.ResolveHero(c.Args[1]) : null;
+         if (string.IsNullOrWhiteSpace(taleId) || giver == null || TaleOpener == null) return false;
+
+         string whyNot = TaleOpener(taleId.Trim(), giver, dryRun);
+         if (whyNot != null && !dryRun) ModLog.Info($"[SCENARIO] OPEN_TALE '{taleId}' with {giver.Name}: not opened, {whyNot}.");
+         if (whyNot == null && !dryRun) ModLog.Info($"[SCENARIO] OPEN_TALE '{taleId}' with {giver.Name}.");
+
+         return whyNot == null;
       }
 
       // INJECT_MEMORY:Ref:text: record a memory on an NPC's profile so they reference it in conversation (the "Calradia

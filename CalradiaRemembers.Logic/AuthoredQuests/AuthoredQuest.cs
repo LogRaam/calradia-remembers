@@ -44,6 +44,13 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [QuestField("The tale begins by itself on the map, never in a conversation: when the player's party has stood still long enough, by day, in the giver's own lands, on a chance each day. The giver must travel with the player (requires.giver.with_player).")]
       [JsonProperty("on_map")] public AuthoredMapTrigger OnMap { get; set; }
 
+      /// <summary>
+      ///   Gabriel (24/10/2026, the night Rhagaea sends for her prisoner): a tale only a scenario opens (OPEN_TALE), never
+      ///   offered in a conversation nor begun on the map; see AuthoredScenarioTrigger.
+      /// </summary>
+      [QuestField("The tale is opened only by a scenario rule (OPEN_TALE), never offered in a conversation nor begun on the map: the rule names the giver, and a popup asks the player.")]
+      [JsonProperty("on_scenario")] public AuthoredScenarioTrigger OnScenario { get; set; }
+
       /// <summary>The roles the story needs ({giver}, {village}...), with a word on each for the author.</summary>
       [QuestField("Every role your text uses, with a short description for the reader of the file. Each {role} is filled with a real name.")]
       [JsonProperty("binds")] public Dictionary<string, string> Binds { get; set; } = new();
@@ -105,6 +112,19 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [QuestField("The chance the tale begins, once a day when everything else holds: above 0, at most 1. Default 0.15.")]
       [JsonProperty("chance_per_day")] public double ChancePerDay { get; set; } = 0.15;
 
+      [QuestField("The popup's text, which sets the scene; {giver} is filled with the giver's name.")]
+      [JsonProperty("invitation")] public string Invitation { get; set; }
+
+      [QuestField("The popup's yes, which begins the tale and opens the conversation with the giver.")]
+      [JsonProperty("accept")] public string Accept { get; set; } = "Go to them";
+
+      [QuestField("The popup's no: nothing is lost, and the tale may come back after a season.")]
+      [JsonProperty("decline")] public string Decline { get; set; } = "Not now";
+   }
+
+   /// <summary>The popup a scenario-opened tale shows (OPEN_TALE; Gabriel, 24/10/2026).</summary>
+   public sealed class AuthoredScenarioTrigger
+   {
       [QuestField("The popup's text, which sets the scene; {giver} is filled with the giver's name.")]
       [JsonProperty("invitation")] public string Invitation { get; set; }
 
@@ -235,6 +255,15 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>Gabriel (08/10/2026): a picture of the stage, shown beside the chat when its scene opens.</summary>
       [QuestField("An image file of the tale's own folder (.png or .jpg), or a video (.crvid, whose first frame is its picture), opened beside the chat when this stage's scene opens, or a conversation of this stage (with its characters or the people of its place).")]
       [JsonProperty("image")] public string Image { get; set; }
+
+      /// <summary>
+      ///   Gabriel (24/10/2026): a tale that comes back, with a new video each time ("qu'on choisisse un nouveau vidéo parmi
+      ///   les choix que je donnerai"); see TaleImagePool.
+      /// </summary>
+      [QuestField("Several pictures or videos for this stage: each time the tale is played, one the player has not seen yet is chosen (all seen, they start over), and it holds for the whole tale. It stands in for \"image\".")]
+      [JsonProperty("image_pool")]
+      [JsonConverter(typeof(OneOrManyConverter))]
+      public List<string> ImagePool { get; set; } = new();
 
       [QuestField("What the game checks to complete the stage. A stage with choices may have none.")]
       [JsonProperty("objective")] public AuthoredObjective Objective { get; set; }
@@ -368,6 +397,13 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       [QuestField("talk_to: the character, as a role (\"{giver}\"). war_ends, dies, weds_player: the person the world is watched for.")]
       [JsonProperty("hero")] public string Hero { get; set; }
+
+      /// <summary>
+      ///   Gabriel (24/10/2026): a night judged by what it left, so the stage ends when the conversation does, the regard the
+      ///   giver gained or lost in it already counted (see TaleRegardFlags).
+      /// </summary>
+      [QuestField("talk_to: \"opened\" (the default) completes the stage as the conversation opens; \"closed\" when it ends, so the whole conversation belongs to the stage and its ending sees what came of it.", ClosedList = nameof(AuthoredQuestLoader.TalkMoments))]
+      [JsonProperty("when")] public string When { get; set; }
 
       [QuestField("The place, as a role (\"{village}\").")]
       [JsonProperty("place")] public string Place { get; set; }
@@ -609,10 +645,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
    public sealed class AuthoredConsequence
    {
       /// <summary>memory, world_event (increment 1); the rest of the closed list later.</summary>
-      [QuestField("memory, world_event, grudge, conception, elope (she leaves her husband with the player), return_spouse (she goes back to him) or item (the player is given an item).", ClosedList = nameof(AuthoredQuestLoader.ConsequenceTypes))]
+      [QuestField("memory, world_event, grudge, conception, elope (she leaves her husband with the player), return_spouse (she goes back to him), item (the player is given an item) or regard (someone's regard for the player moves by amount).", ClosedList = nameof(AuthoredQuestLoader.ConsequenceTypes))]
       [JsonProperty("type")] public string Type { get; set; }
 
-      [QuestField("memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role. conception: the player's partner, a role ({giver} when empty). elope, return_spouse: the lady who leaves or goes back ({giver} when empty).")]
+      [QuestField("memory: who remembers, a role or \"locals_of:{place}\". grudge: who holds it, a role. conception: the player's partner, a role ({giver} when empty). elope, return_spouse: the lady who leaves or goes back ({giver} when empty). regard: whose regard moves, a role ({giver} when empty).")]
       [JsonProperty("who")] public string Who { get; set; }
 
       [QuestField("memory: what they remember. grudge: the cause, in the holder's words.")]
@@ -644,6 +680,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       [QuestField("item: how many are given (1 to 200).")]
       [JsonProperty("count")] public int Count { get; set; } = 1;
+
+      /// <summary>Gabriel (24/10/2026): a regard only some endings of a path earn, under a flag (an ending's own regard always holds).</summary>
+      [QuestField("regard: how far their regard for the player moves (negative lowers it), -100 to 100, never 0.")]
+      [JsonProperty("amount")] public int Amount { get; set; }
 
       [QuestField("Flags that must hold for this consequence to be carried out.")]
       [JsonProperty("if")]

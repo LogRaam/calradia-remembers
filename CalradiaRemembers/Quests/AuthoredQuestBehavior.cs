@@ -51,6 +51,10 @@ namespace CalradiaRemembers.Quests
       // it was first asked. Additive key: an older save simply has none waiting.
       private const string PendingReturnsKey = "CalradiaRemembers_TaleReturnsWaiting_v1";
 
+      // The pictures of each stage's image_pool already shown, by "tale/stage" (Gabriel, 24/10/2026: a new video each time
+      // the tale comes back). Additive key: an older save shows from a fresh round.
+      private const string PoolShownKey = "CalradiaRemembers_TaleImagePoolShown_v1";
+
       /// <summary>How long a waiting return is tried before it is given up (and said so in the log).</summary>
       private const int ReturnWaitDays = 60;
 
@@ -61,6 +65,7 @@ namespace CalradiaRemembers.Quests
       private Dictionary<string, int> _declined = new(StringComparer.Ordinal);
       private Dictionary<string, int> _playedOn = new(StringComparer.Ordinal);
       private Dictionary<string, int> _returnsWaiting = new(StringComparer.Ordinal);
+      private Dictionary<string, List<string>> _poolShown = new(StringComparer.Ordinal);
 
       // The offer being made in the conversation now open (transient: a conversation does not survive a save).
       private AuthoredQuestRun _offer;
@@ -77,6 +82,8 @@ namespace CalradiaRemembers.Quests
          Instance = this;
          // A choice leading to an ending the player pays for is offered only while the purse holds it (tashmetu, 20/10/2026).
          AuthoredQuestEngine.PlayerGold = () => Hero.MainHero?.Gold ?? 0;
+         // OPEN_TALE (Gabriel, 24/10/2026): scenarios open a tale through this door, without knowing this behaviour.
+         Scenarios.ScenarioConsequenceExecutor.TaleOpener = (questId, giver, dryRun) => Instance?.OpenFromScenario(questId, giver, dryRun) ?? "authored quests are not active";
       }
 
       public static AuthoredQuestBehavior Instance { get; private set; }
@@ -116,6 +123,7 @@ namespace CalradiaRemembers.Quests
          string declined = DayList(_declined);
          string playedOn = DayList(_playedOn);
          string returnsWaiting = DayList(_returnsWaiting);
+         string poolShown = string.Join("\n", _poolShown.Select(kv => kv.Key + "=" + string.Join("|", kv.Value)));
          dataStore.SyncData(RunKey, ref run);
          dataStore.SyncData(DoneKey, ref done);
          dataStore.SyncData(DeclinedKey, ref declined);
@@ -126,6 +134,12 @@ namespace CalradiaRemembers.Quests
             returnsWaiting = ""; // an older save: no return waiting
          }
 
+         try { dataStore.SyncData(PoolShownKey, ref poolShown); }
+         catch
+         {
+            poolShown = ""; // an older save: every pool starts a fresh round
+         }
+
          if (!dataStore.IsLoading) return;
 
          _run = AuthoredQuestRun.Deserialize(run);
@@ -133,6 +147,12 @@ namespace CalradiaRemembers.Quests
          _declined = ReadDayList(declined);
          _playedOn = ReadDayList(playedOn);
          _returnsWaiting = ReadDayList(returnsWaiting);
+         _poolShown = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+         foreach (string line in (poolShown ?? "").Split(new[] {'\n'}, StringSplitOptions.RemoveEmptyEntries))
+         {
+            int eq = line.IndexOf('=');
+            if (eq > 0) _poolShown[line.Substring(0, eq)] = line.Substring(eq + 1).Split(new[] {'|'}, StringSplitOptions.RemoveEmptyEntries).ToList();
+         }
       }
 
       private static string DayList(Dictionary<string, int> days) => string.Join("\n", days.Select(kv => kv.Key + "=" + kv.Value));
@@ -315,6 +335,13 @@ namespace CalradiaRemembers.Quests
                continue;
             }
 
+            if (q.OnScenario != null)
+            {
+               whyNot = "it is opened only by a scenario (OPEN_TALE), never in a conversation";
+
+               continue;
+            }
+
             if (!TryBind(q, hero, out Dictionary<string, string> ids, out Dictionary<string, string> names, out whyNot)) continue;
             whyNot = AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, hero, today));
             if (whyNot == null) open.Add((q, ids, names));
@@ -362,6 +389,8 @@ namespace CalradiaRemembers.Quests
          if (!TryBind(q, hero, out _, out Dictionary<string, string> names, out string whyNot)) return "no: " + whyNot;
          whyNot = AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, hero, (int) CampaignTime.Now.ToDays));
          if (whyNot != null) return "not now: " + whyNot;
+         if (q.OnScenario != null)
+            return $"yes, when a scenario opens it (OPEN_TALE) ({string.Join(", ", names.Select(kv => kv.Key + "=" + kv.Value))})";
          if (q.OnMap != null)
          {
             whyNot = AuthoredMapTriggerPolicy.WhyNot(q.OnMap, MapFactsFor(hero));
@@ -543,6 +572,9 @@ namespace CalradiaRemembers.Quests
       {
          SafeRun.Step("AuthoredQuests.ConversationEnded", () =>
          {
+            // A talk_to that completes as the conversation ends (Gabriel, 24/10/2026: the night judged by what it left).
+            if (_run is {Status: AuthoredQuestStatus.Active} && _quests.TryGetValue(_run.QuestId, out AuthoredQuest playing))
+               Apply(playing, AuthoredQuestEngine.ConversationEnded(_run, playing, log?.NpcId, (int) CampaignTime.Now.ToDays));
             AuthoredQuestEngine.ConversationClosed(_run, log?.NpcId);
             // A scene that came due while another conversation was open opens now that it has ended.
             if (_sceneWaiting && _run != null && _quests.TryGetValue(_run.QuestId, out AuthoredQuest waiting))
@@ -579,6 +611,8 @@ namespace CalradiaRemembers.Quests
          _run = offer;
          Hero giver = Find(AuthoredQuestEngine.Bound(_run, "{giver}"));
          var today = (int) CampaignTime.Now.ToDays;
+         // Where the giver's regard stood as the tale began, read back as it ends (TaleRegardFlags).
+         _run.GiverRegardAtStart = RegardOf(giver);
          AuthoredStep step = AuthoredQuestEngine.Accept(_run, q, today);
 
          var journal = new AuthoredStoryQuest(q.Id, q.Title, giver, AuthoredQuestEngine.Fill(_run, q.Stages[0].Journal));
@@ -1332,6 +1366,7 @@ namespace CalradiaRemembers.Quests
             case AuthoredStepKind.Advanced:
             case AuthoredStepKind.OpenScene:
                ReleaseBands();
+               PickPoolImage(q);
                foreach (string line in AuthoredQuestEngine.JournalLines(_run, q)) journal?.Log(AuthoredQuestEngine.Fill(_run, line));
                AnnounceStage(AuthoredStageNotice.Text(q.Title, AuthoredQuestEngine.Fill(_run, AuthoredQuestEngine.Current(_run, q)?.Journal)));
                ModLog.Info($"[TALE] '{q.Id}': {step.FromStage} -> {step.ToStage}{taken}.");
@@ -1344,6 +1379,7 @@ namespace CalradiaRemembers.Quests
                break;
             case AuthoredStepKind.Completed:
                ReleaseBands();
+               TaleRegardFlags.Mark(_run, RegardOf(Find(AuthoredQuestEngine.Bound(_run, "{giver}"))));
                AuthoredOutcome ending = AuthoredQuestEngine.Outcome(_run, q);
                List<CrTaleConsequence> endedWith = CarryOut(q, ending);
                if (!string.IsNullOrWhiteSpace(ending?.Journal)) journal?.Log(AuthoredQuestEngine.Fill(_run, ending.Journal));
@@ -1357,6 +1393,7 @@ namespace CalradiaRemembers.Quests
                break;
             case AuthoredStepKind.Failed:
                ReleaseBands();
+               TaleRegardFlags.Mark(_run, RegardOf(Find(AuthoredQuestEngine.Bound(_run, "{giver}"))));
                List<CrTaleConsequence> failedWith = CarryOut(q, q.Failure);
                if (!string.IsNullOrWhiteSpace(q.Failure?.Journal)) journal?.Log(AuthoredQuestEngine.Fill(_run, q.Failure.Journal));
                journal?.CloseAsFailed("The time to act has passed.");
@@ -1496,6 +1533,8 @@ namespace CalradiaRemembers.Quests
                   results.Add(ReturnSpouse(c));
                else if (c.Type == "item")
                   results.Add(GiveItem(c));
+               else if (c.Type == "regard")
+                  results.Add(MoveRegard(c));
                else if (c.Type == "world_event")
                {
                   bool told = WorldEventStore.Instance != null;
@@ -1519,6 +1558,86 @@ namespace CalradiaRemembers.Quests
 
       private static CrTaleConsequence Result(AuthoredConsequence c, string whoId, string otherId, CrTaleConsequenceStatus status, string reason)
          => new CrTaleConsequence(c?.Type, whoId, otherId, status, reason);
+
+      /// <summary>
+      ///   A regard consequence (Gabriel, 24/10/2026: a regard only the endings of some paths earn, under a flag): moves the
+      ///   regard of who it names ({giver} when empty) on the mod's own ledger, a profile made when CR holds none yet.
+      /// </summary>
+      private CrTaleConsequence MoveRegard(AuthoredConsequence c)
+      {
+         string id = AuthoredQuestEngine.Bound(_run, string.IsNullOrWhiteSpace(c.Who) ? "{giver}" : c.Who);
+         Hero hero = Find(id);
+         var store = NpcMemoryCampaignBehavior.Instance?.Store;
+         if (hero == null || hero == Hero.MainHero || store == null || c.Amount == 0)
+            return Result(c, id, null, CrTaleConsequenceStatus.NotDone, "no one whose regard could move");
+
+         NpcProfile profile = store.Get(hero.StringId) ?? Mapping.HeroProfileMapper.FromHero(hero);
+         ProfileMutator.ApplyReputationDelta(profile, c.Amount, NpcMemoryService.Core.Standing.RegardCause.Quest);
+         store.Set(profile);
+
+         return Result(c, hero.StringId, null, CrTaleConsequenceStatus.Done, null);
+      }
+
+      /// <summary>A character's regard for the player on CR's own ledger; 0 for someone CR has no profile of.</summary>
+      private static int RegardOf(Hero hero)
+         => hero == null ? 0 : NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId)?.ReputationWithPlayer ?? 0;
+
+      /// <summary>
+      ///   The stage just entered shows one picture of its image_pool for this playing of the tale: one not shown before, the
+      ///   pool starting over once every one was (TaleImagePool).
+      /// </summary>
+      private void PickPoolImage(AuthoredQuest q)
+      {
+         AuthoredStage stage = AuthoredQuestEngine.Current(_run, q);
+         if (stage?.ImagePool == null || stage.ImagePool.Count == 0 || _run.ImagePicks.ContainsKey(stage.Id)) return;
+
+         string key = q.Id + "/" + stage.Id;
+         List<string> shown = _poolShown.TryGetValue(key, out List<string> s) ? s : new List<string>();
+         string picked = TaleImagePool.Pick(stage.ImagePool, shown, MBRandom.RandomFloat);
+         if (picked == null) return;
+
+         _run.ImagePicks[stage.Id] = picked;
+         _poolShown[key] = TaleImagePool.AfterShowing(stage.ImagePool, shown, picked);
+         ModLog.Info($"[TALE] '{q.Id}' stage {stage.Id} shows {picked} from its pool ({_poolShown[key].Count} of {stage.ImagePool.Count} shown this round).");
+      }
+
+      /// <summary>
+      ///   OPEN_TALE (Gabriel, 24/10/2026: the night Rhagaea sends for her prisoner): opens a tale that only a scenario opens,
+      ///   with <paramref name="giver" />, by its popup. Null when it opened (or, <paramref name="dryRun" />, would open); else
+      ///   why not, in plain words. The tale's own rules hold (its giver's conditions, its content level, once or again after
+      ///   its cooldown, never while another tale is under way).
+      /// </summary>
+      internal string OpenFromScenario(string questId, Hero giver, bool dryRun)
+      {
+         if (_run is {Status: AuthoredQuestStatus.Active}) return $"a tale is under way ('{_run.QuestId}')";
+         if (!_quests.TryGetValue(questId ?? "", out AuthoredQuest q)) return $"no tale '{questId}' is loaded";
+         if (q.OnScenario == null) return $"'{questId}' is not opened by a scenario (it has no on_scenario)";
+         if (giver == null) return "no giver";
+         if (!TryBind(q, giver, out Dictionary<string, string> ids, out Dictionary<string, string> names, out string whyNot)) return whyNot;
+
+         var today = (int) CampaignTime.Now.ToDays;
+         whyNot = AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, giver, today));
+         if (whyNot != null || dryRun) return whyNot;
+
+         AuthoredQuestRun run = AuthoredQuestEngine.Start(q, ids, names, today);
+         ModLog.Info($"[TALE] '{q.Id}' opened by a scenario with {giver.Name}.");
+         InformationManager.ShowInquiry(new InquiryData(
+            q.Title,
+            AuthoredQuestEngine.Fill(run, q.OnScenario.Invitation),
+            true, true, AuthoredQuestEngine.Fill(run, q.OnScenario.Accept), AuthoredQuestEngine.Fill(run, q.OnScenario.Decline),
+            () =>
+            {
+               Accept(q, run);
+               ChatSceneStager.StageTaleMeeting(giver);
+            },
+            () =>
+            {
+               _declined[q.Id] = today;
+               ModLog.Info($"[TALE] the player let '{q.Id}' pass.");
+            }), true);
+
+         return null;
+      }
 
       /// <summary>
       ///   The Troy-inspired tale (Gabriel, 12/10/2026): she leaves her husband with the player. Her marriage ends through
@@ -2145,6 +2264,31 @@ namespace CalradiaRemembers.Quests
 
       /// <summary>Self-test seam: takes a tale the test loaded out of the tales in play.</summary>
       internal void DebugForgetTale(string questId) => _quests.Remove(questId);
+
+      /// <summary>
+      ///   Self-test seam (cr.testall tale_opened_by_scenario): opens a scenario tale as its popup's yes would, the tale's
+      ///   own rules checked as OPEN_TALE checks them, without the popup and without staging the conversation.
+      /// </summary>
+      internal string DebugOpenFromScenario(string questId, Hero giver)
+      {
+         string whyNot = OpenFromScenario(questId, giver, dryRun: true);
+         if (whyNot != null) return whyNot;
+
+         AuthoredQuest q = _quests[questId];
+         TryBind(q, giver, out Dictionary<string, string> ids, out Dictionary<string, string> names, out _);
+         Accept(q, AuthoredQuestEngine.Start(q, ids, names, (int) CampaignTime.Now.ToDays));
+
+         return null;
+      }
+
+      /// <summary>Self-test seam: the conversation with this hero ended, through the real handling.</summary>
+      internal void DebugConversationEnded(Hero hero) => OnConversationEnded(new CrConversationLog(hero?.StringId, null, (int) CampaignTime.Now.ToDays, new List<CrTranscriptLine>(), null));
+
+      /// <summary>Self-test seam: forgets which pictures of this tale's pools were shown, so a test leaves no trace.</summary>
+      internal void DebugForgetPools(string questId)
+      {
+         foreach (string key in _poolShown.Keys.Where(k => k.StartsWith(questId + "/", StringComparison.Ordinal)).ToList()) _poolShown.Remove(key);
+      }
 
       /// <summary>Self-test seam: why this loaded tale would not be offered now, the giver and the dice aside; null when nothing stands in the way.</summary>
       internal string DebugWhyNotOffered(string questId)

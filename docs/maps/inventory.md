@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 567 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1299 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1302 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 267 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1578,7 +1578,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HistoryRelationStep` | public class | One relation move to make now. |
 | `HistoryWorldFacts` | public class | The campaign as the validation sees it. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (88)
+### CalradiaRemembers.Logic.AuthoredQuests (91)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1623,6 +1623,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredRequires` | public class | When the quest may be offered, and by whom (increment 1: the shape the werewolf needs). |
 | `AuthoredRivalPolicy` | public static class | Chooses the {rival} among the lords the engine offers. |
 | `AuthoredSaid` | public class | A choice taken by words: what the player must say, and to whom. |
+| `AuthoredScenarioTrigger` | public class | The popup a scenario-opened tale shows (OPEN_TALE; Gabriel, 24/10/2026). |
 | `AuthoredScene` | public class | An exploration scene: the chat with a narrator and no character, until someone is met. |
 | `AuthoredSpawn` | public class | A party spawned for the quest: real, on the map, beaten in a real battle. |
 | `AuthoredStage` | public class | One stage: a journal line, one verified objective, what the people involved know, and what follows. |
@@ -1662,11 +1663,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TaleElopementPolicy` | public static class | When a tale's elopement and return can really happen. |
 | `TaleGiftReading` | public enum | What a give_item of a tale's goods to the one who receives them comes to (TaleItemPolicy.ReadGift). |
 | `TaleGrudge` | public class | A grudge a tale's ending plants between two of its heroes. |
+| `TaleImagePool` | public static class | Which picture of a stage's pool this playing of the tale shows. |
 | `TaleItemPolicy` | public static class | How a tale's goods are named, matched and handed over. |
 | `TaleJournalFacts` | public class | One open journal entry of a tale, against the tale the game is running. |
 | `TaleJournalPolicy` | public static class | tashmetu (07/10/2026): "a finished tale stays listed twice, under Old Quests and still under Active Quests". |
 | `TaleJournalVerdict` | public enum | What becomes of a tale's journal entry. |
 | `TaleModuleFolder` | public class | Another mod's tales folder. |
+| `TaleRegardFlags` | public static class | The flags that say how the giver's regard moved over the tale. |
 | `TaleRoleState` | public class | What the game reads of one of the tale's people, for the ways out the world takes (war_ends, dies, weds_player). |
 | `TaleVillageFacts` | public class | The state of one village a tale could be about. |
 | `TaleVillagePolicy` | public static class | Which village a tale may be about, and when the giver has lost it. |

@@ -1,0 +1,85 @@
+{
+  "id": "fx_tale",
+  "title": "A Fixture",
+  "unique": false,
+  "repeat_cooldown_days": 20,
+  "requires": {
+    "giver": {
+      "role": "lord",
+      "gender": "female",
+      "min_regard": 1,
+      "not_at_war_with_player": false
+    },
+    "content": "hardcore"
+  },
+  "on_scenario": {
+    "invitation": "A lady stands at your cell door: {giver} asks to see you.",
+    "accept": "Follow her",
+    "decline": "Stay in your cell"
+  },
+  "binds": {
+    "giver": "the lady who holds you"
+  },
+  "stages": [
+    {
+      "id": "summoned",
+      "journal": "{giver} sent for you.",
+      "objective": {
+        "type": "talk_to",
+        "hero": "{giver}"
+      },
+      "on_complete": {
+        "next": "chamber"
+      }
+    },
+    {
+      "id": "chamber",
+      "journal": "The night in {giver}'s chamber.",
+      "image_pool": [
+        "night_1.crvid",
+        "night_2.crvid"
+      ],
+      "objective": {
+        "type": "talk_to",
+        "hero": "{giver}",
+        "when": "closed"
+      },
+      "on_complete": {
+        "next": "end:dawn"
+      }
+    }
+  ],
+  "endings": {
+    "dawn": {
+      "journal": "You are taken back before dawn.",
+      "consequences": [
+        {
+          "type": "memory",
+          "who": "{giver}",
+          "text": "A night with the prisoner, and our secret.",
+          "if": "regard_rose"
+        },
+        {
+          "type": "regard",
+          "amount": 5,
+          "if": "regard_rose"
+        },
+        {
+          "type": "memory",
+          "who": "{giver}",
+          "text": "It came to nothing.",
+          "if": [
+            "!regard_rose",
+            "!regard_fell"
+          ]
+        },
+        {
+          "type": "memory",
+          "who": "{giver}",
+          "text": "The prisoner shamed me.",
+          "if": "regard_fell"
+        }
+      ]
+    }
+  }
+}

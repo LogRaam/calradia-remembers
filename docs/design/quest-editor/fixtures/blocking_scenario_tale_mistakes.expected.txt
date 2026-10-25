@@ -1,0 +1,4 @@
+blocking_scenario_tale_mistakes.json: quest 'fx_tale': stage 'chamber': talk_to "when" 'close' is neither opened nor closed. The quest is not loaded.
+blocking_scenario_tale_mistakes.json: quest 'fx_tale': consequence 'regard' moves regard by 0, which must be from -100 to 100 and not 0. The quest is not loaded.
+blocking_scenario_tale_mistakes.json: quest 'fx_tale': on_map: the tale begins on the map, so its giver must travel with the player: set requires.giver.with_player to true. The quest is not loaded.
+blocking_scenario_tale_mistakes.json: quest 'fx_tale': on_scenario and on_map both say how the tale begins: keep one. The quest is not loaded.
