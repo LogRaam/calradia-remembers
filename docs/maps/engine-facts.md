@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-591 rules read 452 facts.
+592 rules read 452 facts.
 
 ## Facts read by more than one rule
 
@@ -70,6 +70,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.Culture` (8) | `AuthoredMapTriggerPolicy.WhyNot`, `MapTriggerFacts`, `MercenaryDeparturePolicy.IsAidOfKin`, `MercenaryDeparturePolicy.RegardShift`, `PlayerFameFacts`, `PlayerFamePolicy.Line`, `PlayerFamePolicy.Read`, `SharedPastPairFacts` |
 | `Hero.IsClanLeader` (8) | `DivorceBlockFacts`, `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible`, `DivorcedSpouseFacts`, `FactionGuidelinesPolicy.NarrowToOwnCulture`, `PromptKindFacts`, `StationGuidelinesPolicy.ResolveStationKey`, `StationGuidelinesPolicy.SelectStationText` |
 | `MobileParty.Party` (8) | `GiftEquipFacts`, `GiftEquipPolicy.WearsOnBattleSet`, `InterceptionFacts`, `InterceptionPolicy.Choose`, `InterceptionPolicy.IsRoadValid`, `PrisonerMemoryText.Released`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend` |
+| `ModSettings.RelationWarmth` (8) | `CompanionSecretAffectionPolicy.MinRegardFor`, `CompanionSecretAffectionPolicy.ShouldConfideThisWeek`, `IntimacyPacingRules.Relief`, `LetterRegardFacts`, `ProseActionVocabulary.Build`, `RegardProposal`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Party.PartySizeLimit` (8) | `CourtActionPolicy.IsPartyWeakened`, `GarrisonStrength.BandOf`, `LevyTroopFacts`, `RecruitTroopsPolicy.TroopsToAsk`, `ReinforceGarrisonPolicy.MayAsk`, `ReinforceGarrisonPolicy.TroopsToAsk`, `TroopGiftFacts`, `TroopLoanFacts` |
 | `PartyBase.MobileParty` (8) | `BrigandageFacts`, `CourierLossFacts`, `CourierSecretPolicy.BecomesSecret`, `CourierSecretPolicy.IsResent`, `CourierSecretPolicy.SenderLossMemory`, `CourierSecretPolicy.WhoGetsTheSecret`, `MeetingLeaveFacts`, `SecretDefeaterFacts` |
 | `Romantic.AcceptsPlayersOtherPartners` (8) | `JealousyReaction.Severity`, `JealousyReactionPolicy.AcceptedAgainstCultureDelta`, `JealousyReactionPolicy.SharingRankDelta`, `JealousyTrackFacts`, `MisdeedsPagePolicy.AdulteryOf`, `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot` |
@@ -79,7 +80,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Clan.Influence` (7) | `ClaimantBackerFacts`, `CourtActionPolicy.CanAffordInfluenceGrant`, `CourtActionPolicy.ClanNeedsInfluence`, `EdictDecreeFacts`, `KingdomPowerFacts`, `PressForWarFacts`, `PressForWarPolicy.WhyNot` |
 | `DayMoodReader.Draw` (7) | `CorrespondencePreferenceParser.Parse`, `LetterRegardPolicy.ParseTone`, `LetterRegardPolicy.StripToneLine`, `LetterReplyDecisionParser.Parse`, `PatrolLetterText.OrdersStop`, `PatrolLetterText.StripOrderLine`, `PerceivedImageFacts` |
 | `GetPosition2D.Distance` (7) | `AuthoredQuestEngine.NightPassed`, `ChaseFacts`, `CompanionPatrolPolicy.ShouldReissue`, `NewsDestinationSelector.Choose`, `PatrolLeashFacts`, `RumorAwareness.Explain`, `SharedPastPairFacts` |
-| `ModSettings.RelationWarmth` (7) | `CompanionSecretAffectionPolicy.MinRegardFor`, `CompanionSecretAffectionPolicy.ShouldConfideThisWeek`, `IntimacyPacingRules.Relief`, `LetterRegardFacts`, `RegardProposal`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `PartyBase.MapFaction` (7) | `CourierLossFacts`, `CourierSecretPolicy.BecomesSecret`, `CourierSecretPolicy.IsResent`, `CourierSecretPolicy.SenderLossMemory`, `HeroNaming`, `MeetingLeaveFacts`, `RescueCaptorFacts` |
 | `Settlement.GetPosition2D` (7) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `AuthoredQuestEngine.NightPassed`, `CardinalDirectionPolicy.Describe`, `GeographyDescriber.Bearing`, `QuestMenuEntry`, `SharedPastPairFacts` |
 | `Town.Governor` (7) | `AppointmentOfferFacts`, `CompanionAmbitionFacts`, `CompanionAmbitionPolicy.Select`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `ResolutionEligibilityPolicy.OfferedExecutableKeysForScope`, `ResolutionWorldFacts` |
@@ -714,6 +714,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `PromptProfileFolders.List`: `Array.Empty`, `Directory.Exists`, `Directory.GetDirectories`, `ModuleHelper.GetModuleFullPath`
 - `PromptProfileReader.Read`: `Array.Empty`, `Directory.Exists`, `Directory.GetFiles`
 - `PromptSelectionFacts`: `Dropdown.SelectedIndex`, `ModSettings.PromptProfile`
+- `ProseActionVocabulary.Build`: `ModSettings.RelationWarmth`
 - `ProvideGoodsPolicy.MarketKey`: `MarketData.GetPriceFactor`, `Settlement.IsTown`, `Town.MarketData`
 - `ProviderPinFailurePolicy.Explain`: `HttpMethod.Post`, `ModSettings.AllowOpenRouterProviderFallbacks`
 - `ProviderPinFailurePolicy.RoutingJson`: `ModSettings.AllowOpenRouterProviderFallbacks`

@@ -31,6 +31,7 @@ project internals.
 | [`prompt-sections.md`](prompt-sections.md) | In what order is the prompt written, what is cached, what is per-turn, what does Compact drop? |
 | [`verbs.md`](verbs.md) | Is this action declared everywhere it has to be? |
 | [`gates.md`](gates.md) | What OPENS this verb, what the bridge DEMANDS of it, and which other verbs can change the answer between the two? The pairing lens: a teaching gate is resolved when the context is built, a bridge guard runs when the action is dispatched, and the turn's other actions run in between. |
+| [`composition-parity.md`](composition-parity.md) | Is each action taught to BOTH readers of a conversation, the prose model (Standard) and the interpreter (Enhanced)? Both prompts rendered by the real builders over four scenarios; a verb taught to one reader only is refused unless written down with its reason (`CompositionParityTests`). |
 | [`shared-state.md`](shared-state.md) | What outlives the call that wrote it, and so has a lifetime somebody must decide? |
 | [`decisions-regard.md`](decisions-regard.md) | **The two-minute view.** What does each rung of the regard scale actually decide? Real calls, swept from -100 to +100, plus where each rule turns. |
 | [`save-format.md`](save-format.md) | **Contract.** What does the mod write into a player's campaign? Every save key and every saveable type id. |

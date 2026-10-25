@@ -83,7 +83,10 @@ and the bridge. Before, they do not: actions are taught in three places that do 
 
 **Steps.**
 
-1. **The parity map and its guard** (building): `docs/maps/composition-parity.md`, one row per verb, saying whether the
+1. **The parity map and its guard** (BUILT 25/10/2026: 85 verbs, 55 the same for both readers, 25 taught by the mod's
+   own text and not compared yet, 5 on the allowed list: `story_choice`; `assault_npc`, `kill_npc`, `rob_npc`, kept
+   out of the prose prompt on purpose so player violence in words never happens in Standard, awaiting Gabriel's
+   ruling; `gather_news`, a deprecated alias. `witness_leaves` turned out taught to both: no bug.) `docs/maps/composition-parity.md`, one row per verb, saying whether the
    interpreter is taught it, whether the prose model is taught it with a permissive context and with an empty one, and
    whether the bridge handles it; the context fields read by one side only; the condition that decides when the
    interpreter runs. A blocking guard: a verb taught to one reader and not the other is refused unless it stands on an

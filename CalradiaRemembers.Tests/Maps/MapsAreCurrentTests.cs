@@ -86,6 +86,12 @@ namespace CalradiaRemembers.Tests.Maps
       public void GIVEN_the_source_as_it_stands_WHEN_the_gates_are_regenerated_THEN_they_match_the_committed_map()
          => ApprovedMap.Verify(GatesMap.Path, Generated(GatesMap.Generate));
 
+      // THE TWO READERS (Gabriel, 25/10/2026): Enhanced and Standard are two ways of reading a conversation's actions and
+      // must not differ. What each reader is taught, rendered by the real builders from one context.
+      [Test]
+      public void GIVEN_both_compositions_as_they_stand_WHEN_their_teaching_is_rendered_THEN_it_matches_the_committed_map()
+         => ApprovedMap.Verify(CompositionParityMap.Path, Generated(CompositionParityMap.Generate));
+
       // THE DECISION TABLE. Not a list of declarations but a sweep of the real rules across the whole scale, so a
       // changed cell is a changed behaviour. It is the view Gabriel asked for (one page, two minutes) and the safety
       // net for giving regard a type: see ROADMAP.md.

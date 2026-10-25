@@ -70,14 +70,14 @@ namespace CalradiaRemembers.Tests.Maps
 
       private static string Mark(bool present) => present ? "yes" : "";
 
-      private static SourceFile? File(IReadOnlyList<SourceFile> files, Layer layer, string relativePath)
+      internal static SourceFile? File(IReadOnlyList<SourceFile> files, Layer layer, string relativePath)
          => files.FirstOrDefault(f => f.Layer == layer && f.RelativePath == relativePath);
 
       private static string? Literal(ExpressionSyntax? expression)
          => expression is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.StringLiteralExpression) ? literal.Token.ValueText : null;
 
       /// <summary>Spec("name", ...) in the catalogue: the first argument is the action's type.</summary>
-      private static HashSet<string> SpecNames(SourceFile? file)
+      internal static HashSet<string> SpecNames(SourceFile? file)
          => (file?.Root.DescendantNodes().OfType<InvocationExpressionSyntax>() ?? Enumerable.Empty<InvocationExpressionSyntax>())
             .Where(c => c.Expression is IdentifierNameSyntax {Identifier.Text: "Spec"})
             .Select(c => Literal(c.ArgumentList.Arguments.FirstOrDefault()?.Expression))
@@ -85,7 +85,7 @@ namespace CalradiaRemembers.Tests.Maps
             .Select(n => n!)
             .ToHashSet();
 
-      private static HashSet<string> LiteralsInField(SourceFile? file, string fieldName)
+      internal static HashSet<string> LiteralsInField(SourceFile? file, string fieldName)
          => (file?.Root.DescendantNodes().OfType<VariableDeclaratorSyntax>() ?? Enumerable.Empty<VariableDeclaratorSyntax>())
             .Where(v => v.Identifier.Text == fieldName)
             .SelectMany(v => v.DescendantNodes().OfType<LiteralExpressionSyntax>())
@@ -94,7 +94,7 @@ namespace CalradiaRemembers.Tests.Maps
             .Select(n => n!)
             .ToHashSet();
 
-      private static HashSet<string> CaseLabels(SourceFile? file)
+      internal static HashSet<string> CaseLabels(SourceFile? file)
          => (file?.Root.DescendantNodes().OfType<CaseSwitchLabelSyntax>() ?? Enumerable.Empty<CaseSwitchLabelSyntax>())
             .Select(l => Literal(l.Value))
             .Where(n => n != null)
@@ -109,7 +109,7 @@ namespace CalradiaRemembers.Tests.Maps
             .ToHashSet();
 
       /// <summary>action name -> the class that implements it, read from `public string Name => "x";`.</summary>
-      private static Dictionary<string, string> VerbClasses(IReadOnlyList<SourceFile> files)
+      internal static Dictionary<string, string> VerbClasses(IReadOnlyList<SourceFile> files)
       {
          var found = new Dictionary<string, string>();
 
@@ -128,7 +128,7 @@ namespace CalradiaRemembers.Tests.Maps
          return found;
       }
 
-      private static HashSet<string> RegisteredClasses(SourceFile? file)
+      internal static HashSet<string> RegisteredClasses(SourceFile? file)
          => (file?.Root.DescendantNodes().OfType<InvocationExpressionSyntax>() ?? Enumerable.Empty<InvocationExpressionSyntax>())
             .Where(c => c.Expression is MemberAccessExpressionSyntax {Name.Identifier.Text: "Register"})
             .SelectMany(c => c.ArgumentList.Arguments.Select(a => a.Expression).OfType<ObjectCreationExpressionSyntax>())

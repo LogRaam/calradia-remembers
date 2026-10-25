@@ -45,5 +45,10 @@
          wire-format logic (e.g. the SSE response transformer). Newtonsoft.Json comes transitively. -->
     <ProjectReference Include="..\..\LLM Roleplay Service\NpcMemoryService.Core\NpcMemoryService.Core.csproj" />
   </ItemGroup>
+  <!-- The subject for whom every gated action teaching renders, shared with the SDK's own VerbCatalogPolicyTests so the
+       composition-parity map (Maps/CompositionParityMap) renders both readers' prompts from the very same context. -->
+  <ItemGroup>
+    <Compile Include="..\..\LLM Roleplay Service\NpcMemoryServiceTests\PermissiveEncounter.cs" Link="Maps/PermissiveEncounter.cs" />
+  </ItemGroup>
 
 </Project>

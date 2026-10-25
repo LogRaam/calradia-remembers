@@ -109,8 +109,8 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.WorldAlmanac` | 16 | 2 |
 | `CalradiaRemembers.Assemblies` | 15 | 8 |
 | `CalradiaRemembers.Dialogue` | 15 | 2 |
+| `CalradiaRemembers.Services` | 14 | 8 |
 | `CalradiaRemembers.Commitments` | 13 | 8 |
-| `CalradiaRemembers.Services` | 13 | 8 |
 | `CalradiaRemembers.Tournaments` | 13 | 3 |
 | `CalradiaRemembers.Nemesis` | 12 | 8 |
 | `CalradiaRemembers.Bastards` | 12 | 4 |
@@ -121,13 +121,13 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Battles` | 10 | 5 |
 | `CalradiaRemembers.OpenPartnerLover` | 10 | 2 |
 | `CalradiaRemembers.Rescue` | 10 | 2 |
-| `CalradiaRemembers.Logic` | 9 | 67 |
+| `CalradiaRemembers.Logic` | 9 | 68 |
 | `CalradiaRemembers.Standing` | 9 | 6 |
 | `CalradiaRemembers.Lore` | 9 | 4 |
 | `CalradiaRemembers.Scenarios` | 9 | 3 |
 | `CalradiaRemembers.Chronicle` | 9 | 2 |
 | `CalradiaRemembers.RealmTidings` | 9 | 2 |
-| `NpcMemoryService.Core.Prompts` | 8 | 18 |
+| `NpcMemoryService.Core.Prompts` | 8 | 19 |
 | `CalradiaRemembers.Arrests` | 8 | 7 |
 | `CalradiaRemembers.Commoners` | 8 | 2 |
 | `CalradiaRemembers.Memory` | 8 | 2 |
@@ -141,11 +141,12 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Storage` | 4 | 24 |
 | `CalradiaRemembers.Logic.Assemblies` | 4 | 11 |
 | `CalradiaRemembers.Logic.Marriage` | 4 | 10 |
+| `NpcMemoryService.Core.Actions` | 4 | 8 |
 | `NpcMemoryService.Core.Knowledge` | 4 | 8 |
-| `NpcMemoryService.Core.Actions` | 4 | 7 |
 | `CalradiaRemembers.Escort` | 4 | 6 |
 | `CalradiaRemembers.Aims` | 4 | 4 |
 | `CalradiaRemembers.Companions` | 4 | 4 |
+| `CalradiaRemembers.Logic.Actions` | 4 | 4 |
 | `NpcMemoryService.Core.Captivity` | 4 | 2 |
 | `CalradiaRemembers.Map` | 4 | 1 |
 | `CalradiaRemembers.Logic.Grudges` | 3 | 25 |
@@ -188,7 +189,6 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic.Chat` | 1 | 4 |
 | `CalradiaRemembers.Logic.Quests` | 1 | 4 |
 | `CalradiaRemembers.Logic.RealmTidings` | 1 | 4 |
-| `CalradiaRemembers.Logic.Actions` | 1 | 3 |
 | `CalradiaRemembers.Logic.WorldAlmanac` | 1 | 3 |
 | `NpcMemoryService.Core.Memory` | 1 | 3 |
 | `CalradiaRemembers.Logic.AuthoredHistory` | 1 | 2 |
@@ -832,12 +832,12 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### CalradiaRemembers.Logic
 
 - uses: `CalradiaRemembers.Logic.Appreciations`, `CalradiaRemembers.Logic.Assemblies`, `CalradiaRemembers.Logic.Violence`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.Knowledge`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Mood`, `NpcMemoryService.Core.Prompts`, `NpcMemoryService.Core.Standing`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Appearance`, `CalradiaRemembers.Arrests`, `CalradiaRemembers.Assemblies`, `CalradiaRemembers.Bastards`, `CalradiaRemembers.Battles`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Chronicle`, `CalradiaRemembers.Commitments`, `CalradiaRemembers.Commoners`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Duels`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Escort`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.GUI`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Items`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic.Assemblies`, `CalradiaRemembers.Logic.AuthoredQuests`, `CalradiaRemembers.Logic.Bastards`, `CalradiaRemembers.Logic.Battles`, `CalradiaRemembers.Logic.Captivity`, `CalradiaRemembers.Logic.Companions`, `CalradiaRemembers.Logic.Conversation`, `CalradiaRemembers.Logic.Diagnostics`, `CalradiaRemembers.Logic.Duels`, `CalradiaRemembers.Logic.Items`, `CalradiaRemembers.Logic.Letters`, `CalradiaRemembers.Logic.Marriage`, `CalradiaRemembers.Logic.Narrative`, `CalradiaRemembers.Logic.Nemesis`, `CalradiaRemembers.Logic.RealmTidings`, `CalradiaRemembers.Logic.Romance`, `CalradiaRemembers.Logic.Scenarios`, `CalradiaRemembers.Logic.WarDuty`, `CalradiaRemembers.Logic.Witnesses`, `CalradiaRemembers.Logic.WorldAlmanac`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Memory`, `CalradiaRemembers.Missions`, `CalradiaRemembers.Nemesis`, `CalradiaRemembers.OpenPartnerLover`, `CalradiaRemembers.Quests`, `CalradiaRemembers.RealmTidings`, `CalradiaRemembers.Rescue`, `CalradiaRemembers.Retainer`, `CalradiaRemembers.Scenarios`, `CalradiaRemembers.Services`, `CalradiaRemembers.Stance`, `CalradiaRemembers.Standing`, `CalradiaRemembers.Tournaments`, `CalradiaRemembers.Travel`, `CalradiaRemembers.UI`, `CalradiaRemembers.Verbs`, `CalradiaRemembers.Violence`, `CalradiaRemembers.Witnesses`, `CalradiaRemembers.WorldAlmanac`, `CalradiaRemembers.WorldEvents`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Appearance`, `CalradiaRemembers.Arrests`, `CalradiaRemembers.Assemblies`, `CalradiaRemembers.Bastards`, `CalradiaRemembers.Battles`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Chronicle`, `CalradiaRemembers.Commitments`, `CalradiaRemembers.Commoners`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Duels`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Escort`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.GUI`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Items`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic.Actions`, `CalradiaRemembers.Logic.Assemblies`, `CalradiaRemembers.Logic.AuthoredQuests`, `CalradiaRemembers.Logic.Bastards`, `CalradiaRemembers.Logic.Battles`, `CalradiaRemembers.Logic.Captivity`, `CalradiaRemembers.Logic.Companions`, `CalradiaRemembers.Logic.Conversation`, `CalradiaRemembers.Logic.Diagnostics`, `CalradiaRemembers.Logic.Duels`, `CalradiaRemembers.Logic.Items`, `CalradiaRemembers.Logic.Letters`, `CalradiaRemembers.Logic.Marriage`, `CalradiaRemembers.Logic.Narrative`, `CalradiaRemembers.Logic.Nemesis`, `CalradiaRemembers.Logic.RealmTidings`, `CalradiaRemembers.Logic.Romance`, `CalradiaRemembers.Logic.Scenarios`, `CalradiaRemembers.Logic.WarDuty`, `CalradiaRemembers.Logic.Witnesses`, `CalradiaRemembers.Logic.WorldAlmanac`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Memory`, `CalradiaRemembers.Missions`, `CalradiaRemembers.Nemesis`, `CalradiaRemembers.OpenPartnerLover`, `CalradiaRemembers.Quests`, `CalradiaRemembers.RealmTidings`, `CalradiaRemembers.Rescue`, `CalradiaRemembers.Retainer`, `CalradiaRemembers.Scenarios`, `CalradiaRemembers.Services`, `CalradiaRemembers.Stance`, `CalradiaRemembers.Standing`, `CalradiaRemembers.Tournaments`, `CalradiaRemembers.Travel`, `CalradiaRemembers.UI`, `CalradiaRemembers.Verbs`, `CalradiaRemembers.Violence`, `CalradiaRemembers.Witnesses`, `CalradiaRemembers.WorldAlmanac`, `CalradiaRemembers.WorldEvents`
 
 ### CalradiaRemembers.Logic.Actions
 
-- uses: `CalradiaRemembers.Logic.Captivity`
-- used by: `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Verbs`
+- uses: `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Captivity`, `NpcMemoryService.Core.Actions`, `NpcMemoryService.Core.Prompts`
+- used by: `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Services`, `CalradiaRemembers.Verbs`
 
 ### CalradiaRemembers.Logic.Aims
 
@@ -1146,7 +1146,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### CalradiaRemembers.Services
 
-- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Providers`, `CalradiaRemembers.Mapping`, `NpcMemoryService.Core.Actions`, `NpcMemoryService.Core.LlmClient`, `NpcMemoryService.Core.LlmClient.OpenRouter`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Parsing`, `NpcMemoryService.Core.Prompts`, `NpcMemoryService.Core.Services`
+- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Actions`, `CalradiaRemembers.Logic.Providers`, `CalradiaRemembers.Mapping`, `NpcMemoryService.Core.Actions`, `NpcMemoryService.Core.LlmClient`, `NpcMemoryService.Core.LlmClient.OpenRouter`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Parsing`, `NpcMemoryService.Core.Prompts`, `NpcMemoryService.Core.Services`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Memory`
 
 ### CalradiaRemembers.Social
@@ -1237,7 +1237,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### NpcMemoryService.Core.Actions
 
 - uses: `NpcMemoryService.Core.LlmClient`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Parsing`, `NpcMemoryService.Core.Prompts`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Logic.Diagnostics`, `CalradiaRemembers.Services`, `NpcMemoryService.Core.Parsing`, `NpcMemoryService.Core.Prompts`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Logic.Actions`, `CalradiaRemembers.Logic.Diagnostics`, `CalradiaRemembers.Services`, `NpcMemoryService.Core.Parsing`, `NpcMemoryService.Core.Prompts`
 
 ### NpcMemoryService.Core.Calendar
 
@@ -1297,7 +1297,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### NpcMemoryService.Core.Prompts
 
 - uses: `NpcMemoryService.Core.Actions`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.Extension`, `NpcMemoryService.Core.Knowledge`, `NpcMemoryService.Core.Memory`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Mood`, `NpcMemoryService.Core.Standing`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Interception`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Services`, `CalradiaRemembers.Styles`, `CalradiaRemembers.WorldAlmanac`, `NpcMemoryService.Core.Actions`, `NpcMemoryService.Core.Knowledge`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Services`, `NpcMemoryService.Core.Standing`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Actions`, `CalradiaRemembers.Logic.Interception`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Services`, `CalradiaRemembers.Styles`, `CalradiaRemembers.WorldAlmanac`, `NpcMemoryService.Core.Actions`, `NpcMemoryService.Core.Knowledge`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Services`, `NpcMemoryService.Core.Standing`
 
 ### NpcMemoryService.Core.Services
 
