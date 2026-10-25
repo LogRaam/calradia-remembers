@@ -618,6 +618,14 @@ LLM Provider:
 
 The mod works with any text model your provider offers.. you just paste its id into the PROSE model field, and you can switch anytime in one click. Two things matter for this mod: the model must follow instructions reliably (it quietly drives memory, actions, and quests behind the scenes), and.. if you play the Explicit / Hardcore tiers.. it must be permissive, because heavily-filtered models will flat-out refuse adult scenes. You no longer have to pick one model that does both: on the default [b]Enhanced[/b] composition a stronger writer carries the [b]PROSE[/b], while a more permissive [b]NSFW model[/b] quietly finishes any explicit beat that writer would dodge or cut short (see "How to configure" above). The ids below are OpenRouter ids; on NanoGPT the same model families are available but use NanoGPT's own ids from nano-gpt.com/models. Prices below are a rough guide; check your provider's model page for current rates.
 
+[b][color=#ffd966]LOGRAAM'S FAVORITE SETUP[/color][/b].. what I play with myself, on the default [b]Enhanced[/b] composition:
+[list]
+[*][b]PROSE model[/b]: GLM 4.6 (z-ai/glm-4.6).. the best roleplay writer of the models I have tested. It takes its time (20 to 50 seconds a reply in our measures), and the writing is worth the wait.[/*]
+[*][b]NSFW model[/b]: Grok 4.20 (x-ai/grok-4.20).. the permissive fallback that finishes any explicit beat the writer would cut short.[/*]
+[*][b]Interpret model[/b]: DeepSeek V4.1 Flash (deepseek/deepseek-v4.1-flash).. the most accurate interpreter we measured (291 of 296 test replies read right), in under a second, for a fraction of a cent.[/*]
+[/list]
+About $0.37 per 100 ordinary replies (see "What it costs, measured" below).
+
 [b]GROK 4.20[/b].. the safe default    (model id: x-ai/grok-4.20)
 Proven with everything this mod does, adult tiers included. Balanced quality, permissive, and already tested. If in doubt, stay here.
 
