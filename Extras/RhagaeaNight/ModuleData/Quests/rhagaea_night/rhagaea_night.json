@@ -1,0 +1,108 @@
+{
+  "id": "rhagaea_night",
+  "title": "The Empress's Summons",
+  "author": "Gabriel Mailhot",
+  "unique": false,
+  "repeat_cooldown_days": 20,
+  "requires": {
+    "giver": {
+      "role": "lord",
+      "gender": "female",
+      "min_regard": 1,
+      "not_at_war_with_player": false
+    },
+    "content": "hardcore"
+  },
+  "on_scenario": {
+    "invitation": "Long after the torches in the corridor have burned low, the bolt of your cell slides back. A lady of {giver}'s household stands in the doorway, two guards and the jailer behind her. \"The Empress asks to see you,\" she says, in a voice that leaves room for one answer. \"Now.\"",
+    "accept": "Follow her",
+    "decline": "Ask to be left in your cell"
+  },
+  "binds": {
+    "giver": "the Empress who holds the player prisoner (Rhagaea)"
+  },
+  "stages": [
+    {
+      "id": "summoned",
+      "journal": "In the night, {giver} sent for you from your cell.",
+      "objective": {
+        "type": "talk_to",
+        "hero": "{giver}"
+      },
+      "on_complete": {
+        "next": "chamber"
+      }
+    },
+    {
+      "id": "chamber",
+      "journal": "Brought up from the dungeon to {giver}'s bedchamber, in the dead of night.",
+      "image_pool": [
+        "rhagaea_night_1.crvid",
+        "rhagaea_night_2.crvid",
+        "rhagaea_night_3.crvid",
+        "rhagaea_night_4.crvid",
+        "rhagaea_night_5.crvid",
+        "rhagaea_night_6.crvid",
+        "rhagaea_night_7.crvid",
+        "rhagaea_night_8.crvid",
+        "rhagaea_night_9.crvid",
+        "rhagaea_night_10.crvid"
+      ],
+      "objective": {
+        "type": "talk_to",
+        "hero": "{giver}",
+        "when": "closed"
+      },
+      "canvas": [
+        "It is deep in the night. You have had your prisoner, {player}, brought up from the dungeon to your bedchamber, and you wait for them in your bed. The throne weighs on you and you are restless; on a whim you would never admit aloud, you have decided to share your intimacy with this captive tonight. You are the Empress here and the one who chose it: you set the pace, imperious, playful, curious or tender as the moment takes you. You do not force what the prisoner refuses; a refusal stings your pride, and you answer it as an empress would. Before the night ends, you ask the prisoner to keep what passed between you a secret."
+      ],
+      "facts": [
+        "{player} is your prisoner, held in the dungeon of this place, and stays your prisoner whatever happens tonight.",
+        "Two of your guards wait outside the chamber door, and the jailer waits in the corridor to take the prisoner back down before dawn.",
+        "The castle is shut for the night: no one leaves it, and the prisoner cannot escape.",
+        "You will not free the prisoner: it would be seen, and people would ask why.",
+        "No one of your household speaks of tonight."
+      ],
+      "on_complete": {
+        "next": "end:dawn"
+      }
+    }
+  ],
+  "endings": {
+    "dawn": {
+      "journal": "Before dawn, the jailer takes you back down to your cell.",
+      "consequences": [
+        {
+          "type": "memory",
+          "who": "{giver}",
+          "text": "One night I had my prisoner {player} brought to my chamber. It is a night I mean to keep, and it is our secret.",
+          "if": "regard_rose"
+        },
+        {
+          "type": "regard",
+          "amount": 5,
+          "if": "regard_rose"
+        },
+        {
+          "type": "memory",
+          "who": "{giver}",
+          "text": "One night I had my prisoner {player} brought to my chamber. It came to little, and it stays between us.",
+          "if": [
+            "!regard_rose",
+            "!regard_fell"
+          ]
+        },
+        {
+          "type": "memory",
+          "who": "{giver}",
+          "text": "One night I had my prisoner {player} brought to my chamber, and they betrayed the trust I showed them. I will not forget it.",
+          "if": "regard_fell"
+        }
+      ]
+    }
+  },
+  "failure": {
+    "days": 2,
+    "memory": "One night I sent for my prisoner {player}; nothing came of it."
+  }
+}
