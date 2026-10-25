@@ -66,6 +66,27 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
+      ///   cr.tale_open &lt;tale id&gt; &lt;giver's name&gt; (Gabriel, 25/10/2026: "On peut la mettre en test avec une commande
+      ///   console?"): a tale only a scenario opens, opened now through the same door as the rule's OPEN_TALE, the rule's own
+      ///   guards and dice skipped. The tale's rules still hold; it is first forgotten as played, so it can be tried again.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("tale_open", "cr")]
+      public static string TaleOpen(List<string> args)
+      {
+         if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
+         if (args == null || args.Count < 2) return "Usage: cr.tale_open <tale id> <giver's name>   (tale ids: cr.story_check)";
+         AuthoredQuestBehavior b = AuthoredQuestBehavior.Instance;
+         if (b == null) return "Authored quests are not active.";
+         Hero giver = ResolveHero(args.Skip(1));
+         if (giver == null) return "No character by that name.";
+
+         b.ForgetPlayed(args[0]);
+         string whyNot = b.OpenFromScenario(args[0], giver, dryRun: false);
+
+         return whyNot == null ? $"'{args[0]}' opened with {giver.Name}." : $"'{args[0]}' did not open: {whyNot}.";
+      }
+
+      /// <summary>
       ///   cr.tale_test &lt;tale id&gt; [wife's name] (Gabriel, 11/10/2026: "il faut injecter et arranger car je ne prendrai
       ///   pas le temps de jouer pour mettre toutes les conditions en place"). For a spouse tale that begins on the map:
       ///   finds a spouse who fits it (the one named, else one of the tale's culture, of age, not with child, free to
