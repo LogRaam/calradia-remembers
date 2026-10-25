@@ -211,7 +211,11 @@ namespace CalradiaRemembers.Mapping
          string companionBriefingTargetName = null,
          // 3chmidt (13/10/2026): the item the player held out with the bag this turn, so the character knows what it
          // is worth and what their own purse can pay before naming a price.
-         string offeredItemId = null)
+         string offeredItemId = null,
+         // One path for actions, step 3 (Gabriel, 25/10/2026): true when this turn's tags are read from the character's
+         // own reply (ActionReaderPolicy), so the prose prompt is taught the turn's own action blocks. False keeps what
+         // every other path had before: those blocks taught to the interpreter only.
+         bool proseReadsItsOwnActions = false)
       {
          int daysSinceLastMeeting = ComputeDaysSinceLastMeeting(profile, bridge);
          bool npcIsPrisonerOfAnother = IsPrisonerOfAnother(hero);
@@ -569,8 +573,9 @@ namespace CalradiaRemembers.Mapping
             CaptiveNotoriety = knowledge.CaptiveNotoriety,
             // An authored quest this character is part of now (docs/design/AUTHORED_QUESTS.md).
             AuthoredQuestBlock = Quests.AuthoredQuestBehavior.Instance?.PromptBlockFor(hero),
-            // Its choices by words open with this character, for the action interpreter only (never this prompt).
+            // Its choices by words open with this character, taught to whoever reads this turn's actions.
             StoryChoicesForInterpreter = Quests.AuthoredQuestBehavior.Instance?.InterpreterChoicesFor(hero),
+            ProseReadsItsOwnActions = proseReadsItsOwnActions,
             // fkasad (07/10/2026): the tale is their errand; a hideout task beside it put two targets in the journal.
             InActiveWrittenTale = Quests.AuthoredQuestBehavior.Instance?.HoldsARole(hero?.StringId) == true,
             PartyStanding = knowledge.PartyStanding,

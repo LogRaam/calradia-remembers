@@ -172,10 +172,11 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       public const string StoryChoiceVerb = "story_choice";
 
       /// <summary>
-      ///   For the ACTION INTERPRETER only (branching tales, 04/10/2026): the choices by words open in a conversation with
-      ///   this character, each id with what the player's words must mean, and how to report one. Null when none is open:
-      ///   a conversation with no such choice teaches nothing. Never given to the character, who is not told the ways
-      ///   ahead; the game accepts only a declared, open id said to this very character.
+      ///   For whoever reads the turn's actions (branching tales, 04/10/2026): the choices by words open in a conversation
+      ///   with this character, each id with what the player's words must mean, and how to report one. Null when none is
+      ///   open: a conversation with no such choice teaches nothing. In Enhanced only the interpreter reads it; in Standard
+      ///   the character's own call does, told not to announce or steer toward them (Gabriel, 25/10/2026). The game
+      ///   accepts only a declared, open id said to this very character.
       /// </summary>
       public static string ChoicesForInterpreter(AuthoredQuestRun run, AuthoredQuest q, string heroId)
       {

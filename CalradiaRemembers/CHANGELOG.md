@@ -13,6 +13,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (`docs/maps/composition-parity.md`, `CompositionParityTests`).
 
 ### Fixed
+- **A tale's choice by words can now be taken in Standard composition.** Its open choices were taught only to the
+  action interpreter (Enhanced), so with one call per turn the character's reply could never report one and the tale
+  waited on a path nobody could take. Gabriel (25/10/2026): Enhanced was built to reproduce Standard, then "je
+  confirme" to teaching the open choices there like any other open deed. On a turn whose own reply is read for
+  actions, the prompt now carries them below the `CURRENT ENCOUNTER:` marker (Compact included), with the rule that
+  they are for the [ACTION] block only, never to be announced, offered or steered toward. In Enhanced nothing changes:
+  the interpreter is taught them and the character is not. The action-reader decision is now taken before the
+  context is built (`EncounterContext.ProseReadsItsOwnActions`). Not covered yet: an Enhanced turn redone by the prose
+  fallback reads its own tags from a prompt built without the choices. The parity map's `story_choice` debt is gone.
+  `cr.testall authored_quest_said_choice` now checks the real prompt in both modes.
 - **A wife is no longer narrated as "he", and gestures stop leaning on furniture** (Eisendrache2, Nexus 25/10,
   LM Studio with qwen3.5-9B: "My wife is speaking to me and the AI is describing HIS actions", "Like leaning on a
   table"). The compact prompt for small models kept one gesture example, "*He leans back in his chair*", for every

@@ -100,7 +100,13 @@ and the bridge. Before, they do not: actions are taught in three places that do 
    the commoner, envoy and council paths read their own reply). Left for later on purpose: the interpreter's silent
    failure, `SceneDecisionMerge`, the composer's signature (shared with the bench).
 3. **The per-turn plan**, starting with the turn's own blocks (tale choices, conclusion); the tale arc builds on it.
-   Mends `story_choice` in Standard and `witness_leaves` in Enhanced.
+   FIRST SLICE BUILT 25/10/2026: a tale's choices by words are taught to whoever reads the turn's actions (Gabriel:
+   "le mode Enhanced a ete concu apres pour [...] reproduire le comportement de Regulier", then "je confirme"). The
+   junction decides before the context is built and sets `EncounterContext.ProseReadsItsOwnActions`; the prose prompt
+   carries the open choices below the marker only then, told not to announce or steer toward them. `story_choice` left
+   the debts. Still open in this step: the prose fallback's prompt (built for an interpreter turn, then read as its
+   own); the arc's signals; one plan object both renderings draw from. (`witness_leaves` needed nothing: step 1 found
+   it taught to both.)
 4. **Verbs migrate to their spec one by one**; a ratchet counts those still taught outside the plan.
 5. **Enhanced's prose prompt without actions**, measured before and after.
 

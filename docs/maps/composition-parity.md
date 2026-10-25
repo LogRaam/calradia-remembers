@@ -23,7 +23,7 @@ those rows are not compared.
 - `Parity`: `same` when both readers are taught it (or neither) in Full; otherwise which one, and the reason it is
   allowed for now, from the list `CompositionParityTests` holds (it may only shrink).
 
-85 verbs: 58 the same for both readers, 2 taught to one reader only, 25 not compared (taught by the mod's own text).
+85 verbs: 59 the same for both readers, 1 taught to one reader only, 25 not compared (taught by the mod's own text).
 
 | Verb | Interpreter | Interpreter, Compact | Prose | Prose, Compact | Prose taught in | Prose, nothing open | Mod text | Bridge | Parity |
 |---|---|---|---|---|---|---|---|---|---|
@@ -102,7 +102,7 @@ those rows are not compared.
 | `sell_prisoner` | yes | yes |  |  |  |  | yes | yes | not compared |
 | `share_intel` | yes | yes |  |  |  |  | yes | yes | not compared |
 | `spend_influence` | yes | yes |  |  |  |  | yes | yes | not compared |
-| `story_choice` | yes | yes |  |  |  |  |  | yes | interpreter only (allowed, below) |
+| `story_choice` | yes | yes | yes | yes | everything open; the player held captive; the player's captor scene; a hostile lord who holds the player's secret |  |  | yes | same |
 | `sway_opinion` | yes | yes |  |  |  |  | yes | yes | not compared |
 | `swear_oath` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `take_as_consort` | yes | yes | yes | yes | everything open |  |  | yes | same |
@@ -116,7 +116,6 @@ those rows are not compared.
 ## Taught to one reader only, and allowed for now
 
 - `gather_news`: A deprecated alias of dispatch_mission (GameActionCatalog), which the prose model is taught under that name; the interpreter's catalogue still lists the old name too.
-- `story_choice`: A tale's choices by words are composed for the interpreter only (StoryChoicesForInterpreter), so in Standard composition the prose model is never told it may report one. Step 3 of 'one path for actions' teaches it to both.
 
 ## The context each reader can see (read from the source)
 
@@ -128,7 +127,7 @@ The interpreter's fields, and whether the prose prompt reads them too:
 | `CurrentLocationName` |  |
 | `PlayerStatus` | yes |
 | `Scene` | yes |
-| `StoryChoicesForInterpreter` |  |
+| `StoryChoicesForInterpreter` | yes |
 | `WarStatus` | yes |
 | `Witnesses` | yes |
 

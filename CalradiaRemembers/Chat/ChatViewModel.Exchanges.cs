@@ -778,6 +778,17 @@ namespace CalradiaRemembers.Chat
             // The player spoke while the scene was waiting on the transcript: his turn opens the scene, this one is over.
             if (isSceneOpener && _sceneOpenerAbandoned) return;
 
+            // Composition reads the THREE-STATE in-chat switch (LlmServices.ActiveComposition), not the raw MCM
+            // "Chat Composition" dropdown: only that switch decides, live, whether this turn is Enhanced.
+            // Who reads this turn's actions is decided in one place, ActionReaderPolicy (Gabriel, 25/10/2026: "la seule
+            // jonction devrait etre a quel service je demande l'interpretation"). Decided before the context is built,
+            // because the prose prompt is taught the turn's own action blocks only when it is the reader.
+            var readingFacts = new ActionReadingFacts {
+               Composition = LlmServices.ActiveComposition, IsMainSpeaker = speaker.IsMain, IsSyntheticPlayerLine = suppressPlayerLine,
+               IsCaptiveEncounter = IsCaptiveEncounter, IsCaptorScene = _captorScene
+            };
+            bool proseInterpretEligible = ActionReaderPolicy.IsInterpreterTurn(readingFacts);
+
             // Rebuild context each turn so it reflects events added during this session
             // (avoids stale "never met" after the first exchange adds a FirstMeeting event).
             // The witness list is everyone EXCEPT the current speaker (main NPC included
@@ -852,7 +863,8 @@ namespace CalradiaRemembers.Chat
                // briefing chat itself (main speaker or a promoted/addressed witness alike) must carry the scene
                // framing, or a companion answers as though the named target were standing right there.
                isCompanionBriefingScene: IsCompanionBriefingChat,
-               companionBriefingTargetName: _companionBriefingTargetName);
+               companionBriefingTargetName: _companionBriefingTargetName,
+               proseReadsItsOwnActions: !proseInterpretEligible);
 
             if (behavior.LlmServices is not {IsAvailable: true})
             {
@@ -948,15 +960,7 @@ namespace CalradiaRemembers.Chat
             // Computed here (not just at the interpret call site) because the PROSE call itself needs it: only
             // an eligible turn is issued with allowTruncationRetry:false (fail fast instead of the SDK's own
             // slow double-budget retry), so the mod's own fallback can take over immediately.
-            // Composition reads the THREE-STATE in-chat switch (LlmServices.ActiveComposition), not the raw MCM
-            // "Chat Composition" dropdown: only that switch decides, live, whether this turn is Enhanced.
-            // Who reads this turn's actions is decided in one place, ActionReaderPolicy (Gabriel, 25/10/2026: "la seule
-            // jonction devrait etre a quel service je demande l'interpretation").
-            var readingFacts = new ActionReadingFacts {
-               Composition = LlmServices.ActiveComposition, IsMainSpeaker = speaker.IsMain, IsSyntheticPlayerLine = suppressPlayerLine,
-               IsCaptiveEncounter = IsCaptiveEncounter, IsCaptorScene = _captorScene
-            };
-            bool proseInterpretEligible = ActionReaderPolicy.IsInterpreterTurn(readingFacts);
+            // (readingFacts and proseInterpretEligible are decided above, before the context is built.)
             bool usedProseFallback = false;
 
             NpcChatResult result;

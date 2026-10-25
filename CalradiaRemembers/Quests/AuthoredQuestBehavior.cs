@@ -2036,8 +2036,9 @@ namespace CalradiaRemembers.Quests
       }
 
       /// <summary>
-      ///   The choices by words open in a conversation with this character, written for the ACTION INTERPRETER only
-      ///   (EncounterContext.StoryChoicesForInterpreter); null when none is open. The character is never told them.
+      ///   The choices by words open in a conversation with this character (EncounterContext.StoryChoicesForInterpreter),
+      ///   taught to whoever reads the turn's actions: the interpreter in Enhanced, the character's own call in Standard
+      ///   (Gabriel, 25/10/2026), with the rule not to announce or steer toward them. Null when none is open.
       /// </summary>
       public string InterpreterChoicesFor(Hero hero)
       {

@@ -52,8 +52,6 @@ namespace CalradiaRemembers.Tests.Maps
       ///   shrink: CompositionParityTests refuses a new asymmetry, and refuses an entry that is no longer one.
       /// </summary>
       public static readonly IReadOnlyDictionary<string, string> Debts = new SortedDictionary<string, string>(StringComparer.Ordinal) {
-         ["story_choice"] = "A tale's choices by words are composed for the interpreter only (StoryChoicesForInterpreter), so in Standard "
-                          + "composition the prose model is never told it may report one. Step 3 of 'one path for actions' teaches it to both.",
          ["gather_news"] = "A deprecated alias of dispatch_mission (GameActionCatalog), which the prose model is taught under that name; "
                          + "the interpreter's catalogue still lists the old name too.",
       };
@@ -145,12 +143,17 @@ namespace CalradiaRemembers.Tests.Maps
                                        .Distinct().OrderBy(n => n, StringComparer.Ordinal).ToList();
 
          string choices = TaleChoices();
-         var full = PermissiveEncounter.Scenarios(LeanPromptLevel.Full, choices);
-         var compact = PermissiveEncounter.Scenarios(LeanPromptLevel.Lean, choices);
+         // Each reader's prompt is built the way production builds it for the turn that reader reads: the prose prompt
+         // for a Standard turn, the interpreter's for an Enhanced one, each asking the junction who reads.
+         bool proseReads = !ActionReaderPolicy.IsInterpreterTurn(new ActionReadingFacts {Composition = ChatCompositionMode.Standard, IsMainSpeaker = true});
+         bool proseReadsInEnhanced = !ActionReaderPolicy.IsInterpreterTurn(new ActionReadingFacts {Composition = ChatCompositionMode.Enhanced, IsMainSpeaker = true});
+         var full = PermissiveEncounter.Scenarios(LeanPromptLevel.Full, choices, proseReadsInEnhanced);
+         var compact = PermissiveEncounter.Scenarios(LeanPromptLevel.Lean, choices, proseReadsInEnhanced);
          List<string> interpreterFull = full.Select(s => Interpreter(s.Context, LeanPromptLevel.Full)).ToList();
          List<string> interpreterCompact = compact.Select(s => Interpreter(s.Context, LeanPromptLevel.Lean)).ToList();
-         List<(string Name, string Prompt)> proseFull = full.Select(s => (s.Name, Prose(s.Context))).ToList();
-         List<string> proseCompact = compact.Select(s => Prose(s.Context)).ToList();
+         List<(string Name, string Prompt)> proseFull = PermissiveEncounter.Scenarios(LeanPromptLevel.Full, choices, proseReads)
+                                                                         .Select(s => (s.Name, Prose(s.Context))).ToList();
+         List<string> proseCompact = PermissiveEncounter.Scenarios(LeanPromptLevel.Lean, choices, proseReads).Select(s => Prose(s.Context)).ToList();
          string proseNothing = Prose(new EncounterContext());
 
          return names.Select(n => new Row {
