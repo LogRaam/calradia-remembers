@@ -6056,6 +6056,47 @@ input[type="number"] { max-width: 160px; }
     return h('div', h('div', text), thumbs.length ? h('div.summary-thumbs', thumbs) : null);
   }
 
+  /** A scene's opening or closing: a line of text, or a beat with its canvas and facts (Gabriel, 25/10/2026: "[object Object]"). */
+  function beatOf(b) {
+    if (b === null || b === undefined) return null;
+    if (typeof b !== 'object' || Array.isArray(b)) return lines(b).length ? h('div', lines(b).map(function (l) { return clip(l.text, 400); }).join(' ')) : null;
+    var said = lines(b.canvas), known = lines(b.facts);
+    if (!said.length && !known.length) return null;
+    return h('div', said.length ? h('div', said.map(function (l) { return clip(l.text, 600); }).join(' ')) : null,
+      known.length ? h('ul.summary-list', known.map(function (l) { return h('li', l.when ? h('span.when', 'if ' + l.when + ': ') : null, clip(l.text, 240)); })) : null);
+  }
+
+  /**
+   * How a stage is completed, as its Edit section says it (Gabriel, 25/10/2026): the objective with every field it uses,
+   * where it then leads, and how its choices stand beside it.
+   */
+  function completionOf(s) {
+    var o = s.objective, cs = arr(s.choices).filter(function (c) { return c; }), next = s.on_complete && s.on_complete.next;
+    var isScene = o && o.type === 'explore';
+    if (!o) return rows([['By', cs.length ? 'a choice only: the stage has no objective of its own' : 'nothing: it has neither an objective nor a choice']]);
+    var spawn = o.spawn && typeof o.spawn === 'object' ? o.spawn : null;
+    var fallback = null;
+    if (isScene && cs.length && blank(next)) {
+      var def = cs.filter(function (c) { return c.default; })[0];
+      fallback = def ? 'the default choice \u2018' + (def.label || def.id || '?') + '\u2019 \u2192 ' + whereTo(def.next) : 'nowhere: no choice is marked default';
+    }
+    return rows([
+      ['Objective', o.type || '(no type)'],
+      ['In short', objectiveSummary(o)],
+      ['Who', blank(o.hero) ? null : o.hero],
+      ['When', o.when === 'closed' ? 'as the conversation closes, so all of it counts' : blank(o.when) ? null : String(o.when)],
+      ['Where', blank(o.place) ? null : o.place + (o.radius !== undefined ? ', within ' + o.radius : '')],
+      ['How many', o.count !== undefined ? String(o.count) : null],
+      ['Nights', o.nights !== undefined ? String(o.nights) : null],
+      ['Chance', o.chance !== undefined ? String(o.chance) : null],
+      ['Days', o.days !== undefined ? String(o.days) : null],
+      ['Item', blank(o.item) ? null : o.item + (blank(o.to) ? '' : ', to ' + o.to)],
+      ['The band', spawn ? (spawn.name || spawn.id || '?') + (spawn.flee_after_days !== undefined ? ', flees after ' + spawn.flee_after_days + ' days' : '') : null],
+      [isScene ? 'When the scene closes' : 'When it is done', fallback || whereTo(next)],
+      ['Beside it', cs.length && !isScene ? cs.length + ' choice(s): whichever way out comes first' : null]
+    ]);
+  }
+
   function stageSummary(i) {
     var s = stages()[i];
     if (!s) return null;
@@ -6063,10 +6104,9 @@ input[type="number"] { max-width: 160px; }
     var body = [];
     body.push(rows([
       ['Journal', blank(s.journal) ? null : s.journal],
-      ['Objective', s.objective ? objectiveSummary(o) + (o.when === 'closed' ? ', when the conversation closes' : '') : 'none: the player chooses'],
-      ['Picture', picturesOf(s)],
-      ['Then', s.objective && (!arr(s.choices).length || !blank(s.on_complete && s.on_complete.next)) ? whereTo(s.on_complete && s.on_complete.next) : null]
+      ['Picture', picturesOf(s)]
     ]));
+    body.push(h('h4', 'How the stage is completed'), completionOf(s));
     if (lines(s.canvas).length) body.push(h('h4', 'What is said'), lineList(s.canvas));
     if (lines(s.facts).length) body.push(h('h4', 'What is true'), lineList(s.facts));
     if (s.knowers && typeof s.knowers === 'object') {
@@ -6078,11 +6118,25 @@ input[type="number"] { max-width: 160px; }
     if (scene) {
       body.push(h('h4', 'The scene'));
       body.push(rows([
-        ['Opening', blank(scene.opening) ? null : clip(scene.opening, 300)],
-        ['Findings', arr(scene.findings).filter(function (f) { return f; }).map(function (f) { return (f.id || '?') + (f.required ? ' (required)' : '') + (f.sets ? ' sets ' + flagsToText(f.sets) : ''); }).join(', ') || null],
-        ['Hazards', arr(scene.hazards).filter(function (z) { return z; }).map(function (z) { return z.id || '?'; }).join(', ') || null],
-        ['Encounters', arr(scene.encounters).filter(function (e) { return e; }).map(function (e) { return e.name || e.id || '?'; }).join(', ') || null]
+        ['Title', blank(scene.title) ? null : scene.title],
+        ['Opening', beatOf(scene.opening)],
+        ['Closing', beatOf(scene.closing)],
+        ['Prisoners', scene.invite_prisoners ? 'invited' : null]
       ]));
+      var finds = arr(scene.findings).filter(function (f) { return f; });
+      if (finds.length) body.push(h('h4', 'Findings'), h('ul.summary-list', finds.map(function (f) {
+        return h('li', h('span.mono', f.id || '?'), (f.required ? ' (required)' : '') + (blank(f.text) ? '' : ': ' + clip(f.text, 200)) + (f.sets ? '; sets ' + flagsToText(f.sets) : ''));
+      })));
+      var hazards = arr(scene.hazards).filter(function (z) { return z; });
+      if (hazards.length) body.push(h('h4', 'Hazards'), h('ul.summary-list', hazards.map(function (z) {
+        return h('li', h('span.mono', z.id || '?'), (blank(z.trigger) ? '' : ': ' + clip(z.trigger, 140)) + (blank(z.effect) ? '' : ' \u2192 ' + clip(z.effect, 140)));
+      })));
+      var meets = arr(scene.encounters).filter(function (e) { return e; });
+      if (meets.length) body.push(h('h4', 'Encounters'), h('ul.summary-list', meets.map(function (e) {
+        var knows = lines(e.knows);
+        return h('li', h('strong', e.name || e.id || '?'), (blank(e.persona) ? '' : ': ' + clip(e.persona, 220))
+          + (knows.length ? ' (knows ' + knows.length + ' thing' + (knows.length > 1 ? 's' : '') + ')' : '') + (e.sets ? '; sets ' + flagsToText(e.sets) : ''));
+      })));
     }
     var cs = arr(s.choices).filter(function (c) { return c; });
     if (cs.length) {
