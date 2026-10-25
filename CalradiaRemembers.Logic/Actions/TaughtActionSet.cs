@@ -170,7 +170,11 @@ namespace CalradiaRemembers.Logic.Actions
          "take_gold",
          "request_privacy",
          "end_conversation",
-         "witness_leaves"
+         "witness_leaves",
+         // The player's violence in words, taught every turn in both compositions since 25/10/2026 (ProseActionVocabulary).
+         "rob_npc",
+         "assault_npc",
+         "kill_npc"
       };
 
       /// <summary>

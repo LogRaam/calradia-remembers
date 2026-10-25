@@ -4,6 +4,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.21.. open
 
+### Changed
+- **The player's violence in words works in both compositions** (Gabriel 25/10: "enseigne la violence aux deux
+  modes"). rob_npc, assault_npc and kill_npc were taught to the interpreter alone (PlayerViolenceVerb kept them out of
+  the prose prompt so no conversation was invited to violence), so in Standard composition a robbery, a beating or a
+  killing in words was never carried out. `ProseActionVocabulary` now lists them from their catalogue spec; the bridge
+  re-checks each as before (ViolencePolicy, the killing option). Found by the new composition-parity map
+  (`docs/maps/composition-parity.md`, `CompositionParityTests`).
+
 ### Fixed
 - **Duels and the captive's escape ready for the 1.5.5 beta** (tashmetu, Nexus 25/10, from a check of every mod DLL
   against the beta): `Mission.SpawnAgent(AgentBuildData, bool)` gained two optional parameters in 1.5.5, so the

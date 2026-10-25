@@ -16,7 +16,7 @@ A hole is not always a bug (a bridge-native action has no verb class), but every
 | `appoint_governor` | yes | yes | yes |  |  | yes | 3 |
 | `arrange_marriage` | yes | yes | yes |  |  | yes | 3 |
 | `arrange_match` | yes | yes | yes | `ArrangeMatchVerb` | yes | yes | 3 |
-| `assault_npc` | yes | yes | yes |  |  |  | 3 |
+| `assault_npc` | yes | yes | yes |  |  | yes | 3 |
 | `assign_party_role` | yes | yes | yes |  |  | yes | 3 |
 | `buy_prisoner` | yes | yes | yes | `BuyPrisonerVerb` | yes | yes | 3 |
 | `change_relation` | yes | yes | yes |  |  | yes | 3 |
@@ -54,7 +54,7 @@ A hole is not always a bug (a bridge-native action has no verb class), but every
 | `join_as_vassal` | yes | yes | yes |  |  | yes | 3 |
 | `join_clan` | yes | yes | yes |  |  | yes | 3 |
 | `join_party` | yes | yes | yes |  |  | yes | 4 |
-| `kill_npc` | yes | yes | yes |  |  |  | 3 |
+| `kill_npc` | yes | yes | yes |  |  | yes | 3 |
 | `lend_troops` | yes | yes | yes | `LendTroopsVerb` | yes | yes | 3 |
 | `make_amends` | yes | yes | yes | `MakeAmendsVerb` | yes | yes | 3 |
 | `marry` | yes | yes | yes |  |  | yes | 3 |
@@ -77,7 +77,7 @@ A hole is not always a bug (a bridge-native action has no verb class), but every
 | `retire` | yes | yes |  |  |  | yes | 3 |
 | `revoke_fief` | yes | yes | yes |  |  | yes | 3 |
 | `ride_with_me` | yes | yes | yes |  |  | yes | 3 |
-| `rob_npc` | yes | yes | yes |  |  |  | 3 |
+| `rob_npc` | yes | yes | yes |  |  | yes | 3 |
 | `scheme_assist` | yes | yes | yes |  |  | yes | 3 |
 | `scheme_heed` | yes | yes | yes |  |  | yes | 3 |
 | `sell_item` | yes | yes | yes |  |  | yes | 3 |

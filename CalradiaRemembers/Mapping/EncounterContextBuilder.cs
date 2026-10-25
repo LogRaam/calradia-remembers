@@ -126,7 +126,7 @@ namespace CalradiaRemembers.Mapping
 
       /// <summary>
       ///   CR's own verbs taught by another path, so they belong in no list here: pay_for_silence inline in the held-secret
-      ///   section (its TeachingText is null), rob_npc, assault_npc and kill_npc by their catalogue line alone.
+      ///   section (its TeachingText is null), rob_npc, assault_npc and kill_npc by their catalogue line, in both compositions.
       /// </summary>
       internal static readonly string[] VerbsTaughtElsewhere = {"pay_for_silence", "rob_npc", "assault_npc", "kill_npc"};
 

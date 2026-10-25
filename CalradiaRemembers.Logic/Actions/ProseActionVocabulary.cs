@@ -21,8 +21,18 @@ namespace CalradiaRemembers.Logic.Actions
    public static class ProseActionVocabulary
    {
       /// <summary>
-      ///   The five hand-written verbs, change_relation worded for <paramref name="warmth" />, then every externally
-      ///   registered catalogue action (built-ins are taught by their own sections, so none is taught twice).
+      ///   The player's violence in words (rob, assault, kill), taught from its catalogue spec. Gabriel (25/10/2026), once
+      ///   the composition-parity map showed these taught to the interpreter alone: "enseigne la violence aux deux modes".
+      ///   They had been kept out of the prose prompt so an ordinary conversation was never invited to violence, which
+      ///   meant a player in Standard composition could never rob, beat or kill anyone in words. The bridge still re-checks
+      ///   every one (ViolencePolicy, the killing option), exactly as it does for the interpreter's.
+      /// </summary>
+      public static readonly IReadOnlyList<string> PlayerViolenceVerbs = new[] {"rob_npc", "assault_npc", "kill_npc"};
+
+      /// <summary>
+      ///   The five hand-written verbs, change_relation worded for <paramref name="warmth" />, the player's violence
+      ///   (<see cref="PlayerViolenceVerbs" />) from its catalogue spec, then every externally registered catalogue action
+      ///   (other built-ins are taught by their own sections, so none is taught twice).
       /// </summary>
       public static IReadOnlyList<GameActionDefinition> Build(RelationWarmth warmth)
       {
@@ -90,7 +100,7 @@ namespace CalradiaRemembers.Logic.Actions
          // In normal play nothing is registered, so this adds nothing and the vocabulary stays unchanged.
          foreach (GameActionSpec spec in GameActionCatalog.All)
          {
-            if (GameActionCatalog.BuiltInTypes.Contains(spec.Type)) continue;
+            if (GameActionCatalog.BuiltInTypes.Contains(spec.Type) && !PlayerViolenceVerbs.Contains(spec.Type)) continue;
 
             vocabulary.Add(new GameActionDefinition {
                Type = spec.Type,

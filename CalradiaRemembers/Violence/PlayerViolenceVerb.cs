@@ -8,8 +8,9 @@
 // narrated murder in a campaign with killing switched off changes nothing at all, and a narrated murder of a guarded
 // champion by a beggar almost always fails.
 //
-// Teaching is left to the action catalog (GameActionCatalog): TeachingText returns null so the ordinary conversation
-// prompt never advertises violence to every NPC the player greets.
+// Teaching is the action catalog's (GameActionCatalog): TeachingText returns null, and the catalogue spec is taught to both
+// readers, the interpreter and, since 25/10/2026, the prose model too (ProseActionVocabulary; Gabriel: "enseigne la
+// violence aux deux modes", once it showed a player in Standard composition could never act violently in words).
 
 #region
 
@@ -52,7 +53,7 @@ namespace CalradiaRemembers.Violence
          => ctx?.Npc != null && ctx.Npc != Hero.MainHero
             && ViolencePolicy.IsPermitted(_act, ModSettings.AllowKillingCharacters);
 
-      /// <summary>Null on purpose: the action catalog teaches these, so an ordinary conversation is never invited to violence.</summary>
+      /// <summary>Null on purpose: the catalogue spec teaches these, to both readers (ProseActionVocabulary), so no second text exists.</summary>
       public string TeachingText(VerbContext ctx) => null;
 
       public ActionOutcome Execute(GameAction action, VerbContext ctx)

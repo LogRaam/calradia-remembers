@@ -23,7 +23,7 @@ those rows are not compared.
 - `Parity`: `same` when both readers are taught it (or neither) in Full; otherwise which one, and the reason it is
   allowed for now, from the list `CompositionParityTests` holds (it may only shrink).
 
-85 verbs: 55 the same for both readers, 5 taught to one reader only, 25 not compared (taught by the mod's own text).
+85 verbs: 58 the same for both readers, 2 taught to one reader only, 25 not compared (taught by the mod's own text).
 
 | Verb | Interpreter | Interpreter, Compact | Prose | Prose, Compact | Prose taught in | Prose, nothing open | Mod text | Bridge | Parity |
 |---|---|---|---|---|---|---|---|---|---|
@@ -33,7 +33,7 @@ those rows are not compared.
 | `appoint_governor` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `arrange_marriage` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `arrange_match` | yes | yes |  |  |  |  | yes | yes | not compared |
-| `assault_npc` | yes | yes |  |  |  |  |  | yes | interpreter only (allowed, below) |
+| `assault_npc` | yes | yes | yes | yes | everything open; the player held captive; the player's captor scene; a hostile lord who holds the player's secret | yes |  | yes | same |
 | `assign_party_role` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `buy_prisoner` | yes | yes |  |  |  |  | yes | yes | not compared |
 | `change_relation` | yes | yes | yes | yes | everything open; the player held captive; the player's captor scene; a hostile lord who holds the player's secret | yes |  | yes | same |
@@ -72,7 +72,7 @@ those rows are not compared.
 | `join_as_vassal` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `join_clan` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `join_party` | yes | yes | yes | yes | everything open |  |  | yes | same |
-| `kill_npc` | yes | yes |  |  |  |  |  | yes | interpreter only (allowed, below) |
+| `kill_npc` | yes | yes | yes | yes | everything open; the player held captive; the player's captor scene; a hostile lord who holds the player's secret | yes |  | yes | same |
 | `lend_troops` | yes | yes |  |  |  |  | yes | yes | not compared |
 | `make_amends` | yes | yes |  |  |  |  | yes | yes | not compared |
 | `marry` | yes | yes | yes | yes | everything open |  |  | yes | same |
@@ -95,7 +95,7 @@ those rows are not compared.
 | `retire` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `revoke_fief` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `ride_with_me` | yes | yes | yes | yes | everything open |  |  | yes | same |
-| `rob_npc` | yes | yes |  |  |  |  |  | yes | interpreter only (allowed, below) |
+| `rob_npc` | yes | yes | yes | yes | everything open; the player held captive; the player's captor scene; a hostile lord who holds the player's secret | yes |  | yes | same |
 | `scheme_assist` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `scheme_heed` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `sell_item` | yes | yes | yes |  | everything open; the player's captor scene; a hostile lord who holds the player's secret | yes |  | yes | same |
@@ -115,10 +115,7 @@ those rows are not compared.
 
 ## Taught to one reader only, and allowed for now
 
-- `assault_npc`: Kept out of the prose prompt on purpose (PlayerViolenceVerb: 'so an ordinary conversation is never invited to violence'), so only the interpreter's catalogue teaches it: in Standard composition the player's violence in words is never carried out. Awaits Gabriel's ruling against parity.
 - `gather_news`: A deprecated alias of dispatch_mission (GameActionCatalog), which the prose model is taught under that name; the interpreter's catalogue still lists the old name too.
-- `kill_npc`: Kept out of the prose prompt on purpose (PlayerViolenceVerb: 'so an ordinary conversation is never invited to violence'), so only the interpreter's catalogue teaches it: in Standard composition the player's violence in words is never carried out. Awaits Gabriel's ruling against parity.
-- `rob_npc`: Kept out of the prose prompt on purpose (PlayerViolenceVerb: 'so an ordinary conversation is never invited to violence'), so only the interpreter's catalogue teaches it: in Standard composition the player's violence in words is never carried out. Awaits Gabriel's ruling against parity.
 - `story_choice`: A tale's choices by words are composed for the interpreter only (StoryChoicesForInterpreter), so in Standard composition the prose model is never told it may report one. Step 3 of 'one path for actions' teaches it to both.
 
 ## The context each reader can see (read from the source)

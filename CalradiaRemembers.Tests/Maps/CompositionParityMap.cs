@@ -52,16 +52,9 @@ namespace CalradiaRemembers.Tests.Maps
       public static readonly IReadOnlyDictionary<string, string> Debts = new SortedDictionary<string, string>(StringComparer.Ordinal) {
          ["story_choice"] = "A tale's choices by words are composed for the interpreter only (StoryChoicesForInterpreter), so in Standard "
                           + "composition the prose model is never told it may report one. Step 3 of 'one path for actions' teaches it to both.",
-         ["assault_npc"] = ViolenceDebt,
-         ["kill_npc"] = ViolenceDebt,
-         ["rob_npc"] = ViolenceDebt,
          ["gather_news"] = "A deprecated alias of dispatch_mission (GameActionCatalog), which the prose model is taught under that name; "
                          + "the interpreter's catalogue still lists the old name too.",
       };
-
-      private const string ViolenceDebt = "Kept out of the prose prompt on purpose (PlayerViolenceVerb: 'so an ordinary conversation is never "
-                                        + "invited to violence'), so only the interpreter's catalogue teaches it: in Standard composition the "
-                                        + "player's violence in words is never carried out. Awaits Gabriel's ruling against parity.";
 
       /// <summary>One verb, and where each reader is taught it.</summary>
       internal sealed class Row
