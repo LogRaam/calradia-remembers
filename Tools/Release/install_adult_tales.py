@@ -45,8 +45,9 @@ def main():
     if not os.path.isfile(os.path.join(SRC, "SubModule.xml")):
         sys.exit("no module at " + SRC)
     if os.path.isdir(DEST):
-        shutil.rmtree(DEST)
-    shutil.copytree(SRC, DEST, ignore=lambda folder, names: [n for n in names if n in SKIP_NAMES])
+        # A folder held open (an Explorer window, a player) cannot be removed; its files are, and the copy fills it again.
+        shutil.rmtree(DEST, ignore_errors=True)
+    shutil.copytree(SRC, DEST, ignore=lambda folder, names: [n for n in names if n in SKIP_NAMES], dirs_exist_ok=True)
 
     if "--play-test" in args:
         test = os.path.join(SRC, "PlayTest", "play_test_scenario.json")
