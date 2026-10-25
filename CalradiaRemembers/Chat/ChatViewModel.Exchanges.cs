@@ -554,6 +554,19 @@ namespace CalradiaRemembers.Chat
       };
 
       /// <summary>
+      ///   The one junction (ROADMAP, one path for actions): the reply's actions as the chosen reader reads them. The
+      ///   same call's own tags are the reply as it came; the interpreter replaces them with what it read over the prose.
+      ///   Everything after this is one path for both compositions.
+      /// </summary>
+      private async Task<ParsedResponse> ReadActionsAsync(ActionReader reader, ParsedResponse response, EncounterContext context,
+                                                          NpcProfile profile, NpcMemoryCampaignBehavior behavior, bool conversationInProgress)
+      {
+         if (reader != ActionReader.Interpreter) return response;
+
+         return await ComposeByInterpretationAsync(response, context, profile, behavior, conversationInProgress);
+      }
+
+      /// <summary>
       ///   PROSE + INTERPRETER composition: the prose reply is already on screen; this runs the MCM-configured
       ///   ACTION INTERPRETER over that prose ONE shot and returns a <see cref="ParsedResponse" /> that keeps every
       ///   prose field but REPLACES the machine tags (<see cref="ParsedResponse.Actions" /> and
@@ -937,9 +950,13 @@ namespace CalradiaRemembers.Chat
             // slow double-budget retry), so the mod's own fallback can take over immediately.
             // Composition reads the THREE-STATE in-chat switch (LlmServices.ActiveComposition), not the raw MCM
             // "Chat Composition" dropdown: only that switch decides, live, whether this turn is Enhanced.
-            bool proseInterpretEligible = LlmServices.ActiveComposition == ChatCompositionMode.Enhanced
-                                          && speaker.IsMain && !suppressPlayerLine
-                                          && !IsCaptiveEncounter && !_captorScene;
+            // Who reads this turn's actions is decided in one place, ActionReaderPolicy (Gabriel, 25/10/2026: "la seule
+            // jonction devrait etre a quel service je demande l'interpretation").
+            var readingFacts = new ActionReadingFacts {
+               Composition = LlmServices.ActiveComposition, IsMainSpeaker = speaker.IsMain, IsSyntheticPlayerLine = suppressPlayerLine,
+               IsCaptiveEncounter = IsCaptiveEncounter, IsCaptorScene = _captorScene
+            };
+            bool proseInterpretEligible = ActionReaderPolicy.IsInterpreterTurn(readingFacts);
             bool usedProseFallback = false;
 
             NpcChatResult result;
@@ -1199,14 +1216,12 @@ namespace CalradiaRemembers.Chat
             // usedProseFallback: the PROSE FALLBACK block above already redid this turn as a single INTEGRATED call
             // (prose + tags together) on the fallback model, so `response` already carries real tags: running the
             // interpreter over them again would be redundant (and would target the wrong prose, the fallback's).
-            if (proseInterpretEligible && !usedProseFallback)
-            {
-               response = await ComposeByInterpretationAsync(response, context, profile, behavior, conversationInProgress);
+            ActionReader reader = ActionReaderPolicy.ReaderFor(readingFacts, usedProseFallback);
+            response = await ReadActionsAsync(reader, response, context, profile, behavior, conversationInProgress);
 
-               // The interpreter call added an await: the chat may have closed or been replaced meanwhile, so run
-               // the same stale-VM guard the main call uses before any game state is touched below.
-               if (!ReferenceEquals(ChatManager.ActiveViewModel, this)) return;
-            }
+            // The interpreter call added an await: the chat may have closed or been replaced meanwhile, so run the same
+            // stale-VM guard the main call uses before any game state is touched below.
+            if (reader == ActionReader.Interpreter && !ReferenceEquals(ChatManager.ActiveViewModel, this)) return;
             // ───────────────────────────────────────────────────────────────────────────────────────────────
 
             int gameDay = behavior.GameStateBridge.GetCurrentGameDay();

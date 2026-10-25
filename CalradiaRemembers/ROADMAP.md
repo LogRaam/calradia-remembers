@@ -84,14 +84,20 @@ and the bridge. Before, they do not: actions are taught in three places that do 
 **Steps.**
 
 1. **The parity map and its guard** (BUILT 25/10/2026: 85 verbs, 55 the same for both readers, 25 taught by the mod's
-   own text and not compared yet, 5 on the allowed list: `story_choice`; `assault_npc`, `kill_npc`, `rob_npc`, kept
-   out of the prose prompt on purpose so player violence in words never happens in Standard, awaiting Gabriel's
-   ruling; `gather_news`, a deprecated alias. `witness_leaves` turned out taught to both: no bug.) `docs/maps/composition-parity.md`, one row per verb, saying whether the
+   own text and not compared yet; on the allowed list `story_choice` and `gather_news` (a deprecated alias).
+   `assault_npc`, `kill_npc`, `rob_npc` had been kept out of the prose prompt on purpose, so player violence in words
+   never happened in Standard: Gabriel ruled "enseigne la violence aux deux modes" and they are taught to both since
+   `e499c36`. `witness_leaves` turned out taught to both: no bug.) `docs/maps/composition-parity.md`, one row per verb, saying whether the
    interpreter is taught it, whether the prose model is taught it with a permissive context and with an empty one, and
    whether the bridge handles it; the context fields read by one side only; the condition that decides when the
    interpreter runs. A blocking guard: a verb taught to one reader and not the other is refused unless it stands on an
    allow-list with its reason, and the list may only shrink.
-2. **The action reader as the single junction** (the after-tags path).
+2. **The action reader as the single junction** (BUILT 25/10/2026): `ActionReaderPolicy` (Logic) decides, from one
+   facts object, whether a turn is an interpreter turn and who reads its actions; `ChatViewModel.ReadActionsAsync` is
+   the one place the road forks. Behaviour unchanged. The parity map renders the policy's decisions and lists every
+   chat method that executes actions, with whether it passes through the junction (only the ordinary 1:1 turn does;
+   the commoner, envoy and council paths read their own reply). Left for later on purpose: the interpreter's silent
+   failure, `SceneDecisionMerge`, the composer's signature (shared with the bench).
 3. **The per-turn plan**, starting with the turn's own blocks (tale choices, conclusion); the tale arc builds on it.
    Mends `story_choice` in Standard and `witness_leaves` in Enhanced.
 4. **Verbs migrate to their spec one by one**; a ratchet counts those still taught outside the plan.

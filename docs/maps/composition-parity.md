@@ -135,11 +135,28 @@ The interpreter's fields, and whether the prose prompt reads them too:
 Fields that open or close an action in the prose prompt and that the interpreter never sees (0; by name: `Can`,
 `Eligible`, `ExtraActionTeachings`, `UnavailableDeeds`): none.
 
-## Who reads a reply's actions (read from the source)
+## Who reads a reply's actions
 
-The interpreter reads them only when this holds (`ChatViewModel.Exchanges`, `proseInterpretEligible`); every other
-turn, even in Enhanced, is read from the prose model's own tags, by the same code as Standard:
+The one junction (`ActionReaderPolicy`), rendered by real calls: `Interpreter turn` is decided before the prose
+call (such a turn fails fast and may be redone by the prose fallback), `Reader` once the prose is in.
 
-```
-LlmServices.ActiveComposition == ChatCompositionMode.Enhanced && speaker.IsMain && !suppressPlayerLine && !IsCaptiveEncounter && !_captorScene
-```
+| Turn | Interpreter turn | Reader |
+|---|---|---|
+| Standard, the main character, the player's own line |  | SameCall |
+| Enhanced, the main character, the player's own line | yes | Interpreter |
+| Enhanced, the same turn redone by the prose fallback | yes | SameCall |
+| Enhanced, an ensemble voice or addressed witness |  | SameCall |
+| Enhanced, a line the game wrote for the player |  | SameCall |
+| Enhanced, a captive scene |  | SameCall |
+| Enhanced, a captor scene |  | SameCall |
+
+Every method of the chat that executes actions (read from the source). Only one passes through the junction; the
+others read their own reply's tags (the same call) whatever the composition, or run actions already read:
+
+| Method | File | Through the junction |
+|---|---|---|
+| `ApplyConfirmedAction` | `Chat/ActionConfirmationController.cs` |  |
+| `ApplyCouncilRelationShifts` | `Chat/ChatViewModel.Council.cs` |  |
+| `SettleEnvoyDeal` | `Chat/ChatViewModel.Envoy.cs` |  |
+| `RunCommonerExchangeAsync` | `Chat/ChatViewModel.Exchanges.cs` |  |
+| `RunLlmExchangeAsync` | `Chat/ChatViewModel.Exchanges.cs` | yes |

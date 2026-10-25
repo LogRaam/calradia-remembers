@@ -31,6 +31,8 @@ using System.Text.RegularExpressions;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Actions;
 using CalradiaRemembers.Logic.AuthoredQuests;
+using CalradiaRemembers.Logic.Chat;
+using CalradiaRemembers.Logic.Providers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using NpcMemoryService.Core.Models;
@@ -267,28 +269,55 @@ namespace CalradiaRemembers.Tests.Maps
       private static string Unwrapped(ExpressionSyntax e)
          => e is PostfixUnaryExpressionSyntax p ? p.Operand.ToString() : e.ToString();
 
-      /// <summary>The one condition that decides, today, which reader reads a reply's actions.</summary>
+      /// <summary>
+      ///   Who reads a reply's actions: the junction's own decisions, RENDERED by real calls into ActionReaderPolicy (a
+      ///   changed cell is a changed behaviour), then every method that executes actions, READ FROM THE SOURCE, with
+      ///   whether it passes through the junction (ReadActionsAsync).
+      /// </summary>
       private static void AppendWhoReads(StringBuilder sb, IReadOnlyList<SourceFile> files)
       {
-         string? condition = files.Where(f => f.Layer == Layer.Mod && f.RelativePath == "Chat/ChatViewModel.Exchanges.cs")
-                                  .SelectMany(f => f.Root.DescendantNodes())
-                                  .Select(n => n switch {
-                                     VariableDeclaratorSyntax v when v.Identifier.Text == "proseInterpretEligible" => v.Initializer?.Value.ToString(),
-                                     AssignmentExpressionSyntax a when a.Left.ToString() == "proseInterpretEligible" => a.Right.ToString(),
-                                     _ => null
-                                  })
-                                  .FirstOrDefault(s => s != null);
+         sb.AppendLine("## Who reads a reply's actions");
+         sb.AppendLine();
+         sb.AppendLine("The one junction (`ActionReaderPolicy`), rendered by real calls: `Interpreter turn` is decided before the prose");
+         sb.AppendLine("call (such a turn fails fast and may be redone by the prose fallback), `Reader` once the prose is in.");
+         sb.AppendLine();
+         sb.AppendLine("| Turn | Interpreter turn | Reader |");
+         sb.AppendLine("|---|---|---|");
+         var turns = new (string Name, ActionReadingFacts Facts, bool Fallback)[] {
+            ("Standard, the main character, the player's own line", new ActionReadingFacts {Composition = ChatCompositionMode.Standard, IsMainSpeaker = true}, false),
+            ("Enhanced, the main character, the player's own line", new ActionReadingFacts {Composition = ChatCompositionMode.Enhanced, IsMainSpeaker = true}, false),
+            ("Enhanced, the same turn redone by the prose fallback", new ActionReadingFacts {Composition = ChatCompositionMode.Enhanced, IsMainSpeaker = true}, true),
+            ("Enhanced, an ensemble voice or addressed witness", new ActionReadingFacts {Composition = ChatCompositionMode.Enhanced}, false),
+            ("Enhanced, a line the game wrote for the player", new ActionReadingFacts {Composition = ChatCompositionMode.Enhanced, IsMainSpeaker = true, IsSyntheticPlayerLine = true}, false),
+            ("Enhanced, a captive scene", new ActionReadingFacts {Composition = ChatCompositionMode.Enhanced, IsMainSpeaker = true, IsCaptiveEncounter = true}, false),
+            ("Enhanced, a captor scene", new ActionReadingFacts {Composition = ChatCompositionMode.Enhanced, IsMainSpeaker = true, IsCaptorScene = true}, false)
+         };
+         foreach ((string name, ActionReadingFacts facts, bool fallback) in turns)
+            sb.AppendLine($"| {name} | {Mark(ActionReaderPolicy.IsInterpreterTurn(facts))} | {ActionReaderPolicy.ReaderFor(facts, fallback)} |");
+         sb.AppendLine();
 
-         sb.AppendLine("## Who reads a reply's actions (read from the source)");
+         List<(string Method, string File, bool Junction)> paths = files.Where(f => f.Layer == Layer.Mod && f.RelativePath.StartsWith("Chat/", StringComparison.Ordinal))
+            .SelectMany(f => f.Root.DescendantNodes().OfType<MethodDeclarationSyntax>().Select(m => (Method: m, f.RelativePath)))
+            .Where(m => Invokes(m.Method, "ExecuteAction"))
+            .Select(m => (m.Method.Identifier.Text, m.RelativePath, Invokes(m.Method, "ReadActionsAsync")))
+            .OrderBy(p => p.Item2, StringComparer.Ordinal).ThenBy(p => p.Item1, StringComparer.Ordinal)
+            .ToList();
+
+         sb.AppendLine("Every method of the chat that executes actions (read from the source). Only one passes through the junction; the");
+         sb.AppendLine("others read their own reply's tags (the same call) whatever the composition, or run actions already read:");
          sb.AppendLine();
-         sb.AppendLine("The interpreter reads them only when this holds (`ChatViewModel.Exchanges`, `proseInterpretEligible`); every other");
-         sb.AppendLine("turn, even in Enhanced, is read from the prose model's own tags, by the same code as Standard:");
-         sb.AppendLine();
-         sb.AppendLine("```");
-         sb.AppendLine(condition == null ? "(not found)" : Regex.Replace(condition, @"\s+", " "));
-         sb.AppendLine("```");
+         sb.AppendLine("| Method | File | Through the junction |");
+         sb.AppendLine("|---|---|---|");
+         foreach ((string method, string file, bool junction) in paths) sb.AppendLine($"| `{method}` | `{file}` | {Mark(junction)} |");
          sb.AppendLine();
       }
+
+      private static bool Invokes(MethodDeclarationSyntax method, string name)
+         => method.DescendantNodes().OfType<InvocationExpressionSyntax>().Any(i => i.Expression switch {
+            MemberAccessExpressionSyntax m => m.Name.Identifier.Text == name,
+            IdentifierNameSyntax id => id.Identifier.Text == name,
+            _ => false
+         });
 
       #endregion
    }

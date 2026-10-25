@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 568 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1305 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1308 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 267 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1742,10 +1742,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptureStake` | public enum | What the captive is to the one who hears of the capture. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 
-### CalradiaRemembers.Logic.Chat (19)
+### CalradiaRemembers.Logic.Chat (22)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `ActionReader` | public enum | Who reads a reply's actions. |
+| `ActionReaderPolicy` | public static class | Decides who reads a reply's actions: the junction between Standard and Enhanced. |
+| `ActionReadingFacts` | public class | The facts of a turn that decide who reads its actions. |
 | `ChatCompositionModePolicy` | public static class | Maps the "Chat Composition" MCM dropdown value to ChatCompositionMode. |
 | `ChatEscapeAction` | public enum | What the chat should do with one press of Escape. |
 | `ChatEscapeFacts` | public class | The state an Escape press is judged on. |
