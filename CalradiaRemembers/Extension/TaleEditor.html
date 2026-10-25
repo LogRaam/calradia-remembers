@@ -322,6 +322,30 @@ input[type="number"] { max-width: 160px; }
 .edge-label rect { fill: var(--bg-2); stroke: var(--line); }
 .edge-label text { fill: var(--text-2); font: 11.5px var(--font); }
 .edge-label.gated text { fill: var(--warn); }
+.edge.near { stroke-width: 3; opacity: 1; }
+
+/* The summary under the story map (Gabriel, 25/10/2026): see a stage without leaving the map, sized like VS Code's terminal. */
+.map-split { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.map-split > .map-wrap { flex: 1 1 auto; height: auto; min-height: 160px; }
+.map-summary { flex: 0 0 auto; display: flex; flex-direction: column; min-height: 0; background: var(--surface); border-top: 1px solid var(--line-strong); }
+.map-summary[hidden] { display: none; }
+.summary-grip { flex: 0 0 6px; cursor: ns-resize; background: transparent; border: 0; padding: 0; }
+.summary-grip:hover, .summary-grip.dragging { background: var(--accent); }
+.summary-head { display: flex; align-items: center; gap: 10px; padding: 6px 14px 8px; border-bottom: 1px solid var(--line); }
+.summary-head .tag { color: var(--accent); font: 700 10px var(--font); letter-spacing: 0.06em; }
+.summary-head strong { font-size: 14px; }
+.summary-head .sub { color: var(--text-3); font-size: 12.5px; }
+.summary-head .tools { margin-left: auto; display: flex; gap: 6px; }
+.summary-body { overflow: auto; padding: 10px 14px 16px; display: grid; gap: 10px; align-content: start; }
+.summary-rows { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; font-size: 13px; }
+.summary-rows dt { color: var(--text-3); }
+.summary-rows dd { margin: 0; color: var(--text); white-space: pre-wrap; }
+.summary-body h4 { margin: 4px 0 2px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
+.summary-list { margin: 0; padding-left: 18px; font-size: 13px; display: grid; gap: 3px; }
+.summary-list .mono, .summary-rows .mono { font-family: var(--mono); font-size: 12px; }
+.summary-list .when { color: var(--warn); }
+.summary-thumbs { display: flex; flex-wrap: wrap; gap: 6px; }
+.summary-thumbs img { height: 64px; border-radius: var(--radius-sm); border: 1px solid var(--line); }
 
 /* ---------- the JSON view, the welcome, the toasts ---------- */
 .json-view { margin: 0; padding: 18px 24px 60px; font: 12.5px/1.55 var(--mono); color: var(--text-2); white-space: pre; tab-size: 2; }
@@ -5864,11 +5888,12 @@ input[type="number"] { max-width: 160px; }
       fg.appendChild(svgEl('text', {x: u.x + 14, y: u.y + 28, class: 'sub'}, gr.members.length + ' stages, ' + gr.count + ' ways between them'));
       groupLayer.appendChild(fg);
     });
+    var selKey = state.sel.kind === 'stage' ? 's' + state.sel.index : state.sel.kind === 'reward' ? 'reward' : state.sel.kind === 'ending' ? 'e:' + state.sel.name : null;
     var spread = {}, above = 0, below = 0;
     g.edges.forEach(function (e) {
       var a = L.byKey[e.from], b = L.byKey[e.to];
       if (!a || !b || e.inner) return;
-      var cls = 'edge ' + (e.broken ? 'broken' : e.mode === 'own' ? '' : e.mode) + (e.unreached ? ' unreached' : '');
+      var cls = 'edge ' + (e.broken ? 'broken' : e.mode === 'own' ? '' : e.mode) + (e.unreached ? ' unreached' : '') + (view.summary && (e.from === selKey || e.to === selKey) ? ' near' : '');
       var marker = 'url(#arrow-' + (e.broken ? 'broken' : e.mode) + ')';
       var k = e.from + '>' + e.to;
       spread[k] = (spread[k] || 0) + 1;
@@ -5922,13 +5947,18 @@ input[type="number"] { max-width: 160px; }
       if (n.tag) ng.appendChild(svgEl('text', {x: 14, y: 17, class: 'tag'}, n.tag));
       ng.appendChild(svgEl('text', {x: 14, y: n.tag ? 37 : 30}, clip(n.title, 28)));
       ng.appendChild(svgEl('text', {x: 14, y: n.tag ? 54 : 48, class: 'sub'}, clip(n.dead ? 'never reaches an ending' : n.sub, 34)));
+      // A click shows the node's summary under the map; a second click on the same node opens it in the Edit tab.
       function open() {
         if (n.kind === 'stage') state.sel = {kind: 'stage', index: n.index};
         else if (n.reward) state.sel = {kind: 'reward'};
         else if (n.named) state.sel = {kind: 'ending', name: n.named};
         else return;
-        state.tab = 'edit';
-        render();
+        var again = view.lastClick && view.lastClick.key === n.key && Date.now() - view.lastClick.at < 450;
+        view.lastClick = {key: n.key, at: Date.now()};
+        if (again) { state.tab = 'edit'; render(); $('tabBody').scrollTop = 0; return; }
+        view.summary = true;
+        renderMap();
+        renderSidebarSoon();
       }
       ng.addEventListener('click', function (ev) { if (!wrap.dataset.dragged) open(); });
       ng.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); open(); } });
@@ -5937,6 +5967,7 @@ input[type="number"] { max-width: 160px; }
 
     if (!view.fitted) { fit(L, wrap); view.fitted = true; root.setAttribute('transform', 'translate(' + view.x + ',' + view.y + ') scale(' + view.k + ')'); }
     wrap._layout = L;
+    renderSummary();
   }
 
   /** Fits the map to the window, never below a readable size: a long tale starts at its request, the rest a drag away. */
@@ -5947,6 +5978,200 @@ input[type="number"] { max-width: 160px; }
     var w = L.width * view.k, hgt = (L.height + 60) * view.k;
     view.x = w + 60 < r.width ? (r.width - w) / 2 + 40 * view.k : 40;
     view.y = hgt + 60 < r.height ? (r.height - hgt) / 2 : 60;
+  }
+
+  // ----- The summary under the map (Gabriel, 25/10/2026: "lorsqu'on selectionne un stage qu'on puisse voir ce qui est
+  // configure tout en continuant a voir la story map [...] un panneau en bas qui peut s'ouvrir et se fermer et etre
+  // ajuste comme le fait le terminal dans VSCode"). Read-only: the Edit tab stays the one place a stage is changed.
+
+  var SUMMARY_HEIGHT_KEY = 'crTaleEditor.summaryHeight';
+
+  function summaryHeight() {
+    var v = parseInt(recall(SUMMARY_HEIGHT_KEY), 10);
+    return isFinite(v) && v >= 120 ? v : 280;
+  }
+
+  function lines(v) {
+    return [].concat(v === undefined || v === null ? [] : v).map(function (l) {
+      if (l && typeof l === 'object') return {text: String(l.text || ''), when: l.if !== undefined && l.if !== null && [].concat(l.if).length ? flagsToText(l.if) : null};
+      return {text: String(l), when: null};
+    }).filter(function (l) { return !blank(l.text); });
+  }
+
+  function lineList(v, max) {
+    var ls = lines(v);
+    if (!ls.length) return null;
+    return h('ul.summary-list', ls.map(function (l) {
+      return h('li', l.when ? h('span.when', 'if ' + l.when + ': ') : null, clip(l.text, max || 240));
+    }));
+  }
+
+  function consequenceLine(c) {
+    if (!c || typeof c !== 'object') return '';
+    var parts = [c.type || '(no type)'];
+    if (!blank(c.who)) parts.push(c.who);
+    if (!blank(c.against)) parts.push('against ' + c.against);
+    if (c.amount !== undefined) parts.push((c.amount > 0 ? '+' : '') + c.amount);
+    if (c.magnitude !== undefined) parts.push('magnitude ' + c.magnitude);
+    if (!blank(c.item)) parts.push((c.count || 1) + ' ' + c.item);
+    var said = c.text || c.summary;
+    return parts.join(' · ') + (blank(said) ? '' : ': ' + clip(said, 160));
+  }
+
+  function consequenceList(list) {
+    var cs = arr(list).filter(function (c) { return c; });
+    if (!cs.length) return null;
+    return h('ul.summary-list', cs.map(function (c) {
+      var gated = c.if !== undefined && c.if !== null && [].concat(c.if).length;
+      return h('li', gated ? h('span.when', 'if ' + flagsToText(c.if) + ': ') : null, consequenceLine(c));
+    }));
+  }
+
+  function rows(pairs) {
+    var dl = h('dl.summary-rows');
+    pairs.forEach(function (p) {
+      if (!p || p[1] === null || p[1] === undefined || p[1] === '') return;
+      dl.appendChild(h('dt', p[0]));
+      dl.appendChild(h('dd', p[1]));
+    });
+    return dl.childNodes.length ? dl : null;
+  }
+
+  function whereTo(next) {
+    if (blank(next)) return 'nowhere yet';
+    if (next === 'reward') return 'the reward';
+    var id = V.endingId(next);
+    return id !== null ? 'ending ‘' + id + '’' : 'stage ‘' + next + '’';
+  }
+
+  function picturesOf(s) {
+    var pool = arr(s.image_pool).filter(function (p) { return !blank(p); });
+    var names = pool.length ? pool : (blank(s.image) ? [] : [s.image]);
+    if (!names.length) return null;
+    var thumbs = names.map(function (n) { return imagePreviews[n] ? h('img', {src: imagePreviews[n], alt: n, title: n}) : null; }).filter(function (x) { return x; });
+    var text = pool.length
+      ? 'a pool of ' + pool.length + ' (' + (s.image_pool_pick === 'random' ? 'any at random' : 'one not seen yet') + '): ' + pool.join(', ')
+        + (blank(s.image) ? '' : '. Its image ' + s.image + ' is never shown while the pool is filled.')
+      : s.image;
+    return h('div', h('div', text), thumbs.length ? h('div.summary-thumbs', thumbs) : null);
+  }
+
+  function stageSummary(i) {
+    var s = stages()[i];
+    if (!s) return null;
+    var o = s.objective || {}, scene = o.type === 'explore' ? (o.scene || {}) : null;
+    var body = [];
+    body.push(rows([
+      ['Journal', blank(s.journal) ? null : s.journal],
+      ['Objective', s.objective ? objectiveSummary(o) + (o.when === 'closed' ? ', when the conversation closes' : '') : 'none: the player chooses'],
+      ['Picture', picturesOf(s)],
+      ['Then', s.objective && (!arr(s.choices).length || !blank(s.on_complete && s.on_complete.next)) ? whereTo(s.on_complete && s.on_complete.next) : null]
+    ]));
+    if (lines(s.canvas).length) body.push(h('h4', 'What is said'), lineList(s.canvas));
+    if (lines(s.facts).length) body.push(h('h4', 'What is true'), lineList(s.facts));
+    if (s.knowers && typeof s.knowers === 'object') {
+      var who = Object.keys(s.knowers).filter(function (k) { return lines(s.knowers[k]).length; });
+      if (who.length) body.push(h('h4', 'Who knows what'), h('ul.summary-list', who.map(function (k) {
+        return h('li', h('span.mono', k), ': ' + lines(s.knowers[k]).map(function (l) { return clip(l.text, 120); }).join(' / '));
+      })));
+    }
+    if (scene) {
+      body.push(h('h4', 'The scene'));
+      body.push(rows([
+        ['Opening', blank(scene.opening) ? null : clip(scene.opening, 300)],
+        ['Findings', arr(scene.findings).filter(function (f) { return f; }).map(function (f) { return (f.id || '?') + (f.required ? ' (required)' : '') + (f.sets ? ' sets ' + flagsToText(f.sets) : ''); }).join(', ') || null],
+        ['Hazards', arr(scene.hazards).filter(function (z) { return z; }).map(function (z) { return z.id || '?'; }).join(', ') || null],
+        ['Encounters', arr(scene.encounters).filter(function (e) { return e; }).map(function (e) { return e.name || e.id || '?'; }).join(', ') || null]
+      ]));
+    }
+    var cs = arr(s.choices).filter(function (c) { return c; });
+    if (cs.length) {
+      body.push(h('h4', 'Choices'));
+      body.push(h('ul.summary-list', cs.map(function (c) {
+        var mode = modeOf(c), how = mode === 'words' ? 'by words' : mode === 'act' ? 'by ' + objectiveSummary(c.objective) : 'in the scene';
+        var gated = c.if !== undefined && c.if !== null && [].concat(c.if).length;
+        return h('li', gated ? h('span.when', 'if ' + flagsToText(c.if) + ': ') : null,
+          h('strong', c.label || c.id || '?'), (c.default ? ' (default)' : '') + ', ' + how + ' → ' + whereTo(c.next)
+            + (c.sets ? '; sets ' + flagsToText(c.sets) : ''));
+      })));
+    }
+    if (arr(s.on_enter).length) body.push(h('h4', 'On entering'), consequenceList(s.on_enter));
+    return {tag: i === 0 ? 'REQUEST' : scene ? 'SCENE' : 'STAGE', title: s.id || '(no id)', sub: s.objective ? objectiveSummary(o) : 'choices only', body: body, problems: problemsUnder('stage:' + i)};
+  }
+
+  function outcomeSummary(o, key) {
+    o = o || {};
+    var body = [rows([
+      ['Regard', o.regard !== undefined ? String(o.regard) : null],
+      ['Gold', o.gold !== undefined ? String(o.gold) : null],
+      ['Remembered', blank(o.memory) ? null : o.memory],
+      ['Last journal line', blank(o.journal) ? null : o.journal]
+    ])];
+    if (arr(o.consequences).length) body.push(h('h4', 'Consequences'), consequenceList(o.consequences));
+    return {body: body, problems: problemsUnder(key)};
+  }
+
+  function selectedSummary() {
+    var sel = state.sel || {};
+    if (sel.kind === 'stage') return stageSummary(sel.index);
+    if (sel.kind === 'reward') { var r = outcomeSummary(tale().reward, 'reward'); r.tag = 'ENDING'; r.title = 'reward'; r.sub = 'the success ending'; return r; }
+    if (sel.kind === 'ending' && endings().hasOwnProperty(sel.name)) {
+      var e = outcomeSummary(endings()[sel.name], 'ending:' + sel.name); e.tag = 'ENDING'; e.title = sel.name; e.sub = 'reached by "end:' + sel.name + '"'; return e;
+    }
+    return null;
+  }
+
+  function renderSummary() {
+    var panel = $('tabBody').querySelector('.map-summary');
+    if (!panel) return;
+    var sum = view.summary ? selectedSummary() : null;
+    panel.hidden = !sum;
+    var head = panel.querySelector('.summary-head'), body = panel.querySelector('.summary-body');
+    head.textContent = '';
+    body.textContent = '';
+    if (!sum) return;
+    panel.style.height = summaryHeight() + 'px';
+    head.appendChild(h('span.tag', sum.tag));
+    head.appendChild(h('strong', sum.title));
+    if (sum.sub) head.appendChild(h('span.sub', sum.sub));
+    head.appendChild(h('div.tools',
+      h('button.btn.small.primary', {type: 'button', on: {click: function () { state.tab = 'edit'; render(); $('tabBody').scrollTop = 0; }}}, 'Edit'),
+      iconButton('close', 'Close the summary', function () { closeSummary(); })));
+    if (sum.problems.length) body.appendChild(h('div.field-problems', sum.problems.map(function (p) { return h('div.field-problem', {class: p.blocking ? 'blocking' : 'cosmetic'}, p.message); })));
+    sum.body.forEach(function (b) { if (b) body.appendChild(b); });
+  }
+
+  function closeSummary() {
+    view.summary = false;
+    renderMap();
+  }
+
+  function summaryPanel(split) {
+    var panel = h('div.map-summary', {hidden: true, role: 'region', 'aria-label': 'Summary of the selected stage or ending'});
+    var grip = h('button.summary-grip', {type: 'button', title: 'Drag to resize', 'aria-label': 'Resize the summary'});
+    grip.addEventListener('mousedown', function (e) {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      var startY = e.clientY, startH = panel.getBoundingClientRect().height;
+      grip.classList.add('dragging');
+      function move(ev) {
+        var room = split.getBoundingClientRect().height - 160;
+        var hgt = Math.max(120, Math.min(room, startH + (startY - ev.clientY)));
+        panel.style.height = hgt + 'px';
+      }
+      function up() {
+        window.removeEventListener('mousemove', move);
+        window.removeEventListener('mouseup', up);
+        grip.classList.remove('dragging');
+        store(SUMMARY_HEIGHT_KEY, String(Math.round(panel.getBoundingClientRect().height)));
+      }
+      window.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', up);
+    });
+    panel.appendChild(grip);
+    panel.appendChild(h('div.summary-head'));
+    panel.appendChild(h('div.summary-body'));
+    return panel;
   }
 
   function mapTab() {
@@ -5979,8 +6204,11 @@ input[type="number"] { max-width: 160px; }
       delete wrap.dataset.dragged;
     });
     wrap.addEventListener('wheel', function (e) { e.preventDefault(); var r = wrap.getBoundingClientRect(); zoom(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX - r.left, e.clientY - r.top); }, {passive: false});
+    var split = h('div.map-split', wrap);
+    split.appendChild(summaryPanel(split));
+    split.addEventListener('keydown', function (e) { if (e.key === 'Escape' && view.summary) { e.preventDefault(); closeSummary(); } });
     setTimeout(renderMap, 0);
-    return wrap;
+    return split;
   }
 
   // ================================================================================================================
