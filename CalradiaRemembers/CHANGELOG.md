@@ -13,6 +13,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (`docs/maps/composition-parity.md`, `CompositionParityTests`).
 
 ### Fixed
+- **A wife is no longer narrated as "he", and gestures stop leaning on furniture** (Eisendrache2, Nexus 25/10,
+  LM Studio with qwen3.5-9B: "My wife is speaking to me and the AI is describing HIS actions", "Like leaning on a
+  table"). The compact prompt for small models kept one gesture example, "*He leans back in his chair*", for every
+  character, and a small model copied it. Every gesture example (dialogue style, narrative voice, the complete reply
+  example) now follows the character's own gender, and the compact one touches nothing. A spouse is now told in
+  every prompt that the player is their own husband or wife; before, only on an empty ledger or in the intimacy
+  rules that Adult Off removes. SDK `GestureExampleAndSpouseIdentityTests`.
 - **A failed action reading is tried once more** (Gabriel 25/10: "reessaie une fois l'interpreteur en ajoutant un log
   qui le specifie"). In Enhanced composition, when the action interpreter's call failed, timed out, came back empty or
   could not be parsed, the reply's deeds were lost with a log line only. It is now asked once more
