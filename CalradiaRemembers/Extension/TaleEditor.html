@@ -4332,6 +4332,7 @@ input[type="number"] { max-width: 160px; }
     doc: null,          // {tales: [...], asList}
     raw: null,          // the text of a file the game could not read, to mend by hand
     fileName: null,
+    handle: null,       // the file it was opened from or last saved to, where the browser lets Save write it back
     dirty: false,
     tale: 0,
     sel: {kind: 'tale'},
@@ -4434,10 +4435,11 @@ input[type="number"] { max-width: 160px; }
     };
   }
 
-  function start(doc, fileName, notes) {
+  function start(doc, fileName, notes, handle) {
     state.doc = doc;
     state.raw = null;
     state.fileName = fileName;
+    state.handle = handle || null;
     state.tale = 0;
     state.sel = {kind: 'tale'};
     state.tab = 'edit';
@@ -4449,7 +4451,7 @@ input[type="number"] { max-width: 160px; }
     $('tabBody').scrollTop = 0;
   }
 
-  function loadText(text, fileName) {
+  function loadText(text, fileName, handle) {
     var doc;
     try { doc = V.toDocument(text); }
     catch (e) {
@@ -4457,6 +4459,7 @@ input[type="number"] { max-width: 160px; }
       state.doc = null;
       state.raw = text;
       state.fileName = fileName;
+      state.handle = handle || null;
       state.notes = null;
       state.tab = 'edit';
       render();
@@ -4464,7 +4467,7 @@ input[type="number"] { max-width: 160px; }
       return;
     }
     if (doc.tales.length === 0) { toast('This file holds no tale.', 'error'); return; }
-    start(doc, fileName, null);
+    start(doc, fileName, null, handle);
     toast('Opened ' + fileName + (doc.tales.length > 1 ? ' (' + doc.tales.length + ' tales)' : '') + '.');
   }
 
@@ -4486,24 +4489,65 @@ input[type="number"] { max-width: 160px; }
 
   function looksLikeTwine(name, text) { return /\.(html?|twee|tw)$/i.test(name) || /<tw-storydata\b/i.test(text) || /^::\s*\S/m.test(text); }
 
-  function openChosen(file) {
-    readFile(file, function (text, name) { if (looksLikeTwine(name, text) && !/\.json$/i.test(name)) importTwine(text, name); else loadText(text, name); });
+  function openChosen(file, handle) {
+    readFile(file, function (text, name) { if (looksLikeTwine(name, text) && !/\.json$/i.test(name)) importTwine(text, name); else loadText(text, name, handle); });
   }
 
-  function save() {
-    if (!state.doc) { toast('Nothing to save yet.'); return; }
-    var text = docText(), name = state.fileName && /\.json$/i.test(state.fileName) ? state.fileName : source();
+  var QUEST_TYPES = [{description: 'Quest file', accept: {'application/json': ['.json']}}];
+  function isCancel(e) { return e && e.name === 'AbortError'; }
+
+  // Gabriel (24/10/2026): "lorsque Save, ça doit remplacer le json que je suis en train d'editer". A file picked
+  // through the browser's own picker (or dropped, in Chrome, Edge and Opera) can be written back; the plain file
+  // input cannot, so it stays only for browsers without the picker, where Save still downloads a copy.
+  function openQuest() {
+    if (!confirmLeave()) return;
+    if (!window.showOpenFilePicker) { $('openFile').click(); return; }
+    window.showOpenFilePicker({types: QUEST_TYPES}).then(function (handles) {
+      return handles[0].getFile().then(function (file) { openChosen(file, handles[0]); });
+    }).catch(function (e) { if (!isCancel(e)) toast('Could not open the file: ' + e.message, 'error'); });
+  }
+
+  function writeTo(handle, text) {
+    return handle.createWritable().then(function (out) {
+      return out.write(text).then(function () { return out.close(); });
+    });
+  }
+
+  function download(text, name) {
     var blob = new Blob([text], {type: 'application/json'});
     var a = h('a', {href: URL.createObjectURL(blob), download: name});
     document.body.appendChild(a);
     a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-    state.fileName = name;
-    state.dirty = false;
-    renderTop();
-    var blocking = state.problems.filter(function (p) { return p.blocking; }).length;
-    toast(blocking ? 'Saved ' + name + '. The game will refuse it until the ' + blocking + ' blocking problem' + (blocking > 1 ? 's are' : ' is') + ' fixed.'
-      : 'Saved ' + name + '. Put it in Modules/CalradiaRemembers/ModuleData/Custom/Quests/.');
+  }
+
+  function save() {
+    if (!state.doc) { toast('Nothing to save yet.'); return; }
+    var text = docText(), name = state.fileName && /\.json$/i.test(state.fileName) ? state.fileName : source();
+    function saved(how, savedName) {
+      state.fileName = savedName;
+      state.dirty = docText() !== text;
+      renderTop();
+      var blocking = state.problems.filter(function (p) { return p.blocking; }).length;
+      var where = how === 'replaced' ? 'Saved over ' + savedName + '.' : 'Saved ' + savedName + '. Put it in Modules/CalradiaRemembers/ModuleData/Custom/Quests/.';
+      toast(blocking ? where + ' The game will refuse it until the ' + blocking + ' blocking problem' + (blocking > 1 ? 's are' : ' is') + ' fixed.' : where);
+    }
+    function fallBack(e) {
+      download(text, name);
+      saved('downloaded', name);
+      toast('Could not write the file itself (' + e.message + '), so a copy was downloaded instead.', 'error');
+    }
+    if (state.handle) {
+      var handle = state.handle;
+      writeTo(handle, text).then(function () { saved('replaced', handle.name); }, function (e) { if (!isCancel(e)) fallBack(e); });
+    } else if (window.showSaveFilePicker) {
+      window.showSaveFilePicker({suggestedName: name, types: QUEST_TYPES}).then(function (handle) {
+        return writeTo(handle, text).then(function () { state.handle = handle; saved('new', handle.name); });
+      }).catch(function (e) { if (!isCancel(e)) fallBack(e); });
+    } else {
+      download(text, name);
+      saved('downloaded', name);
+    }
   }
 
   var saveDraftSoon = debounce(function () {
@@ -6136,7 +6180,7 @@ input[type="number"] { max-width: 160px; }
       h('div.starts',
         startCard('+', 'A blank tale', 'One stage and a reward, ready to grow.', function () { start({tales: [blankTale()], asList: false}, null, null); }),
         startCard('W', 'From the werewolf', 'The tale that ships with the mod: watch, a scene in the wood, a band to hunt.', function () { start(V.toDocument(WEREWOLF), 'wolf_of_the_wood.json', null); }),
-        startCard('\u21e7', 'Open a quest file', 'A .json file with one tale or a list of them.', function () { $('openFile').click(); }),
+        startCard('\u21e7', 'Open a quest file', 'A .json file with one tale or a list of them.', openQuest),
         startCard('~', 'Import a Twine story', 'A published Twine 2 story (.html) or a Twee file (.twee).', function () { $('twineFile').click(); }),
         draft ? startCard('\u21ba', 'Your last session', (draft.fileName || 'an unsaved tale') + ', kept in this browser.', function () { start(V.toDocument(draft.text), draft.fileName, null); state.dirty = true; renderTop(); }) : null),
       h('p.drop-hint', 'You can also drop a file anywhere on this page. Nothing leaves your computer: the editor works offline and saves only the file you ask it to.'));
@@ -6167,7 +6211,7 @@ input[type="number"] { max-width: 160px; }
     document.addEventListener('click', function () { $('newMenu').hidden = true; });
     $('newBlank').addEventListener('click', function () { if (confirmLeave()) start({tales: [blankTale()], asList: false}, null, null); });
     $('newWolf').addEventListener('click', function () { if (confirmLeave()) start(V.toDocument(WEREWOLF), 'wolf_of_the_wood.json', null); });
-    $('openBtn').addEventListener('click', function () { if (confirmLeave()) $('openFile').click(); });
+    $('openBtn').addEventListener('click', openQuest);
     $('twineBtn').addEventListener('click', function () { if (confirmLeave()) $('twineFile').click(); });
     $('openFile').addEventListener('change', function (e) { var f = e.target.files[0]; if (f) openChosen(f); e.target.value = ''; });
     $('twineFile').addEventListener('change', function (e) { var f = e.target.files[0]; if (f) readFile(f, importTwine); e.target.value = ''; });
@@ -6188,7 +6232,7 @@ input[type="number"] { max-width: 160px; }
       var k = e.key.toLowerCase();
       var typing = /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '');
       if (k === 's') { e.preventDefault(); save(); }
-      else if (k === 'o') { e.preventDefault(); if (confirmLeave()) $('openFile').click(); }
+      else if (k === 'o') { e.preventDefault(); openQuest(); }
       else if (k === 'z' && !e.shiftKey && !typing) { e.preventDefault(); undo(); }
       else if ((k === 'y' || (k === 'z' && e.shiftKey)) && !typing) { e.preventDefault(); redo(); }
     });
@@ -6200,7 +6244,12 @@ input[type="number"] { max-width: 160px; }
     document.addEventListener('drop', function (e) {
       e.preventDefault(); depth = 0; overlay.classList.remove('on');
       var f = e.dataTransfer.files && e.dataTransfer.files[0];
-      if (f && confirmLeave()) openChosen(f);
+      // The handle must be asked for while the drop is still being handled; the browser forgets the items after.
+      var item = e.dataTransfer.items && e.dataTransfer.items[0];
+      var asked = item && item.kind === 'file' && item.getAsFileSystemHandle ? item.getAsFileSystemHandle() : null;
+      if (!f || !confirmLeave()) return;
+      if (!asked) { openChosen(f); return; }
+      asked.then(function (handle) { openChosen(f, handle && handle.kind === 'file' ? handle : null); }, function () { openChosen(f); });
     });
     window.addEventListener('beforeunload', function (e) { if (state.dirty) { e.preventDefault(); e.returnValue = ''; } });
     window.addEventListener('resize', debounce(function () { if (state.tab === 'map') renderMap(); }, 150));
