@@ -416,6 +416,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("grain_relief_destination", Severity.Light, "fkasad (Nexus, 01/10/2026): grain a lord asked for while his town goes hungry feeds the town. Empties a real town's granary for a moment, expects its holder's grain to be routed there, then puts the stores back exactly. Records nothing, moves no grain.", TestGrainReliefDestination),
          new SelfTest("private_memory_injection", Severity.Light, "tashmetu (01/10/2026): another mod injects a memory said in confidence. Injects one through the public CrNpcMemory.AddMemory with Private set on a real met character, checks it is stored private (kept to private talk) and that an unmarked one stays public. Both are removed.", TestPrivateMemoryInjection),
          new SelfTest("escaped_target", Severity.Light, "fkasad (Nexus, 01/10/2026): the lord a capture task named was beaten and escaped, and the player paid the broken-word price. On a real met lord, a temporary capture task whose target was beaten: the giver's acceptance ([QUEST_COMPLETE]) settles it through the real quest path for HALF the reward, and words alone never settle one whose target was not beaten. The task, the purse, the regard and the memory are put back.", TestEscapedTarget),
+         new SelfTest("interpreter_retry", Severity.Light, "Gabriel (25/10/2026), on an interpreter call that used to lose the reply's deeds with a log line only: 'reessaie une fois l'interpreteur en ajoutant un log qui le specifie'. Drives the REAL ActionInterpreterComposer.InterpretAsync with its call seam: a first call that fails then one that answers give_gold must apply the gold tag after exactly two calls; two failures apply nothing after exactly two calls (never a third); a reading with no deed is not retried (one call). No model is called; the seam is cleared after", TestInterpreterRetry),
          new SelfTest("privacy_survives_interpreter", Severity.Light, "Lufaine and Maifailun (Nexus, 30/09/2026): a character agreed to speak privately and the room stayed full. In the two-call chat the interpreter's actions replaced the scene model's, which is the one taught request_privacy. Drives the real splice (ActionInterpreterComposer.WithInterpretedTags): the character's acceptance survives an interpreter that recorded none, and a gift the scene model tagged does not. No LLM.", TestPrivacySurvivesInterpreter),
          new SelfTest("no_tasks_from_enemies", Severity.Light, "fkasad (Nexus, 29/09/2026): an enemy lord buying back a prisoner slid into demanding a deed, then into invalid-quest messages. Builds the REAL context for a lord at war with the player: it says so, and the prompt built from it teaches no task to offer and no prisoner bargain. Declares a real war via DeclareWarAction when the player is at war with no one (GABRIEL'S RULE, 13/10/2026), made peace again after; MANUAL only when no living lord's faction exists at all. No LLM, nothing stored.", TestNoTasksFromEnemies),
          new SelfTest("quests_suppressed_in_nsfw", Severity.Light, "Mechanical: build the REAL EncounterContext in NSFW mode -> SuppressQuests is true (an intimate scene never mints a quest from a vow, player report); in Roleplay it stays false (quests remain). Restores the active mode. No LLM.", TestQuestsSuppressedInNsfw),
@@ -13629,6 +13630,49 @@ namespace CalradiaRemembers.Diagnostics
             store.Set(giver);
             Quests.LlmFeedbackNotes.ConsumeFor(giver.Id); // the refused claim left a correction for the model; drop it
          }
+
+         return t.Line();
+      }
+
+      private static string TestInterpreterRetry(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("interpreter_retry");
+         if (t.Skip(behavior?.LlmServices == null, "the chat services are not built yet")) return t.Line();
+
+         ParsedResponse prose = new NpcMemoryService.Core.Parsing.SectionResponseParser().Parse("[DIALOGUE]Take this for your trouble.[/DIALOGUE]");
+         var profile = new NpcProfile {Id = "cr_selftest_interpreter", Name = "Test Lord", Faction = "Vlandia", Clan = "dey Meroc"};
+         string gold = string.Join(Environment.NewLine, "[ACTION]", "type: give_gold", "amount: 10", "[/ACTION]");
+
+         (int Calls, ParsedResponse Read) Run(params LlmResponse[] answers)
+         {
+            int calls = 0;
+            Chat.ActionInterpreterComposer.CallOverride = (request, ct) => Task.FromResult(answers[Math.Min(calls++, answers.Length - 1)]);
+            try
+            {
+               ParsedResponse read = Chat.ActionInterpreterComposer.InterpretAsync(prose, new EncounterContext(), profile, "the player",
+                                                                                    behavior.LlmServices, CancellationToken.None, true).GetAwaiter().GetResult();
+               return (calls, read);
+            }
+            finally
+            {
+               Chat.ActionInterpreterComposer.CallOverride = null;
+            }
+         }
+
+         LlmResponse failed = new() {Content = "", IsSuccess = false, ErrorMessage = "selftest: timed out"};
+         LlmResponse deed = new() {Content = gold, IsSuccess = true};
+         LlmResponse quiet = new() {Content = "CHECK: nothing happened.", IsSuccess = true};
+
+         (int calls, ParsedResponse read) = Run(failed, deed);
+         t.Expect("aFailedReadingIsAskedOnceMore", calls, 2);
+         t.Expect("theSecondReadingsDeedIsApplied", read.Actions.Any(a => a.Type == "give_gold"), true);
+
+         (calls, read) = Run(failed, failed, deed);
+         t.Expect("neverAThirdCall", calls, 2);
+         t.Expect("twoFailuresApplyNothing", read.Actions.Count, 0);
+
+         (calls, _) = Run(quiet, deed);
+         t.Expect("aReadingWithNoDeedIsNotRetried", calls, 1);
 
          return t.Line();
       }

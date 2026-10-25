@@ -72,14 +72,15 @@ and the bridge. Before, they do not: actions are taught in three places that do 
   `SceneDecisionMerge` disappear.
 - **In Enhanced, the prose prompt teaches no action at all.**
 
-**Open, for Gabriel.**
+**Ruled (Gabriel, 25/10/2026).**
 
-1. Where the per-turn conditions go. Proposed for both renderings: the full catalogue, stable, in the cached prefix,
-   and a short "open now / closed now, because" list below the `CURRENT ENCOUNTER:` marker. Standard's prose prompt
-   would then carry the whole catalogue rather than only the open verbs: to be measured for quality (action bench,
-   rp_bench) before it is adopted.
-2. What happens when the interpreter fails: one retry, a quiet notice to the player, or the loss logged as today. The
-   prose's own tags can no longer be the fallback once Enhanced stops teaching them.
+1. Per-turn conditions: "oui pour la liste en cache". Both renderings carry the full catalogue, stable, in the cached
+   prefix, and a short "open now / closed now, because" list below the `CURRENT ENCOUNTER:` marker. Standard's prose
+   prompt then carries the whole catalogue rather than only the open verbs: measure quality before and after (action
+   bench, rp_bench) when step 4 lands.
+2. A failed interpreter call: "reessaie une fois l'interpreteur en ajoutant un log qui le specifie". BUILT 25/10/2026:
+   `InterpreterRetryPolicy` (Logic), `ActionInterpreterComposer.AttemptAsync`; each retry and its outcome on the Compat
+   log channel; `cr.testall interpreter_retry`.
 
 **Steps.**
 

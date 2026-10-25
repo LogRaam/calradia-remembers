@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 568 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1308 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1310 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 267 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1742,7 +1742,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptureStake` | public enum | What the captive is to the one who hears of the capture. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 
-### CalradiaRemembers.Logic.Chat (22)
+### CalradiaRemembers.Logic.Chat (24)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1761,6 +1761,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatTitleText` | public static class | The chat window's title. |
 | `ChatWindowLivenessPolicy` | public static class | Whether a recorded chat window is genuinely live, or a leftover that must not block the next one. |
 | `EscapeCloseLatch` | public class | Holds an Escape close until it is safe (philip0105, 11/10/2026: Escape out of a conversation crashed the game, the close button did not). |
+| `InterpreterAttemptOutcome` | public enum | What one interpreter call brought back. |
+| `InterpreterRetryPolicy` | public static class | Whether the interpreter is asked again after an attempt. |
 | `MemoryPanelFacts` | public class | What decides whether one memory is listed. |
 | `MemoryPanelPolicy` | public static class | Decides how a memory appears in the Memories panel. |
 | `MemoryPanelShow` | public enum | How one memory appears in the chat's Memories panel. |

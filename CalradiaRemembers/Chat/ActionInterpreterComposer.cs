@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Foundation;
+using CalradiaRemembers.Logic.Chat;
 using CalradiaRemembers.Services;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Parsing;
@@ -116,6 +117,59 @@ namespace CalradiaRemembers.Chat
             ModelOverride = null
          };
 
+         // Gabriel (25/10/2026), on a reading that brought back nothing usable: "reessaie une fois l'interpreteur en ajoutant
+         // un log qui le specifie" (InterpreterRetryPolicy). A reading that parsed is an answer, even with no deed in it.
+         ParsedResponse interpreted = null;
+         string error = null;
+         for (int attempt = 1; ; attempt++)
+         {
+            (InterpreterAttemptOutcome outcome, ParsedResponse read, string why) = await AttemptAsync(request, services, ct).ConfigureAwait(false);
+            if (outcome == InterpreterAttemptOutcome.Read)
+            {
+               interpreted = read;
+               if (attempt > 1) ModLog.Compat($"[PROSE-INTERPRET] interpreter retry {attempt} of {InterpreterRetryPolicy.MaxAttempts} succeeded; the reply's deeds are recorded.");
+
+               break;
+            }
+
+            error = why;
+            if (!InterpreterRetryPolicy.ShouldRetry(outcome, attempt)) break;
+
+            ModLog.Compat($"[PROSE-INTERPRET] interpreter attempt {attempt} of {InterpreterRetryPolicy.MaxAttempts} brought back nothing usable "
+                        + $"({outcome}: {why}); asking the interpreter once more.");
+         }
+
+         if (interpreted == null)
+         {
+            // Compat, not Error: this channel is on even when logging is off (the Nexus default), because a
+            // silent failure here is INVISIBLE in play - the prose still shows, the scene continues, and only
+            // the deeds quietly stop being recorded. A player on a small local model could run a whole campaign
+            // in that state, as DuskSymphony did, with nothing anywhere to explain it.
+            ModLog.Compat($"[PROSE-INTERPRET] interpreter produced no tags after {InterpreterRetryPolicy.MaxAttempts} attempts; applying none: {error ?? "empty reply"}. "
+                        + "Deeds from this reply are NOT recorded. If this repeats on a local model, its context is "
+                        + "too small for the interpreter: turn on 'Compact prompt for small models', or switch "
+                        + "Chat Composition to Standard so the scene model emits its own tags in one call.");
+
+            return WithInterpretedTags(proseResponse, null);
+         }
+
+         ModLog.Info($"[PROSE-INTERPRET] interpreter supplied {interpreted.Actions?.Count ?? 0} action(s)"
+                     + (interpreted.NewEventData != null ? $" + 1 event ({interpreted.NewEventData.Type})" : "")
+                     + $" (model: {services.ResolveInterpreterModel() ?? "resolved"}).");
+
+         return WithInterpretedTags(proseResponse, interpreted);
+      }
+
+      /// <summary>Test seam (cr.testall interpreter_retry): stands in for the interpreter client's call when set.</summary>
+      internal static Func<LlmRequest, CancellationToken, Task<LlmResponse>> CallOverride;
+
+      /// <summary>
+      ///   One interpreter call, on its own time budget: what it brought back, the reading when it parsed, and why not
+      ///   otherwise. Never throws.
+      /// </summary>
+      private static async Task<(InterpreterAttemptOutcome Outcome, ParsedResponse Read, string Why)> AttemptAsync(
+         LlmRequest request, LlmServices services, CancellationToken ct)
+      {
          string content = null;
          string error = null;
          int budgetSeconds = Math.Max(15, ModSettings.LlmResponseTimeoutSeconds) + 5;
@@ -126,12 +180,11 @@ namespace CalradiaRemembers.Chat
             {
                // Route to the interpreter's OWN client: its base URL / key / model are the interpreter provider's,
                // which may differ from the scene (prose) provider. Never null (falls back to the main client).
-               LlmResponse resp = await Task.Run(() => services.InterpreterClient.CompleteAsync(request, cts.Token))
-                                            .ConfigureAwait(false);
+               Func<LlmRequest, CancellationToken, Task<LlmResponse>> call = CallOverride ?? services.InterpreterClient.CompleteAsync;
+               LlmResponse resp = await Task.Run(() => call(request, cts.Token)).ConfigureAwait(false);
 
                // The interpreter runs once per turn on a ~70k-char prompt, which makes it the larger half of
-               // what a turn costs — and its usage was the ONE call whose numbers never reached the log, so
-               // "did the interpreter's provider honour the cache breakpoint?" had no answer. It does now.
+               // what a turn costs; its usage reaches the log so a missed cache breakpoint can be seen.
                if (resp?.Usage != null)
                   ModLog.Info($"  [INTERPRETER TOKENS] prompt={resp.Usage.PromptTokens} "
                             + $"(cached:{resp.Usage.CachedPromptTokens ?? 0}) | completion={resp.Usage.CompletionTokens}");
@@ -145,37 +198,17 @@ namespace CalradiaRemembers.Chat
             }
          }
 
-         if (error != null || string.IsNullOrWhiteSpace(content))
-         {
-            // Compat, not Error: this channel is on even when logging is off (the Nexus default), because a
-            // silent failure here is INVISIBLE in play - the prose still shows, the scene continues, and only
-            // the deeds quietly stop being recorded. A player on a small local model could run a whole campaign
-            // in that state, as DuskSymphony did, with nothing anywhere to explain it.
-            ModLog.Compat($"[PROSE-INTERPRET] interpreter call produced no tags; applying none: {error ?? "empty reply"}. "
-                        + "Deeds from this reply are NOT recorded. If this repeats on a local model, its context is "
-                        + "too small for the interpreter: turn on 'Compact prompt for small models', or switch "
-                        + "Chat Composition to Standard so the scene model emits its own tags in one call.");
+         if (error != null) return (InterpreterAttemptOutcome.CallFailed, null, error);
+         if (string.IsNullOrWhiteSpace(content)) return (InterpreterAttemptOutcome.Empty, null, "empty reply");
 
-            return WithInterpretedTags(proseResponse, null);
-         }
-
-         ParsedResponse interpreted;
          try
          {
-            interpreted = new SectionResponseParser().Parse(content);
+            return (InterpreterAttemptOutcome.Read, new SectionResponseParser().Parse(content), null);
          }
          catch (Exception ex)
          {
-            ModLog.Error($"[PROSE-INTERPRET] interpreter output could not be parsed; applying no tags: {ex.GetType().Name}: {ex.Message}");
-
-            return WithInterpretedTags(proseResponse, null);
+            return (InterpreterAttemptOutcome.Unparsable, null, $"{ex.GetType().Name}: {ex.Message}");
          }
-
-         ModLog.Info($"[PROSE-INTERPRET] interpreter supplied {interpreted.Actions?.Count ?? 0} action(s)"
-                     + (interpreted.NewEventData != null ? $" + 1 event ({interpreted.NewEventData.Type})" : "")
-                     + $" (model: {services.ResolveInterpreterModel() ?? "resolved"}).");
-
-         return WithInterpretedTags(proseResponse, interpreted);
       }
 
       /// <summary>

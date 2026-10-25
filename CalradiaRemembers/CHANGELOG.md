@@ -13,6 +13,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (`docs/maps/composition-parity.md`, `CompositionParityTests`).
 
 ### Fixed
+- **A failed action reading is tried once more** (Gabriel 25/10: "reessaie une fois l'interpreteur en ajoutant un log
+  qui le specifie"). In Enhanced composition, when the action interpreter's call failed, timed out, came back empty or
+  could not be parsed, the reply's deeds were lost with a log line only. It is now asked once more
+  (`InterpreterRetryPolicy`, at most two calls; a reading that found no deed is never retried), and each retry and its
+  outcome is written on the Compat log channel, which is on even when logging is off. cr.testall `interpreter_retry`.
 - **Duels and the captive's escape ready for the 1.5.5 beta** (tashmetu, Nexus 25/10, from a check of every mod DLL
   against the beta): `Mission.SpawnAgent(AgentBuildData, bool)` gained two optional parameters in 1.5.5, so the
   two-parameter call compiled against 1.4.8 would throw `MissingMethodException` as the first fighter spawned.
