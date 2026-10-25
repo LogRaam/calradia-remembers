@@ -191,7 +191,9 @@ Such a tale is never offered in a conversation nor begun on the map: a scenario 
 id>,<giver>` (EXTENSION_API.md, scenarios), naming who gives it. The tale's own `requires` still hold for that giver
 (her regard, her sex, the content level), as do `unique` and `repeat_cooldown_days`, and nothing opens while another
 tale is under way. A popup shows `invitation`; yes begins the tale, its first stage being the invitation itself, and
-opens the conversation with the giver; no costs nothing for a season. A tale has `on_map` or `on_scenario`, not both.
+opens the conversation with the giver; no costs nothing for a season. With `"decline_ending": "refused"` (an ending of
+`endings`), the no is a way the story goes instead: the tale is played to that ending at once, its regard, memory and
+cooldown with it (the giver disappointed that the player would not come). A tale has `on_map` or `on_scenario`, not both.
 
 When the quest is offered, each role is bound to a real hero or place, and every `{role}` in your
 text is filled with its name. The roles the game binds are `{giver}`, `{village}` (with

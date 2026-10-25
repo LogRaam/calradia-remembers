@@ -7,16 +7,17 @@
   "requires": {
     "giver": {
       "role": "lord",
-      "gender": "female",
       "min_regard": 1,
-      "not_at_war_with_player": false
+      "not_at_war_with_player": false,
+      "gender": "female"
     },
     "content": "hardcore"
   },
   "on_scenario": {
     "invitation": "Long after the torches in the corridor have burned low, the bolt of your cell slides back. A lady of {giver}'s household stands in the doorway, two guards and the jailer behind her. \"The Empress asks to see you,\" she says, in a voice that leaves room for one answer. \"Now.\"",
     "accept": "Follow her",
-    "decline": "Ask to be left in your cell"
+    "decline": "Stay in your cell",
+    "decline_ending": "refused"
   },
   "binds": {
     "giver": "the Empress who holds the player prisoner (Rhagaea)"
@@ -25,6 +26,7 @@
     {
       "id": "summoned",
       "journal": "In the night, {giver} sent for you from your cell.",
+      "image": "woman_cell.crvid",
       "objective": {
         "type": "talk_to",
         "hero": "{giver}"
@@ -99,6 +101,11 @@
           "if": "regard_fell"
         }
       ]
+    },
+    "refused": {
+      "regard": -2,
+      "journal": "You did not follow the lady. The bolt slid shut again, and the night went on without you.",
+      "memory": "One night I sent for my prisoner {player}, and they would not come. I had not thought to be refused."
     }
   },
   "failure": {

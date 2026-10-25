@@ -780,6 +780,14 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "string",
           "description": "The popup's no: nothing is lost, and the tale may come back after a season.",
           "default": "Not now"
+        },
+        "decline_ending": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "An ending of \"endings\" the popup's no leads to: the tale is played to that ending at once (its memory, regard and consequences, its cooldown), instead of passing for a season."
         }
       }
     },
@@ -2965,6 +2973,8 @@ input[type="number"] { max-width: 160px; }
     if (onScenario != null && typeof onScenario === 'object') {
       if (onMap != null && typeof onMap === 'object') blocking.push('on_scenario and on_map both say how the tale begins: keep one.');
       if (blank(onScenario.invitation)) blocking.push('on_scenario.invitation is empty: the popup would ask the player nothing.');
+      var declined = onScenario.decline_ending == null ? '' : String(onScenario.decline_ending).trim();
+      if (declined.length && !(q.endings != null && q.endings.has(declined))) blocking.push("on_scenario.decline_ending '" + declined + "' is not among \"endings\".");
     }
 
     // The giver's sex (11/10/2026): a word that is neither is refused, as the game does.
@@ -3169,6 +3179,7 @@ input[type="number"] { max-width: 160px; }
     if (!a.sure) return;
     var reached = [];
     a.stages.forEach(function (s) { if (a.reachable.has(s.id)) reached = reached.concat(a.leads.get(s.id)); });
+    if (q.on_scenario != null && typeof q.on_scenario === 'object' && !blank(q.on_scenario.decline_ending)) reached.push(END_PREFIX + String(q.on_scenario.decline_ending).trim());
     Array.from(endings.keys()).forEach(function (k) {
       if (!blank(k) && !has(reached, END_PREFIX + k)) cosmetic.push("ending '" + k + "' is never reached: no path leads to \"end:" + k + '".');
     });
@@ -4154,7 +4165,7 @@ input[type="number"] { max-width: 160px; }
   root.TaleEditorFields = {
     AuthoredQuest: ['id', 'title', 'author', 'unique', 'repeat_cooldown_days', 'weight', 'requires', 'on_map', 'on_scenario', 'binds', 'stages', 'reward', 'endings', 'failure'],
     AuthoredMapTrigger: ['still_hours', 'by_day', 'in_givers_lands', 'chance_per_day', 'invitation', 'accept', 'decline'],
-    AuthoredScenarioTrigger: ['invitation', 'accept', 'decline'],
+    AuthoredScenarioTrigger: ['invitation', 'accept', 'decline', 'decline_ending'],
     AuthoredRequires: ['giver', 'village', 'rival', 'husband', 'player', 'content'],
     GiverRequirement: ['role', 'holds', 'min_regard', 'not_at_war_with_player', 'culture', 'realm', 'gender', 'with_player', 'not_pregnant', 'married', 'not_clan_leader', 'not_of_players_realm', 'trade'],
     HusbandRequirement: ['role', 'rules_a_realm'],
@@ -5082,7 +5093,8 @@ input[type="number"] { max-width: 160px; }
       scenarioOn ? h('div.grid',
         textField('tale/on_scenario.invitation', "The popup's text", 'AuthoredScenarioTrigger', 'invitation', t.on_scenario, {multiline: true}),
         textField('tale/on_scenario.accept', 'Yes', 'AuthoredScenarioTrigger', 'accept', t.on_scenario),
-        textField('tale/on_scenario.decline', 'No', 'AuthoredScenarioTrigger', 'decline', t.on_scenario)) : null
+        textField('tale/on_scenario.decline', 'No', 'AuthoredScenarioTrigger', 'decline', t.on_scenario),
+        textField('tale/on_scenario.decline_ending', 'No leads to the ending', 'AuthoredScenarioTrigger', 'decline_ending', t.on_scenario, {mono: true, placeholder: 'none: no costs nothing'})) : null
     ], {dataKey: 'tale/on_scenario'}));
 
     var villageOn = r.village && typeof r.village === 'object';

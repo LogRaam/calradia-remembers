@@ -31,7 +31,7 @@ namespace CalradiaRemembers.Tests
         "title": "A Summons by Night",
         "unique": false, "repeat_cooldown_days": 20,
         "requires": { "giver": { "role": "lord", "gender": "female", "min_regard": 1, "not_at_war_with_player": false }, "content": "hardcore" },
-        "on_scenario": { "invitation": "A lady stands at your cell door: {giver} asks to see you.", "accept": "Follow her", "decline": "Stay in your cell" },
+        "on_scenario": { "invitation": "A lady stands at your cell door: {giver} asks to see you.", "accept": "Follow her", "decline": "Stay in your cell", "decline_ending": "refused" },
         "binds": { "giver": "the lady who holds you" },
         "stages": [
           { "id": "summoned", "journal": "{giver} sent for you in the night.", "objective": { "type": "talk_to", "hero": "{giver}" },
@@ -46,7 +46,8 @@ namespace CalradiaRemembers.Tests
                       { "type": "memory", "who": "{giver}", "text": "A night with the prisoner, and our secret.", "if": "regard_rose" },
                       { "type": "regard", "amount": 5, "if": "regard_rose" },
                       { "type": "memory", "who": "{giver}", "text": "I sent for the prisoner; it came to nothing.", "if": [ "!regard_rose", "!regard_fell" ] },
-                      { "type": "memory", "who": "{giver}", "text": "The prisoner I sent for shamed me.", "if": "regard_fell" } ] }
+                      { "type": "memory", "who": "{giver}", "text": "The prisoner I sent for shamed me.", "if": "regard_fell" } ] },
+          "refused": { "regard": -2, "memory": "I sent for the prisoner, and they would not come." }
         }
       }
       """;
@@ -59,6 +60,37 @@ namespace CalradiaRemembers.Tests
 
          q.OnScenario.Invitation.Should().Contain("{giver}");
          q.Stages[1].ImagePool.Should().HaveCount(3);
+      }
+
+      // STAKE (Gabriel, 25/10/2026: the player who will not follow the lady ends the tale, and she is disappointed): the
+      // popup's no plays its ending at once, from the first stage.
+      [Test]
+      public void GIVEN_a_tale_whose_no_is_an_ending_WHEN_the_player_declines_THEN_the_tale_ends_there()
+      {
+         AuthoredQuest q = AuthoredTales.Load(Night);
+         AuthoredQuestRun run = AuthoredTales.Start(q);
+
+         AuthoredStep step = AuthoredQuestEngine.Declined(run, q, 101);
+
+         step.Kind.Should().Be(AuthoredStepKind.Completed);
+         AuthoredQuestEngine.Outcome(run, q).Memory.Should().Contain("would not come");
+      }
+
+      // STAKE: a no that names an ending the tale does not have would end it on nothing; the author is told.
+      [Test]
+      public void GIVEN_a_decline_ending_the_tale_lacks_WHEN_read_THEN_the_loader_refuses_it()
+      {
+         AuthoredTales.Read(Night.Replace("\"decline_ending\": \"refused\"", "\"decline_ending\": \"sulked\"")).Problems
+                      .Should().Contain(p => p.Contains("decline_ending 'sulked'"));
+      }
+
+      // STAKE: a tale whose no costs nothing (no decline_ending) is left as it always was: the no ends nothing.
+      [Test]
+      public void GIVEN_a_tale_whose_no_costs_nothing_WHEN_the_player_declines_THEN_nothing_is_played()
+      {
+         AuthoredQuest q = AuthoredTales.Read(Night.Replace(", \"decline_ending\": \"refused\"", "")).Quests.Single();
+
+         AuthoredQuestEngine.Declined(AuthoredTales.Start(q), q, 101).Kind.Should().Be(AuthoredStepKind.None);
       }
 
       // STAKE: one way in. A tale that says both how a scenario opens it and how it begins on the map would be offered by both.

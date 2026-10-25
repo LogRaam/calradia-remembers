@@ -1632,9 +1632,39 @@ namespace CalradiaRemembers.Quests
             },
             () =>
             {
-               _declined[q.Id] = today;
-               ModLog.Info($"[TALE] the player let '{q.Id}' pass.");
+               if (string.IsNullOrWhiteSpace(q.OnScenario.DeclineEnding))
+               {
+                  _declined[q.Id] = today;
+                  ModLog.Info($"[TALE] the player let '{q.Id}' pass.");
+
+                  return;
+               }
+
+               // Gabriel (25/10/2026): a no that is a way the story goes; the giver is disappointed, and it is remembered.
+               Decline(q, run, giver);
             }), true);
+
+         return null;
+      }
+
+      /// <summary>The popup's no, when the tale makes it an ending: the tale is played to that ending at once.</summary>
+      private void Decline(AuthoredQuest q, AuthoredQuestRun run, Hero giver)
+      {
+         _run = run;
+         _run.GiverRegardAtStart = RegardOf(giver);
+         ModLog.Info($"[TALE] the player said no to '{q.Id}': ending '{q.OnScenario.DeclineEnding}'.");
+         Apply(q, AuthoredQuestEngine.Declined(_run, q, (int) CampaignTime.Now.ToDays));
+      }
+
+      /// <summary>Self-test seam: a scenario tale opened and refused at its popup, through the real handling.</summary>
+      internal string DebugDeclineFromScenario(string questId, Hero giver)
+      {
+         string whyNot = OpenFromScenario(questId, giver, dryRun: true);
+         if (whyNot != null) return whyNot;
+
+         AuthoredQuest q = _quests[questId];
+         TryBind(q, giver, out Dictionary<string, string> ids, out Dictionary<string, string> names, out _);
+         Decline(q, AuthoredQuestEngine.Start(q, ids, names, (int) CampaignTime.Now.ToDays), giver);
 
          return null;
       }

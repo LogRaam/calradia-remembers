@@ -133,6 +133,13 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       [QuestField("The popup's no: nothing is lost, and the tale may come back after a season.")]
       [JsonProperty("decline")] public string Decline { get; set; } = "Not now";
+
+      /// <summary>
+      ///   Gabriel (25/10/2026): the player who will not follow the lady ends the tale, and Rhagaea is disappointed. A no
+      ///   that is itself a way the story goes.
+      /// </summary>
+      [QuestField("An ending of \"endings\" the popup's no leads to: the tale is played to that ending at once (its memory, regard and consequences, its cooldown), instead of passing for a season.")]
+      [JsonProperty("decline_ending")] public string DeclineEnding { get; set; }
    }
 
    public sealed class GiverRequirement

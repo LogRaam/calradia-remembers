@@ -290,6 +290,18 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          return lines;
       }
 
+      /// <summary>
+      ///   The player said no to a scenario tale's popup whose no is an ending (on_scenario.decline_ending): the tale goes
+      ///   there at once, from its first stage. Nothing when the tale names no such ending.
+      /// </summary>
+      public static AuthoredStep Declined(AuthoredQuestRun run, AuthoredQuest q, int today)
+      {
+         string ending = q?.OnScenario?.DeclineEnding?.Trim();
+         if (run == null || string.IsNullOrEmpty(ending) || q.Endings == null || !q.Endings.ContainsKey(ending)) return AuthoredStep.Nothing;
+
+         return GoTo(run, q, Current(run, q), null, "end:" + ending, today);
+      }
+
       /// <summary>A CR conversation opened with this hero, who belongs to <paramref name="localOfPlaceId" /> (or null).</summary>
       public static AuthoredStep ConversationOpened(AuthoredQuestRun run, AuthoredQuest q, string heroId, string localOfPlaceId, int today)
       {

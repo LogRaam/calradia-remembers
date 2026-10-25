@@ -249,6 +249,9 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          {
             if (onMap != null) blocking.Add("on_scenario and on_map both say how the tale begins: keep one.");
             if (string.IsNullOrWhiteSpace(q.OnScenario.Invitation)) blocking.Add("on_scenario.invitation is empty: the popup would ask the player nothing.");
+            string declined = q.OnScenario.DeclineEnding?.Trim();
+            if (!string.IsNullOrEmpty(declined) && (q.Endings == null || !q.Endings.ContainsKey(declined)))
+               blocking.Add($"on_scenario.decline_ending '{declined}' is not among \"endings\".");
          }
 
          string gender = q.Requires?.Giver?.Gender;
@@ -445,6 +448,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
          if (!sure) return;
          List<string> reached = stages.Where(s => reachable.Contains(s.Id)).SelectMany(s => leads[s.Id]).ToList();
+         if (!string.IsNullOrWhiteSpace(q.OnScenario?.DeclineEnding)) reached.Add(EndPrefix + q.OnScenario.DeclineEnding.Trim());
          foreach (string e in endings.Keys.Where(k => !string.IsNullOrWhiteSpace(k) && !reached.Contains(EndPrefix + k)))
             cosmetic.Add($"ending '{e}' is never reached: no path leads to \"end:{e}\".");
          if (!reached.Contains(Reward) && HasContent(q.Reward))

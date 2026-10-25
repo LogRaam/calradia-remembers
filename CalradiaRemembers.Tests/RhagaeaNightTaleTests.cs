@@ -91,6 +91,18 @@ namespace CalradiaRemembers.Tests
           .Select(c => c.Type).Should().NotContain(new[] {"conception", "elope"});
       }
 
+      // STAKE (Gabriel, 25/10/2026): a player who will not follow the lady ends the tale; Rhagaea is disappointed and
+      // remembers it.
+      [Test]
+      public void GIVEN_the_player_will_not_follow_the_lady_WHEN_the_tale_ends_THEN_she_is_disappointed_and_remembers_it()
+      {
+         AuthoredQuest q = Tale();
+         AuthoredOutcome refused = q.Endings[q.OnScenario.DeclineEnding];
+
+         refused.Regard.Should().BeNegative();
+         refused.Memory.Should().Contain("would not come");
+      }
+
       // STAKE: a night that never closes cleanly ends on its own, leaving her a plain memory, and blocks no other tale for long.
       [Test]
       public void GIVEN_a_night_that_never_closes_WHEN_its_days_run_out_THEN_it_fails_with_a_plain_memory()

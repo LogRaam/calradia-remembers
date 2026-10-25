@@ -371,6 +371,14 @@
           "x-kind": "string",
           "description": "The popup's no: nothing is lost, and the tale may come back after a season.",
           "default": "Not now"
+        },
+        "decline_ending": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "An ending of \"endings\" the popup's no leads to: the tale is played to that ending at once (its memory, regard and consequences, its cooldown), instead of passing for a season."
         }
       }
     },
