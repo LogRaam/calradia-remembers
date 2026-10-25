@@ -49,7 +49,7 @@ namespace CalradiaRemembers.Tests
       {
          AuthoredQuestRun run = AuthoredTales.At(q, "night");
          closed = false;
-         for (var i = 0; i < exchanges && !closed; i++) closed = TaleArc.Exchanged(run, q, AuthoredTales.Giver);
+         for (var i = 0; i < exchanges && !closed; i++) closed = TaleArc.Exchanged(run, q, AuthoredTales.Giver, () => 0.99);
 
          return run;
       }
@@ -184,6 +184,200 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_an_arc_the_game_cannot_play_WHEN_the_tale_loads_THEN_the_author_is_told_why(string from, string to, string told)
       {
          AuthoredTales.Read(Night.Replace(from, to)).Problems.Should().Contain(p => p.Contains(told));
+      }
+
+      // ---- Increment 2: signals and transitions (Gabriel, 25/10/2026: "si le NPC a eu un orgasme, le NPC a une conversation
+      // avec le joueur de 5 beats puis on ferme le stage vers dawn. Sinon, le NPC reprend le beat ou elle prend
+      // l'initiative"; "melange des deux, signaux observes avec tirage en filet"; "je garderais une intervention forte qui
+      // retient"). ----
+
+      private const string Looping = """
+      {
+        "id": "cr_test_loop", "title": "A Night That Turns",
+        "binds": { "giver": "a lord" },
+        "stages": [
+          { "id": "night", "journal": "The night.",
+            "objective": { "type": "talk_to", "hero": "{giver}", "when": "closed",
+              "arc": {
+                "signals": [
+                  { "id": "npc_climaxed", "means": "{giver} reaches her climax in this reply", "net": { "after": 6, "chance": 0.5 } },
+                  { "id": "refused", "means": "the player refuses or pushes {giver} away" } ],
+                "on_signal": { "refused": "stung" },
+                "max_exchanges": 30, "final": "after",
+                "beats": [
+                  { "id": "prelude", "exchanges": 3, "do": "Slow preliminaries." },
+                  { "id": "she_leads", "exchanges": 3, "listens": "npc_climaxed", "do": "She takes the initiative." },
+                  { "id": "yields", "exchanges": 3, "lead": "player", "listens": "npc_climaxed", "do": "She lets {player} lead.",
+                    "next": [ { "if": "npc_climaxed", "to": "after" }, { "to": "she_leads" } ] },
+                  { "id": "after", "exchanges": 5, "do": "Lying together, she asks for the secret." },
+                  { "id": "stung", "exchanges": 2, "do": "Stung, she answers as an empress.", "next": [ { "to": "close" } ] } ] } },
+            "on_complete": { "next": "end:dawn" } }
+        ],
+        "endings": { "dawn": { "memory": "A night.", "consequences": [ { "type": "memory", "who": "{giver}", "text": "A good night.", "if": "npc_climaxed" } ] } }
+      }
+      """;
+
+      private static bool Step(AuthoredQuestRun run, AuthoredQuest q, double roll = 0.99, string signal = null)
+      {
+         if (signal != null) TaleArc.SignalSeen(run, q, AuthoredTales.Giver, signal);
+
+         return TaleArc.Exchanged(run, q, AuthoredTales.Giver, () => roll);
+      }
+
+      private static string BeatOf(AuthoredQuestRun run, AuthoredQuest q) => TaleArc.Beat(run, q.Stages[0].Objective.Arc).Id;
+
+      // STAKE: "si le NPC a eu un orgasme [...] 5 beats puis on ferme": seen while she leads, the night goes to its talk
+      // after the player's part, and the flag is there for the ending's memory.
+      [Test]
+      public void GIVEN_her_climax_seen_while_she_leads_WHEN_the_players_part_ends_THEN_the_night_goes_to_the_talk_before_dawn()
+      {
+         AuthoredQuest q = Tale(Looping);
+         AuthoredQuestRun run = AuthoredTales.At(q, "night");
+         for (var i = 0; i < 3; i++) Step(run, q);
+         Step(run, q, signal: "npc_climaxed");
+         for (var i = 0; i < 5; i++) Step(run, q);
+
+         BeatOf(run, q).Should().Be("after");
+         run.Flags.Should().Contain("npc_climaxed");
+      }
+
+      // STAKE: "Sinon, le NPC reprend le beat ou elle prend l'initiative": nothing seen and the net not drawn, she leads again.
+      [Test]
+      public void GIVEN_no_climax_and_the_net_not_drawn_WHEN_the_players_part_ends_THEN_she_takes_the_initiative_again()
+      {
+         AuthoredQuest q = Tale(Looping);
+         AuthoredQuestRun run = AuthoredTales.At(q, "night");
+         for (var i = 0; i < 9; i++) Step(run, q, roll: 0.99);
+
+         BeatOf(run, q).Should().Be("she_leads");
+      }
+
+      // STAKE: "tirage en filet": after six exchanges of listening the game may decide it, sets the flag, and tells her to
+      // narrate it first in the next reply, before the talk that follows it.
+      [Test]
+      public void GIVEN_six_exchanges_listened_and_the_net_drawn_WHEN_the_players_part_ends_THEN_the_game_decides_it_and_she_narrates_it_first()
+      {
+         AuthoredQuest q = Tale(Looping);
+         AuthoredQuestRun run = AuthoredTales.At(q, "night");
+         for (var i = 0; i < 9; i++) Step(run, q, roll: 0.0);
+
+         BeatOf(run, q).Should().Be("after");
+         run.Flags.Should().Contain("npc_climaxed");
+         string direction = TaleArc.Direction(run, q, AuthoredTales.Giver);
+         direction.IndexOf("The game has decided", System.StringComparison.Ordinal)
+                  .Should().BeInRange(0, direction.IndexOf("This part:", System.StringComparison.Ordinal));
+      }
+
+      // STAKE: the net waits its "after": three exchanges of listening are not enough, even on a roll that would succeed.
+      [Test]
+      public void GIVEN_fewer_exchanges_listened_than_the_net_asks_WHEN_her_part_ends_THEN_nothing_is_decided()
+      {
+         AuthoredQuest q = Tale(Looping);
+         AuthoredQuestRun run = AuthoredTales.At(q, "night");
+         for (var i = 0; i < 6; i++) Step(run, q, roll: 0.0);
+
+         run.Flags.Should().NotContain("npc_climaxed");
+      }
+
+      // STAKE: the game decides what happens: a signal the current beat does not listen to is refused and sets nothing.
+      [Test]
+      public void GIVEN_the_preliminaries_WHEN_her_climax_is_reported_THEN_it_is_refused_and_sets_nothing()
+      {
+         AuthoredQuest q = Tale(Looping);
+         AuthoredQuestRun run = AuthoredTales.At(q, "night");
+
+         TaleArc.SignalSeen(run, q, AuthoredTales.Giver, "npc_climaxed").Should().BeFalse();
+         run.Flags.Should().NotContain("npc_climaxed");
+      }
+
+      // STAKE: a refusal turns the night at once, whatever beat plays, to the beat the author wrote for it.
+      [Test]
+      public void GIVEN_a_signal_that_turns_the_arc_WHEN_it_is_seen_THEN_the_arc_jumps_to_its_beat_at_once()
+      {
+         AuthoredQuest q = Tale(Looping);
+         AuthoredQuestRun run = AuthoredTales.At(q, "night");
+         Step(run, q, signal: "refused");
+
+         BeatOf(run, q).Should().Be("stung");
+      }
+
+      // STAKE: "une intervention forte qui retient": the player's strong turn holds the beat once and she answers it first;
+      // a second in a row does not, so the player can never stall the night.
+      [Test]
+      public void GIVEN_the_player_turns_the_scene_WHEN_it_is_counted_THEN_the_beat_is_held_once_and_not_twice_in_a_row()
+      {
+         AuthoredQuest q = Tale(Looping);
+         AuthoredQuestRun run = AuthoredTales.At(q, "night");
+         Step(run, q);
+         Step(run, q, signal: TaleArc.TurnedSignal);
+
+         run.ArcBeatExchanges.Should().Be(1);
+         TaleArc.Direction(run, q, AuthoredTales.Giver).Should().Contain("turned the scene");
+
+         Step(run, q, signal: TaleArc.TurnedSignal);
+         run.ArcBeatExchanges.Should().Be(2);
+      }
+
+      // STAKE: the loop she_leads -> yields -> she_leads always ends: max_exchanges sends it to the talk, then dawn.
+      [Test]
+      public void GIVEN_a_night_where_nothing_is_ever_seen_or_drawn_WHEN_exchanges_go_on_THEN_it_still_ends_within_its_cap_and_the_final_beat()
+      {
+         AuthoredQuest q = Tale(Looping);
+         AuthoredQuestRun run = AuthoredTales.At(q, "night");
+         var n = 0;
+         var closed = false;
+         while (!closed && n < 100)
+         {
+            closed = Step(run, q, roll: 0.99);
+            n++;
+         }
+
+         closed.Should().BeTrue();
+         n.Should().BeLessThanOrEqualTo(30 + 5);
+      }
+
+      // STAKE: on the last reply of the player's part the night may still go on; telling her it is the last would end a
+      // scene that continues.
+      [Test]
+      public void GIVEN_the_last_reply_of_a_beat_whose_way_on_depends_on_a_signal_WHEN_she_is_told_the_arc_THEN_she_is_not_told_it_ends()
+      {
+         AuthoredQuest q = Tale(Looping);
+         AuthoredQuestRun run = AuthoredTales.At(q, "night");
+         for (var i = 0; i < 8; i++) Step(run, q);
+
+         TaleArc.Direction(run, q, AuthoredTales.Giver).Should().NotContain("LAST reply");
+      }
+
+      // STAKE: whoever reads the turn's actions is taught exactly the signals the game would take now, and how to report them.
+      [Test]
+      public void GIVEN_her_part_WHEN_the_reader_is_taught_the_signals_THEN_it_learns_hers_the_refusal_and_the_players_turn()
+      {
+         AuthoredQuest q = Tale(Looping);
+         AuthoredQuestRun run = AuthoredTales.At(q, "night");
+         string prelude = TaleArc.SignalsForReader(run, q, AuthoredTales.Giver);
+         for (var i = 0; i < 3; i++) Step(run, q);
+         string herPart = TaleArc.SignalsForReader(run, q, AuthoredTales.Giver);
+
+         prelude.Should().NotContain("npc_climaxed").And.Contain("- refused:").And.Contain("- turned:");
+         herPart.Should().Contain("- npc_climaxed:").And.Contain("type: " + TaleArc.SignalVerb);
+      }
+
+      // STAKE: a signal's flag counts as set for the author's checks, or every arc tale would warn of a flag never set.
+      [Test]
+      public void GIVEN_a_transition_on_a_signals_flag_WHEN_the_tale_loads_THEN_the_author_is_not_warned_it_is_never_set()
+      {
+         AuthoredTales.Read(Looping).Problems.Should().BeEmpty();
+      }
+
+      // STAKE: an arc the game could not play, or could play forever, is refused when the tale loads.
+      [TestCase("\"listens\": \"npc_climaxed\", \"do\": \"She takes", "\"listens\": \"moaned\", \"do\": \"She takes", "listens to 'moaned', which is not one of the arc's signals")]
+      [TestCase("{ \"to\": \"she_leads\" }", "{ \"to\": \"bed\" }", "\"next\" goes to 'bed', which is neither one of its beats nor \"close\"")]
+      [TestCase("\"max_exchanges\": 30,", "", "needs \"max_exchanges\" to be sure it ends")]
+      [TestCase("{ \"id\": \"refused\",", "{ \"id\": \"turned\",", "is the game's own signal")]
+      [TestCase("\"on_signal\": { \"refused\": \"stung\" }", "\"on_signal\": { \"slapped\": \"stung\" }", "names 'slapped', which is not one of its signals")]
+      public void GIVEN_an_arc_with_signals_the_game_cannot_play_WHEN_the_tale_loads_THEN_the_author_is_told_why(string from, string to, string told)
+      {
+         AuthoredTales.Read(Looping.Replace(from, to)).Problems.Should().Contain(p => p.Contains(told));
       }
    }
 }

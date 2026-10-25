@@ -531,6 +531,11 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             Knowers(s.Knowers);
             AuthoredScene scene = s.Objective?.Scene;
             foreach (AuthoredFinding f in scene?.Findings ?? new List<AuthoredFinding>()) set.UnionWith(f?.Sets ?? new List<string>());
+            AuthoredArc arc = s.Objective?.Arc;
+            foreach (AuthoredArcSignal sig in arc?.Signals ?? new List<AuthoredArcSignal>()) if (!string.IsNullOrWhiteSpace(sig?.Id)) set.Add(sig.Id.Trim());
+            foreach (AuthoredArcBeat b in arc?.Beats ?? new List<AuthoredArcBeat>())
+               foreach (AuthoredArcNext n in b?.Next ?? new List<AuthoredArcNext>())
+                  Tests(n?.If);
             foreach (AuthoredEncounter e in scene?.Encounters ?? new List<AuthoredEncounter>()) set.UnionWith(e?.Sets ?? new List<string>());
 
             foreach (AuthoredConsequence c in (s.OnEnter ?? new List<AuthoredConsequence>()).Where(c => c != null)) Tests(c.If);
@@ -593,6 +598,53 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             if (string.IsNullOrWhiteSpace(b.Do)) blocking.Add($"{at} needs \"do\", the direction for the beat.");
          }
 
+         var signals = new HashSet<string>();
+         for (var i = 0; i < (arc.Signals?.Count ?? 0); i++)
+         {
+            AuthoredArcSignal s = arc.Signals[i];
+            string at = $"{where}, arc signal {i + 1}";
+            if (s == null)
+            {
+               blocking.Add($"{at} is empty.");
+
+               continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(s.Id)) blocking.Add($"{at} has no \"id\".");
+            else if (s.Id.Trim() == TaleArc.TurnedSignal) blocking.Add($"{at}: '{TaleArc.TurnedSignal}' is the game's own signal (the player turning the scene); choose another id.");
+            else if (!signals.Add(s.Id.Trim())) blocking.Add($"{at} repeats the id '{s.Id}'.");
+            if (string.IsNullOrWhiteSpace(s.Means)) blocking.Add($"{at} needs \"means\", what the reply must show.");
+            if (s.Net != null && (s.Net.After < 0 || s.Net.Chance < 0 || s.Net.Chance > 1))
+               blocking.Add($"{at}: \"net\" needs \"after\" of 0 or more and \"chance\" between 0 and 1.");
+         }
+
+         bool loops = false;
+         for (var i = 0; i < arc.Beats.Count; i++)
+         {
+            AuthoredArcBeat b = arc.Beats[i];
+            if (b == null) continue;
+            string at = $"{where}, arc beat {i + 1}";
+            foreach (string l in b.Listens ?? new List<string>())
+               if (!signals.Contains((l ?? "").Trim())) blocking.Add($"{at} listens to '{l}', which is not one of the arc's signals.");
+            foreach (AuthoredArcNext n in b.Next ?? new List<AuthoredArcNext>())
+            {
+               string to = (n?.To ?? "").Trim();
+               if (to == TaleArc.Close) continue;
+               int j = arc.Beats.FindIndex(x => x != null && (x.Id ?? "").Trim() == to);
+               if (j < 0) blocking.Add($"{at}: \"next\" goes to '{n?.To}', which is neither one of its beats nor \"{TaleArc.Close}\".");
+               else if (j <= i) loops = true;
+            }
+         }
+
+         foreach (KeyValuePair<string, string> jump in arc.OnSignal ?? new Dictionary<string, string>())
+         {
+            string to = (jump.Value ?? "").Trim();
+            if (!signals.Contains((jump.Key ?? "").Trim())) blocking.Add($"{where}: the arc's \"on_signal\" names '{jump.Key}', which is not one of its signals.");
+            if (to != TaleArc.Close && !ids.Contains(to)) blocking.Add($"{where}: the arc's \"on_signal\" for '{jump.Key}' goes to '{jump.Value}', which is neither one of its beats nor \"{TaleArc.Close}\".");
+            else if (to != TaleArc.Close) loops = true;
+         }
+
+         if (loops && arc.MaxExchanges <= 0) blocking.Add($"{where}: the arc can go back to a beat already played, so it needs \"max_exchanges\" to be sure it ends.");
          if (!string.IsNullOrWhiteSpace(arc.Final) && !ids.Contains(arc.Final.Trim())) blocking.Add($"{where}: the arc's \"final\" '{arc.Final}' is not one of its beats.");
          if (arc.MaxExchanges < 0) blocking.Add($"{where}: the arc's \"max_exchanges\" cannot be negative.");
       }

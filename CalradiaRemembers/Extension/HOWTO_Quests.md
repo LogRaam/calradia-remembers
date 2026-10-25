@@ -330,8 +330,35 @@ reply to it), then the conversation closes by itself after the last reply, and t
   id; the last beat when left out) whatever is playing.
 - The close holds even when "NPCs can end conversations" is off in the MCM: it is the tale's structure. The player may
   still leave earlier; the stage then completes as it always did.
-- An arc lives only on a stage's own `talk_to` with `"when": "closed"`, never on a choice. Signals that turn the arc
-  (a beat repeated until something happens in the scene) come in a later version.
+- An arc lives only on a stage's own `talk_to` with `"when": "closed"`, never on a choice.
+
+**Signals and transitions.** An arc can turn on what happens in the conversation:
+
+```json
+"arc": { "max_exchanges": 30, "final": "after",
+  "signals": [ { "id": "npc_climaxed", "means": "{giver} reaches her climax in this reply",
+                 "net": { "after": 6, "chance": 0.5 } } ],
+  "beats": [
+    { "id": "prelude",   "exchanges": 3, "do": "..." },
+    { "id": "she_leads", "exchanges": 3, "listens": "npc_climaxed", "do": "..." },
+    { "id": "yields",    "exchanges": 3, "lead": "player", "listens": "npc_climaxed", "do": "...",
+      "next": [ { "if": "npc_climaxed", "to": "after" }, { "to": "she_leads" } ] },
+    { "id": "after",     "exchanges": 5, "do": "..." } ] }
+```
+
+- A **signal** is something the game watches for while a beat `listens` to it. Whoever reads the turn's actions (the
+  action interpreter in Enhanced, the character's own call in Standard) reports it when the exchange plainly shows it;
+  the game takes it only while a beat listens, and it sets the tale flag of the same name, which a `next`, a line under
+  `if` or an ending's consequence can test.
+- **`net`**: a signal not seen after `after` exchanges of listening may be decided by the game at the end of each
+  listening beat, at `chance`. The character is then told to narrate it first in its next reply.
+- **`next`** on a beat: read top to bottom when the beat is played out; the first whose `if` holds wins (`"to"` a beat
+  or `"close"`). None holding, or none written: the next beat in the list.
+- **`on_signal`** on the arc: `{ "refused": "stung" }` jumps at once, whatever beat plays, when that signal is seen.
+- An arc that can go back to a beat already played needs `max_exchanges`: reached, it goes to its `final` beat.
+- The game watches one signal of its own in every arc, `turned` (the id is reserved): the player turning the scene with
+  a strong act or word. It holds the beat for that exchange so the character answers it first; a second in a row does
+  not, so the player can never stall the arc.
 
 **Goods asked: `bring`** (since 2.7.19). `"objective": { "type": "bring", "item": "grain", "count": 30 }` asks the
 player for 30 grain for the giver. The player hands them over with the bag (the chat's give button) in a conversation

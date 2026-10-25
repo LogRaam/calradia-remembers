@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 568 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1313 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1316 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 267 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1580,12 +1580,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HistoryRelationStep` | public class | One relation move to make now. |
 | `HistoryWorldFacts` | public class | The campaign as the validation sees it. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (94)
+### CalradiaRemembers.Logic.AuthoredQuests (97)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `AuthoredArc` | public class | The beats a stage's own conversation plays in order, each for a number of exchanges, then the close (TaleArc). |
 | `AuthoredArcBeat` | public class | One beat of an arc: what the character does in it, who leads, for how many exchanges. |
+| `AuthoredArcNet` | public class | The roll that makes a signal happen when the conversation has not shown it (TaleArc). |
+| `AuthoredArcNext` | public class | Where a beat leads when it is played out: the first whose flags hold. |
+| `AuthoredArcSignal` | public class | Something the reader of the turn's actions reports when the reply shows it (TaleArc). |
 | `AuthoredBandMakeupFacts` | public class | What a band's makeup is judged on. |
 | `AuthoredBandMakeupPolicy` | public static class | How many men of each step of the band's troop line. |
 | `AuthoredBandSizeFacts` | public class | What a band's size is judged on. |
@@ -1663,7 +1666,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SceneMarkers` | public class | A narration with its game markers taken out. |
 | `SceneSurroundingsFacts` | public class | What the game knows of a scene's surroundings. |
 | `SceneSurroundingsText` | public static class | The narrator's block about the scene's surroundings. |
-| `TaleArc` | public static class | Where a tale's arc stands, what the character is told of it, and what one exchange does to it. |
+| `TaleArc` | public static class | Where a tale's arc stands, what the character and the reader are told of it, and what one exchange does. |
 | `TaleConceptionPolicy` | public static class | Who would carry a child from a tale's ending, and on what chance. |
 | `TaleElopementPolicy` | public static class | When a tale's elopement and return can really happen. |
 | `TaleGiftReading` | public enum | What a give_item of a tale's goods to the one who receives them comes to (TaleItemPolicy.ReadGift). |

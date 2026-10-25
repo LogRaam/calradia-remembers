@@ -202,6 +202,17 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          return sb.ToString();
       }
 
+      /// <summary>
+      ///   What whoever reads the turn's actions is taught of the tale in a conversation with this character: its choices by
+      ///   words open there and its arc's signals (TaleArc, 25/10/2026). Null when neither.
+      /// </summary>
+      public static string ForActionReader(AuthoredQuestRun run, AuthoredQuest q, string heroId)
+      {
+         List<string> parts = new[] {ChoicesForInterpreter(run, q, heroId), TaleArc.SignalsForReader(run, q, heroId)}.Where(p => p != null).ToList();
+
+         return parts.Count == 0 ? null : string.Join("\n\n", parts);
+      }
+
       private static List<string> KnowerLines(AuthoredQuestRun run, Dictionary<string, List<AuthoredLine>> knowers, string heroId, string localOfPlaceId)
       {
          var lines = new List<string>();

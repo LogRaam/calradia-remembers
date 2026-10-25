@@ -1355,6 +1355,33 @@
           ],
           "x-kind": "string",
           "description": "The beat the arc ends on, by id: once played, the conversation closes. Empty: the last beat."
+        },
+        "signals": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredArcSignal"
+          },
+          "x-kind": "object:AuthoredArcSignal[]",
+          "description": "Things the game watches for in the conversation; one seen sets a tale flag of the same name.",
+          "x-default-empty": true
+        },
+        "on_signal": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "x-kind": "map:string",
+          "description": "A signal that turns the arc at once, whatever beat plays: the signal's id, then a beat's id or \"close\".",
+          "x-default-empty": true
         }
       }
     },
@@ -1670,6 +1697,24 @@
           ],
           "x-closed-list": "ArcLeads"
         },
+        "listens": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "The signals this beat watches for (their ids).",
+          "x-default-empty": true
+        },
+        "next": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredArcNext"
+          },
+          "x-kind": "object:AuthoredArcNext[]",
+          "description": "Where the beat leads when played out, read top to bottom; none holding (or none written): the next beat in the list.",
+          "x-default-empty": true
+        },
         "do": {
           "type": [
             "string",
@@ -1677,6 +1722,36 @@
           ],
           "x-kind": "string",
           "description": "The direction for this beat, in the voice of a canvas (\"Slow preliminaries: ...\")."
+        }
+      }
+    },
+    "AuthoredArcSignal": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Something the reader of the turn's actions reports when the reply shows it (TaleArc).",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The signal's id, also the flag it sets (\"npc_climaxed\")."
+        },
+        "means": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "What the reply must show for it to count, in plain words (\"{giver} reaches her climax in this reply\")."
+        },
+        "net": {
+          "$ref": "#/$defs/AuthoredArcNet",
+          "x-kind": "object:AuthoredArcNet",
+          "description": "Optional: when not seen after some exchanges of listening, the game may decide it happens."
         }
       }
     },
@@ -1727,6 +1802,50 @@
           "description": "lose_time: read but not played yet (the scene ends, the night is lost).",
           "x-played": false,
           "default": 0
+        }
+      }
+    },
+    "AuthoredArcNext": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Where a beat leads when it is played out: the first whose flags hold.",
+      "properties": {
+        "if": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "Flags that must hold (\"name\", or \"!name\" for not set); empty always holds.",
+          "x-default-empty": true
+        },
+        "to": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "A beat's id, or \"close\" to end the conversation."
+        }
+      }
+    },
+    "AuthoredArcNet": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "The roll that makes a signal happen when the conversation has not shown it (TaleArc).",
+      "properties": {
+        "after": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "Exchanges of listening before the game may decide it.",
+          "default": 0
+        },
+        "chance": {
+          "type": "number",
+          "x-kind": "number",
+          "description": "The chance, at the end of each listening beat from then on, that the game decides it happens (0 to 1).",
+          "default": 0.0
         }
       }
     },

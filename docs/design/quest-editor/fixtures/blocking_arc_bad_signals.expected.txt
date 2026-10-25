@@ -1,0 +1,9 @@
+blocking_arc_bad_signals.json: quest 'fx_tale': stage 'night', arc signal 2: 'turned' is the game's own signal (the player turning the scene); choose another id. The quest is not loaded.
+blocking_arc_bad_signals.json: quest 'fx_tale': stage 'night', arc signal 3 needs "means", what the reply must show. The quest is not loaded.
+blocking_arc_bad_signals.json: quest 'fx_tale': stage 'night', arc signal 3: "net" needs "after" of 0 or more and "chance" between 0 and 1. The quest is not loaded.
+blocking_arc_bad_signals.json: quest 'fx_tale': stage 'night', arc beat 2 listens to 'moaned', which is not one of the arc's signals. The quest is not loaded.
+blocking_arc_bad_signals.json: quest 'fx_tale': stage 'night', arc beat 3: "next" goes to 'bed', which is neither one of its beats nor "close". The quest is not loaded.
+blocking_arc_bad_signals.json: quest 'fx_tale': stage 'night': the arc's "on_signal" names 'refused', which is not one of its signals. The quest is not loaded.
+blocking_arc_bad_signals.json: quest 'fx_tale': stage 'night': the arc's "on_signal" names 'slapped', which is not one of its signals. The quest is not loaded.
+blocking_arc_bad_signals.json: quest 'fx_tale': stage 'night': the arc's "on_signal" for 'slapped' goes to 'nowhere', which is neither one of its beats nor "close". The quest is not loaded.
+blocking_arc_bad_signals.json: quest 'fx_tale': stage 'night': the arc can go back to a beat already played, so it needs "max_exchanges" to be sure it ends. The quest is not loaded.

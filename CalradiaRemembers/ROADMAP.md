@@ -105,7 +105,8 @@ and the bridge. Before, they do not: actions are taught in three places that do 
    junction decides before the context is built and sets `EncounterContext.ProseReadsItsOwnActions`; the prose prompt
    carries the open choices below the marker only then, told not to announce or steer toward them. `story_choice` left
    the debts. Still open in this step: the prose fallback's prompt (built for an interpreter turn, then read as its
-   own); the arc's signals; one plan object both renderings draw from. (`witness_leaves` needed nothing: step 1 found
+   own: CLOSED 25/10/2026, the fallback flips `ProseReadsItsOwnActions`); the arc's signals (BUILT, the arc's
+   increment 2); one plan object both renderings draw from. (`witness_leaves` needed nothing: step 1 found
    it taught to both.)
 4. **Verbs migrate to their spec one by one**; a ratchet counts those still taught outside the plan.
 5. **Enhanced's prose prompt without actions**, measured before and after.
@@ -233,6 +234,12 @@ An `arc` on a `talk_to` objective (meant for `"when": "closed"`):
    it holds even with "NPCs can end conversations" off; Gabriel has not ruled on it. Every reply counts, synthetic ones
    included. The editor's arc cards shipped with it (its field registry must cover every field the game reads).
 2. **Signals and transitions**: `listens`, `next` with `if`, `on_signal`, the `tale_signal` verb, the net roll.
+   BUILT 25/10/2026: `TaleArc.SignalSeen`, `Exchanged` (on_signal jump, the `turned` hold, net rolls at the end of each
+   listening beat, `next`), `SignalsForReader` joined to the tale's choices (`AuthoredQuestPrompt.ForActionReader`) so
+   both readers are taught it; the bridge's `tale_signal` case; the parity map lists `tale_signal` (same for both).
+   The direction says LAST only when every way on closes (no conditional `next`, no `on_signal` to a beat). The hold
+   never applies on the arc's very last reply. The Rhagaea night plays the whole shape; the refusal exit beat is NOT in
+   it (still awaiting Gabriel).
 3. **The editor's arc cards** and the arc shown in the story map's summary panel (the JSON checks ship with 1 and 2,
    since the editor must refuse what the game refuses).
 

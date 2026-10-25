@@ -135,11 +135,13 @@ namespace CalradiaRemembers.Tests.Maps
          HashSet<string> modText = ModTypeLines(files);
          HashSet<string> handled = VerbsMap.LiteralsInField(bridge, "HandledActionTypes");
          handled.UnionWith(VerbsMap.CaseLabels(bridge));
-         if (bridge?.Root.DescendantNodes().OfType<CaseSwitchLabelSyntax>().Any(l => l.Value.ToString().EndsWith(nameof(AuthoredQuestPrompt.StoryChoiceVerb), StringComparison.Ordinal)) == true)
-            handled.Add(AuthoredQuestPrompt.StoryChoiceVerb);
+         // A tale's own verbs are constants, not literals: the bridge's case on each counts as handling it.
+         foreach ((string name, string verb) in new[] {(nameof(AuthoredQuestPrompt.StoryChoiceVerb), AuthoredQuestPrompt.StoryChoiceVerb), (nameof(TaleArc.SignalVerb), TaleArc.SignalVerb)})
+            if (bridge?.Root.DescendantNodes().OfType<CaseSwitchLabelSyntax>().Any(l => l.Value.ToString().EndsWith(name, StringComparison.Ordinal)) == true)
+               handled.Add(verb);
 
          List<string> vocabulary = ProseActionVocabulary.Build(RelationWarmth.Normal).Select(d => d.Type).ToList();
-         List<string> names = catalogue.Union(vocabulary).Union(verbClasses.Keys).Append(AuthoredQuestPrompt.StoryChoiceVerb)
+         List<string> names = catalogue.Union(vocabulary).Union(verbClasses.Keys).Append(AuthoredQuestPrompt.StoryChoiceVerb).Append(TaleArc.SignalVerb)
                                        .Distinct().OrderBy(n => n, StringComparer.Ordinal).ToList();
 
          string choices = TaleChoices();
@@ -208,14 +210,29 @@ namespace CalradiaRemembers.Tests.Maps
          => new PromptBuilder {ActionVocabulary = ProseActionVocabulary.Build(RelationWarmth.Normal).ToList(), AdultLevel = AdultContentLevel.Hardcore, PlayerIsFemale = true}
             .BuildSystemPrompt(Subject(), new WorldState {CurrentDay = 10}, context);
 
-      /// <summary>A tale held at a stage with a choice by words open with this character, composed by the real code.</summary>
+      /// <summary>
+      ///   What a tale teaches whoever reads the turn's actions, composed by the real code: a tale held at a stage with a choice
+      ///   by words open with this character, and a tale whose conversation an arc paces (its signals).
+      /// </summary>
       private static string TaleChoices()
       {
          AuthoredQuest q = AuthoredTales.Load(AuthoredTales.Fork.Replace("\"objective\": { \"type\": \"wait\", \"days\": 3 }",
             "\"said\": { \"to\": \"{giver}\", \"meaning\": \"the player says the boy is not worth the trouble\" }"));
+         AuthoredQuest arc = AuthoredTales.Load(ArcTale);
 
-         return AuthoredQuestPrompt.ChoicesForInterpreter(AuthoredTales.At(q, "the_road"), q, AuthoredTales.Giver);
+         return AuthoredQuestPrompt.ForActionReader(AuthoredTales.At(q, "the_road"), q, AuthoredTales.Giver) + "\n\n"
+                + AuthoredQuestPrompt.ForActionReader(AuthoredTales.At(arc, "night"), arc, AuthoredTales.Giver);
       }
+
+      private const string ArcTale = """
+         { "id": "cr_map_arc", "title": "An Arc", "binds": { "giver": "a lord" },
+           "stages": [ { "id": "night", "journal": "The night.",
+             "objective": { "type": "talk_to", "hero": "{giver}", "when": "closed",
+               "arc": { "signals": [ { "id": "seen", "means": "something happens" } ],
+                        "beats": [ { "id": "only", "exchanges": 2, "listens": "seen", "do": "A beat." } ] } },
+             "on_complete": { "next": "end:done" } } ],
+           "endings": { "done": { "memory": "Done." } } }
+         """;
 
       private static void AppendAllowed(StringBuilder sb, IReadOnlyList<Row> rows)
       {

@@ -469,6 +469,48 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       [QuestField("The beat the arc ends on, by id: once played, the conversation closes. Empty: the last beat.")]
       [JsonProperty("final")] public string Final { get; set; }
+
+      /// <summary>Gabriel (25/10/2026): "melange des deux, signaux observes avec tirage en filet."</summary>
+      [QuestField("Things the game watches for in the conversation; one seen sets a tale flag of the same name.")]
+      [JsonProperty("signals")] public List<AuthoredArcSignal> Signals { get; set; } = new();
+
+      [QuestField("A signal that turns the arc at once, whatever beat plays: the signal's id, then a beat's id or \"close\".")]
+      [JsonProperty("on_signal")] public Dictionary<string, string> OnSignal { get; set; } = new();
+   }
+
+   /// <summary>Something the reader of the turn's actions reports when the reply shows it (TaleArc).</summary>
+   public sealed class AuthoredArcSignal
+   {
+      [QuestField("The signal's id, also the flag it sets (\"npc_climaxed\").")]
+      [JsonProperty("id")] public string Id { get; set; }
+
+      [QuestField("What the reply must show for it to count, in plain words (\"{giver} reaches her climax in this reply\").")]
+      [JsonProperty("means")] public string Means { get; set; }
+
+      [QuestField("Optional: when not seen after some exchanges of listening, the game may decide it happens.")]
+      [JsonProperty("net")] public AuthoredArcNet Net { get; set; }
+   }
+
+   /// <summary>The roll that makes a signal happen when the conversation has not shown it (TaleArc).</summary>
+   public sealed class AuthoredArcNet
+   {
+      [QuestField("Exchanges of listening before the game may decide it.")]
+      [JsonProperty("after")] public int After { get; set; }
+
+      [QuestField("The chance, at the end of each listening beat from then on, that the game decides it happens (0 to 1).")]
+      [JsonProperty("chance")] public double Chance { get; set; }
+   }
+
+   /// <summary>Where a beat leads when it is played out: the first whose flags hold.</summary>
+   public sealed class AuthoredArcNext
+   {
+      [QuestField("Flags that must hold (\"name\", or \"!name\" for not set); empty always holds.")]
+      [JsonProperty("if")]
+      [JsonConverter(typeof(OneOrManyConverter))]
+      public List<string> If { get; set; } = new();
+
+      [QuestField("A beat's id, or \"close\" to end the conversation.")]
+      [JsonProperty("to")] public string To { get; set; }
    }
 
    /// <summary>One beat of an arc: what the character does in it, who leads, for how many exchanges.</summary>
@@ -482,6 +524,14 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       [QuestField("Who drives the beat: \"npc\" (the character acts and proposes, the default) or \"player\" (the character follows).", ClosedList = nameof(AuthoredQuestLoader.ArcLeads))]
       [JsonProperty("lead")] public string Lead { get; set; }
+
+      [QuestField("The signals this beat watches for (their ids).")]
+      [JsonProperty("listens")]
+      [JsonConverter(typeof(OneOrManyConverter))]
+      public List<string> Listens { get; set; } = new();
+
+      [QuestField("Where the beat leads when played out, read top to bottom; none holding (or none written): the next beat in the list.")]
+      [JsonProperty("next")] public List<AuthoredArcNext> Next { get; set; } = new();
 
       [QuestField("The direction for this beat, in the voice of a canvas (\"Slow preliminaries: ...\").")]
       [JsonProperty("do")] public string Do { get; set; }

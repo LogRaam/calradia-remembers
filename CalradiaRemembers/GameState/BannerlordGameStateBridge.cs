@@ -411,6 +411,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteTeachSkill(action, npcHero, context);
             case Logic.AuthoredQuests.AuthoredQuestPrompt.StoryChoiceVerb:
                return ExecuteStoryChoice(action, npcHero);
+            case Logic.AuthoredQuests.TaleArc.SignalVerb:
+               return ExecuteTaleSignal(action, npcHero);
             default:
                // Extension Surface (CrActions.Register): a type that matches none of the cases above may
                // still be a THIRD-PARTY action a mod registered at runtime, not a hallucination. Try the
@@ -5498,6 +5500,18 @@ namespace CalradiaRemembers.GameState
             // tashmetu (07/10/2026): the player cannot act on this; it stays in the log ([TALE] ... refused) and the
             // model is still told nothing happened, but no red line is shown.
             : ActionOutcome.Refused("");
+      }
+
+      /// <summary>
+      ///   A signal of a tale's arc (TaleArc, Gabriel 25/10/2026: "signaux observes avec tirage en filet"), reported by
+      ///   whoever reads the turn's actions. The arc decides: only a signal it watches for now is taken; nothing is shown
+      ///   to the player either way (the arc's pacing is never announced).
+      /// </summary>
+      private static ActionOutcome ExecuteTaleSignal(GameAction action, Hero npcHero)
+      {
+         string id = action?.Parameters != null && action.Parameters.TryGetValue("signal", out string s) ? s : null;
+
+         return Quests.AuthoredQuestBehavior.Instance?.TakeSignal(npcHero, id) == true ? new ActionOutcome("", true) : ActionOutcome.Refused("");
       }
 
       /// <summary>

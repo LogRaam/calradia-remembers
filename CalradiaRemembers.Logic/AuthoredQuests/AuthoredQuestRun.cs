@@ -98,6 +98,18 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>The arc played its final beat: the conversation is closing.</summary>
       public bool ArcClosed { get; set; }
 
+      /// <summary>The signals reported in the exchange under way, read when it is counted.</summary>
+      public List<string> ArcSignalsNow { get; set; } = new();
+
+      /// <summary>For each signal, the exchanges a beat listened to it, for its net.</summary>
+      public Dictionary<string, int> ArcListened { get; set; } = new();
+
+      /// <summary>The last exchange was held by the player turning the scene; the next one counts whatever happens.</summary>
+      public bool ArcHeld { get; set; }
+
+      /// <summary>A signal the game decided by its net, which the next reply narrates.</summary>
+      public string ArcDeclared { get; set; }
+
       /// <summary>The named ending the tale reached ("end:silence" gives "silence"); null for the reward, or still under way.</summary>
       public string EndingId { get; set; }
 

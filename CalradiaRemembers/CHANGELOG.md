@@ -13,7 +13,21 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   it. Logic `TaleArc` (tests `TaleArcTests`), loader checks mirrored in the tale editor with five parity fixtures, arc
   cards in the editor, run state saved (`ArcBeatId`, `ArcBeatExchanges`, `ArcExchanges`, `ArcClosed`), HOWTO_Quests.
   The Adult Tales' Rhagaea night plays 3 preliminaries, 3 where she leads, 3 where the player leads, 5 of talk in which
-  she asks for the secret. `cr.testall tale_arc`. Signals and transitions are the next increment.
+  she asks for the secret. `cr.testall tale_arc`.
+- **The arc turns on what happens** (Gabriel, 25/10/2026: "melange des deux, signaux observes avec tirage en filet";
+  "je garderais une intervention forte qui retient"). An arc declares `signals` its beats `listen` to; whoever reads
+  the turn's actions reports one with the new `tale_signal` verb (taught to the interpreter in Enhanced, to the
+  character's own call in Standard, like a tale's choices by words), the game takes it only while a beat listens, and
+  it sets the tale flag of its name. A beat's `next` goes where the first holding `if` says; `on_signal` jumps at once;
+  a signal's `net` lets the game decide it after enough listening, and the character is told to narrate it. The
+  player's strong turn (`turned`, the game's own signal) holds the beat once. An arc that can loop needs
+  `max_exchanges`. The Rhagaea night now plays Gabriel's whole shape: if she reached her climax, the talk before dawn;
+  otherwise she takes the initiative again (the net decides at six exchanges of listening, one chance in two; capped
+  at 30). The editor has the signal and transition cards; two more parity fixtures. Also: an Enhanced turn redone by
+  the prose fallback now carries the turn's action blocks (choices and signals) in its prompt, since that one call
+  reads its own tags (`EncounterContext.ProseReadsItsOwnActions` is now settable); the arc's close now locks the input
+  with a notice, as an ordinary close does. `cr.testall tale_arc` drives signals through the real bridge and a forced
+  net roll.
 
 ### Changed
 - **The player's violence in words works in both compositions** (Gabriel 25/10: "enseigne la violence aux deux
@@ -32,7 +46,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   they are for the [ACTION] block only, never to be announced, offered or steered toward. In Enhanced nothing changes:
   the interpreter is taught them and the character is not. The action-reader decision is now taken before the
   context is built (`EncounterContext.ProseReadsItsOwnActions`). Not covered yet: an Enhanced turn redone by the prose
-  fallback reads its own tags from a prompt built without the choices. The parity map's `story_choice` debt is gone.
+  fallback reads its own tags from a prompt built without the choices (closed since, see the arc's signals above). The
+  parity map's `story_choice` debt is gone.
   `cr.testall authored_quest_said_choice` now checks the real prompt in both modes.
 - **A wife is no longer narrated as "he", and gestures stop leaning on furniture** (Eisendrache2, Nexus 25/10,
   LM Studio with qwen3.5-9B: "My wife is speaking to me and the AI is describing HIS actions", "Like leaning on a

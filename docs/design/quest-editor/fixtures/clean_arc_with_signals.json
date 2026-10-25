@@ -1,0 +1,100 @@
+{
+  "id": "fx_tale",
+  "title": "A Fixture",
+  "binds": {
+    "giver": "a lord"
+  },
+  "stages": [
+    {
+      "id": "night",
+      "journal": "The night with {giver}.",
+      "objective": {
+        "type": "talk_to",
+        "hero": "{giver}",
+        "when": "closed",
+        "arc": {
+          "signals": [
+            {
+              "id": "npc_climaxed",
+              "means": "{giver} reaches her climax in this reply",
+              "net": {
+                "after": 6,
+                "chance": 0.5
+              }
+            },
+            {
+              "id": "refused",
+              "means": "the player refuses {giver}"
+            }
+          ],
+          "on_signal": {
+            "refused": "stung"
+          },
+          "max_exchanges": 30,
+          "final": "after",
+          "beats": [
+            {
+              "id": "prelude",
+              "exchanges": 3,
+              "do": "Slow preliminaries."
+            },
+            {
+              "id": "she_leads",
+              "exchanges": 3,
+              "listens": "npc_climaxed",
+              "do": "She takes the initiative."
+            },
+            {
+              "id": "yields",
+              "exchanges": 3,
+              "lead": "player",
+              "listens": [
+                "npc_climaxed"
+              ],
+              "do": "She lets {player} lead.",
+              "next": [
+                {
+                  "if": "npc_climaxed",
+                  "to": "after"
+                },
+                {
+                  "to": "she_leads"
+                }
+              ]
+            },
+            {
+              "id": "after",
+              "exchanges": 5,
+              "do": "She asks for the secret."
+            },
+            {
+              "id": "stung",
+              "exchanges": 2,
+              "do": "Stung.",
+              "next": [
+                {
+                  "to": "close"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "canvas": "The chamber at night.",
+      "on_complete": {
+        "next": "reward"
+      }
+    }
+  ],
+  "reward": {
+    "regard": 5,
+    "consequences": [
+      {
+        "type": "memory",
+        "who": "{giver}",
+        "text": "A good night.",
+        "if": "npc_climaxed"
+      }
+    ]
+  }
+}

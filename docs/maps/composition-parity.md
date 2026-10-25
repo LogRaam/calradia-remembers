@@ -23,7 +23,7 @@ those rows are not compared.
 - `Parity`: `same` when both readers are taught it (or neither) in Full; otherwise which one, and the reason it is
   allowed for now, from the list `CompositionParityTests` holds (it may only shrink).
 
-85 verbs: 59 the same for both readers, 1 taught to one reader only, 25 not compared (taught by the mod's own text).
+86 verbs: 60 the same for both readers, 1 taught to one reader only, 25 not compared (taught by the mod's own text).
 
 | Verb | Interpreter | Interpreter, Compact | Prose | Prose, Compact | Prose taught in | Prose, nothing open | Mod text | Bridge | Parity |
 |---|---|---|---|---|---|---|---|---|---|
@@ -109,6 +109,7 @@ those rows are not compared.
 | `take_as_secret_lover` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `take_gold` | yes | yes | yes | yes | everything open; the player held captive; the player's captor scene; a hostile lord who holds the player's secret | yes |  | yes | same |
 | `take_into_service` | yes | yes | yes | yes | everything open |  |  | yes | same |
+| `tale_signal` | yes | yes | yes | yes | everything open; the player held captive; the player's captor scene; a hostile lord who holds the player's secret |  |  | yes | same |
 | `teach_skill` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `turn_nemesis` | yes | yes | yes | yes | the player's captor scene |  |  | yes | same |
 | `witness_leaves` | yes | yes | yes | yes | everything open; the player held captive; the player's captor scene; a hostile lord who holds the player's secret | yes |  | yes | same |

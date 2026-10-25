@@ -1788,6 +1788,33 @@ input[type="number"] { max-width: 160px; }
           ],
           "x-kind": "string",
           "description": "The beat the arc ends on, by id: once played, the conversation closes. Empty: the last beat."
+        },
+        "signals": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredArcSignal"
+          },
+          "x-kind": "object:AuthoredArcSignal[]",
+          "description": "Things the game watches for in the conversation; one seen sets a tale flag of the same name.",
+          "x-default-empty": true
+        },
+        "on_signal": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "x-kind": "map:string",
+          "description": "A signal that turns the arc at once, whatever beat plays: the signal's id, then a beat's id or \"close\".",
+          "x-default-empty": true
         }
       }
     },
@@ -2103,6 +2130,24 @@ input[type="number"] { max-width: 160px; }
           ],
           "x-closed-list": "ArcLeads"
         },
+        "listens": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "The signals this beat watches for (their ids).",
+          "x-default-empty": true
+        },
+        "next": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/AuthoredArcNext"
+          },
+          "x-kind": "object:AuthoredArcNext[]",
+          "description": "Where the beat leads when played out, read top to bottom; none holding (or none written): the next beat in the list.",
+          "x-default-empty": true
+        },
         "do": {
           "type": [
             "string",
@@ -2110,6 +2155,36 @@ input[type="number"] { max-width: 160px; }
           ],
           "x-kind": "string",
           "description": "The direction for this beat, in the voice of a canvas (\"Slow preliminaries: ...\")."
+        }
+      }
+    },
+    "AuthoredArcSignal": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Something the reader of the turn's actions reports when the reply shows it (TaleArc).",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "The signal's id, also the flag it sets (\"npc_climaxed\")."
+        },
+        "means": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "What the reply must show for it to count, in plain words (\"{giver} reaches her climax in this reply\")."
+        },
+        "net": {
+          "$ref": "#/$defs/AuthoredArcNet",
+          "x-kind": "object:AuthoredArcNet",
+          "description": "Optional: when not seen after some exchanges of listening, the game may decide it happens."
         }
       }
     },
@@ -2160,6 +2235,50 @@ input[type="number"] { max-width: 160px; }
           "description": "lose_time: read but not played yet (the scene ends, the night is lost).",
           "x-played": false,
           "default": 0
+        }
+      }
+    },
+    "AuthoredArcNext": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Where a beat leads when it is played out: the first whose flags hold.",
+      "properties": {
+        "if": {
+          "$ref": "#/$defs/flags",
+          "x-kind": "flags",
+          "description": "Flags that must hold (\"name\", or \"!name\" for not set); empty always holds.",
+          "x-default-empty": true
+        },
+        "to": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "A beat's id, or \"close\" to end the conversation."
+        }
+      }
+    },
+    "AuthoredArcNet": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "The roll that makes a signal happen when the conversation has not shown it (TaleArc).",
+      "properties": {
+        "after": {
+          "type": "integer",
+          "x-kind": "int",
+          "description": "Exchanges of listening before the game may decide it.",
+          "default": 0
+        },
+        "chance": {
+          "type": "number",
+          "x-kind": "number",
+          "description": "The chance, at the end of each listening beat from then on, that the game decides it happens (0 to 1).",
+          "default": 0.0
         }
       }
     },
@@ -3362,6 +3481,11 @@ input[type="number"] { max-width: 160px; }
       lines(s.facts);
       knowers(s.knowers);
       var scene = s.objective == null ? null : s.objective.scene;
+      var arcOf = s.objective == null ? null : s.objective.arc;
+      if (arcOf != null) {
+        arr(arcOf.signals).forEach(function (sig) { if (sig != null && !blank(sig.id)) set.add(String(sig.id).trim()); });
+        arr(arcOf.beats).forEach(function (b) { if (b != null) arr(b.next).forEach(function (n) { if (n != null) tests(n.if); }); });
+      }
       if (scene != null) {
         arr(scene.findings).forEach(function (f) { if (f != null) sets(f.sets); });
         arr(scene.encounters).forEach(function (e) { if (e != null) sets(e.sets); });
@@ -3410,6 +3534,41 @@ input[type="number"] { max-width: 160px; }
         blocking.push(at + ': "lead" ' + "'" + b.lead + "' is neither " + LISTS.ArcLeads.join(' nor ') + '.');
       if (blank(b['do'])) blocking.push(at + ' needs "do", the direction for the beat.');
     });
+    var signals = {};
+    arr(arc.signals).forEach(function (s, i) {
+      var at = where + ', arc signal ' + (i + 1);
+      if (s == null) { blocking.push(at + ' is empty.'); return; }
+      if (blank(s.id)) blocking.push(at + ' has no "id".');
+      else if (String(s.id).trim() === 'turned') blocking.push(at + ": 'turned' is the game's own signal (the player turning the scene); choose another id.");
+      else if (signals[String(s.id).trim()]) blocking.push(at + " repeats the id '" + s.id + "'.");
+      else signals[String(s.id).trim()] = true;
+      if (blank(s.means)) blocking.push(at + ' needs "means", what the reply must show.');
+      if (s.net != null && (Number(s.net.after || 0) < 0 || Number(s.net.chance || 0) < 0 || Number(s.net.chance || 0) > 1))
+        blocking.push(at + ': "net" needs "after" of 0 or more and "chance" between 0 and 1.');
+    });
+    var loops = false;
+    arc.beats.forEach(function (b, i) {
+      if (b == null) return;
+      var at = where + ', arc beat ' + (i + 1);
+      arr(b.listens).forEach(function (l) {
+        if (!signals[String(l == null ? '' : l).trim()]) blocking.push(at + " listens to '" + l + "', which is not one of the arc's signals.");
+      });
+      arr(b.next).forEach(function (n) {
+        var to = String(n == null || n.to == null ? '' : n.to).trim();
+        if (to === 'close') return;
+        var j = -1;
+        arc.beats.forEach(function (x, k) { if (j < 0 && x != null && String(x.id == null ? '' : x.id).trim() === to) j = k; });
+        if (j < 0) blocking.push(at + ': "next" goes to ' + "'" + (n == null || n.to == null ? '' : n.to) + "', which is neither one of its beats nor \"close\".");
+        else if (j <= i) loops = true;
+      });
+    });
+    entries(arc.on_signal).forEach(function (e) {
+      var key = e[0], to = String(e[1] == null ? '' : e[1]).trim();
+      if (!signals[String(key == null ? '' : key).trim()]) blocking.push(where + ': the arc\'s "on_signal" names ' + "'" + key + "', which is not one of its signals.");
+      if (to !== 'close' && !ids[to]) blocking.push(where + ': the arc\'s "on_signal" for ' + "'" + key + "' goes to '" + (e[1] == null ? '' : e[1]) + "', which is neither one of its beats nor \"close\".");
+      else if (to !== 'close') loops = true;
+    });
+    if (loops && !(Number(arc.max_exchanges || 0) > 0)) blocking.push(where + ': the arc can go back to a beat already played, so it needs "max_exchanges" to be sure it ends.');
     if (!blank(arc.final) && !ids[String(arc.final).trim()]) blocking.push(where + ': the arc\'s "final" ' + "'" + arc.final + "' is not one of its beats.");
     if (Number(arc.max_exchanges || 0) < 0) blocking.push(where + ': the arc\'s "max_exchanges" cannot be negative.');
   }
@@ -4340,8 +4499,11 @@ input[type="number"] { max-width: 160px; }
     AuthoredSaid: ['to', 'meaning'],
     AuthoredLine: ['text', 'if'],
     AuthoredObjective: ['type', 'hero', 'when', 'place', 'count', 'radius', 'nights', 'chance', 'days', 'scene', 'spawn', 'item', 'to', 'arc'],
-    AuthoredArc: ['beats', 'max_exchanges', 'final'],
-    AuthoredArcBeat: ['id', 'exchanges', 'lead', 'do'],
+    AuthoredArc: ['beats', 'max_exchanges', 'final', 'signals', 'on_signal'],
+    AuthoredArcBeat: ['id', 'exchanges', 'lead', 'listens', 'next', 'do'],
+    AuthoredArcSignal: ['id', 'means', 'net'],
+    AuthoredArcNet: ['after', 'chance'],
+    AuthoredArcNext: ['if', 'to'],
     AuthoredScene: ['title', 'opening', 'findings', 'hazards', 'encounters', 'closing', 'invite_prisoners'],
     AuthoredBeat: ['canvas', 'facts'],
     AuthoredFinding: ['id', 'required', 'text', 'sets', 'image'],
@@ -5378,13 +5540,47 @@ input[type="number"] { max-width: 160px; }
       numberField(k + '.max_exchanges', 'Most exchanges in all', 'AuthoredArc', 'max_exchanges', arc, {min: 0}),
       selectField(k + '.final', 'Ends on the beat', 'AuthoredArc', 'final', arc,
         (arc.beats || []).filter(function (b) { return b && !blank(b.id); }).map(function (b) { return {value: b.id, label: b.id}; }), {empty: 'the last'})));
+    var beatTargets = (arc.beats || []).filter(function (b) { return b && !blank(b.id); }).map(function (b) { return {value: b.id, label: b.id}; })
+      .concat([{value: 'close', label: 'close (the conversation ends)'}]);
     box.appendChild(cardList(k + '.beats', 'Beats', help('AuthoredArc', 'beats'), arc, 'beats', function (b, i, ck) {
       return {title: b.id || '(no id)', chip: (b.exchanges || 0) + ' exchanges, ' + (b.lead || 'npc') + ' leads', body: [h('div.grid',
         textField(ck + '/id', 'Id', 'AuthoredArcBeat', 'id', b, {mono: true}),
         numberField(ck + '/exchanges', 'Exchanges', 'AuthoredArcBeat', 'exchanges', b, {min: 1, max: 20}),
-        selectField(ck + '/lead', 'Who leads', 'AuthoredArcBeat', 'lead', b, list('ArcLeads'), {empty: 'the character'})),
-        textField(ck + '/do', 'What happens in this beat', 'AuthoredArcBeat', 'do', b, {multiline: true, wide: true})]};
+        selectField(ck + '/lead', 'Who leads', 'AuthoredArcBeat', 'lead', b, list('ArcLeads'), {empty: 'the character'}),
+        flagsField(ck + '/listens', 'Watches for the signals', 'AuthoredArcBeat', 'listens', b, {placeholder: 'npc_climaxed'})),
+        textField(ck + '/do', 'What happens in this beat', 'AuthoredArcBeat', 'do', b, {multiline: true, wide: true}),
+        cardList(ck + '/next', 'Then', help('AuthoredArcBeat', 'next'), b, 'next', function (n, j, nk) {
+          return {title: (n['if'] && n['if'].length ? 'if ' + flagsToText(n['if']) : 'otherwise') + ' \u2192 ' + (n.to || '?'), body: [h('div.grid',
+            flagsField(nk + '/if', 'If', 'AuthoredArcNext', 'if', n),
+            selectField(nk + '/to', 'Goes to', 'AuthoredArcNext', 'to', n, beatTargets, {empty: n.to ? undefined : '(choose)'}))]};
+        }, function () { return {to: 'close'}; }, 'Add a way on')]};
     }, function () { return {id: 'beat_' + ((arc.beats || []).length + 1), exchanges: 3, lead: 'npc', 'do': ''}; }, 'Add a beat'));
+    // Gabriel (25/10/2026): "melange des deux, signaux observes avec tirage en filet."
+    box.appendChild(cardList(k + '.signals', 'Signals', help('AuthoredArc', 'signals'), arc, 'signals', function (s, i, ck) {
+      var jump = h('select', {'aria-label': 'Turns the arc at once to'});
+      [{value: '', label: 'nothing at once'}].concat(beatTargets).forEach(function (o) { jump.appendChild(h('option', {value: o.value}, o.label)); });
+      jump.value = arc.on_signal && s.id && arc.on_signal[s.id] ? arc.on_signal[s.id] : '';
+      jump.addEventListener('change', function () {
+        var v = jump.value;
+        edit(k + '.on_signal', function () {
+          if (!s.id) return;
+          if (v) { if (!arc.on_signal || typeof arc.on_signal !== 'object') arc.on_signal = {}; arc.on_signal[s.id] = v; }
+          else if (arc.on_signal) { delete arc.on_signal[s.id]; if (!Object.keys(arc.on_signal).length) delete arc.on_signal; }
+        }, true);
+      });
+      var netOn = s.net != null && typeof s.net === 'object';
+      return {title: s.id || '(no id)', chip: netOn ? 'with a net' : 'observed', body: [h('div.grid',
+        textField(ck + '/id', 'Id (also the flag it sets)', 'AuthoredArcSignal', 'id', s, {mono: true}),
+        field(ck + '/on_signal', 'Turns the arc at once to', 'AuthoredArc', 'on_signal', jump)),
+        textField(ck + '/means', 'What the reply must show', 'AuthoredArcSignal', 'means', s, {multiline: true, wide: true}),
+        h('label.check', h('input', {type: 'checkbox', checked: netOn, on: {change: function (e) {
+          var yes = e.target.checked;
+          edit(ck + '/net', function () { if (yes) s.net = {after: 6, chance: 0.5}; else delete s.net; }, true);
+        }}}), 'If never seen, the game may decide it happens'),
+        netOn ? h('div.grid',
+          numberField(ck + '/net.after', 'After exchanges of listening', 'AuthoredArcNet', 'after', s.net, {min: 0}),
+          numberField(ck + '/net.chance', 'Chance at each listening beat\'s end', 'AuthoredArcNet', 'chance', s.net, {min: 0, max: 1})) : null]};
+    }, function () { return {id: 'signal_' + ((arc.signals || []).length + 1), means: ''}; }, 'Add a signal'));
     return box;
   }
 

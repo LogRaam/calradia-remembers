@@ -1051,6 +1051,9 @@ namespace CalradiaRemembers.Chat
                   ModLog.Info($"[PROSE-FALLBACK] prose model {why}; " +
                               $"completing this beat on {fallbackModel} in Integrated mode.");
 
+                  // The fallback is one call that reads its own tags (ActionReaderPolicy), so its prompt carries the turn's
+                  // action blocks (a tale's choices and its arc's signals) that the interpreter would have been taught.
+                  context.ProseReadsItsOwnActions = ActionReaderPolicy.ReaderFor(readingFacts, usedProseFallback: true) == ActionReader.SameCall;
                   NpcChatResult fallbackResult = await ProseFallbackComposer.RunIntegratedFallbackAsync(
                      profile, world, session, playerMessage, result.Response?.Dialogue,
                      context, behavior.LlmServices, fallbackModel, CancellationToken.None,
@@ -1879,9 +1882,19 @@ namespace CalradiaRemembers.Chat
             // A tale's arc paces this conversation (Gabriel, 25/10/2026: "ca pourrait etre trop court ou trop long"): each
             // reply of the character it names is one exchange, counted once its deeds are applied. Its last closes the chat
             // softly, so the player reads the farewell and leaves; the stage then completes on the close as before.
-            if (!isSceneOpener && speaker.IsMain && !IsCaptiveEncounter && !_conversationEnded
-                && Quests.AuthoredQuestBehavior.Instance?.ArcExchanged(speaker.Hero) == true)
-               EndTaleArcSoftly();
+            // A turn that is not counted drops the signals reported in it, so none leaks into the next exchange.
+            Quests.AuthoredQuestBehavior tales = Quests.AuthoredQuestBehavior.Instance;
+            if (speaker.IsMain && tales != null)
+            {
+               if (!isSceneOpener && !IsCaptiveEncounter && !_conversationEnded)
+               {
+                  if (tales.ArcExchanged(speaker.Hero)) EndTaleArcSoftly();
+               }
+               else
+               {
+                  tales.ArcSignalsDropped();
+               }
+            }
 
             // ── Round table: the player opened the floor to the group this turn ──
             // Takes precedence over the model-driven 15C auto-exchange: instead of hoping the model

@@ -77,6 +77,23 @@ namespace CalradiaRemembers.Tests
          arc.Beats.Last().Do.Should().Contain("secret");
       }
 
+      // STAKE: "si le NPC a eu un orgasme, le NPC a une conversation avec le joueur de 5 beats puis on ferme le stage vers
+      // dawn. Sinon, le NPC reprend le beat ou elle prend l'initiative", with "signaux observes avec tirage en filet": her
+      // climax is watched while she leads and while the player leads, the game may decide it after six exchanges of
+      // listening, and the loop is capped so the night always reaches dawn.
+      [Test]
+      public void GIVEN_the_chamber_WHEN_its_arc_is_read_THEN_the_talk_before_dawn_follows_her_climax_and_she_leads_again_otherwise()
+      {
+         AuthoredArc arc = Tale().Stages.Single(s => s.Id == "chamber").Objective.Arc;
+         AuthoredArcBeat yields = arc.Beats.Single(b => b.Id == "yields");
+
+         arc.Signals.Single().Id.Should().Be("npc_climaxed");
+         arc.Signals.Single().Net.Should().NotBeNull();
+         arc.Beats.Where(b => b.Listens.Contains("npc_climaxed")).Select(b => b.Id).Should().Equal("she_leads", "yields");
+         yields.Next.Select(n => (string.Join(",", n.If), n.To)).Should().Equal(("npc_climaxed", "after"), ("", "she_leads"));
+         arc.MaxExchanges.Should().BeGreaterThan(0);
+      }
+
       // STAKE: ten videos at least, a new one each playing, all in the tale's own folder names.
       [Test]
       public void GIVEN_the_chamber_WHEN_its_pictures_are_listed_THEN_it_holds_a_pool_of_ten_videos()

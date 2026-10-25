@@ -2043,7 +2043,7 @@ namespace CalradiaRemembers.Quests
       public string InterpreterChoicesFor(Hero hero)
       {
          if (hero == null || _run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return null;
-         try { return AuthoredQuestPrompt.ChoicesForInterpreter(_run, q, hero.StringId); }
+         try { return AuthoredQuestPrompt.ForActionReader(_run, q, hero.StringId); }
          catch (Exception ex)
          {
             ModLog.Error($"[TALE] interpreter choices failed: {ex.GetType().Name}: {ex.Message}");
@@ -2056,13 +2056,14 @@ namespace CalradiaRemembers.Quests
       ///   One exchange of the conversation with this hero was played (their reply is in and its deeds applied): the tale's
       ///   arc counts it (TaleArc, Gabriel 25/10/2026). True when it was the arc's last: the conversation is to close now.
       /// </summary>
-      internal bool ArcExchanged(Hero hero)
+      internal bool ArcExchanged(Hero hero, Func<double> roll = null)
       {
          if (hero == null || _run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return false;
          try
          {
             string before = _run.ArcBeatId;
-            bool closed = TaleArc.Exchanged(_run, q, hero.StringId);
+            bool closed = TaleArc.Exchanged(_run, q, hero.StringId, roll ?? (() => MBRandom.RandomFloat));
+            if (_run.ArcDeclared != null) ModLog.Info($"[TALE] '{q.Id}': the arc's net decided '{_run.ArcDeclared}'; the next reply narrates it.");
             if (closed)
                ModLog.Info($"[TALE] '{q.Id}': the arc played its final beat '{_run.ArcBeatId}' after {_run.ArcExchanges} exchange(s); the conversation closes.");
             else if (_run.ArcBeatId != before)
@@ -2076,6 +2077,24 @@ namespace CalradiaRemembers.Quests
 
             return false;
          }
+      }
+
+      /// <summary>
+      ///   The reader of the turn's actions reported a signal of the tale's arc (the tale_signal verb) in a conversation with
+      ///   this character. Taken only while the arc plays and the signal is one it watches for now (TaleArc.SignalSeen).
+      /// </summary>
+      internal void ArcSignalsDropped() => _run?.ArcSignalsNow?.Clear();
+
+      /// <summary>The reader of the turn's actions reported a signal of the arc; see TaleArc.SignalSeen.</summary>
+      internal bool TakeSignal(Hero hero, string signalId)
+      {
+         if (hero == null || _run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return false;
+         bool taken = TaleArc.SignalSeen(_run, q, hero.StringId, signalId);
+         ModLog.Info(taken
+            ? $"[TALE] '{q.Id}': the arc saw the signal '{signalId}' with {hero.Name}."
+            : $"[TALE] '{q.Id}': signal '{signalId}' with {hero.Name} refused: not one the arc watches for now.");
+
+         return taken;
       }
 
       /// <summary>
