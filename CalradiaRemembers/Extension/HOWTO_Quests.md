@@ -274,7 +274,8 @@ played in Vlandia. Put one file per realm in the tale's folder; a realm with no 
 
 **A new picture each time** (since 2.7.21): `"image_pool": ["night_1.crvid", "night_2.crvid", "night_3.crvid"]` on a
 stage gives several pictures or videos. Each time the tale is played, one the player has not seen yet is chosen, and it
-holds for the whole tale; once every one was seen, they start over. It stands in for `"image"`. `"image_pool_pick":
+holds for the whole tale; once every one was seen, they start over. It stands in for `"image"`: give a stage one or the
+other (with both, the pool's picture is shown, never the image, and the checker says so). `"image_pool_pick":
 "random"` picks any of them each time instead, a repeat included (`"unseen"`, the default, is the round above). For a tale that comes
 back (`"unique": false` with a `repeat_cooldown_days`).
 

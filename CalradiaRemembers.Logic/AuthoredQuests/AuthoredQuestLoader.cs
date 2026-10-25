@@ -180,6 +180,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
             if (!ids.Add(s.Id)) blocking.Add($"two stages are called '{s.Id}'.");
             if (!string.IsNullOrWhiteSpace(s.ImagePoolPick) && !ImagePoolPicks.Contains(s.ImagePoolPick.Trim().ToLowerInvariant()))
                blocking.Add($"stage '{s.Id}': image_pool_pick '{s.ImagePoolPick}' is neither {string.Join(" nor ", ImagePoolPicks)}.");
+            // Gabriel (25/10/2026): "seul un ou l'autre est possible? ... il faudrait alors montrer clairement que c'est un
+            // ou l'autre". The pool wins; the author is told the image is never shown.
+            if (!string.IsNullOrWhiteSpace(s.Image) && (s.ImagePool ?? new List<string>()).Any(p => !string.IsNullOrWhiteSpace(p)))
+               cosmetic.Add($"stage '{s.Id}' has both an image and an image_pool: a picture of the pool is shown, never the image; keep one.");
          }
 
          Dictionary<string, AuthoredOutcome> endings = q.Endings ?? new Dictionary<string, AuthoredOutcome>();

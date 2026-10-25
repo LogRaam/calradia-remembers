@@ -235,6 +235,21 @@ namespace CalradiaRemembers.Tests
          TaleImagePool.Pick(pool, shown, 0.0, atRandom: false).Should().Be("night_3.crvid");
       }
 
+      // STAKE (Gabriel, 25/10/2026: "il faudrait alors montrer clairement que c'est un ou l'autre"): an image beside a pool
+      // is never shown; the author is told, and the pool's picture is the one shown.
+      [Test]
+      public void GIVEN_a_stage_with_an_image_and_a_pool_WHEN_read_and_shown_THEN_the_author_is_told_and_the_pool_wins()
+      {
+         string both = Night.Replace("\"image_pool\": [", "\"image\": \"still.jpg\", \"image_pool\": [");
+         AuthoredQuestLoadResult r = AuthoredTales.Read(both);
+         AuthoredQuest q = r.Quests.Single();
+         AuthoredQuestRun run = AuthoredTales.At(q, "chamber");
+         run.ImagePicks["chamber"] = "night_1.crvid";
+
+         r.Problems.Should().Contain(p => p.Contains("both an image and an image_pool"));
+         AuthoredTaleImages.ImageFor(run, q).Should().Be("night_1.crvid");
+      }
+
       // STAKE: a misspelt way of picking must not load as the default the author did not choose.
       [Test]
       public void GIVEN_a_misspelt_pool_pick_WHEN_read_THEN_the_loader_refuses_it()

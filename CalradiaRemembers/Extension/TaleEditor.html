@@ -2910,6 +2910,8 @@ input[type="number"] { max-width: 160px; }
       else ids.add(s.id);
       if (!blank(s.image_pool_pick) && !has(LISTS.ImagePoolPicks, String(s.image_pool_pick).trim().toLowerCase()))
         blocking.push("stage '" + s.id + "': image_pool_pick '" + s.image_pool_pick + "' is neither " + LISTS.ImagePoolPicks.join(' nor ') + '.');
+      if (!blank(s.image) && [].concat(s.image_pool == null ? [] : s.image_pool).some(function (p) { return !blank(p); }))
+        cosmetic.push("stage '" + s.id + "' has both an image and an image_pool: a picture of the pool is shown, never the image; keep one.");
     });
 
     var endings = q.endings == null ? new Map() : q.endings;
@@ -5378,12 +5380,17 @@ input[type="number"] { max-width: 160px; }
     ed.appendChild(itemProblems(key));
 
     var idInput = textInput(key + '/id', s.id, function (v) { s.id = v; }, {mono: true});
-    ed.appendChild(section('Basics', null, h('div.grid',
+    // Gabriel (25/10/2026): an image OR a pool, said plainly; the pool wins when both are filled.
+    var pooled = [].concat(s.image_pool == null ? [] : s.image_pool).some(function (p) { return !blank(p); });
+    ed.appendChild(section('Basics', null, [h('div.grid',
       field(key + '/id', 'Id', 'AuthoredStage', 'id', idInput, {help: help('AuthoredStage', 'id') + ' Renaming it updates every path that leads here.'}),
       textField(key + '/journal', 'Journal', 'AuthoredStage', 'journal', s, {wide: true}),
       stageImageField(key, s),
-      flagsField(key + '/image_pool', 'Image pool (one per playing)', 'AuthoredStage', 'image_pool', s, {placeholder: 'night_1.crvid, night_2.crvid', wide: true}),
-      selectField(key + '/image_pool_pick', 'The pool picks', 'AuthoredStage', 'image_pool_pick', s, list('ImagePoolPicks'), {empty: 'one not seen yet'}))));
+      flagsField(key + '/image_pool', 'OR an image pool (one per playing)', 'AuthoredStage', 'image_pool', s, {placeholder: 'night_1.crvid, night_2.crvid', wide: true}),
+      selectField(key + '/image_pool_pick', 'The pool picks', 'AuthoredStage', 'image_pool_pick', s, list('ImagePoolPicks'), {empty: 'one not seen yet'})),
+      h('p.help', pooled
+        ? (blank(s.image) ? 'This stage shows a picture of its pool.' : 'Both are filled: a picture of the pool is shown and the image above never is. Keep one.')
+        : 'One image, or a pool of several (one chosen each time the tale is played): not both.')]));
 
     var hasChoices = Array.isArray(s.choices) && s.choices.length > 0;
     var own = s.objective !== undefined && s.objective !== null;
