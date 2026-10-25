@@ -1633,7 +1633,8 @@ namespace CalradiaRemembers.Quests
 
          string key = q.Id + "/" + stage.Id;
          List<string> shown = _poolShown.TryGetValue(key, out List<string> s) ? s : new List<string>();
-         string picked = TaleImagePool.Pick(stage.ImagePool, shown, MBRandom.RandomFloat);
+         bool atRandom = string.Equals(stage.ImagePoolPick?.Trim(), "random", StringComparison.OrdinalIgnoreCase);
+         string picked = TaleImagePool.Pick(stage.ImagePool, shown, MBRandom.RandomFloat, atRandom);
          if (picked == null) return;
 
          _run.ImagePicks[stage.Id] = picked;

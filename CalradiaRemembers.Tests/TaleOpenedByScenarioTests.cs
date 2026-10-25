@@ -224,6 +224,25 @@ namespace CalradiaRemembers.Tests
             TaleImagePool.Pick(pool, new[] {"night_1.crvid", "night_3.crvid"}, roll).Should().Be("night_2.crvid");
       }
 
+      // STAKE (Gabriel, 25/10/2026: "choisir dans le pool au hasard"): a random pool picks among all, the ones shown included.
+      [Test]
+      public void GIVEN_a_pool_picked_at_random_WHEN_one_is_picked_THEN_a_shown_one_may_come_again()
+      {
+         string[] pool = {"night_1.crvid", "night_2.crvid", "night_3.crvid"};
+         var shown = new[] {"night_1.crvid", "night_2.crvid"};
+
+         TaleImagePool.Pick(pool, shown, 0.0, atRandom: true).Should().Be("night_1.crvid");
+         TaleImagePool.Pick(pool, shown, 0.0, atRandom: false).Should().Be("night_3.crvid");
+      }
+
+      // STAKE: a misspelt way of picking must not load as the default the author did not choose.
+      [Test]
+      public void GIVEN_a_misspelt_pool_pick_WHEN_read_THEN_the_loader_refuses_it()
+      {
+         AuthoredTales.Read(Night.Replace("\"image_pool\": [", "\"image_pool_pick\": \"shuffle\", \"image_pool\": [")).Problems
+                      .Should().Contain(p => p.Contains("image_pool_pick 'shuffle'"));
+      }
+
       // STAKE: once every video was seen, the tale still shows one, and a new round begins from it.
       [Test]
       public void GIVEN_every_picture_shown_WHEN_one_is_picked_THEN_a_new_round_begins()

@@ -60,6 +60,10 @@
       "regard_rose",
       "regard_fell"
     ],
+    "ImagePoolPicks": [
+      "unseen",
+      "random"
+    ],
     "TalkMoments": [
       "opened",
       "closed"
@@ -418,6 +422,19 @@
           "x-kind": "flags",
           "description": "Several pictures or videos for this stage: each time the tale is played, one the player has not seen yet is chosen (all seen, they start over), and it holds for the whole tale. It stands in for \"image\".",
           "x-default-empty": true
+        },
+        "image_pool_pick": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "How the image_pool picks: \"unseen\" (the default) one not seen yet, starting over once all were; \"random\" any of them each time, a repeat included.",
+          "enum": [
+            "unseen",
+            "random"
+          ],
+          "x-closed-list": "ImagePoolPicks"
         },
         "objective": {
           "$ref": "#/$defs/AuthoredObjective",

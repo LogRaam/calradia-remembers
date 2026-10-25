@@ -272,6 +272,10 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [JsonConverter(typeof(OneOrManyConverter))]
       public List<string> ImagePool { get; set; } = new();
 
+      /// <summary>Gabriel (25/10/2026): "une option qui indique de choisir dans le pool au hasard".</summary>
+      [QuestField("How the image_pool picks: \"unseen\" (the default) one not seen yet, starting over once all were; \"random\" any of them each time, a repeat included.", ClosedList = nameof(AuthoredQuestLoader.ImagePoolPicks))]
+      [JsonProperty("image_pool_pick")] public string ImagePoolPick { get; set; }
+
       [QuestField("What the game checks to complete the stage. A stage with choices may have none.")]
       [JsonProperty("objective")] public AuthoredObjective Objective { get; set; }
 

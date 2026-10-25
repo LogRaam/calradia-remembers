@@ -1,7 +1,7 @@
 {
   "id": "rhagaea_night",
   "title": "The Empress's Summons",
-  "author": "Gabriel Mailhot",
+  "author": "LogRaam",
   "unique": false,
   "repeat_cooldown_days": 20,
   "requires": {
@@ -38,7 +38,7 @@
         "scene": {
           "title": "The Cell Door",
           "opening": {
-            "canvas": "Deep in the night, footsteps stop outside your cell. Keys turn and the bolt slides back. Torchlight spills over the straw: a lady of the Empress's household stands in the doorway, the jailer with his ring of keys at her shoulder, two guards of the household behind them in the corridor. She looks at you a long moment before she speaks, low and even: the Empress asks to see you. Now.",
+            "canvas": "Deep in the night, footsteps stop outside your cell. Keys turn and the bolt slides back. Torchlight spills over the straw: a lady of the Empress's household stands in the doorway, the jailer with his ring of keys at his belt, two guards of the household behind them in the corridor. She looks at you a long moment before she speaks, low and even: the Empress asks to see you. Now.",
             "facts": [
               "The lady speaks for the Empress {giver}; the jailer and the guards obey her.",
               "The Empress asks for the prisoner, alone, tonight; the lady will not say why, only that it is not a summons to be judged.",
@@ -162,8 +162,8 @@
     },
     "refused": {
       "regard": -2,
-      "journal": "You did not follow the lady. The bolt slid shut again, and the night went on without you.",
-      "memory": "One night I sent for my prisoner {player}, and they would not come. I had not thought to be refused."
+      "memory": "One night I sent for my prisoner {player}, and they would not come. I had not thought to be refused.",
+      "journal": "You did not follow the lady. The bolt slid shut again, and the night went on without you."
     }
   },
   "failure": {

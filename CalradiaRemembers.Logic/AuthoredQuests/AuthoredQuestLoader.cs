@@ -54,6 +54,9 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// </summary>
       public static readonly IReadOnlyList<string> BuiltInFlags = new[] {TaleRegardFlags.Rose, TaleRegardFlags.Fell};
 
+      /// <summary>How a stage's image_pool picks: one not seen yet (the default), or any at random.</summary>
+      public static readonly IReadOnlyList<string> ImagePoolPicks = new[] {"unseen", "random"};
+
       /// <summary>When a talk_to completes its stage: as the conversation opens (the default), or as it ends.</summary>
       public static readonly IReadOnlyList<string> TalkMoments = new[] {"opened", "closed"};
 
@@ -175,6 +178,8 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          {
             if (string.IsNullOrWhiteSpace(s?.Id)) { blocking.Add("a stage has no id."); continue; }
             if (!ids.Add(s.Id)) blocking.Add($"two stages are called '{s.Id}'.");
+            if (!string.IsNullOrWhiteSpace(s.ImagePoolPick) && !ImagePoolPicks.Contains(s.ImagePoolPick.Trim().ToLowerInvariant()))
+               blocking.Add($"stage '{s.Id}': image_pool_pick '{s.ImagePoolPick}' is neither {string.Join(" nor ", ImagePoolPicks)}.");
          }
 
          Dictionary<string, AuthoredOutcome> endings = q.Endings ?? new Dictionary<string, AuthoredOutcome>();

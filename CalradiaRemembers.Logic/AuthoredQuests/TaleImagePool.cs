@@ -20,8 +20,16 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       ///   One of <paramref name="pool" /> not in <paramref name="shownBefore" /> (all of them once every one was shown), at
       ///   <paramref name="roll" /> (0 to 1) among those; null for an empty pool.
       /// </summary>
-      public static string Pick(IReadOnlyList<string> pool, IEnumerable<string> shownBefore, double roll)
+      public static string Pick(IReadOnlyList<string> pool, IEnumerable<string> shownBefore, double roll) => Pick(pool, shownBefore, roll, atRandom: false);
+
+      /// <summary>
+      ///   As <see cref="Pick(IReadOnlyList{string}, IEnumerable{string}, double)" />; <paramref name="atRandom" /> (the stage's
+      ///   image_pool_pick "random", Gabriel 25/10/2026) picks among all of them, whatever was shown.
+      /// </summary>
+      public static string Pick(IReadOnlyList<string> pool, IEnumerable<string> shownBefore, double roll, bool atRandom)
       {
+         if (atRandom) shownBefore = null;
+
          List<string> all = (pool ?? Array.Empty<string>()).Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
          if (all.Count == 0) return null;
 

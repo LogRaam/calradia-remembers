@@ -469,6 +469,10 @@ input[type="number"] { max-width: 160px; }
       "regard_rose",
       "regard_fell"
     ],
+    "ImagePoolPicks": [
+      "unseen",
+      "random"
+    ],
     "TalkMoments": [
       "opened",
       "closed"
@@ -827,6 +831,19 @@ input[type="number"] { max-width: 160px; }
           "x-kind": "flags",
           "description": "Several pictures or videos for this stage: each time the tale is played, one the player has not seen yet is chosen (all seen, they start over), and it holds for the whole tale. It stands in for \"image\".",
           "x-default-empty": true
+        },
+        "image_pool_pick": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "x-kind": "string",
+          "description": "How the image_pool picks: \"unseen\" (the default) one not seen yet, starting over once all were; \"random\" any of them each time, a repeat included.",
+          "enum": [
+            "unseen",
+            "random"
+          ],
+          "x-closed-list": "ImagePoolPicks"
         },
         "objective": {
           "$ref": "#/$defs/AuthoredObjective",
@@ -2891,6 +2908,8 @@ input[type="number"] { max-width: 160px; }
       if (s == null || blank(s.id)) { blocking.push('a stage has no id.'); return; }
       if (ids.has(s.id)) blocking.push("two stages are called '" + s.id + "'.");
       else ids.add(s.id);
+      if (!blank(s.image_pool_pick) && !has(LISTS.ImagePoolPicks, String(s.image_pool_pick).trim().toLowerCase()))
+        blocking.push("stage '" + s.id + "': image_pool_pick '" + s.image_pool_pick + "' is neither " + LISTS.ImagePoolPicks.join(' nor ') + '.');
     });
 
     var endings = q.endings == null ? new Map() : q.endings;
@@ -4172,7 +4191,7 @@ input[type="number"] { max-width: 160px; }
     PlaceRequirement: ['type', 'near', 'culture'],
     RivalRequirement: ['role', 'same_realm_as'],
     PlayerRequirement: ['min_clan_tier', 'gender'],
-    AuthoredStage: ['id', 'journal', 'image', 'image_pool', 'objective', 'on_complete', 'on_enter', 'canvas', 'facts', 'knowers', 'choices'],
+    AuthoredStage: ['id', 'journal', 'image', 'image_pool', 'image_pool_pick', 'objective', 'on_complete', 'on_enter', 'canvas', 'facts', 'knowers', 'choices'],
     AuthoredOnComplete: ['next'],
     AuthoredChoice: ['id', 'label', 'journal', 'next', 'if', 'sets', 'default', 'objective', 'said', 'canvas', 'facts', 'knowers'],
     AuthoredSaid: ['to', 'meaning'],
@@ -5363,7 +5382,8 @@ input[type="number"] { max-width: 160px; }
       field(key + '/id', 'Id', 'AuthoredStage', 'id', idInput, {help: help('AuthoredStage', 'id') + ' Renaming it updates every path that leads here.'}),
       textField(key + '/journal', 'Journal', 'AuthoredStage', 'journal', s, {wide: true}),
       stageImageField(key, s),
-      flagsField(key + '/image_pool', 'Image pool (one per playing)', 'AuthoredStage', 'image_pool', s, {placeholder: 'night_1.crvid, night_2.crvid', wide: true}))));
+      flagsField(key + '/image_pool', 'Image pool (one per playing)', 'AuthoredStage', 'image_pool', s, {placeholder: 'night_1.crvid, night_2.crvid', wide: true}),
+      selectField(key + '/image_pool_pick', 'The pool picks', 'AuthoredStage', 'image_pool_pick', s, list('ImagePoolPicks'), {empty: 'one not seen yet'}))));
 
     var hasChoices = Array.isArray(s.choices) && s.choices.length > 0;
     var own = s.objective !== undefined && s.objective !== null;
