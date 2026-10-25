@@ -18,7 +18,8 @@ ROOT = "CalradiaRemembers"
 SKIP_DIRS = {"ChatPortraits"}
 # The Adult Tales are a mod of their own (Extras/CalradiaRemembersAdultTales, Gabriel 25/10/2026: "sans risquer de
 # l'uploader dans CR"): a copy left in the deployed module (a Custom test, an old deploy) is never zipped, by name.
-HELD_BACK_NAMES = ("rhagaea_night",)
+HELD_BACK_NAMES = ("rhagaea_night", "crit_wife_", "wife_aserai_oasis", "wife_battania_glen", "wife_empire_stream",
+                   "wife_khuzait_falls", "wife_nord_fjord", "wife_sturgia_falls", "wife_vlandia_pond")
 # The player's own prompt profiles and the record of the MCM pick (the Prompt Composer, 2.7.10) live here when no Custom
 # path is set: the developer's own must never ship. Skipped by PATH, since CR's stock texts will ship under
 # ModuleData/Prompts.

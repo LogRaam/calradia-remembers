@@ -9,7 +9,7 @@ import json, os, shutil
 
 ROOT = r"V:\OneDrive\Programmation\GIT Workspace\Bannerlord LLM project"
 SRC = ROOT + r"\Image tests 2026-10-10"
-DST = ROOT + r"\Calradia Remembers\Extras\CalradiaRemembersIntimateTales\ModuleData\cr_quests"
+DST = ROOT + r"\Calradia Remembers\Extras\CalradiaRemembersAdultTales\ModuleData\cr_quests"
 
 STATE = {
  "shoulder": ("Her shoulder", "the player's attention turns to her shoulder or neck, or her wet dress slips from it"),

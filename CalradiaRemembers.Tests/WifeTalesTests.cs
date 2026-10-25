@@ -1,5 +1,5 @@
 // Code written by Gabriel Mailhot, 11/10/2026.
-// The seven wife tales of the Intimate Tales module, one per people (Gabriel, 11/10/2026: "Complete-les tous et demain je
+// The seven wife tales of the Adult Tales module, one per people (Gabriel, 11/10/2026: "Complete-les tous et demain je
 // pourrai verifier tout ca et tester"). Each follows the shape of Beneath the Falls: the player finds his wife bathing
 // (sometimes watching a while, she knowing it), she joins him, he admires her in states he may pass between and back,
 // she invites him (sometimes through further moments, sometimes an afterwards), and the ending leaves her a memory,
@@ -23,7 +23,7 @@ namespace CalradiaRemembers.Tests
    [TestFixture]
    public sealed class WifeTalesTests
    {
-      private static string Tales => Path.Combine(SourceTree.ModRepo!, "Extras", "CalradiaRemembersIntimateTales", "ModuleData", "cr_quests");
+      private static string Tales => Path.Combine(SourceTree.ModRepo!, "Extras", "CalradiaRemembersAdultTales", "ModuleData", "cr_quests");
 
       private static readonly (string Folder, string Culture)[] Peoples = {
          ("wife_khuzait_falls", "khuzait"), ("wife_aserai_oasis", "aserai"), ("wife_battania_glen", "battania"), ("wife_empire_stream", "empire"),

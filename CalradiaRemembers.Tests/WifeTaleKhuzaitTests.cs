@@ -1,5 +1,5 @@
 // Code written by Gabriel Mailhot, 11/10/2026.
-// "Beneath the Falls", the Khuzait wife's tale, as it ships in the Intimate Tales module (Gabriel, 10/10/2026: the
+// "Beneath the Falls", the Khuzait wife's tale, as it ships in the Adult Tales module (Gabriel, 10/10/2026: the
 // player finds his wife bathing, she joins him, he admires her in states he may pass between and back, she lies down
 // and invites him; the ending strengthens their bond and may bring a child). If these tests fail, the file no longer
 // loads, a state leads nowhere or cannot be left, a picture is missing, or the ending forgets her memory or the child.
@@ -20,7 +20,7 @@ namespace CalradiaRemembers.Tests
    [TestFixture]
    public sealed class WifeTaleKhuzaitTests
    {
-      private static string Folder => Path.Combine(SourceTree.ModRepo!, "Extras", "CalradiaRemembersIntimateTales", "ModuleData", "cr_quests", "wife_khuzait_falls");
+      private static string Folder => Path.Combine(SourceTree.ModRepo!, "Extras", "CalradiaRemembersAdultTales", "ModuleData", "cr_quests", "wife_khuzait_falls");
 
       private static AuthoredQuest Tale() => AuthoredTales.Load(File.ReadAllText(Path.Combine(Folder, "wife_khuzait_falls.json")));
 

@@ -8126,7 +8126,7 @@ _Documents the memory a new spouse keeps of the wedding. zhenja1, 25/09/2026: af
 
 ### WifeTaleKhuzaitTests.cs
 
-_"Beneath the Falls", the Khuzait wife's tale, as it ships in the Intimate Tales module (Gabriel, 10/10/2026: the player finds his wife bathing, she joins him, he admires her in states he may pass between and back, she lies down and invites him; the ending strengthens their bond and may bring a child). If these tests fail, the file no longer loads, a state leads nowhere or cannot be left, a picture is missing, or the ending forgets her memory or the child._
+_"Beneath the Falls", the Khuzait wife's tale, as it ships in the Adult Tales module (Gabriel, 10/10/2026: the player finds his wife bathing, she joins him, he admires her in states he may pass between and back, she lies down and invites him; the ending strengthens their bond and may bring a child). If these tests fail, the file no longer loads, a state leads nowhere or cannot be left, a picture is missing, or the ending forgets her memory or the child._
 
 - GIVEN the shipped tale, WHEN read, THEN it asks for his khuzait wife with him on the map
 - GIVEN the shipped tale, WHEN its pictures are checked, THEN each stage after the invitation has one and it is there
@@ -8136,7 +8136,7 @@ _"Beneath the Falls", the Khuzait wife's tale, as it ships in the Intimate Tales
 
 ### WifeTalesTests.cs
 
-_The seven wife tales of the Intimate Tales module, one per people (Gabriel, 11/10/2026: "Complete-les tous et demain je pourrai verifier tout ca et tester"). Each follows the shape of Beneath the Falls: the player finds his wife bathing (sometimes watching a while, she knowing it), she joins him, he admires her in states he may pass between and back, she invites him (sometimes through further moments, sometimes an afterwards), and the ending leaves her a memory, regard and a chance of a child. If these tests fail, a tale no longer loads, asks for the wrong wife, misses a picture, strands the player in a state, or cannot be walked to its ending with her speaking from each step._
+_The seven wife tales of the Adult Tales module, one per people (Gabriel, 11/10/2026: "Complete-les tous et demain je pourrai verifier tout ca et tester"). Each follows the shape of Beneath the Falls: the player finds his wife bathing (sometimes watching a while, she knowing it), she joins him, he admires her in states he may pass between and back, she invites him (sometimes through further moments, sometimes an afterwards), and the ending leaves her a memory, regard and a chance of a child. If these tests fail, a tale no longer loads, asks for the wrong wife, misses a picture, strands the player in a state, or cannot be walked to its ending with her speaking from each step._
 
 - GIVEN the seven tales, WHEN loaded together, THEN all seven load without a problem
 - GIVEN a wife tale, WHEN read, THEN it asks for his wife of that people on the map
