@@ -16,6 +16,9 @@ ROOT = "CalradiaRemembers"
 
 # ChatPortraits is excluded deliberately: the mod recreates that folder itself (2.5.3 onward).
 SKIP_DIRS = {"ChatPortraits"}
+# The Adult Tales are a mod of their own (Extras/CalradiaRemembersAdultTales, Gabriel 25/10/2026: "sans risquer de
+# l'uploader dans CR"): a copy left in the deployed module (a Custom test, an old deploy) is never zipped, by name.
+HELD_BACK_NAMES = ("rhagaea_night",)
 # The player's own prompt profiles and the record of the MCM pick (the Prompt Composer, 2.7.10) live here when no Custom
 # path is set: the developer's own must never ship. Skipped by PATH, since CR's stock texts will ship under
 # ModuleData/Prompts.
@@ -35,13 +38,14 @@ count = 0
 with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED) as z:
     for dirpath, dirnames, filenames in os.walk(SRC):
         rel_dir = os.path.relpath(dirpath, SRC)
-        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and os.path.normpath(os.path.join(rel_dir, d)) not in SKIP_PATHS]
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and os.path.normpath(os.path.join(rel_dir, d)) not in SKIP_PATHS
+                       and not any(h in d for h in HELD_BACK_NAMES)]
         arc_dir = ROOT if rel_dir == "." else ROOT + "/" + rel_dir.replace("\\", "/")
         if rel_dir != ".":
             z.writestr(arc_dir + "/", "")
             count += 1
         for f in sorted(filenames):
-            if os.path.normpath(os.path.join(rel_dir, f)) in SKIP_FILES:
+            if os.path.normpath(os.path.join(rel_dir, f)) in SKIP_FILES or any(h in f for h in HELD_BACK_NAMES):
                 continue
             z.write(os.path.join(dirpath, f), arc_dir + "/" + f)
             count += 1

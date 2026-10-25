@@ -3,9 +3,9 @@
 // a lady of her household fetches the player to her bedchamber; open to both sexes, no child (she is in her forties), the
 // player stays a prisoner (freeing them "c'est trop visible"), her regard above 0 to send for them; the night is judged by
 // her regard ("ca s'est bien passe si Rhagaea a gagne plus de Regards qu'elle en a perdu"), and the memory stays either
-// way, warm, neutral or bitter; not unique, ten videos and more, a new one each time. Held in Extras/RhagaeaNight until
-// the videos are made. If these fail, the tale no longer loads, sends for a prisoner she despises, lets the model free or
-// impregnate, leaves a warm memory after a bad night, repeats a video, or tells the realm the secret.
+// way, warm, neutral or bitter; not unique, ten videos and more, a new one each time. It lives in its own mod,
+// Extras/CalradiaRemembersAdultTales (25/10/2026), never inside CR. If these fail, the tale no longer loads, sends for
+// a prisoner she despises, lets the model free or impregnate, leaves a warm memory after a bad night, repeats a video, or tells the realm the secret.
 
 #region
 
@@ -25,8 +25,8 @@ namespace CalradiaRemembers.Tests
    [TestFixture]
    public sealed class RhagaeaNightTaleTests
    {
-      private static string Folder => Path.Combine(SourceTree.ModRepo!, "Extras", "RhagaeaNight", "ModuleData", "Quests", "rhagaea_night");
-      private static string Pack => Path.Combine(SourceTree.ModRepo!, "Extras", "RhagaeaNight", "ModuleData", "scenarios", "rhagaea_night.json");
+      private static string Folder => Path.Combine(SourceTree.ModRepo!, "Extras", "CalradiaRemembersAdultTales", "ModuleData", "cr_quests", "rhagaea_night");
+      private static string Pack => Path.Combine(SourceTree.ModRepo!, "Extras", "CalradiaRemembersAdultTales", "ModuleData", "cr_scenarios", "rhagaea_night.json");
 
       private static AuthoredQuest Tale() => AuthoredTales.Load(File.ReadAllText(Path.Combine(Folder, "rhagaea_night.json")));
 
@@ -147,6 +147,21 @@ namespace CalradiaRemembers.Tests
          string.IsNullOrEmpty((string) rule["message"]).Should().BeTrue();
          ScenarioRule.Parse((string) rule["id"], (string) rule["trigger"], rule["guards"]!.ToObject<string[]>(), rule["consequences"]!.ToObject<string[]>(), null)
                      .Should().NotBeNull();
+      }
+
+      // STAKE (Gabriel, 25/10/2026: "je pourrai l'installer sur mon poste pour le tester avec le jeu sans risquer de
+      // l'uploader dans CR"): the pack is a module of its own the launcher lists, loaded after Calradia Remembers, and its
+      // tale and rule sit where CR reads another mod's.
+      [Test]
+      public void GIVEN_the_adult_tales_module_WHEN_read_THEN_it_is_its_own_module_depending_on_CR_with_the_tale_where_CR_reads_it()
+      {
+         string root = Path.Combine(SourceTree.ModRepo!, "Extras", "CalradiaRemembersAdultTales");
+         string xml = File.ReadAllText(Path.Combine(root, "SubModule.xml"));
+
+         xml.Should().Contain("<Id value=\"CalradiaRemembersAdultTales\" />");
+         xml.Should().Contain("<DependedModule Id=\"CalradiaRemembers\"");
+         Path.GetFileName(Path.GetDirectoryName(Folder)).Should().Be(AuthoredQuestFolders.ModuleTalesFolder);
+         File.Exists(Pack).Should().BeTrue();
       }
    }
 }
