@@ -32,6 +32,68 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## RULED 2026-10-25 (Gabriel), BUILDING FROM STEP 1: one path for actions, one junction (who reads them)
+
+**The ruling.** Gabriel (25/10/2026): "il ne devrait pas avoir de differences entre [Enhanced et le mode regulier] car
+ce sont juste deux facons differentes d'interpreter les actions dans une conversation", then: "d'un point de vue
+architecture, tout devrait etre un seul chemin et la seule jonction devrait etre a quel service je demande
+l'interpretation."
+
+**What a trace found (25/10/2026).** After the tags are written, both compositions share the parser, the actions loop
+and the bridge. Before, they do not: actions are taught in three places that do not know each other.
+
+- The prose prompt teaches each verb in its own `PromptBuilder` section (91 `type:` literals), each gated by an
+  `EncounterContext` flag, plus the mod's `ExtraActionTeachings` and `UnavailableDeeds`; `LlmServices.BuildActionVocabulary`
+  hand-writes five verbs in its own words.
+- The interpreter (`ActionInterpreterPromptBuilder`) teaches every `GameActionCatalog` verb every turn, with its own
+  rules and examples, and none of the per-turn gates; the bridge refuses afterwards. A briefing once executed
+  `swear_oath` that way (`ChatViewModel.Exchanges` comment, near the briefing drop).
+- Asymmetries: `story_choice` (a tale's choices by words) is taught only to the interpreter, so it cannot be taken in
+  Standard composition, and it is invisible to `docs/maps/verbs.md` (a constant, not a literal); `witness_leaves` is
+  taught only to the prose model, whose tags Enhanced throws away (only `request_privacy` is merged back by
+  `SceneDecisionMerge`), so it is probably never carried out in Enhanced; Compact drops verbs in Standard but only
+  guidance in the interpreter; the interpreter prompt mentions a "CONVERSATION SO FAR" the live path never sends.
+- In Enhanced the prose prompt still teaches every action, and the prose model's tags are then discarded: tokens paid
+  for nothing and a distraction for the writer.
+- When the interpreter call fails (timeout, parse), the reply's deeds are lost with a log line only.
+- Paths that stay single-call even in Enhanced (captive and captor scenes, non-main speakers, synthetic player lines,
+  prose fallbacks) are the same code in both compositions and raise no parity question.
+
+**The target.**
+
+- **One action plan per turn**, built once from the context: every verb (its catalogue spec: description, params, when
+  to emit, when not), which are open NOW and which closed and why, and the turn's own blocks (a tale's choices by
+  words, an arc's signals, a scene's conclusion clause). A verb's teaching lives in its `GameActionCatalog` spec; the
+  scattered `PromptBuilder` sections migrate there.
+- **Two renderings of the same plan**: into the prose prompt when the same call reads the actions, into the
+  interpreter's prompt when a second call does. Parity holds by construction, and the guard compares the two renderings.
+- **The one junction: an action reader** with two implementations, "the same call" (read the prose's own tags) and "the
+  interpreter" (a second call), returning the same list. Everything after is one path, so merge patches such as
+  `SceneDecisionMerge` disappear.
+- **In Enhanced, the prose prompt teaches no action at all.**
+
+**Open, for Gabriel.**
+
+1. Where the per-turn conditions go. Proposed for both renderings: the full catalogue, stable, in the cached prefix,
+   and a short "open now / closed now, because" list below the `CURRENT ENCOUNTER:` marker. Standard's prose prompt
+   would then carry the whole catalogue rather than only the open verbs: to be measured for quality (action bench,
+   rp_bench) before it is adopted.
+2. What happens when the interpreter fails: one retry, a quiet notice to the player, or the loss logged as today. The
+   prose's own tags can no longer be the fallback once Enhanced stops teaching them.
+
+**Steps.**
+
+1. **The parity map and its guard** (building): `docs/maps/composition-parity.md`, one row per verb, saying whether the
+   interpreter is taught it, whether the prose model is taught it with a permissive context and with an empty one, and
+   whether the bridge handles it; the context fields read by one side only; the condition that decides when the
+   interpreter runs. A blocking guard: a verb taught to one reader and not the other is refused unless it stands on an
+   allow-list with its reason, and the list may only shrink.
+2. **The action reader as the single junction** (the after-tags path).
+3. **The per-turn plan**, starting with the turn's own blocks (tale choices, conclusion); the tale arc builds on it.
+   Mends `story_choice` in Standard and `witness_leaves` in Enhanced.
+4. **Verbs migrate to their spec one by one**; a ratchet counts those still taught outside the plan.
+5. **Enhanced's prose prompt without actions**, measured before and after.
+
 ## DESIGNED 2026-10-25 (Gabriel), AWAITING HIS REVIEW, NOT BUILT: an arc that paces a tale's conversation
 
 **The wish.** Gabriel (25/10/2026), on The Empress's Summons: "comment le LLM dirige le beat pour amener le joueur vers
