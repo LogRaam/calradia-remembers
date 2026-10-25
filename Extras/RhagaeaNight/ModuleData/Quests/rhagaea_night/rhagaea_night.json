@@ -106,16 +106,7 @@
         "night_7.crvid",
         "night_8.crvid",
         "night_9.crvid",
-        "night_10.crvid",
-        "night_11.crvid",
-        "night_12.crvid",
-        "night_13.crvid",
-        "night_14.crvid",
-        "night_15.crvid",
-        "night_16.crvid",
-        "night_17.crvid",
-        "night_18.crvid",
-        "night_19.crvid"
+        "night_10.crvid"
       ],
       "objective": {
         "type": "talk_to",
