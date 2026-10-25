@@ -504,8 +504,7 @@ OPTION A.. SET UP OPENROUTER (CLOUD, ONE TIME)
 
 OPTION B.. SET UP NANOGPT INSTEAD (CLOUD, ONE TIME)
 
-  1. Create an account at nano-gpt.com and add a little credit (also pay-as-you-go, or a monthly subscription).
-     If you sign up through my referral link, [url=https://nano-gpt.com/r/cmkQCnfJ]nano-gpt.com/r/cmkQCnfJ[/url], it costs you nothing extra and supports the mod. Thank you!
+  1. Create an account at nano-gpt.com and add a little credit (also pay-as-you-go).
   2. Create an API key in your NanoGPT account and copy it.
   3. Browse nano-gpt.com/models and copy the exact id of the model you want.. NanoGPT has no default in the mod, so you must paste one (model ids differ from OpenRouter's, so a name from one provider won't work on the other).
 
