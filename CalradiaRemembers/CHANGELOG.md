@@ -38,6 +38,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (`docs/maps/composition-parity.md`, `CompositionParityTests`).
 
 ### Fixed
+- **Edicts move taxes again under a mod that replaces the tax model** (tashmetu, Nexus 25/10, from a 1.5.5 beta log
+  with Harvest and Production: "[EDICT] could not attach to CalculateTownTax [...] So edicts never move taxes"). The
+  patch took the method as seen from the active model's own type; a model that inherits it without overriding it
+  got refused by Harmony. Edicts and the courier speed floor now patch the method where it is declared
+  (`DeclaredPatchTarget`), the one the model really runs. cr.testall `edict_effects` now also requires all six
+  channels attached.
 - **A tale's choice by words can now be taken in Standard composition.** Its open choices were taught only to the
   action interpreter (Enhanced), so with one call per turn the character's reply could never report one and the tale
   waited on a path nobody could take. Gabriel (25/10/2026): Enhanced was built to reproduce Standard, then "je

@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using CalradiaRemembers.Foundation;
+using CalradiaRemembers.Logic.Diagnostics;
 using CalradiaRemembers.Logic.Edicts;
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;
@@ -50,7 +51,8 @@ namespace CalradiaRemembers.Edicts
          try
          {
             if (model == null) return;
-            MethodInfo target = AccessTools.Method(model.GetType(), method);
+            // tashmetu (25/10/2026): taken where it is DECLARED, or Harmony refuses a method a mod's model inherits.
+            MethodInfo target = DeclaredPatchTarget.Find(model.GetType(), method);
             if (target == null)
             {
                ModLog.Info($"[EDICT] WARNING: {model.GetType().Name} has no {method} we can reach; edicts will not move that channel.");
@@ -62,7 +64,7 @@ namespace CalradiaRemembers.Edicts
             _harmony.Patch(target, postfix: new HarmonyMethod(typeof(EdictModelPatches), postfix));
             Patched.Add(target);
             Attached.Add($"{model.GetType().Name}.{method}");
-            ModLog.Info($"[EDICT] attached to {model.GetType().Name}.{method}.");
+            ModLog.Info($"[EDICT] attached to {model.GetType().Name}.{method} (declared on {target.DeclaringType?.Name}).");
          }
          catch (Exception ex)
          {

@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-592 rules read 452 facts.
+593 rules read 454 facts.
 
 ## Facts read by more than one rule
 
@@ -457,6 +457,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `CustodyReleaseFacts`: `EndCaptivityDetail.ReleasedByChoice`
 - `DayMoodFactsPolicy.From`: `Clan.Kingdom`, `Hero.Clan`, `Hero.CurrentSettlement`, `Hero.IsPrisoner`, `Settlement.IsCastle`, `Settlement.IsTown`, `Settlement.IsUnderSiege`
 - `DayMoodReadings`: `Clan.Kingdom`, `Hero.Clan`, `Hero.CurrentSettlement`, `Hero.IsPrisoner`, `Settlement.IsCastle`, `Settlement.IsTown`, `Settlement.IsUnderSiege`
+- `DeclaredPatchTarget.Find`: `Models.PartySpeedCalculatingModel`, `object.GetType`
 - `DeedRefusal`: `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`, `Hero.PartyBelongedTo`, `MobileParty.Army`, `MobileParty.LeaderHero`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`
 - `DelegatedRiskFacts`: `Profile.ClanRelationWithPlayer`, `Profile.ReputationWithPlayer`
 - `DeliveredPrisonerFacts`: `FactionManager.IsAtWarAgainstFaction`, `Hero.GetRelation`, `Hero.MapFaction`

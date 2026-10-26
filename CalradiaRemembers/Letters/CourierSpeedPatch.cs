@@ -15,6 +15,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Localization;
 using CalradiaRemembers.Foundation;
+using CalradiaRemembers.Logic.Diagnostics;
 
 #endregion
 
@@ -53,7 +54,9 @@ namespace CalradiaRemembers.Letters
             object model = Campaign.Current?.Models?.PartySpeedCalculatingModel;
             if (model == null) return;
 
-            MethodInfo target = AccessTools.Method(model.GetType(), "CalculateFinalSpeed");
+            // tashmetu (25/10/2026, the edict tax): taken where it is DECLARED, or Harmony refuses a method a mod's
+            // model inherits without overriding.
+            MethodInfo target = DeclaredPatchTarget.Find(model.GetType(), "CalculateFinalSpeed");
             if (target == null)
             {
                ModLog.Info($"[COURIER] WARNING: the active party-speed model ({model.GetType().Name}) has no " +

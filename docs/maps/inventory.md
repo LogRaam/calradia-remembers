@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 568 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1316 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1317 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 267 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1864,7 +1864,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SummaryEnqueueOutcome` | public enum | What ConversationSummaryQueue.Enqueue actually did with the new job. |
 | `WitnessExchangePolicy` | public static class | Decides whether the bystander exchange must stop and leave the floor to the player. |
 
-### CalradiaRemembers.Logic.Diagnostics (30)
+### CalradiaRemembers.Logic.Diagnostics (31)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1883,6 +1883,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CostScenario` | public class | One row of the scenario file. |
 | `CostScenarioFile` | public static class | The scenario file: sections of rows, edited by hand. |
 | `CostWindows` | public static class | The points a prose row is measured at. |
+| `DeclaredPatchTarget` | public static class | The method a model runs under a name, taken from the type that declares it, so Harmony can patch it. |
 | `DiagnosticPick` | public class | The character picked, and the others who answered equally well. |
 | `DiagnosticSubject` | public class | A character a diagnostic command may pick: its hero id and its display name. |
 | `DiagnosticSubjectPicker` | public static class | Picks a diagnostic command's subject from what was typed. |
