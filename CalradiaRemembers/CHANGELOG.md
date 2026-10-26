@@ -38,6 +38,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (`docs/maps/composition-parity.md`, `CompositionParityTests`).
 
 ### Fixed
+- **A lady who heads her house no longer "marries" you in words while nothing is sealed** (RaveN017Mod, Nexus 26/10:
+  "I want my hero to marry Rhagaea [...] it feels like it's just not triggering"; Gabriel the same day: "Jamais elle
+  laissera son trone"). The game weds no two heads of houses, and you always head yours: its marriage refused in
+  silence while the mod announced the wedding, so `rhagaea_marriage.json` never fired. Such a lady is now told why
+  (`HouseHeadMarriagePolicy`, a new `LeadsTheirOwnHouse` obstacle): she keeps her house and says what she can offer
+  instead, to be lovers, a bond owned openly, or that you leave your own house to join hers. And any marriage the
+  game will not seal (an army, a battle) is now refused plainly instead of announced. `cr.testall marriage_house_heads`.
 - **OpenRouter credits Calradia Remembers again** (fearente, 24/10: the activity page showed every call under another
   app). OpenRouter now reads the app's name from `X-OpenRouter-Title`; the SDK sends it along with the older `X-Title`.
 - **A consort who accepted sharing you no longer holds a grievance over your other consort, but still minds being

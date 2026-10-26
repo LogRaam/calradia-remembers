@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 568 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1320 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1322 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 267 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2102,7 +2102,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SecretHandoffKind` | public enum | How a carried secret changes hands. |
 | `WhereaboutsFacts` | public class | Where someone is, as the letter needs it. |
 
-### CalradiaRemembers.Logic.Marriage (34)
+### CalradiaRemembers.Logic.Marriage (36)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2124,6 +2124,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EstrangementProgressPolicy` | public static class | Paces a Stolen Love estrangement from its start day to the point the spouse is ready to leave, scaled by the seduction's SeductionDifficulty. |
 | `ExCompanionDivorcePolicy` | public static class | Pure decision for the divorce half of the marry-your-own-companion feature: whether a divorcing spouse is an ex-companion who must be returned to the free-wanderer pool rather than relocated to a birth clan. |
 | `ForcedMarriagePolicy` | public static class | How a marriage sealed on the family's blessing, against the spouse's own unwon heart, is resented. |
+| `HouseHeadFacts` | public class | Who heads a house, on each side of a match the player would make. |
+| `HouseHeadMarriagePolicy` | public static class | The game's own bar on wedding two heads of houses, asked before the model is told a marriage is on offer. |
 | `MarriageBlockOverridePolicy` | public static class | Pure soft-vs-hard table: which MarriageBlockReason a passed courtship trial may override. |
 | `MarriageClaimPolicy` | public static class | Detects whether an [EVENT] summary CLAIMS that the conversation NPC and the player are now married, so the mod can withhold the memory (and the romantic-arc advancement riding on it) until Hero.Spouse confirms the weddin... |
 | `MarriageCustomReading` | public struct | A culture's marriage custom: strictness 0 (low) to 2 (high), and whether a house of the tier asked shares partners. |

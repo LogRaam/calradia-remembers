@@ -499,9 +499,11 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - "(You are already wed — no second marriage can be sealed in law.)"
   - $"({npcHero.Name} belongs to your own clan — custom forbids it.)"
   - $"({npcHero.Name} cannot be wed to you under the laws of Calradia.)"
+  - $"({npcHero.Name} heads their own house, as you head yours: neither can wed without giving theirs up.)"
   - $"(A marriage with {npcHero.Name} cannot be sealed now: not across a war, nor from captivity.)"
   - $"({npcHero.Name} does not yet hold you dear enough to take this step, " + "and no family blessing compels them to.)"
   - promotionRefusal
+  - $"(The marriage with {npcHero.Name} could not be sealed: Calradia's law would not allow it now.)"
   - $"(The union with {npcHero.Name} could not be sealed cleanly and was not recorded.)"
 
 ### mediate_peace

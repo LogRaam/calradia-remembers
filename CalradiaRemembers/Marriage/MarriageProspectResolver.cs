@@ -105,6 +105,17 @@ namespace CalradiaRemembers.Marriage
       }
 
       /// <summary>
+      ///   Whether the game would refuse the match because both head their house, read with the engine's own test
+      ///   (<c>Clan.Leader == hero</c>, as DefaultMarriageModel asks it). RaveN017Mod (26/10/2026): Rhagaea.
+      /// </summary>
+      public static bool HeadsOfTwoHouses(Hero player, Hero candidate)
+      {
+         if (player == null || candidate == null) return false;
+
+         return HouseHeadMarriagePolicy.BarsTheMatch(new HouseHeadFacts {CandidateHeadsTheirHouse = candidate.Clan?.Leader == candidate, PlayerHeadsTheirHouse = player.Clan?.Leader == player});
+      }
+
+      /// <summary>
       ///   Whether a house would name this kin as a prospect UNPROMPTED: lawful to wed, and young enough
       ///   for the long alliance the match is meant to buy. Narrower than <see cref="IsMarriageable" /> on
       ///   purpose, and used only to build the offer list, never to judge a marriage the player asks for.

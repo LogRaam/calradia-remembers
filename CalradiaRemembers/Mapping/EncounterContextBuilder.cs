@@ -2341,6 +2341,10 @@ namespace CalradiaRemembers.Mapping
 
          if (!MarriageProspectResolver.IsMarriageable(Hero.MainHero, hero)) return MarriageBlockReason.NotMarriageable;
 
+         // RaveN017Mod (26/10/2026): the game weds no two heads of houses and refuses in silence, so a ruler who
+         // heads her house is told it, and says what she can offer instead (Gabriel: she never leaves her throne).
+         if (MarriageProspectResolver.HeadsOfTwoHouses(Hero.MainHero, hero)) return MarriageBlockReason.LeadsTheirOwnHouse;
+
          bool atWar = BannerlordGameStateBridge.IsAtWarWithPlayer(hero);
 
          // Captivity and war are one pure predicate (vanilla forbids both at its own marriage screen), so they

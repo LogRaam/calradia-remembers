@@ -3467,6 +3467,11 @@ namespace CalradiaRemembers.GameState
                return ActionOutcome.Refused(
                   $"({npcHero.Name} cannot be wed to you under the laws of Calradia.)");
 
+            // RaveN017Mod (26/10/2026): the game weds no two heads of houses, and its Apply would do nothing.
+            if (MarriageProspectResolver.HeadsOfTwoHouses(player, npcHero))
+               return ActionOutcome.Refused(
+                  $"({npcHero.Name} heads their own house, as you head yours: neither can wed without giving theirs up.)");
+
             // M-B5: vanilla blocks a marriage across an active war or with a captive at its own screen; a chat
             // marriage must honour the same law (the prompt is advice, the bridge is law).
             if (!MarriageGuardPolicy.MarriageAllowed(new MarriageGuardPolicy.MarriageStateFacts {CandidatePrisoner = npcHero.IsPrisoner, PlayerPrisoner = player.IsPrisoner, AtWarWithCandidate = IsAtWarWithPlayer(npcHero)}))
@@ -3505,6 +3510,17 @@ namespace CalradiaRemembers.GameState
                return ActionOutcome.Refused(promotionRefusal);
 
             MarriageApprovalBehavior.MarryThroughCr(player, npcHero);
+
+            // RaveN017Mod (26/10/2026): MarriageAction.Apply refuses in SILENCE what the engine's marriage model
+            // will not allow (an army, a battle, a courtship elsewhere), and the wedding used to be announced
+            // anyway. Nothing sealed, nothing said: refuse plainly, for every match.
+            if (player.Spouse != npcHero)
+            {
+               ModLog.Error($"[ACTION] marry: the engine sealed no marriage with {npcHero.Name}; refused.");
+
+               return ActionOutcome.Refused(
+                  $"(The marriage with {npcHero.Name} could not be sealed: Calradia's law would not allow it now.)");
+            }
 
             // "Marry your own companion": assert the engine actually sealed the union and the ex-companion's
             // state is coherent (a promoted Lord, no longer a companion, in the player's clan, wed to the player).

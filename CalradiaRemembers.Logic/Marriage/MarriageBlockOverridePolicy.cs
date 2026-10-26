@@ -36,6 +36,7 @@ namespace CalradiaRemembers.Logic.Marriage
             case MarriageBlockReason.NotMarriageable:
             case MarriageBlockReason.Captive:
             case MarriageBlockReason.AtWar:
+            case MarriageBlockReason.LeadsTheirOwnHouse: // the game seals no such match, a trial or not
                return true;
             default:
                return true; // unknown/future reason: fail safe as HARD, never silently overridable

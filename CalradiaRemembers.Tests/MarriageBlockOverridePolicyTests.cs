@@ -48,6 +48,7 @@ namespace CalradiaRemembers.Tests
         [TestCase(MarriageBlockReason.PlayerAlreadyWed)]
         [TestCase(MarriageBlockReason.SameClan)]
         [TestCase(MarriageBlockReason.NotMarriageable)]
+        [TestCase(MarriageBlockReason.LeadsTheirOwnHouse)]
         public void GIVEN_a_hard_blocker_WHEN_asked_if_hard_THEN_it_is_hard(MarriageBlockReason reason)
         {
             MarriageBlockOverridePolicy.IsHardBlock(reason).Should().BeTrue();
@@ -77,6 +78,7 @@ namespace CalradiaRemembers.Tests
         [TestCase(MarriageBlockReason.PlayerAlreadyWed)]
         [TestCase(MarriageBlockReason.SameClan)]
         [TestCase(MarriageBlockReason.NotMarriageable)]
+        [TestCase(MarriageBlockReason.LeadsTheirOwnHouse)]
         public void GIVEN_the_trial_is_passed_WHEN_asked_to_override_a_hard_blocker_THEN_it_may_not(MarriageBlockReason reason)
         {
             MarriageBlockOverridePolicy.CanOverride(reason, trialPassed: true).Should().BeFalse();
