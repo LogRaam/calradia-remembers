@@ -169,6 +169,16 @@ namespace CalradiaRemembers.Jealousy
       /// </summary>
       public string DebugSelectAggrieved(int today) => SelectAggrieved(today)?.worst?.StringId;
 
+      /// <summary>Test seam (cr.testall consort_tolerance): fires the REAL reaction of the player's partner over an act with <paramref name="courted" />, no letter.</summary>
+      public void DebugFirePartnerReaction(Hero partner, Hero courted, RomanticActTier tier)
+      {
+         var today = (int) CampaignTime.Now.ToDays;
+         FireReaction(new PendingJealousy {
+            PartyId = partner.StringId, Stake = (int) JealousStake.PlayerPartner, CourtedId = courted?.StringId,
+            CourtedName = courted?.Name?.ToString() ?? "another", Tier = (int) tier, ReactDay = today, WithLetter = false
+         }, today);
+      }
+
       /// <summary>
       ///   Public seam over the competition loop's OWN neglect measure (days since <paramref name="h" /> was
       ///   last genuinely attended; 0 for a partner riding with the player or held captive). Exposed so the
@@ -407,8 +417,10 @@ namespace CalradiaRemembers.Jealousy
          // But a reported FLIRT is not a betrayal: it makes the partner doubt (the regard hit and the grievance
          // memory above still apply at every tier) without breaking the bond, only an intimacy or a marriage
          // is the betrayal that wounds it (player report: the wife turned Estranged over mere small talk).
-         if (tier >= RomanticActTier.Intimacy
-             && (stake == JealousStake.PlayerPartner || stake == JealousStake.SecretLover) && profile.Romantic != null)
+         // Zivkyn (25/10/2026): a partner on a sharing track bears the player's love for another partner of the
+         // household without a wound or a grudge (JealousyWoundPolicy); a liaison outside it still wounds.
+         var wound = new JealousyWoundFacts {Stake = stake, Tier = tier, Track = track, CourtedIsHouseholdPartner = IsHouseholdPartner(pj.CourtedId, behavior)};
+         if (JealousyWoundPolicy.WoundsTheBond(wound) && profile.Romantic != null)
          {
             RomanticStatus woundedFrom = profile.Romantic.Status;
             profile.Romantic.MoveTo(RomanticWoundPolicy.AfterJealousyWound(woundedFrom), (int) CampaignTime.Now.ToDays);
@@ -432,7 +444,7 @@ namespace CalradiaRemembers.Jealousy
          // a discreet letter, never a grudge that hardens into a grievance arc). And no lasting grudge for a
          // mere reported FLIRT either: warm words breed doubt (regard + letter), not a grudge that hardens, 
          // only an intimacy or a marriage is betrayal enough to be nursed.
-         if (stake != JealousStake.SecretLover && tier >= RomanticActTier.Intimacy)
+         if (JealousyWoundPolicy.PlantsAGrudge(wound))
             GrudgeBehavior.Instance?.TryPlant(party, Hero.MainHero, GrudgeSource.Jealousy, grievance,
                GrudgeBackfillRules.JealousyMagnitude, true, today);
 
@@ -455,6 +467,18 @@ namespace CalradiaRemembers.Jealousy
       ///   party-only check so the jealousy system reads the same truth as the letter and chat systems.
       /// </summary>
       private static bool IsWithPlayer(Hero hero) => PlayerPresenceResolver.IsBeside(hero);
+
+      /// <summary>
+      ///   Whether this hero is a partner of the player's household, the same members the competition counts: the
+      ///   native spouse, or a committed consort. Read when the reaction fires, so a woman made consort in between counts.
+      /// </summary>
+      private static bool IsHouseholdPartner(string heroId, NpcMemoryCampaignBehavior behavior)
+      {
+         if (string.IsNullOrEmpty(heroId)) return false;
+         if (Hero.MainHero?.Spouse?.StringId == heroId) return true;
+
+         return behavior.Store.Get(heroId)?.Romantic is {IsConsort: true, Status: RomanticStatus.Committed};
+      }
 
       private static string Lookup(Dictionary<string, string> map, string key)
          => map != null && key != null && map.TryGetValue(key, out string v)
@@ -688,6 +712,7 @@ namespace CalradiaRemembers.Jealousy
             standings.Add(new PartnerStanding {
                PartnerId = h.StringId,
                ToleratesSharing = c.ToleratesSharedPartners(Mapping.StatureReader.Player.ClanTier),
+               AcceptedTheArrangement = behavior.Store.Get(h.StringId)?.Romantic?.AcceptsPlayersOtherPartners ?? false,
                NeglectDays = NeglectDays(h, behavior, today),
                OnCooldown = onCooldown,
                IsOpenArrangement = isOpen

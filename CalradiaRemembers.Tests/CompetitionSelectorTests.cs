@@ -178,10 +178,32 @@ namespace CalradiaRemembers.Tests
 
       #region private
 
-      private static PartnerStanding Standing(string id, int neglect, bool tolerates = true, bool onCooldown = false, bool open = false)
+      // Zivkyn (Nexus, 25/10/2026), twin consorts who both accepted sharing him; Gabriel the same day: "si le joueur
+      // passe beaucoup plus de temps avec une que l'autre, la jalousie s'applique quand meme... accepter de partager
+      // ne veut pas dire accepter etre la deuxieme." A woman of an exclusive people who gave her word competes too.
+      [Test]
+      public void GIVEN_a_partner_who_accepted_against_her_custom_WHEN_she_is_neglected_far_more_THEN_she_feels_slighted()
+      {
+         var partners = new List<PartnerStanding> {Standing("favoured", 2, tolerates: false), Standing("slighted", 30, tolerates: false, accepted: true)};
+
+         CompetitionSelector.SelectAggrieved(partners).Should().Be("slighted");
+      }
+
+      // Her word puts her in the competition, nothing more: a woman of an exclusive people who never accepted is
+      // betrayed, not merely slighted, and that is the reaction path's business.
+      [Test]
+      public void GIVEN_a_partner_of_an_exclusive_people_who_never_accepted_WHEN_neglected_THEN_she_does_not_merely_compete()
+      {
+         var partners = new List<PartnerStanding> {Standing("favoured", 2, tolerates: false), Standing("slighted", 30, tolerates: false)};
+
+         CompetitionSelector.SelectAggrieved(partners).Should().BeNull();
+      }
+
+      private static PartnerStanding Standing(string id, int neglect, bool tolerates = true, bool onCooldown = false, bool open = false, bool accepted = false)
          => new() {
             PartnerId = id,
             ToleratesSharing = tolerates,
+            AcceptedTheArrangement = accepted,
             NeglectDays = neglect,
             OnCooldown = onCooldown,
             IsOpenArrangement = open

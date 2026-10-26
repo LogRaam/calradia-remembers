@@ -38,6 +38,18 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (`docs/maps/composition-parity.md`, `CompositionParityTests`).
 
 ### Fixed
+- **A consort who accepted sharing you no longer holds a grievance over your other consort, but still minds being
+  second** (Zivkyn, Nexus 25/10: "I took them both as Consorts, And they both agree no jealousy, Yet one always ends up
+  with a Greivence"; Gabriel the same day: "si elles acceptent, elles devraient etre plus tolerantes a la jalousie.
+  Mais si le joueur passe beaucoup plus de temps avec une que l'autre, la jalousie s'applique quand meme... accepter
+  de partager ne veut pas dire accepter etre la deuxieme"). Every intimacy used to estrange a partner and plant a
+  Jealousy grudge, whatever she had accepted and whoever the other was. Now a partner on a sharing track (her people's
+  custom, or her own word through accept_other_partners) bears the player's love for another partner of the household
+  (the spouse or a committed consort) with the lighter regard price only: no estrangement, no grudge
+  (`JealousyWoundPolicy`). A liaison outside the household still estranges her and is nursed. And a partner who
+  accepted against her custom now takes part in the household's competition: neglected far more than the favourite,
+  she feels slighted like a woman whose people share (`CompetitionSelector`). Grievances already on a save stay
+  (`cr.grudge_resolve`). `cr.testall consort_tolerance`.
 - **Edicts move taxes again under a mod that replaces the tax model** (tashmetu, Nexus 25/10, from a 1.5.5 beta log
   with Harvest and Production: "[EDICT] could not attach to CalculateTownTax [...] So edicts never move taxes"). The
   patch took the method as seen from the active model's own type; a model that inherits it without overriding it

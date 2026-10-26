@@ -31,6 +31,13 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>True when this partner's culture/rank accepts a shared partner (monogamous partners don't merely "compete").</summary>
       public bool ToleratesSharing { get; set; }
+
+      /// <summary>
+      ///   True when she has SAID she accepts the player's other partners, against her own people's custom. Gabriel
+      ///   (25/10/2026): "accepter de partager ne veut pas dire accepter etre la deuxieme", so her word puts her in
+      ///   the household's competition like a woman whose people share.
+      /// </summary>
+      public bool AcceptedTheArrangement { get; set; }
    }
 
    /// <summary>
@@ -62,7 +69,7 @@ namespace CalradiaRemembers.Logic
          int worstNeglect = -1;
          foreach (PartnerStanding p in partners)
          {
-            if (p is not {ToleratesSharing: true}) continue;
+            if (p == null || !(p.ToleratesSharing || p.AcceptedTheArrangement)) continue;
             // Open relationship (Inc 2): a partner on reciprocal open terms is never the aggrieved party, even
             // when she is the most neglected. She still shaped mostAttended above (she is part of the
             // household), but she accepts the player's other loves, so she is skipped as a selection candidate.

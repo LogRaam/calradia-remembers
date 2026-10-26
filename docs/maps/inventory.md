@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 568 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1317 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1319 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 267 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 22500+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 23000+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -2249,7 +2249,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RescueGratitudePolicy` | public static class | Decides how strongly an NPC reacts to being rescued (or to a loved one being rescued) by the player. |
 | `RescueTie` | public enum | How the freed prisoner relates to the player, deciding the shape of their gratitude. |
 
-### CalradiaRemembers.Logic.Romance (26)
+### CalradiaRemembers.Logic.Romance (28)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2266,6 +2266,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `JealousyTrackFacts` | public class | What is known about a jealous partner when her price is being decided. |
 | `JealousyTrackPolicy` | public static class | Chooses the jealousy track from what the partner's people hold and what she herself agreed to. |
 | `JealousyTriggerPolicy` | public static class | Pure gate deciding whether a recorded romantic act is plausible COURTSHIP worth a jealous reaction. |
+| `JealousyWoundFacts` | public class | What is known about one jealous reaction when deciding whether it wounds the bond and leaves a grudge. |
+| `JealousyWoundPolicy` | public static class | Whether a jealous reaction wounds the bond and whether it plants a grudge. |
 | `OpenPartnerLoverPolicy` | public static class | Pure rules for an OPEN partner autonomously taking a lover of her own: the neglect-scaled weekly chance that she strays, and whether a given candidate is a plausible lover. |
 | `OpenRelationshipPolicy` | public static class | Pure gate: does a reciprocal open-relationship arrangement suppress this partner's jealousy? |
 | `RomanceBondChange` | public class | One change of a bond, between two readings. |

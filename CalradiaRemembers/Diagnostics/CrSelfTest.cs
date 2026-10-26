@@ -267,6 +267,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("grudge_answered", Severity.Light, "Player report (Zivkyn, 18/09/2026): a lord kept asking why the player killed his kin, months later, however often it had been explained, and kept riding out to confront the player about it. Plants a real grudge against the player on a clean-slate lord and makes it a VENDETTA, asserts it drives an interception and hear_account is offered, then runs hear_account through the REAL bridge (BannerlordGameStateBridge.ExecuteAction, the path an LLM emission takes) and asserts: the grudge is answered with the account, still a vendetta and exactly as heavy, the lord's built GrudgeNote now carries the account and the do-not-ask-again instruction, the interception no longer fires, and hear_account is no longer offered. No LLM call. Clears the lord's grudges afterwards", TestGrudgeAnswered),
          new SelfTest("duel_venue_here", Severity.Light, "Player reports (FloatingMammal 10/09/2026, yozakura12 17, 18 and 20/09/2026): the duel was offered in places it could not be staged, and staged in places the engine could not open. Reports where the player is standing RIGHT NOW (settlement, town or castle, inside the walls or merely on it, and whether it owns the 'center' location a duel opens) and asserts the two halves agree: that a town or a castle really does own a duelling ground in THIS install, and that the venue the resolver chooses is the one the staging would accept. On the open map (GABRIEL'S RULE, 13/10/2026), drives the same pure DuelStagingSupport/DuelVenuePolicy seam directly against a real town and a real castle instead (inside=true supplied as the fact, never the live PlayerEncounter global, and nothing moves the main party); MANUAL only when no town or castle exists at all. No duel is armed and no scene is opened", TestDuelVenueHere),
          new SelfTest("plural_acceptance", Severity.Light, "Player report (yozakura12, 22/09/2026): playing with multiple spouses, jealousy cost the full betrayal price even for a wife who says in her own voice that she accepts the harem, and the only thing close to that state was open_relationship, which is RECIPROCAL and suppresses her jealousy outright. Borrows a lady as a committed consort, sets her regard to devotion, and runs accept_other_partners through the REAL bridge (BannerlordGameStateBridge.ExecuteAction, the path an LLM emission takes): asserts her word is recorded, that it is NOT reciprocal open terms, that the jealousy track moves from Betrayal to AcceptedAgainstCulture, that saying it twice is refused, and that a woman who is no partner of the player is refused. Restores her bond, her regard and her acceptance", TestPluralAcceptance),
+         new SelfTest("consort_tolerance", Severity.Light, "Zivkyn (Nexus, 25/10/2026): twin consorts who both accepted sharing him, yet one always ended up with a Grievance; Gabriel the same day: accepting makes them more tolerant, but neglect still bites (accepting to share is not accepting to be second). Borrows three lords as the player's committed consorts, the first having accepted the arrangement and of a people that does not share. Through the REAL reaction (FireReaction): an intimacy with the other consort leaves her Committed with no new Jealousy grudge; an intimacy with someone outside the household estranges her and plants one. Through the REAL competition selection: neglected far more than the favoured consort, she is the one slighted. Restores their romance, regard, memories and grudges", TestConsortTolerance),
          new SelfTest("conversation_resume", Severity.Light, "Player report (fkasad, 20/09/2026): roleplay takes longer than a battle, so he quits mid-negotiation, saves, closes the game, comes back, and the lord remembers TALKING to him but not a word of what was said, so the bargain starts over. Drives the REAL store the chat uses (NpcMemoryCampaignBehavior.ConvResume): keeps a built transcript against a real lord, then asserts it comes back whole for the same lord on the same day with its memory anchor, that the SAME open cannot take it twice, and that it is refused and DISCARDED for another lord, another day, or a staged scene, which is the report's own 'deleted as soon as you open a new chat' rule. No LLM call, no window opened. Forgets whatever it kept afterwards", TestConversationResume),
          new SelfTest("approach_framing", Severity.Light, "Player report (Fakade, 19/09/2026, local model): a lord rode out to him, then from the next turn spoke as though the player had come to HIM. The opening directive is consumed on read, so who sought whom was in the prompt once and never again. Stashes a real fief-audience reason on a lord, builds the encounter context twice through the REAL builder, and asserts the directive fires on the first build and is spent on the second while NpcSoughtThePlayer stays true on both; then asserts opening a new conversation (ForgetConversationSeeker) clears it. Leaves no pursuit behind", TestApproachFraming),
          new SelfTest("realm_departure", Severity.Light, "Player report (tashmetu, 19/09/2026): expelled from his kingdom by another mod after a lost war, he kept getting letters as if he still belonged. Records a departure from a real kingdom the way the kingdom-change feeder now marks every one, and asserts WorldEventFeeders.DaysSincePlayerLeft finds it and silences that ruler's service offer (ServiceOfferPolicy.RulerMayWrite), then removes it and asserts the ruler may write again. Also asserts the service-offer premise follows the player's LIVE realm. No LLM call, mutates nothing it does not remove", TestRealmDeparture),
@@ -21308,6 +21309,91 @@ namespace CalradiaRemembers.Diagnostics
             profile.Romantic = savedRomantic;
             profile.ReputationWithPlayer = savedRegard;
             behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestConsortTolerance(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("consort_tolerance");
+
+         if (t.Abort(JealousyBehavior.Instance == null || GrudgeBehavior.Instance == null || behavior?.Store == null || Hero.MainHero == null,
+                "jealousy, grudges or the store are not running")) return t.Line();
+
+         int tier = Hero.MainHero.Clan?.Tier ?? 0;
+         bool Shares(Hero h) => JealousyCultureLoader.GetCulture(h.Culture?.Name?.ToString()).ToleratesSharedPartners(tier);
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h != Hero.MainHero.Spouse
+                                                           && !PlayerPresenceResolver.IsBeside(h)).ToList();
+         Hero accepting = lords.FirstOrDefault(h => !Shares(h));
+         Hero other = lords.FirstOrDefault(h => h != accepting);
+         Hero stranger = lords.FirstOrDefault(h => h != accepting && h != other);
+         if (t.Skip(accepting == null || other == null || stranger == null, "need three lords away from the player, one of a people that does not share")) return t.Line();
+
+         var saved = new List<(NpcProfile Profile, RomanticProfile Romantic, int Regard, List<NotableEvent> Events)>();
+         NpcProfile Borrow(Hero h)
+         {
+            NpcProfile p = GetOrCreate(behavior, h);
+            saved.Add((p, p.Romantic, p.ReputationWithPlayer, p.Events.ToList()));
+            return p;
+         }
+
+         NpcProfile a = Borrow(accepting), o = Borrow(other), s = Borrow(stranger);
+         int grudgesBefore = GrudgeBehavior.Instance.GrudgesFor(accepting.StringId).Count;
+         int JealousyGrudges() => GrudgeBehavior.Instance.GrudgesFor(accepting.StringId).Count(g => g.Source == GrudgeSource.Jealousy && g.TargetId == Hero.MainHero.StringId);
+         int today = (int) CampaignTime.Now.ToDays;
+         try
+         {
+            a.Romantic = new RomanticProfile {IsConsort = true, Status = RomanticStatus.Committed, AcceptsPlayersOtherPartners = true};
+            a.ReputationWithPlayer = Regard.DevotedTier;
+            o.Romantic = new RomanticProfile {IsConsort = true, Status = RomanticStatus.Committed};
+            s.Romantic = null;
+            behavior.Store.Set(a);
+            behavior.Store.Set(o);
+            behavior.Store.Set(s);
+            int jealousyGrudges = JealousyGrudges();
+
+            JealousyBehavior.Instance.DebugFirePartnerReaction(accepting, other, RomanticActTier.Intimacy);
+            NpcProfile afterHousehold = behavior.Store.Get(accepting.StringId);
+            t.Note($"{accepting.Name} over {other.Name}: {afterHousehold?.Romantic?.Status}, regard {afterHousehold?.ReputationWithPlayer}");
+            t.Expect("overTheOtherConsortSheStaysCommitted", afterHousehold?.Romantic?.Status, RomanticStatus.Committed);
+            t.Expect("andNursesNoGrudge", JealousyGrudges(), jealousyGrudges);
+            t.Expect("yetHerRegardStillPaysAPrice", afterHousehold?.ReputationWithPlayer < Regard.DevotedTier, true);
+
+            JealousyBehavior.Instance.DebugFirePartnerReaction(accepting, stranger, RomanticActTier.Intimacy);
+            NpcProfile afterStranger = behavior.Store.Get(accepting.StringId);
+            t.Expect("overSomeoneOutsideTheHouseholdTheBondIsWounded", afterStranger?.Romantic?.Status == RomanticStatus.Committed, false);
+            t.Expect("andSheNursesIt", JealousyGrudges() > jealousyGrudges, true);
+
+            // The competition: her word puts her in it. Restore her bond, neglect her far more than the other consort.
+            afterStranger.Romantic.Status = RomanticStatus.Committed;
+            afterStranger.Events.Clear();
+            afterStranger.Events.Add(new NotableEvent(today - 45, NotableEventType.Collaboration, "[SELFTEST] attended"));
+            behavior.Store.Set(afterStranger);
+            NpcProfile favoured = behavior.Store.Get(other.StringId);
+            favoured.Events.Clear();
+            favoured.Events.Add(new NotableEvent(today - 1, NotableEventType.Collaboration, "[SELFTEST] attended"));
+            behavior.Store.Set(favoured);
+            string aggrieved = JealousyBehavior.Instance.DebugSelectAggrieved(today);
+            t.Note($"competition picks {aggrieved ?? "nobody"} (neglect {JealousyBehavior.NeglectDaysFor(accepting, today)}d vs {JealousyBehavior.NeglectDaysFor(other, today)}d)");
+            if (Hero.MainHero.Spouse == null)
+               t.Expect("neglectedFarMoreSheIsSlighted", aggrieved, accepting.StringId);
+            else
+               t.Note("the player has a native spouse, who may be the one slighted: not asserted");
+         }
+         finally
+         {
+            foreach ((NpcProfile p, RomanticProfile romantic, int regard, List<NotableEvent> events) in saved)
+            {
+               p.Romantic = romantic;
+               p.ReputationWithPlayer = regard;
+               p.Events.Clear();
+               p.Events.AddRange(events);
+               behavior.Store.Set(p);
+            }
+
+            foreach (Grudge g in GrudgeBehavior.Instance.GrudgesFor(accepting.StringId).Skip(grudgesBefore).ToList())
+               GrudgeBehavior.Instance.RemoveGrudge(g);
          }
 
          return t.Line();
