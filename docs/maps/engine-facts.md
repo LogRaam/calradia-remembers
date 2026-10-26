@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-599 rules read 458 facts.
+599 rules read 460 facts.
 
 ## Facts read by more than one rule
 
@@ -191,6 +191,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Value.Distance` (3) | `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `JealousyHearingPolicy.WithinEarshot` |
 | `Vec2.x` (3) | `CardinalDirectionPolicy.Describe`, `GeographyDescriber.Bearing`, `QuestMenuEntry` |
 | `Vec2.y` (3) | `CardinalDirectionPolicy.Describe`, `GeographyDescriber.Bearing`, `QuestMenuEntry` |
+| `AccessTools.Method` (2) | `LeaveHouseFacts`, `LeaveHouseForRulerPolicy.WhyNot` |
 | `AgeModel.HeroComesOfAge` (2) | `CaptiveOfferFacts`, `SharedPastPairFacts` |
 | `AiBehavior.EngageParty` (2) | `CompanionPatrolPolicy.ShouldReissue`, `PatrolLeashFacts` |
 | `AiBehavior.FleeToGate` (2) | `CompanionPatrolPolicy.ShouldReissue`, `PatrolLeashFacts` |
@@ -233,6 +234,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MapEventSide.LeaderParty` (2) | `SkirmishFacts`, `SkirmishFoe` |
 | `MarriageModel.IsClanSuitableForMarriage` (2) | `LeaveHouseFacts`, `LeaveHouseForRulerPolicy.WhyNot` |
 | `MemberRoster.TotalHealthyCount` (2) | `AuthoredBandSizeFacts`, `PatrolReportFacts` |
+| `MethodInfo.Invoke` (2) | `LeaveHouseFacts`, `LeaveHouseForRulerPolicy.WhyNot` |
 | `MobileParty.ActualClan` (2) | `CourierSecretPolicy.WhoGetsTheSecret`, `SecretDefeaterFacts` |
 | `MobileParty.AttachedTo` (2) | `ChaseFacts`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter` |
 | `MobileParty.CurrentSettlement` (2) | `AuthoredMapTriggerPolicy.WhyNot`, `MapTriggerFacts` |
@@ -589,8 +591,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `KinDeathFacts`: `Hero.IsFemale`
 - `KingdomPowerFacts`: `Clan.Influence`, `RulingClan.Influence`
 - `LandfallFacts`: `Hero.OneToOneConversationHero`, `MobileParty.IsCurrentlyAtSea`, `PlayerEncounter.InsideSettlement`
-- `LeaveHouseFacts`: `Hero.CanMarry`, `Hero.Clan`, `Hero.IsFemale`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Spouse`, `MarriageModel.IsClanSuitableForMarriage`, `MobileParty.Army`, `MobileParty.MapEvent`, `Models.MarriageModel`, `Romance.GetCourtedHeroInOtherClan`
-- `LeaveHouseForRulerPolicy.WhyNot`: `Hero.CanMarry`, `Hero.Clan`, `Hero.IsFemale`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Spouse`, `MarriageModel.IsClanSuitableForMarriage`, `MobileParty.Army`, `MobileParty.MapEvent`, `Models.MarriageModel`, `Romance.GetCourtedHeroInOtherClan`
+- `LeaveHouseFacts`: `AccessTools.Method`, `Hero.CanMarry`, `Hero.Clan`, `Hero.IsFemale`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Spouse`, `MarriageModel.IsClanSuitableForMarriage`, `MethodInfo.Invoke`, `MobileParty.Army`, `MobileParty.MapEvent`, `Models.MarriageModel`, `Romance.GetCourtedHeroInOtherClan`
+- `LeaveHouseForRulerPolicy.WhyNot`: `AccessTools.Method`, `Hero.CanMarry`, `Hero.Clan`, `Hero.IsFemale`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Spouse`, `MarriageModel.IsClanSuitableForMarriage`, `MethodInfo.Invoke`, `MobileParty.Army`, `MobileParty.MapEvent`, `Models.MarriageModel`, `Romance.GetCourtedHeroInOtherClan`
 - `LetterCandidate`: `Hero.Spouse`
 - `LetterCandidateFreshness.PremiseStillHolds`: `Hero.MapFaction`
 - `LetterDeliveryPolicy.ShouldHoldDeliveryAtSea`: `MobileParty.IsCurrentlyAtSea`

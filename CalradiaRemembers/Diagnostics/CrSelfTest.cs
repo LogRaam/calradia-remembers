@@ -21422,7 +21422,7 @@ namespace CalradiaRemembers.Diagnostics
          int regard = profile.ReputationWithPlayer;
          try
          {
-            profile.ReputationWithPlayer = MarriageEligibility.MarriageEligibilityThreshold;
+            profile.ReputationWithPlayer = Math.Max(ModSettings.MarriageRegardThreshold, MarriageEligibility.MarriageEligibilityThreshold); // the MCM bar, whatever it is set to
             behavior.Store.Set(profile);
 
             LeaveHouseBar bar = LeaveHouseForRulerBehavior.WhyNot(ruler);

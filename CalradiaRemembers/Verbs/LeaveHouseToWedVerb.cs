@@ -70,7 +70,7 @@ namespace CalradiaRemembers.Verbs
             InformationManager.ShowInquiry(new InquiryData(
                $"Leave {house} for {ruler.Name}?",
                $"{heir?.Name} becomes head of {house}, and you play on as {heir?.Name}. {player.Name}, now one of the world's lords, "
-               + $"weds {ruler.Name} and joins her house; your romance with her stays with {player.Name}. This cannot be undone.",
+               + $"weds {ruler.Name} and joins {(ruler.IsFemale ? "her" : "his")} house; your romance with {(ruler.IsFemale ? "her" : "him")} stays with {player.Name}. This cannot be undone.",
                true, true, "Leave the house", "Not yet",
                () => Confirmed(ruler), () => Declined(ruler)), true);
 
@@ -87,7 +87,7 @@ namespace CalradiaRemembers.Verbs
       private static void Confirmed(Hero ruler)
       {
          LeaveHouseForRulerBehavior.Instance?.Request(ruler);
-         InformationManager.DisplayMessage(new InformationMessage($"You will leave your house for {ruler.Name} once this conversation ends."));
+         InformationManager.DisplayMessage(new InformationMessage($"You will leave your house for {ruler.Name} once this conversation is over and you are back at the map or a town's menu."));
       }
 
       private static void Declined(Hero ruler)

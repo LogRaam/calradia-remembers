@@ -12,6 +12,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using HarmonyLib;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Dynasty;
@@ -25,6 +27,8 @@ using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.ComponentInterfaces;
+using TaleWorlds.CampaignSystem.GameComponents;
+using TaleWorlds.CampaignSystem.GameState;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Party.PartyComponents;
 using TaleWorlds.CampaignSystem.Settlements.Workshops;
@@ -51,7 +55,9 @@ namespace CalradiaRemembers.Marriage
 
       public LeaveHouseForRulerBehavior() => Instance = this;
 
-      public override void RegisterEvents() => CampaignEvents.TickEvent.AddNonSerializedListener(this, _ => OnTick());
+      // Pumped from the submodule's OnApplicationTick, not CampaignEvents.TickEvent: the campaign tick is paused inside
+      // a settlement, so a hand-over agreed in a town would wait for the player to ride out (the duel's lesson).
+      public override void RegisterEvents() { }
 
       // A pending hand-over lives for the frames between the player's yes and the map: nothing to save.
       public override void SyncData(IDataStore dataStore) { }
@@ -101,8 +107,22 @@ namespace CalradiaRemembers.Marriage
          bool courtedElsewhere = (Romance.GetCourtedHeroInOtherClan(player, ruler) is { } a && a != ruler)
                                  || (Romance.GetCourtedHeroInOtherClan(ruler, player) is { } b && b != player);
 
-         return ruler.CanMarry() && player.Spouse == null && player.IsFemale != ruler.IsFemale
+         return ruler.CanMarry() && player.Spouse == null && player.IsFemale != ruler.IsFemale && !AreKin(model, player, ruler)
                 && model.IsClanSuitableForMarriage(player.Clan) && model.IsClanSuitableForMarriage(ruler.Clan) && !courtedElsewhere;
+      }
+
+      /// <summary>
+      ///   The marriage model's own kinship test (three generations), private in DefaultMarriageModel, read by reflection
+      ///   so a refused wedding is caught BEFORE the hand-over. Another mod's model, or a renamed method: not known, and
+      ///   the hand-back after the wedding stays the net.
+      /// </summary>
+      private static bool AreKin(MarriageModel model, Hero a, Hero b)
+      {
+         if (!(model is DefaultMarriageModel)) return false;
+
+         MethodInfo related = AccessTools.Method(typeof(DefaultMarriageModel), "AreHeroesRelated");
+
+         return related?.Invoke(model, new object[] {a, b, 3}) is true;
       }
 
       /// <summary>The player said yes: the hand-over runs once the chat has closed and the map has settled.</summary>
@@ -115,12 +135,14 @@ namespace CalradiaRemembers.Marriage
          ModLog.Info($"[LEAVE_HOUSE] the player will leave the house for {ruler.Name}; waiting for the map.");
       }
 
-      private void OnTick()
+      /// <summary>One frame: runs the pending hand-over once the chat, the mission and the game's conversation are gone.</summary>
+      public void Tick()
       {
          if (_pendingRulerId == null) return;
 
-         bool settled = !ChatManager.IsOpen && Mission.Current == null
-                        && Campaign.Current?.ConversationManager?.IsConversationInProgress != true;
+         bool settled = !ChatManager.IsOpen && Mission.Current == null && Campaign.Current != null
+                        && Campaign.Current.ConversationManager?.IsConversationInProgress != true
+                        && Game.Current?.GameStateManager?.ActiveState is MapState;
          _framesSettled = settled ? _framesSettled + 1 : 0;
          if (_framesSettled < SettleFrames) return;
 
@@ -244,7 +266,8 @@ namespace CalradiaRemembers.Marriage
          if (hers != null)
          {
             hers.Events.Add(new NotableEvent((int) CampaignTime.Now.ToDays, NotableEventType.OwnLife,
-               $"Wed {old.Name}, who gave up the head of his house to stand at my side; I kept my own. {heir.Name} now leads the house he left."));
+               $"Wed {old.Name}, who gave up the head of {(old.IsFemale ? "her" : "his")} house to stand at my side; I kept my own. "
+               + $"{heir.Name} now leads the house {(old.IsFemale ? "she" : "he")} left."));
             store.Set(hers);
          }
 

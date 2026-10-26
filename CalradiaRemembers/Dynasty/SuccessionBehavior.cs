@@ -99,7 +99,7 @@ namespace CalradiaRemembers.Dynasty
 
                 // A romance with the player was the predecessor's, and he lives on, wed to the ruler he left for: the
                 // heir must not inherit a lover, a consort or a bride's courtship (Gabriel, 26/10/2026).
-                if (kind == PlayerChangeKind.Abdication) p.Romantic = null;
+                if (kind == PlayerChangeKind.Abdication) SuccessionMemoryPolicy.ForgetTheBondWithThePlayer(p.Romantic);
                 store.Set(p);
                 n++;
             }

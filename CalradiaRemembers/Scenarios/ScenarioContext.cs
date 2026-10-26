@@ -62,6 +62,9 @@ namespace CalradiaRemembers.Scenarios
       /// </summary>
       internal static Hero StandsInForThePlayer { get; set; }
 
+      /// <summary>Who PLAYER means to a guard right now: the stand-in during his wedding, else the main hero.</summary>
+      internal static Hero ThePlayer => StandsInForThePlayer ?? Hero.MainHero;
+
       private static bool IsThePlayer(IReadOnlyList<Hero> heroes)
          => Contains(heroes, Hero.MainHero) || (StandsInForThePlayer != null && Contains(heroes, StandsInForThePlayer));
 

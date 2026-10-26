@@ -24,6 +24,30 @@ namespace CalradiaRemembers.Tests
     {
         // ── Event inheritance ───────────────────────────────────────────────
 
+        // Gabriel (26/10/2026): the player leaves the house to wed a ruler and plays on as the heir. A consort of the old
+        // character must not be the heir's consort; but forgetting the bond must not erase who she is (her orientation,
+        // preferences, kinks), or every character in the save would lose them at one abdication.
+        [Test]
+        public void GIVEN_a_consort_of_the_predecessor_WHEN_he_abdicates_THEN_the_bond_is_forgotten_and_who_she_is_stays()
+        {
+            var romantic = new RomanticProfile {
+                IsFemale = true, Orientation = SexualOrientation.Bisexual, IsConsort = true, Status = RomanticStatus.Committed,
+                AttractionToPlayer = 70, AcceptsPlayersOtherPartners = true, StatusSinceDay = 3, LoversSinceDay = 2
+            };
+            romantic.Preferences.Add(RomanticPreference.Dominant);
+
+            SuccessionMemoryPolicy.ForgetTheBondWithThePlayer(romantic);
+
+            romantic.Status.Should().Be(RomanticStatus.None);
+            romantic.IsConsort.Should().BeFalse();
+            romantic.AcceptsPlayersOtherPartners.Should().BeFalse();
+            romantic.AttractionToPlayer.Should().Be(0);
+            romantic.LoversSinceDay.Should().BeNull();
+            romantic.Orientation.Should().Be(SexualOrientation.Bisexual);
+            romantic.Preferences.Should().HaveCount(1);
+            romantic.IsFemale.Should().BeTrue();
+        }
+
         // The whole reframe of one profile, as Apply runs it on every profile in the store: private history gone,
         // standing kept, and the heir named as inheriting from the predecessor. Tested here so the in-game check no
         // longer has to run the real, save-wide Apply to prove it.
