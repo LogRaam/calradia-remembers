@@ -55,12 +55,18 @@ namespace CalradiaRemembers.Quests
       // the tale comes back). Additive key: an older save shows from a fresh round.
       private const string PoolShownKey = "CalradiaRemembers_TaleImagePoolShown_v1";
 
+      // The tale set aside while a scenario's tale plays (TalePause, Gabriel, 25/10/2026). Absent in older saves.
+      private const string PausedRunKey = "CalradiaRemembers_TalePausedRun_v1";
+
       /// <summary>How long a waiting return is tried before it is given up (and said so in the log).</summary>
       private const int ReturnWaitDays = 60;
 
       private Dictionary<string, AuthoredQuest> _quests = new(StringComparer.Ordinal);
       private List<string> _problems = new();
       private AuthoredQuestRun _run;
+
+      // The tale set aside for a scenario's tale (one level only); taken up again once that is over and the player is free.
+      private AuthoredQuestRun _paused;
       private HashSet<string> _done = new(StringComparer.Ordinal);
       private Dictionary<string, int> _declined = new(StringComparer.Ordinal);
       private Dictionary<string, int> _playedOn = new(StringComparer.Ordinal);
@@ -98,7 +104,8 @@ namespace CalradiaRemembers.Quests
       ///   The hero holds a role in the tale under way, which is then their errand (fkasad, 07/10/2026), or is raising a
       ///   tale with the player now (fkasad, 18/10/2026).
       /// </summary>
-      public bool HoldsARole(string heroId) => AuthoredTaleRoles.HoldsARole(_run, heroId, _offer != null ? _offerHeroId : null);
+      public bool HoldsARole(string heroId) => AuthoredTaleRoles.HoldsARole(_run, heroId, _offer != null ? _offerHeroId : null)
+                                               || AuthoredTaleRoles.HoldsARole(_paused, heroId);
 
       public override void RegisterEvents()
       {
@@ -140,9 +147,17 @@ namespace CalradiaRemembers.Quests
             poolShown = ""; // an older save: every pool starts a fresh round
          }
 
+         string paused = _paused?.Serialize() ?? "";
+         try { dataStore.SyncData(PausedRunKey, ref paused); }
+         catch
+         {
+            paused = ""; // an older save: nothing was set aside
+         }
+
          if (!dataStore.IsLoading) return;
 
          _run = AuthoredQuestRun.Deserialize(run);
+         _paused = AuthoredQuestRun.Deserialize(paused);
          _done = new HashSet<string>((done ?? "").Split(new[] {'\n'}, StringSplitOptions.RemoveEmptyEntries), StringComparer.Ordinal);
          _declined = ReadDayList(declined);
          _playedOn = ReadDayList(playedOn);
@@ -274,7 +289,8 @@ namespace CalradiaRemembers.Quests
             bool finished = _run == null && _done.Contains(q.StoryId ?? "");
             TaleJournalVerdict verdict = TaleJournalPolicy.Verdict(new TaleJournalFacts {
                EntryStoryId = q.StoryId, IsNewestOfItsStory = ReferenceEquals(newest, q),
-               RunQuestId = finished ? q.StoryId : _run?.QuestId, RunStatus = finished ? AuthoredQuestStatus.Completed : _run?.Status
+               RunQuestId = finished ? q.StoryId : _run?.QuestId, RunStatus = finished ? AuthoredQuestStatus.Completed : _run?.Status,
+               PausedQuestId = _paused?.QuestId
             });
             if (verdict == TaleJournalVerdict.Keep) continue;
 
@@ -374,7 +390,8 @@ namespace CalradiaRemembers.Quests
       /// <summary>The offer facts for this quest now, the dice aside.</summary>
       // A scenario's summons is not an errand raised in conversation: only a quest of theirs already under way bars it.
       private AuthoredOfferFacts FactsFor(AuthoredQuest q, Hero giver, int today, bool bySummons = false) => new() {
-         Today = today, StoryUnderWay = _run is {Status: AuthoredQuestStatus.Active}, Unique = q.Unique, AlreadyPlayed = _done.Contains(q.Id),
+         Today = today, StoryUnderWay = TalePause.StoryUnderWay(_run is {Status: AuthoredQuestStatus.Active}, _paused != null, bySummons),
+         Unique = q.Unique, AlreadyPlayed = _done.Contains(q.Id),
          GiverHasVanillaQuest = bySummons ? HasAQuestUnderWay(giver) : HasATaskOfTheirOwn(giver),
          LastPlayedOnDay = _playedOn.TryGetValue(q.Id, out int p) ? p : (int?) null, RepeatCooldownDays = q.RepeatCooldownDays,
          DeclinedOnDay = _declined.TryGetValue(q.Id, out int d) ? d : (int?) null, Chance = AuthoredQuestOfferPolicy.OfferChance,
@@ -609,6 +626,7 @@ namespace CalradiaRemembers.Quests
 
       internal void Accept(AuthoredQuest q, AuthoredQuestRun offer)
       {
+         PauseUnderWay(offer);
          _run = offer;
          Hero giver = Find(AuthoredQuestEngine.Bound(_run, "{giver}"));
          var today = (int) CampaignTime.Now.ToDays;
@@ -712,6 +730,7 @@ namespace CalradiaRemembers.Quests
       /// </summary>
       private void OnHourlyTick()
       {
+         ResumeIfFree(Hero.MainHero?.IsPrisoner == true);
          SafeRun.Step("AuthoredQuests.MapTrigger", TickMapTrigger);
          if (_run is not {Status: AuthoredQuestStatus.Active} || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return;
          AuthoredStage s = AuthoredQuestEngine.Current(_run, q);
@@ -1651,7 +1670,7 @@ namespace CalradiaRemembers.Quests
       /// </summary>
       internal string OpenFromScenario(string questId, Hero giver, bool dryRun)
       {
-         if (_run is {Status: AuthoredQuestStatus.Active}) return $"a tale is under way ('{_run.QuestId}')";
+         if (_run is {Status: AuthoredQuestStatus.Active} && _paused != null) return $"a tale is under way ('{_run.QuestId}') and another waits ('{_paused.QuestId}')";
          if (!_quests.TryGetValue(questId ?? "", out AuthoredQuest q)) return $"no tale '{questId}' is loaded";
          if (q.OnScenario == null) return $"'{questId}' is not opened by a scenario (it has no on_scenario)";
          if (giver == null) return "no giver";
@@ -1694,9 +1713,39 @@ namespace CalradiaRemembers.Quests
          return null;
       }
 
+      /// <summary>
+      ///   Gabriel (25/10/2026, "je devrais pouvoir vivre la nuit avec elle et reprendre ensuite la quete du loup lorsque je
+      ///   suis libere de prison"): a scenario's tale beginning while another plays sets that one aside, its clock stopped,
+      ///   its journal entry open. Its bands leave the map; they come back when it is taken up again.
+      /// </summary>
+      private void PauseUnderWay(AuthoredQuestRun incoming)
+      {
+         if (_run is not {Status: AuthoredQuestStatus.Active} || ReferenceEquals(_run, incoming) || _paused != null) return;
+         ReleaseBands();
+         TalePause.Pause(_run, (int) CampaignTime.Now.ToDays);
+         _paused = _run;
+         _run = null;
+         Journal(_paused.QuestId)?.Log("This tale waits: other matters hold you for now.");
+         ModLog.Info($"[TALE] '{_paused.QuestId}' set aside at stage {_paused.StageId} while another tale plays.");
+      }
+
+      /// <summary>The tale set aside takes up again where it stood, once nothing else plays and the player is free.</summary>
+      private void ResumeIfFree(bool playerPrisoner)
+      {
+         if (!TalePause.ShouldResume(_paused != null, _run is {Status: AuthoredQuestStatus.Active}, playerPrisoner)) return;
+         TalePause.Resume(_paused, (int) CampaignTime.Now.ToDays);
+         _run = _paused;
+         _paused = null;
+         ModLog.Info($"[TALE] '{_run.QuestId}' taken up again at stage {_run.StageId}.");
+         if (!_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return;
+         Journal(q.Id)?.Log("You are free to take this tale up again.");
+         AnnounceStage(AuthoredStageNotice.Text(q.Title, AuthoredQuestEngine.Fill(_run, AuthoredQuestEngine.Current(_run, q)?.Journal)));
+      }
+
       /// <summary>The popup's no, when the tale makes it an ending: the tale is played to that ending at once.</summary>
       private void Decline(AuthoredQuest q, AuthoredQuestRun run, Hero giver)
       {
+         PauseUnderWay(run);
          _run = run;
          _run.GiverRegardAtStart = RegardOf(giver);
          ModLog.Info($"[TALE] the player said no to '{q.Id}': ending '{q.OnScenario.DeclineEnding}'.");
@@ -2205,6 +2254,13 @@ namespace CalradiaRemembers.Quests
       {
          _offer = null;
          _offerHeroId = null;
+         // Nothing plays but a tale waits: that is the one set aside.
+         if (_run is not {Status: AuthoredQuestStatus.Active} && _paused != null)
+         {
+            _run = _paused;
+            _paused = null;
+         }
+
          if (_run == null) return;
          ReleaseBands();
          Journal(_run.QuestId)?.CloseAsCancelled(reason);
@@ -2348,6 +2404,17 @@ namespace CalradiaRemembers.Quests
       }
 
       internal AuthoredQuestRun Offer => _offer;
+
+      /// <summary>The tale set aside while a scenario's tale plays, or null.</summary>
+      internal AuthoredQuestRun PausedRun => _paused;
+
+      /// <summary>Self-test seam: the hourly check that takes a tale set aside up again, the player free or not.</summary>
+      internal void DebugResume(bool playerFree) => ResumeIfFree(!playerFree);
+
+      /// <summary>Self-test seam: the daily reconciling of the journal, and whether a tale's entry is open.</summary>
+      internal void DebugReconcileJournal() => ReconcileJournal();
+
+      internal bool DebugJournalOpen(string questId) => Journal(questId) != null;
 
       /// <summary>Self-test seam: a CR conversation opened with this hero, as CrConversation.Started reports it.</summary>
       internal void DebugConversationOpened(Hero hero)

@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 568 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1319 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1320 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 267 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -24,8 +24,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 4000+ | Mod | `Chat/ChatViewModel.cs` |
 | 2500+ | Mod | `Chat/ChatViewModel.Exchanges.cs` |
 | 2500+ | Mod | `Chat/CouncilLift.cs` |
+| 2500+ | Mod | `Quests/AuthoredQuestBehavior.cs` |
 | 2000+ | Sdk | `Models/EncounterContext.cs` |
-| 2000+ | Mod | `Quests/AuthoredQuestBehavior.cs` |
 | 1500+ | Sdk | `Actions/ActionBenchCatalog.cs` |
 | 1500+ | Mod | `Chat/ChatManager.cs` |
 | 1500+ | Mod | `GameState/CourtActionResolver.cs` |
@@ -1580,7 +1580,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HistoryRelationStep` | public class | One relation move to make now. |
 | `HistoryWorldFacts` | public class | The campaign as the validation sees it. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (97)
+### CalradiaRemembers.Logic.AuthoredQuests (98)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1677,6 +1677,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TaleJournalPolicy` | public static class | tashmetu (07/10/2026): "a finished tale stays listed twice, under Old Quests and still under Active Quests". |
 | `TaleJournalVerdict` | public enum | What becomes of a tale's journal entry. |
 | `TaleModuleFolder` | public class | Another mod's tales folder. |
+| `TalePause` | public static class | A tale set aside while a scenario's tale plays, and taken up again after. |
 | `TaleRegardFlags` | public static class | The flags that say how the giver's regard moved over the tale. |
 | `TaleRoleState` | public class | What the game reads of one of the tale's people, for the ways out the world takes (war_ends, dies, weds_player). |
 | `TaleVillageFacts` | public class | The state of one village a tale could be about. |

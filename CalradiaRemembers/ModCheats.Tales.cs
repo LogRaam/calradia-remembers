@@ -170,7 +170,9 @@ namespace CalradiaRemembers
       {
          if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
          AuthoredQuestRun run = AuthoredQuestBehavior.Instance?.ActiveRun;
-         if (run == null) return "No tale has been taken on in this campaign session.";
+         AuthoredQuestRun paused = AuthoredQuestBehavior.Instance?.PausedRun;
+         string waits = paused == null ? "" : $" Set aside since day {paused.PausedOnDay}: '{paused.QuestId}' at stage '{paused.StageId}', taken up again once nothing else plays and you are free.";
+         if (run == null) return paused == null ? "No tale has been taken on in this campaign session." : waits.Trim();
 
          AuthoredQuest q = AuthoredQuestBehavior.Instance.Quests.FirstOrDefault(x => x.Id == run.QuestId);
          IReadOnlyList<AuthoredChoice> open = q != null ? AuthoredQuestEngine.OpenChoices(run, q) : new List<AuthoredChoice>();
@@ -178,7 +180,7 @@ namespace CalradiaRemembers
          return $"'{run.QuestId}' ({run.Status}{(run.EndingId != null ? ", ending '" + run.EndingId + "'" : "")}), stage '{run.StageId}' since day {run.StageStartDay}, started day {run.StartDay}. "
                 + $"Bound: {string.Join(", ", run.BoundNames.Select(kv => kv.Key + "=" + kv.Value))}. "
                 + $"Locals heard {run.TalkedThisStage.Count}, nights watched {run.NightsWatched}, findings [{string.Join(", ", run.Findings)}]. "
-                + $"Flags [{string.Join(", ", run.Flags)}], path [{string.Join(", ", run.ChoicesTaken)}], open choices [{string.Join(", ", open.Select(c => c.Id))}].";
+                + $"Flags [{string.Join(", ", run.Flags)}], path [{string.Join(", ", run.ChoicesTaken)}], open choices [{string.Join(", ", open.Select(c => c.Id))}]." + waits;
       }
 
       /// <summary>cr.story_choose &lt;choice id&gt;: takes that open choice of the current stage, however it would be taken.</summary>

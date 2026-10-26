@@ -300,6 +300,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("mcm_test_buttons_wired", Severity.Light, "Mechanical: the three MCM Test buttons (OpenRouter, OpenAI-Compatible endpoint, NanoGPT) reach the connection tester. Since 19/10/2026 the settings no longer name the tester (it reads them, and the two namespaces used each other): the submodule hands it over at load, so a button whose hook was never set would click and do nothing, with no error. Asserts each hook is set. Read-only, no call is made", TestMcmTestButtonsWired),
          new SelfTest("memory_panel_secrets", Severity.Light, "tashmetu (20/10/2026): a player read his wife's secret affair in her lover's Memories panel before it came to light. Gives a met character, through the REAL public door, a private memory from another mod, an open one from another mod, and a private one under CR's own name (the player's word to a companion), and asks the REAL panel rule: with Show secret memories off, only the other mod's secret is left out; on, it is listed marked secret. Restores the setting and removes the three memories", TestMemoryPanelSecrets),
          new SelfTest("tale_arc", Severity.Light, "Gabriel (25/10/2026), on the night in Rhagaea's chamber: 'ca pourrait etre trop court ou trop long', then an arc of beats that 'devrait diriger l'experience que le LLM fait vivre au joueur'. A tale written into this test (a talk that completes as the conversation closes, with an arc of two beats of 2 and 1 exchanges) is opened through the REAL OPEN_TALE path with a lord. The lord's REAL prompt carries the first beat, not the second; after two exchanges counted by the same call the chat makes, the second beat is in the prompt and told it is the LAST reply; the third exchange closes the arc (the chat would close softly) and not before; the close then completes the stage on its ending. Then the signals (Gabriel: 'signaux observes avec tirage en filet'): a second tale whose middle beat goes on only if a signal was seen; through the REAL bridge (tale_signal) a signal the arc does not watch is refused, the watched one is taken and sets its flag, and the arc then skips back nowhere and reaches its last beat; played again with nothing seen and a net roll forced to succeed, the game decides the signal and the lord's prompt tells her to narrate it. The tales are forgotten after.", TestTaleArc),
+         new SelfTest("tale_interrupted", Severity.Light, "Gabriel (25/10/2026): 'je fais la quete du loup, mais je suis fait prisonnier par Rhagaea.. je devrais pouvoir vivre la nuit avec elle et reprendre ensuite la quete du loup lorsque je suis libere de prison', with the clock stopped while it waits and one level only. Two tales written into this test, both opened through the REAL OPEN_TALE path with a lord: the second sets the first aside (the first waits, the second plays); the daily journal reconciling leaves the first's entry open; a third summons is refused while one waits; the second ended, the first stays aside while the player is held, and is taken up again once free, at its stage, its first day moved on by the days it waited. The tales are forgotten after.", TestTaleInterrupted),
          new SelfTest("tale_opened_by_scenario", Severity.Light, "Gabriel (24/10/2026): a scenario opens a tale at night while the player is held (ON_CAPTIVE_NIGHT, IF_CAPTOR_IS, IF_PRESENT, IF_CHANCE, OPEN_TALE); the night is judged by the regard it left ('ca s'est bien passe si Rhagaea a gagne plus de Regards qu'elle en a perdu'), the memory stays either way, and each playing shows a new video of the stage's pool. A tale written into this test (on_scenario, a talk that completes as the conversation ends, an image_pool, three memories under regard_rose / regard_fell and a regard reward) is opened through the REAL OPEN_TALE check with a lord; the talk does not complete as the chat opens, and the lord is told the chamber's moment while it lasts; the lord's regard is raised by 4 during it; the close completes it with regard_rose, the warm memory and the +5 reward; a video of the pool is chosen. Then the same tale refused at its popup (decline_ending) ends at once: -2 regard and its memory. IF_CHANCE:1 holds and IF_CHANCE:0 does not; IF_CAPTOR_IS fails while the player is free. A lord with an errand merely on offer (Gabriel, 25/10/2026: Rhagaea's night refused with 'they already have a task of their own for you') can still be summoned, when the world holds one. Regard, memories, pools and the tale are put back after.", TestTaleOpenedByScenario),
          new SelfTest("tale_keys", Severity.Light, "tashmetu (20/10/2026), four keys for written tales: requires.player.gender, a notable giver's trade, a town as the bound place, gold the player pays. A tale written into this test asks a merchant of a town and the player's own sex: a real town merchant binds, with the town as its place; a headman or a village notable is refused for the trade; its twin asking the other sex is refused for the player. One gold paid by the player through the REAL payment reaches the merchant, then is given back. Forgets the tales after", TestTaleKeys),
          new SelfTest("edict_effects", Severity.Light, "Gabriel (21/10/2026), edicts on towns and realms, by the player and by the world's lords, and contestable. All six channels must be attached to the live models (tashmetu, 25/10/2026: a mod model inheriting CalculateTownTax left the tax unattached). Picks a real town held by a lord and has its holder decree a Heavy levy through the REAL decree (EdictBehavior.Decree): the influence is spent, the game's OWN loyalty model now carries a line named for the edict at -1 a day and its tax model a +25% factor (what the town's tooltip shows). A second edict on the same town and a decree by someone who does not hold it are refused before anything moves. A notable of the town is told the edict in his own prompt. Then the town is made restless with a long grievance and one day runs: its people force the edict off and the loyalty line is gone. Restores the town's loyalty, the holder's influence, and removes the edict and its news", TestEdictEffects),
@@ -14172,6 +14173,70 @@ namespace CalradiaRemembers.Diagnostics
                      { ""id"": ""last"", ""exchanges"": 1, ""do"": ""[SELFTEST] the last beat"" } ] } },
                ""canvas"": ""[SELFTEST] the talk"", ""on_complete"": { ""next"": ""end:done"" } } ],
            ""endings"": { ""done"": { } } }";
+
+      private static string TestTaleInterrupted(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tale_interrupted");
+
+         Quests.AuthoredQuestBehavior b = Quests.AuthoredQuestBehavior.Instance;
+         if (t.Skip(b == null || Hero.MainHero == null, "authored quests are not active")) return t.Line();
+         if (t.Skip(b.ActiveRun is {Status: Logic.AuthoredQuests.AuthoredQuestStatus.Active} || b.PausedRun != null,
+                $"a tale is under way or set aside ('{b.ActiveRun?.QuestId ?? b.PausedRun?.QuestId}')")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && h.Spouse != Hero.MainHero && !h.IsPrisoner
+                                                            && Mapping.ActionGate.Allows(h, Logic.ActionKind.Witness) && h.Clan != Clan.PlayerClan);
+         if (t.Skip(lord == null, "no free lord to play the tales with")) return t.Line();
+
+         const string trail = "cr_selftest_trail", night = "cr_selftest_interruption";
+         string Tale(string id, string title) => @"{ ""id"": ""@@ID@@"", ""title"": ""[SELFTEST] @@TITLE@@"", ""unique"": false,
+           ""requires"": { ""giver"": { ""role"": ""lord"", ""min_regard"": -100, ""not_at_war_with_player"": false } },
+           ""on_scenario"": { },
+           ""binds"": { ""giver"": ""a lord"" },
+           ""failure"": { ""days"": 40 },
+           ""stages"": [
+             { ""id"": ""asked"", ""journal"": ""[SELFTEST] Asked."", ""objective"": { ""type"": ""talk_to"", ""hero"": ""{giver}"" }, ""on_complete"": { ""next"": ""waiting"" } },
+             { ""id"": ""waiting"", ""journal"": ""[SELFTEST] Waiting."", ""objective"": { ""type"": ""wait"", ""days"": 30 }, ""on_complete"": { ""next"": ""end:done"" } } ],
+           ""endings"": { ""done"": { } } }".Replace("@@ID@@", id).Replace("@@TITLE@@", title);
+
+         try
+         {
+            t.Expect("theTalesLoad", string.Join(" | ", b.DebugLoadTale(Tale(trail, "The Trail"), "selftest_trail.json").Concat(b.DebugLoadTale(Tale(night, "The Interruption"), "selftest_interruption.json"))), "");
+            b.ForgetPlayed(trail);
+            b.ForgetPlayed(night);
+
+            t.Expect("theFirstOpens", b.DebugOpenFromScenario(trail, lord), null);
+            t.Expect("theSecondOpensOverIt", b.DebugOpenFromScenario(night, lord), null);
+            t.Expect("theFirstWaits", b.PausedRun?.QuestId, trail);
+            t.Expect("theSecondPlays", b.ActiveRun?.QuestId, night);
+            b.DebugReconcileJournal();
+            t.Expect("theWaitingEntryStaysOpen", b.DebugJournalOpen(trail), true);
+            t.Expect("aThirdSummonsIsRefused", b.OpenFromScenario(night, lord, dryRun: true) != null, true);
+
+            Logic.AuthoredQuests.AuthoredQuestRun waiting = b.PausedRun;
+            int startDay = waiting?.StartDay ?? 0;
+            if (waiting != null) waiting.PausedOnDay -= 5; // as if it had waited five days
+
+            b.Abandon("Self-test: the interruption is over.");
+            b.DebugResume(playerFree: false);
+            t.Expect("itStaysAsideWhileThePlayerIsHeld", b.PausedRun?.QuestId, trail);
+            b.DebugResume(playerFree: true);
+            t.Expect("itIsTakenUpOnceFree", $"{b.ActiveRun?.QuestId}/{b.ActiveRun?.StageId}", trail + "/waiting");
+            t.Expect("nothingWaitsAnyMore", b.PausedRun == null, true);
+            t.Expect("theDaysItWaitedDoNotCount", b.ActiveRun?.StartDay, startDay + 5);
+            t.Expect("itsEntryIsStillOpen", b.DebugJournalOpen(trail), true);
+         }
+         finally
+         {
+            if (b.ActiveRun is {Status: Logic.AuthoredQuests.AuthoredQuestStatus.Active}) b.Abandon("Self-test.");
+            if (b.PausedRun != null) b.Abandon("Self-test.");
+            b.ForgetPlayed(trail);
+            b.DebugForgetTale(trail);
+            b.ForgetPlayed(night);
+            b.DebugForgetTale(night);
+         }
+
+         return t.Line();
+      }
 
       private static string TestTaleOpenedByScenario(NpcMemoryCampaignBehavior behavior)
       {

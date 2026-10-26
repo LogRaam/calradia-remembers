@@ -63,6 +63,9 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       /// <summary>How that tale stands.</summary>
       public AuthoredQuestStatus? RunStatus { get; init; }
+
+      /// <summary>The tale set aside while a scenario's tale plays (TalePause), or null: it waits, its entry open.</summary>
+      public string PausedQuestId { get; init; }
    }
 
    /// <summary>
@@ -73,6 +76,8 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
    {
       public static TaleJournalVerdict Verdict(TaleJournalFacts f)
       {
+         if (f != null && !string.IsNullOrEmpty(f.EntryStoryId) && f.EntryStoryId == f.PausedQuestId && f.EntryStoryId != f.RunQuestId)
+            return f.IsNewestOfItsStory ? TaleJournalVerdict.Keep : TaleJournalVerdict.CloseCancelled;
          if (f == null || string.IsNullOrEmpty(f.EntryStoryId) || f.EntryStoryId != f.RunQuestId) return TaleJournalVerdict.CloseCancelled;
 
          return f.RunStatus switch {

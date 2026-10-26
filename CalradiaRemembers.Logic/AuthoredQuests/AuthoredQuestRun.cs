@@ -80,6 +80,12 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// </summary>
       public int? GiverRegardAtStart { get; set; }
 
+      /// <summary>
+      ///   The day this run was set aside for a scenario's tale (TalePause); null while it plays. Added 25/10/2026: absent in
+      ///   older saves, where nothing was set aside.
+      /// </summary>
+      public int? PausedOnDay { get; set; }
+
       /// <summary>The picture or video chosen from each stage's image_pool for this playing of the tale, by stage id.</summary>
       public Dictionary<string, string> ImagePicks { get; set; } = new();
 
