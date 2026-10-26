@@ -38,6 +38,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (`docs/maps/composition-parity.md`, `CompositionParityTests`).
 
 ### Fixed
+- **OpenRouter credits Calradia Remembers again** (fearente, 24/10: the activity page showed every call under another
+  app). OpenRouter now reads the app's name from `X-OpenRouter-Title`; the SDK sends it along with the older `X-Title`.
 - **A consort who accepted sharing you no longer holds a grievance over your other consort, but still minds being
   second** (Zivkyn, Nexus 25/10: "I took them both as Consorts, And they both agree no jealousy, Yet one always ends up
   with a Greivence"; Gabriel the same day: "si elles acceptent, elles devraient etre plus tolerantes a la jalousie.
@@ -104,6 +106,29 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   Editor, schema, HOWTO_Quests, EXTENSION_API and the Scenario Composer updated; two editor fixtures. cr.testall
   `tale_opened_by_scenario`. Engine spike `cr.captive_talk_probe` (24/10: a conversation opens while the player is held
   in a town's dungeon and the captivity survives it; the backdrop is the map conversation's throne room).
+- **More for scenario tales** (Gabriel 25/10, the night Rhagaea sends for her prisoner):
+  - `on_scenario.decline_ending` names an ending the popup's no plays at once, its regard, memory and cooldown with it,
+    instead of the tale passing for a season; the loader refuses an ending the tale lacks.
+  - A scenario tale with no invitation begins at once, and a `talk_to` stage in it opens that conversation by itself
+    once no chat is open: the summons is played as a narrated scene, no popup.
+  - A stage's `image_pool_pick`: `unseen` (the default, one not shown yet) or `random` (any, a repeat included).
+  - A `talk_to` completing as the conversation closes lets its giver speak the stage's canvas and facts all through.
+  - `ON_CAPTIVE_NIGHT` fires from 23:00 on, once a night (a tick read at 22.9999 could miss it).
+  Editor, schema and HOWTO_Quests follow. cr.testall `tale_opened_by_scenario`.
+
+### Developer tools
+- **Tale Editor:** Save writes back into the file being edited (browsers with the File System Access API; Firefox
+  keeps the download). A click on a stage opens a read-only summary under the story map, resizable: objective and how
+  the stage is completed, a scene's opening and closing as beats, what each character knows in full, choices,
+  outcomes, the checker's problems first. A stage an arc paces shows its beats, signals and jumps, and an ARC badge
+  on its node.
+- `cr.tale_open <tale id> <giver>` opens a scenario tale now, through the same door as the rule's `OPEN_TALE`.
+- `Tools/Video/CrvidPlayer.html` plays `.crvid` videos in the browser (files or a folder, frame by frame, speed).
+- The wire snapshot carries the request itself, so the cost bench capture can be replayed outside the game.
+
+### Internal
+- One junction decides who reads a reply's actions (`ActionReaderPolicy`, one path for actions, step 2); the
+  composition-parity map renders it from real calls.
 
 ## v2.7.20.. 2026-10-24
 
