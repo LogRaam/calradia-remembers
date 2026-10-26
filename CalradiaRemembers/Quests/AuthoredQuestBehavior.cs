@@ -372,9 +372,10 @@ namespace CalradiaRemembers.Quests
       }
 
       /// <summary>The offer facts for this quest now, the dice aside.</summary>
-      private AuthoredOfferFacts FactsFor(AuthoredQuest q, Hero giver, int today) => new() {
+      // A scenario's summons is not an errand raised in conversation: only a quest of theirs already under way bars it.
+      private AuthoredOfferFacts FactsFor(AuthoredQuest q, Hero giver, int today, bool bySummons = false) => new() {
          Today = today, StoryUnderWay = _run is {Status: AuthoredQuestStatus.Active}, Unique = q.Unique, AlreadyPlayed = _done.Contains(q.Id),
-         GiverHasVanillaQuest = HasATaskOfTheirOwn(giver),
+         GiverHasVanillaQuest = bySummons ? HasAQuestUnderWay(giver) : HasATaskOfTheirOwn(giver),
          LastPlayedOnDay = _playedOn.TryGetValue(q.Id, out int p) ? p : (int?) null, RepeatCooldownDays = q.RepeatCooldownDays,
          DeclinedOnDay = _declined.TryGetValue(q.Id, out int d) ? d : (int?) null, Chance = AuthoredQuestOfferPolicy.OfferChance,
          ContentAllowed = AuthoredContentPolicy.Allows(q.Requires?.Content, ModSettings.AdultContentLevel), Content = q.Requires?.Content
@@ -1657,7 +1658,7 @@ namespace CalradiaRemembers.Quests
          if (!TryBind(q, giver, out Dictionary<string, string> ids, out Dictionary<string, string> names, out string whyNot)) return whyNot;
 
          var today = (int) CampaignTime.Now.ToDays;
-         whyNot = AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, giver, today));
+         whyNot = AuthoredQuestOfferPolicy.WhyNot(FactsFor(q, giver, today, bySummons: true));
          if (whyNot != null || dryRun) return whyNot;
 
          AuthoredQuestRun run = AuthoredQuestEngine.Start(q, ids, names, today);
@@ -2163,8 +2164,24 @@ namespace CalradiaRemembers.Quests
          if (giver == null) return false;
          try
          {
-            if (giver.Issue != null) return true;
+            return giver.Issue != null || HasAQuestUnderWay(giver);
+         }
+         catch
+         {
+            return false;
+         }
+      }
 
+      /// <summary>
+      ///   A quest of theirs the player took and has not settled (any but a tale). Gabriel (25/10/2026): the night Rhagaea
+      ///   sends for her prisoner was refused because an empress nearly always has an errand on offer ("they already have a
+      ///   task of their own for you"); a summons by a scenario is barred only by this, never by an errand merely offered.
+      /// </summary>
+      private static bool HasAQuestUnderWay(Hero giver)
+      {
+         if (giver == null) return false;
+         try
+         {
             return Campaign.Current?.QuestManager?.Quests?.Any(x => x != null && x.IsOngoing && x.QuestGiver == giver && x is not AuthoredStoryQuest) == true;
          }
          catch
