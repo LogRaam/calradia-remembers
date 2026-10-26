@@ -14,6 +14,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   `rhagaea_marriage.json` plays for the wedding. Needs an unwed player and an heir of age riding in your party; a
   wedding the game still refuses hands the house and the character back. New action `leave_house_to_wed` (not taught in Compact),
   `cr.leave_house_check`, `cr.leave_house` (irreversible, for a throwaway save), `cr.testall leave_house_for_ruler`.
+  **A second road, and the one with no heir** (Gabriel, 26/10/2026: "le Clan du joueur est transfere a Rhagaea. C'est
+  aussi l'option si aucun heritier. Mais ca pourrait declencher la guerre"): give her all. You keep your character and
+  your family ("le lien de sang est tres fort"); she receives your towns and castles (villages follow), your gold and,
+  if you rule one, your realm, whose houses join hers; your house serves her realm, and the influence the move wipes is
+  given back; you wed, each keeping your own house, and the children of the union are of her line; she pays a season
+  (60 days) of your house's wages. Her people's rivals may answer with war: near certain for a realm handed over or a
+  defection from a rival empire, likelier with each fief, none for a landless house; the AI makes peace when it will.
+  When both roads are open, the popup lets you choose. `cr.give_her_all` (irreversible, for a throwaway save).
 - **A tale's conversation can be paced beat by beat, and The Empress's Summons is** (Gabriel, 25/10/2026: "ca pourrait
   etre trop court ou trop long", then the 3/3/3/5 night). A `talk_to` with `"when": "closed"` may carry an `arc`: beats
   played in order, each for its number of exchanges, with its direction and who leads; the character is told each

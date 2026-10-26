@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Marriage;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 
@@ -149,9 +150,15 @@ namespace CalradiaRemembers.GameState
             return;
          }
 
+         // A wife who kept her own house (giving her all, 26/10/2026): the child is of her line, whoever made the pregnancy.
+         bool ofHerLine = LeaveHouseForRulerPolicy.ChildBelongsToHerHouse(new UnionChildFacts {
+            MotherIsThePlayersWife = mother.Spouse != null && mother.Spouse == Hero.MainHero,
+            MotherKeepsHerOwnHouse = mother.Clan != null && mother.Clan != Clan.PlayerClan
+         });
+
          // Only correct CR's own pregnancies; vanilla NPC births keep their (patrilineal) clan. Ordinary
          // conceptions are unchanged: they land the child in the MOTHER's clan exactly as before.
-         if (!wasCrPregnancy) return;
+         if (!wasCrPregnancy && !ofHerLine) return;
 
          Clan motherClan = mother.Clan;
          foreach (Hero child in aliveChildren)

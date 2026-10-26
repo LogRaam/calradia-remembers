@@ -49,6 +49,7 @@ namespace CalradiaRemembers.Marriage
       private const int SettleFrames = 30;
 
       private string _pendingRulerId;
+      private LeaveHouseRoad _pendingRoad;
       private int _framesSettled;
 
       public static LeaveHouseForRulerBehavior Instance { get; private set; }
@@ -67,8 +68,8 @@ namespace CalradiaRemembers.Marriage
          => Clan.PlayerClan?.GetHeirApparents()?.OrderByDescending(kv => kv.Value).Select(kv => kv.Key)
                .FirstOrDefault(h => h != null && h != Hero.MainHero && HeroPresence.IsInTheWorld(h) && !h.IsPrisoner);
 
-      /// <summary>The live facts behind leaving the house for <paramref name="ruler" />.</summary>
-      public static LeaveHouseFacts FactsFor(Hero ruler)
+      /// <summary>The live facts behind leaving the house for <paramref name="ruler" /> by <paramref name="road" />.</summary>
+      public static LeaveHouseFacts FactsFor(Hero ruler, LeaveHouseRoad road)
       {
          Hero player = Hero.MainHero;
          if (player == null || ruler == null) return null;
@@ -78,6 +79,7 @@ namespace CalradiaRemembers.Marriage
          MobileParty herParty = ruler.PartyBelongedTo;
 
          return new LeaveHouseFacts {
+            Road = road,
             PlayerIsWed = player.Spouse != null,
             TwoHeadsOfHouses = MarriageProspectResolver.HeadsOfTwoHouses(player, ruler),
             WarOrCaptivity = !MarriageGuardPolicy.MarriageAllowed(new MarriageGuardPolicy.MarriageStateFacts {
@@ -91,8 +93,12 @@ namespace CalradiaRemembers.Marriage
          };
       }
 
-      /// <summary>What stands in the way of leaving the house for <paramref name="ruler" />, or None.</summary>
-      public static LeaveHouseBar WhyNot(Hero ruler) => LeaveHouseForRulerPolicy.WhyNot(FactsFor(ruler));
+      /// <summary>What stands in the way of leaving the house for <paramref name="ruler" /> by <paramref name="road" />, or None.</summary>
+      public static LeaveHouseBar WhyNot(Hero ruler, LeaveHouseRoad road) => LeaveHouseForRulerPolicy.WhyNot(FactsFor(ruler, road));
+
+      /// <summary>The roads open to the player toward <paramref name="ruler" />, the heir's first.</summary>
+      public static LeaveHouseRoad[] OpenRoads(Hero ruler)
+         => new[] {LeaveHouseRoad.ThroughTheHeir, LeaveHouseRoad.GiveHerAll}.Where(r => WhyNot(ruler, r) == LeaveHouseBar.None).ToArray();
 
       /// <summary>
       ///   Every clause of DefaultMarriageModel.IsCoupleSuitableForMarriage the hand-over does not itself lift (it lifts
@@ -126,13 +132,14 @@ namespace CalradiaRemembers.Marriage
       }
 
       /// <summary>The player said yes: the hand-over runs once the chat has closed and the map has settled.</summary>
-      public void Request(Hero ruler)
+      public void Request(Hero ruler, LeaveHouseRoad road)
       {
          if (ruler == null) return;
 
          _pendingRulerId = ruler.StringId;
+         _pendingRoad = road;
          _framesSettled = 0;
-         ModLog.Info($"[LEAVE_HOUSE] the player will leave the house for {ruler.Name}; waiting for the map.");
+         ModLog.Info($"[LEAVE_HOUSE] the player will leave the house for {ruler.Name} ({road}); waiting for the map.");
       }
 
       /// <summary>One frame: runs the pending hand-over once the chat, the mission and the game's conversation are gone.</summary>
@@ -149,7 +156,7 @@ namespace CalradiaRemembers.Marriage
          string id = _pendingRulerId;
          _pendingRulerId = null;
          Hero ruler = Hero.FindFirst(h => h.StringId == id);
-         string refusal = HandOver(ruler);
+         string refusal = _pendingRoad == LeaveHouseRoad.GiveHerAll ? GiveHerAllService.Give(ruler) : HandOver(ruler);
          if (refusal != null) InformationManager.DisplayMessage(new InformationMessage(refusal, Colors.Red));
       }
 
@@ -161,7 +168,7 @@ namespace CalradiaRemembers.Marriage
       {
          try
          {
-            LeaveHouseBar bar = WhyNot(ruler);
+            LeaveHouseBar bar = WhyNot(ruler, LeaveHouseRoad.ThroughTheHeir);
             if (bar != LeaveHouseBar.None)
             {
                ModLog.Info($"[LEAVE_HOUSE] refused before anything was handed over: {bar}.");

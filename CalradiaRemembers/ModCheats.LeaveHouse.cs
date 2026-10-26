@@ -26,10 +26,12 @@ namespace CalradiaRemembers
          Hero ruler = ResolveHero(args);
          if (ruler == null) return "No hero found. Pass a name fragment or start a conversation first.";
 
-         LeaveHouseFacts f = LeaveHouseForRulerBehavior.FactsFor(ruler);
+         LeaveHouseFacts f = LeaveHouseForRulerBehavior.FactsFor(ruler, LeaveHouseRoad.ThroughTheHeir);
          Hero heir = LeaveHouseForRulerBehavior.BestHeir();
          var sb = new StringBuilder();
-         sb.AppendLine($"{ruler.Name}: {LeaveHouseForRulerPolicy.WhyNot(f)}");
+         sb.AppendLine($"{ruler.Name}: through the heir {LeaveHouseForRulerPolicy.WhyNot(f)}; giving her all {LeaveHouseForRulerBehavior.WhyNot(ruler, LeaveHouseRoad.GiveHerAll)}");
+         UnionFacts union = GiveHerAllService.UnionFor(ruler);
+         sb.AppendLine($"  giving all: fiefs={union.FiefsBrought} realm={union.BringsARealm} defects={union.DefectsFromARival} war chance={LeaveHouseForRulerPolicy.WarChance(union)}%");
          sb.AppendLine($"  heir: {heir?.Name?.ToString() ?? "none"}{(f?.HeirRidesWithThePlayer == true ? " (in your party)" : "")}");
          sb.AppendLine($"  wed={f?.PlayerIsWed} twoHeads={f?.TwoHeadsOfHouses} warOrCaptivity={f?.WarOrCaptivity} heartWon={f?.HerHeartIsWon}");
          sb.AppendLine($"  armyOrBattle={f?.ArmyOrBattle} gameWouldWedAfter={f?.TheGameWouldWedThemAfter}");
@@ -38,8 +40,24 @@ namespace CalradiaRemembers
       }
 
       /// <summary>
-      ///   cr.leave_house [name]: runs the REAL hand-over now, no popup: the heir takes the house and the player, the old
-      ///   character weds the ruler. IRREVERSIBLE: for a throwaway save.
+      ///   cr.give_her_all [name]: gives the ruler your fiefs, gold and realm and weds her now, no popup: the second road.
+      ///   IRREVERSIBLE: for a throwaway save.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("give_her_all", "cr")]
+      public static string GiveHerAll(List<string> args)
+      {
+         if (!TryContext(out _, out string error)) return error;
+
+         Hero ruler = ResolveHero(args);
+         if (ruler == null) return "No hero found. Pass a name fragment.";
+
+         string refusal = GiveHerAllService.Give(ruler);
+
+         return refusal ?? $"Done: {ruler.Name} holds your fiefs and gold, and is your {(ruler.IsFemale ? "wife" : "husband")}.";
+      }
+
+      /// <summary>
+      ///   cr.leave_house [name]: runs the REAL hand-over through the heir now, no popup. IRREVERSIBLE.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("leave_house", "cr")]
       public static string LeaveHouse(List<string> args)

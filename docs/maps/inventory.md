@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 570 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1326 types in 46 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 571 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1330 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 267 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -594,7 +594,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TraumaPageReader` | internal static class | Reads the aggressions a hero lived through for the Trauma section. |
 | `WeddingDayBehavior` | public class | The day each married hero was wed, as CR saw it happen. |
 
-### CalradiaRemembers.Marriage (15)
+### CalradiaRemembers.Marriage (16)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -603,6 +603,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DivorceEligibilityResolver` | public static class | Gathers the live facts behind end_marriage eligibility and evaluates them via DivorcePolicy. "The leaving spouse" is whichever of the NPC and their spouse currently sits in a clan other than the one they were born/create... |
 | `DivorceProcessBehavior` | public class | Tracks every outstanding DivorceProcess and advances it one day at a time. |
 | `ForeignDivorceBehavior` | public class | Notices a marriage another mod ended, and has the world and the former spouses know it. |
+| `GiveHerAllService` | public static class | Gives a ruler the player's fiefs, gold and realm, and weds them, each keeping their own house. |
 | `HeroClanCompat` | public static class | Reflection-guarded access to Hero.OriginClan, with an availability flag so callers can degrade deliberately rather than silently. |
 | `LeaveHouseForRulerBehavior` | public class | Hands the player's house to the heir and weds the old character to the ruler he leaves it for. |
 | `MarriageApprovalBehavior` | public class | The engine of the marriage system (Phase A): it remembers which matches a family has blessed and, the moment the player marries, swings the spouse's whole family for or against the player depending on whether that blessi... |
@@ -2104,7 +2105,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SecretHandoffKind` | public enum | How a carried secret changes hands. |
 | `WhereaboutsFacts` | public class | Where someone is, as the letter needs it. |
 
-### CalradiaRemembers.Logic.Marriage (40)
+### CalradiaRemembers.Logic.Marriage (44)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2126,11 +2127,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EstrangementProgressPolicy` | public static class | Paces a Stolen Love estrangement from its start day to the point the spouse is ready to leave, scaled by the seduction's SeductionDifficulty. |
 | `ExCompanionDivorcePolicy` | public static class | Pure decision for the divorce half of the marry-your-own-companion feature: whether a divorcing spouse is an ex-companion who must be returned to the free-wanderer pool rather than relocated to a birth clan. |
 | `ForcedMarriagePolicy` | public static class | How a marriage sealed on the family's blessing, against the spouse's own unwon heart, is resented. |
+| `GiveHerAllStep` | public enum | One engine step of giving her all, in the order it must run. |
 | `HouseHeadFacts` | public class | Who heads a house, on each side of a match the player would make. |
 | `HouseHeadMarriagePolicy` | public static class | The game's own bar on wedding two heads of houses, asked before the model is told a marriage is on offer. |
 | `LeaveHouseBar` | public enum | What stands between the player and leaving their house for a ruler who heads hers. |
 | `LeaveHouseFacts` | public class | The live facts behind leaving one's house for a ruler. |
 | `LeaveHouseForRulerPolicy` | public static class | Whether the player may leave their house for a ruler, and the order the hand-over runs in. |
+| `LeaveHouseRoad` | public enum | How the player leaves their house for her (Gabriel, 26/10/2026). |
 | `LeaveHouseStep` | public enum | One engine step of the hand-over, in the order it must run. |
 | `MarriageBlockOverridePolicy` | public static class | Pure soft-vs-hard table: which MarriageBlockReason a passed courtship trial may override. |
 | `MarriageClaimPolicy` | public static class | Detects whether an [EVENT] summary CLAIMS that the conversation NPC and the player are now married, so the mod can withhold the memory (and the romantic-arc advancement riding on it) until Hero.Spouse confirms the weddin... |
@@ -2146,6 +2149,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpouseDivorceDemandPolicy` | public static class | Pure gate deciding whether the player's own spouse is unhappy enough to raise a divorce demand this evaluation period. |
 | `SpouseDivorceEscalationFacts` | public class | Every already-resolved fact SpouseDivorceDemandPolicy.ShouldEscalate needs. |
 | `StolenLoveEstrangement` | public class | One married NPC whose marriage is coming apart because of an affair with the player: who they are, who they are married to, when the estrangement began, and how hard-won the seduction was (which paces how long the rift t... |
+| `UnionChildFacts` | public class | Who a newborn's parents are, for the house the child belongs to. |
+| `UnionFacts` | public class | What the player brings her, which decides whether her people's rivals answer with war. |
 | `WeddingFacts` | public class | What is known about a match at the moment of the wedding. |
 | `WeddingMemoryText` | public static class | Words the new spouse's memory of the wedding. |
 
