@@ -325,6 +325,7 @@ input[type="number"] { max-width: 160px; }
 .edge.near { stroke-width: 3; opacity: 1; }
 
 /* The summary under the story map (Gabriel, 25/10/2026): see a stage without leaving the map, sized like VS Code's terminal. */
+.summary-sub { margin: 10px 0 4px; color: var(--text-3); font: 700 10.5px var(--font); letter-spacing: 0.06em; text-transform: uppercase; }
 .map-split { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .map-split > .map-wrap { flex: 1 1 auto; height: auto; min-height: 160px; }
 .map-summary { flex: 0 0 auto; display: flex; flex-direction: column; min-height: 0; background: var(--surface); border-top: 1px solid var(--line-strong); }
@@ -6024,6 +6025,9 @@ input[type="number"] { max-width: 160px; }
     ss.forEach(function (s, i) {
       if (!s) return;
       var n = {key: 's' + i, kind: 'stage', index: i, title: s.id || '(no id)', sub: s.objective ? objectiveSummary(s.objective) : 'choices only', tag: i === 0 ? 'REQUEST' : (s.objective && s.objective.type === 'explore' ? 'SCENE' : null)};
+      // Gabriel (25/10/2026, "oui avec badge"): a stage an arc paces says so on the map, with its number of beats.
+      var arcBeats = s.objective && s.objective.arc && typeof s.objective.arc === 'object' ? arr(s.objective.arc.beats).filter(function (b) { return b; }).length : 0;
+      if (arcBeats) n.tag = (n.tag ? n.tag + ' \u00b7 ' : '') + 'ARC \u00b7 ' + arcBeats + (arcBeats === 1 ? ' BEAT' : ' BEATS');
       nodes.push(n);
       if (s.id && !(s.id in byId)) byId[s.id] = n;
     });
@@ -6443,6 +6447,61 @@ input[type="number"] { max-width: 160px; }
     ]);
   }
 
+  /**
+   * How an arc paces the conversation, read as the game plays it (Gabriel, 25/10/2026: "est-ce qu'on devrait mettre un
+   * resume de l'ARC dans le resume du Story Map?"): its cap, its signals, each beat with where it goes once played out
+   * (the final beat always closes; no "next" holding falls through to the following beat, or closes after the last),
+   * and the jumps a signal makes at once.
+   */
+  function arcSummary(arc) {
+    var beats = arr(arc.beats).filter(function (b) { return b; }), signals = arr(arc.signals).filter(function (s) { return s; });
+    var finalId = !blank(arc.final) ? String(arc.final).trim() : (beats.length ? String(beats[beats.length - 1].id || '').trim() : '');
+    var straight = beats.reduce(function (t, b) { return t + Math.max(1, Number(b.exchanges) || 0); }, 0);
+    function beatName(id) { return id === 'close' ? 'the scene closes' : 'beat \u2018' + id + '\u2019'; }
+    var out = [rows([
+      ['Beats', beats.length + (beats.length === 1 ? ' beat, ' : ' beats, ') + straight + ' exchange(s) played straight through'],
+      ['At most', Number(arc.max_exchanges) > 0 ? arc.max_exchanges + ' exchanges in all, then ' + beatName(finalId) : null],
+      ['Ends on', blank(finalId) ? null : beatName(finalId) + (blank(arc.final) ? ' (the last one)' : '')]
+    ])];
+    if (signals.length) out.push(h('div.summary-sub', 'Signals'), h('ul.summary-list', signals.map(function (sg) {
+      var net = sg.net && typeof sg.net === 'object'
+        ? '; if never seen, the game may decide it after ' + (sg.net.after || 0) + ' exchange(s) of listening, at ' + Math.round((Number(sg.net.chance) || 0) * 100) + '%'
+        : '';
+      return h('li', h('span.mono', sg.id || '?'), (blank(sg.means) ? '' : ': ' + sg.means) + net);
+    })));
+    if (beats.length) out.push(h('div.summary-sub', 'Beats'), h('ol.summary-list', beats.map(function (b, i) {
+      var id = String(b.id || '').trim(), n = Math.max(1, Number(b.exchanges) || 0);
+      var who = String(b.lead || 'npc').trim().toLowerCase() === 'player' ? 'the player leads' : 'the character leads';
+      var listens = arr(b.listens).filter(function (l) { return !blank(l); });
+      var then;
+      if (id === finalId) then = 'the scene closes';
+      else {
+        // Read top to bottom: the first that holds wins, so a way with no "if" ends the list; none holding falls through.
+        var ways = [], open = true;
+        arr(b.next).filter(function (x) { return x; }).forEach(function (x) {
+          if (!open) return;
+          var gated = x.if !== undefined && x.if !== null && [].concat(x.if).filter(function (f) { return !blank(f); }).length;
+          var to = beatName(blank(x.to) ? 'close' : String(x.to).trim());
+          if (gated) ways.push('if ' + flagsToText(x.if) + ' \u2192 ' + to);
+          else { ways.push((ways.length ? 'otherwise \u2192 ' : '') + to); open = false; }
+        });
+        var following = beats[i + 1] ? beatName(String(beats[i + 1].id || '').trim()) : 'the scene closes';
+        if (open) ways.push((ways.length ? 'otherwise \u2192 ' : '') + following);
+        then = ways.join(', ');
+      }
+      var direction = blank(b['do']) ? '' : String(b['do']);
+      return h('li', h('strong', id || '?'), ' \u00b7 ' + n + (n === 1 ? ' exchange, ' : ' exchanges, ') + who
+          + (listens.length ? ', listens for ' + listens.join(', ') : ''),
+        direction ? h('div', {title: direction, style: 'color:var(--text-2)'}, direction.length > 220 ? direction.slice(0, 217) + '...' : direction) : null,
+        h('div', h('span.when', 'Then: '), then));
+    })));
+    var jumps = arc.on_signal && typeof arc.on_signal === 'object' ? Object.keys(arc.on_signal) : [];
+    if (jumps.length) out.push(h('div.summary-sub', 'At once'), h('ul.summary-list', jumps.map(function (k) {
+      return h('li', 'when ', h('span.mono', k), ' is seen \u2192 ' + beatName(String(arc.on_signal[k] || '').trim()));
+    })));
+    return h('div', out);
+  }
+
   function stageSummary(i) {
     var s = stages()[i];
     if (!s) return null;
@@ -6453,6 +6512,7 @@ input[type="number"] { max-width: 160px; }
       ['Picture', picturesOf(s)]
     ]));
     body.push(h('h4', 'How the stage is completed'), completionOf(s));
+    if (o.arc && typeof o.arc === 'object') body.push(h('h4', 'The arc'), arcSummary(o.arc));
     if (lines(s.canvas).length) body.push(h('h4', 'What is said'), lineList(s.canvas));
     if (lines(s.facts).length) body.push(h('h4', 'What is true'), lineList(s.facts));
     if (s.knowers && typeof s.knowers === 'object') {
