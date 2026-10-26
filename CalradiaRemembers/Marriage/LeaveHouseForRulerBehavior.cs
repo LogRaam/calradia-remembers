@@ -20,6 +20,8 @@ using CalradiaRemembers.Dynasty;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic.Dynasty;
+using CalradiaRemembers.Storage;
+using CalradiaRemembers.WorldEvents;
 using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Scenarios;
@@ -266,9 +268,25 @@ namespace CalradiaRemembers.Marriage
       // Sealed: the heir inherits standing, not romance; she remembers why he came to her; the realm hears of it.
       private static void Seal(Hero old, Hero heir, Hero ruler)
       {
-         SuccessionBehavior.Instance?.Apply(old, heir, PlayerChangeKind.Abdication, ruler);
-
          var store = NpcMemoryCampaignBehavior.Instance?.Store;
+         int today = (int) CampaignTime.Now.ToDays;
+
+         // Gabriel (26/10/2026): "transferer les souvenirs au 'nouveau' npc". Read BEFORE the succession: it drops private
+         // history for good and writes its own chronicle line, which is the heir's, not his.
+         List<PastDeed> deeds = WorldEventStore.Instance?.GetPlayerChronicle()
+                                   .Select(e => new PastDeed {Day = e.Day, Magnitude = e.Magnitude, Summary = e.Summary}).ToList()
+                                ?? new List<PastDeed>();
+         NpcProfile herBefore = store?.Get(ruler.StringId);
+         if (herBefore != null)
+         {
+            for (int i = 0; i < herBefore.Events.Count; i++)
+               herBefore.Events[i] = PredecessorMemoryPolicy.KeptAsHerOwnLife(herBefore.Events[i], old.Name?.ToString());
+            store.Set(herBefore);
+         }
+
+         SuccessionBehavior.Instance?.Apply(old, heir, PlayerChangeKind.Abdication, ruler);
+         GiveHimHisPast(store, old, heir, ruler, deeds, today);
+
          NpcProfile hers = store?.Get(ruler.StringId);
          if (hers != null)
          {
@@ -283,6 +301,29 @@ namespace CalradiaRemembers.Marriage
          StoryLog.WriteNarration(msg);
          Campaign.Current.TimeControlMode = CampaignTimeControlMode.Stop;
          ModLog.Info($"[LEAVE_HOUSE] sealed: {old.Name} wed {ruler.Name} and joined {ruler.Clan?.Name}; {heir.Name} leads {Clan.PlayerClan?.Name}.");
+      }
+
+      // The old character's own life as memories (his weightiest deeds, why he left), so the heir meets no stranger.
+      private static void GiveHimHisPast(BannerlordNpcMemoryStore store, Hero old, Hero heir, Hero ruler, List<PastDeed> deeds, int today)
+      {
+         if (store == null) return;
+
+         NpcProfile his = store.Get(old.StringId) ?? HeroProfileMapper.FromHero(old);
+         his.Events.AddRange(PredecessorMemoryPolicy.OwnLife(deeds));
+         his.Events.AddRange(PredecessorMemoryPolicy.TheLeaving(new PredecessorFacts {
+            Name = old.Name?.ToString() ?? "", HeirName = heir.Name?.ToString() ?? "", HeirIsTheir = WhatTheHeirIsTo(old, heir),
+            RulerName = ruler.Name?.ToString() ?? "", HouseName = Clan.PlayerClan?.Name?.ToString() ?? "the house", RulerIsFemale = ruler.IsFemale
+         }, today));
+         store.Set(his);
+         ModLog.Info($"[LEAVE_HOUSE] {old.Name} keeps {his.Events.Count} memories of the life the player gave him.");
+      }
+
+      private static string WhatTheHeirIsTo(Hero old, Hero heir)
+      {
+         if (heir.Father == old || heir.Mother == old) return heir.IsFemale ? "daughter" : "son";
+         if (heir.Siblings != null && heir.Siblings.Contains(old)) return heir.IsFemale ? "sister" : "brother";
+
+         return "kin";
       }
    }
 }

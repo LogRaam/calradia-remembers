@@ -25,6 +25,10 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   When her road is closed for a reason you could mend (her heart not yet won, a war or a captivity, an army or a
   battle), she says so instead of meeting your resolve with silence. The popup says plainly when you give up a crown,
   how many fiefs you bring, and how likely her people's rivals are to answer with war.
+  Through the heir, your old character keeps his life (Gabriel, 26/10/2026: "transferer les souvenirs au 'nouveau'
+  npc"): his weightiest deeds from your chronicle, in order, why he left the house and to whom; and the ruler keeps her
+  romance with him as her own life, by his name, instead of losing it to the succession. A wed player must first part
+  from their spouse (`end_own_marriage`): she would never be a second wife.
 - **A tale's conversation can be paced beat by beat, and The Empress's Summons is** (Gabriel, 25/10/2026: "ca pourrait
   etre trop court ou trop long", then the 3/3/3/5 night). A `talk_to` with `"when": "closed"` may carry an `arc`: beats
   played in order, each for its number of exchanges, with its direction and who leads; the character is told each

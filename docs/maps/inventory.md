@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 571 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1330 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1333 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 268 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1936,12 +1936,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpawnMethodShape` | public class | One method the game's Mission type offers, as reflection sees it. |
 | `SquareReadinessFacts` | public class | What the town square's opening waits on. |
 
-### CalradiaRemembers.Logic.Dynasty (5)
+### CalradiaRemembers.Logic.Dynasty (8)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `PastDeed` | public class | One deed of the player's chronicle, as the old character will remember it. |
 | `PlayerChangeFacts` | public class | The predecessor's state when the change fired. |
 | `PlayerChangeKind` | public enum | What a change of player character was. |
+| `PredecessorFacts` | public class | What the old character is, and to whom, when he leaves the house for a ruler. |
+| `PredecessorMemoryPolicy` | public static class | The memories the old character keeps, and the ruler's romance kept as her own life. |
 | `SuccessionKinship` | public static class | Maps a predecessor's family relation to the heir into the word an NPC would use. |
 | `SuccessionMemoryPolicy` | public static class | The rule for which recorded events survive a succession (are inherited by the heir). |
 | `SuccessionTrigger` | public static class | Classifies a change of player character, so only a real succession reframes memories. |

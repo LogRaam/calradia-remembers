@@ -21443,6 +21443,12 @@ namespace CalradiaRemembers.Diagnostics
             UnionFacts union = GiveHerAllService.UnionFor(ruler);
             t.Note($"the gift: {union.FiefsBrought} fief(s), realm={union.BringsARealm}, defects={union.DefectsFromARival}, war {LeaveHouseForRulerPolicy.WarChance(union)}%");
             t.Expect("theGiftCountsTheHousesFiefs", union.FiefsBrought, Clan.PlayerClan.Fiefs.Count);
+            // Gabriel (26/10/2026): the old character keeps his life as memories, read from this save's real chronicle.
+            int chronicle = WorldEvents.WorldEventStore.Instance?.GetPlayerChronicle()?.Count ?? 0;
+            int kept = PredecessorMemoryPolicy.OwnLife(WorldEvents.WorldEventStore.Instance?.GetPlayerChronicle()
+                          ?.Select(e => new PastDeed {Day = e.Day, Magnitude = e.Magnitude, Summary = e.Summary})).Count;
+            t.Note($"the old character would keep {kept} of {chronicle} chronicle deed(s)");
+            t.Expect("heKeepsHisLifeButNotEverySkirmish", kept, Math.Min(chronicle, PredecessorMemoryPolicy.MostDeedsKept));
          }
          finally
          {
