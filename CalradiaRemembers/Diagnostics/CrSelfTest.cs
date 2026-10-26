@@ -267,6 +267,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("grudge_answered", Severity.Light, "Player report (Zivkyn, 18/09/2026): a lord kept asking why the player killed his kin, months later, however often it had been explained, and kept riding out to confront the player about it. Plants a real grudge against the player on a clean-slate lord and makes it a VENDETTA, asserts it drives an interception and hear_account is offered, then runs hear_account through the REAL bridge (BannerlordGameStateBridge.ExecuteAction, the path an LLM emission takes) and asserts: the grudge is answered with the account, still a vendetta and exactly as heavy, the lord's built GrudgeNote now carries the account and the do-not-ask-again instruction, the interception no longer fires, and hear_account is no longer offered. No LLM call. Clears the lord's grudges afterwards", TestGrudgeAnswered),
          new SelfTest("duel_venue_here", Severity.Light, "Player reports (FloatingMammal 10/09/2026, yozakura12 17, 18 and 20/09/2026): the duel was offered in places it could not be staged, and staged in places the engine could not open. Reports where the player is standing RIGHT NOW (settlement, town or castle, inside the walls or merely on it, and whether it owns the 'center' location a duel opens) and asserts the two halves agree: that a town or a castle really does own a duelling ground in THIS install, and that the venue the resolver chooses is the one the staging would accept. On the open map (GABRIEL'S RULE, 13/10/2026), drives the same pure DuelStagingSupport/DuelVenuePolicy seam directly against a real town and a real castle instead (inside=true supplied as the fact, never the live PlayerEncounter global, and nothing moves the main party); MANUAL only when no town or castle exists at all. No duel is armed and no scene is opened", TestDuelVenueHere),
          new SelfTest("plural_acceptance", Severity.Light, "Player report (yozakura12, 22/09/2026): playing with multiple spouses, jealousy cost the full betrayal price even for a wife who says in her own voice that she accepts the harem, and the only thing close to that state was open_relationship, which is RECIPROCAL and suppresses her jealousy outright. Borrows a lady as a committed consort, sets her regard to devotion, and runs accept_other_partners through the REAL bridge (BannerlordGameStateBridge.ExecuteAction, the path an LLM emission takes): asserts her word is recorded, that it is NOT reciprocal open terms, that the jealousy track moves from Betrayal to AcceptedAgainstCulture, that saying it twice is refused, and that a woman who is no partner of the player is refused. Restores her bond, her regard and her acceptance", TestPluralAcceptance),
+         new SelfTest("leave_house_for_ruler", Severity.Light, "Gabriel (26/10/2026): a ruler never gives up her house; the player may leave theirs for her, the heir taking it up and becoming the played character, the old character wedding her. NON-DESTRUCTIVE (the real hand-over cannot be undone: walk it with cr.leave_house on a throwaway save). Asserts the hand-over order (house and player pass to the heir BEFORE the wedding, which would otherwise pull her into the player's clan), that leave_house_to_wed is taught to a ruler exactly when the REAL eligibility finds the road open, that rhagaea_marriage.json's IF_PLAYER_INVOLVED counts the one who left the house during his wedding and only then, and that CR's own change of player reads as an Abdication (reframed once the wedding is sealed), not a switch. Restores the borrowed regard", TestLeaveHouseForRuler),
          new SelfTest("marriage_house_heads", Severity.Light, "RaveN017Mod (Nexus, 26/10/2026): courted Rhagaea, was told they were wed, and nothing followed; the game weds no two heads of houses and its MarriageAction.Apply refused in silence. Gabriel: she never leaves her throne. Picks an unwed lady who heads her house (Rhagaea first): asserts the REAL ResolveMarriageBlockReason names LeadsTheirOwnHouse (so the marry action is not taught and she says what she can offer instead), then drives the REAL bridge marry executor with her regard cleared and asserts it is refused and the player stays unwed. Restores her regard", TestMarriageHouseHeads),
          new SelfTest("consort_tolerance", Severity.Light, "Zivkyn (Nexus, 25/10/2026): twin consorts who both accepted sharing him, yet one always ended up with a Grievance; Gabriel the same day: accepting makes them more tolerant, but neglect still bites (accepting to share is not accepting to be second). Borrows three lords as the player's committed consorts, the first having accepted the arrangement and of a people that does not share. Through the REAL reaction (FireReaction): an intimacy with the other consort leaves her Committed with no new Jealousy grudge; an intimacy with someone outside the household estranges her and plants one. Through the REAL competition selection: neglected far more than the favoured consort, she is the one slighted. Restores their romance, regard, memories and grudges", TestConsortTolerance),
          new SelfTest("conversation_resume", Severity.Light, "Player report (fkasad, 20/09/2026): roleplay takes longer than a battle, so he quits mid-negotiation, saves, closes the game, comes back, and the lord remembers TALKING to him but not a word of what was said, so the bargain starts over. Drives the REAL store the chat uses (NpcMemoryCampaignBehavior.ConvResume): keeps a built transcript against a real lord, then asserts it comes back whole for the same lord on the same day with its memory anchor, that the SAME open cannot take it twice, and that it is refused and DISCARDED for another lord, another day, or a staged scene, which is the report's own 'deleted as soon as you open a new chat' rule. No LLM call, no window opened. Forgets whatever it kept afterwards", TestConversationResume),
@@ -21379,6 +21380,65 @@ namespace CalradiaRemembers.Diagnostics
          {
             profile.Romantic = savedRomantic;
             profile.ReputationWithPlayer = savedRegard;
+            behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestLeaveHouseForRuler(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("leave_house_for_ruler");
+
+         List<LeaveHouseStep> steps = LeaveHouseForRulerPolicy.Steps.ToList();
+         t.Expect("theHeirTakesThePlayerBeforeTheWedding", steps.IndexOf(LeaveHouseStep.HandOverThePlayer) < steps.IndexOf(LeaveHouseStep.Wed), true);
+         t.Expect("andTheHouseBeforeThePlayer", steps.IndexOf(LeaveHouseStep.HandOverTheHouse) < steps.IndexOf(LeaveHouseStep.HandOverThePlayer), true);
+
+         // CR's own word makes its change of player an abdication, and nothing else does.
+         SuccessionBehavior.AbdicationUnderWay = true;
+         try { t.Expect("crsOwnHandOverIsAnAbdication", SuccessionBehavior.ClassifyChange(Hero.MainHero), PlayerChangeKind.Abdication); }
+         finally { SuccessionBehavior.AbdicationUnderWay = false; }
+         t.Expect("otherwiseALivingPredecessorIsStillASwitch", SuccessionBehavior.ClassifyChange(Hero.MainHero), PlayerChangeKind.Switch);
+
+         if (t.Abort(behavior?.Store == null || Hero.MainHero == null, "the store is not running")) return t.Line();
+
+         List<Hero> heads = Hero.AllAliveHeroes.Where(h => h != Hero.MainHero && h.IsLord && h.Clan != null && h.Clan != Clan.PlayerClan && h.Clan.Leader == h
+                                                           && MarriageProspectResolver.IsMarriageable(Hero.MainHero, h)).ToList();
+         Hero ruler = heads.FirstOrDefault(h => h.StringId == "lord_1_14") ?? heads.FirstOrDefault();
+         if (t.Skip(ruler == null, "no unwed head of a house the player could otherwise wed")) return t.Line();
+
+         // The scenario seam: during his wedding, the one who left the house is PLAYER to rhagaea_marriage.json.
+         Hero stand = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != ruler && h.IsLord);
+         if (stand != null)
+         {
+            ScenarioContext wedding = ScenarioBehavior.ForMarriage(stand, ruler);
+            t.Expect("aStrangersWeddingDoesNotInvolveThePlayer", wedding.InvolvesPlayer, false);
+            ScenarioContext.StandsInForThePlayer = stand;
+            try { t.Expect("theOneWhoLeftTheHouseIsThePlayerAtHisWedding", ScenarioBehavior.ForMarriage(stand, ruler).InvolvesPlayer, true); }
+            finally { ScenarioContext.StandsInForThePlayer = null; }
+         }
+
+         NpcProfile profile = GetOrCreate(behavior, ruler);
+         int regard = profile.ReputationWithPlayer;
+         try
+         {
+            profile.ReputationWithPlayer = MarriageEligibility.MarriageEligibilityThreshold;
+            behavior.Store.Set(profile);
+
+            LeaveHouseBar bar = LeaveHouseForRulerBehavior.WhyNot(ruler);
+            Hero heir = LeaveHouseForRulerBehavior.BestHeir();
+            t.Note($"{ruler.Name}: {bar}; heir {heir?.Name?.ToString() ?? "none"}");
+
+            if (t.Abort(VerbRegistry.Instance?.OwnNames?.Contains("leave_house_to_wed") != true, "leave_house_to_wed is not registered")) return t.Line();
+            var ctx = new VerbContext(ruler, profile, behavior.GameStateBridge, "", new ActionContext(profile, null));
+            string taught = VerbRegistry.Instance.ComposeTeachings(ctx, new[] {"leave_house_to_wed"});
+            t.Expect("taughtExactlyWhenTheRoadIsOpen", taught?.Contains("type: leave_house_to_wed") == true, bar == LeaveHouseBar.None);
+            if (Hero.MainHero.Spouse == null)
+               t.Expect("herHeartWonSheIsNotRefusedForIt", bar == LeaveHouseBar.HerHeartIsNotWon, false);
+         }
+         finally
+         {
+            profile.ReputationWithPlayer = regard;
             behavior.Store.Set(profile);
          }
 

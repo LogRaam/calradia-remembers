@@ -236,7 +236,7 @@ namespace CalradiaRemembers.GameState
          "revoke_fief", "expel_from_clan", "grant_stipend", "swear_oath", "harm_prisoner", "impregnation_risk",
          "gather_news", "reassure_companion", "recall_companion", "follow_me", "dismiss_escort", "ride_with_me",
          "part_ways", "give_influence", "lend_troops", "give_troops", "spend_influence", "sway_opinion",
-         "release_prisoner", "buy_prisoner", "sell_prisoner", "exchange_prisoners", "end_marriage", "make_amends", "grudge_terms", "hear_account", "pledge_against", "press_for_war",
+         "release_prisoner", "buy_prisoner", "sell_prisoner", "exchange_prisoners", "end_marriage", "leave_house_to_wed", "make_amends", "grudge_terms", "hear_account", "pledge_against", "press_for_war",
          "accept_divorce", "decline_divorce", "end_own_marriage", "teach_skill", "admit_secret_lover", "pay_for_silence",
          "rob_npc", "assault_npc", "kill_npc", "reinforce_garrison", "share_intel", "deliver_recruits", "arrange_match", "enact_edict", "pay_bounty",
          // ChatViewModel chat-flow controls: real LLM-emittable actions, never dispatched by the switch below.
@@ -378,6 +378,7 @@ namespace CalradiaRemembers.GameState
             // DESIGNED for the IConversationVerb contract rather than migrated onto it — routed
             // identically to the four above.
             case "end_marriage":
+            case "leave_house_to_wed":
             case "make_amends":
             case "grudge_terms":
             case "hear_account":

@@ -17,6 +17,18 @@ namespace CalradiaRemembers.Tests
     [TestFixture]
     public sealed class SuccessionTriggerTests
     {
+        // Gabriel (26/10/2026): the player leaves the house for a ruler and the heir takes it up. The old character
+        // lives on, so his state alone reads as a switch; CR's own word must make it the succession it is, or the heir
+        // carries his predecessor's romances.
+        [Test]
+        public void GIVEN_the_player_abdicated_for_a_ruler_WHEN_the_change_fires_THEN_it_is_a_succession_though_he_lives()
+        {
+            PlayerChangeKind kind = SuccessionTrigger.Classify(new PlayerChangeFacts {PredecessorAbdicated = true});
+
+            kind.Should().Be(PlayerChangeKind.Abdication);
+            SuccessionTrigger.IsSuccession(kind).Should().BeTrue();
+        }
+
         // The report: the character the player switched away from is alive and well. Treating that as a death is
         // what erased real memories from a whole save, twice.
         [Test]

@@ -476,6 +476,13 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 - taught when: no gate found
 - the bridge refuses: never
 
+### leave_house_to_wed
+
+- executor: `Execute`
+- taught in: no prompt section names it
+- taught when: no gate found
+- the bridge refuses: never
+
 ### lend_troops
 
 - executor: `Execute`

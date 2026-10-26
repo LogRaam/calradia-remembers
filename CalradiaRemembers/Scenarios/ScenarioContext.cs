@@ -55,13 +55,23 @@ namespace CalradiaRemembers.Scenarios
       /// <summary>True when one of the involved heroes is the player.</summary>
       public bool InvolvesPlayer => InvolvesHero("PLAYER");
 
+      /// <summary>
+      ///   The hero who stands for PLAYER while set, besides the main hero: the one who just left the house to wed a ruler
+      ///   (LeaveHouseForRulerBehavior) is no longer the player when his wedding fires, yet rhagaea_marriage.json is about
+      ///   him. Set around that one wedding only. Main thread only.
+      /// </summary>
+      internal static Hero StandsInForThePlayer { get; set; }
+
+      private static bool IsThePlayer(IReadOnlyList<Hero> heroes)
+         => Contains(heroes, Hero.MainHero) || (StandsInForThePlayer != null && Contains(heroes, StandsInForThePlayer));
+
       /// <summary>True when one of the event's heroes matches <paramref name="reference" /> (name or id).</summary>
       public bool InvolvesHero(string reference)
       {
          if (string.IsNullOrWhiteSpace(reference)) return false;
          string r = reference.Trim();
          if (string.Equals(r, "PLAYER", StringComparison.OrdinalIgnoreCase))
-            return Contains(Heroes, Hero.MainHero);
+            return IsThePlayer(Heroes);
          if (ScenarioRoleRef.TryRole(r, out _)) return Contains(Heroes, ResolveHero(r));
 
          return FindHero(Heroes, r) != null;
@@ -73,7 +83,7 @@ namespace CalradiaRemembers.Scenarios
          if (string.IsNullOrWhiteSpace(reference)) return false;
          string r = reference.Trim();
          if (string.Equals(r, "PLAYER", StringComparison.OrdinalIgnoreCase))
-            return Contains(Subjects, Hero.MainHero);
+            return IsThePlayer(Subjects);
          if (ScenarioRoleRef.TryRole(r, out _)) return Contains(Subjects, ResolveHero(r));
 
          return FindHero(Subjects, r) != null;

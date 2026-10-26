@@ -39,6 +39,15 @@ namespace CalradiaRemembers.Dynasty
             // wiping real memories from the whole save each way. See SuccessionTrigger.
             PlayerChangeKind kind = ClassifyChange(oldPlayer);
 
+            // Leaving the house for a ruler (LeaveHouseForRuler) reframes only once the wedding is sealed, and calls
+            // Apply itself: a refused wedding hands everything back, and a reframe cannot be undone.
+            if (kind == PlayerChangeKind.Abdication)
+            {
+                ModLog.Info($"[SUCCESSION] {oldPlayer?.Name} hands the house to {newPlayer?.Name} to wed a ruler; reframed once the wedding is sealed.");
+
+                return;
+            }
+
             if (!SuccessionTrigger.IsSuccession(kind))
             {
                 ModLog.Info($"[SUCCESSION] the player character changed from {oldPlayer?.Name} to {newPlayer?.Name}, but "
@@ -57,15 +66,19 @@ namespace CalradiaRemembers.Dynasty
         public static PlayerChangeKind ClassifyChange(Hero oldPlayer)
             => SuccessionTrigger.Classify(new PlayerChangeFacts {
                 PredecessorIsDead = oldPlayer != null && oldPlayer.IsDead,
-                PredecessorIsRetired = oldPlayer != null && oldPlayer.HeroState == Hero.CharacterStates.Disabled
+                PredecessorIsRetired = oldPlayer != null && oldPlayer.HeroState == Hero.CharacterStates.Disabled,
+                PredecessorAbdicated = AbdicationUnderWay
             });
+
+        /// <summary>True only while CR itself hands the house over (Marriage.LeaveHouseForRuler). Main thread only.</summary>
+        internal static bool AbdicationUnderWay { get; set; }
 
         /// <summary>
         ///   Reframes every stored profile: drops the predecessor's private events, keeps the rest, and
         ///   marks the history inherited from <paramref name="predecessor"/> (with the kinship word).
         ///   Returns how many profiles were touched. Public so a console command can simulate it.
         /// </summary>
-        public int Apply(Hero predecessor, Hero heir, PlayerChangeKind kind = PlayerChangeKind.Death)
+        public int Apply(Hero predecessor, Hero heir, PlayerChangeKind kind = PlayerChangeKind.Death, Hero forWhom = null)
         {
             if (predecessor == null || heir == null || predecessor == heir) return 0;
 
@@ -82,12 +95,16 @@ namespace CalradiaRemembers.Dynasty
                 if (p == null) continue;
 
                 // The heir inherits the standing, not the private history.
-                SuccessionMemoryPolicy.Reframe(p, predName, kinship, kind == PlayerChangeKind.Retirement);
+                SuccessionMemoryPolicy.Reframe(p, predName, kinship, kind != PlayerChangeKind.Death);
+
+                // A romance with the player was the predecessor's, and he lives on, wed to the ruler he left for: the
+                // heir must not inherit a lover, a consort or a bride's courtship (Gabriel, 26/10/2026).
+                if (kind == PlayerChangeKind.Abdication) p.Romantic = null;
                 store.Set(p);
                 n++;
             }
 
-            RecordChronicleSuccession(predecessor, heir, kind);
+            RecordChronicleSuccession(predecessor, heir, kind, forWhom);
 
             ModLog.Info($"[SUCCESSION] reframed {n} profile(s): the heir is {predName}'s {kinship}.");
             return n;
@@ -97,23 +114,29 @@ namespace CalradiaRemembers.Dynasty
         ///   The chronicle itself does not reset on death — it simply keeps writing, now of the heir's own
         ///   deeds, with this one line marking the turn. Naturally a once-per-reign event; never throws.
         /// </summary>
-        private static void RecordChronicleSuccession(Hero predecessor, Hero heir, PlayerChangeKind kind)
+        private static void RecordChronicleSuccession(Hero predecessor, Hero heir, PlayerChangeKind kind, Hero forWhom)
         {
             try
             {
                 string pronoun = predecessor.IsFemale ? "her" : "his";
                 bool retired = kind == PlayerChangeKind.Retirement;
+                bool abdicated = kind == PlayerChangeKind.Abdication;
+                string bride = forWhom?.Name?.ToString() ?? "a ruler";
                 WorldEventStore.Instance?.Record(new WorldEvent {
                     Type = WorldEventType.PlayerFeat,
                     Day = (int) CampaignTime.Now.ToDays,
                     Magnitude = 80,
                     InvolvesPlayer = true,
                     // A retired predecessor is alive: saying he died would be a checkable falsehood.
-                    Summary = retired
+                    Summary = abdicated
+                        ? $"{predecessor.Name} gave up the house to wed {bride}, and {heir.Name} took up the succession."
+                        : retired
                         ? $"{predecessor.Name} retired, and {heir.Name} took up the succession."
                         : $"{predecessor.Name} died, and {heir.Name} took up the succession.",
                     ActorIds = new List<string> {predecessor.StringId, heir.StringId},
-                    ChronicleLine = retired
+                    ChronicleLine = abdicated
+                        ? $"here {predecessor.Name} left the house for {bride}; the chronicle passes to {heir.Name}, of {pronoun} blood"
+                        : retired
                         ? $"here {predecessor.Name} laid down the sword; the chronicle passes to {heir.Name}, of {pronoun} blood"
                         : $"here ended the days of {predecessor.Name}; the chronicle passes to {heir.Name}, of {pronoun} blood"
                 });

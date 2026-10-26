@@ -106,6 +106,7 @@ namespace CalradiaRemembers.Verbs
          registry.Register(new SellPrisonerVerb());
          registry.Register(new ExchangePrisonersVerb());
          registry.Register(new EndMarriageVerb());
+         registry.Register(new LeaveHouseToWedVerb());
          registry.Register(new MakeAmendsVerb());
          registry.Register(new HearAccountVerb());
          registry.Register(new GrudgeTermsVerb());

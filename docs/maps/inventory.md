@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 568 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1322 types in 46 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 570 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1326 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 267 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -95,7 +95,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
-| `ModCheats` | public static class, partial over 62 files | Exposes diagnostic commands to the Bannerlord cheat console. |
+| `ModCheats` | public static class, partial over 63 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
 | `ProseInterpretTestRunner` | internal static class | The runner behind cr.prose_interpret_test. |
 | `RomanceBondWatchBehavior` | internal class | Reads the bonds with the player at session start and every hour, for CrRomance.StatusChanged. |
@@ -594,7 +594,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TraumaPageReader` | internal static class | Reads the aggressions a hero lived through for the Trauma section. |
 | `WeddingDayBehavior` | public class | The day each married hero was wed, as CR saw it happen. |
 
-### CalradiaRemembers.Marriage (14)
+### CalradiaRemembers.Marriage (15)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -604,6 +604,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DivorceProcessBehavior` | public class | Tracks every outstanding DivorceProcess and advances it one day at a time. |
 | `ForeignDivorceBehavior` | public class | Notices a marriage another mod ended, and has the world and the former spouses know it. |
 | `HeroClanCompat` | public static class | Reflection-guarded access to Hero.OriginClan, with an availability flag so callers can degrade deliberately rather than silently. |
+| `LeaveHouseForRulerBehavior` | public class | Hands the player's house to the heir and weds the old character to the ruler he leaves it for. |
 | `MarriageApprovalBehavior` | public class | The engine of the marriage system (Phase A): it remembers which matches a family has blessed and, the moment the player marries, swings the spouse's whole family for or against the player depending on whether that blessi... |
 | `MarriageApprovalRecord` | public class | A persisted blessing: the spouse's family consented to the player marrying them. |
 | `MarriageDissolutionService` | public static class | Orchestrates the real dissolution of a marriage between two live heroes: re-validates every guard against LIVE state (nothing here trusts a caller's earlier eligibility check — "the bridge is law"), relocates the leaving... |
@@ -813,7 +814,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrSpikeScreen` | internal class | The one screen the probe uses, pushed BOTH ways so the measurement compares mechanisms rather than screens. |
 | `CrSpikeState` | public class | The spike's game state: deliberately empty, it exists only to be pushed so a screen binds to it. |
 
-### CalradiaRemembers.Verbs (29)
+### CalradiaRemembers.Verbs (30)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -831,6 +832,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GrudgeTermsVerb` | public class | grudge_terms: the player asks what it would take to mend a grievance this NPC KNOWINGLY holds against them, whose resolution hint they have not yet learned. |
 | `HearAccountVerb` | public class | hear_account: the player explains or justifies a grievance this NPC knowingly holds against them. |
 | `IConversationVerb` | public interface | One self-contained conversation verb (e.g. give_influence): its eligibility, the prompt text it teaches the LLM, and its execution when the LLM emits the matching [ACTION]. |
+| `LeaveHouseToWedVerb` | public class | leave_house_to_wed: a ruler who heads her house accepts the player as a spouse on her one condition, that the player leaves THEIR house to join hers (Gabriel, 26/10/2026: "Jamais elle laissera son trone"). |
 | `LendTroopsVerb` | public class | lend_troops (RP with teeth, increment 1): an NPC leading their own party gives the player some of their own soldiers to keep. |
 | `MakeAmendsVerb` | public class | make_amends: the player sincerely apologises or offers, in words, to set right a grievance this NPC KNOWINGLY holds against them. |
 | `PayBountyVerb` | public class | pay_bounty: the player pays a lord of a realm to lift its price on their head. |
@@ -2102,7 +2104,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SecretHandoffKind` | public enum | How a carried secret changes hands. |
 | `WhereaboutsFacts` | public class | Where someone is, as the letter needs it. |
 
-### CalradiaRemembers.Logic.Marriage (36)
+### CalradiaRemembers.Logic.Marriage (40)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2126,6 +2128,10 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ForcedMarriagePolicy` | public static class | How a marriage sealed on the family's blessing, against the spouse's own unwon heart, is resented. |
 | `HouseHeadFacts` | public class | Who heads a house, on each side of a match the player would make. |
 | `HouseHeadMarriagePolicy` | public static class | The game's own bar on wedding two heads of houses, asked before the model is told a marriage is on offer. |
+| `LeaveHouseBar` | public enum | What stands between the player and leaving their house for a ruler who heads hers. |
+| `LeaveHouseFacts` | public class | The live facts behind leaving one's house for a ruler. |
+| `LeaveHouseForRulerPolicy` | public static class | Whether the player may leave their house for a ruler, and the order the hand-over runs in. |
+| `LeaveHouseStep` | public enum | One engine step of the hand-over, in the order it must run. |
 | `MarriageBlockOverridePolicy` | public static class | Pure soft-vs-hard table: which MarriageBlockReason a passed courtship trial may override. |
 | `MarriageClaimPolicy` | public static class | Detects whether an [EVENT] summary CLAIMS that the conversation NPC and the player are now married, so the mod can withhold the memory (and the romantic-arc advancement riding on it) until Hero.Spouse confirms the weddin... |
 | `MarriageCustomReading` | public struct | A culture's marriage custom: strictness 0 (low) to 2 (high), and whether a house of the tier asked shares partners. |

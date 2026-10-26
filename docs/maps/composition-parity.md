@@ -23,7 +23,7 @@ those rows are not compared.
 - `Parity`: `same` when both readers are taught it (or neither) in Full; otherwise which one, and the reason it is
   allowed for now, from the list `CompositionParityTests` holds (it may only shrink).
 
-86 verbs: 60 the same for both readers, 1 taught to one reader only, 25 not compared (taught by the mod's own text).
+87 verbs: 60 the same for both readers, 1 taught to one reader only, 26 not compared (taught by the mod's own text).
 
 | Verb | Interpreter | Interpreter, Compact | Prose | Prose, Compact | Prose taught in | Prose, nothing open | Mod text | Bridge | Parity |
 |---|---|---|---|---|---|---|---|---|---|
@@ -73,6 +73,7 @@ those rows are not compared.
 | `join_clan` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `join_party` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `kill_npc` | yes | yes | yes | yes | everything open; the player held captive; the player's captor scene; a hostile lord who holds the player's secret | yes |  | yes | same |
+| `leave_house_to_wed` | yes | yes |  |  |  |  | yes | yes | not compared |
 | `lend_troops` | yes | yes |  |  |  |  | yes | yes | not compared |
 | `make_amends` | yes | yes |  |  |  |  | yes | yes | not compared |
 | `marry` | yes | yes | yes | yes | everything open |  |  | yes | same |

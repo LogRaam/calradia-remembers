@@ -140,6 +140,8 @@ namespace CalradiaRemembers
          // Dynastic succession: on player death, reframes every NPC's memory through the heir — drops the
          // predecessor's private history, keeps and marks the political/relational history as inherited.
          campaignStarter.AddBehavior(new SuccessionBehavior());
+         // Leaving the house for a ruler (Gabriel, 26/10/2026): the heir takes it up, the old character weds her.
+         campaignStarter.AddBehavior(new Marriage.LeaveHouseForRulerBehavior());
          // Self-esteem (30/09/2026, Lordfadooboo): battles, captivities, tournaments, fiefs and deaths move how a met
          // character regards himself; recorded on his profile, nothing saved of its own.
          campaignStarter.AddBehavior(new Standing.SelfEsteemBehavior());

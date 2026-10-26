@@ -5,6 +5,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ## v2.7.21.. open
 
 ### New
+- **Leave your house for a ruler who will never leave hers** (Gabriel, 26/10/2026: "Jamais elle laissera son trone
+  [...] le joueur aura le choix soit d'abandonner son personnage et continuer avec l'heritier"; RaveN017Mod asked to
+  marry Rhagaea). A lady who heads her house, her heart won, may accept you on her one condition: you hand your house to
+  your heir. A popup names the heir and says it cannot be undone; once back on the map, the heir becomes head of the
+  house and the character you play on, and your old character, now one of the world's lords, weds her and joins her
+  house, she keeping her rule. The heir inherits your standing, not your romances; she remembers why you came;
+  `rhagaea_marriage.json` plays for the wedding. Needs an unwed player and an heir of age riding in your party; a
+  wedding the game still refuses hands everything back. New action `leave_house_to_wed` (not taught in Compact),
+  `cr.leave_house_check`, `cr.leave_house` (irreversible, for a throwaway save), `cr.testall leave_house_for_ruler`.
 - **A tale's conversation can be paced beat by beat, and The Empress's Summons is** (Gabriel, 25/10/2026: "ca pourrait
   etre trop court ou trop long", then the 3/3/3/5 night). A `talk_to` with `"when": "closed"` may carry an `arc`: beats
   played in order, each for its number of exchanges, with its direction and who leads; the character is told each

@@ -21,7 +21,13 @@ namespace CalradiaRemembers.Logic.Dynasty
         Death,
 
         /// <summary>The old character retired (vanilla disables him) and an heir took over.</summary>
-        Retirement
+        Retirement,
+
+        /// <summary>
+        ///   The old character gave up the house to wed a ruler who heads hers, and lives on as her husband (Gabriel,
+        ///   26/10/2026). Alive and active like a switch, so only CR, which makes it, can say so.
+        /// </summary>
+        Abdication
     }
 
     /// <summary>The predecessor's state when the change fired.</summary>
@@ -32,6 +38,9 @@ namespace CalradiaRemembers.Logic.Dynasty
 
         /// <summary>The old player character is disabled, which is how vanilla retires him.</summary>
         public bool PredecessorIsRetired { get; set; }
+
+        /// <summary>CR itself is handing the house over because the old character leaves it for a ruler.</summary>
+        public bool PredecessorAbdicated { get; set; }
     }
 
     /// <summary>Classifies a change of player character, so only a real succession reframes memories.</summary>
@@ -43,11 +52,12 @@ namespace CalradiaRemembers.Logic.Dynasty
             if (facts == null) return PlayerChangeKind.Switch;
             if (facts.PredecessorIsDead) return PlayerChangeKind.Death;
             if (facts.PredecessorIsRetired) return PlayerChangeKind.Retirement;
+            if (facts.PredecessorAbdicated) return PlayerChangeKind.Abdication;
 
             return PlayerChangeKind.Switch;
         }
 
-        /// <summary>True for the two kinds that are a real succession and so reframe what NPCs remember.</summary>
+        /// <summary>True for the kinds that are a real succession and so reframe what NPCs remember.</summary>
         public static bool IsSuccession(PlayerChangeKind kind) => kind != PlayerChangeKind.Switch;
     }
 }

@@ -108,6 +108,9 @@ namespace CalradiaRemembers.Mapping
       /// <summary>DIVORCE, Phase 1: end_marriage is taught last, after every court verb above.</summary>
       private static readonly string[] DivorceVerbs = {"end_marriage"};
 
+      /// <summary>A ruler's one road to her hand: the player leaves their house for hers (26/10/2026).</summary>
+      private static readonly string[] HouseVerbs = {"leave_house_to_wed"};
+
       /// <summary>
       ///   Grudges pillar, resolution + discovery halves: make_amends then grudge_terms, taught last of all, after every
       ///   verb above.
@@ -133,7 +136,7 @@ namespace CalradiaRemembers.Mapping
       /// <summary>Every verb name a teaching list here composes, for the coverage guard (cr.testall every_verb_taught).</summary>
       internal static IEnumerable<string> VerbsInTeachingLists
          => CourtVerbsBeforePledge.Concat(ReciprocalCourtVerbs).Concat(CourtVerbsAfterPledge).Concat(TaskVerbs).Concat(PrisonerTradeVerbs)
-                                  .Concat(DivorceVerbs).Concat(GrudgeVerbs).Concat(ConfessionVerbs).Concat(LawVerbs);
+                                  .Concat(DivorceVerbs).Concat(HouseVerbs).Concat(GrudgeVerbs).Concat(ConfessionVerbs).Concat(LawVerbs);
 
       // Prisoner trade (08/07/2026): the NPC may BUY a captive the player holds, or SELL one his clan holds.
       private static readonly string[] PrisonerTradeVerbs = {"buy_prisoner", "sell_prisoner", "exchange_prisoners"};
@@ -1773,6 +1776,9 @@ namespace CalradiaRemembers.Mapping
          // end_marriage (DIVORCE, Phase 1): the first verb designed for the contract from the start.
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, DivorceVerbs));
 
+         // leave_house_to_wed: only to a ruler who heads her house, her heart won, an heir at the player's side.
+         sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, HouseVerbs));
+
          // make_amends + grudge_terms (Grudges pillar, resolution + discovery halves): taught last of all.
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, GrudgeVerbs));
 
@@ -2398,7 +2404,7 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>The two-sided regard read every marriage gate shares: the mod's personal ledger OR the live vanilla relation reaching the EFFECTIVE bar (MCM "Marriage Regard Needed", capped at the shipped 50).</summary>
-      private static bool RegardMeetsMarriageBar(Hero hero, NpcProfile profile)
+      internal static bool RegardMeetsMarriageBar(Hero hero, NpcProfile profile)
          => (profile?.ReputationWithPlayer ?? 0) >= ModSettings.MarriageRegardThreshold ||
             (Hero.MainHero?.GetRelation(hero) ?? 0) >= ModSettings.MarriageRegardThreshold;
 
