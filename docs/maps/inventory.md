@@ -8,7 +8,7 @@ sentence beside each type is the first sentence of its own doc comment; `(no sum
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 571 types in 62 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1330 types in 46 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 267 types in 17 namespaces, 9 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 268 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -2644,7 +2644,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `SharedRecall` | public class | What a character may be shown to REMEMBER in front of others: their own memories, minus anything held in confidence, folded to a bounded recall. |
 
-### NpcMemoryService.Core.Models (74)
+### NpcMemoryService.Core.Models (75)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2676,6 +2676,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `IntimacyThresholdPolicy` | public static class | Decides the regard an NPC requires before physical intimacy, and how far the player is from it. |
 | `JealousyAttentionPolicy` | public static class | Which recorded events count as the player having ATTENDED TO a partner, for the neglect clock. |
 | `Kink` | public enum | Specific intimate interests that color an NPC's sexuality beyond the broader RomanticPreference. |
+| `LeaveHouseObstacle` | public enum | Why the road to a ruler's hand (leaving one's house for her) is closed right now, when it is. |
 | `LetterCandidateIntent` | public class | A budgeted, deferred letter the daily scheduler may or may not release, unlike a guaranteed ScheduledLetter. |
 | `LetterMemoryPolicy` | public static class | Decides whether a letter's substance is worth remembering as a first-person NPC memory, and builds the synchronous fallback line used before (or instead of) the richer async summary. |
 | `LetterReason` | public enum | The circumstance that prompted an NPC to write to the player. |

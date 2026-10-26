@@ -104,9 +104,18 @@ namespace CalradiaRemembers.Verbs
             return $"{heir?.Name} becomes head of your house, and you play on as {heir?.Name}. {player.Name}, now one of the world's lords, "
                    + $"weds {ruler.Name} and joins {her} house; your romance with {(ruler.IsFemale ? "her" : "him")} stays with {player.Name}.";
 
-         return $"You keep your character and your family. {ruler.Name} receives your towns, castles, gold and any realm you rule; your house "
-                + $"serves {her} realm, you wed {(ruler.IsFemale ? "her" : "him")}, and {(ruler.IsFemale ? "she" : "he")} pays a season of your troops' wages. "
-                + $"{her.Substring(0, 1).ToUpper() + her.Substring(1)} people's rivals may answer with war.";
+         UnionFacts union = GiveHerAllService.UnionFor(ruler);
+         int war = LeaveHouseForRulerPolicy.WarChance(union);
+         string crown = union.BringsARealm
+            ? $" You give up your crown: {Hero.MainHero.Clan?.Kingdom?.Name} is absorbed into {ruler.Clan?.Kingdom?.Name}."
+            : "";
+         string people = ruler.IsFemale ? "Her" : "His";
+         string rivals = war >= 90 ? $" {people} people's rivals will almost surely answer with war."
+            : war > 0 ? $" {people} people's rivals may answer with war (about {war} in 100)."
+            : "";
+
+         return $"You keep your character and your family. {ruler.Name} receives your {union.FiefsBrought} town(s) and castle(s) and all your gold.{crown} "
+                + $"Your house serves {her} realm, you wed {(ruler.IsFemale ? "her" : "him")}, and {(ruler.IsFemale ? "she" : "he")} pays a season of your troops' wages.{rivals}";
       }
 
       private static void Confirmed(Hero ruler, LeaveHouseRoad road)

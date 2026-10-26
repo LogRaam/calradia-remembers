@@ -706,6 +706,7 @@ namespace CalradiaRemembers.Mapping
             PromptTexts = PromptProfileService.Texts,
             LoveMatchEligible = ResolveLoveMatchEligible(hero, profile),
             MarriageBlockedBecause = ResolveMarriageBlockReason(hero, profile),
+            LeaveHouseClosedBecause = ResolveLeaveHouseObstacle(hero, profile),
             LoveMatchReluctant = ResolveLoveMatchReluctant(hero, profile),
             LoveMatchBlessed = ResolveLoveMatchBlessed(hero),
             // "Marry your own companion": when the eligible partner is one of the player's OWN companions, the
@@ -2404,6 +2405,12 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>The two-sided regard read every marriage gate shares: the mod's personal ledger OR the live vanilla relation reaching the EFFECTIVE bar (MCM "Marriage Regard Needed", capped at the shipped 50).</summary>
+      // Her one road is named closed only where it is hers to offer: a ruler who heads her house, facing a player who heads theirs.
+      private static LeaveHouseObstacle ResolveLeaveHouseObstacle(Hero hero, NpcProfile profile)
+         => ResolveMarriageBlockReason(hero, profile) == MarriageBlockReason.LeadsTheirOwnHouse
+            ? LeaveHouseForRulerPolicy.ObstacleToName(LeaveHouseForRulerBehavior.WhyNot(hero, LeaveHouseRoad.GiveHerAll))
+            : LeaveHouseObstacle.None;
+
       internal static bool RegardMeetsMarriageBar(Hero hero, NpcProfile profile)
          => (profile?.ReputationWithPlayer ?? 0) >= ModSettings.MarriageRegardThreshold ||
             (Hero.MainHero?.GetRelation(hero) ?? 0) >= ModSettings.MarriageRegardThreshold;

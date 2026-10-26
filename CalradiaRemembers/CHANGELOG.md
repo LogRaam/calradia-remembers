@@ -22,6 +22,9 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (60 days) of your house's wages. Her people's rivals may answer with war: near certain for a realm handed over or a
   defection from a rival empire, likelier with each fief, none for a landless house; the AI makes peace when it will.
   When both roads are open, the popup lets you choose. `cr.give_her_all` (irreversible, for a throwaway save).
+  When her road is closed for a reason you could mend (her heart not yet won, a war or a captivity, an army or a
+  battle), she says so instead of meeting your resolve with silence. The popup says plainly when you give up a crown,
+  how many fiefs you bring, and how likely her people's rivals are to answer with war.
 - **A tale's conversation can be paced beat by beat, and The Empress's Summons is** (Gabriel, 25/10/2026: "ca pourrait
   etre trop court ou trop long", then the 3/3/3/5 night). A `talk_to` with `"when": "closed"` may carry an `arc`: beats
   played in order, each for its number of exchanges, with its direction and who leads; the character is told each

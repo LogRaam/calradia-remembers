@@ -11,6 +11,7 @@
 #region
 
 using System.Collections.Generic;
+using NpcMemoryService.Core.Models;
 
 #endregion
 
@@ -233,6 +234,18 @@ namespace CalradiaRemembers.Logic.Marriage
       ///   lignee"), though the game puts every child of the player in the player's house.
       /// </summary>
       public static bool ChildBelongsToHerHouse(UnionChildFacts f) => f != null && f.MotherIsThePlayersWife && f.MotherKeepsHerOwnHouse;
+
+      /// <summary>
+      ///   What she names when her road is closed for a reason the player could mend (26/10/2026, the Ira report's lesson):
+      ///   read from the road that asks least, giving her all. A bar the player cannot mend, or that another obstacle
+      ///   already names (a wedded player, a match that is no house's head), is not hers to speak of here.
+      /// </summary>
+      public static LeaveHouseObstacle ObstacleToName(LeaveHouseBar giveHerAllBar) => giveHerAllBar switch {
+         LeaveHouseBar.HerHeartIsNotWon => LeaveHouseObstacle.HerHeartIsNotWon,
+         LeaveHouseBar.WarOrCaptivity => LeaveHouseObstacle.WarOrCaptivity,
+         LeaveHouseBar.ArmyOrBattle => LeaveHouseObstacle.ArmyOrBattle,
+         _ => LeaveHouseObstacle.None
+      };
 
       private const int NearCertainWar = 90;
       private const int WarChancePerFief = 20;

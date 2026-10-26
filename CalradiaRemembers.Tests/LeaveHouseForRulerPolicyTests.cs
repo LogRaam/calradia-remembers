@@ -9,6 +9,7 @@
 
 using System.Linq;
 using CalradiaRemembers.Logic.Marriage;
+using NpcMemoryService.Core.Models;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -187,6 +188,24 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_wife_in_the_players_house_WHEN_she_gives_birth_THEN_the_child_stays_in_the_players_house()
       {
          LeaveHouseForRulerPolicy.ChildBelongsToHerHouse(new UnionChildFacts {MotherIsThePlayersWife = true, MotherKeepsHerOwnHouse = false}).Should().BeFalse();
+      }
+
+      // STAKE: the Ira report's lesson on her road: a player who resolves to leave their house for her while her heart is not
+      // won, or while a war or a campaign stands between them, must hear what is missing rather than silence.
+      [Test]
+      public void GIVEN_a_bar_the_player_could_mend_WHEN_she_speaks_THEN_she_names_it()
+      {
+         LeaveHouseForRulerPolicy.ObstacleToName(LeaveHouseBar.HerHeartIsNotWon).Should().Be(LeaveHouseObstacle.HerHeartIsNotWon);
+         LeaveHouseForRulerPolicy.ObstacleToName(LeaveHouseBar.WarOrCaptivity).Should().Be(LeaveHouseObstacle.WarOrCaptivity);
+         LeaveHouseForRulerPolicy.ObstacleToName(LeaveHouseBar.ArmyOrBattle).Should().Be(LeaveHouseObstacle.ArmyOrBattle);
+      }
+
+      // STAKE: an open road needs no excuse, and a rule of the game's own she has no words for stays unsaid.
+      [Test]
+      public void GIVEN_the_road_open_or_a_bar_she_has_no_words_for_WHEN_she_speaks_THEN_she_names_nothing()
+      {
+         LeaveHouseForRulerPolicy.ObstacleToName(LeaveHouseBar.None).Should().Be(LeaveHouseObstacle.None);
+         LeaveHouseForRulerPolicy.ObstacleToName(LeaveHouseBar.TheGameWouldRefuse).Should().Be(LeaveHouseObstacle.None);
       }
 
       // STAKE: the old character's workshops pass while he is still head (vanilla's retirement does it in that order).
