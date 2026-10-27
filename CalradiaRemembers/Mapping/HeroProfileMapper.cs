@@ -119,6 +119,14 @@ namespace CalradiaRemembers.Mapping
          // below so it logs even for otherwise up-to-date profiles.
          if (profile.Romantic != null) LogExistingRomanticCompatibility(profile);
 
+         // A profile from before 27/10/2026 has no gestures loved or disliked yet: rolled once now, then kept.
+         if (profile.Romantic is {LovedActs: null} || profile.Romantic is {DislikedActs: null})
+         {
+            var (loved, disliked) = Logic.Romance.IntimateActPolicy.Roll(hero.StringId, hero.IsFemale);
+            profile.Romantic.LovedActs ??= loved;
+            profile.Romantic.DislikedActs ??= disliked;
+         }
+
          bool needsRomantic = profile.Romantic == null;
 
          // Orientation conflicts with actual spouse gender → regenerate.

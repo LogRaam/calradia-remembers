@@ -7,8 +7,8 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 571 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1337 types in 46 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 268 types in 17 namespaces, 9 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1338 types in 46 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 269 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -2270,7 +2270,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RescueGratitudePolicy` | public static class | Decides how strongly an NPC reacts to being rescued (or to a loved one being rescued) by the player. |
 | `RescueTie` | public enum | How the freed prisoner relates to the player, deciding the shape of their gratitude. |
 
-### CalradiaRemembers.Logic.Romance (28)
+### CalradiaRemembers.Logic.Romance (29)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2279,6 +2279,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeartIntimacyPolicy` | public static class | The intimate lines of the Heart section: their gate and their words. |
 | `HeartNightsFacts` | public class | The nights the player shared with one character, as the page tells them. |
 | `HeartPagePolicy` | public static class | Tells a character's bond with the player for the Heart section, and the recap line on the player's page. |
+| `IntimateActPolicy` | public static class | The gestures a character loves and dislikes, rolled once from their id. |
 | `JealousStake` | public enum | Who the jealous party is, and why they have a stake: sets the reaction's flavour. |
 | `JealousyHearingPolicy` | public static class | Pure gate deciding whether a jealous party is close enough to a liaison's location to have heard word of it. |
 | `JealousyReaction` | public static class | The pure tuning behind a jealousy reaction: the relation hit (Severity), the chance of a confronting letter (LetterChance), and the in-character grievance / letter framing. |
@@ -2651,7 +2652,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `SharedRecall` | public class | What a character may be shown to REMEMBER in front of others: their own memories, minus anything held in confidence, folded to a bounded recall. |
 
-### NpcMemoryService.Core.Models (75)
+### NpcMemoryService.Core.Models (76)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2681,6 +2682,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `IntimacyConsentFacts` | public class | The facts a consent verdict rests on. |
 | `IntimacyConsentVerdict` | public enum | Where an NPC stands relative to the regard their own disposition requires for intimacy. |
 | `IntimacyThresholdPolicy` | public static class | Decides the regard an NPC requires before physical intimacy, and how far the player is from it. |
+| `IntimateAct` | public enum | A concrete gesture of lovemaking, named from the CHARACTER's side ("OralGiving": they use their mouth on their partner). |
 | `JealousyAttentionPolicy` | public static class | Which recorded events count as the player having ATTENDED TO a partner, for the neglect clock. |
 | `Kink` | public enum | Specific intimate interests that color an NPC's sexuality beyond the broader RomanticPreference. |
 | `LeaveHouseObstacle` | public enum | Why the road to a ruler's hand (leaving one's house for her) is closed right now, when it is. |

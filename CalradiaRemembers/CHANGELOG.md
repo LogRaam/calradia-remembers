@@ -53,6 +53,32 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   with a notice, as an ordinary close does. `cr.testall tale_arc` drives signals through the real bridge and a forced
   net roll.
 
+- **Two tales at once: a scenario's tale sets the one under way aside** (Gabriel, 25/10/2026: "je fais la quete du
+  loup, mais je suis fait prisonnier par Rhagaea.. je devrais pouvoir vivre la nuit avec elle et reprendre ensuite la
+  quete du loup lorsque je suis libere de prison"). The tale under way waits, its clock stopped and its journal entry
+  open, while a tale a scenario opens plays; it takes up again once that is over and the player is free. One level
+  only; a tale raised in conversation waits for both. `cr.story_status` shows the tale set aside. `TalePause`, save key
+  `CalradiaRemembers_TalePausedRun_v1`. A summons is no longer barred by anything of the giver's own, an errand on offer
+  or a quest of theirs under way. cr.testall `tale_interrupted`.
+- **The Empress's Summons, continued** (Adult Tales, Gabriel 26/10/2026): the lady first takes the prisoner to a small
+  warm bath, washes them and dresses them in clean night clothes, then leaves them at the Empress's door, "sa tache se
+  termine ici"; turning back at either is an ending of its own (`turned_back`). The chamber now opens on the scene's dark
+  backdrop with no vanilla conversation behind it (her armour and her guards in the street, her vanilla greeting under
+  the video of her bed), the picture large, and she speaks first. A second night with her follows the first: she
+  remembers the other nights and does not greet the prisoner as a stranger.
+- **A tale remembers its earlier playings with the same giver** (Gabriel, 26/10/2026: "il faudrait que Rhagaea se
+  souvienne des autres fois et que ca soit une continuite"). `TaleHistory`, save key `CalradiaRemembers_TaleHistory_v1`:
+  a run begun again with the same giver carries `played_before` and `ended_before:<ending>` for its lines to test.
+- **Characters have gestures they love in bed, and some they dislike** (Hardcore; Gabriel, 26/10/2026: "le LLM a
+  tendance a aimer tous les gestes sexuels que le joueur peut decrire [...] un NPC pourrait particulierement aimer le
+  sexe oral mais detester le sexe anal"; a refusal "pourrait etre franc, ou encore un malaise"). Each character is
+  given once one to three gestures they particularly love and, about one in two, one they dislike (rarely two):
+  kissing, oral given or received, anal given or received, on top, beneath, from behind, hands and fingers, rough
+  handling, crude words. They seek what they love; what they dislike they refuse plainly or with an unease the player
+  can read, never with feigned pleasure. Rolled from the character's id with a stable seed (`IntimateActPolicy`), kept
+  in the save (`RomanticProfile.LovedActs` / `DislikedActs`); characters met before are given theirs the next time
+  they are spoken to.
+
 ### Changed
 - **The player's violence in words works in both compositions** (Gabriel 25/10: "enseigne la violence aux deux
   modes"). rob_npc, assault_npc and kill_npc were taught to the interpreter alone (PlayerViolenceVerb kept them out of
@@ -62,6 +88,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (`docs/maps/composition-parity.md`, `CompositionParityTests`).
 
 ### Fixed
+- **Scenes of a tale** (Gabriel's play test, 26/10/2026): typing the number of "Something else..." sent the number to
+  the narrator ("3", read as "You say nothing"); it now leaves the input to you, and once you choose it or write your own
+  words the numbered choices stay gone for the rest of that scene. The narration is signed "Narrator", not the scene's
+  name ("The Cell Door"). A scene that ends by itself, and a tale's arc that closes, say "Close this conversation to
+  continue...". A conversation a scenario's tale brings to the player sits on the scene's dark backdrop, with no vanilla
+  conversation, and the character speaks first (that line is not an exchange of the arc). cr.testall
+  `summoned_meeting_on_backdrop`.
 - **Grain and other goods a lord asked for count however you hand them over** (froggyluv, Nexus 26/10: "sometimes the
   flavor text will say i delivered but the NPC still complain of my broken promises"). Only the chat window's bag
   button settled a supply task; goods handed over in words, or through the Give menu, left your party while the task
@@ -155,6 +188,9 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   - A `talk_to` completing as the conversation closes lets its giver speak the stage's canvas and facts all through.
   - `ON_CAPTIVE_NIGHT` fires from 23:00 on, once a night (a tick read at 22.9999 could miss it).
   Editor, schema and HOWTO_Quests follow. cr.testall `tale_opened_by_scenario`.
+- **Tales may test what they already lived with this giver**: `played_before`, `ended_before:<ending id>`
+  (`ended_before:reward`, `ended_before:failure`), set by the game as the tale begins again with the same giver; the
+  loader and the editor count them as set. HOWTO_Quests documents them.
 
 ### Developer tools
 - **Tale Editor:** Save writes back into the file being edited (browsers with the File System Access API; Firefox
