@@ -20,9 +20,10 @@
   crvid": a video (.mp4, .webm, .mov) opened or dropped here is converted frame by frame from its SOURCE, each frame at the
   lowest JPEG quality that keeps the SSIM level against that source frame, fitted inside 768x1152 at 30 fps, then saved
   and added to the list.
-  Calibrated on the_door the same day: this SSIM is strict on fine grain, and the clip's q3 frames reach only 0.9625 against
-  the source (lowest 0.956), so 0.990 would be HEAVIER than today. Encoded from the source (estimated with libjpeg): 0.970
-  10.2 MB, 0.960 8.3 MB (today's quality, 35% less than its 12.7 MB), 0.950 7.1 MB, 0.940 6.2 MB. Default 0.960.
+  Calibrated on the_door the same day, at its own 336x880 (make_crvid used to ENLARGE it to 440x1152, 12.7 MB): this SSIM is
+  strict on fine grain, and ffmpeg's q3 frames reach 0.970 against the source (lowest 0.959) for 9.4 MB, so 0.990 would be
+  HEAVIER than q3. Encoded from the source at a level (libjpeg estimate): 0.970 9.6 MB, 0.960 8.0 MB, 0.950 6.6 MB.
+  Default 0.960.
 -->
 <style>
   :root { --bg:#16181d; --panel:#1f2229; --line:#2e323c; --text:#e6e8ee; --dim:#9aa1b2; --accent:#d9a441; --sel:#2b3140; }

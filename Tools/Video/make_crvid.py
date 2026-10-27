@@ -4,7 +4,7 @@
 #
 #   python Tools/Video/make_crvid.py <input video> <output.crvid> [--fps 30] [--max 768x1152] [--quality 3] [--loop]
 #
-# The frame is fitted inside --max without distortion (even width and height). 768x1152 is the largest measured in game
+# The frame is fitted inside --max without distortion (even width and height), and never enlarged. 768x1152 is the largest measured in game
 # (30 Hz, nothing skipped); the game refuses a frame with more pixels than that. --fps 30 divides 60 and 120 Hz screens
 # evenly. --quality is ffmpeg's JPEG scale, 2 (best) to 31; 3 is close to the source. Frames are stored uncompressed in
 # the zip: a JPEG does not shrink further, and stored entries read faster.
@@ -34,7 +34,9 @@ def main():
 
     work = tempfile.mkdtemp(prefix="crvid_")
     try:
-        vf = f"fps={a.fps},scale=w={mw}:h={mh}:force_original_aspect_ratio=decrease:force_divisible_by=2"
+        # Fitted inside the box, never enlarged (Gabriel, 27/10/2026: a 336x880 .mp4 came out 440x1152, 1.7 times the
+        # pixels and the size for no detail; the in-game frame scales the picture anyway).
+        vf = f"fps={a.fps},scale=w='min({mw},iw)':h='min({mh},ih)':force_original_aspect_ratio=decrease:force_divisible_by=2"
         subprocess.run([ffmpeg(), "-hide_banner", "-loglevel", "error", "-y", "-i", a.input, "-vf", vf, "-q:v", str(a.quality),
                         os.path.join(work, "%06d.jpg")], check=True)
         frames = sorted(f for f in os.listdir(work) if f.endswith(".jpg"))
