@@ -3,7 +3,9 @@
 // show on both pages, sober, "du genre de quelque chose que le joueur aurait pu ecrire dans son journal intime". Heart is
 // "une section sur l'amour et le desir": what the player took by force is told in the Misdeeds section instead
 // (MisdeedsPagePolicyTests). If this is wrong, a player below Hardcore reads what they never opted into, a night is counted
-// twice, or a forced scene is told as a night of love.
+// twice, or a forced scene is told as a night of love. The tastes the player learned in bed are named on the character's
+// page (Gabriel, 27/10/2026: "il faudrait le nommer car le joueur pourrait ne pas s'en souvenir"); if that is wrong, the
+// page spoils a taste the player never found, or forgets one they did.
 
 #region
 
@@ -92,6 +94,40 @@ namespace CalradiaRemembers.Tests
 
          HeartIntimacyPolicy.NightsRecapLine(one, When).Should().Be("A night with Ira, in spring 1091.");
          HeartIntimacyPolicy.NightsRecapLine(many, When).Should().Be("Two nights with Ajin the Hawk, the first in spring 1091, the last in summer 1092.");
+      }
+
+      // STAKE: Gabriel: "il faudrait le nommer car le joueur pourrait ne pas s'en souvenir": what was learned is named.
+      [Test]
+      public void GIVEN_tastes_the_player_has_learned_WHEN_her_page_opens_THEN_they_are_named()
+      {
+         var f = new HeartTastesFacts {
+            IsFemale = true, Loved = new[] {IntimateAct.OnTop, IntimateAct.OralReceiving}, Disliked = new[] {IntimateAct.RoughHandling},
+            Known = new[] {IntimateAct.RoughHandling, IntimateAct.OnTop, IntimateAct.OralReceiving}
+         };
+
+         HeartIntimacyPolicy.TastesLine(f).Should().Be("In bed she loves your mouth on her and being on top, and does not like being handled roughly.");
+      }
+
+      // STAKE: the page never spoils a taste the player has not found in the roleplay.
+      [Test]
+      public void GIVEN_a_taste_not_yet_learned_WHEN_his_page_opens_THEN_it_is_not_named()
+      {
+         var f = new HeartTastesFacts {
+            IsFemale = false, Loved = new[] {IntimateAct.Kissing}, Disliked = new[] {IntimateAct.AnalReceiving}, Known = new[] {IntimateAct.AnalReceiving}
+         };
+
+         HeartIntimacyPolicy.TastesLine(f).Should().Be("In bed he does not like being taken anally.");
+         HeartIntimacyPolicy.TastesLine(new HeartTastesFacts {Loved = new[] {IntimateAct.Kissing}}).Should().BeNull();
+      }
+
+      // STAKE: three tastes read as a list, and a man's page speaks of him.
+      [Test]
+      public void GIVEN_three_loved_tastes_WHEN_his_page_opens_THEN_they_read_as_a_list()
+      {
+         var acts = new[] {IntimateAct.Kissing, IntimateAct.OralGiving, IntimateAct.HandsAndFingers};
+         var f = new HeartTastesFacts {IsFemale = false, Loved = acts, Known = acts};
+
+         HeartIntimacyPolicy.TastesLine(f).Should().Be("In bed he loves long, deep kisses, taking you in his mouth and your hands and fingers on him.");
       }
 
       // STAKE: a forced captive scene must never be counted as a night of love: the romantic memory such a scene would leave

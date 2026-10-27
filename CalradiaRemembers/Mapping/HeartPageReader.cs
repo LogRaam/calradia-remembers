@@ -37,6 +37,8 @@ namespace CalradiaRemembers.Mapping
                 var lines = HeartPagePolicy.Lines(FactsFor(hero), When).ToList();
                 string nights = intimate ? HeartIntimacyPolicy.NightsLine(NightsOf(hero), When) : null;
                 if (nights != null) lines.Add(nights);
+                string tastes = intimate ? TastesLine(hero, NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId)) : null;
+                if (tastes != null) lines.Add(tastes);
 
                 return lines;
             }
@@ -47,6 +49,19 @@ namespace CalradiaRemembers.Mapping
             recap.AddRange(Lovers().Select(h => HeartIntimacyPolicy.NightsRecapLine(NightsOf(h), When)).Where(l => l != null));
 
             return recap;
+        }
+
+        /// <summary>The tastes in bed the player has learned of this hero, as the page names them (cr.testall intimate_acts reads this seam).</summary>
+        internal static string TastesLine(Hero hero, NpcProfile profile)
+        {
+            RomanticProfile r = profile?.Romantic;
+            if (hero == null || r == null) return null;
+
+            return HeartIntimacyPolicy.TastesLine(new HeartTastesFacts
+            {
+                IsFemale = hero.IsFemale, Loved = r.LovedActs ?? new List<IntimateAct>(), Disliked = r.DislikedActs ?? new List<IntimateAct>(),
+                Known = r.KnownActs ?? new List<IntimateAct>()
+            });
         }
 
         /// <summary>The hero's bond with the player as another mod reads it (CrRomance.GetStatus), from the page's own facts.</summary>

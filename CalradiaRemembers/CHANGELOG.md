@@ -81,8 +81,9 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   only at Hardcore in a lovemaking the game permits and never in a captive scene, the gestures this character loves or
   dislikes, and reports one the player does or asks for (`intimate_act`). A disliked gesture imposed costs 4 personal
   regard and leaves a memory, once a day per gesture; only asked for, it costs nothing; a loved one found the first
-  time warms them by 1 (`DeedRegardPolicy`). Either way the player has learned that taste (`KnownActs`, kept for the
-  encyclopedia). `character_overrides.json` takes `loves` and `dislikes`. `cr.acts [name]`, `cr.act <gesture>
+  time warms them by 1 (`DeedRegardPolicy`). Either way the player has learned that taste (`KnownActs`), and the
+  character's Heart section names it, since the player may forget (Gabriel 27/10): "In bed she loves being on top, and
+  does not like being handled roughly." (`HeartIntimacyPolicy.TastesLine`); never a taste not yet learned. `character_overrides.json` takes `loves` and `dislikes`. `cr.acts [name]`, `cr.act <gesture>
   [performed|proposed] [name]`, `cr.testall intimate_acts`.
 
 ### Changed
