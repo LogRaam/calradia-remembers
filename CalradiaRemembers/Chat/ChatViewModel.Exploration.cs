@@ -167,7 +167,9 @@ namespace CalradiaRemembers.Chat
          _ = RunExplorationTurnAsync(null, placeholder);
       }
 
-      private ChatSpeaker NarratorSpeaker() => new() {IsMain = true, Hero = null, Name = _exploration?.Title ?? "The scene", Profile = null};
+      // Gabriel (26/10/2026): the voice telling the scene was named after it ("The Cell Door"), which read as if the door
+      // spoke. The place stays in the title bar; the voice is the narrator's.
+      private ChatSpeaker NarratorSpeaker() => new() {IsMain = true, Hero = null, Name = "Narrator", Profile = null};
 
       /// <summary>
       ///   The player said what they do: a number alone picks that way of the list shown, the number of "Something else..."
