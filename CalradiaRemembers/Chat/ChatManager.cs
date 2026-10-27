@@ -435,7 +435,9 @@ namespace CalradiaRemembers.Chat
          // different things about where the player just went.
          var handingOff = false;
          // Read before the window goes: a tale's scene closes as a scene (it took no encounter of the player's).
-         bool closingAScene = ActiveViewModel?.IsExplorationScene == true;
+         bool closingAScene = ActiveViewModel?.IsExplorationScene == true || _meetingOnBackdrop;
+         bool meetingOnBackdrop = _meetingOnBackdrop;
+         _meetingOnBackdrop = false;
 
          // The conversation's own queued continuations are dropped HERE, before the close, never after it. The close
          // itself queues work for the next frame: the scene's backdrop pop, its closing popup, the next scene of a
@@ -443,6 +445,8 @@ namespace CalradiaRemembers.Chat
          // for good: fkasad's black screen with no way back (Nexus, 07/10/2026; the Chronicle opened twenty minutes
          // later still landed on the backdrop's screen, and no "[PANEL] ... closed" line was ever written).
          MainThreadDispatcher.Clear();
+         // A meeting a tale brought to the player sat on the scene's backdrop: it goes first, as a scene's does.
+         if (meetingOnBackdrop) MainThreadDispatcher.Enqueue(ExplorationBackdrop.Close);
 
          // A reply still being written for this window would only be thrown away; stop it, so a local server is not
          // left reasoning for nothing (fkasad, 16/10/2026).
@@ -901,6 +905,32 @@ namespace CalradiaRemembers.Chat
          ActiveViewModel.ActivateExploration(session);
          if (!string.IsNullOrEmpty(session.ImagePath)) ActiveViewModel.ShowSceneImage(session.ImagePath, session.Title);
       }
+
+      private static bool _meetingOnBackdrop;
+
+      /// <summary>
+      ///   Gabriel (26/10/2026, Rhagaea's night): a conversation a scenario's tale brings to the player opened over the
+      ///   game's own map conversation, so the Empress stood in armour among her guards in the street, her vanilla greeting
+      ///   under the video of her bed, and the chat sat empty. Such a meeting sits on the scene's dark backdrop instead
+      ///   (a pushed state, as a scene's), with no vanilla conversation, and closes as a scene does. Call before the chat
+      ///   opens; the chat lands on the backdrop's screen.
+      /// </summary>
+      internal static void BeginMeetingOnBackdrop()
+      {
+         ExplorationBackdrop.Open();
+         _meetingOnBackdrop = true;
+      }
+
+      /// <summary>The meeting meant for the backdrop did not open: the backdrop goes at once.</summary>
+      internal static void AbandonMeetingOnBackdrop()
+      {
+         if (!_meetingOnBackdrop) return;
+         _meetingOnBackdrop = false;
+         ExplorationBackdrop.Close();
+      }
+
+      /// <summary>True while the open chat is a meeting sitting on the scene's backdrop.</summary>
+      internal static bool MeetingOnBackdrop => _meetingOnBackdrop;
 
       public static void OpenForCompanionAudienceDirect(
          Hero companion, NpcProfile profile, CompanionAudienceReason reason, bool landed, string topicDetail = null)

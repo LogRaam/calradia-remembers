@@ -604,6 +604,41 @@ namespace CalradiaRemembers.Dialogue
          catch (Exception ex) { ModLog.Error($"[TALE] OpenChatForTaleMeeting failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
+      /// <summary>
+      ///   A meeting a scenario's tale brings to the player (Gabriel, 26/10/2026: the prisoner led to the Empress's
+      ///   chamber): no vanilla conversation, the chat on the scene's dark backdrop, and the character speaks first.
+      /// </summary>
+      public void OpenChatForSummonedMeeting(Hero hero)
+      {
+         try
+         {
+            if (hero == null)
+            {
+               ModLog.Error("[TALE] no one to open the summoned meeting with.");
+
+               return;
+            }
+
+            NpcMemoryCampaignBehavior.Instance?.DialogueRecorder?.Clear();
+            _pendingGreeting = null;
+            ChatManager.BeginMeetingOnBackdrop();
+            OnPlayerSelectedChat(hero);
+            if (!ChatManager.IsOpen)
+            {
+               ChatManager.AbandonMeetingOnBackdrop();
+
+               return;
+            }
+
+            ChatManager.ActiveViewModel?.ActivateTaleOpener();
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[TALE] OpenChatForSummonedMeeting failed: {ex.GetType().Name}: {ex.Message}");
+            if (!ChatManager.IsOpen) ChatManager.AbandonMeetingOnBackdrop();
+         }
+      }
+
       public void OpenChatForInterceptingHero(Hero hero)
       {
          try

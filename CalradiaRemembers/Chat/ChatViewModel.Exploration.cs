@@ -308,11 +308,7 @@ namespace CalradiaRemembers.Chat
 
             ChatManager.ScrollToBottom();
 
-            if (_exploration.IsOver?.Invoke() == true)
-            {
-               _conversationEnded = true;
-               NotifyConversationEndedChanged();
-            }
+            if (_exploration.IsOver?.Invoke() == true) EndExplorationSoftly();
          }
          catch (Exception ex)
          {

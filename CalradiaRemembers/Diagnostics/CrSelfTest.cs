@@ -365,6 +365,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("scene_surroundings_read", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's scene should read differently to an Aserai in a forest at night and a Battanian at noon. Reads the ground under the player, the season, the hour and the player's people from the live game, as the scene's narrator gets them, and checks the narrator's block is written from them.", TestSceneSurroundingsRead),
          new SelfTest("scene_opener", Severity.Light, "Lordfadooboo (Nexus, 21/10/2026): a conversation opened cold; Gabriel (22/10/2026): the character sets the scene by default, as captive scenes do. Reads the LIVE opening facts (LlmDialogFlow.SceneFacts) and asserts a conversation opened by the greeting gets a scene while one opened any other way (an interception, a tale meeting) does not, nor one put back from earlier today, nor one carrying the game's own dialogue, nor any with the MCM switch off (set off for a moment, restored). Then, with a model available and nothing on screen, opens a REAL conversation with a lord, starts the scene on a test greeting and plays the player speaking first: the scene is set aside, the greeting stays on screen and is the line remembered, and the call is aborted. Closes the conversation", TestSceneOpener),
          new SelfTest("scene_image_shown", Severity.Light, "Gabriel (08/10/2026): a tale's stage may carry a picture, opening by itself beside the chat when its scene opens. Writes a small picture to a temporary file, opens a scene with it through the real door (its narration refused before any model call), checks the left panel shows that very file, then closes the scene and deletes the file.", TestSceneImageShown),
+         new SelfTest("summoned_meeting_on_backdrop", Severity.Light, "Gabriel (26/10/2026, Rhagaea's night): the conversation a scenario's tale brings to the player opened over the game's own map conversation (the Empress in armour among her guards in the street, her vanilla greeting under the video of her bed) and the chat stayed empty until he typed. Opens the REAL summoned meeting with a lord, nothing else on screen: the chat sits on the scene's dark backdrop, no vanilla conversation runs, the character's opening line is pending (its call is aborted by the close). Then closes it: the backdrop is gone and the map is given back as it was", TestSummonedMeetingOnBackdrop),
          new SelfTest("scene_close_gives_the_map_back", Severity.Light, "fkasad (Nexus, 07/10/2026): closing a tale's scene left a black screen with no way back. The close queued the backdrop's pop for the next frame, then wiped its own queue at the end. Opens a scene through the real door (its narration refused before any model call, so the log shows one [SCENE] error on purpose), closes it as the button does, runs one frame: the scene's own close must have run, what it queued must have run, and the map must be given back.", TestSceneCloseGivesTheMapBack),
          new SelfTest("scene_backdrop_suspends_the_map", Severity.Light, "Gabriel's play test (04/10/2026): closing a written tale's scene crashed the game natively; the scene had opened over the bare live map, which the hosting rule forbids. The scene's chat now sits on a pushed GameState. Opens that backdrop through the real host: the map must be suspended (a CrPanelState active, the settlement-visual tick suppressed), then given back exactly as it was, with the clock stopped. Opens no chat.", TestSceneBackdropSuspendsTheMap),
          new SelfTest("player_company", Severity.Light, "Gabriel's Invite / Request Private design (03/10/2026, after nerethi). Reads the player's real company (party, escorts, prison): never the player, every prisoner truly held, the one spoken to never offered for invitation, and a room made only of the company, seated as Invite seats them, is cleared at once. Arranges a disposable companion into the main party when nobody travels with the player (GABRIEL'S RULE, 13/10/2026), restored after via ArrangedCompanion.", TestPlayerCompany),
@@ -12128,6 +12129,43 @@ namespace CalradiaRemembers.Diagnostics
             if (Chat.ExplorationBackdrop.IsOpen) Chat.ExplorationBackdrop.Close();
             Campaign.Current.TimeControlMode = timeBefore;
             try { System.IO.File.Delete(path); } catch { /* a temp file left behind harms nothing */ }
+         }
+
+         return t.Line();
+      }
+
+      private static string TestSummonedMeetingOnBackdrop(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("summoned_meeting_on_backdrop");
+         if (t.Skip(Chat.ChatManager.IsOpen || Chat.ExplorationBackdrop.IsOpen || UI.CrPanelHost.AnyPanelOwnsScreen, "a window or panel already owns the screen")) return t.Line();
+         if (t.Skip(behavior?.DialogFlow == null, "the dialogue flow is not ready")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && !h.IsPrisoner && h.Clan != Clan.PlayerClan
+                                                            && Mapping.ActionGate.Allows(h, Logic.ActionKind.Witness));
+         if (t.Skip(lord == null, "no free lord to meet")) return t.Line();
+
+         TaleWorlds.Core.GameState before = TaleWorlds.Core.Game.Current?.GameStateManager?.ActiveState;
+         CampaignTimeControlMode timeBefore = Campaign.Current.TimeControlMode;
+         try
+         {
+            behavior.DialogFlow.OpenChatForSummonedMeeting(lord);
+            t.Expect("theMeetingOpened", Chat.ChatManager.IsOpen, true);
+            t.Expect("onTheScenesBackdrop", Chat.ExplorationBackdrop.IsOpen && Chat.ChatManager.MeetingOnBackdrop, true);
+            t.Expect("noVanillaConversationRuns", Campaign.Current.ConversationManager?.IsConversationInProgress == true, false);
+            t.Expect("theCharacterSpeaksFirst", Chat.ChatManager.ActiveViewModel?.IsSendEnabled, false);
+
+            Chat.ChatManager.Close();
+            MainThreadDispatcher.Pump();
+
+            t.Expect("theBackdropIsGone", Chat.ExplorationBackdrop.IsOpen, false);
+            t.Expect("theMapIsGivenBack", TaleWorlds.Core.Game.Current?.GameStateManager?.ActiveState == before, true);
+         }
+         finally
+         {
+            if (Chat.ChatManager.IsOpen) Chat.ChatManager.Close();
+            MainThreadDispatcher.Pump();
+            if (Chat.ExplorationBackdrop.IsOpen) Chat.ExplorationBackdrop.Close();
+            Campaign.Current.TimeControlMode = timeBefore;
          }
 
          return t.Line();

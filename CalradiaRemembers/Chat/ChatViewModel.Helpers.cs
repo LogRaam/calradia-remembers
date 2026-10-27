@@ -487,8 +487,22 @@ namespace CalradiaRemembers.Chat
          CloseButtonText = "Leave";
          NotifyConversationEndedChanged();
          // As an ordinary close does (Gabriel, 18/07/2026: a greyed input alone reads as the chat going dead).
-         AppendSystemNotice("The scene has come to its close. You may close the conversation.");
+         AppendSystemNotice(SceneCloseNotice);
          ModLog.Info($"[TALE] the arc's last reply is in; the conversation with {_npcName} ends.");
+      }
+
+      // Gabriel (26/10/2026): "lorsque le stage est termine, il faudrait indiquer 'close this conversation to continue'".
+      private const string SceneCloseNotice = "The scene has come to its close. Close this conversation to continue...";
+
+      /// <summary>A tale's scene has ended by itself: the input locks to a Leave button, and the player is told to close.</summary>
+      private void EndExplorationSoftly()
+      {
+         _conversationEnded = true;
+         IsSendEnabled = false;
+         IsPrivateRequestVisible = false;
+         CloseButtonText = "Leave";
+         NotifyConversationEndedChanged();
+         AppendSystemNotice(SceneCloseNotice);
       }
 
       /// <summary>Ends the scene after a successful escape — input locks to a Leave button.</summary>

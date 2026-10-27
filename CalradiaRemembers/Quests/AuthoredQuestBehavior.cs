@@ -1630,7 +1630,8 @@ namespace CalradiaRemembers.Quests
          MainThreadDispatcher.Enqueue(() =>
          {
             if (_run is not {Status: AuthoredQuestStatus.Active} || _run.QuestId != questId) return;
-            if (ChatManager.IsOpen)
+            // The scene that led here closes its backdrop on a later frame: the meeting waits for it to be gone.
+            if (ChatManager.IsOpen || ExplorationBackdrop.IsOpen)
             {
                if (framesLeft > 0) StageWhenFree(questId, who, framesLeft - 1);
                else ModLog.Notice($"the conversation with {who.Name} of your tale could not open: another chat stayed open.");
@@ -1638,8 +1639,9 @@ namespace CalradiaRemembers.Quests
                return;
             }
 
-            ModLog.Info($"[TALE] '{questId}': the conversation with {who.Name} opens by itself.");
-            ChatSceneStager.StageTaleMeeting(who);
+            // Gabriel (26/10/2026): on the scene's dark backdrop, with no vanilla conversation, and the character first.
+            ModLog.Info($"[TALE] '{questId}': the conversation with {who.Name} opens by itself, on the scene's backdrop.");
+            NpcMemoryCampaignBehavior.Instance?.DialogFlow?.OpenChatForSummonedMeeting(who);
          });
       }
 

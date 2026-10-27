@@ -1886,7 +1886,9 @@ namespace CalradiaRemembers.Chat
             Quests.AuthoredQuestBehavior tales = Quests.AuthoredQuestBehavior.Instance;
             if (speaker.IsMain && tales != null)
             {
-               if (!isSceneOpener && !IsCaptiveEncounter && !_conversationEnded)
+               bool taleOpener = _taleOpenerTurn;
+               _taleOpenerTurn = false;
+               if (!isSceneOpener && !taleOpener && !IsCaptiveEncounter && !_conversationEnded)
                {
                   if (tales.ArcExchanged(speaker.Hero)) EndTaleArcSoftly();
                }

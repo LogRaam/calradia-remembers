@@ -1722,6 +1722,35 @@ namespace CalradiaRemembers.Chat
       ///   kindness for a Grudge/AppreciationOwed trigger. A plain live conversation otherwise (full memory +
       ///   actions), mirroring the companion-audience opener.
       /// </summary>
+      // The character's first line in a meeting a tale brought to the player: not an exchange of the tale's arc.
+      private bool _taleOpenerTurn;
+
+      /// <summary>
+      ///   The character opens a meeting a scenario's tale brought to the player (Gabriel, 26/10/2026: the chat sat empty
+      ///   in the Empress's chamber until he typed "..."). A synthetic cue, never shown; the tale's own block says what the
+      ///   moment is. The arc does not count this line: the player has not spoken yet.
+      /// </summary>
+      public void ActivateTaleOpener()
+      {
+         _mode = ChatMode.Conversation;
+
+         ChatSpeaker speaker = MainSpeaker();
+         if (speaker.Profile == null)
+         {
+            ModLog.Error("[TALE] opener: no profile, cannot open the meeting.");
+
+            return;
+         }
+
+         ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
+         _messages.Add(placeholder);
+         IsSendEnabled = false;
+         _taleOpenerTurn = true;
+         MarkOpenerPending();
+         _ = RunLlmExchangeAsync("(The player has just been brought before you, as this moment of your tale has it. You speak first: "
+                                 + "open the moment in your own words and gestures. Do not speak for the player.)", speaker, placeholder, true);
+      }
+
       public void ActivateInterceptionOpener()
       {
          _mode = ChatMode.Conversation;
@@ -3359,7 +3388,7 @@ namespace CalradiaRemembers.Chat
             _pictureBeforeLiveSize = (SceneImageWidth, SceneImageHeight);
          }
 
-         if (!_sceneImageSizedByPlayer) _sceneImageCompact = !IsExplorationScene;
+         if (!_sceneImageSizedByPlayer) _sceneImageCompact = !IsExplorationScene && !ChatManager.MeetingOnBackdrop;
          _sceneAspectW = aspectW;
          _sceneAspectH = aspectH;
          (float w, float h) = Logic.AuthoredQuests.SceneImageLayout.Fit(aspectW, aspectH, _sceneImageCompact);
@@ -3455,8 +3484,9 @@ namespace CalradiaRemembers.Chat
          if (ChatManager.ActiveSkin == ChatManager.ManuscriptSkin)
          {
             // Gabriel (11/10/2026): large only in a scene with nobody in it; small, top-left, when a character is spoken to;
-            // unless the player has chosen the size by clicking the picture.
-            if (!_sceneImageSizedByPlayer) _sceneImageCompact = !IsExplorationScene;
+            // unless the player has chosen the size by clicking the picture. Large again in a meeting on the dark backdrop,
+            // where no character stands in 3D (Gabriel, 26/10/2026).
+            if (!_sceneImageSizedByPlayer) _sceneImageCompact = !IsExplorationScene && !ChatManager.MeetingOnBackdrop;
             _sceneAspectW = aspectW;
             _sceneAspectH = aspectH;
             (float w, float h) = Logic.AuthoredQuests.SceneImageLayout.Fit(aspectW, aspectH, _sceneImageCompact);
