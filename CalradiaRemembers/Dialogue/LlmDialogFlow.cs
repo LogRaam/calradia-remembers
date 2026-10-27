@@ -138,6 +138,7 @@ namespace CalradiaRemembers.Dialogue
 
       public void Register(CampaignGameStarter starter)
       {
+         CompanionBriefingCoordinator.OpenTheMeeting = OpenChatAfterBriefingDeclined;
          for (int i = 0; i < EntryHubTokens.Length; i++)
          {
             string hub = EntryHubTokens[i];
@@ -536,6 +537,27 @@ namespace CalradiaRemembers.Dialogue
          catch (Exception ex)
          {
             ModLog.Error($"[BRIEFING] OpenChatForBriefedReturn failed: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   The player asked for a word with their own people, then thought better of it ("Never Mind"): the meeting is
+      ///   still idling behind the picker, so the conversation they came for opens, as "A word with you" would. Windmolen
+      ///   (Nexus, 26/10/2026): closing that picker ended the conversation, and he could not reach a private one.
+      /// </summary>
+      public void OpenChatAfterBriefingDeclined(Hero target)
+      {
+         try
+         {
+            if (target == null) return;
+
+            _pendingGreeting = null;
+            OnPlayerSelectedChat(target);
+            ModLog.Info($"[BRIEFING] never mind: the conversation with {target.Name} opens as it would have.");
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[BRIEFING] OpenChatAfterBriefingDeclined failed: {ex.GetType().Name}: {ex.Message}");
          }
       }
 

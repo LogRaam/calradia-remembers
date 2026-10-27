@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 571 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1333 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1336 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 268 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -926,7 +926,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (451)
+### CalradiaRemembers.Logic (454)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1352,6 +1352,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StationGuidelinesPolicy` | public static class | Maps an NPC's occupation to the behavior-guidelines register that should voice them, and picks the concrete text through a fallback chain. |
 | `Stature` | public struct | A person's (or a house's) standing in the realm: their clan's tier, and whether they rule. |
 | `StolenSpouseGrudgePolicy` | public static class | Sizes the jilted spouse's personal grudge against the player when a stolen-love affair ends their marriage. |
+| `SupplyGiftFacts` | public class | The facts behind a gift of goods to someone with a supply task outstanding. |
+| `SupplyGiftPolicy` | public static class | Reads a gift of goods against the receiver's outstanding supply task. |
+| `SupplyGiftReading` | public enum | What a gift of goods comes to when the receiver has a supply task outstanding with the player. |
 | `SwayFacts` | public class | One sway that just landed, as the plea task reads it. |
 | `SwayGroundingPolicy` | public static class | Whether the player actually spoke of the person a sway is about. |
 | `SwayStance` | public enum | The stance a sway_opinion action asked for, once its raw token is read strictly. |

@@ -868,6 +868,43 @@ namespace CalradiaRemembers.GameState
       }
 
       /// <summary>
+      ///   A gift of goods an outstanding supply task of <paramref name="giver" /> asks for (<see cref="SupplyGiftPolicy" />):
+      ///   settled through <see cref="SettleSupplyQuest" /> with every matching good the party carries, refused when short,
+      ///   or null when no task asks for them (a plain gift).
+      /// </summary>
+      private ActionOutcome TrySettleSupplyByGift(ItemObject gift, Hero giverHero, NpcProfile giver)
+      {
+         InformalQuest supply = giver?.ActiveQuests?.FirstOrDefault(q =>
+            (q.Type == QuestType.ProvideGoods || q.Type == QuestType.CraftWeapon) && q.IsOutstanding
+            && SupplyItemMatcher.Matches(gift, q.RequiredItemCategory));
+         ItemRoster roster = MobileParty.MainParty?.ItemRoster;
+         if (supply == null || roster == null) return null;
+
+         var offers = new List<ItemOffer>();
+         for (var i = 0; i < roster.Count; i++)
+         {
+            ItemRosterElement e = roster.GetElementCopyAtIndex(i);
+            ItemObject item = e.EquipmentElement.Item;
+            if (item != null && e.Amount > 0 && SupplyItemMatcher.Matches(item, supply.RequiredItemCategory))
+               offers.Add(new ItemOffer(item.StringId, e.Amount));
+         }
+
+         int held = offers.Sum(o => o.Count);
+         switch (SupplyGiftPolicy.Read(new SupplyGiftFacts {TaskAsksTheseGoods = true, Held = held, Asked = supply.RequiredItemCount}))
+         {
+            case SupplyGiftReading.Settles:
+               ModLog.Info($"[QUEST] a gift of {gift.Name} settles {giverHero?.Name}'s supply task ({held} carried, {supply.RequiredItemCount} asked).");
+
+               return SettleSupplyQuest(giver, giverHero, supply, offers);
+            case SupplyGiftReading.Short:
+               return ActionOutcome.Refused($"({giverHero?.Name} asked for {supply.RequiredItemCount} {SupplyItemMatcher.Label(supply.RequiredItemCategory)}; "
+                                            + $"you carry {held}, so you keep them until you have them all.)");
+            default:
+               return null;
+         }
+      }
+
+      /// <summary>
       ///   Settles a <see cref="QuestType.ProvideGoods" /> supply task: tallies the COUNT of handed-over goods
       ///   that genuinely match the quest's category (only they count, whatever the picker gathered), and, when
       ///   the required count is met, hands over exactly that many, then COMPLETES the quest here (pays the
@@ -2036,7 +2073,7 @@ namespace CalradiaRemembers.GameState
       ///   (case-insensitive). Quest items are always refused — this guard sits on both
       ///   the prompt side (picker excludes them) and here, so the bridge is the law.
       /// </summary>
-      private static ActionOutcome ExecuteGiveItem(GameAction action, Hero npcHero, ActionContext context)
+      private ActionOutcome ExecuteGiveItem(GameAction action, Hero npcHero, ActionContext context)
       {
          try
          {
@@ -2086,6 +2123,12 @@ namespace CalradiaRemembers.GameState
                case TaleGiftReading.Short:
                   return ActionOutcome.Refused($"({npcHero?.Name} awaits {taleAsked} {taleLabel}; you carry {taleHeld}, so you keep them until you have them all.)");
             }
+
+            // froggyluv (26/10/2026): goods a supply task asks of this person, handed over in words or through the Give
+            // menu, settle it as the bag does; only the bag did, and the famine grain left the party while the task
+            // expired as a broken promise. Short of the count nothing leaves, as with the bag.
+            ActionOutcome supplied = TrySettleSupplyByGift(found.EquipmentElement.Item, npcHero, context?.Profile);
+            if (supplied != null) return supplied;
 
             // Honour the STATED quantity, clamped to what the player holds (player report: "I give you 10 ingots"
             // moved a single one). The pure GiftQuantityPolicy decides; a missing count is one item.

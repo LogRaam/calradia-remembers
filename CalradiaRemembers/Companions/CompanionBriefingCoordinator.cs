@@ -76,9 +76,10 @@ namespace CalradiaRemembers.Companions
                   selected => OnCompanionsChosen(target, selected),
                   // "Never Mind". Previously null, and harmless while the dialogue line exited on
                   // close_window: the conversation was already over by the time the picker appeared. It now
-                  // IDLES instead, so somebody has to end it or the player is left staring at a dialogue with
-                  // no replies (see BriefCompanionsHoldToken).
-                  _ => AbandonBriefing("the player said never mind")),
+                  // IDLES instead, so somebody has to act or the player is left staring at a dialogue with
+                  // no replies (see BriefCompanionsHoldToken). Windmolen (Nexus, 26/10/2026): ending it left no way
+                  // to the private conversation he came for, so the meeting opens instead, as "A word with you" would.
+                  _ => ReturnToTheMeeting(target)),
                false, // pauseGameActiveState (nothing else is running that needs pausing)
                true); // prioritize
          }
@@ -265,6 +266,26 @@ namespace CalradiaRemembers.Companions
       /// </summary>
       /// <summary>The same exit, for the one abandonment that happens outside this class (the window failing to open).</summary>
       public static void AbandonBriefingFromHost() => AbandonBriefing("the briefing window did not open");
+
+      /// <summary>
+      ///   Opens the conversation the player came for, set by the dialogue flow when it registers (it already knows this
+      ///   coordinator; the reverse would tie the two namespaces both ways).
+      /// </summary>
+      internal static Action<Hero> OpenTheMeeting { get; set; }
+
+      // Never Mind: the briefing is dropped and the conversation the player came for opens; ended only if it cannot.
+      private static void ReturnToTheMeeting(Hero target)
+      {
+         Forget();
+         if (OpenTheMeeting == null || target == null)
+         {
+            AbandonBriefing("the player said never mind, and there was no meeting to return to");
+
+            return;
+         }
+
+         OpenTheMeeting(target);
+      }
 
       private static void AbandonBriefing(string why)
       {

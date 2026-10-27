@@ -521,7 +521,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("bandit_clear_gate", Severity.Light, "increment 2b (player report: a village sent me after bandits that were not there, then turned hostile when I reported none): read the LIVE world, count bandit parties within the completion radius of a lord's anchor via the scanner's own counter, build the grounded menu, and assert bandit_clear is offered IFF at least one bandit party roams nearby. Seeds nothing", TestBanditClearGate),
          new SelfTest("provide_gold", Severity.Heavy, "child-support fix: seed a ProvideGold quest -> real take_gold via the bridge (player pays the giver) -> assert the quest is CLOSED (Completed, not stuck 'awaiting reward') and the goodwill regard was paid, since the payment IS the completion (no [QUEST_COMPLETE] needed). Restores gold so the economy is unchanged", TestProvideGoldCompletes),
          new SelfTest("reward_net", Severity.Heavy, "quest audit B1: the reward SAFETY NET. Seed a quest the game already VERIFIED as done (IsAwaitingReward, as if a lair was cleared days ago) but that the LLM never closed with [QUEST_COMPLETE] -> run the REAL QuestService.ApplyResponse with NO completion claim -> assert the net settles it anyway (Completed, no longer awaiting) and pays the owed reward (gold or regard moves), so the player's 'Done' quest never pays out never. Restores the seed + gold", TestRewardNet),
-         new SelfTest("supply_quest", Severity.Heavy, "personal supply quest (ProvideGoods) END-TO-END: a bad-category proposal is REFUSED by the pipeline (nothing grounded), then a grain proposal is ISSUED through QuestService.ApplyResponse and grounds a real category+count; give the player grain -> real SettleSupplyQuest hands over EXACTLY the required count, CLOSES the quest (Completed), and pays the reward. Restores the roster", TestSupplyQuest),
+         new SelfTest("supply_quest", Severity.Heavy, "personal supply quest (ProvideGoods) END-TO-END: a bad-category proposal is REFUSED by the pipeline (nothing grounded), then a grain proposal is ISSUED through QuestService.ApplyResponse and grounds a real category+count; give the player grain -> real SettleSupplyQuest hands over EXACTLY the required count, CLOSES the quest (Completed), and pays the reward. Restores the roster. Then (froggyluv, 26/10/2026) the same grain handed over in WORDS through the REAL give_item action: short of the count it is refused and nothing leaves; with the count it settles the task (Completed). Restores the roster", TestSupplyQuest),
          new SelfTest("courier_waylay", Severity.Heavy, "waylaid-letter resend: a waylaid letter keeps its typed text, and the Resend path re-queues a FRESH non-lost letter carrying the SAME content, so a waylaid letter never has to be retyped. Cleans up its test letters + courier (no popup)", TestCourierWaylayResend),
          new SelfTest("prisoner_trade", Severity.Heavy, "prisoner trade: take a real lord captive into the player's party -> real buy_prisoner via the bridge (an NPC lord buys him) -> assert the player was PAID (price clamped around the ransom anchor) and the captive left the player's custody -> cleanup frees him", TestPrisonerTrade),
          new SelfTest("prisoner_ransom_home", Severity.Heavy, "fkasad (26/09/2026): a captive ransomed by his own count was put in his own side's cells and the game reported him escaped. Takes a real lord captive, has HIS OWN clan leader buy him through the real bridge -> asserts the player was paid the clamped price, was told why it fell short of the 999999 named (tashmetu), and the captive is FREE (ransomed home), not a prisoner of his own house. Restores both purses and frees him whatever happened.", TestPrisonerRansomHome),
@@ -23136,9 +23136,36 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("tookExactlyRequired", taken, need);
          t.Expect("goodwillPaid", profile.ReputationWithPlayer > regardBefore, true);
 
-         // Restore the roster: drop any surplus grain the test added.
+         // froggyluv (26/10/2026): grain handed over in WORDS (give_item, the path the Give menu takes too) settles the
+         // task as the bag does; short of the count, nothing leaves. Through the REAL bridge action.
+         ArrangeCleanNpc(behavior, profile, giver);
+         QuestService.ApplyResponse(profile, giver,
+            new ParsedResponse {Dialogue = "", QuestGiven = new QuestProposal {Type = QuestType.ProvideGoods, Category = "grain", RequiredCount = need, RewardGold = 0, RewardRelation = 1}},
+            day, behavior.GameStateBridge, behavior.Store, null);
+         profile = behavior.Store.Get(giver.StringId);
+         InformalQuest worded = profile.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.ProvideGoods && q.IsOutstanding);
+         if (worded != null)
+         {
+            int carried = CountItemInParty(grain);
+            if (carried > need - 1) MobileParty.MainParty.ItemRoster.AddToCounts(grain, -(carried - (need - 1)));
+            ActionOutcome shortGift = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "give_item", Parameters = new Dictionary<string, string> {["item"] = grain.Name.ToString(), ["count"] = need.ToString()}},
+               giver, new ActionContext(profile, null));
+            t.Expect("aShortWordedGiftIsRefused", shortGift?.WasRefused, true);
+            t.Expect("andNothingLeaves", CountItemInParty(grain), need - 1);
+
+            MobileParty.MainParty.ItemRoster.AddToCounts(grain, 1);
+            ActionOutcome gift = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "give_item", Parameters = new Dictionary<string, string> {["item"] = grain.Name.ToString(), ["count"] = need.ToString()}},
+               giver, new ActionContext(profile, null));
+            t.Note($"worded gift: {gift?.Message}");
+            t.Expect("aWordedGiftSettlesTheTask", worded.Status, QuestStatus.Completed);
+         }
+         else t.Note("a second grain task could not be issued: the worded hand-over was not asserted");
+
+         // Restore the roster: drop any surplus grain the test added, and put back what the test took.
          int surplus = CountItemInParty(grain) - held0;
-         if (surplus > 0) MobileParty.MainParty.ItemRoster.AddToCounts(grain, -surplus);
+         if (surplus != 0) MobileParty.MainParty.ItemRoster.AddToCounts(grain, -surplus);
 
          return t.Line();
       }

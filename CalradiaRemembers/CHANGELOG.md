@@ -62,6 +62,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (`docs/maps/composition-parity.md`, `CompositionParityTests`).
 
 ### Fixed
+- **Grain and other goods a lord asked for count however you hand them over** (froggyluv, Nexus 26/10: "sometimes the
+  flavor text will say i delivered but the NPC still complain of my broken promises"). Only the chat window's bag
+  button settled a supply task; goods handed over in words, or through the Give menu, left your party while the task
+  stayed open and expired as a broken promise. Now a gift of the goods the task asks for settles it the same way, the
+  exact count leaving and the reward paid; short of the count nothing leaves (`SupplyGiftPolicy`). `cr.testall
+  supply_quest` now hands grain over in words too.
+- **"Never Mind" no longer ends the conversation** (Windmolen, Nexus 26/10: closing the "Speak With Your Own People"
+  window left him unable to reach a private conversation). The meeting the player came for opens instead, as "A word
+  with you" would.
 - **A lady who heads her house no longer "marries" you in words while nothing is sealed** (RaveN017Mod, Nexus 26/10:
   "I want my hero to marry Rhagaea [...] it feels like it's just not triggering"; Gabriel the same day: "Jamais elle
   laissera son trone"). The game weds no two heads of houses, and you always head yours: its marriage refused in

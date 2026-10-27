@@ -248,6 +248,24 @@ An `arc` on a `talk_to` objective (meant for `"when": "closed"`):
 Not in scope: a hard close that cuts the scene mid-sentence; arcs on stages other than `talk_to`; several characters
 taking turns inside one arc (the captive director's collective acts).
 
+## WISHED 2026-10-26 (Gabriel, on Windmolen's report), ROADMAPPED, NOT DESIGNED: captivity scenes other than abuse
+
+Windmolen (Nexus, 26/10/2026): "My captor always seems to want to play some perverse game with me, trying to break my
+will [...] The NPC's never seem to be capable of just doing it! Give in, or just execute you or let you free or ransom
+you." Gabriel the same day: the player can leave a captivity scene at any time, and "il faudra d'autres scenarios que
+de la maltraitance". Traced 26/10/2026: every captor intent the scene director draws is a variant of mistreatment
+(interrogation, desire, domination, torture, training, reward, reckoning; the bandits' extortion, intimidation,
+revenge), the scene always ends with the prisoner back in confinement (`PromptBuilder` ~7054-7073), and the captor is
+never taught a ransom though the host already computes `CaptorAllowsRansomRelease`. A design has to answer:
+- **Which other captivities.** A courteous captor who treats a noble prisoner as a guest of rank; a captor who
+  negotiates a ransom with the player's house; one who wants information and trades it; one who offers service or an
+  oath for freedom; one indifferent, who simply keeps the player until the ransom comes; a captor who is a friend of
+  old, torn.
+- **How they end.** A scene that may END in freedom, a struck ransom, an oath, an exchange, or execution where the MCM
+  allows it, instead of always back to the cell; which of those the captor is taught, from his nature and his grudge.
+- **Who draws which.** The captor's traits, his regard and grudge, the player's rank and house, the content level
+  (these are not Hardcore-only).
+
 ## WISHED 2026-10-23 (Gabriel), ROADMAPPED, NOT DESIGNED: extortion by the player, a misdeed with no deed yet
 
 Gabriel (23/10/2026), for the Misdeeds section of the player's page (`4679f2a`): "on pourrait aussi ajouter des
