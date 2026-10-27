@@ -91,6 +91,9 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   [performed|proposed] [name]`, `cr.testall intimate_acts`.
 
 ### Changed
+- **`cr.testall <name>` runs only that test** (Gabriel 27/10: "cr.testall avec une commande fait tous les tests quand
+  meme"): a name was ignored and the whole sweep ran; one or more names now run just those, as `cr.test` does. A
+  number still sets the conversation tests' budget.
 - **The Adult Tales have their own git repository** (Gabriel 27/10: "Calradia Remembers Adult Tales", beside CR,
   github.com/LogRaam/Calradia-Remembers-Adult-Tales), history kept. `Extras/CalradiaRemembersAdultTales` is gone from
   CR, with its installer and `Tools/IntimateTales/wife_tales.py`, which moved there (`python Tools/install.py`). CR's

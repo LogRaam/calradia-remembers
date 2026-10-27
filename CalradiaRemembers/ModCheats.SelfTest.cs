@@ -28,6 +28,8 @@ namespace CalradiaRemembers
       ///   sweep never mutates the live campaign that way; run them via cr.test &lt;name&gt;, or cr.test full
       ///   on a throwaway save. WARNING: even this sweep mutates relations/quests/clans, copy your save or
       ///   reload when done.
+      ///   cr.testall &lt;name&gt; [name ...] runs only those tests, as cr.test does (Gabriel, 27/10/2026: "cr.testall avec
+      ///   une commande fait tous les tests quand meme"; a name used to be ignored and the whole sweep ran).
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("testall", "cr")]
       public static string RunAllSelfTests(List<string> args)
@@ -37,6 +39,8 @@ namespace CalradiaRemembers
          int? llmBudgetSeconds = null;
          if (args is {Count: > 0} && int.TryParse(args[0], out int parsed) && parsed > 0)
             llmBudgetSeconds = parsed;
+         else if (args is {Count: > 0} && !string.IsNullOrWhiteSpace(args[0]))
+            return string.Join("\n", args.Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => CrSelfTest.Run(a.Trim(), behavior)));
 
          return CrSelfTest.RunAll(behavior, llmBudgetSeconds);
       }
