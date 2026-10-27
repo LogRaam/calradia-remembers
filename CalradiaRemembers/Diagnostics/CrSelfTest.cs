@@ -14286,9 +14286,11 @@ namespace CalradiaRemembers.Diagnostics
                t.Expect("aFreePlayerHasNoCaptor", Scenarios.ScenarioGuardResolver.Resolve(Logic.KeywordToken.Parse("IF_CAPTOR_IS:" + lord.StringId), nobody), false);
 
             Hero offering = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && h.Issue != null && !h.IsPrisoner
-                                                                   && h.Clan != Clan.PlayerClan
-                                                                   && Campaign.Current.QuestManager.Quests.All(x => x == null || !x.IsOngoing || x.QuestGiver != h));
+                                                                   && h.Clan != Clan.PlayerClan);
             if (offering != null) t.Expect("anErrandOnOfferDoesNotBarTheSummons", b.OpenFromScenario(id, offering, dryRun: true), null);
+            Hero busy = Campaign.Current.QuestManager.Quests.Where(x => x != null && x.IsOngoing && x is not Quests.AuthoredStoryQuest).Select(x => x.QuestGiver)
+                                .FirstOrDefault(h => h != null && h.IsLord && !h.IsChild && h != Hero.MainHero && !h.IsPrisoner && h.Clan != Clan.PlayerClan);
+            if (busy != null) t.Expect("aQuestOfTheirsUnderWayDoesNotBarTheSummons", b.OpenFromScenario(id, busy, dryRun: true), null);
 
             t.Expect("itOpens", b.DebugOpenFromScenario(id, lord), null);
             Logic.AuthoredQuests.AuthoredQuestRun run = b.ActiveRun;

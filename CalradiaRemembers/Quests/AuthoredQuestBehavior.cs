@@ -388,11 +388,12 @@ namespace CalradiaRemembers.Quests
       }
 
       /// <summary>The offer facts for this quest now, the dice aside.</summary>
-      // A scenario's summons is not an errand raised in conversation: only a quest of theirs already under way bars it.
+      // A scenario's summons is not an errand raised in conversation: nothing of the giver's own bars it, neither an errand on
+      // offer nor a quest of theirs under way (Gabriel, 26/10/2026: the night was still refused with the wolf's tale under way).
       private AuthoredOfferFacts FactsFor(AuthoredQuest q, Hero giver, int today, bool bySummons = false) => new() {
          Today = today, StoryUnderWay = TalePause.StoryUnderWay(_run is {Status: AuthoredQuestStatus.Active}, _paused != null, bySummons),
          Unique = q.Unique, AlreadyPlayed = _done.Contains(q.Id),
-         GiverHasVanillaQuest = bySummons ? HasAQuestUnderWay(giver) : HasATaskOfTheirOwn(giver),
+         GiverHasVanillaQuest = !bySummons && HasATaskOfTheirOwn(giver),
          LastPlayedOnDay = _playedOn.TryGetValue(q.Id, out int p) ? p : (int?) null, RepeatCooldownDays = q.RepeatCooldownDays,
          DeclinedOnDay = _declined.TryGetValue(q.Id, out int d) ? d : (int?) null, Chance = AuthoredQuestOfferPolicy.OfferChance,
          ContentAllowed = AuthoredContentPolicy.Allows(q.Requires?.Content, ModSettings.AdultContentLevel), Content = q.Requires?.Content
@@ -2213,25 +2214,8 @@ namespace CalradiaRemembers.Quests
          if (giver == null) return false;
          try
          {
-            return giver.Issue != null || HasAQuestUnderWay(giver);
-         }
-         catch
-         {
-            return false;
-         }
-      }
-
-      /// <summary>
-      ///   A quest of theirs the player took and has not settled (any but a tale). Gabriel (25/10/2026): the night Rhagaea
-      ///   sends for her prisoner was refused because an empress nearly always has an errand on offer ("they already have a
-      ///   task of their own for you"); a summons by a scenario is barred only by this, never by an errand merely offered.
-      /// </summary>
-      private static bool HasAQuestUnderWay(Hero giver)
-      {
-         if (giver == null) return false;
-         try
-         {
-            return Campaign.Current?.QuestManager?.Quests?.Any(x => x != null && x.IsOngoing && x.QuestGiver == giver && x is not AuthoredStoryQuest) == true;
+            return giver.Issue != null
+                   || Campaign.Current?.QuestManager?.Quests?.Any(x => x != null && x.IsOngoing && x.QuestGiver == giver && x is not AuthoredStoryQuest) == true;
          }
          catch
          {
