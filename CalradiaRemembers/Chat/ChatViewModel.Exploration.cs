@@ -74,6 +74,7 @@ namespace CalradiaRemembers.Chat
       private MBBindingList<SceneChoiceItemViewModel> _sceneChoices = new();
       private bool _isSceneChoiceListVisible;
       private bool _sceneNarrationIsLast;
+      private bool _sceneWroteFreely;
       private bool _sceneTurnInFlight;
       private bool _sceneEndNoted;
 
@@ -114,7 +115,9 @@ namespace CalradiaRemembers.Chat
          try { ways = _exploration?.Ways?.Invoke() ?? Array.Empty<string>(); }
          catch (Exception ex) { ModLog.Error($"[SCENE] the ways out could not be read: {ex.GetType().Name}: {ex.Message}"); }
 
-         return new SceneChoiceMenuFacts {OpenWays = ways, NarrationIsLast = _sceneNarrationIsLast, Waiting = _sceneTurnInFlight, Over = _conversationEnded};
+         return new SceneChoiceMenuFacts {
+            OpenWays = ways, NarrationIsLast = _sceneNarrationIsLast, Waiting = _sceneTurnInFlight, Over = _conversationEnded, WroteFreely = _sceneWroteFreely
+         };
       }
 
       /// <summary>Rebuilds the list under the narration from the facts; empty and hidden when there is nothing to choose.</summary>
@@ -136,6 +139,8 @@ namespace CalradiaRemembers.Chat
          if (_exploration == null || item == null || !IsSendEnabled || _conversationEnded) return;
          if (item.WriteFreely)
          {
+            _sceneWroteFreely = true;
+            RefreshSceneChoices();
             ChatInputWidget.RequestFocus();
 
             return;
@@ -153,6 +158,7 @@ namespace CalradiaRemembers.Chat
          _exploration = session;
          _sceneLines.Clear();
          _sceneNarrationIsLast = false;
+         _sceneWroteFreely = false;
          RefreshSceneChoices();
 
          ChatMessageViewModel placeholder = MakeSpeakerMessage(NarratorSpeaker(), PlaceholderText);
@@ -165,14 +171,16 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>
       ///   The player said what they do: a number alone picks that way of the list shown, the number of "Something else..."
-      ///   leaves the cursor in the input, anything else is their words.
+      ///   leaves the cursor in the input, anything else is their words; either way the list stays gone for the scene.
       /// </summary>
       private void ExecuteSendExplorationMessage(string text)
       {
          InputText = "";
          string line = SceneChoiceMenu.Read(text, SceneMenuFacts());
+         if (line == null || line == text) _sceneWroteFreely = true;
          if (line == null)
          {
+            RefreshSceneChoices();
             ChatInputWidget.RequestFocus();
 
             return;

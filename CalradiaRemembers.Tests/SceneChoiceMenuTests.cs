@@ -109,6 +109,15 @@ namespace CalradiaRemembers.Tests
          SceneChoiceMenu.Read(" 3. ", f).Should().BeNull();
       }
 
+      // STAKE: Gabriel (26/10/2026): "si je fais something else, on ne devrait jamais revenir aux choix dans cette scene";
+      // the list came back under the next narration and pulled him back to the menu.
+      [Test]
+      public void GIVEN_the_player_wrote_freely_in_the_scene_WHEN_the_next_narration_lands_THEN_no_list_is_shown()
+      {
+         SceneChoiceMenu.Items(new SceneChoiceMenuFacts {OpenWays = new[] {"Follow the lady", "Stay in your cell"}, NarrationIsLast = true, WroteFreely = true})
+                        .Should().BeEmpty();
+      }
+
       // With no list shown (the player already answered), a typed number is words like any other.
       [Test]
       public void GIVEN_no_list_shown_WHEN_a_number_is_typed_THEN_it_goes_as_typed()

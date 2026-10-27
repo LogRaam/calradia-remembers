@@ -6,7 +6,9 @@
 // "Something else..." hands the player the input to write freely, and the scene goes on as before. The list shows
 // only under a narration the player has not yet answered, and never a closed way.
 // 26/10/2026 (Gabriel: "j'ai choisi '3. Something else'... et le LLM recoit '3'"): the number of "Something else..."
-// typed alone is the same as clicking it; nothing is sent, the input waits for the player's own words.
+// typed alone is the same as clicking it; nothing is sent, the input waits for the player's own words. Then ("si je
+// fais something else, on ne devrait jamais revenir aux choix dans cette scene"): once the player has chosen
+// "Something else..." or written their own words, the list never comes back in that scene.
 
 #region
 
@@ -35,6 +37,12 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       /// <summary>The scene has ended (a way was taken, the night was lost): nothing more to choose.</summary>
       public bool Over { get; init; }
+
+      /// <summary>
+      ///   The player chose "Something else..." or wrote their own words in this scene: the scene is theirs to play in
+      ///   words from then on, and the list stays gone.
+      /// </summary>
+      public bool WroteFreely { get; init; }
    }
 
    /// <summary>One line of the list.</summary>
@@ -61,7 +69,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       public static IReadOnlyList<SceneChoiceMenuItem> Items(SceneChoiceMenuFacts f)
       {
          List<string> ways = (f?.OpenWays ?? new List<string>()).Where(w => !string.IsNullOrWhiteSpace(w)).ToList();
-         if (f == null || ways.Count == 0 || !f.NarrationIsLast || f.Waiting || f.Over) return new List<SceneChoiceMenuItem>();
+         if (f == null || ways.Count == 0 || !f.NarrationIsLast || f.Waiting || f.Over || f.WroteFreely) return new List<SceneChoiceMenuItem>();
 
          var items = ways.Select((w, i) => new SceneChoiceMenuItem {Text = $"{i + 1}. {w}", Sends = w}).ToList();
          items.Add(new SceneChoiceMenuItem {Text = $"{ways.Count + 1}. {SomethingElse}"});
