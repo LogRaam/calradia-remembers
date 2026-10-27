@@ -10,6 +10,19 @@
   a stored zip of JPEG frames and a manifest, made by Tools/Video/make_crvid.py, read in game by Video/CrvidDecoder.cs) in
   the browser, with no install and nothing sent anywhere: open files or a whole folder, or drop them on the page. The frames
   are decoded a few ahead of the one shown, so a 600-frame clip never sits whole in memory.
+  Recompress (Gabriel, 27/10/2026, a .crvid four times the size of its .mp4: "je ferais le 2 pour garder le max de
+  qualite [...] on peut en fait mettre une option de recompression avec un niveau de SSIM a partir du player"): each frame
+  is re-encoded at the LOWEST JPEG quality whose SSIM against the frame as it stands still reaches the chosen level, so
+  the SSIM sets how much quality may go, frame by frame; a frame that would not shrink keeps its own bytes. SSIM here is
+  measured on luma (BT.601), with a 7x7 box window over integral images (fast; Wang et al.'s constants K1 0.01, K2 0.03).
+  Measured on the_door (27/10/2026): recompressing a .crvid's own JPEG frames saves little (7% at 0.990, 20% at 0.980),
+  since the reference is already a JPEG. Gabriel the same day: "glisser un .mp4 dans le player devrait le convertir en
+  crvid": a video (.mp4, .webm, .mov) opened or dropped here is converted frame by frame from its SOURCE, each frame at the
+  lowest JPEG quality that keeps the SSIM level against that source frame, fitted inside 768x1152 at 30 fps, then saved
+  and added to the list.
+  Calibrated on the_door the same day: this SSIM is strict on fine grain, and the clip's q3 frames reach only 0.9625 against
+  the source (lowest 0.956), so 0.990 would be HEAVIER than today. Encoded from the source (estimated with libjpeg): 0.970
+  10.2 MB, 0.960 8.3 MB (today's quality, 35% less than its 12.7 MB), 0.950 7.1 MB, 0.940 6.2 MB. Default 0.960.
 -->
 <style>
   :root { --bg:#16181d; --panel:#1f2229; --line:#2e323c; --text:#e6e8ee; --dim:#9aa1b2; --accent:#d9a441; --sel:#2b3140; }
@@ -34,6 +47,7 @@
   #hint { position:absolute; color:var(--dim); text-align:center; padding:20px; }
   #bar { border-top:1px solid var(--line); background:var(--panel); padding:10px 12px; }
   #seek { width:100%; }
+  #ssim { width:72px; }
   .info { color:var(--dim); font-size:12px; margin-left:auto; align-self:center; }
   body.drag #stage { outline:2px dashed var(--accent); outline-offset:-8px; }
   input[type=file] { display:none; }
@@ -44,7 +58,7 @@
   <header>
     <h1>CRVID Player</h1>
     <div class="row">
-      <label class="btn">Open videos<input id="files" type="file" accept=".crvid" multiple></label>
+      <label class="btn">Open videos<input id="files" type="file" accept=".crvid,.mp4,.webm,.mov,video/*" multiple></label>
       <label class="btn">Open a folder<input id="folder" type="file" webkitdirectory></label>
     </div>
   </header>
@@ -53,7 +67,7 @@
 <main id="main">
   <div id="stage">
     <canvas id="view" width="2" height="2"></canvas>
-    <div id="hint">Open .crvid files or a folder, or drop them here.<br>Space: play / pause. Left / Right: a frame. Up / Down: the previous / next video. L: loop.</div>
+    <div id="hint">Open .crvid files or a folder, or drop them here. A dropped .mp4 is converted to .crvid at the SSIM level below.<br>Space: play / pause. Left / Right: a frame. Up / Down: the previous / next video. L: loop.</div>
   </div>
   <div id="bar">
     <input id="seek" type="range" min="0" max="0" value="0">
@@ -68,6 +82,9 @@
         <option value="0.25">x0.25</option><option value="0.5">x0.5</option><option value="1" selected>x1</option>
         <option value="1.5">x1.5</option><option value="2">x2</option>
       </select>
+      <label title="Lowest SSIM each recompressed frame must keep against the frame as it stands (luma, 7x7 box)">SSIM
+        <input id="ssim" type="number" min="0.800" max="0.999" step="0.001" value="0.960"></label>
+      <button id="recompress" title="Re-encode every frame at the lowest JPEG quality that keeps this SSIM, and save a new .crvid">Recompress</button>
       <span class="info" id="info">No video</span>
     </div>
   </div>
@@ -110,9 +127,10 @@
     var m = entries['manifest.json'];
     if (!m) throw new Error('no manifest.json');
     var manifest = JSON.parse(new TextDecoder().decode(await entryBytes(m)));
-    var frames = Object.keys(entries).filter(function (k) { return /^frames\/.+\.jpe?g$/i.test(k); }).sort().map(function (k) { return entries[k]; });
+    var frameNames = Object.keys(entries).filter(function (k) { return /^frames\/.+\.jpe?g$/i.test(k); }).sort();
+    var frames = frameNames.map(function (k) { return entries[k]; });
     if (!frames.length) throw new Error('no frame');
-    return {name: file.name, size: file.size, manifest: manifest, frames: frames, fps: Number(manifest.fps) || 30};
+    return {name: file.name, size: file.size, manifest: manifest, frames: frames, frameNames: frameNames, fps: Number(manifest.fps) || 30};
   }
 
   // ---------- the list ----------
@@ -123,7 +141,13 @@
   function natural(a, b) { return a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: 'base'}); }
 
   async function addFiles(fileList) {
-    var picked = Array.prototype.filter.call(fileList, function (f) { return /\.crvid$/i.test(f.name); });
+    var all = Array.prototype.slice.call(fileList);
+    var sources = all.filter(function (f) { return /\.(mp4|webm|mov|m4v)$/i.test(f.name); });
+    for (var s = 0; s < sources.length; s++) {
+      try { all.push(await convertVideo(sources[s])); }
+      catch (err) { info.textContent = 'Converting ' + sources[s].name + ' failed: ' + err.message; }
+    }
+    var picked = all.filter(function (f) { return /\.crvid$/i.test(f.name); });
     if (!picked.length) return;
     var added = [];
     for (var i = 0; i < picked.length; i++) {
@@ -262,7 +286,7 @@
   document.getElementById('folder').onchange = function (e) { addFiles(e.target.files); e.target.value = ''; };
 
   document.addEventListener('keydown', function (e) {
-    if (e.target.tagName === 'SELECT') return;
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
     if (e.code === 'Space') { e.preventDefault(); playing ? pause() : play(); }
     else if (e.code === 'ArrowRight') { e.preventDefault(); step(1); }
     else if (e.code === 'ArrowLeft') { e.preventDefault(); step(-1); }
@@ -271,6 +295,177 @@
     else if (e.code === 'KeyL') loopBtn.onclick();
     else if (e.code === 'Home') { pause(); show(0); }
   });
+
+  // ---------- recompressing to an SSIM level ----------
+  // Luma of an RGBA image, BT.601.
+  function luma(rgba, n) {
+    var y = new Float64Array(n);
+    for (var i = 0, j = 0; i < n; i++, j += 4) y[i] = 0.299 * rgba[j] + 0.587 * rgba[j + 1] + 0.114 * rgba[j + 2];
+    return y;
+  }
+
+  // Integral image (one extra row and column of zeros) of v, or of v*w when w is given.
+  function integral(v, w, width, height) {
+    var s = new Float64Array((width + 1) * (height + 1));
+    for (var y = 0; y < height; y++) {
+      var row = 0;
+      for (var x = 0; x < width; x++) {
+        var k = y * width + x;
+        row += w ? v[k] * w[k] : v[k];
+        s[(y + 1) * (width + 1) + x + 1] = s[y * (width + 1) + x + 1] + row;
+      }
+    }
+    return s;
+  }
+
+  // The reference's sums, computed once per frame.
+  function reference(rgba, width, height) {
+    var y = luma(rgba, width * height);
+    return {y: y, s: integral(y, null, width, height), ss: integral(y, y, width, height), width: width, height: height};
+  }
+
+  // Mean SSIM of a candidate against the reference, 7x7 box windows at every position.
+  function ssim(ref, rgba) {
+    var W = ref.width, H = ref.height, R = 7, N = R * R, C1 = Math.pow(0.01 * 255, 2), C2 = Math.pow(0.03 * 255, 2);
+    var y = luma(rgba, W * H), s = integral(y, null, W, H), ss = integral(y, y, W, H), sxy = integral(ref.y, y, W, H);
+    function box(t, x0, y0) { var a = W + 1; return t[(y0 + R) * a + x0 + R] - t[y0 * a + x0 + R] - t[(y0 + R) * a + x0] + t[y0 * a + x0]; }
+    var total = 0, count = 0;
+    for (var y0 = 0; y0 + R <= H; y0++)
+      for (var x0 = 0; x0 + R <= W; x0++) {
+        var mx = box(ref.s, x0, y0) / N, my = box(s, x0, y0) / N;
+        var vx = box(ref.ss, x0, y0) / N - mx * mx, vy = box(ss, x0, y0) / N - my * my, cxy = box(sxy, x0, y0) / N - mx * my;
+        total += ((2 * mx * my + C1) * (2 * cxy + C2)) / ((mx * mx + my * my + C1) * (vx + vy + C2));
+        count++;
+      }
+    return count ? total / count : 1;
+  }
+
+  var work = document.createElement('canvas'), wctx = work.getContext('2d', {willReadFrequently: true});
+  function pixels(bmp) { wctx.drawImage(bmp, 0, 0); return wctx.getImageData(0, 0, work.width, work.height).data; }
+  function encode(q) { return new Promise(function (ok) { work.toBlob(ok, 'image/jpeg', q); }); }
+
+  // The smallest JPEG of the picture now on the work canvas whose SSIM against it still reaches the level (the best
+  // quality tried when none does). Each candidate is decoded onto a scratch canvas, so the work canvas keeps the source.
+  var probe = document.createElement('canvas'), pctx = probe.getContext('2d', {willReadFrequently: true});
+  async function smallestAtLevel(level) {
+    var W = work.width, H = work.height;
+    if (probe.width !== W || probe.height !== H) { probe.width = W; probe.height = H; }
+    var ref = reference(wctx.getImageData(0, 0, W, H).data, W, H);
+    var lo = 0.10, hi = 1.0, best = null, bestSsim = 0;
+    for (var step = 0; step < 7; step++) {
+      var q = (lo + hi) / 2;
+      var blob = await encode(q);
+      var cand = await createImageBitmap(blob);
+      pctx.drawImage(cand, 0, 0);
+      cand.close();
+      var score = ssim(ref, pctx.getImageData(0, 0, W, H).data);
+      if (score >= level) { best = blob; bestSsim = score; hi = q; } else lo = q;
+    }
+    if (!best) { best = await encode(1.0); bestSsim = 0; }
+    return {blob: best, ssim: bestSsim};
+  }
+
+  // A .crvid frame recompressed to the level, or its own bytes when nothing smaller keeps it.
+  async function recompressFrame(bytes, level) {
+    var bmp = await createImageBitmap(new Blob([bytes], {type: 'image/jpeg'}));
+    if (work.width !== bmp.width || work.height !== bmp.height) { work.width = bmp.width; work.height = bmp.height; }
+    wctx.drawImage(bmp, 0, 0);
+    bmp.close();
+    var r = await smallestAtLevel(level);
+    if (r.ssim < level || r.blob.size >= bytes.length) return {bytes: bytes, ssim: 1, kept: true};
+    return {bytes: new Uint8Array(await r.blob.arrayBuffer()), ssim: r.ssim, kept: false};
+  }
+
+  // ---------- converting a video (.mp4, .webm, .mov) to .crvid, from its source frames ----------
+  var MAX_W = 768, MAX_H = 1152, CONVERT_FPS = 30;
+  function once(el, ev) { return new Promise(function (ok, ko) { el.addEventListener(ev, ok, {once: true}); el.addEventListener('error', function () { ko(new Error('the browser cannot read this video')); }, {once: true}); }); }
+
+  async function convertVideo(file) {
+    var level = Math.min(0.999, Math.max(0.8, Number(document.getElementById('ssim').value) || 0.96));
+    var url = URL.createObjectURL(file), el = document.createElement('video');
+    el.muted = true; el.preload = 'auto'; el.src = url;
+    try {
+      await once(el, 'loadeddata');
+      var scale = Math.min(1, MAX_W / el.videoWidth, MAX_H / el.videoHeight);
+      var W = Math.max(2, Math.floor(el.videoWidth * scale / 2) * 2), H = Math.max(2, Math.floor(el.videoHeight * scale / 2) * 2);
+      work.width = W; work.height = H;
+      wctx.imageSmoothingQuality = 'high';
+      var count = Math.max(1, Math.floor(el.duration * CONVERT_FPS));
+      var files = [], total = 0, sum = 0, worst = 1;
+      for (var i = 0; i < count; i++) {
+        el.currentTime = Math.min(el.duration, (i + 0.5) / CONVERT_FPS);
+        await once(el, 'seeked');
+        wctx.drawImage(el, 0, 0, W, H);
+        var r = await smallestAtLevel(level);
+        var bytes = new Uint8Array(await r.blob.arrayBuffer());
+        total += bytes.length; sum += r.ssim; worst = Math.min(worst, r.ssim);
+        files.push({name: 'frames/' + ('00000' + (i + 1)).slice(-6) + '.jpg', data: bytes});
+        info.textContent = 'Converting ' + file.name + ' at SSIM ' + level.toFixed(3) + ': frame ' + (i + 1) + ' / ' + count;
+      }
+      var manifest = {version: 1, fps: CONVERT_FPS, width: W, height: H, frames: count, loop: false};
+      files.unshift({name: 'manifest.json', data: new TextEncoder().encode(JSON.stringify(manifest, null, 2))});
+      var out = storedZip(files), name = file.name.replace(/\.[^.]+$/, '') + '.crvid';
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(out); a.download = name; a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
+      info.textContent = file.name + ' (' + (file.size / 1048576).toFixed(1) + ' MB) -> ' + name + ' (' + (out.size / 1048576).toFixed(1) + ' MB), '
+        + count + ' frames ' + W + 'x' + H + ' at ' + CONVERT_FPS + ' fps, mean SSIM ' + (sum / count).toFixed(4) + ', lowest ' + worst.toFixed(4) + '.';
+      return new File([out], name);
+    } finally { URL.revokeObjectURL(url); }
+  }
+
+  // A stored zip, as the game reads it (no compression: a JPEG does not shrink further).
+  var CRC = (function () { var t = new Uint32Array(256); for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function crc32(b) { var c = 0xFFFFFFFF; for (var i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+  function storedZip(files) {
+    var enc = new TextEncoder(), parts = [], dir = [], offset = 0;
+    files.forEach(function (f) {
+      var name = enc.encode(f.name), crc = crc32(f.data), h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint32(14, crc, true);
+      h.setUint32(18, f.data.length, true); h.setUint32(22, f.data.length, true); h.setUint16(26, name.length, true);
+      parts.push(new Uint8Array(h.buffer), name, f.data);
+      var d = new DataView(new ArrayBuffer(46));
+      d.setUint32(0, 0x02014b50, true); d.setUint16(4, 20, true); d.setUint16(6, 20, true); d.setUint32(16, crc, true);
+      d.setUint32(20, f.data.length, true); d.setUint32(24, f.data.length, true); d.setUint16(28, name.length, true); d.setUint32(42, offset, true);
+      dir.push(new Uint8Array(d.buffer), name);
+      offset += 30 + name.length + f.data.length;
+    });
+    var dirSize = dir.reduce(function (n, p) { return n + p.length; }, 0), e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true);
+    e.setUint32(12, dirSize, true); e.setUint32(16, offset, true);
+    return new Blob(parts.concat(dir, [new Uint8Array(e.buffer)]), {type: 'application/octet-stream'});
+  }
+
+  var recompressing = false;
+  document.getElementById('recompress').onclick = async function () {
+    var v = video();
+    if (!v || recompressing) return;
+    var level = Math.min(0.999, Math.max(0.8, Number(document.getElementById('ssim').value) || 0.96));
+    recompressing = true;
+    pause();
+    var files = [{name: 'manifest.json', data: new TextEncoder().encode(JSON.stringify(v.manifest, null, 2))}];
+    var before = 0, after = 0, kept = 0, sum = 0, worst = 1;
+    try {
+      for (var i = 0; i < v.frames.length; i++) {
+        var bytes = await entryBytes(v.frames[i]);
+        var r = await recompressFrame(bytes, level);
+        before += bytes.length; after += r.bytes.length; if (r.kept) kept++;
+        sum += r.ssim; worst = Math.min(worst, r.ssim);
+        files.push({name: v.frameNames[i], data: r.bytes});
+        info.textContent = 'Recompressing ' + v.name + ' at SSIM ' + level.toFixed(3) + ': frame ' + (i + 1) + ' / ' + v.frames.length
+          + ', ' + Math.round(100 - after / before * 100) + '% smaller so far';
+      }
+      var out = storedZip(files), a = document.createElement('a');
+      a.href = URL.createObjectURL(out);
+      a.download = v.name.replace(/\.crvid$/i, '') + '.ssim' + level.toFixed(3).slice(2) + '.crvid';
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 10000);
+      info.textContent = v.name + ': ' + (v.size / 1048576).toFixed(1) + ' MB -> ' + (out.size / 1048576).toFixed(1) + ' MB ('
+        + Math.round(100 - out.size / v.size * 100) + '% smaller), mean SSIM ' + (sum / v.frames.length).toFixed(4) + ', lowest '
+        + worst.toFixed(4) + (kept ? ', ' + kept + ' frame(s) kept as they were' : '') + '. Saved as ' + a.download + '.';
+    } catch (err) { info.textContent = 'Recompression failed: ' + err.message; }
+    finally { recompressing = false; }
+  };
 
   ['dragenter', 'dragover'].forEach(function (t) { document.addEventListener(t, function (e) { e.preventDefault(); document.body.classList.add('drag'); }); });
   ['dragleave', 'drop'].forEach(function (t) { document.addEventListener(t, function (e) { e.preventDefault(); document.body.classList.remove('drag'); }); });

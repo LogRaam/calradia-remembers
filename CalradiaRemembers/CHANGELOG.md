@@ -230,6 +230,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   loader and the editor count them as set. HOWTO_Quests documents them.
 
 ### Developer tools
+- **CrvidPlayer converts and recompresses to an SSIM level** (Gabriel, 27/10/2026: a .crvid four times its .mp4; "on peut
+  en fait mettre une option de recompression avec un niveau de SSIM a partir du player [...] glisser un .mp4 dans le player
+  devrait le convertir en crvid"). Drop or open a .mp4/.webm/.mov and it is converted from its source frames, each at the
+  lowest JPEG quality that keeps the SSIM level (luma, 7x7 box) against that frame, fitted in 768x1152 at 30 fps, saved and
+  listed; "Recompress" does the same to an open .crvid's own frames. Default 0.960, today's quality on the_door, which the
+  estimate puts at 8.3 MB instead of 12.7.
 - **Tale Editor:** Save writes back into the file being edited (browsers with the File System Access API; Firefox
   keeps the download). A click on a stage opens a read-only summary under the story map, resizable: objective and how
   the stage is completed, a scene's opening and closing as beats, what each character knows in full, choices,
