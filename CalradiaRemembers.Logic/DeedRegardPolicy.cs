@@ -89,7 +89,16 @@ namespace CalradiaRemembers.Logic
       FriendlyRivalry,
 
       /// <summary>A bitter tournament rivalry.</summary>
-      BitterRivalry
+      BitterRivalry,
+
+      /// <summary>
+      ///   In bed, pressed on the character a gesture they dislike (Gabriel, 26/10/2026: "un geste impose que le NPC n'aime
+      ///   pas devrait reduire le personal regard"); once a day per gesture.
+      /// </summary>
+      ImposedDislikedGesture,
+
+      /// <summary>In bed, found for the first time a gesture the character particularly loves.</summary>
+      FoundLovedGesture
    }
 
    /// <summary>The regard a deed costs or earns.</summary>
@@ -183,6 +192,12 @@ namespace CalradiaRemembers.Logic
       /// <summary>A bitter rivalry in the lists.</summary>
       public const int BitterRivalryVictim = -10;
 
+      /// <summary>A gesture they dislike, imposed in bed: a real cooling, short of a misdeed (it stays between the two).</summary>
+      public const int ImposedDislikedGestureVictim = -4;
+
+      /// <summary>A gesture they love, found the first time: a small warmth, once, so it cannot be farmed.</summary>
+      public const int FoundLovedGestureVictim = 1;
+
       /// <summary>
       ///   What <paramref name="deed" /> does to regard. A gift is sized by <see cref="GiftRegard" />; a beating and a
       ///   robbery charge the victim on their own path (ViolenceConsequencePolicy) and only the kin here.
@@ -211,6 +226,8 @@ namespace CalradiaRemembers.Logic
          PlayerDeed.Married => new DeedRegard {Victim = MarriedVictim},
          PlayerDeed.FriendlyRivalry => new DeedRegard {Victim = FriendlyRivalryVictim},
          PlayerDeed.BitterRivalry => new DeedRegard {Victim = BitterRivalryVictim},
+         PlayerDeed.ImposedDislikedGesture => new DeedRegard {Victim = ImposedDislikedGestureVictim},
+         PlayerDeed.FoundLovedGesture => new DeedRegard {Victim = FoundLovedGestureVictim},
          _ => new DeedRegard()
       };
 

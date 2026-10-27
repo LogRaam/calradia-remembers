@@ -414,6 +414,10 @@ namespace CalradiaRemembers.GameState
                return ExecuteStoryChoice(action, npcHero);
             case Logic.AuthoredQuests.TaleArc.SignalVerb:
                return ExecuteTaleSignal(action, npcHero);
+            // A gesture of lovemaking the player did or asked for, read against the character's tastes (Gabriel,
+            // 26/10/2026: "un geste impose que le NPC n'aime pas devrait reduire le personal regard").
+            case Logic.Romance.IntimateActReading.Verb:
+               return Mapping.IntimateActApplier.Apply(action, npcHero, context?.Profile, this);
             default:
                // Extension Surface (CrActions.Register): a type that matches none of the cases above may
                // still be a THIRD-PARTY action a mod registered at runtime, not a hallucination. Try the

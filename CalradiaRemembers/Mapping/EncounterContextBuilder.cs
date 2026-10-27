@@ -154,6 +154,14 @@ namespace CalradiaRemembers.Mapping
       ///   questions about third parties accurately — or ask for clarification when
       ///   a name is ambiguous.
       /// </summary>
+      // The blocks taught to whoever reads the turn's actions, the empty ones left out; null when none.
+      private static string JoinReaderBlocks(params string[] blocks)
+      {
+         List<string> parts = blocks.Where(b => !string.IsNullOrWhiteSpace(b)).ToList();
+
+         return parts.Count == 0 ? null : string.Join("\n\n", parts);
+      }
+
       // The item the player picked from the bag, by id, or null.
       private static TaleWorlds.Core.ItemObject OfferedItem(string itemId)
       {
@@ -576,8 +584,12 @@ namespace CalradiaRemembers.Mapping
             CaptiveNotoriety = knowledge.CaptiveNotoriety,
             // An authored quest this character is part of now (docs/design/AUTHORED_QUESTS.md).
             AuthoredQuestBlock = Quests.AuthoredQuestBehavior.Instance?.PromptBlockFor(hero),
-            // Its choices by words open with this character, taught to whoever reads this turn's actions.
-            StoryChoicesForInterpreter = Quests.AuthoredQuestBehavior.Instance?.InterpreterChoicesFor(hero),
+            // Its choices by words open with this character, taught to whoever reads this turn's actions; and, at
+            // Hardcore in a lovemaking the game permits, the gestures this character loves or dislikes (Gabriel,
+            // 26/10/2026). Never in a captive scene: a forced act belongs to Trauma and Misdeeds.
+            StoryChoicesForInterpreter = JoinReaderBlocks(Quests.AuthoredQuestBehavior.Instance?.InterpreterChoicesFor(hero),
+               IntimateActApplier.ReaderBlock(hero, profile, bridge,
+                  playerStatusOverride != null || isCaptorScene || isCollectiveCaptiveScene || companionActingOnCaptive || isBroughtCaptiveTurn)),
             ProseReadsItsOwnActions = proseReadsItsOwnActions,
             // fkasad (07/10/2026): the tale is their errand; a hideout task beside it put two targets in the journal.
             InActiveWrittenTale = Quests.AuthoredQuestBehavior.Instance?.HoldsARole(hero?.StringId) == true,

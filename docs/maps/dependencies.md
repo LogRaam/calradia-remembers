@@ -239,7 +239,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 #### `CalradiaRemembers` and `CalradiaRemembers.GameState`
 
-- `CalradiaRemembers` uses `CalradiaRemembers.GameState` in 15 files: `Extension/CrActions.cs`, `ModCheats.Bastards.cs`, `ModCheats.Commitments.cs`, and 12 more
+- `CalradiaRemembers` uses `CalradiaRemembers.GameState` in 16 files: `Extension/CrActions.cs`, `ModCheats.Acts.cs`, `ModCheats.Bastards.cs`, and 13 more
 - `CalradiaRemembers.GameState` uses `CalradiaRemembers` in 1 file(s): `GameState/BannerlordGameStateBridge.cs`
 
 #### `CalradiaRemembers` and `CalradiaRemembers.Missions`
@@ -589,7 +589,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 #### `CalradiaRemembers` and `CalradiaRemembers.Mapping`
 
-- `CalradiaRemembers` uses `CalradiaRemembers.Mapping` in 17 files: `Extension/CrAims.cs`, `Extension/CrLetters.cs`, `Extension/CrNpcMemory.cs`, and 14 more
+- `CalradiaRemembers` uses `CalradiaRemembers.Mapping` in 18 files: `Extension/CrAims.cs`, `Extension/CrLetters.cs`, `Extension/CrNpcMemory.cs`, and 15 more
 - `CalradiaRemembers.Mapping` uses `CalradiaRemembers` in 2 file(s): `Mapping/EncounterContextBuilder.cs`, `Mapping/PairRegardReader.cs`
 
 #### `CalradiaRemembers` and `CalradiaRemembers.Marriage`
@@ -670,7 +670,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 #### `CalradiaRemembers.GameState` and `CalradiaRemembers.Mapping`
 
 - `CalradiaRemembers.GameState` uses `CalradiaRemembers.Mapping` in 3 file(s): `GameState/BannerlordGameStateBridge.cs`, `GameState/CourtActionResolver.cs`, `GameState/LordRecruitmentFactsBuilder.cs`
-- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.GameState` in 5 files: `Mapping/ContextualNameResolver.cs`, `Mapping/EncounterContextBuilder.cs`, `Mapping/FirstImpressionResolver.cs`, and 2 more
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.GameState` in 6 files: `Mapping/ContextualNameResolver.cs`, `Mapping/EncounterContextBuilder.cs`, `Mapping/FirstImpressionResolver.cs`, and 3 more
 
 #### `CalradiaRemembers.Grudges` and `CalradiaRemembers.Mapping`
 

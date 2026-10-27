@@ -77,7 +77,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   handling, crude words. They seek what they love; what they dislike they refuse plainly or with an unease the player
   can read, never with feigned pleasure. Rolled from the character's id with a stable seed (`IntimateActPolicy`), kept
   in the save (`RomanticProfile.LovedActs` / `DislikedActs`); characters met before are given theirs the next time
-  they are spoken to.
+  they are spoken to. Whoever reads the turn's actions (the interpreter, or the prose call in Standard) is taught,
+  only at Hardcore in a lovemaking the game permits and never in a captive scene, the gestures this character loves or
+  dislikes, and reports one the player does or asks for (`intimate_act`). A disliked gesture imposed costs 4 personal
+  regard and leaves a memory, once a day per gesture; only asked for, it costs nothing; a loved one found the first
+  time warms them by 1 (`DeedRegardPolicy`). Either way the player has learned that taste (`KnownActs`, kept for the
+  encyclopedia). `character_overrides.json` takes `loves` and `dislikes`. `cr.acts [name]`, `cr.act <gesture>
+  [performed|proposed] [name]`, `cr.testall intimate_acts`.
 
 ### Changed
 - **The player's violence in words works in both compositions** (Gabriel 25/10: "enseigne la violence aux deux

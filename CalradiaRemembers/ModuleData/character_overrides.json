@@ -50,6 +50,14 @@
 //                 NOTE: whether a character MAY be polyamorous by default comes from their culture, in
 //                 jealousy_cultures.json, not from their Honor trait. This field overrides that for one person.
 //
+//   "loves"       OPTIONAL, Hardcore only. The gestures this character particularly loves in bed, replacing the
+//   "dislikes"    roll; and the ones they dislike (refused plainly or with an unease you can read, and imposed
+//                 anyway they cost personal regard). An empty list is a deliberate lock to none; omit to keep the
+//                 roll. A gesture in both counts as loved. Valid names: kissing, oral_giving, oral_receiving,
+//                 anal_giving, anal_receiving, on_top, beneath, from_behind, hands_and_fingers, rough_handling,
+//                 dirty_talk, named from the character's side (oral_giving: their mouth on their partner). Also
+//                 listed by the cr.acts console command.
+//
 [
   // {
   //   "hero": "Derthert",
@@ -59,6 +67,8 @@
   //   "backstory": "A Vlandian king who trusts ledgers more than men, and remembers every debt.",
   //   "conviction": "He is convinced the player's clan is quietly plotting to unseat him, and reads every kindness as a move in that game.",
   //   "kinks": ["Dominance", "Praise"],
-  //   "preferences": ["MonogamousStrict", "Possessive"]
+  //   "preferences": ["MonogamousStrict", "Possessive"],
+  //   "loves": ["kissing", "on_top"],
+  //   "dislikes": ["rough_handling"]
   // }
 ]

@@ -938,6 +938,11 @@ namespace CalradiaRemembers.Chat
                ModLog.Info($"[OVERRIDE] {profile.Name} kinks locked to [{string.Join(", ", authoredKinks)}] by authored char data.");
             }
 
+            // The gestures loved and disliked, locked the same way (Gabriel, 26/10/2026).
+            var (authoredLoves, authoredDislikes) = CharacterOverrideLoader.ActsFor(speaker.Hero);
+            if (profile.Romantic != null && authoredLoves != null) profile.Romantic.LovedActs = authoredLoves;
+            if (profile.Romantic != null && authoredDislikes != null) profile.Romantic.DislikedActs = authoredDislikes;
+
             // ── Diagnostic: log the full system prompt sent to the LLM ─────
             if (ModSettings.VerboseLogging)
                try

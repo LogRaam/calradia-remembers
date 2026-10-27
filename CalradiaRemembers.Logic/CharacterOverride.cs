@@ -6,6 +6,7 @@
 #region
 
 using System.Collections.Generic;
+using System.Linq;
 using NpcMemoryService.Core.Models;
 
 #endregion
@@ -89,6 +90,16 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public List<string> Preferences { get; set; }
 
+        /// <summary>
+        ///   Optional lock of the gestures this character particularly loves in bed (Gabriel, 26/10/2026), by name
+        ///   ("oral_giving", "kissing"; see cr.acts). When present it REPLACES the rolled ones; null keeps the roll, an
+        ///   empty list is a deliberate lock to none.
+        /// </summary>
+        public List<string> Loves { get; set; }
+
+        /// <summary>Optional lock of the gestures this character dislikes, as <see cref="Loves" />.</summary>
+        public List<string> Dislikes { get; set; }
+
         /// <summary>True when this override sets at least one trait.</summary>
         public bool HasTraits =>
             Valor.HasValue || Honor.HasValue || Mercy.HasValue || Generosity.HasValue || Calculating.HasValue;
@@ -130,7 +141,8 @@ namespace CalradiaRemembers.Logic
         ///   exactly like the original bug.
         /// </summary>
         public bool HasAnyAuthoredContent =>
-            HasTraits || ParsedKinks != null || ParsedPreferences != null || HasBackstory || HasConviction || HasOrientationText;
+            HasTraits || ParsedKinks != null || ParsedPreferences != null || HasBackstory || HasConviction || HasOrientationText
+            || Loves != null || Dislikes != null;
 
         /// <summary>
         ///   Human-readable problems with what the author wrote: values that are present but will be ignored
@@ -145,6 +157,11 @@ namespace CalradiaRemembers.Logic
             IReadOnlyList<string> badKinks = UnrecognizedKinkNames;
             if (badKinks.Count > 0)
                 yield return $"kink name(s) not recognized and ignored: {string.Join(", ", badKinks)} (see cr.kinks for the valid names)";
+
+            List<string> badActs = (Loves ?? new List<string>()).Concat(Dislikes ?? new List<string>())
+                                   .Where(a => IntimateActNames.Parse(a) == IntimateAct.None).ToList();
+            if (badActs.Count > 0)
+                yield return $"gesture name(s) not recognized and ignored: {string.Join(", ", badActs)} (see cr.acts for the valid names)";
 
             IReadOnlyList<string> badPreferences = UnrecognizedPreferenceNames;
             if (badPreferences.Count > 0)
@@ -168,6 +185,16 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public IReadOnlyList<RomanticPreference> ParsedPreferences =>
             Preferences == null ? null : RomanticPreferenceParser.Parse(Preferences);
+
+        /// <summary>The authored loved gestures, parsed (unknown names dropped); null when the field was left out.</summary>
+        public List<NpcMemoryService.Core.Models.IntimateAct> ParsedLoves => ParseActs(Loves);
+
+        /// <summary>The authored disliked gestures, parsed; never one also loved. Null when the field was left out.</summary>
+        public List<NpcMemoryService.Core.Models.IntimateAct> ParsedDislikes
+            => ParseActs(Dislikes)?.Where(a => ParsedLoves?.Contains(a) != true).ToList();
+
+        private static List<NpcMemoryService.Core.Models.IntimateAct> ParseActs(List<string> names)
+            => names?.Select(IntimateActNames.Parse).Where(a => a != IntimateAct.None).Distinct().ToList();
 
         /// <summary>
         ///   The authored trait levels that are actually set, each clamped to the engine band, in a

@@ -6,9 +6,9 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 571 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1338 types in 46 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 269 types in 17 namespaces, 9 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 572 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1342 types in 46 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 270 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -95,7 +95,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
-| `ModCheats` | public static class, partial over 63 files | Exposes diagnostic commands to the Bannerlord cheat console. |
+| `ModCheats` | public static class, partial over 64 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
 | `ProseInterpretTestRunner` | internal static class | The runner behind cr.prose_interpret_test. |
 | `RomanceBondWatchBehavior` | internal class | Reads the bonds with the player at session start and every hour, for CrRomance.StatusChanged. |
@@ -550,7 +550,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (39)
+### CalradiaRemembers.Mapping (40)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -570,6 +570,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroProfileMapper` | public static class | (no summary) |
 | `HeroSeats` | public static class | The places a character answers for, closest first. |
 | `IntimacyBargainEligibility` | public static class | Resolves the adult-gated, archetype-filtered eligibility for the intimacy-as-currency dynamic. |
+| `IntimateActApplier` | internal static class | Teaches the reader a character's tastes in bed, and carries out a reported gesture. |
 | `MisdeedLedgerBehavior` | public class | The ledger of the player's misdeeds no other source records as a deed, one record per deed and day. |
 | `MisdeedsPageReader` | internal static class | Reads what the player did of their own will for the Misdeeds section. |
 | `NarrativeLoader` | public static class | Loads narrative text files from the mod's ModuleData folder at session launch. |
@@ -2270,7 +2271,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RescueGratitudePolicy` | public static class | Decides how strongly an NPC reacts to being rescued (or to a loved one being rescued) by the player. |
 | `RescueTie` | public enum | How the freed prisoner relates to the player, deciding the shape of their gratitude. |
 
-### CalradiaRemembers.Logic.Romance (29)
+### CalradiaRemembers.Logic.Romance (33)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2279,7 +2280,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeartIntimacyPolicy` | public static class | The intimate lines of the Heart section: their gate and their words. |
 | `HeartNightsFacts` | public class | The nights the player shared with one character, as the page tells them. |
 | `HeartPagePolicy` | public static class | Tells a character's bond with the player for the Heart section, and the recap line on the player's page. |
+| `IntimateActJudgeFacts` | public class | What a reported gesture is, as the game judges it. |
 | `IntimateActPolicy` | public static class | The gestures a character loves and dislikes, rolled once from their id. |
+| `IntimateActReaderFacts` | public class | What the turn's reader is told of a character's tastes in bed. |
+| `IntimateActReading` | public static class | Teaches the turn's reader the character's tastes, and judges a reported gesture. |
+| `IntimateActVerdict` | public class | What the game does with a reported gesture. |
 | `JealousStake` | public enum | Who the jealous party is, and why they have a stake: sets the reaction's flavour. |
 | `JealousyHearingPolicy` | public static class | Pure gate deciding whether a jealous party is close enough to a liaison's location to have heard word of it. |
 | `JealousyReaction` | public static class | The pure tuning behind a jealousy reaction: the relation hit (Severity), the chance of a confronting letter (LetterChance), and the in-character grievance / letter framing. |
@@ -2652,7 +2657,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `SharedRecall` | public class | What a character may be shown to REMEMBER in front of others: their own memories, minus anything held in confidence, folded to a bounded recall. |
 
-### NpcMemoryService.Core.Models (76)
+### NpcMemoryService.Core.Models (77)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2683,6 +2688,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `IntimacyConsentVerdict` | public enum | Where an NPC stands relative to the regard their own disposition requires for intimacy. |
 | `IntimacyThresholdPolicy` | public static class | Decides the regard an NPC requires before physical intimacy, and how far the player is from it. |
 | `IntimateAct` | public enum | A concrete gesture of lovemaking, named from the CHARACTER's side ("OralGiving": they use their mouth on their partner). |
+| `IntimateActNames` | public static class | The gestures' written names, as a reader, an author or the console writes them ("oral_giving"). |
 | `JealousyAttentionPolicy` | public static class | Which recorded events count as the player having ATTENDED TO a partner, for the neglect clock. |
 | `Kink` | public enum | Specific intimate interests that color an NPC's sexuality beyond the broader RomanticPreference. |
 | `LeaveHouseObstacle` | public enum | Why the road to a ruler's hand (leaving one's house for her) is closed right now, when it is. |
