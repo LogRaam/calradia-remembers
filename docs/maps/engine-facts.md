@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-605 rules read 464 facts.
+606 rules read 465 facts.
 
 ## Facts read by more than one rule
 
@@ -887,6 +887,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `ViolencePolicy.Resolve`: `ModSettings.AllowKillingCharacters`, `ViolenceSceneReader.FactsFor`
 - `ViolencePolicy.RobberyTake`: `Hero.Gold`
 - `ViolencePolicy.SuccessChance`: `ViolenceSceneReader.FactsFor`
+- `WandererBackstoryPolicy.Keep`: `Events.FindIndex`
 - `WarDeedMatcher.IsSatisfied`: `Hero.MapFaction`
 - `WarDutyConfiscation.HasTakeable`: `Town.Prosperity`
 - `WarDutyInput`: `Town.Prosperity`

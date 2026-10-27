@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 572 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1343 types in 46 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 574 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1344 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 270 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -270,11 +270,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RumorGenerator` | public static class | Derives street-level rumor fragments from live campaign state for a given settlement. |
 | `RumorStore` | public static class | In-memory cache of rumor blocks keyed by settlement. |
 
-### CalradiaRemembers.Companions (1)
+### CalradiaRemembers.Companions (2)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `CompanionBriefingCoordinator` | public static class | Offers the companion-briefing picker and opens the resulting private chat. |
+| `CompanionHireBehavior` | public class | Keeps the day each companion joined the player's company. |
 
 ### CalradiaRemembers.Diagnostics (16)
 
@@ -297,13 +298,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `VramWatch` | public static class | An opt-in VRAM heartbeat pumped from the submodule's per-frame tick (which fires even with no chat open and the campaign paused). |
 | `WireRecorder` | public class | Reports what each outgoing request costs, and writes the bodies to disk when asked so two turns can be diffed the way the player who found this had to do it. |
 
-### CalradiaRemembers.Dialogue (3)
+### CalradiaRemembers.Dialogue (4)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `DialogueEntryTraceCollector` | public class | Collects the dialogue-hub token trail of a hero conversation and, at its end, writes ONE DialogueEntryTracePolicy line to the CR log naming the partner, whether the CR entry option was ever offered, and the tokens the co... |
 | `LlmDialogFlow` | public class | Registers Calradia Remembers' player option in the Bannerlord conversation flow. |
 | `VanillaDialogueRecorder` | public class | Captures the vanilla dialogue exchanged between the player and an NPC during a Bannerlord conversation, so that when the player switches to the Calradia Remembers chat window, the LLM (and the visible message list) start... |
+| `WandererBackstoryKeeper` | internal static class | Keeps a wanderer's own story, as told at the first meeting, as one memory of their own life. |
 
 ### CalradiaRemembers.Duels (16)
 
@@ -1792,7 +1794,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `ChronicleResumePolicy` | public static class | Decides which deed the illuminator should resume from, given what it wrote last time. |
 
-### CalradiaRemembers.Logic.Companions (42)
+### CalradiaRemembers.Logic.Companions (43)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1838,6 +1840,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PatrolLeashFacts` | public class | What the hourly leash knows of a patrolling party. |
 | `RapportBand` | public enum | How two companions stand with each other: banded from their accumulated mutual relation. |
 | `RetentionStep` | public enum | What the engine should do this tick for an unhappy companion. |
+| `WandererBackstoryPolicy` | public static class | Which of the game's lines are a wanderer's own story, and the one memory that keeps it. |
 
 ### CalradiaRemembers.Logic.Conversation (29)
 

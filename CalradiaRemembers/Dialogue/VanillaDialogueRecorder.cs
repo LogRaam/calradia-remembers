@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Conversation;
 using CalradiaRemembers.Foundation;
+using CalradiaRemembers.Logic.Companions;
 
 #endregion
 
@@ -132,6 +133,10 @@ namespace CalradiaRemembers.Dialogue
 
             string author = ResolveAuthorName(sentence, mgr);
             _captured.Add(new CapturedLine(author, text, sentence.IsPlayer));
+
+            // fearente (26/10/2026): a wanderer's own story, told once at the first meeting, is kept as their own life.
+            if (!sentence.IsPlayer && WandererBackstoryPolicy.IsStoryLine(sentence.Id))
+               WandererBackstoryKeeper.Keep(Hero.OneToOneConversationHero, text);
          }
          catch (Exception ex)
          {

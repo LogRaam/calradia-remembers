@@ -523,6 +523,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("bandit_clear_gate", Severity.Light, "increment 2b (player report: a village sent me after bandits that were not there, then turned hostile when I reported none): read the LIVE world, count bandit parties within the completion radius of a lord's anchor via the scanner's own counter, build the grounded menu, and assert bandit_clear is offered IFF at least one bandit party roams nearby. Seeds nothing", TestBanditClearGate),
          new SelfTest("provide_gold", Severity.Heavy, "child-support fix: seed a ProvideGold quest -> real take_gold via the bridge (player pays the giver) -> assert the quest is CLOSED (Completed, not stuck 'awaiting reward') and the goodwill regard was paid, since the payment IS the completion (no [QUEST_COMPLETE] needed). Restores gold so the economy is unchanged", TestProvideGoldCompletes),
          new SelfTest("reward_net", Severity.Heavy, "quest audit B1: the reward SAFETY NET. Seed a quest the game already VERIFIED as done (IsAwaitingReward, as if a lair was cleared days ago) but that the LLM never closed with [QUEST_COMPLETE] -> run the REAL QuestService.ApplyResponse with NO completion claim -> assert the net settles it anyway (Completed, no longer awaiting) and pays the owed reward (gold or regard moves), so the player's 'Done' quest never pays out never. Restores the seed + gold", TestRewardNet),
+         new SelfTest("companion_identity", Severity.Light, "fearente (Nexus, 26/10/2026): a companion hired a week before spoke of a childhood shared with the player, and the story the game had the wanderer tell at the first meeting was never remembered. Borrows one of the player's companions: drives the REAL hire listener (CompanionHireBehavior.OnHired) and asserts the REAL EncounterContextBuilder says hired companion, joined today; drives the REAL story keeper twice with the same line and asserts ONE OwnLife memory that keeps it. Restores the profile's memories and hire day", TestCompanionIdentity),
          new SelfTest("supply_quest", Severity.Heavy, "personal supply quest (ProvideGoods) END-TO-END: a bad-category proposal is REFUSED by the pipeline (nothing grounded), then a grain proposal is ISSUED through QuestService.ApplyResponse and grounds a real category+count; give the player grain -> real SettleSupplyQuest hands over EXACTLY the required count, CLOSES the quest (Completed), and pays the reward. Restores the roster. Then (froggyluv, 26/10/2026) the same grain handed over in WORDS through the REAL give_item action: short of the count it is refused and nothing leaves; with the count it settles the task (Completed). Restores the roster", TestSupplyQuest),
          new SelfTest("courier_waylay", Severity.Heavy, "waylaid-letter resend: a waylaid letter keeps its typed text, and the Resend path re-queues a FRESH non-lost letter carrying the SAME content, so a waylaid letter never has to be retyped. Cleans up its test letters + courier (no popup)", TestCourierWaylayResend),
          new SelfTest("prisoner_trade", Severity.Heavy, "prisoner trade: take a real lord captive into the player's party -> real buy_prisoner via the bridge (an NPC lord buys him) -> assert the player was PAID (price clamped around the ransom anchor) and the captive left the player's custody -> cleanup frees him", TestPrisonerTrade),
@@ -23188,6 +23189,42 @@ namespace CalradiaRemembers.Diagnostics
       ///   and grounds a real category+count, and a real hand-over through SettleSupplyQuest takes exactly the
       ///   required count, closes the quest (Completed), and pays the reward. Leaves the roster as it found it.
       /// </summary>
+      private static string TestCompanionIdentity(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("companion_identity");
+
+         if (t.Abort(behavior?.Store == null || Clan.PlayerClan == null, "the store is not running")) return t.Line();
+         Hero companion = Clan.PlayerClan.Companions.FirstOrDefault(h => h != null && h.IsPlayerCompanion);
+         if (t.Skip(companion == null, "the player has no companion to borrow")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, companion);
+         List<NotableEvent> events = profile.Events.ToList();
+         int? joined = profile.JoinedPlayerCompanyDay;
+         try
+         {
+            Companions.CompanionHireBehavior.OnHired(companion);
+            NpcProfile hired = behavior.Store.Get(companion.StringId);
+            EncounterContext context = EncounterContextBuilder.Build(companion, hired, behavior.GameStateBridge, resolveInterception: false);
+            t.Expect("theContextSaysHiredCompanion", context.IsHiredCompanion, true);
+            t.Expect("joinedToday", context.DaysSinceJoiningPlayer, 0);
+
+            Dialogue.WandererBackstoryKeeper.Keep(companion, "[SELFTEST] I was born where the river bends.");
+            Dialogue.WandererBackstoryKeeper.Keep(companion, "[SELFTEST] I was born where the river bends.");
+            int kept = behavior.Store.Get(companion.StringId).Events.Count(e => WandererBackstoryPolicy.IsTheKeptStory(e.summary) && e.summary.Contains("[SELFTEST]"));
+            t.Expect("theStoryIsKeptOnceAsHerOwnLife", kept, 1);
+         }
+         finally
+         {
+            NpcProfile p = behavior.Store.Get(companion.StringId) ?? profile;
+            p.Events.Clear();
+            p.Events.AddRange(events);
+            p.JoinedPlayerCompanyDay = joined;
+            behavior.Store.Set(p);
+         }
+
+         return t.Line();
+      }
+
       private static string TestSupplyQuest(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("supply_quest");

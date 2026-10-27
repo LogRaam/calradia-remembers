@@ -95,6 +95,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (`docs/maps/composition-parity.md`, `CompositionParityTests`).
 
 ### Fixed
+- **A hired companion knows what they are, and keeps the story they told you** (fearente, Nexus 26/10: "a companion that
+  I hired a week ago talked like we were of the same clan from childhood [...] If there is an easy way to include their
+  vanilla stories to themself when met for the first time it would be nice"). The game counts a hired companion in your
+  clan, and the prompt said only that. Now a companion is told they joined your company as a hired companion, some N
+  days ago (the day is kept from now on, on every hire), with no blood, house or childhood shared with you. And the
+  story a wanderer tells at your first meeting, line by line, is kept once as a memory of their own life, in their own
+  words (`WandererBackstoryPolicy`); a refusal to speak of the past is not kept as a story. `cr.testall companion_identity`.
 - **Scenes of a tale** (Gabriel's play test, 26/10/2026): typing the number of "Something else..." sent the number to
   the narrator ("3", read as "You say nothing"); it now leaves the input to you, and once you choose it or write your own
   words the numbered choices stay gone for the rest of that scene. The narration is signed "Narrator", not the scene's
