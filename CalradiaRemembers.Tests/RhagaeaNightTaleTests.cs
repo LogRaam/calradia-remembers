@@ -152,7 +152,24 @@ namespace CalradiaRemembers.Tests
          cell.Image.Should().Be("woman_cell.crvid");
          File.Exists(Path.Combine(Folder, cell.Image)).Should().BeTrue();
          cell.Objective.Scene.Encounters.Select(e => e.Id).Should().Equal("lady", "jailer", "guards");
-         cell.Choices.Select(c => (c.Id, c.Next)).Should().Equal(("follow", "chamber"), ("stay", "end:refused"));
+         cell.Choices.Select(c => (c.Id, c.Next)).Should().Equal(("follow", "bath"), ("stay", "end:refused"));
+      }
+
+      // STAKE (Gabriel, 26/10/2026: "il manque aussi une transition"): the lady takes the prisoner to a small warm bath,
+      // washes them and dresses them in clean night clothes, then leads them to the Empress's door, where her task ends
+      // and she invites them in; only then does the chamber play. Turning back at either is an ending of its own.
+      [Test]
+      public void GIVEN_the_prisoner_follows_the_lady_WHEN_read_THEN_the_bath_then_the_door_lead_to_the_chamber()
+      {
+         AuthoredQuest q = Tale();
+         AuthoredStage bath = q.Stages.Single(s => s.Id == "bath");
+         AuthoredStage door = q.Stages.Single(s => s.Id == "door");
+
+         bath.Objective.Type.Should().Be("explore");
+         bath.Choices.Select(c => (c.Id, c.Next)).Should().Equal(("dressed", "door"), ("back_from_bath", "end:turned_back"));
+         door.Objective.Type.Should().Be("explore");
+         door.Choices.Select(c => (c.Id, c.Next)).Should().Equal(("enter", "chamber"), ("back_from_door", "end:turned_back"));
+         q.Endings.Should().ContainKey("turned_back");
       }
 
       // STAKE: a night that never closes cleanly ends on its own, leaving her a plain memory, and blocks no other tale for long.
