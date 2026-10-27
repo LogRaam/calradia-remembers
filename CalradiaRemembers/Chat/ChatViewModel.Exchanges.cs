@@ -944,9 +944,10 @@ namespace CalradiaRemembers.Chat
             }
 
             // The gestures loved and disliked, locked the same way (Gabriel, 26/10/2026).
-            var (authoredLoves, authoredDislikes) = CharacterOverrideLoader.ActsFor(speaker.Hero);
-            if (profile.Romantic != null && authoredLoves != null) profile.Romantic.LovedActs = authoredLoves;
-            if (profile.Romantic != null && authoredDislikes != null) profile.Romantic.DislikedActs = authoredDislikes;
+            var authoredActs = CharacterOverrideLoader.ActsFor(speaker.Hero);
+            if (profile.Romantic != null && authoredActs.Loves != null) profile.Romantic.LovedActs = authoredActs.Loves;
+            if (profile.Romantic != null && authoredActs.LessFond != null) profile.Romantic.LessFondActs = authoredActs.LessFond;
+            if (profile.Romantic != null && authoredActs.Dislikes != null) profile.Romantic.DislikedActs = authoredActs.Dislikes;
 
             // ── Diagnostic: log the full system prompt sent to the LLM ─────
             if (ModSettings.VerboseLogging)

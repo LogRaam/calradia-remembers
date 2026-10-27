@@ -365,7 +365,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("scene_surroundings_read", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's scene should read differently to an Aserai in a forest at night and a Battanian at noon. Reads the ground under the player, the season, the hour and the player's people from the live game, as the scene's narrator gets them, and checks the narrator's block is written from them.", TestSceneSurroundingsRead),
          new SelfTest("scene_opener", Severity.Light, "Lordfadooboo (Nexus, 21/10/2026): a conversation opened cold; Gabriel (22/10/2026): the character sets the scene by default, as captive scenes do. Reads the LIVE opening facts (LlmDialogFlow.SceneFacts) and asserts a conversation opened by the greeting gets a scene while one opened any other way (an interception, a tale meeting) does not, nor one put back from earlier today, nor one carrying the game's own dialogue, nor any with the MCM switch off (set off for a moment, restored). Then, with a model available and nothing on screen, opens a REAL conversation with a lord, starts the scene on a test greeting and plays the player speaking first: the scene is set aside, the greeting stays on screen and is the line remembered, and the call is aborted. Closes the conversation", TestSceneOpener),
          new SelfTest("scene_image_shown", Severity.Light, "Gabriel (08/10/2026): a tale's stage may carry a picture, opening by itself beside the chat when its scene opens. Writes a small picture to a temporary file, opens a scene with it through the real door (its narration refused before any model call), checks the left panel shows that very file, then closes the scene and deletes the file.", TestSceneImageShown),
-         new SelfTest("intimate_acts", Severity.Light, "Gabriel (26/10/2026): 'chaque NPC avait des preferences pour certains gestes sexuels, et meme parfois des gestes qu'il n'aime pas', and 'un geste impose que le NPC n'aime pas devrait reduire le personal regard'. At Hardcore, with a lord arranged as the player's lover (regard 60, intimate; put back after) who loves oral given and dislikes anal received: the turn's reader is taught both from the real EncounterContextBuilder seam; the disliked gesture only asked for costs nothing and is learned; performed, it costs 4 personal regard and leaves a memory; performed again the same day, nothing more; the loved gesture found warms them by 1; the Heart section names a taste only once it is learned. Skips below Hardcore", TestIntimateActs),
+         new SelfTest("intimate_acts", Severity.Light, "Gabriel (26/10/2026): 'chaque NPC avait des preferences pour certains gestes sexuels, et meme parfois des gestes qu'il n'aime pas', and 'un geste impose que le NPC n'aime pas devrait reduire le personal regard'. At Hardcore, with a lord arranged as the player's lover (regard 60, intimate; put back after) who loves oral given and dislikes anal received: the turn's reader is taught both from the real EncounterContextBuilder seam; the disliked gesture only asked for costs nothing and is learned; performed, it costs 4 personal regard and leaves a memory; performed again the same day, nothing more; the loved gesture found warms them by 1; one they are less fond of costs nothing; the Heart section names a taste only once it is learned. Skips below Hardcore", TestIntimateActs),
          new SelfTest("summoned_meeting_on_backdrop", Severity.Light, "Gabriel (26/10/2026, Rhagaea's night): the conversation a scenario's tale brings to the player opened over the game's own map conversation (the Empress in armour among her guards in the street, her vanilla greeting under the video of her bed) and the chat stayed empty until he typed. Opens the REAL summoned meeting with a lord, nothing else on screen: the chat sits on the scene's dark backdrop, no vanilla conversation runs, the character's opening line is pending (its call is aborted by the close). Then closes it: the backdrop is gone and the map is given back as it was", TestSummonedMeetingOnBackdrop),
          new SelfTest("scene_close_gives_the_map_back", Severity.Light, "fkasad (Nexus, 07/10/2026): closing a tale's scene left a black screen with no way back. The close queued the backdrop's pop for the next frame, then wiped its own queue at the end. Opens a scene through the real door (its narration refused before any model call, so the log shows one [SCENE] error on purpose), closes it as the button does, runs one frame: the scene's own close must have run, what it queued must have run, and the map must be given back.", TestSceneCloseGivesTheMapBack),
          new SelfTest("scene_backdrop_suspends_the_map", Severity.Light, "Gabriel's play test (04/10/2026): closing a written tale's scene crashed the game natively; the scene had opened over the bare live map, which the hosting rule forbids. The scene's chat now sits on a pushed GameState. Opens that backdrop through the real host: the map must be suspended (a CrPanelState active, the settlement-visual tick suppressed), then given back exactly as it was, with the clock stopped. Opens no chat.", TestSceneBackdropSuspendsTheMap),
@@ -12156,13 +12156,14 @@ namespace CalradiaRemembers.Diagnostics
 
          int regardBefore = profile.ReputationWithPlayer, eventsBefore = profile.Events.Count;
          RomanticStatus statusBefore = r.Status;
-         List<IntimateAct> lovedBefore = r.LovedActs, dislikedBefore = r.DislikedActs, knownBefore = r.KnownActs;
+         List<IntimateAct> lovedBefore = r.LovedActs, dislikedBefore = r.DislikedActs, lessFondBefore = r.LessFondActs, knownBefore = r.KnownActs;
          IGameStateBridge bridge = behavior.GameStateBridge;
          GameAction Act(string act, string done) => new() {Type = Logic.Romance.IntimateActReading.Verb, Parameters = new Dictionary<string, string> {["act"] = act, ["done"] = done}};
          try
          {
             r.LovedActs = new List<IntimateAct> {IntimateAct.OralGiving};
             r.DislikedActs = new List<IntimateAct> {IntimateAct.AnalReceiving};
+            r.LessFondActs = new List<IntimateAct> {IntimateAct.DirtyTalk};
             r.KnownActs = null;
             r.Status = RomanticStatus.Intimate;
             NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, 60 - profile.ReputationWithPlayer, NpcMemoryService.Core.Standing.RegardCause.SelfTest);
@@ -12189,12 +12190,17 @@ namespace CalradiaRemembers.Diagnostics
 
             Mapping.IntimateActApplier.Apply(Act("oral_giving", "performed"), lord, profile, bridge);
             t.Expect("whatSheLovesWarmsHer", profile.ReputationWithPlayer, 60 + Logic.DeedRegardPolicy.ImposedDislikedGestureVictim + Logic.DeedRegardPolicy.FoundLovedGestureVictim);
+
+            Mapping.IntimateActApplier.Apply(Act("dirty_talk", "performed"), lord, profile, bridge);
+            t.Expect("whatSheIsLessFondOfCostsNothing", profile.ReputationWithPlayer, 60 + Logic.DeedRegardPolicy.ImposedDislikedGestureVictim + Logic.DeedRegardPolicy.FoundLovedGestureVictim);
+            t.Expect("andHerPageTellsAllThree", Mapping.HeartPageReader.TastesLine(lord, profile)?.Contains("is less fond of crude words") == true, true);
          }
          finally
          {
             Mapping.IntimateActApplier.ForgetCharges();
             r.LovedActs = lovedBefore;
             r.DislikedActs = dislikedBefore;
+            r.LessFondActs = lessFondBefore;
             r.KnownActs = knownBefore;
             r.Status = statusBefore;
             if (profile.Events.Count > eventsBefore) profile.Events.RemoveRange(eventsBefore, profile.Events.Count - eventsBefore);

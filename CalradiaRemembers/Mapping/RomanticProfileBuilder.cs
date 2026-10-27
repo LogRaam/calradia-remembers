@@ -56,7 +56,7 @@ namespace CalradiaRemembers.Mapping
 
             var (relational, intimate) = GetSketches(archetypeName, traits);
             // Their own generator (IntimateActPolicy): the rolls above stay what they were for every character already met.
-            var (lovedActs, dislikedActs) = Logic.Romance.IntimateActPolicy.Roll(hero.StringId, hero.IsFemale);
+            Logic.Romance.IntimateTastes tastes = Logic.Romance.IntimateActPolicy.Roll(hero.StringId, hero.IsFemale);
 
             return new RomanticProfile
             {
@@ -72,8 +72,9 @@ namespace CalradiaRemembers.Mapping
                     Jealousy.JealousyCultureLoader.GetCulture(hero.Culture?.Name?.ToString()),
                     StatureReader.Of(hero).ClanTier),
                 Kinks            = RomanticProfilePolicy.DetermineKinks(rng, traits),
-                LovedActs        = lovedActs,
-                DislikedActs     = dislikedActs
+                LovedActs        = tastes.Loved,
+                LessFondActs     = tastes.LessFond,
+                DislikedActs     = tastes.Disliked
             };
         }
 

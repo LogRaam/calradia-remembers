@@ -108,6 +108,18 @@ namespace CalradiaRemembers.Tests
          HeartIntimacyPolicy.TastesLine(f).Should().Be("In bed she loves your mouth on her and being on top, and does not like being handled roughly.");
       }
 
+      // STAKE: Gabriel (27/10/2026): "une chose qu'elle aime moins": the three tastes read in one sentence, the warmest first.
+      [Test]
+      public void GIVEN_all_three_tastes_learned_WHEN_her_page_opens_THEN_they_read_warmest_first()
+      {
+         var f = new HeartTastesFacts {
+            IsFemale = true, Loved = new[] {IntimateAct.OnTop}, LessFond = new[] {IntimateAct.DirtyTalk}, Disliked = new[] {IntimateAct.RoughHandling},
+            Known = new[] {IntimateAct.RoughHandling, IntimateAct.DirtyTalk, IntimateAct.OnTop}
+         };
+
+         HeartIntimacyPolicy.TastesLine(f).Should().Be("In bed she loves being on top, is less fond of crude words, and does not like being handled roughly.");
+      }
+
       // STAKE: the page never spoils a taste the player has not found in the roleplay.
       [Test]
       public void GIVEN_a_taste_not_yet_learned_WHEN_his_page_opens_THEN_it_is_not_named()

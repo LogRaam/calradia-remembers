@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-606 rules read 465 facts.
+606 rules read 466 facts.
 
 ## Facts read by more than one rule
 
@@ -277,6 +277,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Romantic.DislikedActs` (2) | `IntimateActJudgeFacts`, `IntimateActReaderFacts` |
 | `Romantic.IsSecretLover` (2) | `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Romantic.Kinks` (2) | `CaptiveEncounterPolicy.EncounterProbability`, `CaptiveEncounterPolicy.SelectIntent` |
+| `Romantic.LessFondActs` (2) | `IntimateActJudgeFacts`, `IntimateActReaderFacts` |
 | `Romantic.LovedActs` (2) | `IntimateActJudgeFacts`, `IntimateActReaderFacts` |
 | `Scan.Strength` (2) | `AudienceCandidate`, `TravellingAudiencePolicy.Choose` |
 | `Settlement.Culture` (2) | `AuthoredMapTriggerPolicy.WhyNot`, `MapTriggerFacts` |
@@ -576,8 +577,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `InterceptionPolicy.ShouldWriteMissedMeetingLetter`: `Army.LeaderParty`, `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `LeaderParty.SiegeEvent`, `MobileParty.Army`, `MobileParty.AttachedTo`, `MobileParty.BesiegedSettlement`, `MobileParty.IsCurrentlyAtSea`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`, `Settlement.IsUnderSiege`, `Settlement.SiegeEvent`
 - `InterestDampers`: `Hero.Spouse`
 - `IntimacyPacingRules.Relief`: `ModSettings.RelationWarmth`
-- `IntimateActJudgeFacts`: `ModSettings.AdultContentLevel`, `Romantic.DislikedActs`, `Romantic.KnownActs`, `Romantic.LovedActs`
-- `IntimateActReaderFacts`: `Romantic.DislikedActs`, `Romantic.LovedActs`
+- `IntimateActJudgeFacts`: `ModSettings.AdultContentLevel`, `Romantic.DislikedActs`, `Romantic.KnownActs`, `Romantic.LessFondActs`, `Romantic.LovedActs`
+- `IntimateActReaderFacts`: `Romantic.DislikedActs`, `Romantic.LessFondActs`, `Romantic.LovedActs`
 - `IntimateChroniclePolicy.BuildLine`: `Hero.IsFemale`, `ModSettings.AdultContentLevel`
 - `ItemConfirmationFacts`: `Hero.Gold`
 - `ItemSaleFacts`: `EquipmentElement.Item`, `Hero.Gold`, `ItemRosterElement.Amount`

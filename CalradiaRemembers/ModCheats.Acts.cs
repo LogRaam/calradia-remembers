@@ -18,7 +18,7 @@ namespace CalradiaRemembers
 {
    public static partial class ModCheats
    {
-      /// <summary>cr.acts [name]: the gestures a character loves, dislikes, and which of them the player has learned.</summary>
+      /// <summary>cr.acts [name]: the gestures a character loves, is less fond of, dislikes, and which the player has learned.</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("acts", "cr")]
       public static string ListActs(List<string> args)
       {
@@ -34,7 +34,7 @@ namespace CalradiaRemembers
 
          string Ids(List<IntimateAct> acts) => acts == null || acts.Count == 0 ? "(none)" : string.Join(", ", acts.Select(IntimateActReading.IdOf));
 
-         return $"{hero.Name}: loves {Ids(r.LovedActs)}; dislikes {Ids(r.DislikedActs)}; learned by the player {Ids(r.KnownActs)}. "
+         return $"{hero.Name}: loves {Ids(r.LovedActs)}; less fond of {Ids(r.LessFondActs)}; dislikes {Ids(r.DislikedActs)}; learned by the player {Ids(r.KnownActs)}. "
                 + $"Said to the character at Hardcore only. Gestures: {string.Join(", ", IntimateActPolicy.All.Select(IntimateActReading.IdOf))}.";
       }
 

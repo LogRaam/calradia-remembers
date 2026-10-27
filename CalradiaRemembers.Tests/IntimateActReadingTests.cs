@@ -54,6 +54,21 @@ namespace CalradiaRemembers.Tests
          v.Discovered.Should().BeTrue();
       }
 
+      // STAKE: "une chose qu'elle aime moins": a gesture they are less fond of is met without eagerness, never an offence;
+      // the player learns it all the same.
+      [Test]
+      public void GIVEN_a_gesture_they_are_less_fond_of_WHEN_the_player_does_it_THEN_it_costs_nothing_and_is_learned()
+      {
+         IntimateActVerdict v = IntimateActReading.Judge(new IntimateActJudgeFacts {
+            Act = IntimateAct.DirtyTalk, Performed = true, Hardcore = true, IntimacyPermitted = true, Loved = Loved, Disliked = Disliked,
+            LessFond = new List<IntimateAct> {IntimateAct.DirtyTalk}
+         });
+
+         v.RegardDelta.Should().Be(0);
+         v.Imposed.Should().BeFalse();
+         v.Discovered.Should().BeTrue();
+      }
+
       // STAKE: one night is one offence: the same gesture reported reply after reply is charged once a day.
       [Test]
       public void GIVEN_a_disliked_gesture_already_charged_today_WHEN_reported_again_THEN_it_costs_nothing_more()
@@ -102,6 +117,9 @@ namespace CalradiaRemembers.Tests
          block.Should().Contain("- oral_giving: Rhagaea's mouth on the player");
          block.Should().Contain("- anal_receiving: the player takes Rhagaea anally");
          block.Should().NotContain("kissing");
+         IntimateActReading.ForReader(new IntimateActReaderFacts {
+            Hardcore = true, IntimacyPermitted = true, NpcName = "Rhagaea", Loved = Loved, Disliked = Disliked, LessFond = new List<IntimateAct> {IntimateAct.DirtyTalk}
+         }).Should().Contain("- dirty_talk:");
          block.Should().Contain("type: " + IntimateActReading.Verb);
 
          IntimateActReading.ForReader(new IntimateActReaderFacts {Hardcore = true, IntimacyPermitted = true, ForcedScene = true, Loved = Loved, Disliked = Disliked})
@@ -115,10 +133,14 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_authored_loves_and_dislikes_WHEN_read_THEN_they_replace_the_roll_and_a_typo_is_named()
       {
-         var o = new CharacterOverride {Hero = "Rhagaea", Loves = new List<string> {"oral_giving", "kising"}, Dislikes = new List<string> {"anal_receiving", "oral_giving"}};
+         var o = new CharacterOverride {
+            Hero = "Rhagaea", Loves = new List<string> {"oral_giving", "kising"}, Dislikes = new List<string> {"anal_receiving", "oral_giving"},
+            LessFond = new List<string> {"dirty_talk", "anal_receiving"}
+         };
 
          o.ParsedLoves.Should().Equal(IntimateAct.OralGiving);
          o.ParsedDislikes.Should().Equal(IntimateAct.AnalReceiving);
+         o.ParsedLessFond.Should().Equal(IntimateAct.DirtyTalk);
          o.HasAnyAuthoredContent.Should().BeTrue();
          o.AuthoringProblems().Should().Contain(p => p.Contains("kising"));
          new CharacterOverride {Hero = "Rhagaea"}.ParsedLoves.Should().BeNull();

@@ -60,7 +60,7 @@ namespace CalradiaRemembers.Mapping
             return HeartIntimacyPolicy.TastesLine(new HeartTastesFacts
             {
                 IsFemale = hero.IsFemale, Loved = r.LovedActs ?? new List<IntimateAct>(), Disliked = r.DislikedActs ?? new List<IntimateAct>(),
-                Known = r.KnownActs ?? new List<IntimateAct>()
+                LessFond = r.LessFondActs ?? new List<IntimateAct>(), Known = r.KnownActs ?? new List<IntimateAct>()
             });
         }
 

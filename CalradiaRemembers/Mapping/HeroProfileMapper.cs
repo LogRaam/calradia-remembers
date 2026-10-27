@@ -119,13 +119,18 @@ namespace CalradiaRemembers.Mapping
          // below so it logs even for otherwise up-to-date profiles.
          if (profile.Romantic != null) LogExistingRomanticCompatibility(profile);
 
-         // A profile from before 27/10/2026 has no gestures loved or disliked yet: rolled once now, then kept.
+         // A profile from before 27/10/2026 has no gestures loved or disliked yet: rolled once now, then kept. One rolled
+         // before the less-loved gesture existed is given it alone, never one it already loves or dislikes.
          if (profile.Romantic is {LovedActs: null} || profile.Romantic is {DislikedActs: null})
          {
-            var (loved, disliked) = Logic.Romance.IntimateActPolicy.Roll(hero.StringId, hero.IsFemale);
-            profile.Romantic.LovedActs ??= loved;
-            profile.Romantic.DislikedActs ??= disliked;
+            Logic.Romance.IntimateTastes tastes = Logic.Romance.IntimateActPolicy.Roll(hero.StringId, hero.IsFemale);
+            profile.Romantic.LovedActs ??= tastes.Loved;
+            profile.Romantic.DislikedActs ??= tastes.Disliked;
          }
+
+         if (profile.Romantic is {LessFondActs: null})
+            profile.Romantic.LessFondActs = Logic.Romance.IntimateActPolicy.LessFondFor(hero.StringId, hero.IsFemale,
+               (profile.Romantic.LovedActs ?? new List<IntimateAct>()).Concat(profile.Romantic.DislikedActs ?? new List<IntimateAct>()));
 
          bool needsRomantic = profile.Romantic == null;
 

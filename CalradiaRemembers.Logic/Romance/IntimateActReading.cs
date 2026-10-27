@@ -4,7 +4,9 @@
 // only in a lovemaking the game permits (never a captive scene), the gestures this character loves or dislikes, and
 // reports one the player does or asks for. The game decides the rest: a disliked gesture the player DID costs personal
 // regard and leaves a memory, once a day per gesture; one only asked for costs nothing (the character refused or showed
-// unease); a loved gesture found the first time warms them a little. Either way the player now knows that taste.
+// unease); a loved gesture found the first time warms them a little. Either way the player now knows that taste. A
+// gesture they are less fond of (Gabriel, 27/10/2026: "une chose qu'elle aime moins") is met without eagerness, costs
+// nothing and is learned all the same.
 
 #region
 
@@ -37,6 +39,9 @@ namespace CalradiaRemembers.Logic.Romance
 
       /// <summary>The gestures they dislike.</summary>
       public IReadOnlyList<IntimateAct> Disliked { get; init; } = new List<IntimateAct>();
+
+      /// <summary>The gestures they are less fond of.</summary>
+      public IReadOnlyList<IntimateAct> LessFond { get; init; } = new List<IntimateAct>();
    }
 
    /// <summary>What a reported gesture is, as the game judges it.</summary>
@@ -59,6 +64,9 @@ namespace CalradiaRemembers.Logic.Romance
 
       /// <summary>The gestures they dislike.</summary>
       public IReadOnlyList<IntimateAct> Disliked { get; init; } = new List<IntimateAct>();
+
+      /// <summary>The gestures they are less fond of.</summary>
+      public IReadOnlyList<IntimateAct> LessFond { get; init; } = new List<IntimateAct>();
 
       /// <summary>The player already learned this taste of theirs.</summary>
       public bool AlreadyKnown { get; init; }
@@ -105,7 +113,7 @@ namespace CalradiaRemembers.Logic.Romance
       public static string ForReader(IntimateActReaderFacts f)
       {
          if (f == null || !f.Hardcore || !f.IntimacyPermitted || f.ForcedScene) return null;
-         List<IntimateAct> watched = f.Loved.Concat(f.Disliked).Where(a => a != IntimateAct.None).Distinct().ToList();
+         List<IntimateAct> watched = f.Loved.Concat(f.LessFond ?? new List<IntimateAct>()).Concat(f.Disliked).Where(a => a != IntimateAct.None).Distinct().ToList();
          if (watched.Count == 0) return null;
 
          string npc = string.IsNullOrWhiteSpace(f.NpcName) ? "the character" : f.NpcName;
@@ -142,6 +150,8 @@ namespace CalradiaRemembers.Logic.Romance
             return new IntimateActVerdict {
                RegardDelta = f.Performed && !f.AlreadyKnown ? DeedRegardPolicy.For(PlayerDeed.FoundLovedGesture).Victim : 0, Discovered = !f.AlreadyKnown
             };
+
+         if (f.LessFond?.Contains(f.Act) == true) return new IntimateActVerdict {Discovered = !f.AlreadyKnown};
 
          return IntimateActVerdict.Nothing;
       }

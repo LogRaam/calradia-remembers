@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 574 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1344 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1345 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 270 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2274,7 +2274,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RescueGratitudePolicy` | public static class | Decides how strongly an NPC reacts to being rescued (or to a loved one being rescued) by the player. |
 | `RescueTie` | public enum | How the freed prisoner relates to the player, deciding the shape of their gratitude. |
 
-### CalradiaRemembers.Logic.Romance (34)
+### CalradiaRemembers.Logic.Romance (35)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2285,10 +2285,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeartPagePolicy` | public static class | Tells a character's bond with the player for the Heart section, and the recap line on the player's page. |
 | `HeartTastesFacts` | public class | What the player has learned of a character's tastes in bed. |
 | `IntimateActJudgeFacts` | public class | What a reported gesture is, as the game judges it. |
-| `IntimateActPolicy` | public static class | The gestures a character loves and dislikes, rolled once from their id. |
+| `IntimateActPolicy` | public static class | The gestures a character loves, is less fond of and dislikes, rolled once from their id. |
 | `IntimateActReaderFacts` | public class | What the turn's reader is told of a character's tastes in bed. |
 | `IntimateActReading` | public static class | Teaches the turn's reader the character's tastes, and judges a reported gesture. |
 | `IntimateActVerdict` | public class | What the game does with a reported gesture. |
+| `IntimateTastes` | public class | A character's tastes in bed, as rolled. |
 | `JealousStake` | public enum | Who the jealous party is, and why they have a stake: sets the reaction's flavour. |
 | `JealousyHearingPolicy` | public static class | Pure gate deciding whether a jealous party is close enough to a liaison's location to have heard word of it. |
 | `JealousyReaction` | public static class | The pure tuning behind a jealousy reaction: the relation hit (Severity), the chance of a confronting letter (LetterChance), and the in-character grievance / letter framing. |

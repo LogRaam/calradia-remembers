@@ -79,7 +79,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   in the save (`RomanticProfile.LovedActs` / `DislikedActs`); characters met before are given theirs the next time
   they are spoken to. Whoever reads the turn's actions (the interpreter, or the prose call in Standard) is taught,
   only at Hardcore in a lovemaking the game permits and never in a captive scene, the gestures this character loves or
-  dislikes, and reports one the player does or asks for (`intimate_act`). A disliked gesture imposed costs 4 personal
+  dislikes, and reports one the player does or asks for (`intimate_act`). Gabriel (27/10): "au moins quelque chose que
+  le personnage aime beaucoup, et une chose qu'elle aime moins": every character loves one or two gestures, is less
+  fond of exactly one (`LessFondActs`: met without eagerness, at no cost, learned all the same) and about two in five
+  dislike one outright; characters rolled before are given their less-loved gesture alone, the next time they are
+  read; `character_overrides.json` takes `lessFond`. A disliked gesture imposed costs 4 personal
   regard and leaves a memory, once a day per gesture; only asked for, it costs nothing; a loved one found the first
   time warms them by 1 (`DeedRegardPolicy`). Either way the player has learned that taste (`KnownActs`), and the
   character's Heart section names it, since the player may forget (Gabriel 27/10): "In bed she loves being on top, and

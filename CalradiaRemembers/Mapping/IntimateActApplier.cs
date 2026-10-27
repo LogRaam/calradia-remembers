@@ -38,7 +38,7 @@ namespace CalradiaRemembers.Mapping
             return IntimateActReading.ForReader(new IntimateActReaderFacts {
                Hardcore = true, ForcedScene = false, IntimacyPermitted = bridge?.PermitsIntimacyWith(hero, profile) == true,
                NpcName = hero.Name?.ToString(), Loved = profile.Romantic.LovedActs ?? new List<IntimateAct>(),
-               Disliked = profile.Romantic.DislikedActs ?? new List<IntimateAct>()
+               Disliked = profile.Romantic.DislikedActs ?? new List<IntimateAct>(), LessFond = profile.Romantic.LessFondActs ?? new List<IntimateAct>()
             });
          }
          catch (Exception ex)
@@ -67,6 +67,7 @@ namespace CalradiaRemembers.Mapping
                Act = act, Performed = performed, Hardcore = ModSettings.AdultContentLevel == AdultContentLevel.Hardcore,
                IntimacyPermitted = bridge?.PermitsIntimacyWith(hero, profile) == true,
                Loved = profile.Romantic.LovedActs ?? new List<IntimateAct>(), Disliked = profile.Romantic.DislikedActs ?? new List<IntimateAct>(),
+               LessFond = profile.Romantic.LessFondActs ?? new List<IntimateAct>(),
                AlreadyKnown = known.Contains(act), AlreadyChargedToday = ChargedOn.TryGetValue(key, out int day) && day == today
             });
 

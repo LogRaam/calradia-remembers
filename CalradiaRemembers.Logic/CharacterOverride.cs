@@ -100,6 +100,9 @@ namespace CalradiaRemembers.Logic
         /// <summary>Optional lock of the gestures this character dislikes, as <see cref="Loves" />.</summary>
         public List<string> Dislikes { get; set; }
 
+        /// <summary>Optional lock of the gestures this character is less fond of (JSON "lessFond"), as <see cref="Loves" />.</summary>
+        public List<string> LessFond { get; set; }
+
         /// <summary>True when this override sets at least one trait.</summary>
         public bool HasTraits =>
             Valor.HasValue || Honor.HasValue || Mercy.HasValue || Generosity.HasValue || Calculating.HasValue;
@@ -142,7 +145,7 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public bool HasAnyAuthoredContent =>
             HasTraits || ParsedKinks != null || ParsedPreferences != null || HasBackstory || HasConviction || HasOrientationText
-            || Loves != null || Dislikes != null;
+            || Loves != null || Dislikes != null || LessFond != null;
 
         /// <summary>
         ///   Human-readable problems with what the author wrote: values that are present but will be ignored
@@ -158,7 +161,7 @@ namespace CalradiaRemembers.Logic
             if (badKinks.Count > 0)
                 yield return $"kink name(s) not recognized and ignored: {string.Join(", ", badKinks)} (see cr.kinks for the valid names)";
 
-            List<string> badActs = (Loves ?? new List<string>()).Concat(Dislikes ?? new List<string>())
+            List<string> badActs = (Loves ?? new List<string>()).Concat(Dislikes ?? new List<string>()).Concat(LessFond ?? new List<string>())
                                    .Where(a => IntimateActNames.Parse(a) == IntimateAct.None).ToList();
             if (badActs.Count > 0)
                 yield return $"gesture name(s) not recognized and ignored: {string.Join(", ", badActs)} (see cr.acts for the valid names)";
@@ -192,6 +195,10 @@ namespace CalradiaRemembers.Logic
         /// <summary>The authored disliked gestures, parsed; never one also loved. Null when the field was left out.</summary>
         public List<NpcMemoryService.Core.Models.IntimateAct> ParsedDislikes
             => ParseActs(Dislikes)?.Where(a => ParsedLoves?.Contains(a) != true).ToList();
+
+        /// <summary>The authored gestures they are less fond of, parsed; never one also loved or disliked. Null when left out.</summary>
+        public List<NpcMemoryService.Core.Models.IntimateAct> ParsedLessFond
+            => ParseActs(LessFond)?.Where(a => ParsedLoves?.Contains(a) != true && ParsedDislikes?.Contains(a) != true).ToList();
 
         private static List<NpcMemoryService.Core.Models.IntimateAct> ParseActs(List<string> names)
             => names?.Select(IntimateActNames.Parse).Where(a => a != IntimateAct.None).Distinct().ToList();

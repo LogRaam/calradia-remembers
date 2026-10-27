@@ -114,11 +114,11 @@ namespace CalradiaRemembers.Lore
          => ModSettings.UseCustomTraits ? For(hero)?.ParsedPreferences : null;
 
       /// <summary>The authored loved and disliked gestures for this hero (each null when left out), or nulls when the toggle is off.</summary>
-      public static (List<NpcMemoryService.Core.Models.IntimateAct> Loves, List<NpcMemoryService.Core.Models.IntimateAct> Dislikes) ActsFor(Hero hero)
+      public static (List<NpcMemoryService.Core.Models.IntimateAct> Loves, List<NpcMemoryService.Core.Models.IntimateAct> LessFond, List<NpcMemoryService.Core.Models.IntimateAct> Dislikes) ActsFor(Hero hero)
       {
          CharacterOverride o = ModSettings.UseCustomTraits ? For(hero) : null;
 
-         return (o?.ParsedLoves, o?.ParsedDislikes);
+         return (o?.ParsedLoves, o?.ParsedLessFond, o?.ParsedDislikes);
       }
 
       /// <summary>The override that applies to <paramref name="hero" />, or null.</summary>

@@ -45,6 +45,9 @@ namespace CalradiaRemembers.Logic.Romance
       /// <summary>The gestures they dislike.</summary>
       public IReadOnlyList<IntimateAct> Disliked { get; init; } = Array.Empty<IntimateAct>();
 
+      /// <summary>The gestures they are less fond of.</summary>
+      public IReadOnlyList<IntimateAct> LessFond { get; init; } = Array.Empty<IntimateAct>();
+
       /// <summary>The tastes the player has learned (RomanticProfile.KnownActs).</summary>
       public IReadOnlyList<IntimateAct> Known { get; init; } = Array.Empty<IntimateAct>();
    }
@@ -78,28 +81,33 @@ namespace CalradiaRemembers.Logic.Romance
       }
 
       /// <summary>
-      ///   The line on the character's page naming the tastes the player has learned: "In bed she loves being on top and
-      ///   your mouth on her, and does not like being handled roughly." Null when nothing has been learned.
+      ///   The line on the character's page naming the tastes the player has learned: "In bed she loves being on top, is
+      ///   less fond of crude words, and does not like being handled roughly." Null when nothing has been learned.
       /// </summary>
       public static string TastesLine(HeartTastesFacts f)
       {
          if (f == null) return null;
          IReadOnlyList<IntimateAct> known = f.Known ?? Array.Empty<IntimateAct>();
-         List<IntimateAct> loved = Learned(f.Loved, known, null);
+         List<IntimateAct> loved = Learned(f.Loved, known, new List<IntimateAct>());
          List<IntimateAct> disliked = Learned(f.Disliked, known, loved);
-         if (loved.Count == 0 && disliked.Count == 0) return null;
+         List<IntimateAct> lessFond = Learned(f.LessFond, known, loved.Concat(disliked).ToList());
 
-         string she = f.IsFemale ? "she" : "he";
          string her = f.IsFemale ? "her" : "him";
-         string loves = loved.Count > 0 ? "loves " + Joined(loved.Select(a => Taste(a, f.IsFemale, her)).ToList()) : null;
-         string dislikes = disliked.Count > 0 ? "does not like " + Joined(disliked.Select(a => Taste(a, f.IsFemale, her)).ToList()) : null;
+         string Tastes(List<IntimateAct> acts) => Joined(acts.Select(a => Taste(a, f.IsFemale, her)).ToList());
+         var clauses = new List<string>();
+         if (loved.Count > 0) clauses.Add("loves " + Tastes(loved));
+         if (lessFond.Count > 0) clauses.Add("is less fond of " + Tastes(lessFond));
+         if (disliked.Count > 0) clauses.Add("does not like " + Tastes(disliked));
+         if (clauses.Count == 0) return null;
 
-         return loves != null && dislikes != null ? $"In bed {she} {loves}, and {dislikes}." : $"In bed {she} {loves ?? dislikes}.";
+         string said = clauses.Count == 1 ? clauses[0] : string.Join(", ", clauses.Take(clauses.Count - 1)) + ", and " + clauses[clauses.Count - 1];
+
+         return $"In bed {(f.IsFemale ? "she" : "he")} {said}.";
       }
 
-      // The tastes of one list the player learned, in the gestures' own order; a gesture in both lists counts as loved.
+      // The tastes of one list the player learned, in the gestures' own order, never one already told in another list.
       private static List<IntimateAct> Learned(IReadOnlyList<IntimateAct> tastes, IReadOnlyList<IntimateAct> known, List<IntimateAct> already)
-         => (tastes ?? Array.Empty<IntimateAct>()).Where(a => a != IntimateAct.None && known.Contains(a) && already?.Contains(a) != true)
+         => (tastes ?? Array.Empty<IntimateAct>()).Where(a => a != IntimateAct.None && known.Contains(a) && !already.Contains(a))
                                                    .Distinct().OrderBy(a => (int) a).ToList();
 
       // A gesture as the player reads it on the character's page, in the player's second person.
