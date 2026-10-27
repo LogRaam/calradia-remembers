@@ -541,6 +541,10 @@ text.
   the tale began, `regard_fell` when lower, neither when unmoved. An ending's consequences may test them (a warm memory
   under `regard_rose`, a cold one under `regard_fell`, a neutral one under `["!regard_rose", "!regard_fell"]`). No choice
   sets them, and they are not read before the ending.
+- **Set by the game as the tale begins again with the same giver** (since 2.7.21): `played_before` when this tale
+  reached an ending with this giver before, and `ended_before:<ending id>` for each ending it reached with them
+  (`ended_before:reward`, `ended_before:failure` for those). Lines under them make a second playing follow the first
+  (a canvas or a fact under `ended_before:dawn`, another under `!played_before`). Another giver starts fresh.
 
 `if` works on choices (open or not), on knower lines, canvas and fact lines, and on consequences. A
 line may be a plain string, or an object with a condition:

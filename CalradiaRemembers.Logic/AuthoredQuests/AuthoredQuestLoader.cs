@@ -503,6 +503,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       private static void ValidateFlags(AuthoredQuest q, List<string> cosmetic)
       {
          var set = new HashSet<string>(BuiltInFlags, StringComparer.Ordinal);
+         set.UnionWith(TaleHistory.FlagsOf(q));
          var tested = new List<string>();
 
          void Tests(IEnumerable<string> conditions)

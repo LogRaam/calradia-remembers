@@ -55,6 +55,9 @@ namespace CalradiaRemembers.Quests
       // the tale comes back). Additive key: an older save shows from a fresh round.
       private const string PoolShownKey = "CalradiaRemembers_TaleImagePoolShown_v1";
 
+      // The endings each tale reached with each giver (TaleHistory, Gabriel 26/10/2026). Absent in older saves.
+      private const string HistoryKey = "CalradiaRemembers_TaleHistory_v1";
+
       // The tale set aside while a scenario's tale plays (TalePause, Gabriel, 25/10/2026). Absent in older saves.
       private const string PausedRunKey = "CalradiaRemembers_TalePausedRun_v1";
 
@@ -72,6 +75,9 @@ namespace CalradiaRemembers.Quests
       private Dictionary<string, int> _playedOn = new(StringComparer.Ordinal);
       private Dictionary<string, int> _returnsWaiting = new(StringComparer.Ordinal);
       private Dictionary<string, List<string>> _poolShown = new(StringComparer.Ordinal);
+
+      // "quest|giver" -> the endings reached with that giver; a tale begun again with them carries them as flags.
+      private Dictionary<string, List<string>> _history = new(StringComparer.Ordinal);
 
       // The offer being made in the conversation now open (transient: a conversation does not survive a save).
       private AuthoredQuestRun _offer;
@@ -154,6 +160,13 @@ namespace CalradiaRemembers.Quests
             paused = ""; // an older save: nothing was set aside
          }
 
+         string history = string.Join("\n", _history.Select(kv => kv.Key + "=" + string.Join("|", kv.Value)));
+         try { dataStore.SyncData(HistoryKey, ref history); }
+         catch
+         {
+            history = ""; // an older save: no tale remembers its earlier playings
+         }
+
          if (!dataStore.IsLoading) return;
 
          _run = AuthoredQuestRun.Deserialize(run);
@@ -168,6 +181,30 @@ namespace CalradiaRemembers.Quests
             int eq = line.IndexOf('=');
             if (eq > 0) _poolShown[line.Substring(0, eq)] = line.Substring(eq + 1).Split(new[] {'|'}, StringSplitOptions.RemoveEmptyEntries).ToList();
          }
+
+         // The key holds a '|' itself ("quest|giver"); the endings follow the first '='.
+         _history = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+         foreach (string line in (history ?? "").Split(new[] {'\n'}, StringSplitOptions.RemoveEmptyEntries))
+         {
+            int eq = line.IndexOf('=');
+            if (eq > 0) _history[line.Substring(0, eq)] = line.Substring(eq + 1).Split(new[] {'|'}, StringSplitOptions.RemoveEmptyEntries).ToList();
+         }
+      }
+
+      /// <summary>The endings this tale reached with this giver before, as its new run's flags (TaleHistory).</summary>
+      private void MarkHistory(AuthoredQuestRun run)
+      {
+         if (run == null) return;
+         string key = TaleHistory.Key(run.QuestId, AuthoredQuestEngine.Bound(run, "{giver}"));
+         if (_history.TryGetValue(key, out List<string> before)) TaleHistory.Mark(run, before);
+      }
+
+      /// <summary>Keeps the ending this tale just reached with its giver, for the next time it begins with them.</summary>
+      private void RecordHistory(AuthoredQuestRun run, string ending)
+      {
+         if (run == null) return;
+         string key = TaleHistory.Key(run.QuestId, AuthoredQuestEngine.Bound(run, "{giver}"));
+         _history[key] = TaleHistory.After(_history.TryGetValue(key, out List<string> before) ? before : null, ending);
       }
 
       private static string DayList(Dictionary<string, int> days) => string.Join("\n", days.Select(kv => kv.Key + "=" + kv.Value));
@@ -629,6 +666,7 @@ namespace CalradiaRemembers.Quests
       {
          PauseUnderWay(offer);
          _run = offer;
+         MarkHistory(_run);
          Hero giver = Find(AuthoredQuestEngine.Bound(_run, "{giver}"));
          var today = (int) CampaignTime.Now.ToDays;
          // Where the giver's regard stood as the tale began, read back as it ends (TaleRegardFlags).
@@ -1408,6 +1446,7 @@ namespace CalradiaRemembers.Quests
                journal?.CloseAsCompleted();
                _done.Add(q.Id);
                _playedOn[q.Id] = (int) CampaignTime.Now.ToDays;
+               RecordHistory(_run, TaleHistory.EndingName(step.EndingId, false));
                ModLog.Info($"[TALE] '{q.Id}' completed{taken}, ending '{step.EndingId ?? "reward"}'.");
                FireTaleEvent(q, "end:" + (step.EndingId ?? "reward"), endedWith);
                ReconcileJournal();
@@ -1421,6 +1460,7 @@ namespace CalradiaRemembers.Quests
                journal?.CloseAsFailed("The time to act has passed.");
                _done.Add(q.Id);
                _playedOn[q.Id] = (int) CampaignTime.Now.ToDays;
+               RecordHistory(_run, TaleHistory.EndingName(null, true));
                ModLog.Info($"[TALE] '{q.Id}' failed at stage {step.FromStage}.");
                FireTaleEvent(q, "end:failure", failedWith);
                ReconcileJournal();
@@ -1750,6 +1790,7 @@ namespace CalradiaRemembers.Quests
       {
          PauseUnderWay(run);
          _run = run;
+         MarkHistory(_run);
          _run.GiverRegardAtStart = RegardOf(giver);
          ModLog.Info($"[TALE] the player said no to '{q.Id}': ending '{q.OnScenario.DeclineEnding}'.");
          Apply(q, AuthoredQuestEngine.Declined(_run, q, (int) CampaignTime.Now.ToDays));
@@ -2479,6 +2520,12 @@ namespace CalradiaRemembers.Quests
       internal void DebugConversationEnded(Hero hero) => OnConversationEnded(new CrConversationLog(hero?.StringId, null, (int) CampaignTime.Now.ToDays, new List<CrTranscriptLine>(), null));
 
       /// <summary>Self-test seam: forgets which pictures of this tale's pools were shown, so a test leaves no trace.</summary>
+      /// <summary>Self-test seam: forgets every ending this tale reached, with every giver.</summary>
+      internal void DebugForgetHistory(string questId)
+      {
+         foreach (string key in _history.Keys.Where(k => k.StartsWith(questId + "|", StringComparison.Ordinal)).ToList()) _history.Remove(key);
+      }
+
       internal void DebugForgetPools(string questId)
       {
          foreach (string key in _poolShown.Keys.Where(k => k.StartsWith(questId + "/", StringComparison.Ordinal)).ToList()) _poolShown.Remove(key);

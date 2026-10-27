@@ -3466,6 +3466,9 @@ input[type="number"] { max-width: 160px; }
 
   function validateFlags(q, cosmetic) {
     var set = new Set(LISTS.BuiltInFlags || []), tested = [];
+    // What the tale already lived with this giver (TaleHistory, Gabriel 26/10/2026): played_before, and ended_before:<ending>.
+    ['played_before', 'ended_before:reward', 'ended_before:failure'].forEach(function (f) { set.add(f); });
+    if (q.endings != null) Array.from(q.endings.keys()).forEach(function (k) { set.add('ended_before:' + k); });
     function tests(conditions) {
       arr(conditions).forEach(function (c) {
         var name = (c == null ? '' : c).trim().replace(/^!+/, '').trim();
