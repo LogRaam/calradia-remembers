@@ -21,6 +21,8 @@ using CalradiaRemembers.Storage;
 using CalradiaRemembers.WorldEvents;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Library;
 
 #endregion
@@ -62,6 +64,8 @@ namespace CalradiaRemembers.RealmTidings
             return $"{hero.Name} is not an eligible realm-tidings writer (needs an alive, free, landed lord of a kingdom, not of your clan).";
          if (profile.ReputationWithPlayer < MinRegardToWrite)
             return $"{hero.Name} does not hold you in high enough regard to write ({profile.ReputationWithPlayer} < {MinRegardToWrite}).";
+         if (!hero.HasMet)
+            return $"{hero.Name} has never met you, so writes you no news (DepaHN, 26/10/2026).";
 
          return Evaluate(store, profile, hero, (int) CampaignTime.Now.ToDays);
       }
@@ -91,7 +95,11 @@ namespace CalradiaRemembers.RealmTidings
 
                NpcProfile profile = store.Get(id);
                if (profile == null) continue;
-               if (profile.ReputationWithPlayer < MinRegardToWrite) continue;
+               // DepaHN (26/10/2026): regard can rise for a man never met; only someone the player knows writes unbidden.
+               if (!RealmTidingsRelevancePolicy.MayWrite(new TidingsWriterFacts {
+                      HasMetThePlayer = hero.HasMet, HoldsThePlayerWarmly = profile.ReputationWithPlayer >= MinRegardToWrite
+                   }))
+                  continue;
 
                Evaluate(store, profile, hero, today);
             }
@@ -129,6 +137,8 @@ namespace CalradiaRemembers.RealmTidings
             if (evt == null || string.IsNullOrEmpty(evt.Id) || string.IsNullOrWhiteSpace(evt.Summary) || evt.InvolvesPlayer
                 || evt.KnownOnlyToThoseInvolved)
                continue;
+            // DepaHN (26/10/2026): a distant bulletin is no letter; only what touches the player, or the writer's own house.
+            if (!RealmTidingsRelevancePolicy.TouchesThePlayer(HowItTouchesThePlayer(evt, hero))) continue;
 
             candidates.Add(new RealmTidingsPolicy.RealmTidingsCandidate(evt.Id, RealmTidingsSalience.Of(evt.Magnitude, confidence)));
             byId[evt.Id] = (evt, confidence);
@@ -150,6 +160,39 @@ namespace CalradiaRemembers.RealmTidings
          ModLog.Info($"[REALM-TIDINGS] {hero.Name} will relay {picked.Event.Type} ({picked.Confidence}): {picked.Event.Summary}");
 
          return $"{hero.Name} will relay {picked.Event.Type} news ({picked.Confidence}): \"{picked.Event.Summary}\" (queued to the mailbox).";
+      }
+
+      // How near the player a place must be for its news to be "the country around them" (map units; the map spans ~900).
+      private const float NearThePlayerDistance = 120f;
+
+      /// <summary>The facts of how <paramref name="evt" /> touches the player, for <see cref="RealmTidingsRelevancePolicy" />.</summary>
+      private static TidingsEventFacts HowItTouchesThePlayer(WorldEvent evt, Hero writer)
+      {
+         Clan house = Clan.PlayerClan;
+         string realmId = house?.Kingdom?.StringId;
+         bool InFactions(string id) => !string.IsNullOrEmpty(id) && evt.FactionIds != null && evt.FactionIds.Contains(id);
+         bool Names(Hero h) => h != null && evt.ActorIds != null && evt.ActorIds.Contains(h.StringId);
+
+         bool kin = Names(Hero.MainHero?.Spouse);
+         if (!kin && house != null)
+            foreach (Hero h in house.Heroes)
+               if (h != Hero.MainHero && Names(h)) { kin = true; break; }
+
+         bool writersHouse = Names(writer) || InFactions(writer?.Clan?.StringId);
+         if (!writersHouse && writer?.Clan != null)
+            foreach (Hero h in writer.Clan.Heroes)
+               if (Names(h)) { writersHouse = true; break; }
+
+         Settlement place = string.IsNullOrEmpty(evt.PlaceId) ? null : Settlement.Find(evt.PlaceId);
+         bool near = place != null && MobileParty.MainParty != null
+                     && place.GetPosition2D.Distance(MobileParty.MainParty.GetPosition2D) <= NearThePlayerDistance;
+
+         return new TidingsEventFacts {
+            InThePlayersRealm = InFactions(realmId) || InFactions(house?.StringId),
+            InvolvesThePlayersKin = kin,
+            NearThePlayer = near,
+            AboutTheWritersHouse = writersHouse
+         };
       }
 
       /// <summary>

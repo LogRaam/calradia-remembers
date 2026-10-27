@@ -523,6 +523,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("bandit_clear_gate", Severity.Light, "increment 2b (player report: a village sent me after bandits that were not there, then turned hostile when I reported none): read the LIVE world, count bandit parties within the completion radius of a lord's anchor via the scanner's own counter, build the grounded menu, and assert bandit_clear is offered IFF at least one bandit party roams nearby. Seeds nothing", TestBanditClearGate),
          new SelfTest("provide_gold", Severity.Heavy, "child-support fix: seed a ProvideGold quest -> real take_gold via the bridge (player pays the giver) -> assert the quest is CLOSED (Completed, not stuck 'awaiting reward') and the goodwill regard was paid, since the payment IS the completion (no [QUEST_COMPLETE] needed). Restores gold so the economy is unchanged", TestProvideGoldCompletes),
          new SelfTest("reward_net", Severity.Heavy, "quest audit B1: the reward SAFETY NET. Seed a quest the game already VERIFIED as done (IsAwaitingReward, as if a lair was cleared days ago) but that the LLM never closed with [QUEST_COMPLETE] -> run the REAL QuestService.ApplyResponse with NO completion claim -> assert the net settles it anyway (Completed, no longer awaiting) and pays the owed reward (gold or regard moves), so the player's 'Done' quest never pays out never. Restores the seed + gold", TestRewardNet),
+         new SelfTest("kin_identity", Severity.Light, "DepaHN (Nexus, 26/10/2026): children, grandchildren, siblings and relatives felt cold, told they were family only while they shared no memory with the player. Through the REAL EncounterContextBuilder: a kinsman of the player (a child, a sibling, a parent, else any kin in the player's house) is named by his bond, and a lord of another house who is no blood of the player is named nothing. Read-only", TestKinIdentity),
          new SelfTest("companion_identity", Severity.Light, "fearente (Nexus, 26/10/2026): a companion hired a week before spoke of a childhood shared with the player, and the story the game had the wanderer tell at the first meeting was never remembered. Borrows one of the player's companions: drives the REAL hire listener (CompanionHireBehavior.OnHired) and asserts the REAL EncounterContextBuilder says hired companion, joined today; drives the REAL story keeper twice with the same line and asserts ONE OwnLife memory that keeps it. Restores the profile's memories and hire day", TestCompanionIdentity),
          new SelfTest("supply_quest", Severity.Heavy, "personal supply quest (ProvideGoods) END-TO-END: a bad-category proposal is REFUSED by the pipeline (nothing grounded), then a grain proposal is ISSUED through QuestService.ApplyResponse and grounds a real category+count; give the player grain -> real SettleSupplyQuest hands over EXACTLY the required count, CLOSES the quest (Completed), and pays the reward. Restores the roster. Then (froggyluv, 26/10/2026) the same grain handed over in WORDS through the REAL give_item action: short of the count it is refused and nothing leaves; with the count it settles the task (Completed). Restores the roster", TestSupplyQuest),
          new SelfTest("courier_waylay", Severity.Heavy, "waylaid-letter resend: a waylaid letter keeps its typed text, and the Resend path re-queues a FRESH non-lost letter carrying the SAME content, so a waylaid letter never has to be retyped. Cleans up its test letters + courier (no popup)", TestCourierWaylayResend),
@@ -22230,10 +22231,13 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
          if (t.Abort(behavior.Store == null, "memory store not active")) return t.Line();
 
+         // DepaHN (26/10/2026): only someone the player has met writes unbidden.
          Hero writer = Hero.AllAliveHeroes.FirstOrDefault(h =>
-            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.Clan != null && h.Clan != Clan.PlayerClan && h.Clan.Kingdom != null);
+            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.HasMet && h.Clan != null && h.Clan != Clan.PlayerClan && h.Clan.Kingdom != null);
 
-         if (t.Skip(writer == null, "no eligible landed lord of a kingdom to write realm tidings")) return t.Line();
+         if (t.Skip(writer == null, "no lord of a kingdom the player has met, to write realm tidings")) return t.Line();
+         Kingdom far = Kingdom.All.FirstOrDefault(k => !k.IsEliminated && k != writer.Clan.Kingdom && k != Clan.PlayerClan?.Kingdom);
+         const string farId = "selftest_realmtidings_far";
 
          NpcProfile profile = GetOrCreate(behavior, writer);
          int origRegard = profile.ReputationWithPlayer;
@@ -22250,13 +22254,21 @@ namespace CalradiaRemembers.Diagnostics
 
             // Magnitude 100 + the writer's own kingdom: its salience beats any real event, so the pure policy picks
             // it deterministically. Stable id so the seed is predictable and removable.
+            // News of the writer's own house: what an acquaintance writes of (DepaHN). A bigger event of a realm that
+            // touches neither the player nor the writer is seeded beside it, and must never be the one relayed.
             Feed.Record(new ExternalWorldEvent {
                Id = seedId,
                SourceMod = "SelfTest",
                Summary = seedSummary,
                Magnitude = 100,
-               FactionIds = new List<string> {writer.Clan.Kingdom.StringId}
+               FactionIds = new List<string> {writer.Clan.Kingdom.StringId},
+               HeroIds = new List<string> {writer.StringId}
             });
+            if (far != null)
+               Feed.Record(new ExternalWorldEvent {
+                  Id = farId, SourceMod = "SelfTest", Summary = "[SELFTEST] A distant realm's rebellion.", Magnitude = 100,
+                  FactionIds = new List<string> {far.StringId}
+               });
 
             // FIRST eval: the seed should be picked, queued as a candidate, and recorded in the dedup ledger.
             RealmTidingsBehavior.DebugEvaluate(behavior.Store, profile, writer);
@@ -22265,6 +22277,7 @@ namespace CalradiaRemembers.Diagnostics
             t.Note($"writer={writer.Name}: firstEval queued={queued}");
             t.Expect("tidingsQueued", queued, true);
             t.Expect("seedRecordedInLedger", profile.RelayedWorldEventIds.Contains(seedId), true);
+            if (far != null) t.Expect("aDistantBulletinIsNeverRelayed", profile.RelayedWorldEventIds.Contains(farId), false);
 
             // DEDUP eval: clear the pending candidate so the anti-stacking guard does not short-circuit, then
             // evaluate again. The seed is now in the ledger, so it must never be relayed a second time.
@@ -22279,6 +22292,7 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             WorldEventStore.Instance.Remove(seedId);
+            WorldEventStore.Instance.Remove(farId);
             profile = behavior.Store.Get(writer.StringId) ?? profile;
             // Setup had cleared every RealmTidings candidate, so restoring that state means removing them all again
             // (covers a second, different event a dedup pass may have queued, which the seed-summary match misses).
@@ -23202,6 +23216,33 @@ namespace CalradiaRemembers.Diagnostics
       ///   and grounds a real category+count, and a real hand-over through SettleSupplyQuest takes exactly the
       ///   required count, closes the quest (Completed), and pays the reward. Leaves the roster as it found it.
       /// </summary>
+      private static string TestKinIdentity(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("kin_identity");
+
+         if (t.Abort(behavior?.Store == null || Hero.MainHero == null, "the store is not running")) return t.Line();
+         Hero me = Hero.MainHero;
+         bool Here(Hero h) => h != null && HeroPresence.IsInTheWorld(h);
+         Hero kin = me.Children.FirstOrDefault(Here) ?? me.Siblings.FirstOrDefault(Here)
+                    ?? (Here(me.Father) ? me.Father : null) ?? (Here(me.Mother) ? me.Mother : null);
+         if (!t.Skip(kin == null, "the player has no living child, sibling or parent"))
+         {
+            EncounterContext context = EncounterContextBuilder.Build(kin, GetOrCreate(behavior, kin), behavior.GameStateBridge, resolveInterception: false);
+            t.Note($"{kin.Name} is the player's {context.KinshipToPlayer ?? "(nothing)"}");
+            t.Expect("aKinsmanIsNamedByHisBond", string.IsNullOrEmpty(context.KinshipToPlayer), false);
+         }
+
+         Hero stranger = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.Clan != null && h.Clan != Clan.PlayerClan
+                                                                && h.Father != me && h.Mother != me && !me.Siblings.Contains(h));
+         if (stranger != null)
+         {
+            EncounterContext other = EncounterContextBuilder.Build(stranger, GetOrCreate(behavior, stranger), behavior.GameStateBridge, resolveInterception: false);
+            t.Note($"{stranger.Name}: {other.KinshipToPlayer ?? "(no bond)"}");
+         }
+
+         return t.Line();
+      }
+
       private static string TestCompanionIdentity(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("companion_identity");

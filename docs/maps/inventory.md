@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 574 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1347 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1355 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 270 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -929,7 +929,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (456)
+### CalradiaRemembers.Logic (458)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1213,6 +1213,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PlayerDressPolicy` | public static class | Pure classification of the player's state of dress. |
 | `PlayerExecutionPolicy` | public static class | Pure gate deciding whether a captor may actually execute the captive PLAYER. Consulted twice: once by the mod's EncounterContextBuilder (deciding whether the LLM is even TAUGHT the execute_player action this turn) and ag... |
 | `PlayerForcePolicy` | public static class | Resolves the troop count an interlocutor can plainly see standing with the player. |
+| `PlayerKinFacts` | public class | How a character is related to the player by blood, the closest bond first wins. |
+| `PlayerKinshipPolicy` | public static class | The word for what a character is to the player by blood, or null when they are not kin. |
 | `PlayerNameRevealPolicy` | public static class | Detects the prisoner naming themselves to their captor. |
 | `PlayerNameText` | public static class | Pure: names the player's character where a text shown in game says "the player". |
 | `PlayerPartnersText` | public static class | Lines about the player's partners. |
@@ -1455,7 +1457,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestOutcomeFacts` | public class | A terminated InformalQuest (Completed), as read by the engine-side scan. |
 | `TraitFacts` | public class | A hero's trait levels relevant to appreciation formation and decay: Generosity and Mercy (a warm heart remembers a favour more readily and for longer), Calculating (a cold ledger-keeper is less moved by a mere kindness),... |
 
-### CalradiaRemembers.Logic.Assemblies (113)
+### CalradiaRemembers.Logic.Assemblies (116)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1498,6 +1500,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilExclusionReason` | public enum | Why a hero is (or is not) seated at a council, so the roster panel can explain an empty seat. |
 | `CouncilHostage` | public class | One active hostage term: who is held, who gave them, which clan they call home, how many of the 45 days remain, and where they currently reside. |
 | `CouncilMembershipFacts` | public struct | The flattened facts about one hero needed to seat them at a council. |
+| `CouncilMemoryPolicy` | public static class | What each character present keeps of a conversation. |
 | `CouncilMissionType` | public enum | The companion-mission errands a council may dispatch a seated companion on. |
 | `CouncilPact` | public class | One active non-aggression pact: the player's own faction, the enemy faction, and how many of the 45 days remain. |
 | `CouncilPanelPolicy` | public static class | Panel display and memory-seal decisions for one council resolution, from its kind and status. |
@@ -1572,6 +1575,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WardCandidateFacts` | public struct | The flattened facts about one candidate companion needed to judge them ward-eligible. |
 | `WardEligibilityPolicy` | public static class | Pure policy: whether a candidate companion may ever be taken on as a sponsor_ward. |
 | `WardPolicy` | public static class | Pure policy for sponsor_ward: the "young companion" age band and the daily skill-XP trickle. |
+| `WitnessFacts` | public class | The facts of one character present at a conversation's close. |
+| `WitnessKeeps` | public enum | What a character present at a conversation keeps of it, beside the one the player addressed. |
 
 ### CalradiaRemembers.Logic.AuthoredHistory (13)
 
@@ -2249,7 +2254,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestRewardPayoutVerdict` | public enum | The binary outcome of re-validating a heavy quest reward (fief or marriage) at payout. |
 | `QuestSaveBasePolicy` | public static class | Decides the quest definer's save-type base id, avoiding a known boot-crash collision with Europe1100. |
 
-### CalradiaRemembers.Logic.RealmTidings (9)
+### CalradiaRemembers.Logic.RealmTidings (12)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2261,7 +2266,10 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RealmServiceLine` | public class | The news line, the chronicle line and the reach of the player's clan entering a realm's service. |
 | `RealmServiceWording` | public static class | Words the player's entry into a realm as what it was: an oath of fealty, or a hired contract. |
 | `RealmTidingsPolicy` | public static class | Pure subject-selection for a realm-tidings letter: given the world events a writer could relay and the ones they have already relayed, picks the single most worth-telling fresh event, or nothing. |
+| `RealmTidingsRelevancePolicy` | public static class | Who may write the player news, and which news is worth sending them. |
 | `RealmTidingsSalience` | public static class | Turns a world event's magnitude (how far the news carries, 0..100) and the writer's RumorConfidence in it into the opaque salience score RealmTidingsPolicy.RealmTidingsCandidate competes on. |
+| `TidingsEventFacts` | public class | How a piece of news touches the player. |
+| `TidingsWriterFacts` | public class | Who would write the player news of the realm. |
 
 ### CalradiaRemembers.Logic.Rescue (8)
 

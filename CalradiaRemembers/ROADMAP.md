@@ -248,6 +248,32 @@ An `arc` on a `talk_to` objective (meant for `"when": "closed"`):
 Not in scope: a hard close that cuts the scene mid-sentence; arcs on stages other than `talk_to`; several characters
 taking turns inside one arc (the captive director's collective acts).
 
+## WISHED 2026-10-27 (DepaHN, Nexus 26/10, Gabriel: "met les autres idees au roadmap"), ROADMAPPED, NOT DESIGNED: words that move the world
+
+DepaHN, a month into one campaign with Bellum Civile, Regard and Standing, Harvest and Production and Heroes Evolve:
+"Many times I wanted to make a plan, move an army, or issue an order, and found only conversation [...] Then dialogue
+would have real value and every word real weight." Three of his points were fixed at once (letters from strangers,
+kin who forget they are family, a council only its anchor remembers, all 27/10/2026). The rest, traced 27/10/2026 against
+what exists:
+- **Orders to armies and lords:** move, defend, attack, a plan. Nothing exists (`follow_me` and `ride_with_me` only
+  bring a lord to the player). The reverse, the player riding in another's train, is the 23/10 entry above.
+- **Moving goods between towns and castles:** a verb that sends food from one fief to another. Supply tasks
+  (`SupplyGiftPolicy`) and the food memory (`FoodTradeMemoryBehavior`) exist; no transfer.
+- **Envoys with terms, and alliances:** `dispatch_mission` (Envoy), `mediate_peace`, council motions (war, peace,
+  tribute, non-aggression, hostage) exist; a free-form envoy carrying terms to a ruler, and a military alliance, do not.
+  The 30/07 diplomacy table is the related wish.
+- **Request a meeting:** an envoy asking a lord to come, or to meet at a chosen place. The Invite button brings only
+  those travelling with the player; "a rendezvous the game can keep" (SCOPED) covers people kept in one place only.
+- **Arbitrating disputes between lords in council:** the player judging a quarrel by authority, standing and
+  persuasion. Only the Tribunal verdict (prisoners) exists.
+- **War and peace tied to relations:** a kinsman at 100 declared war on him. CR does not steer the AI's wars beyond
+  `press_for_war`; the "relation scores that drive war and peace" wish of 30/07 is the place to answer it.
+- **Events read from the campaign's history:** every 5 or 10 years, or after a great event (the player's death, a
+  kingdom's fall), a model reads what happened and opens a fitting road (a split, a coalition, new characters).
+- **A reader per faction:** a model that checks each realm's state and, when the plot calls for it, raises or
+  empowers a character with a goal (a Sturgia near collapse finds a claimant sworn to retake it). The `CrAims` door
+  (aims for a lord) and authored history are the nearest pieces.
+
 ## WISHED 2026-10-26 (Gabriel, on Windmolen's report), ROADMAPPED, NOT DESIGNED: captivity scenes other than abuse
 
 Windmolen (Nexus, 26/10/2026): "My captor always seems to want to play some perverse game with me, trying to break my

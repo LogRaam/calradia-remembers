@@ -99,6 +99,20 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (`docs/maps/composition-parity.md`, `CompositionParityTests`).
 
 ### Fixed
+- **Letters, family and council, as DepaHN found them** (Nexus 26/10, a month into one campaign):
+  - "a lord in the north whom I've never met keeps writing to me [...] about rebellions and wars in the north that have
+    nothing to do with me": news of the realm now comes only from someone you have met, and only of what touches you,
+    your realm, your kin, the country around you, or the writer's own house (`RealmTidingsRelevancePolicy`).
+  - "relationships with children and grandchildren feel very cold, as do those with brothers, sisters, and relatives":
+    kin were told they are family only until they shared a first memory with you, and grandchildren, nephews, nieces
+    and cousins never. Every prompt now names the bond ("You are the player's granddaughter: their blood and their
+    family"), Lean included, as it does for a spouse (`PlayerKinshipPolicy`). `cr.testall kin_identity`.
+  - "the council is completely cut off from memory": only the lord you addressed kept the sitting. Every member seated
+    now keeps it too, summarised in their own voice by the same durable queue (`CouncilMemoryPolicy`); an onlooker to an
+    ordinary conversation keeps that they were there, as before.
+  His other ideas (orders to armies, moving food between towns, envoys with terms, alliances, requesting a meeting,
+  arbitrating lords' quarrels, war tied to relations, events read from the campaign's history, a reader per faction)
+  are on the roadmap.
 - **Brown hair is no longer described as red** (Windmolen, Nexus 27/10: "my character, according to the description, has
   red hair. He does not", in two campaigns). The player's appearance named a colour red whenever it was warm and
   saturated, asked before the browns, which almost every brown is. Red is now kept for a true red, a reddish brown is

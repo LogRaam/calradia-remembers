@@ -3269,16 +3269,36 @@ namespace CalradiaRemembers.Chat
          foreach (WitnessEntry w in _witnesses)
          {
             if (string.IsNullOrEmpty(w?.HeroStringId)) continue; // synthetic/bandit witness — no profile to hold a memory
-            if (w.HeroStringId == mainNpcId) continue; // the main NPC is recorded separately
 
             NpcProfile wp = behavior.Store.Get(w.HeroStringId);
+            WitnessKeeps keeps = CouncilMemoryPolicy.Keeps(new WitnessFacts {
+               InCouncil = _councilScope.HasValue, HasMemory = wp != null, IsTheOneAddressed = w.HeroStringId == mainNpcId
+            });
+            if (keeps == WitnessKeeps.Nothing) continue;
 
-            if (wp == null) continue; // never met one-to-one yet — first slice skips strangers
+            if (keeps == WitnessKeeps.ThatTheyWerePresent)
+            {
+               wp.Events.Add(new NotableEvent(gameDay, NotableEventType.Other,
+                  $"Was present while {player} spoke with {mainNpc}, and saw what passed between them."));
+               behavior.Store.Set(wp);
+               recorded++;
 
-            wp.Events.Add(new NotableEvent(gameDay, NotableEventType.Other,
-               $"Was present while {player} spoke with {mainNpc}, and saw what passed between them."));
+               continue;
+            }
+
+            // DepaHN (27/10/2026): a member seated at a council keeps the sitting, in their own voice, by the same durable
+            // summary queue the one addressed uses; the plain line stands until the summary comes back.
+            NotableEvent sat = new NotableEvent(gameDay, NotableEventType.Collaboration, $"Sat in council with {player} and {mainNpc}.").Identified();
+            wp.Events.Add(sat);
             behavior.Store.Set(wp);
             recorded++;
+            string transcript = BuildSceneTranscriptText(player);
+            if (!string.IsNullOrWhiteSpace(transcript))
+               behavior.ConvSummaryQueue.Enqueue(new PendingSummaryJob {
+                  ProfileId = wp.Id, AnchorDay = sat.gameDay, AnchorType = sat.type.ToString(), AnchorSummary = sat.summary,
+                  AnchorId = sat.Id, Transcript = transcript, PlayerName = player, ReplyLanguage = ModSettings.ReplyLanguage,
+                  EnqueuedDay = gameDay
+               });
          }
 
          if (recorded > 0)

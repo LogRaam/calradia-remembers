@@ -729,6 +729,7 @@ namespace CalradiaRemembers.Mapping
             NpcSpouseIsPlayer = hero?.Spouse == Hero.MainHero && Hero.MainHero != null,
             // fearente (26/10/2026): the game counts a hired companion in the player's clan; identity says what they are.
             IsHiredCompanion = hero != null && hero.IsPlayerCompanion,
+            KinshipToPlayer = ResolveKinshipToPlayer(hero),
             DaysSinceJoiningPlayer = hero != null && hero.IsPlayerCompanion && profile?.JoinedPlayerCompanyDay is int joined
                ? (int) CampaignTime.Now.ToDays - joined
                : null,
@@ -2427,6 +2428,31 @@ namespace CalradiaRemembers.Mapping
          => ResolveMarriageBlockReason(hero, profile) == MarriageBlockReason.LeadsTheirOwnHouse
             ? LeaveHouseForRulerPolicy.ObstacleToName(LeaveHouseForRulerBehavior.WhyNot(hero, LeaveHouseRoad.GiveHerAll))
             : LeaveHouseObstacle.None;
+
+      /// <summary>What <paramref name="hero" /> is to the player by blood (DepaHN, 27/10/2026), read off the game's family links.</summary>
+      private static string ResolveKinshipToPlayer(Hero hero)
+      {
+         Hero me = Hero.MainHero;
+         if (hero == null || me == null || hero == me) return null;
+
+         bool ParentOf(Hero child, Hero parent) => child != null && parent != null && (child.Father == parent || child.Mother == parent);
+         bool Siblings(Hero a, Hero b) => a != null && b != null && a != b
+                                          && ((a.Father != null && a.Father == b.Father) || (a.Mother != null && a.Mother == b.Mother));
+         Hero[] myParents = {me.Father, me.Mother};
+         Hero[] theirParents = {hero.Father, hero.Mother};
+
+         return PlayerKinshipPolicy.Label(new PlayerKinFacts {
+            IsFemale = hero.IsFemale,
+            IsChild = ParentOf(hero, me),
+            IsParent = ParentOf(me, hero),
+            IsSibling = Siblings(hero, me),
+            IsGrandchild = theirParents.Any(p => ParentOf(p, me)),
+            IsGrandparent = myParents.Any(p => ParentOf(p, hero)),
+            IsNephewOrNiece = theirParents.Any(p => Siblings(p, me)),
+            IsUncleOrAunt = myParents.Any(p => Siblings(p, hero)),
+            IsCousin = theirParents.Any(tp => myParents.Any(mp => Siblings(tp, mp)))
+         });
+      }
 
       internal static bool RegardMeetsMarriageBar(Hero hero, NpcProfile profile)
          => (profile?.ReputationWithPlayer ?? 0) >= ModSettings.MarriageRegardThreshold ||
