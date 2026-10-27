@@ -58,7 +58,7 @@ namespace CalradiaRemembers.Mapping
             string actId = action?.Parameters != null && action.Parameters.TryGetValue("act", out string a) ? a : null;
             string done = action?.Parameters != null && action.Parameters.TryGetValue("done", out string d) ? d : null;
             IntimateAct act = IntimateActReading.Parse(actId);
-            bool performed = !string.Equals((done ?? "").Trim(), "proposed", StringComparison.OrdinalIgnoreCase);
+            bool performed = IntimateActReading.IsPerformed(done);
             var today = (int) CampaignTime.Now.ToDays;
             string key = hero.StringId + "|" + act;
             List<IntimateAct> known = profile.Romantic.KnownActs ?? new List<IntimateAct>();

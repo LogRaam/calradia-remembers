@@ -714,6 +714,11 @@ namespace CalradiaRemembers.Chat
          // recap left dangling by an early return (a witness exchange, a scene pause) never fires on a later turn.
          if (!isOutcomeReaction && !suppressGroupTail) _pendingOutcomeRecap = null;
 
+         // The character's opening line in a meeting a tale brought: taken at the start of THIS turn, so a call that fails
+         // never leaves the mark on the player's first real exchange (which the arc would then not count).
+         bool isTaleOpener = _taleOpenerTurn;
+         _taleOpenerTurn = false;
+
          // Backstop: any other turn that starts while the character's scene is still being written takes the floor from
          // it (a send path missed, the round table, another mod's PromptReply), so two turns never run side by side.
          if (!isSceneOpener && _sceneOpenerInFlight && !_sceneOpenerCommitted)
@@ -1891,9 +1896,7 @@ namespace CalradiaRemembers.Chat
             Quests.AuthoredQuestBehavior tales = Quests.AuthoredQuestBehavior.Instance;
             if (speaker.IsMain && tales != null)
             {
-               bool taleOpener = _taleOpenerTurn;
-               _taleOpenerTurn = false;
-               if (!isSceneOpener && !taleOpener && !IsCaptiveEncounter && !_conversationEnded)
+               if (!isSceneOpener && !isTaleOpener && !IsCaptiveEncounter && !_conversationEnded)
                {
                   if (tales.ArcExchanged(speaker.Hero)) EndTaleArcSoftly();
                }

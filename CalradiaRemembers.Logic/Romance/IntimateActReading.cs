@@ -89,6 +89,12 @@ namespace CalradiaRemembers.Logic.Romance
       /// <summary>The action a reader writes for a gesture.</summary>
       public const string Verb = "intimate_act";
 
+      /// <summary>
+      ///   Whether a report says the player DID the gesture. Only the word "performed" does: a missing or unclear value (a
+      ///   model copying "performed | proposed" as written) reads as only asked for, so a doubt never costs regard.
+      /// </summary>
+      public static bool IsPerformed(string done) => string.Equals((done ?? "").Trim(), "performed", System.StringComparison.OrdinalIgnoreCase);
+
       /// <summary>The gesture's id as the reader writes it ("oral_giving").</summary>
       public static string IdOf(IntimateAct act) => IntimateActNames.IdOf(act);
 

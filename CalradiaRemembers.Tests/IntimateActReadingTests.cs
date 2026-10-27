@@ -124,6 +124,18 @@ namespace CalradiaRemembers.Tests
          new CharacterOverride {Hero = "Rhagaea"}.ParsedLoves.Should().BeNull();
       }
 
+      // STAKE: a doubt never costs the character's regard: only a plain "performed" is an act done; a missing value or the
+      // template copied as written ("performed | proposed") reads as only asked for.
+      [Test]
+      public void GIVEN_an_unclear_report_WHEN_read_THEN_it_counts_as_only_asked_for()
+      {
+         IntimateActReading.IsPerformed("performed").Should().BeTrue();
+         IntimateActReading.IsPerformed(" Performed ").Should().BeTrue();
+         IntimateActReading.IsPerformed("performed | proposed").Should().BeFalse();
+         IntimateActReading.IsPerformed(null).Should().BeFalse();
+         IntimateActReading.IsPerformed("proposed").Should().BeFalse();
+      }
+
       // STAKE: the id the reader writes is the one the game reads back, whatever its spelling.
       [Test]
       public void GIVEN_a_gesture_id_WHEN_written_and_read_back_THEN_it_is_the_same_gesture()
