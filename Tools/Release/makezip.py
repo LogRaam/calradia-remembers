@@ -16,7 +16,7 @@ ROOT = "CalradiaRemembers"
 
 # ChatPortraits is excluded deliberately: the mod recreates that folder itself (2.5.3 onward).
 SKIP_DIRS = {"ChatPortraits"}
-# The Adult Tales are a mod of their own (Extras/CalradiaRemembersAdultTales, Gabriel 25/10/2026: "sans risquer de
+# The Adult Tales are a mod of their own (their own repository beside CR, Gabriel 25/10/2026: "sans risquer de
 # l'uploader dans CR"): a copy left in the deployed module (a Custom test, an old deploy) is never zipped, by name.
 HELD_BACK_NAMES = ("rhagaea_night", "crit_wife_", "wife_aserai_oasis", "wife_battania_glen", "wife_empire_stream",
                    "wife_khuzait_falls", "wife_nord_fjord", "wife_sturgia_falls", "wife_vlandia_pond")

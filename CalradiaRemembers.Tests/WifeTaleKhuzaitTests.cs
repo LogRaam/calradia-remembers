@@ -20,7 +20,7 @@ namespace CalradiaRemembers.Tests
    [TestFixture]
    public sealed class WifeTaleKhuzaitTests
    {
-      private static string Folder => Path.Combine(SourceTree.ModRepo!, "Extras", "CalradiaRemembersAdultTales", "ModuleData", "cr_quests", "wife_khuzait_falls");
+      private static string Folder => Path.Combine(SourceTree.AdultTalesRepo!, "ModuleData", "cr_quests", "wife_khuzait_falls");
 
       private static AuthoredQuest Tale() => AuthoredTales.Load(File.ReadAllText(Path.Combine(Folder, "wife_khuzait_falls.json")));
 

@@ -4,7 +4,7 @@
 // player stays a prisoner (freeing them "c'est trop visible"), her regard above 0 to send for them; the night is judged by
 // her regard ("ca s'est bien passe si Rhagaea a gagne plus de Regards qu'elle en a perdu"), and the memory stays either
 // way, warm, neutral or bitter; not unique, ten videos and more, a new one each time. It lives in its own mod,
-// Extras/CalradiaRemembersAdultTales (25/10/2026), never inside CR. If these fail, the tale no longer loads, sends for
+// the Calradia Remembers Adult Tales repository beside CR (25/10/2026; its own repository since 27/10/2026), never inside CR. If these fail, the tale no longer loads, sends for
 // a prisoner she despises, lets the model free or impregnate, leaves a warm memory after a bad night, repeats a video, or tells the realm the secret.
 
 #region
@@ -25,8 +25,8 @@ namespace CalradiaRemembers.Tests
    [TestFixture]
    public sealed class RhagaeaNightTaleTests
    {
-      private static string Folder => Path.Combine(SourceTree.ModRepo!, "Extras", "CalradiaRemembersAdultTales", "ModuleData", "cr_quests", "rhagaea_night");
-      private static string Pack => Path.Combine(SourceTree.ModRepo!, "Extras", "CalradiaRemembersAdultTales", "ModuleData", "cr_scenarios", "rhagaea_night.json");
+      private static string Folder => Path.Combine(SourceTree.AdultTalesRepo!, "ModuleData", "cr_quests", "rhagaea_night");
+      private static string Pack => Path.Combine(SourceTree.AdultTalesRepo!, "ModuleData", "cr_scenarios", "rhagaea_night.json");
 
       private static AuthoredQuest Tale() => AuthoredTales.Load(File.ReadAllText(Path.Combine(Folder, "rhagaea_night.json")));
 
@@ -205,7 +205,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_adult_tales_module_WHEN_read_THEN_it_is_its_own_module_depending_on_CR_with_the_tale_where_CR_reads_it()
       {
-         string root = Path.Combine(SourceTree.ModRepo!, "Extras", "CalradiaRemembersAdultTales");
+         string root = Path.Combine(SourceTree.AdultTalesRepo!);
          string xml = File.ReadAllText(Path.Combine(root, "SubModule.xml"));
 
          xml.Should().Contain("<Id value=\"CalradiaRemembersAdultTales\" />");

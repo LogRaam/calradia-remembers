@@ -68,6 +68,12 @@ namespace CalradiaRemembers.Tests.Maps
       /// <summary>The mod repository root, or null when the sources are not reachable from this runner.</summary>
       public static string? ModRepo => ModRepoLazy.Value;
 
+      /// <summary>
+      ///   The Adult Tales repository, the mod's sibling (Gabriel, 27/10/2026: moved out of Extras/ into its own git
+      ///   repository). The tests that read its tales look for it here; null when the mod repository is not reachable.
+      /// </summary>
+      public static string? AdultTalesRepo => ModRepo == null ? null : Path.Combine(Directory.GetParent(ModRepo)!.FullName, "Calradia Remembers Adult Tales");
+
       /// <summary>The SDK repository: the mod's sibling, exactly where its ProjectReference already points.</summary>
       public static string? SdkRepo
       {

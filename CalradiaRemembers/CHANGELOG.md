@@ -91,6 +91,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   [performed|proposed] [name]`, `cr.testall intimate_acts`.
 
 ### Changed
+- **The Adult Tales have their own git repository** (Gabriel 27/10: "Calradia Remembers Adult Tales", beside CR,
+  github.com/LogRaam/Calradia-Remembers-Adult-Tales), history kept. `Extras/CalradiaRemembersAdultTales` is gone from
+  CR, with its installer and `Tools/IntimateTales/wife_tales.py`, which moved there (`python Tools/install.py`). CR's
+  tests that read the tales look for that sibling folder (`SourceTree.AdultTalesRepo`); makezip and verifyzip still
+  refuse every adult tale file.
 - **The player's violence in words works in both compositions** (Gabriel 25/10: "enseigne la violence aux deux
   modes"). rob_npc, assault_npc and kill_npc were taught to the interpreter alone (PlayerViolenceVerb kept them out of
   the prose prompt so no conversation was invited to violence), so in Standard composition a robbery, a beating or a

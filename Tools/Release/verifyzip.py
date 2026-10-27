@@ -721,7 +721,7 @@ queens = [n for n in names if n.endswith("ModuleData/faces.json") or "/QueenPort
           or n.endswith("/scenarios/the_kings_hall.json")]
 ok &= not queens
 print("  queens held back (2.7.10):", "yes" if not queens else "*** NO: %s ***" % queens[:3])
-# The Adult Tales are a mod of their own (Extras/CalradiaRemembersAdultTales, 25/10/2026): none of their files in CR.
+# The Adult Tales are a mod of their own (their own repository beside CR, 25/10/2026): none of their files in CR.
 adult = [n for n in names if "rhagaea_night" in n or "CalradiaRemembersAdultTales" in n or "/wife_" in n]
 ok &= not adult
 print("  adult tales held back (2.7.21):", "yes" if not adult else "*** NO: %s ***" % adult[:3])

@@ -23,7 +23,7 @@ namespace CalradiaRemembers.Tests
    [TestFixture]
    public sealed class WifeTalesTests
    {
-      private static string Tales => Path.Combine(SourceTree.ModRepo!, "Extras", "CalradiaRemembersAdultTales", "ModuleData", "cr_quests");
+      private static string Tales => Path.Combine(SourceTree.AdultTalesRepo!, "ModuleData", "cr_quests");
 
       private static readonly (string Folder, string Culture)[] Peoples = {
          ("wife_khuzait_falls", "khuzait"), ("wife_aserai_oasis", "aserai"), ("wife_battania_glen", "battania"), ("wife_empire_stream", "empire"),
