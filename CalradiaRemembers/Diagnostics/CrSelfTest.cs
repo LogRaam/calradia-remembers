@@ -2101,6 +2101,13 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("authoredProseCarried", subject.Contains("limp"), true);
          t.Expect("selfVoiceSecondPerson", self.Length == 0 || self.StartsWith("You are"), true);
 
+         // Windmolen (27/10/2026): two players with no red hair were called red-haired. The player's own hair word, read
+         // off the REAL face key, is printed with its raw offset so it can be checked against the face editor.
+         FaceColorReader.ClearCache();
+         FaceColors colours = FaceColorReader.Read(Hero.MainHero);
+         t.Note($"hair=\"{colours.Hair ?? "(none)"}\" at offset {colours.HairOffset:0.00}");
+         t.Expect("aBrownIsNeverRed", HairColorBands.Describe(new HairRgb {R = 110, G = 70, B = 40}) == "red", false);
+
          return t.Line();
       }
 

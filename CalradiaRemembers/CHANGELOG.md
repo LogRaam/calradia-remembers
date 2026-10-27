@@ -99,6 +99,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (`docs/maps/composition-parity.md`, `CompositionParityTests`).
 
 ### Fixed
+- **Brown hair is no longer described as red** (Windmolen, Nexus 27/10: "my character, according to the description, has
+  red hair. He does not", in two campaigns). The player's appearance named a colour red whenever it was warm and
+  saturated, asked before the browns, which almost every brown is. Red is now kept for a true red, a reddish brown is
+  auburn, and the rest are the browns they were (`HairColorBands`, tested on sample colours). `cr.testall appearance`
+  prints the player's hair word and its raw offset.
 - **A hired companion knows what they are, and keeps the story they told you** (fearente, Nexus 26/10: "a companion that
   I hired a week ago talked like we were of the same clan from childhood [...] If there is an easy way to include their
   vanilla stories to themself when met for the first time it would be nice"). The game counts a hired companion in your

@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 574 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1345 types in 46 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1347 types in 46 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 270 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -929,7 +929,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (454)
+### CalradiaRemembers.Logic (456)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1078,6 +1078,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GoldTransferLimit` | public static class | The ceiling on a single gold transfer, enforced by the bridge and mirrored by every policy that prices one. |
 | `GreetingDeferencePolicy` | public static class | Which greeting lines offer service, and who may say them to the player. |
 | `GuardEvaluator` | public static class | Combines a rule's guards: every guard must resolve true. |
+| `HairColorBands` | public static class | The words for a rendered hair colour. |
+| `HairRgb` | public class | A rendered hair colour, its three channels 0..255. |
 | `HappinessBand` | public enum | How a companion feels about being in your service — the bands the score falls into. |
 | `HappinessDriver` | public enum | A reason a companion's happiness moves. |
 | `HardshipPolicy` | public static class | Pure threshold and cadence gate for the "hardship" world condition. |

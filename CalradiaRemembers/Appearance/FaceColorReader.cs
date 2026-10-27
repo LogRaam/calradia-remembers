@@ -118,21 +118,14 @@ namespace CalradiaRemembers.Appearance
             sat = max == 0 ? 0 : (max - min) / (double) max;
         }
 
-        /// <summary>A plain hair-colour word (the composer appends " hair"), or null. Classified by luminance and warmth.</summary>
+        /// <summary>A plain hair-colour word (the composer appends " hair"), or null. Named by <see cref="HairColorBands" />.</summary>
         private static string ClassifyHair(uint? color)
         {
             if (color == null) return null;
 
-            Decode(color.Value, out int r, out int g, out int b, out double luma, out double sat);
-            bool reddish = r > g && g >= b && sat > 0.35;
+            Decode(color.Value, out int r, out int g, out int b, out double _, out double _);
 
-            if (luma < 50) return "dark";
-            if (reddish && luma < 155) return "red";
-            if (luma < 110) return "dark brown";
-            if (sat < 0.15 && luma > 140) return "grey";
-            if (luma > 155) return "fair";
-
-            return "brown";
+            return HairColorBands.Describe(new HairRgb {R = r, G = g, B = b});
         }
 
         /// <summary>A plain skin-tone adjective (e.g. "fair-skinned"), or null. Classified by luminance.</summary>
