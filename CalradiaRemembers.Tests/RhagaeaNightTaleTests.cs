@@ -94,13 +94,14 @@ namespace CalradiaRemembers.Tests
          arc.MaxExchanges.Should().BeGreaterThan(0);
       }
 
-      // STAKE: ten videos at least, a new one each playing, all in the tale's own folder names.
+      // STAKE: a new video each time the chamber plays, all in the tale's own folder names. Gabriel shot eight (27/10/2026);
+      // fewer than that and the night repeats itself within a single visit.
       [Test]
-      public void GIVEN_the_chamber_WHEN_its_pictures_are_listed_THEN_it_holds_a_pool_of_ten_videos()
+      public void GIVEN_the_chamber_WHEN_its_pictures_are_listed_THEN_it_holds_a_pool_of_eight_videos()
       {
          AuthoredStage chamber = Tale().Stages.Single(s => s.Id == "chamber");
 
-         chamber.ImagePool.Should().HaveCountGreaterThanOrEqualTo(10);
+         chamber.ImagePool.Should().HaveCountGreaterThanOrEqualTo(8);
          chamber.ImagePool.Should().OnlyContain(v => AuthoredTaleImages.IsVideo(v) && AuthoredTaleImages.IsAcceptedName(v));
       }
 

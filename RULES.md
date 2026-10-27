@@ -6762,7 +6762,7 @@ _The Empress's Summons (Gabriel, 24/10/2026): at Hardcore, while the player is R
 - GIVEN the chamber, WHEN read, THEN the night ends on the close and says the player stays held
 - GIVEN the chamber, WHEN its arc is read, THEN it plays three three three and five and asks the secret at the end
 - GIVEN the chamber, WHEN its arc is read, THEN the talk before dawn follows her climax and she leads again otherwise
-- GIVEN the chamber, WHEN its pictures are listed, THEN it holds a pool of ten videos
+- GIVEN the chamber, WHEN its pictures are listed, THEN it holds a pool of eight videos
 - GIVEN each way the night went, WHEN the dawn is carried out, THEN only its memory holds and nothing frees or impregnates
 - GIVEN the player will not follow the lady, WHEN the tale ends, THEN she is disappointed and remembers it
 - GIVEN the summons, WHEN read, THEN it is a scene at the cell door with its people and two ways out
