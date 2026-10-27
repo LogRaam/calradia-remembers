@@ -248,6 +248,49 @@ An `arc` on a `talk_to` objective (meant for `"when": "closed"`):
 Not in scope: a hard close that cuts the scene mid-sentence; arcs on stages other than `talk_to`; several characters
 taking turns inside one arc (the captive director's collective acts).
 
+## WISHED 2026-10-27 (DepaHN, Nexus 27/10, Gabriel: "met tout ca dans le roadmap"), ROADMAPPED, NOT DESIGNED: friends at war, calls for help, legends
+
+DepaHN's second post, three ideas in his order of importance, traced 27/10/2026 against what exists. Proposed order:
+the raid lock and the calls for help after 2.7.21, each designed in prose with Gabriel first; legends after them; the
+model's review of war and peace parked.
+
+- **1a. A lord's stance toward the player when a war breaks out, and the raid lock.** DepaHN: "when a war breaks out
+  and a lord has a very high relationship with me, the mod could forbid him from raiding or burning my villages [...]
+  the LLM could decide each lord's stance once, when the war starts"; "a close friend was the first to burn my
+  villages". Nothing exists: no lord stance, no raid or party-AI patch (CR's Harmony patches are UI, captivity,
+  tournament, ambush, hideout and console only). Proposal: at war start each lord settles ONCE how he stands toward
+  the player (from his regard, `NpcProfile.ReputationWithPlayer`, kinship and traits), a pure Logic policy, no model
+  call; a rule then keeps a friend from raiding or burning the player's villages (and perhaps from leading the first
+  siege of the player's fiefs). Cheap, deterministic, a cr.testall. Open: what a friend does instead (raids elsewhere,
+  stays home, warns the player by letter); whether a stance changes during the war; the realm's own stake (a ruler who
+  orders the raid anyway). Needs an engine spike on the party AI's raid choice (decompile 1.4.8, never guess).
+- **1b. The model reviews war and peace decisions (PARKED).** DepaHN: before a war declaration, a war vote or a peace
+  deal goes through, the model reads the context and returns it with an in-world reason if it makes no sense; if the
+  model is unavailable, it passes. Not done: the AI takes these decisions constantly across Calradia, off screen, so it
+  is a cost and a delay on every one, and a change to the base game's balance; and Gabriel's ruling holds (02/07/2026,
+  [war = leader-only]): war is the ruler's decision alone, after a real strategic evaluation, never a model's veto. If
+  ever, only on the votes of the player's own realm, which the player sees. The "war and peace tied to relations"
+  point of the 26/10 entry below is the same wish.
+- **2. Calls for help by letter.** DepaHN: "Friends, relatives, and allies could write to the player when they need
+  help: military (joining a war, sending troops), financial, or economic, depending on their situation, what the
+  player has, and the relationship." What exists: the ruler's war duty (`WarDuty/WarDutyBehavior`: a summons, a levy
+  in coin, troops, horses and arms), a spouse's `LetterReason.ChildSupportRequest`, goods asked in tales
+  (`SupplyGiftPolicy`); realm tidings letters carry news, never a request. Absent: a friend, kin or ally asking for
+  troops, a war ally or coin. The best of the three: built on the letters, regard and tidings that exist, and it gives
+  relationships consequences (a brother under siege whose letter goes unanswered remembers it). To design: who writes
+  and when (besieged, ruined, at war, a battle lost), what is asked against what the player has, how the player answers
+  (a letter reply, troops sent, coin), what answering or ignoring does to regard and memory, and how often (never a
+  flood of pleas).
+- **3. Legends.** DepaHN: "When something extraordinary happens, such as a heroic last stand or a siege won against
+  the odds, it could become a legend that characters retell, differently depending on their connection to the event.
+  This could apply to the player too. Optionally, legends could have gameplay effects." What exists, as raw material:
+  feats rated and remembered by those present (`Battles/BattleFeatReporter`, `CombatFeat`, `CombatProwessPolicy`),
+  the chronicle and the rumours that spread it (`WorldEventStore`, `Commoners/RumorGenerator`), tournament memory, the
+  player's fame read when a character speaks (`PlayerFamePolicy`, nothing saved). Absent: an extraordinary event
+  raised into a named legend, and its retelling by the teller's connection (pride in an ally, rancour in the beaten).
+  Fairly small: a threshold on the feat, a chronicle entry, the teller's link given to the model. Gameplay effects
+  (renown, morale) later, if at all.
+
 ## WISHED 2026-10-27 (DepaHN, Nexus 26/10, Gabriel: "met les autres idees au roadmap"), ROADMAPPED, NOT DESIGNED: words that move the world
 
 DepaHN, a month into one campaign with Bellum Civile, Regard and Standing, Harvest and Production and Heroes Evolve:
