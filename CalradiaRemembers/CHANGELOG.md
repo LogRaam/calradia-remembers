@@ -99,6 +99,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (`docs/maps/composition-parity.md`, `CompositionParityTests`).
 
 ### Fixed
+- **A witness remembers what they agreed to, and what they said as a witness** (LapitaPolata, Nexus 27/10: "I asked an NPC
+  X to back my story, they agreed [...] Then I talked to another person Y and invited X as a witness, and X behaved like
+  they knew nothing about my scheme [...] they remembered everything except for the conversation between I and Y").
+  In the compact prompt a witness's recall was cut to fit by keeping its OLDEST memories, so the fresh agreement was the
+  first thing lost; the cut now keeps the newest. And a witness who spoke in a conversation now keeps it, in their own
+  voice, by the same summary queue as the one addressed; a silent onlooker keeps that they were there (`CouncilMemoryPolicy`).
 - **Letters, family and council, as DepaHN found them** (Nexus 26/10, a month into one campaign):
   - "a lord in the north whom I've never met keeps writing to me [...] about rebellions and wars in the north that have
     nothing to do with me": news of the realm now comes only from someone you have met, and only of what touches you,

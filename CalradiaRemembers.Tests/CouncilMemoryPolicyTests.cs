@@ -31,6 +31,14 @@ namespace CalradiaRemembers.Tests
          CouncilMemoryPolicy.Keeps(new WitnessFacts {InCouncil = false, HasMemory = true}).Should().Be(WitnessKeeps.ThatTheyWerePresent);
       }
 
+      // STAKE: LapitaPolata (Nexus, 27/10/2026): a witness who spoke in another conversation came back remembering only that
+      // they had witnessed it. Having spoken, they keep what was said, as the one addressed does.
+      [Test]
+      public void GIVEN_a_witness_who_spoke_in_an_ordinary_conversation_WHEN_it_closes_THEN_they_keep_the_conversation()
+      {
+         CouncilMemoryPolicy.Keeps(new WitnessFacts {InCouncil = false, HasMemory = true, SpokeInIt = true}).Should().Be(WitnessKeeps.TheConversation);
+      }
+
       // STAKE: the one addressed keeps the conversation's own memory; a second, witness one would double it.
       [Test]
       public void GIVEN_the_one_addressed_or_someone_with_no_memory_WHEN_it_closes_THEN_nothing_more_is_kept()

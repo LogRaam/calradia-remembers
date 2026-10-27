@@ -3272,7 +3272,8 @@ namespace CalradiaRemembers.Chat
 
             NpcProfile wp = behavior.Store.Get(w.HeroStringId);
             WitnessKeeps keeps = CouncilMemoryPolicy.Keeps(new WitnessFacts {
-               InCouncil = _councilScope.HasValue, HasMemory = wp != null, IsTheOneAddressed = w.HeroStringId == mainNpcId
+               InCouncil = _councilScope.HasValue, HasMemory = wp != null, IsTheOneAddressed = w.HeroStringId == mainNpcId,
+               SpokeInIt = _transcript.Lines.Any(l => !l.IsPlayer && l.SpeakerHeroId == w.HeroStringId)
             });
             if (keeps == WitnessKeeps.Nothing) continue;
 
@@ -3286,9 +3287,12 @@ namespace CalradiaRemembers.Chat
                continue;
             }
 
-            // DepaHN (27/10/2026): a member seated at a council keeps the sitting, in their own voice, by the same durable
-            // summary queue the one addressed uses; the plain line stands until the summary comes back.
-            NotableEvent sat = new NotableEvent(gameDay, NotableEventType.Collaboration, $"Sat in council with {player} and {mainNpc}.").Identified();
+            // DepaHN (27/10/2026): a member seated at a council keeps the sitting, and LapitaPolata (27/10/2026) a witness who
+            // spoke keeps the conversation, in their own voice, by the same durable summary queue the one addressed uses; the
+            // plain line stands until the summary comes back.
+            NotableEvent sat = keeps == WitnessKeeps.TheSitting
+               ? new NotableEvent(gameDay, NotableEventType.Collaboration, $"Sat in council with {player} and {mainNpc}.").Identified()
+               : new NotableEvent(gameDay, NotableEventType.Other, $"Was there when {player} spoke with {mainNpc}, and spoke too.").Identified();
             wp.Events.Add(sat);
             behavior.Store.Set(wp);
             recorded++;
