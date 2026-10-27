@@ -86,17 +86,27 @@ namespace CalradiaRemembers.Tests
          SceneChoiceMenu.Read(" 2. ", FromTheWood(run, q)).Should().Be("Turn back");
       }
 
-      // A number with no way behind it is free text, as is the number of "Something else..." and any number among words.
+      // A number with no line behind it is free text, as is any number among words.
       [Test]
       public void GIVEN_a_number_with_no_way_behind_it_or_among_words_WHEN_typed_THEN_it_goes_as_typed()
       {
          SceneChoiceMenuFacts f = Fresh("Take the left path", "Take the right path");
 
          SceneChoiceMenu.Read("7", f).Should().Be("7");
-         SceneChoiceMenu.Read("3", f).Should().Be("3");
          SceneChoiceMenu.Read("0", f).Should().Be("0");
          SceneChoiceMenu.Read("1 and then I run", f).Should().Be("1 and then I run");
          SceneChoiceMenu.Read("I go left", f).Should().Be("I go left");
+      }
+
+      // STAKE: Gabriel (26/10/2026) typed 3 for "3. Something else..." and the narrator read "3" as what he did ("You say
+      // nothing"); the number of "Something else..." must send nothing and leave the input to him, as a click does.
+      [Test]
+      public void GIVEN_the_list_shown_WHEN_the_number_of_something_else_is_typed_THEN_nothing_is_sent()
+      {
+         SceneChoiceMenuFacts f = Fresh("Take the left path", "Take the right path");
+
+         SceneChoiceMenu.Read("3", f).Should().BeNull();
+         SceneChoiceMenu.Read(" 3. ", f).Should().BeNull();
       }
 
       // With no list shown (the player already answered), a typed number is words like any other.

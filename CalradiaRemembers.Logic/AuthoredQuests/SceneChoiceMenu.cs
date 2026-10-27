@@ -5,6 +5,8 @@
 // the narrator then tells it and writes the marker, and only the marker counts (the game decides, never the click).
 // "Something else..." hands the player the input to write freely, and the scene goes on as before. The list shows
 // only under a narration the player has not yet answered, and never a closed way.
+// 26/10/2026 (Gabriel: "j'ai choisi '3. Something else'... et le LLM recoit '3'"): the number of "Something else..."
+// typed alone is the same as clicking it; nothing is sent, the input waits for the player's own words.
 
 #region
 
@@ -69,7 +71,8 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       /// <summary>
       ///   What the player's typed line says: a number alone ("1", "1." or "1)") picks that way of the list shown, and
-      ///   sends its words; anything else, a number with no way behind it included, is free text and goes as typed.
+      ///   sends its words; the number of "Something else..." sends nothing (null: write freely); anything else, a number
+      ///   with no line behind it included, is free text and goes as typed.
       /// </summary>
       public static string Read(string typed, SceneChoiceMenuFacts f)
       {
@@ -79,7 +82,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          IReadOnlyList<SceneChoiceMenuItem> items = Items(f);
          int n = int.Parse(m.Groups[1].Value);
 
-         return n >= 1 && n <= items.Count && !items[n - 1].WriteFreely ? items[n - 1].Sends : typed;
+         return n >= 1 && n <= items.Count ? items[n - 1].Sends : typed;
       }
    }
 }

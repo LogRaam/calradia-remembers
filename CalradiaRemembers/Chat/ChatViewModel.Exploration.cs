@@ -163,11 +163,22 @@ namespace CalradiaRemembers.Chat
 
       private ChatSpeaker NarratorSpeaker() => new() {IsMain = true, Hero = null, Name = _exploration?.Title ?? "The scene", Profile = null};
 
-      /// <summary>The player said what they do: a number alone picks that way of the list shown, anything else is their words.</summary>
+      /// <summary>
+      ///   The player said what they do: a number alone picks that way of the list shown, the number of "Something else..."
+      ///   leaves the cursor in the input, anything else is their words.
+      /// </summary>
       private void ExecuteSendExplorationMessage(string text)
       {
          InputText = "";
-         SendExplorationLine(SceneChoiceMenu.Read(text, SceneMenuFacts()));
+         string line = SceneChoiceMenu.Read(text, SceneMenuFacts());
+         if (line == null)
+         {
+            ChatInputWidget.RequestFocus();
+
+            return;
+         }
+
+         SendExplorationLine(line);
       }
 
       private void SendExplorationLine(string text)
