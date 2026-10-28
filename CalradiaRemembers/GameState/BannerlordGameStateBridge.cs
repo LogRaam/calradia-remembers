@@ -2165,8 +2165,14 @@ namespace CalradiaRemembers.GameState
 
             // Appreciations pillar: a freely given gift is also a remembered kindness, a channel separate
             // from the trust bump above and from the grudge-softening tail below. The whole stack's worth counts.
+            // What You Know (Gabriel, 27/10/2026: "un NPC pourrait [...] preferer certains cadeaux"): a kind they love
+            // earns twice the regard, a cold one half, and the player learns that taste by giving it.
             if (npcHero != null)
-               TryPlantValueAppreciation(npcHero, AppreciationSource.GiftReceived, totalValue, $"The player gave me {gaveDesc}.");
+            {
+               Logic.Character.GiftWelcome welcome = Mapping.NatureReader.WelcomeOf(found.EquipmentElement.Item, npcHero, context?.Profile);
+               string cause = welcome == Logic.Character.GiftWelcome.Loved ? $"The player gave me {gaveDesc}, a gift after my own heart." : $"The player gave me {gaveDesc}.";
+               TryPlantValueAppreciation(npcHero, AppreciationSource.GiftReceived, totalValue, cause, welcome);
+            }
 
             // Grudges pillar (Gift gesture): the same gift may also soften or mend a grudge npcHero holds
             // against the player, a channel separate from the trust bump above.
@@ -5415,7 +5421,8 @@ namespace CalradiaRemembers.GameState
       ///   always true — the player performed (or plainly witnessed) the hand-off themselves. Never throws —
       ///   a failure here must never break the gift/payment transfer that already succeeded.
       /// </summary>
-      private static void TryPlantValueAppreciation(Hero npcHero, AppreciationSource source, int value, string cause)
+      private static void TryPlantValueAppreciation(Hero npcHero, AppreciationSource source, int value, string cause,
+                                                    Logic.Character.GiftWelcome welcome = Logic.Character.GiftWelcome.Ordinary)
       {
          try
          {
@@ -5428,7 +5435,7 @@ namespace CalradiaRemembers.GameState
                                  .Any(a => a.Source == source && a.TargetId == Hero.MainHero.StringId && a.EventDay == today) == true;
             int magnitude = AppreciationValueScaling.FromValue(value);
             AppreciationBehavior.Instance?.TryPlant(npcHero, Hero.MainHero, source, cause, magnitude, true, today);
-            int warmth = Logic.DeedRegardPolicy.GiftRegard(value, givenToday);
+            int warmth = Logic.Character.GiftTastePolicy.Warmth(Logic.DeedRegardPolicy.GiftRegard(value, givenToday), welcome);
             if (warmth > 0) Mapping.DeedRegardApplier.Apply(npcHero, Logic.PlayerDeed.Gift, warmth);
          }
          catch (Exception ex)

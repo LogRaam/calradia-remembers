@@ -28,6 +28,7 @@ namespace CalradiaRemembers.Mapping
          var lines = new List<string>();
          string mattersMost = MattersMostReader.PageLine(hero, profile);
          if (mattersMost != null) lines.Add(mattersMost);
+         lines.AddRange(NatureReader.PageLines(hero, profile));
 
          return lines;
       }

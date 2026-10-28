@@ -17,7 +17,10 @@ namespace CalradiaRemembers
 {
    public static partial class ModCheats
    {
-      /// <summary>cr.matters [learn|forget] [name]: what matters most to a character, whether the player learned it, and the page line.</summary>
+      /// <summary>
+      ///   cr.matters [learn|forget] [name]: what matters most to a character, their fear, superstition and gift tastes, what the
+      ///   player has learned of each, and their What You Know lines.
+      /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("matters", "cr")]
       public static string Matters(List<string> args)
       {
@@ -29,13 +32,22 @@ namespace CalradiaRemembers
 
          NpcProfile profile = GetOrCreateProfile(behavior, hero);
          Mapping.HeroProfileMapper.UpgradeIfNeeded(profile, hero);
-         if (learn) profile.MattersMostKnown = true;
-         if (forget) profile.MattersMostKnown = false;
+         if (learn || forget)
+         {
+            profile.MattersMostKnown = learn;
+            profile.FearKnown = learn;
+            profile.SuperstitionKnown = learn;
+            profile.KnownGifts = learn ? (profile.LovedGifts ?? new List<GiftKind>()).Concat(profile.ColdGifts ?? new List<GiftKind>()).ToList() : null;
+         }
+
          behavior.Store.Set(profile);
 
-         string line = Mapping.MattersMostReader.PageLine(hero, profile) ?? "(nothing on the page yet)";
+         IReadOnlyList<string> page = Mapping.KnownPageReader.LinesFor(hero);
+         string Kinds(List<GiftKind> k) => k == null || k.Count == 0 ? "(none)" : string.Join(", ", k);
 
-         return $"{hero.Name}: what matters most = {profile.MattersMost}; learned by the player = {profile.MattersMostKnown}. Page: {line}";
+         return $"{hero.Name}: what matters most = {profile.MattersMost} (learned {profile.MattersMostKnown}); fear = {profile.Fear} (learned {profile.FearKnown}); "
+                + $"superstition = {profile.Superstition} (learned {profile.SuperstitionKnown}); gifts loved = {Kinds(profile.LovedGifts)}, cold = {Kinds(profile.ColdGifts)}, "
+                + $"learned = {Kinds(profile.KnownGifts)}. What You Know on their page: {(page.Count == 0 ? "(nothing yet)" : string.Join(" ", page))}";
       }
    }
 }

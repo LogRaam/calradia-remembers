@@ -366,6 +366,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("scene_opener", Severity.Light, "Lordfadooboo (Nexus, 21/10/2026): a conversation opened cold; Gabriel (22/10/2026): the character sets the scene by default, as captive scenes do. Reads the LIVE opening facts (LlmDialogFlow.SceneFacts) and asserts a conversation opened by the greeting gets a scene while one opened any other way (an interception, a tale meeting) does not, nor one put back from earlier today, nor one carrying the game's own dialogue, nor any with the MCM switch off (set off for a moment, restored). Then, with a model available and nothing on screen, opens a REAL conversation with a lord, starts the scene on a test greeting and plays the player speaking first: the scene is set aside, the greeting stays on screen and is the line remembered, and the call is aborted. Closes the conversation", TestSceneOpener),
          new SelfTest("scene_image_shown", Severity.Light, "Gabriel (08/10/2026): a tale's stage may carry a picture, opening by itself beside the chat when its scene opens. Writes a small picture to a temporary file, opens a scene with it through the real door (its narration refused before any model call), checks the left panel shows that very file, then closes the scene and deletes the file.", TestSceneImageShown),
          new SelfTest("intimate_acts", Severity.Light, "Gabriel (26/10/2026): 'chaque NPC avait des preferences pour certains gestes sexuels, et meme parfois des gestes qu'il n'aime pas', and 'un geste impose que le NPC n'aime pas devrait reduire le personal regard'. At Hardcore, with a lord arranged as the player's lover (regard 60, intimate; put back after) who loves oral given and dislikes anal received: the turn's reader is taught both from the real EncounterContextBuilder seam; the disliked gesture only asked for costs nothing and is learned; performed, it costs 4 personal regard and leaves a memory; performed again the same day, nothing more; the loved gesture found warms them by 1; one they are less fond of costs nothing; the Heart section names a taste only once it is learned; a profile rolled before the list widened (27/10/2026: 'd'en mettre beaucoup') is completed through the real load path, keeping what she loved and what the player learned. Skips below Hardcore", TestIntimateActs),
+         new SelfTest("gift_tastes", Severity.Light, "Gabriel (27/10/2026): 'un NPC pourrait [...] preferer certains cadeaux [...] Une Dame pourrait aimer les fourrures'. With a lord already met, arranged to love furs (put back after): a fur handed over through the real give_item path (the bag-picked way) is read as furs from the item's own category, earns twice the regard its value would, is remembered as a gift after their own heart, and the player now knows the taste, which their What You Know section names. Character met before 2.7.22 are rolled their tastes on the next reading", TestGiftTastes),
          new SelfTest("matters_most", Severity.Light, "Gabriel (27/10/2026): 'qu'est-ce qui compte le plus pour un NPC. Ses enfants? Sa richesse? Son amoureux?', and 'il faudra penser a les indiquer dans des sections de l'encyclopedia'. With a married lord (put back after): read through the real load path, what matters most to him is chosen and true of him; his page says nothing of it until he says it himself; the reserved discovery from his reply marks it learned without a free-text discovery beside it, and his What You Know section names it; an anchor whose ground is gone (a spouse he does not have) is moved at the next reading", TestMattersMost),
          new SelfTest("summoned_meeting_on_backdrop", Severity.Light, "Gabriel (26/10/2026, Rhagaea's night): the conversation a scenario's tale brings to the player opened over the game's own map conversation (the Empress in armour among her guards in the street, her vanilla greeting under the video of her bed) and the chat stayed empty until he typed. Opens the REAL summoned meeting with a lord, nothing else on screen: the chat sits on the scene's dark backdrop, no vanilla conversation runs, the character's opening line is pending (its call is aborted by the close). Then closes it: the backdrop is gone and the map is given back as it was", TestSummonedMeetingOnBackdrop),
          new SelfTest("scene_close_gives_the_map_back", Severity.Light, "fkasad (Nexus, 07/10/2026): closing a tale's scene left a black screen with no way back. The close queued the backdrop's pop for the next frame, then wiped its own queue at the end. Opens a scene through the real door (its narration refused before any model call, so the log shows one [SCENE] error on purpose), closes it as the button does, runs one frame: the scene's own close must have run, what it queued must have run, and the map must be given back.", TestSceneCloseGivesTheMapBack),
@@ -12140,6 +12141,52 @@ namespace CalradiaRemembers.Diagnostics
             if (Chat.ExplorationBackdrop.IsOpen) Chat.ExplorationBackdrop.Close();
             Campaign.Current.TimeControlMode = timeBefore;
             try { System.IO.File.Delete(path); } catch { /* a temp file left behind harms nothing */ }
+         }
+
+         return t.Line();
+      }
+
+      private static string TestGiftTastes(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("gift_tastes");
+         if (t.Skip(behavior?.Store == null || Hero.MainHero == null || MobileParty.MainParty?.ItemRoster == null, "no campaign")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && h.Clan != Clan.PlayerClan
+                                                            && Mapping.ActionGate.Allows(h, Logic.ActionKind.Witness) && behavior.Store.Get(h.StringId) != null);
+         if (t.Skip(lord == null, "no lord met yet (talk to one first)")) return t.Line();
+         ItemObject fur = MBObjectManager.Instance?.GetObjectTypeList<ItemObject>()?.FirstOrDefault(it => it?.ItemCategory?.StringId == "fur");
+         if (t.Skip(fur == null, "no fur in the game data")) return t.Line();
+
+         NpcProfile profile = behavior.Store.Get(lord.StringId);
+         List<GiftKind> lovedBefore = profile.LovedGifts, coldBefore = profile.ColdGifts, knownBefore = profile.KnownGifts;
+         int regardBefore = profile.ReputationWithPlayer;
+         try
+         {
+            t.Note($"{lord.Name}, {fur.Name} ({fur.Value} denars)");
+            profile.LovedGifts = new List<GiftKind> {GiftKind.Furs};
+            profile.ColdGifts = new List<GiftKind>();
+            profile.KnownGifts = null;
+            NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, 20 - profile.ReputationWithPlayer, NpcMemoryService.Core.Standing.RegardCause.SelfTest);
+            var today = (int) CampaignTime.Now.ToDays;
+            bool givenToday = AppreciationBehavior.Instance?.AppreciationsFor(lord.StringId)?
+                                 .Any(a => a.Source == Logic.Appreciations.AppreciationSource.GiftReceived && a.TargetId == Hero.MainHero.StringId && a.EventDay == today) == true;
+            int expected = Logic.Character.GiftTastePolicy.Warmth(Logic.DeedRegardPolicy.GiftRegard(fur.Value, givenToday), Logic.Character.GiftWelcome.Loved);
+
+            MobileParty.MainParty.ItemRoster.AddToCounts(fur, 1);
+            behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "give_item"}, lord, new ActionContext(profile, null) {OfferedItemId = fur.StringId});
+
+            t.Expect("readAsFurs", Logic.Character.GiftTastePolicy.KindOf(fur.ItemCategory?.StringId), GiftKind.Furs);
+            t.Expect("aLovedGiftEarnsTwice", profile.ReputationWithPlayer - 20, expected);
+            t.Expect("theTasteIsLearned", profile.KnownGifts?.Contains(GiftKind.Furs) == true, true);
+            t.Expect("andHisPageNamesIt", Mapping.KnownPageReader.LinesFor(lord).Any(l => l.Contains("Gifts that delight") && l.Contains("furs")), true);
+         }
+         finally
+         {
+            profile.LovedGifts = lovedBefore;
+            profile.ColdGifts = coldBefore;
+            profile.KnownGifts = knownBefore;
+            NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, regardBefore - profile.ReputationWithPlayer, NpcMemoryService.Core.Standing.RegardCause.SelfTest);
+            behavior.Store.Set(profile);
          }
 
          return t.Line();

@@ -24,6 +24,25 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   game's; the pillar's later increments (gifts, fears and superstitions, pastimes) add theirs. `cr.matters [learn|forget]
   [name]`; `cr.test matters_most`. Defaults awaiting Gabriel's ruling: one anchor, not two; it moves only on an event of
   the world, never with time alone; no dark lever (threatening what matters is not a mechanic).
+- **Fears, superstitions and gifts they love** (same pillar; Gabriel, 27/10/2026: "un NPC pourrait [...] preferer
+  certains cadeaux. Par exemple [...] Une Dame pourrait aimer les fourrures", "nous pourrions aussi ajouter certaines
+  superstitions et phobies"). Each character met is rolled once (`NaturePolicy`, `GiftTastePolicy`, `NatureReader`,
+  from `HeroProfileMapper.UpgradeIfNeeded`):
+  - perhaps a fear (`Fear`: the sea, fire, wolves, the dark, sickness, heights, snakes, closed places; about one in
+    three, more for the timid, fewer for the valorous) and perhaps a superstition (`Superstition`: omens, charms,
+    ancestors, the evil eye, dreams, rituals, the moon, iron or salt at the door; fewer for the calculating, more among
+    the Battanians, Sturgians, Khuzaits and Nords), weighed by their people (a Khuzait fears closed places, a Nord never
+    the sea). Beliefs, never magic. The prompt states them as colour (`fear_and_superstition`), and the player learns
+    each when the character lets it show (reserved [DISCOVERY] keys `fear`, `superstition`).
+  - one or two kinds of gift they love and, one in two, a kind that leaves them cold (`GiftKind`: furs, wine, ale,
+    jewelry, velvet, fine cloth, horses, weapons, armour, delicacies, silver), weighed by their people most (furs and ale
+    in Sturgia, horses on the steppe, wine and velvet in the Empire), then their traits and station, never their sex.
+    The kind is read from the item's own category at the one place every hand-over passes (`ExecuteGiveItem`): a loved
+    gift earns twice the regard its value would and is remembered as a gift after their own heart, a cold one half,
+    never less than nothing; the player learns the taste by giving it. The prompt tells them how to meet a gift
+    (`gift_tastes`).
+  The What You Know section names each once learned. `cr.matters` shows and sets all of it; `cr.test gift_tastes`.
+  Defaults awaiting Gabriel: a cold gift costs nothing; pastimes not built yet (narrated only, when they come).
 
 ### Changed
 - **Tastes in bed: a wider list, weighed by who the character is** (Hardcore only; Gabriel, 27/10/2026: "Je trouve

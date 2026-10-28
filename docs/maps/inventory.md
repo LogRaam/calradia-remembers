@@ -6,9 +6,9 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 579 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1359 types in 47 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 272 types in 17 namespaces, 9 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 580 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1368 types in 47 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 276 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 23000+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 23500+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -555,7 +555,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (42)
+### CalradiaRemembers.Mapping (43)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -581,6 +581,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MisdeedLedgerBehavior` | public class | The ledger of the player's misdeeds no other source records as a deed, one record per deed and day. |
 | `MisdeedsPageReader` | internal static class | Reads what the player did of their own will for the Misdeeds section. |
 | `NarrativeLoader` | public static class | Loads narrative text files from the mod's ModuleData folder at session launch. |
+| `NatureReader` | internal static class | Rolls and reads a character's fear, superstition and gift tastes. |
 | `PairRegardReader` | internal static class | Reads what lies between two characters into PairRegardFacts, and assesses it. |
 | `PlayerDressResolver` | public static class | Resolves the player's live PlayerDressBand from Hero.MainHero's equipment. |
 | `PlayerDungeons` | public static class | Where the player left each prisoner, by hero id. |
@@ -1771,13 +1772,22 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptureStake` | public enum | What the captive is to the one who hears of the capture. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 
-### CalradiaRemembers.Logic.Character (3)
+### CalradiaRemembers.Logic.Character (12)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `GiftPageFacts` | public class | What the encyclopedia says of a character's gift tastes. |
+| `GiftTasteFacts` | public class | Who is rolled for gift tastes. |
+| `GiftTastePolicy` | public static class | Rolls gift tastes, reads an item's kind, sizes a gift's regard and words what was learned. |
+| `GiftTastes` | public class | A character's gift tastes, as rolled. |
+| `GiftWelcome` | public enum | How a gift is met. |
 | `MattersMostFacts` | public class | What is true of a character, as what matters most to them is chosen from it. |
 | `MattersMostPageFacts` | public class | What the encyclopedia says of what matters most to a character. |
 | `MattersMostPolicy` | public static class | Chooses, keeps and words what matters most to a character. |
+| `NatureFacts` | public class | Who is rolled for a fear and a superstition. |
+| `NaturePageFacts` | public class | What the encyclopedia says of a character's fear and superstition. |
+| `NaturePolicy` | public static class | Rolls and words a character's fear and superstition. |
+| `NatureRoll` | public class | A character's fear and superstition, as rolled. |
 
 ### CalradiaRemembers.Logic.Chat (24)
 
@@ -2686,7 +2696,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `SharedRecall` | public class | What a character may be shown to REMEMBER in front of others: their own memories, minus anything held in confidence, folded to a bounded recall. |
 
-### NpcMemoryService.Core.Models (79)
+### NpcMemoryService.Core.Models (83)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2708,7 +2718,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DiplomaticStatus` | public enum | (no summary) |
 | `DiscoveredTrait` | public class | A personal preference or romantic trait that the player has discovered about an NPC through conversation. |
 | `EncounterContext` | public class | Captures the volatile, per-encounter state that the LLM needs to react appropriately: where the conversation takes place, the diplomatic situation, the player's standing with respect to the NPC, and how much time has pas... |
+| `Fear` | public enum | What a character fears (Gabriel, 27/10/2026: "nous pourrions aussi ajouter certaines superstitions et phobies"). |
 | `GameAction` | public class | A directive emitted by the LLM via the [ACTION] section, requesting the consumer (game mod, etc.) to effect a change in the game world. |
+| `GiftKind` | public enum | A kind of gift a character may love or find cold (Gabriel, 27/10/2026: "un NPC pourrait [...] preferer certains cadeaux [...] Une Dame pourrait aimer les fourrures"). |
 | `HeldSecretDisposition` | public enum | How an NPC who knows the player's secret-lover identity is disposed to carry it. |
 | `HeldSecretPolicy` | public static class | Decides how an NPC who holds the player's secret-lover identity is disposed to use it, from regard and hostility. |
 | `HistoryWindowPolicy` | public static class | Splits a character's memories into what they lived with the player, what they heard, and their own life. |
@@ -2736,6 +2748,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryStrand` | public enum | What a memory is to the character's history with the player. |
 | `MessageAlternationPolicy` | public static class | Turns the conversation as CR models it into the shape every chat template can accept: a strictly alternating user/assistant sequence that begins with the user. |
 | `MessageRole` | public enum | (no summary) |
+| `NatureDiscovery` | public static class | The reserved [DISCOVERY] keys that mark a fear or a superstition as learned. |
 | `NotableEvent` | public record | A notable event in the player–NPC interaction history. |
 | `NotableEventType` | public enum | Categorizes a notable event between the player and an NPC. Other is the fallback when the LLM emits an unrecognized type. |
 | `NpcProfile` | public class | An NPC's identity and accumulated memory of the player. |
@@ -2765,6 +2778,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ScheduledLetter` | public class | An NPC's committed intention to send a letter of Reason on SendDay. |
 | `SexualOrientation` | public enum | Sexual orientation determined once per NPC at profile creation. |
 | `StanceShiftData` | public class | The small spoken shifts to the player's standing the LLM signals in one exchange (a [STANCE] block): how this conversation nudged the NPC's trust, respect, and fear. |
+| `Superstition` | public enum | A superstition a character keeps (Gabriel, 27/10/2026). |
 | `TroopLoan` | public class | One outstanding loan of soldiers, held on the LENDER's profile. |
 | `WitnessEntry` | public class | Describes a single witness present during an encounter. |
 | `WitnessReaction` | public class | A brief visible reaction (gesture, expression, one short line) from a witness present during a conversation. |
