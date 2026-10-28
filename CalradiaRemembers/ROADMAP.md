@@ -32,6 +32,37 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## RULED 2026-10-27 (Gabriel: "On va le faire maintenant"), BUILDING: What You Know of them
+
+Gabriel (27/10/2026), after the widened tastes in bed: "un NPC pourrait aimer faire certaines activitees ou encore
+preferer certains cadeaux. Par exemple, un Lord pourrait aimer aller a la chasse. Une Dame pourrait aimer les fourrures
+[...] Et nous pourrions aussi ajouter certaines superstitions et phobies", then "Et aussi, 'qu'est-ce qui compte le plus'
+pour un NPC. Ses enfants? Sa richesse? Son amoureux?", and "il faudra penser a les indiquer dans des sections de
+l'encyclopedia". One pillar, the same shape as the tastes in bed: each character has their own, the player learns them
+by living with them, the encyclopedia names what was learned (a What You Know section, the game's words only; the
+Discoveries section stays the model's), NPCs never lie (a guarded one may keep it private, never name a false one), and
+the chain is traits (and culture, and rank) weighing what they love.
+
+Increments, in order:
+
+1. **What matters most** (BUILT 27/10, mod 389a718 / SDK b075fda): one anchor chosen among what is true of them.
+2. **Gifts**: loved and disliked kinds of gift (furs, wine, jewelry, horses...), from the item's own category, weighed
+   by culture, traits and rank; a loved gift is worth more, a wrong one less; learned on giving.
+3. **Fears and superstitions**: colour for the prompt, culture-weighted, learned when witnessed or told.
+4. **Pastimes** (hunting, falconry, music...): narrated only, to start.
+
+Defaults taken overnight, Gabriel's to rule (each reversible):
+
+- **One anchor, not a first and a second.**
+- **It moves only on an event of the world** (the child dies, the lover is gone, a grudge opens), never with time alone.
+- **No dark lever.** Threatening what matters to someone to get something is not a mechanic; touching it for good (freeing
+  their captive child) is the direction, and is NOT wired yet: the regard of such deeds is unchanged so far.
+- **A wrong gift gives less, never costs regard.**
+- **Pastimes are narrated only**: the game has no hunt or feast to play; a real menu action that spends a day is a
+  later question.
+
+---
+
 ## RULED 2026-10-25 (Gabriel), BUILDING FROM STEP 1: one path for actions, one junction (who reads them)
 
 **The ruling.** Gabriel (25/10/2026): "il ne devrait pas avoir de differences entre [Enhanced et le mode regulier] car
