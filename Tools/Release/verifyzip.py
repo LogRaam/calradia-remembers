@@ -628,8 +628,35 @@ MUST = [
     ("sdk",   "prompt_cache_key".encode("utf-16-le")),
     ("sdk",   "X-OpenRouter-Title".encode("utf-16-le")),
     ("sdk",   b"LowestAcceptedEffort"),
+    # 2.7.21
+    ("logic", b"IntimateActPolicy"),
+    ("logic", b"LeaveHouseForRulerPolicy"),
+    ("logic", b"TaleArc"),
+    ("logic", b"TaleHistory"),
+    ("logic", b"TalePause"),
+    ("logic", b"HouseHeadMarriagePolicy"),
+    ("logic", b"JealousyWoundPolicy"),
+    ("logic", b"SpawnAgentSignaturePolicy"),
+    ("logic", b"PlayerKinshipPolicy"),
+    ("logic", b"RealmTidingsRelevancePolicy"),
+    ("logic", b"HairColorBands"),
+    ("logic", b"WandererBackstoryPolicy"),
+    ("logic", b"SupplyGiftPolicy"),
+    ("logic", b"InterpreterRetryPolicy"),
+    ("logic", b"ActionReaderPolicy"),
+    ("logic", b"SceneChoiceMenu"),
+    ("logic", b"HeartTastesFacts"),
+    ("mod",   b"IntimateActApplier"),
+    ("mod",   "intimate_acts".encode("utf-16-le")),
+    ("mod",   "leave_house_for_ruler".encode("utf-16-le")),
+    ("mod",   "summoned_meeting_on_backdrop".encode("utf-16-le")),
+    ("sdk",   b"IntimateActNames"),
+    ("sdk",   b"LessFondActs"),
+    ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
 ]
 MUST_NOT = [
+    ("mod",   b"RunAllSelfTests"),   # 2.7.21: cr.testall is gone, cr.test all runs the sweep
+    ("mod",   "cr.chat_reset".encode("utf-16-le")),   # 2.7.21: the command never existed; the notices say cr.reset
     ("mod",   b"HeroPagePersonalRelationPatch"),   # 2.7.18: renamed HeroPageRegardYouPatch (the file name sets the row order)
     ("sdk",   b"IsReasoningMandatoryRefusal"),   # 2.7.18: replaced by IsReasoningOffRefusal (any language)
     ("mod",   "patrol_spike".encode("utf-16-le")),   # 2.7.13: the patrol engine spike's console command, removed before release

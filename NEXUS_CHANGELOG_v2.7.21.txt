@@ -1,0 +1,49 @@
+Version 2.7.21
+
+Leave your house to wed a ruler, witnesses and councils that remember, kin who know they are family, tastes in bed at Hardcore, and a long list of fixes from your reports.
+
+New
+
+- Leave your house for a ruler who will never leave hers: a lady who heads her own house, her heart won, may accept you on one condition. Either you hand your house to your heir (you play on as the heir, and your old character weds her and joins her house, keeping his life and memories), or you give her all: your towns and castles, your gold and your realm if you rule one, keeping your character and your family. The popup says what each road costs, including how likely her rivals are to answer with war. When her road is closed for a reason you could mend, she tells you why. (Thank you, RaveN017Mod.)
+- Tastes in bed, at the Hardcore level only: each character loves one or two gestures, is less fond of one, and sometimes dislikes one outright. They seek what they love, go along without eagerness with what they like less, and refuse what they dislike plainly or with an unease you can read, never with feigned pleasure. A disliked gesture imposed anyway costs their regard and is remembered; asking costs nothing; finding one they love warms them a little. What you have learned of their tastes is named in their Heart section.
+
+Changed
+
+- Robbing, beating or killing someone in words now works with one call per turn (Standard composition) as it does with the interpreter. Before, only the interpreter could carry it out.
+
+Fixed
+
+- A witness remembers what they agreed to: the compact prompt cut a witness's memories from the newest instead of the oldest, so a fresh agreement was the first thing lost. A witness who spoke in a conversation now keeps it, in their own words. (Thank you, LapitaPolata.)
+- Letters from the realm now come only from people you have met, and only about what touches you, your realm, your kin or the country around you. (Thank you, DepaHN.)
+- Kin know they are family: children, grandchildren, siblings, nephews, nieces and cousins are now told the bond in every conversation, not only before their first memory of you. (Thank you, DepaHN.)
+- Every member of a council now remembers the sitting, not only the lord you addressed. (Thank you, DepaHN.)
+- Brown hair is no longer described as red; a reddish brown is now auburn. (Thank you, Windmolen.)
+- "Never Mind" in the Speak With Your Own People window no longer ends the visit: the meeting you came for opens instead. (Thank you, Windmolen.)
+- A hired companion knows they are a hired companion, since when, and with no childhood shared with you; and the story a wanderer tells you at your first meeting is kept as their own memory. (Thank you, fearente.)
+- OpenRouter credits Calradia Remembers again on your activity page. (Thank you, fearente.)
+- Grain and other goods a lord asked for now count however you hand them over (in words, through the Give menu or the bag button), instead of expiring as a broken promise. (Thank you, froggyluv.)
+- A lady who heads her house no longer "marries" you in words while the game seals nothing: she tells you why and what she can offer instead. Any marriage the game will not seal is now refused plainly. (Thank you, RaveN017Mod.)
+- A consort who accepted sharing you no longer holds a grievance over your other consort, though she still minds being neglected for her. (Thank you, Zivkyn.)
+- Edicts move taxes again alongside mods that replace the tax model, such as Harvest and Production. (Thank you, tashmetu.)
+- Duels and the captive's escape are ready for the 1.5.5 beta, whose fighter-spawning call changed. Not yet run on 1.5.5 itself. (Thank you, tashmetu.)
+- A wife is no longer narrated as "he" by small local models, gestures stop leaning on furniture, and small models tell gestures in the third person. (Thank you, Eisendrache2.)
+- A tale's choice made in words can now be taken with one call per turn (Standard composition).
+- When the action interpreter fails, it is asked once more, and the log says so.
+- Typing the number of "Something else..." in a tale's scene no longer sends the number; once you write your own words, the numbered choices stay gone for that scene. A scene that ends says to close the conversation.
+- Four messages told you to type cr.chat_reset when a window was stuck; the command is cr.reset.
+
+For modders
+
+- Tales can be opened by a scenario rule (ON_CAPTIVE_NIGHT, IF_CAPTOR_IS, IF_PRESENT, IF_CHANCE, OPEN_TALE), paced beat by beat with an arc that listens for signals, judged by the regard they left (regard_rose, regard_fell), show a picture or video not seen yet from an image_pool, and remember earlier playings with the same giver (played_before, ended_before). A scenario's tale sets a tale under way aside and it resumes afterwards. See HOWTO_Quests.md and EXTENSION_API.md; the tale editor follows.
+- character_overrides.json takes loves, lessFond and dislikes to set a character's tastes in bed.
+
+Developer tools
+
+- cr.testall is gone: cr.test all runs every self-test, and cr.test <name> [name ...] runs one or several.
+- New tests: leave_house_for_ruler, marriage_house_heads, intimate_acts, tale_arc, tale_interrupted, tale_opened_by_scenario, summoned_meeting_on_backdrop, kin_identity, companion_identity, consort_tolerance, interpreter_retry, spawn_agent_signature; supply_quest, edict_effects and appearance extended.
+- cr.acts and cr.act show and try a character's tastes; cr.leave_house_check, cr.leave_house and cr.give_her_all for the ruler's roads (the last two are irreversible: use a throwaway save); cr.tale_open opens a scenario tale now.
+- Tools/Video/CrvidPlayer.html plays .crvid videos, converts a dropped .mp4 and recompresses to a chosen quality.
+
+Notes
+
+- Your existing saves load as they are.

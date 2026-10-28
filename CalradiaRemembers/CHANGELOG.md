@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.7.21.. open
+## v2.7.21.. 2026-10-27
 
 ### New
 - **Leave your house for a ruler who will never leave hers** (Gabriel, 26/10/2026: "Jamais elle laissera son trone
@@ -71,23 +71,23 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   a run begun again with the same giver carries `played_before` and `ended_before:<ending>` for its lines to test.
 - **Characters have gestures they love in bed, and some they dislike** (Hardcore; Gabriel, 26/10/2026: "le LLM a
   tendance a aimer tous les gestes sexuels que le joueur peut decrire [...] un NPC pourrait particulierement aimer le
-  sexe oral mais detester le sexe anal"; a refusal "pourrait etre franc, ou encore un malaise"). Each character is
-  given once one to three gestures they particularly love and, about one in two, one they dislike (rarely two):
-  kissing, oral given or received, anal given or received, on top, beneath, from behind, hands and fingers, rough
-  handling, crude words. They seek what they love; what they dislike they refuse plainly or with an unease the player
-  can read, never with feigned pleasure. Rolled from the character's id with a stable seed (`IntimateActPolicy`), kept
+  sexe oral mais detester le sexe anal"; a refusal "pourrait etre franc, ou encore un malaise"; then 27/10: "au moins
+  quelque chose que le personnage aime beaucoup, et une chose qu'elle aime moins"). Each character is given once one or
+  two gestures they particularly love, exactly one they are less fond of, and about two in five one they dislike
+  outright, among kissing, oral given or received, anal given or received, on top, beneath, from behind, hands and
+  fingers, rough handling, crude words. They seek what they love; what they are less fond of they go along with
+  without eagerness; what they dislike they refuse plainly or with an unease the player can read, never with feigned
+  pleasure. Rolled from the character's id with a stable seed (`IntimateActPolicy`), kept
   in the save (`RomanticProfile.LovedActs` / `DislikedActs`); characters met before are given theirs the next time
   they are spoken to. Whoever reads the turn's actions (the interpreter, or the prose call in Standard) is taught,
   only at Hardcore in a lovemaking the game permits and never in a captive scene, the gestures this character loves or
-  dislikes, and reports one the player does or asks for (`intimate_act`). Gabriel (27/10): "au moins quelque chose que
-  le personnage aime beaucoup, et une chose qu'elle aime moins": every character loves one or two gestures, is less
-  fond of exactly one (`LessFondActs`: met without eagerness, at no cost, learned all the same) and about two in five
-  dislike one outright; characters rolled before are given their less-loved gesture alone, the next time they are
-  read; `character_overrides.json` takes `lessFond`. A disliked gesture imposed costs 4 personal
+  dislikes, and reports one the player does or asks for (`intimate_act`). `LessFondActs` is met without eagerness, at
+  no cost, and learned all the same. A disliked gesture imposed costs 4 personal
   regard and leaves a memory, once a day per gesture; only asked for, it costs nothing; a loved one found the first
   time warms them by 1 (`DeedRegardPolicy`). Either way the player has learned that taste (`KnownActs`), and the
   character's Heart section names it, since the player may forget (Gabriel 27/10): "In bed she loves being on top, and
-  does not like being handled roughly." (`HeartIntimacyPolicy.TastesLine`); never a taste not yet learned. `character_overrides.json` takes `loves` and `dislikes`. `cr.acts [name]`, `cr.act <gesture>
+  does not like being handled roughly." (`HeartIntimacyPolicy.TastesLine`); never a taste not yet learned.
+  `character_overrides.json` takes `loves`, `lessFond` and `dislikes`. `cr.acts [name]`, `cr.act <gesture>
   [performed|proposed] [name]`, `cr.test intimate_acts`.
 
 ### Changed
@@ -155,13 +155,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   words the numbered choices stay gone for the rest of that scene. The narration is signed "Narrator", not the scene's
   name ("The Cell Door"). A scene that ends by itself, and a tale's arc that closes, say "Close this conversation to
   continue...". A conversation a scenario's tale brings to the player sits on the scene's dark backdrop, with no vanilla
-  conversation, and the character speaks first (that line is not an exchange of the arc). cr.test all
+  conversation, and the character speaks first (that line is not an exchange of the arc). cr.test
   `summoned_meeting_on_backdrop`.
 - **Grain and other goods a lord asked for count however you hand them over** (froggyluv, Nexus 26/10: "sometimes the
   flavor text will say i delivered but the NPC still complain of my broken promises"). Only the chat window's bag
   button settled a supply task; goods handed over in words, or through the Give menu, left your party while the task
   stayed open and expired as a broken promise. Now a gift of the goods the task asks for settles it the same way, the
-  exact count leaving and the reward paid; short of the count nothing leaves (`SupplyGiftPolicy`). `cr.test all
+  exact count leaving and the reward paid; short of the count nothing leaves (`SupplyGiftPolicy`). `cr.test
   supply_quest` now hands grain over in words too.
 - **"Never Mind" no longer ends the conversation** (Windmolen, Nexus 26/10: closing the "Speak With Your Own People"
   window left him unable to reach a private conversation). The meeting the player came for opens instead, as "A word
@@ -238,7 +238,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   regard when it began (`AuthoredQuestRun.GiverRegardAtStart`, `TaleRegardFlags`); consequence `regard` (`who`,
   `amount`, under `if`); a stage's `image_pool` shows one picture or video not yet seen each time the tale is played
   (`TaleImagePool`, shown pictures kept in the save, additive key).
-  Editor, schema, HOWTO_Quests, EXTENSION_API and the Scenario Composer updated; two editor fixtures. cr.test all
+  Editor, schema, HOWTO_Quests, EXTENSION_API and the Scenario Composer updated; two editor fixtures. cr.test
   `tale_opened_by_scenario`. Engine spike `cr.captive_talk_probe` (24/10: a conversation opens while the player is held
   in a town's dungeon and the captivity survives it; the backdrop is the map conversation's throne room).
 - **More for scenario tales** (Gabriel 25/10, the night Rhagaea sends for her prisoner):
