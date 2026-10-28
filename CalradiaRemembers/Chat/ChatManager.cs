@@ -863,7 +863,7 @@ namespace CalradiaRemembers.Chat
 
          if (ActiveViewModel == null)
          {
-            ModLog.Notice($"{envoyName} could not be received. If it happens again, cr.chat_reset clears a stuck window.");
+            ModLog.Notice($"{envoyName} could not be received. If it happens again, cr.reset clears a stuck window.");
 
             return;
          }
@@ -895,7 +895,7 @@ namespace CalradiaRemembers.Chat
          Open(session.Title);
          if (ActiveViewModel == null)
          {
-            ModLog.Notice($"the scene \"{session.Title}\" could not be opened. If it happens again, cr.chat_reset clears a stuck window.");
+            ModLog.Notice($"the scene \"{session.Title}\" could not be opened. If it happens again, cr.reset clears a stuck window.");
             session.OnClose?.Invoke();
 
             return;
@@ -950,12 +950,12 @@ namespace CalradiaRemembers.Chat
          if (ActiveViewModel == null)
          {
             ModLog.Error($"[AUDIENCE] the window did not open for {companion.Name}; their private word is lost. "
-                       + "Try cr.chat_reset if later conversations also refuse to open.");
+                       + "Try cr.reset if later conversations also refuse to open.");
             // The end of the road, and until now it ended out of sight: Error is gated by the MCM logging
             // switch, which is off by default, so the player who answered the popup was told nothing and the
             // log they sent said nothing either. Say it where it cannot be switched off.
             ModLog.Notice($"{companion.Name}'s private word could not be opened; they will ask again. If it happens "
-                        + "again, cr.chat_reset clears a stuck window.");
+                        + "again, cr.reset clears a stuck window.");
             AudiencePromises.Break(companion.StringId);
 
             return;

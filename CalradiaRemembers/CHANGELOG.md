@@ -97,6 +97,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   conversation tests' budget in seconds), `cr.test <name> [name ...]` for one or several, `cr.test list` for the
   names, `cr.test chat | mech | full` as before. The help, the guides, the docs and every self-test description say
   `cr.test` now; past changelogs are left as published.
+- **A guard holds every mention of a console command to what the console accepts** (Gabriel 27/10, on how the
+  `cr.testall <name>` mistake could be prevented: "je tente de voir comment on peut prevenir ca"). The suite's
+  `ConsoleCommandMentionsTests` reads the code (messages and comments) and the guides against `ConsoleCommandHelp`: a
+  command a message or a guide tells you to type must exist; a command that takes nothing is never written with an
+  argument; `cr.test <name>` names a real self-test. On its first run it found four messages telling the player to
+  type `cr.chat_reset`, which does not exist: they now say `cr.reset`. Also fixed: the help named the gone
+  `cr.letter_deliver` and `cr.chat`, `cr.courier_test` declared no argument though it needs a settlement, and the
+  console guide gave `cr.missions [name]` and `cr.model [toggle]`, which take nothing.
 - **The Adult Tales have their own git repository** (Gabriel 27/10: "Calradia Remembers Adult Tales", beside CR,
   github.com/LogRaam/Calradia-Remembers-Adult-Tales), history kept. `Extras/CalradiaRemembersAdultTales` is gone from
   CR, with its installer and `Tools/IntimateTales/wife_tales.py`, which moved there (`python Tools/install.py`). CR's

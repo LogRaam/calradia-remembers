@@ -449,7 +449,7 @@ cr.relation_reset [name]             # clears LastRelationGainHour
 cr.give_gold <amount> [name]
 cr.take_gold <amount> [name]
 cr.info [name]                       # relation, captive status, cooldown remaining
-cr.discover [name]                   # seeds 3 test DiscoveredTraits (encyclopedia testing)
+cr.discover_test [name]              # seeds 3 test DiscoveredTraits (encyclopedia testing)
 cr.quest [name]                      # seed a bandit_clear quest (issue→inject→complete path)
 cr.quest_done [name]                 # force-stamp outstanding quest satisfied (test reward w/o battle)
 cr.quest_abandon [name]              # force-abandon outstanding quest (test broken-word penalty)

@@ -88,7 +88,7 @@ instead.
 
 | Command | What it does | Example |
 |---|---|---|
-| `cr.model [toggle]` | Show the active model mode (Roleplay or NSFW), the model id it resolves to, and whether the in-chat mode button would show. Pass `toggle` to flip the mode (the same override as the button). | `cr.model toggle` |
+| `cr.model` | Show which model each part of the mod is talking to, and which in-chat mode is active. | `cr.model` |
 
 ### Your edited prompt files
 
@@ -151,7 +151,7 @@ Safe to peek at internal state; they change nothing.
 | `cr.standing` | The player's clan standing summary. |
 | `cr.stance [name]` | An NPC's posture (Affection / Trust / Respect / Fear) + the prompt block. |
 | `cr.schemes` / `cr.scenarios` | Active feud plots / scripted-scenario state. |
-| `cr.quests [name]` / `cr.missions [name]` | An NPC's quests / companion missions and their state. |
+| `cr.quests [name]` / `cr.missions` | An NPC's quests / companion missions and their state. |
 | `cr.bastards` / `cr.bastard_mother [name]` / `cr.bastard_blackmail [name]` | The player's tracked bastards / a mother's disposition / blackmail leverage. |
 | `cr.jealousy [name]` | The jealousy reaction an NPC would have to a romantic act. |
 | `cr.happiness [name]` / `cr.rapport [name]` | Companion contentment / companion-to-companion rapport. |

@@ -422,7 +422,7 @@ namespace CalradiaRemembers.Chat
             // off by default on Nexus, so the mod's whole account of what became of their answer was written
             // where they would never read it. This one sentence is what turns the next report into a fix.
             ModLog.Notice("a conversation was already open, so the private word you accepted was dropped. "
-                        + "If no window appeared at all, cr.chat_reset clears a stuck one.");
+                        + "If no window appeared at all, cr.reset clears a stuck one.");
             // Dropped, not heard: nothing the yes promised is spent, so the companion asks again (EnjoyingHydra).
             ChatManager.AudiencePromises.Break(_pending.Partner?.StringId);
             _pending = null;

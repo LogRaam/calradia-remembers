@@ -519,7 +519,7 @@ namespace CalradiaRemembers
       /// <summary>
       ///   cr.letter [name]
       ///   Queues a test letter from the NPC with DeliveryDay = today so it shows
-      ///   up on the next daily tick (or immediately via cr.letter_deliver).
+      ///   up on the next daily tick.
       ///   Uses RomanticCorrespondence as the reason so personality is exercised.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("letter", "cr")]
