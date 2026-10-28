@@ -629,66 +629,129 @@ Popular options:
 
 3. THE SETTINGS MENU, OPTION BY OPTION
 
-LLM Provider:
+Everything lives in Options → Mod Options → Calradia Remembers, in ten groups. Unless a line says otherwise, a change applies at once.. no restart, no save reload. Every option also carries its own tooltip in the menu.
+
+[b][color=#b6d7a8]LLM Provider[/color][/b] (models and how a reply is made):
 [list]
-[*]LLM Provider.. which backend to use: OpenRouter (default), NanoGPT, or OpenAI-Compatible (any local server). Switching here doesn't make you re-enter your model. Applies immediately.[/*]
+[*][b]Chat Composition[/b].. how each reply is made. [b]Enhanced[/b] (default): your PROSE model writes, a separate INTERPRET model reads the actions out of the prose, and the NSFW model finishes any beat the writer cuts short, leaves empty or refuses. Richest, at the cost of a second call and a little more time. [b]Standard[/b]: one call, cheapest and fastest. The chat window also has its own switch (Enhanced, Roleplay or NSFW) to change it for one session; this option sets where it starts.[/*]
+[*][b]PROSE model[/b].. the model that writes ordinary conversation, and in Enhanced mode the prose of every scene. Default on OpenRouter: x-ai/grok-4.20; NanoGPT and OpenAI-Compatible need an id you paste, in that provider's own format. See "Which model should I use?" below.[/*]
+[*][b]Roleplay / Prose provider[/b].. where the PROSE model is sent: OpenRouter (default), NanoGPT or OpenAI-Compatible. It is also the base every other role inherits while it is left on (default). Each provider keeps its own key further down, so switching never makes you re-enter one.[/*]
+[*][b]NSFW model[/b] and [b]NSFW provider[/b].. the more permissive model for explicit content: captivity scenes in Standard mode, the fallback in Enhanced mode. Default x-ai/grok-4.20; blank reuses the PROSE model.[/*]
+[*][b]Interpret model[/b] and [b]Interpret provider[/b].. Enhanced mode only: the model whose one job is to read the actions (regard, gold, quests, duels..) out of the prose, so they fire whatever writer you run. Default deepseek/deepseek-v4.1-flash (the most accurate measured, and among the cheapest); blank reuses the PROSE model. Point it at a local server to run the interpreter on your own machine.[/*]
+[*][b]Background model[/b] and [b]Background provider[/b].. optional. A cheaper or smaller chat model for the mod's background work: summaries, memory compression, reading claims out of letters. Blank uses the PROSE model. Useful on a local server, where two prompts would otherwise share one cache.[/*]
+[*][b]LLM Response Timeout[/b] (120 s).. how long to wait for a reply. Raise it for a slow local or reasoning model; lower it to fail fast.[/*]
+[*][b]Compact prompt for small models[/b] (off).. trims the prompt to fit a small, short-context model (4k to 8k). Turn it on if the AI stays silent on a local model. Leave it off for cloud models. Console: [i]cr.prompt_size[/i].[/*]
+[*][b]Local model context (tokens)[/b] (0 = off).. for a local server, the context length you set there. The mod then trims each request to fit it (oldest lines first, then the compact prompt) instead of letting the server cut it blind.[/*]
+[*][b]Compress old memories[/b] (on).. folds old, superseded memories into a short outline, so a long campaign stops inflating every prompt (the usual cause of slow replies on a local model). First meetings, recent events and grave moments are never dropped.[/*]
+[*][b]Chat Temperature[/b] (0.70).. how varied replies are. Lower is steadier, higher more surprising; above 1.0 a local model may lose its character. Reasoning models ignore it.[/*]
 [/list]
 
-[b][color=#b6d7a8]Models & composition (in the LLM Provider group)[/color][/b]:
+[b][color=#b6d7a8]OpenRouter[/color][/b]:
 [list]
-[*]Chat Composition.. how each reply is assembled. [b]Enhanced[/b] (default): your PROSE model writes, a dedicated INTERPRET model reads the actions out of the prose, and the NSFW model stands by as a reliable fallback that finishes any beat the PROSE model truncates, empties, or refuses. Richest quality, at the cost of more tokens and a little more time. [b]Standard[/b]: one integrated call.. the PROSE model for ordinary chat and the NSFW model for captivity. Cheapest and fastest. The mod routes for you automatically; if you prefer the old hands-on control, turn on the Roleplay/NSFW switch below.[/*]
-[*]Manual Roleplay/NSFW switch in chat.. off by default. When on, a small switch appears in the chat window so you can choose, per scene, whether your Roleplay model or your NSFW model writes it. The automatic fallback still applies on top; this just lets you steer by hand, the way older versions did.[/*]
-[*]PROSE model.. the model that writes ordinary conversation, and in Enhanced mode the prose of every scene. Default on OpenRouter: x-ai/grok-4.20; NanoGPT and OpenAI-Compatible need an id you paste yourself. See "Which model should I use?" below for picks by quality, price, and adult-content tolerance.[/*]
-[*]NSFW model.. the more permissive model for explicit content: captivity scenes in Standard mode, and the hard-failure fallback in Enhanced mode (when the PROSE model truncates, empties, or refuses a beat). Default x-ai/grok-4.20; leave blank to reuse the PROSE model.[/*]
-[*]Interpret model.. Enhanced mode only.. the model whose sole job is to read the structured actions (relation shifts, gold, quests, duels…) out of the prose, so they fire reliably whatever writer you run. Default deepseek/deepseek-v4.1-flash (the most accurate and among the cheapest measured, see below); leave blank to reuse the PROSE model.[/*]
-[*]Per-role providers ([i]Roleplay / Prose provider[/i], [i]NSFW provider[/i], [i]Interpret provider[/i]).. each role can go to its own backend. The prose provider is the base; the other two inherit it on [i](default)[/i], or pick their own.. for instance prose in the cloud and the interpreter on a local model. When a role uses the OpenAI-Compatible provider, it can also point at its OWN Endpoint URL and carry its OWN API key, so you can split roles across different local servers even when each server requires its own key. Applies immediately.[/*]
-[*]Reasoning Effort (PROSE) / Reasoning Effort (NSFW).. how hard a reasoning model (like Grok) "thinks" before replying. In Enhanced mode the PROSE model writes captivity scenes too, so keep PROSE effort [b]Low or Medium[/b] (its default is Low).. higher can mean finer dialogue but slower replies, more truncation, and more refusals on adult content. NSFW defaults to "Same as PROSE" and is worth dropping to Low/Off for fewer refusals and faster scenes. On OpenRouter; and an [b]OpenAI-compatible / local[/b] endpoint now carries its own Reasoning Effort dial too, sent in the format those servers expect.[/*]
+[*][b]OpenRouter API Key[/b].. your key from openrouter.ai/keys, stored on this machine only.[/*]
+[*][b]Reasoning Effort (PROSE)[/b] (Low).. how hard a reasoning model thinks before replying. Higher can mean finer dialogue but slower replies, more truncation and more refusals on adult content: keep it Low or Medium. Grok 4 only thinks or not, so Low means off there. Also used by NanoGPT.[/*]
+[*][b]Reasoning Effort (NSFW)[/b] (Same as PROSE).. the same, for explicit scenes. Low or Off makes a reasoning model far less prone to moralizing refusals, and faster.[/*]
+[*][b]Test Connection[/b].. validates your key, then sends a one-token test to each model you set, so a mistyped id is caught before you play. Costs a fraction of a cent.[/*]
+[*][b]Pin Providers (advanced)[/b] and [b]Pin Providers (NSFW)[/b].. leave blank unless needed. Pinning names the OpenRouter providers that may serve you (comma separated): it avoids a provider that censors its own output mid-sentence, and it steadies prompt caching, which lowers cost. The NSFW pin, if set, applies to explicit scenes only.[/*]
+[*][b]Allow provider fallbacks[/b] (off).. only matters with a pin. Off makes the pin a hard rule; on lets OpenRouter fall back to others when yours are down.[/*]
 [/list]
 
-[b][color=#b6d7a8]OpenRouter[/color] [/b](used when Provider is set to OpenRouter):
+[b][color=#b6d7a8]NanoGPT[/color][/b]:
 [list]
-[*]OpenRouter API Key.. your key from openrouter.ai/keys. Applies immediately.[/*]
-[*]Test Connection.. validates your key [i]and[/i] every model you've configured (roleplay, and NSFW if set): it sends a one-token test prompt per model and reports any error (a mistyped model id, for instance). Costs a fraction of a cent.[/*]
+[*][b]NanoGPT API Key[/b].. your key from nano-gpt.com, stored on this machine only.[/*]
+[*][b]Test NanoGPT Connection[/b].. checks your key against nano-gpt.com. No tokens spent.[/*]
 [/list]
 
-[b][color=#b6d7a8]NanoGPT[/color] [/b](used when Provider is set to NanoGPT):
+[b][color=#b6d7a8]OpenAI-Compatible[/color][/b] (a local server, or any OpenAI-style API):
 [list]
-[*]NanoGPT API Key.. your key from nano-gpt.com. Applies immediately.[/*]
-[*]Test NanoGPT Connection.. verifies your key and your configured model(s) against NanoGPT. Costs a fraction of a cent per model.[/*]
+[*][b]API Key (optional)[/b].. leave blank for keyless servers like LM Studio or Ollama.[/*]
+[*][b]Endpoint URL (Prose / shared)[/b].. base URL of your server, with /v1 (e.g. http://localhost:1234/v1). It serves the PROSE role and any role whose own endpoint below is blank. Set that role's model under LLM Provider too, or it sends an OpenRouter id to your server.[/*]
+[*][b]Endpoint URL[/b] and [b]API Key[/b] for [b]NSFW[/b], [b]Interpret[/b] and [b]Background[/b].. optional. Give a role its own server and key, to split the work across machines. Blank uses the shared ones.[/*]
+[*][b]Parameter Compatibility[/b] (Auto).. Auto detects OpenAI reasoning models (gpt-5, the o-series) and sends what they require; everything else gets the classic max_tokens and temperature. Leave it on Auto unless your endpoint rejects a field.[/*]
+[*][b]Reasoning Effort[/b] (Default, sends nothing).. sends a reasoning effort to your endpoint. Set Off if a reasoning model spends the whole reply thinking and stalls. Some servers (vLLM) ignore it.[/*]
+[*][b]Test Endpoint[/b].. sends a one-token test to your server with your models. The server must be running.[/*]
 [/list]
 
-[b][color=#b6d7a8]OpenAI-Compatible[/color] [/b](used when Provider is set to OpenAI-Compatible):
+[b][color=#b6d7a8]Content[/color][/b] (what happens in conversation and in the world):
 [list]
-[*]Endpoint URL.. base URL of your local server, including /v1 (e.g. http://localhost:1234/v1 for LM Studio, http://localhost:11434/v1 for Ollama). The mod appends /chat/completions automatically. Applies immediately.[/*]
-[*]API Key (optional).. leave blank for keyless servers like LM Studio or Ollama default. Fill it in only if your server is configured to require one.[/*]
-[*]Parameter Compatibility.. which sampling parameters the request sends. [b]Auto[/b] (default) detects OpenAI reasoning models (the gpt-5 family and the o-series) and sends [i]max_completion_tokens[/i] with no temperature, which they require.. everything else keeps the classic [i]max_tokens[/i] + temperature. [b]Standard[/b] forces the classic shape; [b]Reasoning[/b] forces the reasoning shape. Leave it on Auto unless your endpoint rejects a field.[/*]
-[*]Compact prompt for small models.. trims the system prompt to fit a small short-context local model (roughly 4k-8k). Turn it on if the AI stays silent on a local model. Console: [i]cr.prompt_size[/i].[/*]
-[*]Test Endpoint.. sends a one-token completion to confirm the server is running and the model id is correct. No external calls made.[/*]
+[*][b]Adult Content Level[/b].. how much romantic and intimate content characters may express. Applies on your next conversation:[/*]
+[/list]
+      [b][color=#d9d2e9]Off[/color][/b].. no romantic or adult content at all.
+      [b][color=#b4a7d6]Mature [/color][/b](default).. romance and attraction, nothing explicit.
+      [b][color=#c27ba0]Explicit[/color][/b].. intimate scenes, gated behind genuine trust. A child can be conceived only from here up.
+      [b][color=#a64d79]Hardcore[/color][/b].. unlocks darker adult-only roleplay, including captor and captive scenes.
+[list]
+[*][b]Relationship Pacing[/b].. how relationships grow through conversation: a philosophy, not a difficulty. It only affects warmth; insults and betrayals cost the same at every level. Applies on your next conversation:[/*]
+[/list]
+      [b][color=#b6d7a8]Grounded[/color][/b] (default).. the core game's feel, and the level the mod was balanced around. Trust is earned slowly, mostly through deeds; flattery rarely moves a lord.
+      [b][color=#93c47d]Warm[/color][/b].. good company counts. A well-turned compliment, shared humor or genuine support can each earn a little goodwill, and more often.
+      [b][color=#6aa84f]Storyteller[/color][/b].. roleplay first: personal moments, narrative effort and real connection move hearts readily.
+[list]
+[*][b]Reply Language[/b] (blank).. blank follows the game's language (an English game mirrors the language you write in). Name a language, e.g. Spanish, to force every reply, letter, memory and the illuminated chronicle into it.[/*]
+[*][b]Chat Window Style[/b] (Dark Leather).. the look of the conversation: Dark Leather, the illuminated leather book, or Origin, the original panel. Same conversation, only the look differs.[/*]
+[*][b]Chat Text Size[/b], [b]Dark Leather Size[/b], [b]Council Size[/b], [b]Council Text Size[/b] (100%).. scale the text and the windows on their own. Raise the window sizes on a 1440p or larger screen if the book feels small; lower the council if it overflows.[/*]
+[*][b]Characters Set The Scene[/b] (on).. when you start a conversation, the character opens it: what they were doing and their first words, while you may already type. One more model call per conversation. Off: the short greeting alone.[/*]
+[*][b]NPCs can end conversations[/b] (on).. when a character says goodbye, the chat closes and you click Leave. Off: you can have the last word and close it yourself.[/*]
+[*][b]NPC Cross-Talk[/b] (2).. how many times the characters in a scene may answer one another before the turn comes back to you. 0 turns it off.[/*]
+[*][b]Witness Density[/b] (Bustling).. how many bystanders a conversation gathers: Sparse, Normal or Bustling. Never touches the companions you bring yourself.[/*]
+[*][b]Ask Which Companions Come Along[/b] (off).. off, a conversation opens with whoever is truly there, and the Invite button brings in a companion, a lord riding with you or a prisoner. On: each conversation first asks who comes along, as before 2.7.5.[/*]
+[*][b]Lords Approaching You[/b] (Occasionally).. how often a lord rides out to have a word with you on the road: Never, Rarely, Occasionally or Often.[/*]
+[*][b]Lords Hold Their Course[/b] (on).. a lord riding out to you keeps coming until he reaches you, or gives up after a few days. Off: he may turn back to his own affairs, as before 2.6.8.[/*]
+[*][b]NPCs Raise World News[/b] (off).. off, a character stops you only about something between the two of you. On: they may also ask what you make of distant news.[/*]
+[*][b]Letters from NPCs[/b] (Occasionally).. how many unprompted letters you receive: Rarely, Occasionally or Often. The mod also learns from which letters you answer and which you dismiss.[/*]
+[*][b]Invulnerable Couriers[/b] (off).. off, bandits or the sender's enemies can intercept a courier: the letter is sent again, and what it said travels with its captors. On: no interception.[/*]
+[*][b]Enable Council[/b] (on).. convene companions, kin, clan lords or a war council from a town, castle or village menu, or from a button on the campaign map.[/*]
+[*][b]Council Voices[/b] (One call for the table).. one call keeps the scene cohesive; one call per member gives each their own memory and regard, at a call apiece. You can flip it in the council window.[/*]
+[*][b]Strategic Assessment (AI)[/b] (on).. the assessment is written by your companion with the best Tactics, and the sharper they are, the better the counsel. Off: a plain summary, no AI call.[/*]
+[*][b]Lords can ride in your party[/b] (on).. an idle lord or lady of another clan may agree to ride in your party for a while, keeping their own house. Off: only the escort, their own party riding beside yours.[/*]
+[*][b]Characters can add news to the world[/b] (off).. on, a blight, brigands, a death or an omen a character mentions can become a real rumour that others hear. Never numbers, money or who holds what: the game owns those.[/*]
+[*][b]Authored Quests (experimental)[/b] (off).. on, characters may ask your help with a written tale, a quest in several stages. Off: no new tale is offered; one under way goes on.[/*]
+[*][b]Allow Fief And Marriage Quest Rewards[/b] (off).. let a lord promise one of their own fiefs, or a marriage into their house, as a quest reward.[/*]
+[*][b]Allow Captor Executions[/b] (off).. Hardcore only: a captor may, by their own deliberate choice, end your character deep in a captive scene. Irreversible: game over, or your heir succeeds you.[/*]
+[*][b]Marriage Regard Needed[/b] (50).. the regard a lord or lady must hold for you before accepting a love match. Their family's blessing can still open a match below it.[/*]
+[*][b]Regard Warmth Cooldown[/b] (7 days).. each point of regard costs one more warm moment than the last, and that cost relaxes a step after this many days. 0 turns it off: warmth never gets dearer.[/*]
 [/list]
 
-  Content:
+[b][color=#b6d7a8]Character[/color][/b]:
 [list]
-[*]  Adult Content Level .. how much romantic/intimate content NPCs may express:[/*]
+[*][b]Use custom traits[/b] (off).. applies the hand-written personalities from ModuleData/character_overrides.json in place of a character's five vanilla traits.[/*]
+[*][b]Custom Folder Path[/b] (blank).. where your edited prompts and styles are read from (see "Make it your own" above). An absolute path keeps them outside the mod, so an update never wipes them.[/*]
+[*][b]Self-Esteem Climb[/b] (2).. how hard a character's pride climbs once it is already high. 0: every success counts in full. Higher: harder still.[/*]
+[*][b]Prompt Profile[/b] (Stock).. which prompt profile characters read: the stock one, your own, or one another mod ships. Stock is the reset. Console: [i]cr.prompt_check[/i] lists what each profile changes.[/*]
 [/list]
-      [b][color=#d9d2e9]Off[/color][/b].. no romantic or adult content at all.
-      [b][color=#b4a7d6]Mature [/color][/b](default).. romance and attraction, nothing explicit.
-      [b][color=#c27ba0]Explicit[/color][/b].. intimate scenes, gated behind genuine trust.
-      [b][color=#a64d79]Hardcore[/color][/b].. unlocks darker adult-only roleplay, including captor/captive scenes.
-     [i] Applies on your next conversation.[/i]
-[list]
-[*]  Relationship Pacing .. how relationships grow through conversation.. a philosophy of interaction, not a difficulty. Affects only positive regard.. insults and betrayals stay just as costly at every level:[/*]
-[/list]
-      [b][color=#b6d7a8]Grounded[/color][/b] (default).. the core game's feel, and the level the mod was balanced around. Trust is earned slowly, mostly through deeds; flattery rarely moves a lord.
-      [b][color=#93c47d]Warm[/color][/b].. good company counts. A well-turned compliment, shared humor, an engaging story or genuine support can each earn a little goodwill, and more often.
-      [b][color=#6aa84f]Storyteller[/color][/b].. a roleplay-first experience: personal moments, narrative effort and real connection move hearts readily, with little throttle.
-    [i]Applies on your next conversation.[/i]
 
-  Diagnostics:
+[b][color=#b6d7a8]Companions[/color][/b]:
 [list]
-[*][b]Enable Logging[/b] (off by default).. master switch for all mod logging (on-screen messages and the CalradiaRemembers.log file). Leave off for normal play; turn on only to capture a bug report.[/*]
-[*][b]Verbose Logging[/b] (off).. logs the full prompt and NPC response on every exchange. Floods the log; for bug reports only. Requires Enable Logging.[/*]
-[*][b][color=#b6d7a8]Story Log[/color][/b] (off).. writes the clean, novel-style transcript described above to CalradiaRemembers_story.log in your Bannerlord Logs folder.[/*]
-[*][b]Report unsupported actions[/b] (off).. if the AI ever tries something the mod cannot do yet (an action it was not taught), it is always logged to CalradiaRemembers_unknown_actions.log in your Bannerlord Logs folder, with what it was trying to do. Turn this on to also see a small note in chat when it happens. Either way, send me that log on the [b]Posts[/b] tab to request the action be supported in a future update.[/*]
+[*][b]Companion contentment[/b] (on).. a neglected companion grows restless, asks for a word, and if you keep refusing, eventually leaves by letter, never silently. A companion merely left idle never leaves you.[/*]
+[*][b]Contentment Pacing[/b] (Balanced).. how fast companions get over a grievance: Forgiving, Balanced or Exacting.[/*]
+[*][b]Companions Asking For A Word[/b] (Occasionally).. how often a travelling companion asks for a private word, in a settlement or on the road: Never, Rarely, Occasionally or Often.[/*]
+[/list]
+
+[b][color=#b6d7a8]Relationships[/color][/b] (consequences in the wider world):
+[list]
+[*][b]Enable Jealousy[/b] (on).. partners react to being favoured or slighted, and open-relationship pacts matter. Off: a drama-free household.[/*]
+[*][b]Enable Stolen Love[/b] (off).. on, seducing a married character becomes a gated path true to their personality (an honourable or content one holds firm whatever your standing).[/*]
+[*][b]Allow killing characters[/b] (off).. off, you may rob or beat someone in conversation, never kill. On: a killing attempt is possible, never a formality, and the world answers: a crime, lost standing, kin who remember.[/*]
+[*][b]Arrests and outlaws[/b] (off).. on, as a vassal or mercenary, a grave act brings a warrant: face your liege's council, or flee as an outlaw with a price on your head. Robbing merchants in peace makes you a brigand. Never applies to a ruler.[/*]
+[*][b]Clan standing warms first meetings[/b] (on).. someone whose clan already counts you a friend starts warmer toward you, once; the rest is earned in person.[/*]
+[*][b]Mercenary departures are judged[/b] (on).. when a contract ends, the realm's lords judge it: leaving a losing war, or going over to its enemy, costs their regard for a year.[/*]
+[*][b]Vassal war duty[/b] (off).. on, a sworn vassal who sits out the realm's war is summoned by the ruler to answer for it, then asked a levy in coin, troops, horses or arms, and may lose a fief by giving nothing. [b]War duty window[/b] (30 days) and [b]War levy scale[/b] (100%) tune it.[/*]
+[*][b]Show secret memories[/b] (off).. lists in a character's Memories panel the secrets other mods give them, marked secret. Off, you learn them in play.[/*]
+[*][b]Edicts of the world's lords[/b] (off).. on, the world's lords decree edicts on their own towns, and rulers on their realms, to answer a sore need. Your own edicts work either way.[/*]
+[/list]
+
+[b][color=#b6d7a8]Duels[/color][/b]:
+[list]
+[*][b]Post-duel conversation[/b] (on).. after a duel the conversation reopens. The loser concedes (a beaten character of honour may grant a favour you ask); the victor says what they now expect.[/*]
+[/list]
+
+[b][color=#b6d7a8]Diagnostics[/color][/b]:
+[list]
+[*][b]Enable File Logging[/b] (off).. writes the mod's diagnostics to CalradiaRemembers.log; only the last two sessions are kept. Turn it on to capture a bug report.[/*]
+[*][b]Enable On-Screen Logging[/b] (off).. also prints them on screen, top left. Only to watch the mod live.[/*]
+[*][b]Verbose Logging[/b] (off).. logs the full prompt and reply on every exchange. Floods the log; for bug reports only. Requires file logging.[/*]
+[*][b]Story Log[/b] (off).. writes a clean, novel-style transcript of every conversation and letter to CalradiaRemembers_story.log in your Bannerlord Logs folder.[/*]
+[*][b]Report unsupported actions[/b] (off).. every action the AI tries that the mod does not support yet is logged to CalradiaRemembers_unknown_actions.log either way; turn this on to also see a note in chat. Send me that log on the [b]Posts[/b] tab to ask for the action.[/*]
 [/list]
 
 [line]
