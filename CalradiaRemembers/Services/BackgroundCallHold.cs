@@ -22,7 +22,7 @@ namespace CalradiaRemembers.Services
    {
       private const int PollMilliseconds = 1000;
 
-      /// <summary>cr.testall seam: forces "a conversation is open" (true) or closed (false); null reads the chat.</summary>
+      /// <summary>cr.test all seam: forces "a conversation is open" (true) or closed (false); null reads the chat.</summary>
       internal static bool? DebugConversationOpen;
 
       /// <summary>

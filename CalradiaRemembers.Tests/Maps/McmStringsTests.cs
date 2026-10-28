@@ -26,7 +26,7 @@ namespace CalradiaRemembers.Tests.Maps
       /// <summary>Where the English template ships, relative to the mod repository.</summary>
       public const string TemplatePath = "CalradiaRemembers/ModuleData/Languages/EN/std_CalradiaRemembers_mcm.xml";
 
-      // The width a hint has before MCM clips it (v2.5.6 repaired nineteen that ran off; cr.testall setting_hints_fit).
+      // The width a hint has before MCM clips it (v2.5.6 repaired nineteen that ran off; cr.test setting_hints_fit).
       private const int MaxHintChars = 250;
 
       // STAKE (kkxz3): a setting without an id cannot be translated; the page reads half in one language, half in English.

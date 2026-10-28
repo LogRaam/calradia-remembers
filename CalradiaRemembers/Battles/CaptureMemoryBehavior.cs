@@ -31,7 +31,7 @@ namespace CalradiaRemembers.Battles
 
       public override void RegisterEvents()
       {
-         // Guarded here rather than through SafeRun: written while SafeRun lived in Diagnostics, whose cr.testall drives
+         // Guarded here rather than through SafeRun: written while SafeRun lived in Diagnostics, whose cr.test all drives
          // this behaviour, so the reverse reference would have closed a namespace cycle. SafeRun is at the root since
          // 19/10/2026 and could serve; this guard is kept as it is.
          CampaignEvents.MapEventStarted.AddNonSerializedListener(this, (e, a, d) => Guard("battle", () => OnBattle(e)));
@@ -70,7 +70,7 @@ namespace CalradiaRemembers.Battles
          });
       }
 
-      /// <summary>Writes the captor's memory (cr.testall drives it with facts of its own).</summary>
+      /// <summary>Writes the captor's memory (cr.test all drives it with facts of its own).</summary>
       internal static MemoryResult Record(string captorId, CaptureFacts facts)
       {
          MemoryResult result = CrNpcMemory.AddMemory(new CrMemoryEntry {

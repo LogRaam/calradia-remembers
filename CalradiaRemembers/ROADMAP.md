@@ -80,7 +80,7 @@ and the bridge. Before, they do not: actions are taught in three places that do 
    bench, rp_bench) when step 4 lands.
 2. A failed interpreter call: "reessaie une fois l'interpreteur en ajoutant un log qui le specifie". BUILT 25/10/2026:
    `InterpreterRetryPolicy` (Logic), `ActionInterpreterComposer.AttemptAsync`; each retry and its outcome on the Compat
-   log channel; `cr.testall interpreter_retry`.
+   log channel; `cr.test interpreter_retry`.
 
 **Steps.**
 
@@ -226,7 +226,7 @@ An `arc` on a `talk_to` objective (meant for `"when": "closed"`):
 ### Increments
 
 1. **A straight arc**: beats, exchanges, lead, `do`, the direction in the prompt, `max_exchanges`, the soft close. This
-   alone answers "too short or too long". Loader, editor checks (parity fixtures), save, `cr.testall tale_arc`, the
+   alone answers "too short or too long". Loader, editor checks (parity fixtures), save, `cr.test tale_arc`, the
    Rhagaea night written with it. BUILT 25/10/2026 (Gabriel: "continu"): `TaleArc` (Logic), the direction inside the
    giver's tale block (`AuthoredQuestPrompt.ForCharacter`, below the marker, so no SDK field was needed), counted in
    `ChatViewModel` once the reply's deeds are applied (main speaker, not the scene opener, not a captive scene: the chamber
@@ -261,7 +261,7 @@ model's review of war and peace parked.
   tournament, ambush, hideout and console only). Proposal: at war start each lord settles ONCE how he stands toward
   the player (from his regard, `NpcProfile.ReputationWithPlayer`, kinship and traits), a pure Logic policy, no model
   call; a rule then keeps a friend from raiding or burning the player's villages (and perhaps from leading the first
-  siege of the player's fiefs). Cheap, deterministic, a cr.testall. Open: what a friend does instead (raids elsewhere,
+  siege of the player's fiefs). Cheap, deterministic, a cr.test all. Open: what a friend does instead (raids elsewhere,
   stays home, warns the player by letter); whether a stance changes during the war; the realm's own stake (a ruler who
   orders the raid anyway). Needs an engine spike on the party AI's raid choice (decompile 1.4.8, never guess).
 - **1b. The model reviews war and peace decisions (PARKED).** DepaHN: before a war declaration, a war vote or a peace
@@ -549,7 +549,7 @@ AimRules, AimRaisePolicy, AimApproachWording, AimConversationLeave; 30 tests), S
 prefix, 4 EncounterContext fields, compact one line; 5 tests). Nothing reaches a player yet.
 
 **PUBLIC DOOR BUILT 20/10/2026 for 2.7.19** (Gabriel approved the shape below as proposed; `Extension/CrAims.cs`, plus
-`AimResult.ReservedSource` for a mod using CR's own source name; cr.testall `aims_door`). Conversation only; letter and
+`AimResult.ReservedSource` for a mod using CR's own source name; cr.test `aims_door`). Conversation only; letter and
 audience channels for another mod's aims still to come (the `Channels` field already takes them).
 
 **The public shape (was PROPOSED; modder-api.md and save-format.md are contracts):**
@@ -564,7 +564,7 @@ audience channels for another mod's aims still to come (the `Channels` field alr
 - Glue, in order: (1) conversation: CrConversation.Started -> AimConversationLeave.Open (enemy, captivity facts from the
   host), EncounterContextBuilder fills OwnAim*, Ended -> Close, Raised fired; (2) letter: a new LetterReason through
   the mailbox (budget, cooldown, ActionGate.Letter), marked when released; (3) audience: one more "live reason to
-  speak" below the existing ones in FiefAudience/RoadInterception, marked when granted. Each with a cr.testall test
+  speak" below the existing ones in FiefAudience/RoadInterception, marked when granted. Each with a cr.test all test
   (register -> the prompt carries the want -> the leave holds on a later reply -> retract).
 
 **BUILT 15/10/2026, INTERNAL (Gabriel: the vassal war duty "passe par la nouvelle architecture"):** glue step (1),
@@ -572,7 +572,7 @@ audience channels for another mod's aims still to come (the `Channels` field alr
 four `OwnAim*` context fields from `EncounterContextBuilder`, daily expiry, an internal `Raised` event). Nothing is
 public yet: the `CrAims` door above stays PROPOSED until Gabriel and tashmetu have seen it. Aims seeded by CR itself
 (source `CalradiaRemembers`) are not voiced by `own_aim`: their mechanic has its own section (the war duty's terms).
-cr.testall `aims_conversation`. Letter and audience channels: next, with the war duty's summons.
+cr.test `aims_conversation`. Letter and audience channels: next, with the war duty's summons.
 
 **The vassal war duty, BUILT 15/10/2026 for 2.7.12 (Maifailun; Gabriel's ladder), NOT play-verified.** Inc 1-6:
 pure rules in `Logic/WarDuty` (who owes, the ladder, the levy, the hand-overs), `WarDuty/WarDutyBehavior` (save key
@@ -862,7 +862,7 @@ keeps in one place**.
 - **Journal:** one entry, mirroring how quests are already mirrored, or the player has to remember for the
   game.
 - **Verification:** pure policy tests (eligibility, window arithmetic, the four end states) plus a
-  `cr.testall rendezvous` that plants one, walks the real arrival path, asserts the audience fires, and cleans
+  `cr.test rendezvous` that plants one, walks the real arrival path, asserts the audience fires, and cleans
   up. Play-verification is the honest gate here, since the payoff is a scene.
 
 ### Increment 2, deliberately later: a lord who rides to meet you
@@ -955,7 +955,7 @@ miss that prompted it.
 
 ### What still needs Gabriel
 
-- **`cr.testall` in game.** Two new live assertions (every ruler the engine knows is told he rules; every
+- **`cr.test all` in game.** Two new live assertions (every ruler the engine knows is told he rules; every
   governor likewise) and prisoners now in the sweep — neither can be verified from here.
 - **DuskSymphony should retest.** The arithmetic says ~6,942 tokens inside 8,192; that is a calculation, not
   a measurement on his machine.
@@ -1014,7 +1014,7 @@ This settles the open question below ("should a mood be legible as a line of pro
 sentence of how the character seems, never a bar.
 
 **Built 30/09/2026, all increments** (MOD 7d609b6, 530d04d, de2bb29, dc6d366 and the P1-P2 commit; SDK d2896f3,
-289ffcb, e6f6323 and the letter increment). cr.testall: mood_of_the_day, self_esteem. Not built: the council does not
+289ffcb, e6f6323 and the letter increment). cr.test: mood_of_the_day, self_esteem. Not built: the council does not
 carry moods (still the open question below); the image is not in the encyclopedia (mood is only seen face to face).
 
 ## DESIGNED 2026-09-14 (Gabriel + player basildingleberry), NOT BUILT: THE MOOD OF THE DAY
@@ -1200,7 +1200,7 @@ several are: handing over the wrong companion is the one error here the player c
 
 **DURABLE ENGINE FACTS** (both read by reflection off the shipped dll, not assumed):
 - `RemoveCompanionAction.ApplyByFire` runs `MakeHeroFugitiveAction`. Use `ApplyAfterQuest` for an honourable
-  transfer. `cr.testall take_into_service` drives the real bridge and asserts the hero is NOT left a fugitive,
+  transfer. `cr.test take_into_service` drives the real bridge and asserts the hero is NOT left a fugitive,
   then restores and asserts the restore.
 - `turn_nemesis` and `recruit_prisoner` join a hero by assigning `Hero.Clan` DIRECTLY and never set
   `CompanionOf`, so `IsPlayerCompanion` is FALSE and `Clan.Companions` omits them - exactly the retainers a
@@ -1322,7 +1322,7 @@ So the design needs two guards of different kinds:
 - **The composition rule — pure, unit-tested.** A rule about the world ("a lord knows his house's finances"),
   which is what makes the assertion worth writing.
 - **Completeness — live.** "Every hero who actually governs something arrives with his post populated." Only a
-  real campaign can answer that, and the instrument and precedent already exist: `cr.testall unavailable_deeds`
+  real campaign can answer that, and the instrument and precedent already exist: `cr.test unavailable_deeds`
   sweeps 60 real lords and asserts `theShutDeedReachesTheLiveEncounterContext=True`. Generalise that shape.
 
 ### Three constraints the design must carry from the first increment
@@ -1459,7 +1459,7 @@ its own. The 170 existing fields migrate afterwards, by family, by strangling.
 
 **Built so far:** increments 1-5 (`house_standing`, `personal_bonds`, `here_and_now` including where on the
 world map they are standing, `seat_standing`, `house_means`), the `NpcKnowledgeFactory`, and three readers of
-it - the runtime factory, the unit tests, and the live sweep `cr.testall knowledge_composition`.
+it - the runtime factory, the unit tests, and the live sweep `cr.test knowledge_composition`.
 
 ### THE AUDIT, first live evidence (`cr.memory_bench`, 2026-09-12, six probes, six passes)
 
@@ -1605,13 +1605,13 @@ was built to end. It is "bands, not numbers" drawn one level up.
   retry. **Honest cost: it is its OWN LLM call, not a free ride on the summariser** - widening that prompt's
   output contract would put the memory line at risk to save a request. One call per conversation CLOSE, never
   per turn.
-- `cr.testall world_claims` drives the real injector against the real store and asserts both refusals.
+- `cr.test world_claims` drives the real injector against the real store and asserts both refusals.
 
 **MCM: "Characters can add news to the world", Content group, OFF by default** (Gabriel, 2026-09-12). Checked
 FIRST in the harvest, so with the switch off the extraction call is never made at all - the feature costs
 nothing rather than costing a request and discarding the answer. The facade falls back to FALSE rather than to
 the usual "on" default: a settings screen that has not loaded yet must not be read as consent for something
-that writes to the save. `cr.testall world_claims` drives the injector directly and REPORTS the toggle state,
+that writes to the save. `cr.test world_claims` drives the injector directly and REPORTS the toggle state,
 so a PASS is never mistaken for "it is running".
 
 **Also open:** nobody has watched a claim make the journey in a real game - invented in one conversation,
@@ -1620,7 +1620,7 @@ adopted, then heard from a second character.
 **A guard that should have existed since v2.5.6.** Adding the twentieth MCM hint made it obvious that nothing
 protected the nineteen: that release repaired nineteen hints running off the screen, by hand, and because they
 read "On (default): ... Off: ..." the clipped half was always the one explaining the other position. New
-`cr.testall setting_hints_fit` reads the ATTRIBUTES (so it holds whether or not MCM has loaded) and asserts
+`cr.test setting_hints_fit` reads the ATTRIBUTES (so it holds whether or not MCM has loaded) and asserts
 every hint is under 250 characters and none is empty.
 
 ### IS versus KNOWS, and the case for gathering the whole prompt (Gabriel, 2026-09-12)
@@ -1747,7 +1747,7 @@ Notability is by SHARE, not amount: a thousand denars is a fortune to one realm 
 another, and a chronicle that only remarked on the largest kingdom would be a chronicle about one kingdom. A
 stronghold changing hands has no threshold at all, because it is the thing people actually talk about.
 
-`cr.testall seasonal_chronicle` drives the real behaviour against the real store with a deliberately perturbed
+`cr.test seasonal_chronicle` drives the real behaviour against the real store with a deliberately perturbed
 reading - the honest alternative is waiting a season and hoping a kingdom took a town - and removes its row.
 
 ### THE ROLE AUDIT (Gabriel asked, 2026-09-12: are packs or ROLES missing?)
@@ -2120,7 +2120,7 @@ Later addition: a killing asks the player to confirm first, because the MODEL is
 **Shipped:** `ViolencePolicy` + `ViolenceConsequencePolicy` (pure), `PlayerViolenceVerb` (rob_npc / assault_npc /
 kill_npc), `ViolenceSceneReader`, `ViolenceConsequenceService`. The law is the ENGINE'S own crime rating. Two
 anti-exploit rules do the load-bearing work: the law hears something even unwitnessed, and a failed attempt still
-costs. `cr.testall player_violence`. **Deliberately NOT done:** being seized or arrested on a failed attempt, since
+costs. `cr.test player_violence`. **Deliberately NOT done:** being seized or arrested on a failed attempt, since
 Bannerlord has no clean path for it and faking one would strand the player in a scene the engine does not own.
 
 ---
@@ -2308,7 +2308,7 @@ Level 1 (SHIPPED v2.2.0: MOD `d50160a` / SDK `c51f7cd`; unit-tested, not play-te
 the two-stage CaptiveSceneSummarizer pattern. Pure `LetterMemoryPolicy` (which LetterReason values warrant a memory,
 excluding pure re-pings AwaitingReply/QuestUpdate; a synchronous first-person BaseMemory as guaranteed capture) +
 SDK `LetterMemorySummarizer` (one-shot LLM, first-person past-tense NPC POV of what the letter proposed/agreed/
-reported) + mod wiring at the letter-received and PlayerLetterReply sites + a `letter_memory` cr.testall self-test.
+reported) + mod wiring at the letter-received and PlayerLetterReply sites + a `letter_memory` cr.test all self-test.
 
 Level 2 (LATER, separate, larger): a letter-agreed marriage actually SEEDS the real arrange_marriage / a Commitment,
 so it is not only remembered but executed. Ties into the "letters carry actions" extension.
@@ -2405,7 +2405,7 @@ Shape (NOT started):
   territory); "here, hold the blade like THIS" is an executable lesson this turn. Only the latter grants XP now;
   the former could seed a Commitment the NPC later honors (ties into the escort/errand commitment machinery).
 - Pure policy `TeachSkillPolicy` (who can teach what, how much, cooldown) isolated in .Logic with tests; a
-  cr.testall self-test via a DebugEvaluate seam; a cr.teach_info console command.
+  cr.test all self-test via a DebugEvaluate seam; a cr.teach_info console command.
 
 Fits the mission: a spoken offer shows up on the character sheet, verified by a real engine grant, bounded so it
 cannot be abused. Related: the anti-empty-promise rule (STAY WITHIN WHAT YOU KNOW), join_party's re-validation
@@ -3048,10 +3048,10 @@ but requiring the quest to exist). **Inc 2:** the gift verb, and retro-fit `lend
 
 ## TEST ARCHITECTURE RATIFIED (Gabriel 2026-07-18): three lanes, and what each is actually for
 
-Born from a cost question ("can cr.testall be shortened by removing redundancy?") whose premise turned out to
+Born from a cost question ("can cr.test all be shortened by removing redundancy?") whose premise turned out to
 be wrong, and worth writing down because the measurement reverses the intuition.
 
-**The measurement** (from a full `cr.testall` run, 2026-07-18): 76 tests, 583.7s. **13 LLM tests = 583.2s
+**The measurement** (from a full `cr.test all` run, 2026-07-18): 76 tests, 583.7s. **13 LLM tests = 583.2s
 (99.9%). The other 63 mechanical tests = 0.5s TOTAL.** Removing every "redundant" mechanical test would save
 half a second out of thirteen minutes. All the cost is real LLM calls, so that is the only place cost can be cut.
 
@@ -3098,7 +3098,7 @@ in log", i.e. a human reading the transcript. They are prompt-iteration TOOLS, n
 
 ### The split to build
 
-- `cr.testall` = regression: the 63 mechanical + lane B as it grows. Seconds, free.
+- `cr.test all` = regression: the 63 mechanical + lane B as it grows. Seconds, free.
 - `cr.testchatall` (new) = conversation quality: the 13 real-LLM tests, on demand.
 - Keep ONE captor variant in the sweep as a canary for total generation failure (which is exactly what
   `chat_captor_scene` caught on 2026-07-18: an empty beat 2 after the client's own retry).
@@ -4279,7 +4279,7 @@ against Y"). One pledge in flight per lord. **Phase 2 ✅ BUILT (untested in gam
 (`CommitmentQuest`/`CommitmentJournalBridge`, a read-only `QuestBase` mirroring `CalradiaRemembersQuest`, opened
 on Create, closed success/fail on fulfil/breach, `ReconcileOnSessionLaunch` anti-stuck pass), console
 diagnostics (`cr.commitments`, `cr.pledge`, `cr.pledge_fulfill`, `cr.pledge_breach`), and the
-`commitment_fulfilled`/`commitment_breached` self-tests in `cr.testall`. The mirror persists only
+`commitment_fulfilled`/`commitment_breached` self-tests in `cr.test all`. The mirror persists only
 `_promisorId`/`_commitmentId` as additive SaveableFields on a new QuestBase subtype; an old save with no mirror
 degrades gracefully (no journal entry for a pledge already in flight).**
 
@@ -4412,7 +4412,7 @@ as `Lifetime.Rumor`; CR's lords gossip about the grey mare of Lord Caladog with 
 system. Pure/testable in `CalradiaRemembers.Logic`: the validator/normaliser (clamp, bound, id-resolve,
 default) and the DTO→`WorldEvent` mapping; only the public static façade + behavior registration is engine glue.
 
-**Volet B — external mission registration. 🔨 BUILT 2026-06-27 (Opus, untested in game, 496 tests). Public API `CalradiaRemembers.MissionBoard.Register/Complete/Abandon` + DTO `ExternalMission` (plain strings, no Bannerlord types); reward route = A (giver-required, paid when the player REPORTS to the giver in conversation). Reuses the `InformalQuest` pipeline via new `QuestType.External` + `InformalQuest.ExternalId/ExternalSourceMod` (SDK, ordinal-safe), so it inherits journal mirror + framing + gated reward + deadline/abandon/self-heal for free. Pure `ExternalMissionRules` (bound text, clamp reward to CR caps, normalize deadline; 10 tests). Verification ownership: the external mod calls `Complete(id)` (the gate) → stamps `SatisfiedOnDay`/`Evidence` → giver acknowledges + pays on report. Self-test `mission_register` (register→dedup→complete) in cr.testall. Open: a giver-less (B-fallback) variant deferred; modder-facing docs + a v1.16 Nexus section pending.** A mod defines **a mission for the player** and registers
+**Volet B, external mission registration. 🔨 BUILT 2026-06-27 (Opus, untested in game, 496 tests). Public API `CalradiaRemembers.MissionBoard.Register/Complete/Abandon` + DTO `ExternalMission` (plain strings, no Bannerlord types); reward route = A (giver-required, paid when the player REPORTS to the giver in conversation). Reuses the `InformalQuest` pipeline via new `QuestType.External` + `InformalQuest.ExternalId/ExternalSourceMod` (SDK, ordinal-safe), so it inherits journal mirror + framing + gated reward + deadline/abandon/self-heal for free. Pure `ExternalMissionRules` (bound text, clamp reward to CR caps, normalize deadline; 10 tests). Verification ownership: the external mod calls `Complete(id)` (the gate) → stamps `SatisfiedOnDay`/`Evidence` → giver acknowledges + pays on report. Self-test `mission_register` (register→dedup→complete) in cr.test all. Open: a giver-less (B-fallback) variant deferred; modder-facing docs + a v1.16 Nexus section pending.** A mod defines **a mission for the player** and registers
 it into CR's verified-quest system, inheriting all of CR's guarantees: the **journal mirror**, NPC-facing
 framing, reward gating, deadline/abandon lifecycle, and the **self-heal-on-load** that force-closes anything
 dangling (no ghost quests from a third-party mod either). The hard part — and the line that preserves "the
@@ -5667,7 +5667,7 @@ one BUILT:
   designed for it) — Phase 2b is the dedicated feature for that case. Still open: letters/journal-mirror surfacing
   the estrangement beyond the initial letter (today's `[SPOUSE_DIVORCE]` log line and the announcing letter are the
   only visible cues, no reminder as the deadline nears); a `chat_spouse_divorce`/`chat_spouse_estrangement` LLM
-  self-test (today's are mechanical only, see `cr.testall`); Khuzait cultural nuance research.
+  self-test (today's are mechanical only, see `cr.test all`); Khuzait cultural nuance research.
 
 ### Smaller polish (deferred)
 - **Chat composer — a true MULTI-LINE editing box** *(wished 2026-07-01; the "best" option, deferred)*: a player
@@ -5696,7 +5696,7 @@ one BUILT:
   town (certain, "in the tavern", preferred) or of the NPC's culture (heard of); the prompt forbids inventing a
   name OR claiming to know of others, and falls back to "taverns of towns" when none are known. Only injected
   when the player actually asks (no token cost otherwise). Console self-test `cr.test chat_recruit_companion`
-  (in `cr.testall`): deterministically asserts the gate fired + a wanderer was gathered, then logs the reply to
+  (in `cr.test all`): deterministically asserts the gate fired + a wanderer was gathered, then logs the reply to
   judge the grounding. Pure `RecruitIntentDetector` has 5 unit tests.
 - **Ambush bandit placement on the navmesh** *(wished + BUILT 2026-06-28, untested in game)*: the old
   `AmbushFightMissionLogic` ring was raw geometry (cos/sin at the player's Z), so thugs could land between walls

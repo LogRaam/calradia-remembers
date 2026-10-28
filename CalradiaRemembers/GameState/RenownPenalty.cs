@@ -1,5 +1,5 @@
 // Code written by Gabriel Mailhot, 06/09/2026.
-// Every renown PENALTY in this mod was silently doing nothing, found 2026-09-06 when cr.testall's
+// Every renown PENALTY in this mod was silently doing nothing, found 2026-09-06 when cr.test all's
 // letter_leak_consequences reported "player renown 30.6 -> 30.6" after a leak that is supposed to cost 2 or 3.
 //
 // The cause is in the engine, and it is easy to miss because the call looks right:

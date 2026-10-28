@@ -100,7 +100,7 @@ namespace CalradiaRemembers.Mapping
             : "";
 
       /// <summary>
-      ///   Test seam for cr.testall: sets one station or trade text in memory and returns what was there, so the
+      ///   Test seam for cr.test all: sets one station or trade text in memory and returns what was there, so the
       ///   test can put it back. Never called by the game.
       /// </summary>
       internal static string ReplaceStationGuidelinesForTest(string key, string text)

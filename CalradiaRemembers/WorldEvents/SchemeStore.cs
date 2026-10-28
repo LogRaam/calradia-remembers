@@ -82,7 +82,7 @@ namespace CalradiaRemembers.WorldEvents
       ///   Test seam: drops every scheme between these two and reports how many went. A self-test that forces a plot
       ///   must be able to put the campaign back as it found it, or the SECOND run finds the pair still entangled,
       ///   ForcePlot refuses to lay a new plot over the old one, and the test fails on a world its own first run
-      ///   left behind (cr.testall, 2026-09-06).
+      ///   left behind (cr.test all, 2026-09-06).
       /// </summary>
       public int DebugForgetSchemesBetween(Hero plotter, Hero target)
       {

@@ -31,7 +31,7 @@ namespace CalradiaRemembers.Arrests
    [HarmonyPatch]
    public static class BrigandagePatch
    {
-      /// <summary>The engine's own hostile-act core, or null when this build does not have it (cr.testall checks it is patched).</summary>
+      /// <summary>The engine's own hostile-act core, or null when this build does not have it (cr.test all checks it is patched).</summary>
       internal static MethodBase TargetMethod() => AccessTools.Method(typeof(BeHostileAction), "ApplyInternal");
 
       /// <summary>Skips the patch cleanly when the target does not exist in this game build.</summary>

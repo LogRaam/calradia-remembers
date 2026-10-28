@@ -67,7 +67,7 @@ namespace CalradiaRemembers.OpenPartnerLover
       }
 
       /// <summary>
-      ///   Test / console seam (cr.take_lover, cr.testall open_partner_lover): drives the REAL lover selection
+      ///   Test / console seam (cr.take_lover, cr.test open_partner_lover): drives the REAL lover selection
       ///   and link for <paramref name="partner" /> immediately, bypassing only the weekly neglect roll (so a
       ///   self-test need not wait a week or force a chance). Returns the chosen lover, or null when she is not
       ///   an eligible committed partner (the culture gate still applies) or no plausible candidate exists.
@@ -87,7 +87,7 @@ namespace CalradiaRemembers.OpenPartnerLover
       }
 
       /// <summary>
-      ///   Test / console seam (cr.tryst, cr.testall): forces ONE tryst between <paramref name="partner" /> and
+      ///   Test / console seam (cr.tryst, cr.test all): forces ONE tryst between <paramref name="partner" /> and
       ///   her taken lover NOW, bypassing only the "player is away" gate and the weekly meeting roll (so a
       ///   self-test need not stage the player's position or wait for a hit). Every other step is the production
       ///   path: the bond bump, the counter, the private memory, and, for a SECRET affair, the discovery check.
@@ -110,7 +110,7 @@ namespace CalradiaRemembers.OpenPartnerLover
       }
 
       /// <summary>
-      ///   Test / console seam (cr.lover_child, cr.testall): forces <paramref name="partner" /> to conceive a child
+      ///   Test / console seam (cr.lover_child, cr.test all): forces <paramref name="partner" /> to conceive a child
       ///   BY HER TAKEN LOVER now, bypassing only the per-tryst conception roll (so a self-test need not stage a
       ///   fertile hit). She must already carry a lover (use cr.take_lover first) and be fertile
       ///   (<see cref="PregnancyService.IsEligible" />). Runs the REAL conception path: the child's father is the
@@ -138,7 +138,7 @@ namespace CalradiaRemembers.OpenPartnerLover
       }
 
       /// <summary>
-      ///   Test / console seam (cr.tryst, cr.testall): runs the OPEN-lover awareness step for
+      ///   Test / console seam (cr.tryst, cr.test all): runs the OPEN-lover awareness step for
       ///   <paramref name="partner" /> now (word of an openly held lover reaching the player), the same one the
       ///   weekly pass runs. A no-op for a secret affair (which surfaces only on discovery) or one already known.
       ///   Returns whether the player now knows of the lover.

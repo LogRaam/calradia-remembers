@@ -17,7 +17,7 @@ namespace CalradiaRemembers
       /// <summary>
       ///   cr.memory_bench [name] — asks a character six questions against the REAL model and reports whether he
       ///   used what he knows and kept quiet about what he does not. Spends tokens, which is why it is a command
-      ///   rather than part of cr.testall.
+      ///   rather than part of cr.test all.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("memory_bench", "cr")]
       public static string RunMemoryBench(List<string> args)

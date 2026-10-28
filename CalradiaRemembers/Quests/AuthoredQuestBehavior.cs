@@ -297,7 +297,7 @@ namespace CalradiaRemembers.Quests
          }
       }
 
-      /// <summary>How many of the tales loaded came from another mod's cr_quests (cr.testall tale_mod_folders).</summary>
+      /// <summary>How many of the tales loaded came from another mod's cr_quests (cr.test tale_mod_folders).</summary>
       internal int TalesFromOtherMods => _quests.Values.Count(q => q.Source != null && q.Source.Contains(": "));
 
       private readonly Dictionary<string, string> _folders = new(StringComparer.OrdinalIgnoreCase);
@@ -714,7 +714,7 @@ namespace CalradiaRemembers.Quests
                               && FactionManager.IsAtWarAgainstFaction(h.MapFaction, Hero.MainHero.MapFaction)
          };
 
-      /// <summary>cr.testall seam: what the world exits read of this hero.</summary>
+      /// <summary>cr.test all seam: what the world exits read of this hero.</summary>
       internal static TaleRoleState DebugRoleState(Hero h) => RoleState(h);
 
       /// <summary>
@@ -758,7 +758,7 @@ namespace CalradiaRemembers.Quests
             FortressUnderSiege = s?.IsTown == true ? s.IsUnderSiege : s?.Village?.Bound?.IsUnderSiege == true
          };
 
-      /// <summary>cr.testall seam: the state of a village as the tale's choice reads it.</summary>
+      /// <summary>cr.test all seam: the state of a village as the tale's choice reads it.</summary>
       internal static TaleVillageFacts DebugVillageFacts(Settlement s) => VillageFacts(s);
 
       /// <summary>
@@ -1002,7 +1002,7 @@ namespace CalradiaRemembers.Quests
 
          // A point the game itself would pick (BanditSpawnCampaignBehavior's way), not raw arithmetic around the village:
          // a random offset can land in water or off the walkable map, and the native party creation then failed with an
-         // AccessViolationException (cr.testall authored_quest_opening, Gabriel 19/10/2026, near Mecalovea).
+         // AccessViolationException (cr.test authored_quest_opening, Gabriel 19/10/2026, near Mecalovea).
          Vec2 at = NavigationHelper.FindPointAroundPosition(near.GatePosition, MobileParty.NavigationType.Default, 3f).ToVec2();
          string name = AuthoredQuestEngine.Fill(_run, spawn.Name) ?? "Brigands";
          MobileParty band = SpawnBand(at, near, name, spawn.Template, size);
@@ -1496,7 +1496,7 @@ namespace CalradiaRemembers.Quests
          return roles;
       }
 
-      /// <summary>The last stage notice shown (cr.testall reads it back).</summary>
+      /// <summary>The last stage notice shown (cr.test all reads it back).</summary>
       internal string LastStageNotice { get; private set; }
 
       /// <summary>
@@ -1552,7 +1552,7 @@ namespace CalradiaRemembers.Quests
          if (gold < 0) TaleWorlds.CampaignSystem.Actions.GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, Mapping.HeroPresence.IsInTheWorld(giver) ? giver : null, -gold);
       }
 
-      /// <summary>cr.testall tale_keys: an ending's gold through the real payment.</summary>
+      /// <summary>cr.test tale_keys: an ending's gold through the real payment.</summary>
       internal static void DebugPayGold(int gold, Hero giver) => PayGold(gold, giver);
 
       /// <summary>
@@ -1873,7 +1873,7 @@ namespace CalradiaRemembers.Quests
       private string _lastReturnWhy;
 
       /// <summary>
-      ///   One attempt at her return (TaleElopementPolicy.DecideReturn): now, wait, or never. Gabriel's cr.testall on a new
+      ///   One attempt at her return (TaleElopementPolicy.DecideReturn): now, wait, or never. Gabriel's cr.test all on a new
       ///   game (13/10/2026): the game weds nobody whose party is in an army or a battle, and refused in silence while
       ///   the log claimed she had gone back. Now a passing reason sends her to his house's home and the wedding waits
       ///   (retried daily, RetryWaitingReturns); a refusal is said; success is checked, not assumed. True when done.
@@ -1914,7 +1914,7 @@ namespace CalradiaRemembers.Quests
 
          if (d.RestoreDirectly)
          {
-            // The game's rule for NEW matches refused them (Gabriel's cr.testall, 13/10/2026: Susada and Arcor, no campaign
+            // The game's rule for NEW matches refused them (Gabriel's cr.test all, 13/10/2026: Susada and Arcor, no campaign
             // in the way). Its reasons are logged so the next report names the conjunct; the marriage the tale ended is
             // restored as MarriageAction would, she joining his house.
             var model = Campaign.Current.Models.MarriageModel;
@@ -2021,7 +2021,7 @@ namespace CalradiaRemembers.Quests
          ConceptionMother m = TaleConceptionPolicy.Mother(new ConceptionFacts {PlayerIsFemale = player.IsFemale, PartnerIsFemale = partner.IsFemale});
          if (m == ConceptionMother.None) return (null, null, "two women or two men");
          double chance = c?.Chance ?? TaleConceptionPolicy.DefaultChance;
-         // Whole percent, culture-free: "P0" writes "50 %" on a French system (cr.testall tale_conception failed there, 12/10/2026).
+         // Whole percent, culture-free: "P0" writes "50 %" on a French system (cr.test tale_conception failed there, 12/10/2026).
          if (!TaleConceptionPolicy.Conceives(chance, roll)) return (null, null, $"the {(int) Math.Round(chance * 100)}% chance did not fall");
 
          return m == ConceptionMother.Partner ? (partner, player, null) : (player, partner, null);
@@ -2274,7 +2274,7 @@ namespace CalradiaRemembers.Quests
       private static AuthoredStoryQuest Journal(string questId)
          => Campaign.Current?.QuestManager?.Quests?.OfType<AuthoredStoryQuest>().FirstOrDefault(q => q.IsOngoing && q.StoryId == questId);
 
-      // ── Console and cr.testall seams ─────────────────────────────────────
+      // ── Console and cr.test all seams ─────────────────────────────────────
 
       /// <summary>Ends the active run without reward or penalty (cr.story_abandon, and self-test cleanup).</summary>
       internal void Abandon(string reason)
@@ -2420,7 +2420,7 @@ namespace CalradiaRemembers.Quests
          return Result(c, Hero.MainHero?.StringId, null, CrTaleConsequenceStatus.Done, null);
       }
 
-      /// <summary>cr.testall tale_items: an `item` consequence through the real giving.</summary>
+      /// <summary>cr.test tale_items: an `item` consequence through the real giving.</summary>
       internal CrTaleConsequence DebugGiveItem(AuthoredConsequence c) => GiveItem(c);
 
       internal void ForgetPlayed(string questId)
@@ -2499,7 +2499,7 @@ namespace CalradiaRemembers.Quests
       internal void DebugForgetTale(string questId) => _quests.Remove(questId);
 
       /// <summary>
-      ///   Self-test seam (cr.testall tale_opened_by_scenario): opens a scenario tale as its popup's yes would, the tale's
+      ///   Self-test seam (cr.test tale_opened_by_scenario): opens a scenario tale as its popup's yes would, the tale's
       ///   own rules checked as OPEN_TALE checks them, without the popup and without staging the conversation.
       /// </summary>
       internal string DebugOpenFromScenario(string questId, Hero giver)

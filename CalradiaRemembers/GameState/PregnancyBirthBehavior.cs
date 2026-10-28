@@ -111,7 +111,7 @@ namespace CalradiaRemembers.GameState
       }
 
       /// <summary>
-      ///   Test seam (cr.testall lover_child): the lover (genetic father) StringId recorded for a lover-child
+      ///   Test seam (cr.test lover_child): the lover (genetic father) StringId recorded for a lover-child
       ///   pregnancy on <paramref name="mother" />, or null when she carries no tracked lover-child. Lets the
       ///   self-test assert the persisted attribution marker names the lover, since a birth cannot be forced.
       /// </summary>
@@ -125,7 +125,7 @@ namespace CalradiaRemembers.GameState
          return entry?.Substring(prefix.Length);
       }
 
-      /// <summary>Test seam (cr.testall lover_child cleanup): drops all CR tracking (expecting-mother + lover-child link) for <paramref name="mother" />.</summary>
+      /// <summary>Test seam (cr.test lover_child cleanup): drops all CR tracking (expecting-mother + lover-child link) for <paramref name="mother" />.</summary>
       public void DebugForgetTracking(Hero mother)
       {
          if (mother == null) return;

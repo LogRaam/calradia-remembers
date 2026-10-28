@@ -163,13 +163,13 @@ namespace CalradiaRemembers.Jealousy
       }
 
       /// <summary>
-      ///   Test seam (cr.testall open_relationship): runs the competition SELECTION only, firing no reaction,
+      ///   Test seam (cr.test open_relationship): runs the competition SELECTION only, firing no reaction,
       ///   and returns the StringId of the partner who would be chosen as aggrieved (null when none). Lets a
       ///   self-test prove a neglected NON-open partner is chosen while an open-arrangement partner is excluded.
       /// </summary>
       public string DebugSelectAggrieved(int today) => SelectAggrieved(today)?.worst?.StringId;
 
-      /// <summary>Test seam (cr.testall consort_tolerance): fires the REAL reaction of the player's partner over an act with <paramref name="courted" />, no letter.</summary>
+      /// <summary>Test seam (cr.test consort_tolerance): fires the REAL reaction of the player's partner over an act with <paramref name="courted" />, no letter.</summary>
       public void DebugFirePartnerReaction(Hero partner, Hero courted, RomanticActTier tier)
       {
          var today = (int) CampaignTime.Now.ToDays;
@@ -194,13 +194,13 @@ namespace CalradiaRemembers.Jealousy
             : NeglectDays(h, behavior, today);
       }
 
-      /// <summary>Test seam (cr.testall): runs the REAL daily tick through its MCM gate, so the EnableJealousy toggle can be observed suppressing (OFF) or allowing (ON) every jealousy pass.</summary>
+      /// <summary>Test seam (cr.test all): runs the REAL daily tick through its MCM gate, so the EnableJealousy toggle can be observed suppressing (OFF) or allowing (ON) every jealousy pass.</summary>
       public void DebugRunDailyTick() => OnDailyTick();
 
-      /// <summary>Test seam (cr.testall): how many jealousy reactions are queued to fire, so the EnableJealousy gate self-test can watch one fire (ON) or stay pending (OFF).</summary>
+      /// <summary>Test seam (cr.test all): how many jealousy reactions are queued to fire, so the EnableJealousy gate self-test can watch one fire (ON) or stay pending (OFF).</summary>
       public int DebugPendingCount => _state.Pending.Count;
 
-      /// <summary>Test seam (cr.testall): enqueue one due jealousy reaction against <paramref name="partyId" /> for the EnableJealousy gate self-test.</summary>
+      /// <summary>Test seam (cr.test all): enqueue one due jealousy reaction against <paramref name="partyId" /> for the EnableJealousy gate self-test.</summary>
       public void DebugEnqueuePending(string partyId, string courtedName, int reactDay)
          => _state.Pending.Add(new PendingJealousy {
             PartyId = partyId,

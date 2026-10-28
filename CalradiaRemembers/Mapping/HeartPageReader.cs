@@ -2,7 +2,7 @@
 // What the encyclopedia's Heart section reads of the game (Gabriel, 20/10/2026: love stories were kept and shown nowhere):
 // the vanilla marriage, which outranks the romantic state since a divorce does not reset it; the wedding day CR recorded;
 // the children the two have, never a bastard still hidden; her own lover only once the player knows of him. The words are
-// HeartPagePolicy's. Shared by the page and cr.testall heart_page, so the test reads exactly what the player reads.
+// HeartPagePolicy's. Shared by the page and cr.test heart_page, so the test reads exactly what the player reads.
 // At Hardcore the nights (HeartIntimacyPolicy, Gabriel 23/10/2026): the character's own Intimacy memories, which
 // compression always keeps. What the player took by force is not love: it is told in Misdeeds (MisdeedsPageReader).
 
@@ -26,7 +26,7 @@ namespace CalradiaRemembers.Mapping
     /// <summary>Reads a hero's bond with the player for the Heart section.</summary>
     internal static class HeartPageReader
     {
-        /// <summary>The Heart lines of a hero's page, as shown (cr.testall heart_page reads this seam). Empty when none.</summary>
+        /// <summary>The Heart lines of a hero's page, as shown (cr.test heart_page reads this seam). Empty when none.</summary>
         internal static IReadOnlyList<string> LinesFor(Hero hero)
         {
             if (hero == null || Hero.MainHero == null) return Array.Empty<string>();
@@ -51,7 +51,7 @@ namespace CalradiaRemembers.Mapping
             return recap;
         }
 
-        /// <summary>The tastes in bed the player has learned of this hero, as the page names them (cr.testall intimate_acts reads this seam).</summary>
+        /// <summary>The tastes in bed the player has learned of this hero, as the page names them (cr.test intimate_acts reads this seam).</summary>
         internal static string TastesLine(Hero hero, NpcProfile profile)
         {
             RomanticProfile r = profile?.Romantic;

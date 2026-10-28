@@ -64,7 +64,7 @@ namespace CalradiaRemembers.Letters
       /// </summary>
       private static string WhereaboutsForHero(Hero hero) => hero == null ? null : LetterWhereaboutsPolicy.ForWriter(WhereaboutsOf(hero));
 
-      /// <summary>Test seam (cr.testall): the phrase a letter places the player with right now.</summary>
+      /// <summary>Test seam (cr.test all): the phrase a letter places the player with right now.</summary>
       internal static string DebugPlayerWhereabouts() => Hero.MainHero == null ? null : LetterWhereaboutsPolicy.ForPlayer(WhereaboutsOf(Hero.MainHero));
 
       /// <summary>Where a hero is, as facts for LetterWhereaboutsPolicy (the writer's phrase and the player's differ).</summary>

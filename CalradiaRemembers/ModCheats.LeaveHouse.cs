@@ -1,6 +1,6 @@
 // Code written by Gabriel Mailhot, 26/10/2026.
 // Leaving the house for a ruler (Gabriel, 26/10/2026): what bars it, and the real hand-over for a throwaway save. The
-// hand-over cannot be undone, so cr.testall never runs it; cr.leave_house is how it is walked.
+// hand-over cannot be undone, so cr.test all never runs it; cr.leave_house is how it is walked.
 
 #region
 

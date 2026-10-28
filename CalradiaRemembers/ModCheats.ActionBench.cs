@@ -22,7 +22,7 @@ namespace CalradiaRemembers
       ///   the tell or anti-pattern to tighten in GameActionCatalog. [passes] defaults to 1; pass a higher count
       ///   (e.g. cr.action_bench 3) to run each case several times and judge it by MAJORITY, so a nondeterministic
       ///   model's dice do not read as a stable failure. Real-LLM tool (spends tokens), deliberately NOT part of
-      ///   cr.testall, but far cheaper than it (short interpreter-only calls). Read the log to act on it.
+      ///   cr.test all, but far cheaper than it (short interpreter-only calls). Read the log to act on it.
       ///   Add "focus" (e.g. cr.action_bench 3 focus) to run only the curated failing/flaky slice plus its
       ///   canaries instead of all 220 cases: ~85% cheaper for a refinement loop. Run the full corpus (no "focus")
       ///   once before release, since the focus slice is blind to the cases it omits.

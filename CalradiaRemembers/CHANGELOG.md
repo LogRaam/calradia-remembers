@@ -13,7 +13,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   house, she keeping her rule. The heir inherits your standing, not your romances; she remembers why you came;
   `rhagaea_marriage.json` plays for the wedding. Needs an unwed player and an heir of age riding in your party; a
   wedding the game still refuses hands the house and the character back. New action `leave_house_to_wed` (not taught in Compact),
-  `cr.leave_house_check`, `cr.leave_house` (irreversible, for a throwaway save), `cr.testall leave_house_for_ruler`.
+  `cr.leave_house_check`, `cr.leave_house` (irreversible, for a throwaway save), `cr.test leave_house_for_ruler`.
   **A second road, and the one with no heir** (Gabriel, 26/10/2026: "le Clan du joueur est transfere a Rhagaea. C'est
   aussi l'option si aucun heritier. Mais ca pourrait declencher la guerre"): give her all. You keep your character and
   your family ("le lien de sang est tres fort"); she receives your towns and castles (villages follow), your gold and,
@@ -37,7 +37,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   it. Logic `TaleArc` (tests `TaleArcTests`), loader checks mirrored in the tale editor with five parity fixtures, arc
   cards in the editor, run state saved (`ArcBeatId`, `ArcBeatExchanges`, `ArcExchanges`, `ArcClosed`), HOWTO_Quests.
   The Adult Tales' Rhagaea night plays 3 preliminaries, 3 where she leads, 3 where the player leads, 5 of talk in which
-  she asks for the secret. `cr.testall tale_arc`.
+  she asks for the secret. `cr.test tale_arc`.
 - **The arc turns on what happens** (Gabriel, 25/10/2026: "melange des deux, signaux observes avec tirage en filet";
   "je garderais une intervention forte qui retient"). An arc declares `signals` its beats `listen` to; whoever reads
   the turn's actions reports one with the new `tale_signal` verb (taught to the interpreter in Enhanced, to the
@@ -50,7 +50,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   at 30). The editor has the signal and transition cards; two more parity fixtures. Also: an Enhanced turn redone by
   the prose fallback now carries the turn's action blocks (choices and signals) in its prompt, since that one call
   reads its own tags (`EncounterContext.ProseReadsItsOwnActions` is now settable); the arc's close now locks the input
-  with a notice, as an ordinary close does. `cr.testall tale_arc` drives signals through the real bridge and a forced
+  with a notice, as an ordinary close does. `cr.test tale_arc` drives signals through the real bridge and a forced
   net roll.
 
 - **Two tales at once: a scenario's tale sets the one under way aside** (Gabriel, 25/10/2026: "je fais la quete du
@@ -59,7 +59,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   open, while a tale a scenario opens plays; it takes up again once that is over and the player is free. One level
   only; a tale raised in conversation waits for both. `cr.story_status` shows the tale set aside. `TalePause`, save key
   `CalradiaRemembers_TalePausedRun_v1`. A summons is no longer barred by anything of the giver's own, an errand on offer
-  or a quest of theirs under way. cr.testall `tale_interrupted`.
+  or a quest of theirs under way. cr.test `tale_interrupted`.
 - **The Empress's Summons, continued** (Adult Tales, Gabriel 26/10/2026): the lady first takes the prisoner to a small
   warm bath, washes them and dresses them in clean night clothes, then leaves them at the Empress's door, "sa tache se
   termine ici"; turning back at either is an ending of its own (`turned_back`). The chamber now opens on the scene's dark
@@ -88,12 +88,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   time warms them by 1 (`DeedRegardPolicy`). Either way the player has learned that taste (`KnownActs`), and the
   character's Heart section names it, since the player may forget (Gabriel 27/10): "In bed she loves being on top, and
   does not like being handled roughly." (`HeartIntimacyPolicy.TastesLine`); never a taste not yet learned. `character_overrides.json` takes `loves` and `dislikes`. `cr.acts [name]`, `cr.act <gesture>
-  [performed|proposed] [name]`, `cr.testall intimate_acts`.
+  [performed|proposed] [name]`, `cr.test intimate_acts`.
 
 ### Changed
-- **`cr.testall <name>` runs only that test** (Gabriel 27/10: "cr.testall avec une commande fait tous les tests quand
-  meme"): a name was ignored and the whole sweep ran; one or more names now run just those, as `cr.test` does. A
-  number still sets the conversation tests' budget.
+- **`cr.testall` is gone: `cr.test all` runs every self-test** (Gabriel 27/10: "cr.testall avec une commande fait tous
+  les tests quand meme", then "Enleve testall. Remplace-le par cr.test all"). A name typed after `cr.testall` was
+  ignored and the whole sweep ran. Now one command: `cr.test all [budget]` for the sweep (the number is the
+  conversation tests' budget in seconds), `cr.test <name> [name ...]` for one or several, `cr.test list` for the
+  names, `cr.test chat | mech | full` as before. The help, the guides, the docs and every self-test description say
+  `cr.test` now; past changelogs are left as published.
 - **The Adult Tales have their own git repository** (Gabriel 27/10: "Calradia Remembers Adult Tales", beside CR,
   github.com/LogRaam/Calradia-Remembers-Adult-Tales), history kept. `Extras/CalradiaRemembersAdultTales` is gone from
   CR, with its installer and `Tools/IntimateTales/wife_tales.py`, which moved there (`python Tools/install.py`). CR's
@@ -120,7 +123,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   - "relationships with children and grandchildren feel very cold, as do those with brothers, sisters, and relatives":
     kin were told they are family only until they shared a first memory with you, and grandchildren, nephews, nieces
     and cousins never. Every prompt now names the bond ("You are the player's granddaughter: their blood and their
-    family"), Lean included, as it does for a spouse (`PlayerKinshipPolicy`). `cr.testall kin_identity`.
+    family"), Lean included, as it does for a spouse (`PlayerKinshipPolicy`). `cr.test kin_identity`.
   - "the council is completely cut off from memory": only the lord you addressed kept the sitting. Every member seated
     now keeps it too, summarised in their own voice by the same durable queue (`CouncilMemoryPolicy`); an onlooker to an
     ordinary conversation keeps that they were there, as before.
@@ -130,7 +133,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 - **Brown hair is no longer described as red** (Windmolen, Nexus 27/10: "my character, according to the description, has
   red hair. He does not", in two campaigns). The player's appearance named a colour red whenever it was warm and
   saturated, asked before the browns, which almost every brown is. Red is now kept for a true red, a reddish brown is
-  auburn, and the rest are the browns they were (`HairColorBands`, tested on sample colours). `cr.testall appearance`
+  auburn, and the rest are the browns they were (`HairColorBands`, tested on sample colours). `cr.test appearance`
   prints the player's hair word and its raw offset.
 - **A hired companion knows what they are, and keeps the story they told you** (fearente, Nexus 26/10: "a companion that
   I hired a week ago talked like we were of the same clan from childhood [...] If there is an easy way to include their
@@ -138,19 +141,19 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   clan, and the prompt said only that. Now a companion is told they joined your company as a hired companion, some N
   days ago (the day is kept from now on, on every hire), with no blood, house or childhood shared with you. And the
   story a wanderer tells at your first meeting, line by line, is kept once as a memory of their own life, in their own
-  words (`WandererBackstoryPolicy`); a refusal to speak of the past is not kept as a story. `cr.testall companion_identity`.
+  words (`WandererBackstoryPolicy`); a refusal to speak of the past is not kept as a story. `cr.test companion_identity`.
 - **Scenes of a tale** (Gabriel's play test, 26/10/2026): typing the number of "Something else..." sent the number to
   the narrator ("3", read as "You say nothing"); it now leaves the input to you, and once you choose it or write your own
   words the numbered choices stay gone for the rest of that scene. The narration is signed "Narrator", not the scene's
   name ("The Cell Door"). A scene that ends by itself, and a tale's arc that closes, say "Close this conversation to
   continue...". A conversation a scenario's tale brings to the player sits on the scene's dark backdrop, with no vanilla
-  conversation, and the character speaks first (that line is not an exchange of the arc). cr.testall
+  conversation, and the character speaks first (that line is not an exchange of the arc). cr.test all
   `summoned_meeting_on_backdrop`.
 - **Grain and other goods a lord asked for count however you hand them over** (froggyluv, Nexus 26/10: "sometimes the
   flavor text will say i delivered but the NPC still complain of my broken promises"). Only the chat window's bag
   button settled a supply task; goods handed over in words, or through the Give menu, left your party while the task
   stayed open and expired as a broken promise. Now a gift of the goods the task asks for settles it the same way, the
-  exact count leaving and the reward paid; short of the count nothing leaves (`SupplyGiftPolicy`). `cr.testall
+  exact count leaving and the reward paid; short of the count nothing leaves (`SupplyGiftPolicy`). `cr.test all
   supply_quest` now hands grain over in words too.
 - **"Never Mind" no longer ends the conversation** (Windmolen, Nexus 26/10: closing the "Speak With Your Own People"
   window left him unable to reach a private conversation). The meeting the player came for opens instead, as "A word
@@ -161,7 +164,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   silence while the mod announced the wedding, so `rhagaea_marriage.json` never fired. Such a lady is now told why
   (`HouseHeadMarriagePolicy`, a new `LeadsTheirOwnHouse` obstacle): she keeps her house and says what she can offer
   instead, to be lovers, a bond owned openly, or that you leave your own house to join hers. And any marriage the
-  game will not seal (an army, a battle) is now refused plainly instead of announced. `cr.testall marriage_house_heads`.
+  game will not seal (an army, a battle) is now refused plainly instead of announced. `cr.test marriage_house_heads`.
 - **OpenRouter credits Calradia Remembers again** (fearente, 24/10: the activity page showed every call under another
   app). OpenRouter now reads the app's name from `X-OpenRouter-Title`; the SDK sends it along with the older `X-Title`.
 - **A consort who accepted sharing you no longer holds a grievance over your other consort, but still minds being
@@ -175,12 +178,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (`JealousyWoundPolicy`). A liaison outside the household still estranges her and is nursed. And a partner who
   accepted against her custom now takes part in the household's competition: neglected far more than the favourite,
   she feels slighted like a woman whose people share (`CompetitionSelector`). Grievances already on a save stay
-  (`cr.grudge_resolve`). `cr.testall consort_tolerance`.
+  (`cr.grudge_resolve`). `cr.test consort_tolerance`.
 - **Edicts move taxes again under a mod that replaces the tax model** (tashmetu, Nexus 25/10, from a 1.5.5 beta log
   with Harvest and Production: "[EDICT] could not attach to CalculateTownTax [...] So edicts never move taxes"). The
   patch took the method as seen from the active model's own type; a model that inherits it without overriding it
   got refused by Harmony. Edicts and the courier speed floor now patch the method where it is declared
-  (`DeclaredPatchTarget`), the one the model really runs. cr.testall `edict_effects` now also requires all six
+  (`DeclaredPatchTarget`), the one the model really runs. cr.test `edict_effects` now also requires all six
   channels attached.
 - **A tale's choice by words can now be taken in Standard composition.** Its open choices were taught only to the
   action interpreter (Enhanced), so with one call per turn the character's reply could never report one and the tale
@@ -192,7 +195,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   context is built (`EncounterContext.ProseReadsItsOwnActions`). Not covered yet: an Enhanced turn redone by the prose
   fallback reads its own tags from a prompt built without the choices (closed since, see the arc's signals above). The
   parity map's `story_choice` debt is gone.
-  `cr.testall authored_quest_said_choice` now checks the real prompt in both modes.
+  `cr.test authored_quest_said_choice` now checks the real prompt in both modes.
 - **A wife is no longer narrated as "he", and gestures stop leaning on furniture** (Eisendrache2, Nexus 25/10,
   LM Studio with qwen3.5-9B: "My wife is speaking to me and the AI is describing HIS actions", "Like leaning on a
   table"). The compact prompt for small models kept one gesture example, "*He leans back in his chair*", for every
@@ -207,14 +210,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   qui le specifie"). In Enhanced composition, when the action interpreter's call failed, timed out, came back empty or
   could not be parsed, the reply's deeds were lost with a log line only. It is now asked once more
   (`InterpreterRetryPolicy`, at most two calls; a reading that found no deed is never retried), and each retry and its
-  outcome is written on the Compat log channel, which is on even when logging is off. cr.testall `interpreter_retry`.
+  outcome is written on the Compat log channel, which is on even when logging is off. cr.test `interpreter_retry`.
 - **Duels and the captive's escape ready for the 1.5.5 beta** (tashmetu, Nexus 25/10, from a check of every mod DLL
   against the beta): `Mission.SpawnAgent(AgentBuildData, bool)` gained two optional parameters in 1.5.5, so the
   two-parameter call compiled against 1.4.8 would throw `MissingMethodException` as the first fighter spawned.
   `MissionSpawn.Spawn` now finds the overload at run time (`SpawnAgentSignaturePolicy`: public, on the mission,
   AgentBuildData first, every other parameter optional, the fewest parameters winning) and fills the rest with their
   defaults; on 1.4.8 it calls the very same method. Used by `DuelMissionLogic`, `CaptiveEscapeMissionLogic` and
-  `DuelSpikeMissionLogic`. cr.testall `spawn_agent_signature`. Not run on 1.5.5 itself.
+  `DuelSpikeMissionLogic`. cr.test `spawn_agent_signature`. Not run on 1.5.5 itself.
 
 ### For modders
 - **A tale a scenario opens, judged by what it left** (Gabriel 24/10, for the night Rhagaea sends for her prisoner).
@@ -227,7 +230,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   regard when it began (`AuthoredQuestRun.GiverRegardAtStart`, `TaleRegardFlags`); consequence `regard` (`who`,
   `amount`, under `if`); a stage's `image_pool` shows one picture or video not yet seen each time the tale is played
   (`TaleImagePool`, shown pictures kept in the save, additive key).
-  Editor, schema, HOWTO_Quests, EXTENSION_API and the Scenario Composer updated; two editor fixtures. cr.testall
+  Editor, schema, HOWTO_Quests, EXTENSION_API and the Scenario Composer updated; two editor fixtures. cr.test all
   `tale_opened_by_scenario`. Engine spike `cr.captive_talk_probe` (24/10: a conversation opens while the player is held
   in a town's dungeon and the captivity survives it; the backdrop is the map conversation's throne room).
 - **More for scenario tales** (Gabriel 25/10, the night Rhagaea sends for her prisoner):
@@ -238,7 +241,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   - A stage's `image_pool_pick`: `unseen` (the default, one not shown yet) or `random` (any, a repeat included).
   - A `talk_to` completing as the conversation closes lets its giver speak the stage's canvas and facts all through.
   - `ON_CAPTIVE_NIGHT` fires from 23:00 on, once a night (a tick read at 22.9999 could miss it).
-  Editor, schema and HOWTO_Quests follow. cr.testall `tale_opened_by_scenario`.
+  Editor, schema and HOWTO_Quests follow. cr.test `tale_opened_by_scenario`.
 - **Tales may test what they already lived with this giver**: `played_before`, `ended_before:<ending id>`
   (`ended_before:reward`, `ended_before:failure`), set by the game as the tale begins again with the same giver; the
   loader and the editor count them as set. HOWTO_Quests documents them.

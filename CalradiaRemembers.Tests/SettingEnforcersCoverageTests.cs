@@ -1,5 +1,5 @@
 // Code written by Gabriel Mailhot, 03/10/2026.
-// cr.testall settings_ranges_agree drives every integer MCM slider end to end and fails on one it does not know.
+// cr.test settings_ranges_agree drives every integer MCM slider end to end and fails on one it does not know.
 // On 03/10/2026 it failed in game on the new "Self-Esteem Climb" (fkasad's slider), because the setting had been added
 // and its line in the test's table had not. That was only seen once Gabriel ran testall. This guard reads the same
 // two files without the game, so a new slider without its line goes red at the desk, the moment it is added. If it is

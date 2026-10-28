@@ -117,7 +117,7 @@ Test first, in pure Logic, then the engine. Suggested increments, each committed
    rival, keep silent) as the worked example; and a small branching tale of your own in the werewolf's spirit (a turn
    left or right in a scene) to exercise scene choices. Both stay in `docs/design/quests/` for Gabriel to review; do
    not ship them in `ModuleData/Quests`.
-6. `cr.testall`: a new self-test that loads a small branching tale embedded in the test (not a shipped file), drives
+6. `cr.test all`: a new self-test that loads a small branching tale embedded in the test (not a shipped file), drives
    the real handling through debug seams (an act choice, a scene choice by marker, a flag gating a choice, an ending),
    and cleans up after itself. Model it on `authored_quest_opening` in `CrSelfTest.cs`.
 7. Conversation choices (above), last.
@@ -222,7 +222,7 @@ tests, as he does.
 - **The maps** (`docs/maps/`, `RULES.md`): run the suite PLAIN first, read what moved, then `.\Tools\Update-Maps.ps1`,
   and commit the maps WITH the change. Never widen a ratchet (namespace cycles, inline regard comparisons, bare
   `IsAlive` reads...): fix the cause. A new namespace that joins a cycle is fixed by placing the code elsewhere.
-- **Every engine-bound behaviour ships a cr.testall** self-test (see part 1, step 6).
+- **Every engine-bound behaviour ships a cr.test all** self-test (see part 1, step 6).
 - **MCM hint texts** are at most 250 characters, if you add a setting.
 - Commit messages say WHY, end with the attribution trailer your harness gives you.
 - Never accept a key or a login in conversation. Publish nothing to Nexus or anywhere else.
@@ -252,7 +252,7 @@ disturb the game he is testing.
 
 - Every existing quest file loads exactly as before; a run saved before your change loads and plays on.
 - A branching tale (the rewritten smoke_over_the_hills, and your scene-choice tale) loads with no problem, and the
-  engine walks every path in unit tests; the new cr.testall walks the engine-bound half.
+  engine walks every path in unit tests; the new cr.test all walks the engine-bound half.
 - The app opens offline, round-trips all quest files (load, save, reload: same problems), builds a branching tale from
   blank that the loader accepts, shows the graph, and imports the three Twine fixtures.
 - The schema test and the fixture parity (C# and Node) are green.

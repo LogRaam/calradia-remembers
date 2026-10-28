@@ -122,7 +122,7 @@ One harness drives the mod's systems end to end and reports PASS / FAIL / MANUAL
 
 | Command | What it does |
 |---|---|
-| `cr.testall [llmBudgetSeconds]` | Run the routine sweep: every self-test except the irreversible ones, mechanical tests first. |
+| `cr.test all [llmBudgetSeconds]` | Run the routine sweep: every self-test except the irreversible ones, mechanical tests first. |
 | `cr.test list` | List the registered self-tests (name + severity + description). |
 | `cr.test <name>` | Run one self-test (e.g. `cr.test pregnancy`, `cr.test bastard_claim`). |
 | `cr.test chat` | Run only the conversation smoke tests (real LLM calls; full replies shown). |
@@ -130,7 +130,7 @@ One harness drives the mod's systems end to end and reports PASS / FAIL / MANUAL
 | `cr.test full` | Run **everything**, including the irreversible tests. **Throwaway save only.** |
 
 The irreversible tests (`declare_war`, `scenario`) really declare a war / seal a one-shot scenario in
-the live campaign, so they're held out of `cr.testall` and run only on explicit `cr.test <name>` or
+the live campaign, so they're held out of `cr.test all` and run only on explicit `cr.test <name>` or
 `cr.test full`. A reload is the only undo. The chat tests each make one real LLM call and log the full
 Q&A, stamped with the active model.. change the model and re-run to compare LLMs on the same questions.
 
@@ -139,8 +139,8 @@ Each test runs under its own wall-clock budget: 20s for a mechanical test, and m
 e.g. `chat_captive_continue`). A test that outruns its budget has its in-flight LLM call cancelled and is
 reported FAIL with a "timed out after Ns (budget Ns)" message; the sweep continues. Every result line
 shows the test's own elapsed time, and the summary line shows the sweep's total elapsed time, so a long
-run stays visibly progressing. Pass a number to `cr.testall` to raise the per-LLM-test budget for that
-run, e.g. `cr.testall 180` for a slow local model.
+run stays visibly progressing. Pass a number to `cr.test all` to raise the per-LLM-test budget for that
+run, e.g. `cr.test all 180` for a slow local model.
 
 ### Diagnostics (read-only inspectors)
 

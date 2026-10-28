@@ -29,7 +29,7 @@ namespace CalradiaRemembers.Edicts
 
       private static Harmony _harmony;
 
-      /// <summary>The methods attached this process, by model and method (read by cr.testall).</summary>
+      /// <summary>The methods attached this process, by model and method (read by cr.test all).</summary>
       internal static readonly List<string> Attached = new();
 
       /// <summary>Attaches every channel to the live models; idempotent, safe on every session launch.</summary>

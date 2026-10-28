@@ -19,7 +19,7 @@ namespace CalradiaRemembers
       ///   scene forced to Hardcore) through whatever LLM is configured in MCM, then writes a readable transcript
       ///   plus advisory structural signals to CalradiaRemembers_rp_bench.log. Swap the roleplay model in MCM,
       ///   re-run, and rank models BY READING. There is no automated judge: the user is the judge. Real-LLM tool
-      ///   (spends tokens); deliberately NOT part of cr.testall. [passes] defaults to 1 (one clean transcript).
+      ///   (spends tokens); deliberately NOT part of cr.test all. [passes] defaults to 1 (one clean transcript).
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("rp_bench", "cr")]
       public static string RunRoleplayBench(List<string> args)

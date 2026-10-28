@@ -142,11 +142,11 @@ namespace CalradiaRemembers.Tournaments
       private static TournamentTraitFacts TraitsOf(Hero hero)
          => new TournamentTraitFacts {Valor = hero.GetTraitLevel(DefaultTraits.Valor), Honor = hero.GetTraitLevel(DefaultTraits.Honor), Mercy = hero.GetTraitLevel(DefaultTraits.Mercy)};
 
-      /// <summary>The running head-to-head tally for a lord, or null when none is recorded (cr.testall / diagnostics).</summary>
+      /// <summary>The running head-to-head tally for a lord, or null when none is recorded (cr.test all / diagnostics).</summary>
       public RivalryTally Tally(string heroId)
          => !string.IsNullOrEmpty(heroId) && _tallies.TryGetValue(heroId, out RivalryTally tally) ? tally : null;
 
-      /// <summary>Clears a lord's tally (cr.testall cleanup).</summary>
+      /// <summary>Clears a lord's tally (cr.test all cleanup).</summary>
       public void ForgetTally(string heroId)
       {
          if (!string.IsNullOrEmpty(heroId)) _tallies.Remove(heroId);

@@ -38,7 +38,7 @@ namespace CalradiaRemembers
       ///   <see cref="ActionInterpreterPromptBuilder" /> + the same one-shot pattern as cr.interpret_test. Expected
       ///   use: set Grok in MCM, run "cr.prose_interpret_test deepseek/deepseek-v4-pro" then
       ///   "cr.prose_interpret_test z-ai/glm-5.2", and read the log. This changes NOTHING in the live chat pipeline
-      ///   and is deliberately NOT part of cr.testall. The optional argument is the prose model id (default
+      ///   and is deliberately NOT part of cr.test all. The optional argument is the prose model id (default
       ///   "z-ai/glm-5.2").
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("prose_interpret_test", "cr")]
@@ -125,7 +125,7 @@ namespace CalradiaRemembers
             report.AppendLine($"  NPC: {HeroLabelSafe(hero)} | seeded regard +12 (scene-1 lord).");
             report.AppendLine("  Per turn: (a) PROSE from the prose model, (b) tags INTERPRETED by the MCM model.");
             report.AppendLine("  The prose model's own [ACTION]/[EVENT] are IGNORED; only the interpreter supplies tags.");
-            report.AppendLine("  Live chat pipeline UNCHANGED. Not part of cr.testall.");
+            report.AppendLine("  Live chat pipeline UNCHANGED. Not part of cr.test all.");
             report.AppendLine("========================================================================");
             report.AppendLine();
             report.AppendLine("CONTEXT FACTS, turn 1 (turn 2+ additionally states the conversation is already under way):");

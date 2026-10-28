@@ -320,7 +320,7 @@ namespace CalradiaRemembers.WorldEvents
       }
 
       /// <summary>
-      ///   Test seam (cr.testall): the player's contract with <paramref name="kingdom" /> ends and is taken up again the
+      ///   Test seam (cr.test all): the player's contract with <paramref name="kingdom" /> ends and is taken up again the
       ///   same day, through the real handling. Returns the realm ruler's regard before and after, and whether anything
       ///   was left held against the player. Null when it cannot be run without touching a real departure (one is
       ///   waiting, or the judgment is off). Leaves the last departure as it found it.
@@ -345,7 +345,7 @@ namespace CalradiaRemembers.WorldEvents
       }
 
       /// <summary>
-      ///   Test seam (cr.testall mercenary_dismissed): the contract with <paramref name="kingdom" /> ends through the real
+      ///   Test seam (cr.test mercenary_dismissed): the contract with <paramref name="kingdom" /> ends through the real
       ///   handling, the employer's word given through <paramref name="employerSays" /> (the public door) before the game's report, then after it. Returns the
       ///   verdict as judged without that word, and each order's verdict and whether it is marked the employer's doing. Null
       ///   when a real departure is waiting or the judgment is off. Leaves the last departure as it found it; judges nothing.
@@ -380,7 +380,7 @@ namespace CalradiaRemembers.WorldEvents
       }
 
       /// <summary>
-      ///   Test seam (cr.testall): a resentment of <paramref name="penalty" /> held by <paramref name="lord" /> since half
+      ///   Test seam (cr.test all): a resentment of <paramref name="penalty" /> held by <paramref name="lord" /> since half
       ///   the fade ago, faded through the real handling. Returns the regard given back, then undoes it.
       /// </summary>
       internal int DebugFadeHalfway(Hero lord, int penalty)
@@ -410,7 +410,7 @@ namespace CalradiaRemembers.WorldEvents
          }
       }
 
-      /// <summary>Test seam (cr.testall): how <paramref name="company" /> leaving <paramref name="kingdom" /> now would be judged and worded, applying nothing.</summary>
+      /// <summary>Test seam (cr.test all): how <paramref name="company" /> leaving <paramref name="kingdom" /> now would be judged and worded, applying nothing.</summary>
       internal (MercenaryDepartureVerdict Verdict, string Summary) DebugJudgeCompany(Clan company, Kingdom kingdom)
       {
          (bool atWar, float own, float enemies) = WarFooting(kingdom);
@@ -420,7 +420,7 @@ namespace CalradiaRemembers.WorldEvents
       }
 
       /// <summary>
-      ///   Test seam (cr.testall): how the player leaving <paramref name="kingdom" /> as a vassal would be taken right
+      ///   Test seam (cr.test all): how the player leaving <paramref name="kingdom" /> as a vassal would be taken right
       ///   now, WITHOUT applying anything: whether the grid judges it (no fief held), the verdict, and the regard shift.
       /// </summary>
       internal (bool Judged, MercenaryDepartureVerdict Verdict, int Shift, string Summary) DebugJudgeVassal(Kingdom kingdom)
@@ -434,7 +434,7 @@ namespace CalradiaRemembers.WorldEvents
       }
 
       /// <summary>
-      ///   Test seam (cr.testall): the verdict a contract with <paramref name="kingdom" /> would end on right now, and
+      ///   Test seam (cr.test all): the verdict a contract with <paramref name="kingdom" /> would end on right now, and
       ///   the realm's footing, WITHOUT applying anything (no regard, no memory, no news).
       /// </summary>
       internal (MercenaryDepartureVerdict Verdict, bool AtWar, float Own, float Enemies) DebugJudge(Kingdom kingdom)

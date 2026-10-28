@@ -475,7 +475,7 @@ namespace CalradiaRemembers.GameState
       ///   01/10/2026): the same law as <see cref="TryArrangeMarriage" /> (authority, the engine's legality, no
       ///   captivity, no war between the houses), then <see cref="MatchmakerPolicy" />: her heart first, then her family's
       ///   consent weighed on the suitor's house. With <paramref name="apply" /> the game weds them; without, it only
-      ///   answers (cr.testall).
+      ///   answers (cr.test all).
       /// </summary>
       public static ArrangeMarriageVerdict TryArrangeThirdPartyMatch(Hero suitor, Hero bride, Hero authorizer, bool apply)
       {

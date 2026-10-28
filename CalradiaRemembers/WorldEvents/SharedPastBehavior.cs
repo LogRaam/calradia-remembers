@@ -112,7 +112,7 @@ namespace CalradiaRemembers.WorldEvents
          return drawn;
       }
 
-      /// <summary>For cr.testall: forgets a pair's draw and removes its past from the long-term memory.</summary>
+      /// <summary>For cr.test all: forgets a pair's draw and removes its past from the long-term memory.</summary>
       internal void DebugForget(Hero a, Hero b)
       {
          string key = PairKey(a, b);

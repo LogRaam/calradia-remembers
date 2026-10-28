@@ -186,7 +186,7 @@ namespace CalradiaRemembers.Interception
 
       #region private
 
-      /// <summary>Test seam (cr.testall): everyone who may ask the player for an audience in this settlement.</summary>
+      /// <summary>Test seam (cr.test all): everyone who may ask the player for an audience in this settlement.</summary>
       internal static List<Hero> DebugEligible(Settlement settlement) => EligibleHeroes(settlement).ToList();
 
       private static IEnumerable<Hero> EligibleHeroes(Settlement settlement)

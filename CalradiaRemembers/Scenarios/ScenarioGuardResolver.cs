@@ -18,7 +18,7 @@ namespace CalradiaRemembers.Scenarios
    /// <summary>Resolves a single scenario guard keyword to true/false against the event context.</summary>
    public static class ScenarioGuardResolver
    {
-      /// <summary>The guards <see cref="Resolve" /> knows; any other fails (checked by cr.testall scenario_packs).</summary>
+      /// <summary>The guards <see cref="Resolve" /> knows; any other fails (checked by cr.test scenario_packs).</summary>
       public static readonly IReadOnlyCollection<string> KnownVerbs = new[]
       {
          "IF_PLAYER_RULES", "IF_PLAYER_IS_FEMALE", "IF_PLAYER_IS_MALE", "IF_PLAYER_INVOLVED", "IF_HERO_IS", "IF_PLAYER_AT_WAR",

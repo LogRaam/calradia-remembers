@@ -133,7 +133,7 @@ namespace CalradiaRemembers.Mapping
       /// </summary>
       internal static readonly string[] VerbsTaughtElsewhere = {"pay_for_silence", "rob_npc", "assault_npc", "kill_npc"};
 
-      /// <summary>Every verb name a teaching list here composes, for the coverage guard (cr.testall every_verb_taught).</summary>
+      /// <summary>Every verb name a teaching list here composes, for the coverage guard (cr.test every_verb_taught).</summary>
       internal static IEnumerable<string> VerbsInTeachingLists
          => CourtVerbsBeforePledge.Concat(ReciprocalCourtVerbs).Concat(CourtVerbsAfterPledge).Concat(TaskVerbs).Concat(PrisonerTradeVerbs)
                                   .Concat(DivorceVerbs).Concat(HouseVerbs).Concat(GrudgeVerbs).Concat(ConfessionVerbs).Concat(LawVerbs);

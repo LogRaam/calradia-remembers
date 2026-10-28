@@ -218,7 +218,7 @@ namespace CalradiaRemembers.GameState
       ///     This set is engine-bound (references live nowhere the pure SDK could reach), so it cannot be compared
       ///     against <c>NpcMemoryService.Core.Actions.GameActionCatalog.Types</c> (the SDK's own single source of
       ///     truth for the SAME verbs) by a pure unit test. The comparison instead runs as the in-game self-test
-      ///     <c>action_catalog_parity</c> (<see cref="Diagnostics.CrSelfTest" />), part of <c>cr.testall</c>: any
+      ///     <c>action_catalog_parity</c> (<see cref="Diagnostics.CrSelfTest" />), part of <c>cr.test all</c>: any
       ///     verb added to this switch (or to the two chat-flow controls) without a matching catalog entry, or vice
       ///     versa, is reported by name so the drift this file header exists to prevent is caught immediately
       ///     rather than silently teaching a stale or incomplete vocabulary to the LLM.
@@ -3959,7 +3959,7 @@ namespace CalradiaRemembers.GameState
       ///   <para>
       ///     BANDIT factions are excluded, and that exclusion is the whole point. Every kingdom in Bannerlord is
       ///     permanently at war with the looters and sea raiders, so counting them made this return true for
-      ///     everyone, always, and ride_with_me (shipped v2.4.4) could never accept a single lord. The cr.testall
+      ///     everyone, always, and ride_with_me (shipped v2.4.4) could never accept a single lord. The cr.test all
       ///     failure that surfaced it read as a picker problem for two rounds before the real cause showed.
       ///   </para>
       ///   Internal rather than private so the self-test asserts the SAME code the bridge consults, instead of a
@@ -4788,7 +4788,7 @@ namespace CalradiaRemembers.GameState
             if (lordParty != null) AddHeroToPartyAction.Apply(companion, lordParty, false);
 
             // NO RELATION BONUS, and the reason is worth keeping. The first version warmed the new lord to
-            // the companion "so they arrive on a recommendation, not as a stranger". cr.testall on Gabriel's
+            // the companion "so they arrive on a recommendation, not as a stranger". cr.test all on Gabriel's
             // live campaign said the relation had not moved a point: a change between two heroes who are by
             // then in the SAME clan does not take. It could have been applied before the move instead - but
             // this project's own rule is that the ledger which matters is NpcProfile.ReputationWithPlayer,

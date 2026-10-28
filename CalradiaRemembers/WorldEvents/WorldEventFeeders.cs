@@ -319,7 +319,7 @@ namespace CalradiaRemembers.WorldEvents
       /// <summary>
       ///   Folds one small fight into the "small fights" memory of every companion riding in the main party (the
       ///   same companions <see cref="RecordCompanionBattleMemories" /> visits), or starts that memory. Returns how
-      ///   many companions it reached. Also the cr.testall seam (companion_skirmish_memory).
+      ///   many companions it reached. Also the cr.test all seam (companion_skirmish_memory).
       /// </summary>
       internal static int RecordCompanionSkirmishMemories(int day, SkirmishFacts fight, BattleFeatReport ownParts = null)
       {
@@ -379,7 +379,7 @@ namespace CalradiaRemembers.WorldEvents
       }
 
       /// <summary>
-      ///   Self-test seam (cr.testall companion_battle_memory): records the companion "fought at your side" memory
+      ///   Self-test seam (cr.test companion_battle_memory): records the companion "fought at your side" memory
       ///   for the current main party as if a notable battle had just ended, and returns how many main-party
       ///   companion profiles gained a fresh memory this call. Drives the exact
       ///   <see cref="RecordCompanionBattleMemories" /> path the battle feeder uses; no <see cref="MapEvent" /> is
@@ -887,7 +887,7 @@ namespace CalradiaRemembers.WorldEvents
       }
 
       /// <summary>
-      ///   Self-test seam (cr.testall siege_tidings_participation): stamps the "player just stormed this
+      ///   Self-test seam (cr.test siege_tidings_participation): stamps the "player just stormed this
       ///   settlement" marker as <see cref="StashPlayerSiegeMarker" /> would from a real siege assault,
       ///   without needing a real <see cref="MapEvent" />.
       /// </summary>
@@ -898,7 +898,7 @@ namespace CalradiaRemembers.WorldEvents
       }
 
       /// <summary>
-      ///   Self-test seam (cr.testall siege_tidings_participation): runs the exact
+      ///   Self-test seam (cr.test siege_tidings_participation): runs the exact
       ///   <see cref="RecordSiegeCapture" /> construction <see cref="OnSettlementOwnerChanged" /> uses for a
       ///   siege, without a real MapEvent/ChangeOwnerOfSettlementAction, and returns the recorded event so
       ///   the caller can assert on it (and remove it from the store afterwards).
@@ -1026,7 +1026,7 @@ namespace CalradiaRemembers.WorldEvents
       /// <summary>The Status of a siege lifted.</summary>
       public const string SiegeLiftedStatus = "siege_lifted";
 
-      /// <summary>Self-test seam (cr.testall battle_reader): records a siege's news as the listeners would.</summary>
+      /// <summary>Self-test seam (cr.test battle_reader): records a siege's news as the listeners would.</summary>
       public WorldEvent DebugRecordSiegeNews(Settlement place, MobileParty besieger, bool lifted)
          => place == null || Store == null ? null : RecordSiegeNews(place, besieger, lifted);
 

@@ -115,7 +115,7 @@ namespace CalradiaRemembers.Tests
             // Regard exactly at the bar: the confession is allowed, so every gate behind it must allow it too.
             // NOTE what this test can and cannot do. It pins the policy, and nothing more: a literal 50 put back
             // into the bridge tomorrow would leave it green, because a pure test can only compare the policy with
-            // itself. The guard that would actually catch that is cr.testall's secret_bond_bar_agrees, which
+            // itself. The guard that would actually catch that is cr.test all's secret_bond_bar_agrees, which
             // drives the LIVE teaching gate and the LIVE bridge action at this same bar.
             CompanionSecretAffectionPolicy.IsEligible(new CompanionSecretAffectionPolicy.SecretAffectionFacts {IsCompanion = true, OrientationCompatible = true, AdultEnabled = true, IsContent = true, AlreadyAttached = false, Regard = bar, Warmth = warmth}).Should().BeTrue();
             CompanionSecretAffectionPolicy.IsEligible(new CompanionSecretAffectionPolicy.SecretAffectionFacts {IsCompanion = true, OrientationCompatible = true, AdultEnabled = true, IsContent = true, AlreadyAttached = false, Regard = bar - 1, Warmth = warmth}).Should().BeFalse();

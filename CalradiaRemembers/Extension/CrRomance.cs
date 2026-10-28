@@ -208,7 +208,7 @@ namespace CalradiaRemembers
       /// <summary>The bond now.</summary>
       public CrRomanceStatus After { get; set; }
 
-      /// <summary>True while cr.testall runs: a test's change, put back afterwards, which a bridge must not keep.</summary>
+      /// <summary>True while cr.test all runs: a test's change, put back afterwards, which a bridge must not keep.</summary>
       public bool DuringSelfTest { get; set; }
    }
 }

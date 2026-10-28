@@ -23,7 +23,7 @@ namespace CalradiaRemembers
       ///   lower, extraction-friendly temperature recovers the deeds a prose-warm 0.6 drops; any other non-numeric
       ///   argument is the single-call model id, e.g. "cr.single_call_bench 3 temp=0.2 deepseek/deepseek-v4-flash-0731".
       ///   Set your interpreter model in MCM first (it is the reference cross-check). Real-LLM (spends tokens), NOT part
-      ///   of cr.testall. Writes CalradiaRemembers_single_call_bench.log.
+      ///   of cr.test all. Writes CalradiaRemembers_single_call_bench.log.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("single_call_bench", "cr")]
       public static string RunSingleCallBench(List<string> args)

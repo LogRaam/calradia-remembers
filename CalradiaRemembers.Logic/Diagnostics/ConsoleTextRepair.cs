@@ -45,7 +45,7 @@ namespace CalradiaRemembers.Logic.Diagnostics
       }
 
       /// <summary>
-      ///   The console's mangling, reproduced (UTF-8 bytes read back one by one as Windows-1252), so cr.testall and the
+      ///   The console's mangling, reproduced (UTF-8 bytes read back one by one as Windows-1252), so cr.test all and the
       ///   unit tests can feed CR's commands exactly what the console delivers.
       /// </summary>
       public static string Mangle(string text)

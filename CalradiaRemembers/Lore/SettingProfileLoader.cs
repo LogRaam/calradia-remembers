@@ -63,7 +63,7 @@ namespace CalradiaRemembers.Lore
                       + $"{cultures.Count} patriarchal culture(s).");
         }
 
-        /// <summary>The setting.json last read (null when absent or unreadable): cr.testall checks the calendar against it.</summary>
+        /// <summary>The setting.json last read (null when absent or unreadable): cr.test all checks the calendar against it.</summary>
         internal static SettingProfile LastProfile { get; private set; }
     }
 }

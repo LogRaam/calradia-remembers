@@ -95,7 +95,7 @@ namespace CalradiaRemembers.Tests
       }
 
       // Extension Surface (ActionResult.Recap): an external mod can ask the NPC to VOICE the deed's outcome in the
-      // same beat by setting Recap on the result. The adapter (engine-coupled, tested via cr.testall) forwards this
+      // same beat by setting Recap on the result. The adapter (engine-coupled, tested via cr.test all) forwards this
       // to the chat, but the CONTRACT must carry it round-trip first; if the field were dropped or renamed, a mod's
       // "the NPC should now say the ruling" hint would silently never reach the host. Round-trips on refusal too, so
       // the NPC can voice a declined deed ("I will not rule on your claim"), which is exactly a case worth voicing.

@@ -31,7 +31,7 @@ namespace CalradiaRemembers
       ///   one-shot, parses the raw output with the SAME <see cref="SectionResponseParser" /> the live chat uses, and
       ///   writes expected-vs-actual to CalradiaRemembers_interpret_test.log so Gabriel can judge interpretation
       ///   fidelity by reading. This changes NOTHING in the live chat pipeline: it is a real-LLM bench, deliberately
-      ///   NOT part of cr.testall. Set an interpreter model (e.g. Grok) in MCM, run this, then read the log.
+      ///   NOT part of cr.test all. Set an interpreter model (e.g. Grok) in MCM, run this, then read the log.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("interpret_test", "cr")]
       public static string RunInterpretTest(List<string> args)

@@ -389,7 +389,7 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   The same reading, against any screen, so cr.testall's chat_focus_arbiter can drive it over REAL engine
+      ///   The same reading, against any screen, so cr.test all's chat_focus_arbiter can drive it over REAL engine
       ///   layers instead of a parallel copy. That matters for one assumption a pure test cannot check: that
       ///   ScreenLayer.Name really does hand back the name a GauntletLayer was built with, which is the whole
       ///   basis for telling vanilla's conversation window from a modal.

@@ -1,6 +1,6 @@
 // Code written by Gabriel Mailhot, 01/07/2026.
 // Moved from CalradiaRemembers.Diagnostics to the root, beside ModLog, on 19/10/2026: a guard every subsystem uses is a
-// foundation, and living beside cr.testall (which drives every subsystem) made ten namespaces and Diagnostics use each
+// foundation, and living beside cr.test all (which drives every subsystem) made ten namespaces and Diagnostics use each
 // other (docs/maps/dependencies.md, "Pairs that use each other directly").
 
 #region

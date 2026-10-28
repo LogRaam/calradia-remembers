@@ -4,7 +4,7 @@
 // An action is declared in up to seven places: the SDK catalogue the interpreter is taught from, the bridge's handled
 // list, the bridge's dispatch switch, a verb class, the verb registry, the set of actions taught on a turn, and the
 // bench that measures whether a model emits it. Adding hear_account (19/09/2026) meant touching all seven, and the
-// first SDK run failed on the one that had been missed. `cr.testall action_catalog_parity` guards two of those seven
+// first SDK run failed on the one that had been missed. `cr.test action_catalog_parity` guards two of those seven
 // against each other, in the game; this shows all seven, here. A row with a hole in it is either a bridge-native action
 // that needs no verb class, which is fine, or a verb that is taught and cannot run, which is a bug a player finds.
 

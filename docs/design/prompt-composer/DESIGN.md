@@ -264,7 +264,7 @@ can never describe a prompt the game no longer builds.
    - Profiles found in stock, mods (`cr_prompts`) and Custom; the MCM "Prompt profile" choice; parents and fallback.
    - Layouts by kind, with the checks and the locks.
    - The custom-active log line, `cr.prompt_check`.
-   - `cr.testall`: a test profile built through the real path, then stock restored.
+   - `cr.test all`: a test profile built through the real path, then stock restored.
 3. **Texts out**, in batches:
    - first the sections people want to tune: dialogue style, prose craft, narrative framing, the intimacy texts (not
      the sealed rules), the Lean teachings;
@@ -320,4 +320,4 @@ with that spike; if MCM cannot, a text field naming the profile id, listed by `c
 - SDK: `PromptLayout`, `PromptLayoutResolver` (locks), `EncounterContext.PromptLayout`. Mod: `PromptKindPolicy`,
   `PromptProfileFolders`, `PromptProfileReader`, `PromptProfileChain`, `PromptLayoutChoice`, `PromptProfileSelection`
   (Logic, tested); MCM "Prompt Profile"; `[PROMPT]` log line (also heading `cr.prompt_dump`); `cr.prompt_check`;
-  `cr.testall prompt_profile`. Release archives skip `ModuleData/Custom/Prompts`.
+  `cr.test prompt_profile`. Release archives skip `ModuleData/Custom/Prompts`.

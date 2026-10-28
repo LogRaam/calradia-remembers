@@ -435,7 +435,7 @@ Stop words include English, French, and Bannerlord connectors (`ibn`, `bint`, `o
 > **A SAMPLE, not the list.** There are 259+ registered commands; `cr.help`, `cr.help <stem>` and
 > `cr.help all` read the REAL registry by reflection and are the only authority. A hand-written list in a
 > project that gains commands weekly can only drift — it once described 70 of 259 and advertised a command
-> that had been renamed, which is the one name a reader was most likely to copy. `cr.testall` checks the
+> that had been renamed, which is the one name a reader was most likely to copy. `cr.test all` checks the
 > help against the registry for exactly this reason. Do not grow the block below; teach `cr.help`.
 >
 > Worth knowing: `cr.prompt_dump [name]` writes the exact prompt a character would be sent (free, no model
@@ -548,7 +548,7 @@ the assumption that it had never gone up, and the commit message said so. It had
 - **`take_into_service` has never once completed in a live game.**
 - **A BACKGROUND role exists since 2026-09-19** (`ServiceRole.Housekeeping`), asked for by fkasad, who runs a
   local model and paid for its absence in evicted KV cache. Blank means the prose model, guarded by
-  `cr.testall`'s `provider_routing`. **DURABLE: `ModelOverride` was NOT already set by every request.** An
+  `cr.test all`'s `provider_routing`. **DURABLE: `ModelOverride` was NOT already set by every request.** An
   inventory found it on exactly two (`NpcChatService`, and explicitly null in `ActionInterpreterComposer`) and on
   none of the ten housekeeping calls. The route taken instead is a second CLIENT, mirroring `InterpreterClient`,
   because a client carries provider, base URL and key as well as the model.

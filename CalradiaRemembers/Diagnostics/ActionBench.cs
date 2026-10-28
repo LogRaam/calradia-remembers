@@ -4,7 +4,7 @@
 // interpreter client, scores each with the pure ActionBenchScorer, and writes the scoreboard to
 // CalradiaRemembers_action_bench.log. It is a refinement tool, not a gate: a miss or false positive points at the
 // tell or anti-pattern to tighten in the shared GameActionCatalog. Real-LLM (spends tokens), so deliberately NOT
-// part of cr.testall. Far cheaper than testall: short interpreter-only calls, no full scenes.
+// part of cr.test all. Far cheaper than testall: short interpreter-only calls, no full scenes.
 
 #region
 

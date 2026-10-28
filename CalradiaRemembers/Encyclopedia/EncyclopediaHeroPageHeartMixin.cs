@@ -2,7 +2,7 @@
 // The encyclopedia's Heart section (Gabriel, 20/10/2026: love stories were kept and shown nowhere). On the page of a
 // character engaged with the player, the story of the bond in the player's second person; on the player's own page, one
 // recap line per such person. The words are HeartPagePolicy's and the reading of the game HeartPageReader's (in Mapping, so
-// cr.testall reads the same lines without the diagnostics depending on the encyclopedia).
+// cr.test all reads the same lines without the diagnostics depending on the encyclopedia).
 
 #region
 

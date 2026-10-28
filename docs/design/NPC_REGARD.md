@@ -401,7 +401,7 @@ so it is unproven here.
 
 Two things route (b) rests on that are NOT verified: that UIExtenderEx runs the mixin's `OnRefresh` AFTER vanilla's
 `Refresh` has filled the lists (only the comment at `:105-106` says so), and that nothing else refills them in the
-same frame. The first `cr.testall` check (section 10) pins both.
+same frame. The first `cr.test all` check (section 10) pins both.
 
 ## 9. Conversation reuse
 
@@ -476,7 +476,7 @@ Pure rules, test-first, Gherkin names, a STAKE comment on each test:
 - `AgeAtDay`, `FiefNeighbourPolicy`, `PastEventAgeing`, `EncyclopediaRegardLists` (sorting, capacity 13 and
   overflow, the clan lists).
 
-Engine self-test, `cr.testall` case `npc_regard` (it arranges its own context, per Gabriel's 13/10 ruling):
+Engine self-test, `cr.test all` case `npc_regard` (it arranges its own context, per Gabriel's 13/10 ruling):
 
 1. Pick two living adult lords A and B of different clans with no trace; plant a `Tale` grudge A on B (the existing
    non-player planter); build A's page lists through the real mixin path; expect B in Enemies with the grudge line.
@@ -494,14 +494,14 @@ rule), `prompt-sections.md` if a section moves.
 ## 11. Increments, in build order
 
 1. **The player's own page from personal regard.** Route (b) on the player page only: Friends and Enemies from
-   `ReputationWithPlayer`, reason from known grudges and appreciations. `cr.testall` check 2. Fixes the reported case
+   `ReputationWithPlayer`, reason from known grudges and appreciations. `cr.test all` check 2. Fixes the reported case
    and proves the mechanism before anything is designed on top of it.
 2. **Derived regard on NPC pages, from what exists.** `PairRegardPolicy` with vanilla facts, NPC-to-NPC grudges and
    appreciations, schemes, recent world events. Candidate set, Why block. No generation yet: pages will be sparse,
    and that sparseness is the measure of how much the past is needed.
 3. **Clan lists** on both pages, once Q1 is answered.
 4. **Shared past.** `SharedPastPolicy`, `SharedPastStore` with its save key, the draw on page opening, the Old
-   history block. `cr.testall` check 3.
+   history block. `cr.test all` check 3.
 5. **Conversation.** `ContextualNameResolver` and `RelationshipsBuilder` read the derived regard. Full SDK suite,
    Compact budget.
 6. **Optional, only on Gabriel's word (Q6):** capture NPC-to-NPC schemes, captures and executions durably at the

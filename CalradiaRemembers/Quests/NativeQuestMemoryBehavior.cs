@@ -50,7 +50,7 @@ namespace CalradiaRemembers.Quests
          Record(giver.StringId, phase, quest.Title?.ToString());
       }
 
-      /// <summary>Writes the memory (cr.testall drives it with a quest title of its own).</summary>
+      /// <summary>Writes the memory (cr.test all drives it with a quest title of its own).</summary>
       internal static MemoryResult Record(string giverId, NativeQuestPhase phase, string questTitle)
       {
          NativeQuestMemory m = NativeQuestMemory.For(phase, Hero.MainHero?.Name?.ToString(), questTitle);

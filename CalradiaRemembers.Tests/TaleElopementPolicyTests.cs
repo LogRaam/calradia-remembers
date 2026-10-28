@@ -69,7 +69,7 @@ namespace CalradiaRemembers.Tests
          TaleElopementPolicy.WhyNotReturn(new ReturnFacts {BothInTheWorld = true, SheIsSingle = true, HeIsSingle = true, EitherIsPrisoner = true}).Should().Contain("captive");
       }
 
-      // Gabriel's cr.testall on a new game (13/10/2026): Susada was not wed to Arcor again, yet the tale said she had
+      // Gabriel's cr.test all on a new game (13/10/2026): Susada was not wed to Arcor again, yet the tale said she had
       // gone back to him. The game weds nobody whose party is in an army or a battle, and refused in silence. A husband
       // away on campaign (or a captive) is a wait, not an end: the return is tried again until it can happen.
       [Test]
@@ -94,7 +94,7 @@ namespace CalradiaRemembers.Tests
          TaleElopementPolicy.DecideReturn(Returnable()).Why.Should().BeNull();
       }
 
-      // Gabriel's second cr.testall run (13/10/2026): with Arcor free of any campaign, the game still refused to wed
+      // Gabriel's second cr.test all run (13/10/2026): with Arcor free of any campaign, the game still refused to wed
       // Susada back. Its rule is for NEW matches (two clan heads, a courtship elsewhere, a minor house); this couple's
       // marriage was ended by the tale itself, and her return is the condition of peace. When only that rule stands in
       // the way, the marriage is restored directly, unless she now heads a house of her own, which cannot be left.

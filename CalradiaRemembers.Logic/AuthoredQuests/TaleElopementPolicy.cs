@@ -68,7 +68,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       /// <summary>
       ///   Only the game's rule for NEW matches refuses them: the marriage the tale ended is restored directly, she joining
-      ///   his house (Gabriel's cr.testall, 13/10/2026).
+      ///   his house (Gabriel's cr.test all, 13/10/2026).
       /// </summary>
       public bool RestoreDirectly { get; init; }
    }
@@ -97,7 +97,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
 
       /// <summary>
       ///   Now, wait, or never. What closes the way back for good ends it; a captivity or a husband away on campaign is a
-      ///   wait, tried again later (Gabriel's cr.testall, 13/10/2026: the game weds nobody in an army or a battle, and had
+      ///   wait, tried again later (Gabriel's cr.test all, 13/10/2026: the game weds nobody in an army or a battle, and had
       ///   refused in silence); when only the game's rule for new matches refuses them, the marriage is restored directly.
       /// </summary>
       public static ReturnDecision DecideReturn(ReturnFacts f)

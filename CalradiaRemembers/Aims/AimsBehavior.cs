@@ -160,7 +160,7 @@ namespace CalradiaRemembers.Aims
          };
       }
 
-      /// <summary>Decides the leave as a conversation opens. Also the cr.testall seam.</summary>
+      /// <summary>Decides the leave as a conversation opens. Also the cr.test all seam.</summary>
       internal AimRaiseVerdict OnConversationStarted(CrConversationInfo info)
       {
          try

@@ -48,8 +48,8 @@ namespace CalradiaRemembers.Diagnostics
    ///   on the scene's mode-resolved model, then the ACTION INTERPRETER model, which is mode-independent, reads
    ///   that prose and supplies the [ACTION]/[EVENT] tags via the shared <see cref="Chat.ActionInterpreterComposer" />),
    ///   so the per-scene signals reflect the interpreter's tags and each scene's MODEL line names BOTH models.
-   ///   This is a REAL-LLM, in-game tool the user runs live with their own key. It is NOT part of cr.testall and
-   ///   has no cr.testall self-test: its pure checks are covered by RoleplayBenchChecksTests, and the runner
+   ///   This is a REAL-LLM, in-game tool the user runs live with their own key. It is NOT part of cr.test all and
+   ///   has no cr.test all self-test: its pure checks are covered by RoleplayBenchChecksTests, and the runner
    ///   itself is validated by the user running cr.rp_bench and reading the output.
    /// </summary>
    public static class RoleplayBench

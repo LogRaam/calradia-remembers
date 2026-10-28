@@ -3,7 +3,7 @@
 // optional parameters; optional parameters are filled at compile time, so a call compiled against 1.4.8 throws
 // MissingMethodException there "the moment a fighter is spawned". Gabriel (25/10/2026): one build for both versions,
 // the method found at run time. SpawnAgentSignaturePolicy picks the overload; this reads the game's shapes, makes the
-// call with each extra parameter at its own default, and caches the method. cr.testall spawn_agent_signature checks the
+// call with each extra parameter at its own default, and caches the method. cr.test spawn_agent_signature checks the
 // running game offers one.
 
 #region
@@ -27,7 +27,7 @@ namespace CalradiaRemembers.Duels
       private static MethodInfo _method;
       private static bool _looked;
 
-      /// <summary>The overload in use, or null when the game offers none CR can call (cr.testall's seam).</summary>
+      /// <summary>The overload in use, or null when the game offers none CR can call (cr.test all's seam).</summary>
       internal static MethodInfo Method
       {
          get

@@ -75,7 +75,7 @@ namespace CalradiaRemembers.Grudges
                 : $"{target.Name}'s SwayExposed grudge was refused (anti-noise guardrail, or a full, stronger house).";
         }
 
-        /// <summary>cr.testall seam: drops every watch on this rumour, so a test leaves nothing to reveal.</summary>
+        /// <summary>cr.test all seam: drops every watch on this rumour, so a test leaves nothing to reveal.</summary>
         internal int DebugDrop(string rumourEventId) => _pending.RemoveAll(p => p.RumourEventId == rumourEventId);
 
         /// <summary>

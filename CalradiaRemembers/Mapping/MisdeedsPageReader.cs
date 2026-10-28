@@ -5,7 +5,7 @@
 // ONE source so it is never told twice: the Trauma ledger (captive scenes, beatings, robberies), the game's death log
 // (murders and executions, kept forever, after a battle too), the tasks the player let lapse or gave up, the misdeeds
 // ledger (adultery, a captive handed to his enemies, a realm forsaken, a man of no house murdered), and for saves older
-// than that ledger the grudges of a captive handed over and of a spouse taken. Shared by the page and cr.testall
+// than that ledger the grudges of a captive handed over and of a spouse taken. Shared by the page and cr.test all
 // heart_intimacy and misdeeds_page, so the tests read exactly what the player reads.
 
 #region

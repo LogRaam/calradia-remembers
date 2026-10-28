@@ -25,7 +25,7 @@ namespace CalradiaRemembers.Companions
       // The day lives on the companion's profile, which the store already saves.
       public override void SyncData(IDataStore dataStore) { }
 
-      /// <summary>Records <paramref name="companion" /> as having joined the player's company today. Public for cr.testall.</summary>
+      /// <summary>Records <paramref name="companion" /> as having joined the player's company today. Public for cr.test all.</summary>
       public static void OnHired(Hero companion)
       {
          try

@@ -1,6 +1,6 @@
 // Code written by Gabriel Mailhot, 11/10/2026.
 // A scenario rule names heroes and kingdoms by a reference: a StringId ("empire_s", "lord_1_14") or a name
-// ("Rhagaea"). Found by cr.testall scenario_death (11/10/2026): the first candidate whose name merely CONTAINED the
+// ("Rhagaea"). Found by cr.test scenario_death (11/10/2026): the first candidate whose name merely CONTAINED the
 // reference won, so "empire" (the Northern Empire's id) picked "Southern Empire" when the South came first, and a
 // war against oneself was skipped. Names are also translated by the game, so a pack that must work in every
 // language names by id, and an id must win over any name. The best match wins: exact id, then exact name, then a

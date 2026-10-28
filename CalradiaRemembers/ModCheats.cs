@@ -45,7 +45,7 @@ namespace CalradiaRemembers
       ///   <para>
       ///     Three layers, and only one of them is written by hand. What EXISTS comes from the registry
       ///     (ConsoleCommandIndex, the same attributes the console dispatches on). What each one DOES comes
-      ///     from ConsoleCommandHelp, which cr.testall refuses to let go incomplete. The curated sections
+      ///     from ConsoleCommandHelp, which cr.test all refuses to let go incomplete. The curated sections
       ///     below are the editorial layer: the commands worth grouping and explaining at length, in the
       ///     order a reader wants them. On 2026-09-10 the hand-written list was the ONLY layer, and it
       ///     described 70 of 259 commands while advertising one, cr.compose, renamed away long before.

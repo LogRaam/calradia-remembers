@@ -90,7 +90,7 @@ namespace CalradiaRemembers.Letters
 
       private static int Today => (int) CampaignTime.Now.ToDays;
 
-      /// <summary>The secrets in the world now, for diagnostics and cr.testall.</summary>
+      /// <summary>The secrets in the world now, for diagnostics and cr.test all.</summary>
       internal IReadOnlyList<CarriedSecret> Secrets => _secrets;
 
       public override void RegisterEvents()
@@ -131,7 +131,7 @@ namespace CalradiaRemembers.Letters
       }
 
       /// <summary>
-      ///   Test seam (cr.testall): the band <paramref name="carrierPartyId" /> is beaten by <paramref name="victor" />
+      ///   Test seam (cr.test all): the band <paramref name="carrierPartyId" /> is beaten by <paramref name="victor" />
       ///   without being destroyed, and its secrets pass on exactly as a real defeat would, minus the model's judgement
       ///   and the rumour, so a self-test leaves no trace in the world.
       /// </summary>
@@ -144,7 +144,7 @@ namespace CalradiaRemembers.Letters
          }
       }
 
-      /// <summary>Test seam (cr.testall): drops every secret whose content carries <paramref name="tag" />.</summary>
+      /// <summary>Test seam (cr.test all): drops every secret whose content carries <paramref name="tag" />.</summary>
       internal void DebugForgetTagged(string tag) => _secrets.RemoveAll(s => s.Content != null && s.Content.Contains(tag));
 
       public override void SyncData(IDataStore dataStore)
@@ -276,7 +276,7 @@ namespace CalradiaRemembers.Letters
 
       /// <summary>
       ///   Passes a secret to whoever answers for <paramref name="party" />, as CourierSecretPolicy decides.
-      ///   <paramref name="live" /> false (cr.testall) skips the model's judgement and the rumour.
+      ///   <paramref name="live" /> false (cr.test all) skips the model's judgement and the rumour.
       /// </summary>
       private void HandOff(CarriedSecret secret, PartyBase party, bool live = true)
       {

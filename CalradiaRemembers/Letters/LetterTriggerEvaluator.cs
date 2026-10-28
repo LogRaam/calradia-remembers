@@ -1266,7 +1266,7 @@ namespace CalradiaRemembers.Letters
       }
 
       /// <summary>Tournament victories are naturally rare per town, so no further anti-spam guard is needed.</summary>
-      internal static void RecordTournamentVictoryChronicle(int today, Town town) // internal: cr.testall tournament_audience
+      internal static void RecordTournamentVictoryChronicle(int today, Town town) // internal: cr.test tournament_audience
       {
          try
          {

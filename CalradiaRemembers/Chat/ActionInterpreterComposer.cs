@@ -160,7 +160,7 @@ namespace CalradiaRemembers.Chat
          return WithInterpretedTags(proseResponse, interpreted);
       }
 
-      /// <summary>Test seam (cr.testall interpreter_retry): stands in for the interpreter client's call when set.</summary>
+      /// <summary>Test seam (cr.test interpreter_retry): stands in for the interpreter client's call when set.</summary>
       internal static Func<LlmRequest, CancellationToken, Task<LlmResponse>> CallOverride;
 
       /// <summary>

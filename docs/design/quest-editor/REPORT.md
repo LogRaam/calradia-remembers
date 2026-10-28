@@ -17,12 +17,12 @@ mod 5580 tests, SDK 1814 tests. Rien n'a touché `main` ni `master`, rien n'a é
 | `9f9172c` | Incrément 3 : ce que le narrateur et les personnages se font dire (lignes sous drapeau, secret sur les étapes à venir et les choix fermés). |
 | `82f5e93` | Incrément 4 : choix de scène par marqueur `[[choice:id]]`, et la liste numérotée cliquable sous la narration, dans les deux skins de chat. |
 | `ade14fb` | Incrément 5 : `smoke_over_the_hills.json` réécrit (quatre fins), le conte de scène `the_bell_in_the_marsh.json` (non livré), le rôle `{rival}`. |
-| `b6f8e43` | Incrément 6 : `cr.testall authored_quest_branches`. |
+| `b6f8e43` | Incrément 6 : `cr.test authored_quest_branches`. |
 | `ccb386f` | Éditeur, fondations : le schéma JSON généré du modèle C#, les vérifications en JavaScript, tenues au jeu par des fixtures partagées. |
 | `65ccddf` | Éditeur : l'import Twine (Harlowe, SugarCube, Twee), tenu à ses fixtures. |
 | `baf62a4` | Éditeur : la page elle-même, livrée dans `Modules/CalradiaRemembers/Docs/TaleEditor.html`. |
 | `3b55513` | Guides : `HOWTO_Quests.md` (choix, fins, drapeaux, l'éditeur, « Writing tales in Twine ») et `AUTHORED_QUESTS.md` (le design final). |
-| `12ccbe0` | Choix par les mots, pris par l'interpréteur d'actions (fait en DERNIER, comme demandé), plus `cr.testall authored_quest_said_choice`. |
+| `12ccbe0` | Choix par les mots, pris par l'interpréteur d'actions (fait en DERNIER, comme demandé), plus `cr.test authored_quest_said_choice`. |
 
 ### SDK (`LLM Roleplay Service`, branche `quest-branches`, 1 commit au-dessus de `master`)
 
@@ -101,7 +101,7 @@ Le détail, avec le pourquoi de chacune, est dans `DECISIONS.md`. En bref :
 - **Les exemples** : `AuthoredQuestWorkedExamplesTests` marche chaque fin de `smoke_over_the_hills` et de `the_bell_in_the_marsh`.
 - **L'éditeur tenu au jeu** : `QuestEditorParityTests` passe 88 fixtures (plus tous les contes du dépôt) dans le loader C# ET dans le validateur JavaScript de la page, sous Node, et exige les mêmes problèmes mot pour mot; vérifie aussi l'aller-retour ouvrir/sauvegarder/relire, que chaque champ lu par le jeu a son formulaire, et les quatre histoires Twine.
 - **Le schéma** : `QuestEditorIsCurrentTests` régénère `quest.schema.json` depuis le modèle C# (modèle `CR_UPDATE_MAPS`) et exige que la copie dans la page soit identique, ainsi que le gabarit du loup-garou.
-- **Dans le jeu** : `cr.testall authored_quest_branches` (choix par acte, par marqueur, drapeaux, fin) et `cr.testall authored_quest_said_choice` (choix par les mots par le VRAI pont : fermé refusé sans effet, ouvert pris jusqu'à sa fin). Les deux chargent un conte écrit dans le test, jamais un fichier livré, et nettoient après.
+- **Dans le jeu** : `cr.test authored_quest_branches` (choix par acte, par marqueur, drapeaux, fin) et `cr.test authored_quest_said_choice` (choix par les mots par le VRAI pont : fermé refusé sans effet, ouvert pris jusqu'à sa fin). Les deux chargent un conte écrit dans le test, jamais un fichier livré, et nettoient après.
 - **Les cartes** régénérées avec chaque changement; aucun ratchet élargi. Le map des dépendances montre une arête nouvelle `GameState -> Logic.AuthoredQuests` (pas de cycle : Logic ne dépend pas du mod).
 
 ### Les comportements et les tests qui les gardent
@@ -112,7 +112,7 @@ Le détail, avec le pourquoi de chacune, est dans `DECISIONS.md`. En bref :
 | Un choix fermé (son `if` non tenu) ne se prend jamais : par acte | `GIVEN_a_choice_by_act_closed_by_its_flag_WHEN_its_act_is_done_THEN_it_is_not_taken` |
 | ... par marqueur | `GIVEN_a_scene_choice_closed_by_its_flag_WHEN_its_marker_is_written_THEN_it_is_refused` |
 | ... par clic | `GIVEN_a_way_closed_by_its_flag_WHEN_listed_THEN_it_is_not_offered` |
-| ... par les mots | `GIVEN_a_choice_by_words_closed_by_its_flag_WHEN_reported_THEN_it_is_not_taken`; `GIVEN_another_character_a_closed_choice_or_a_later_stage_WHEN_the_interpreter_is_told_THEN_it_learns_nothing`; `cr.testall authored_quest_said_choice` |
+| ... par les mots | `GIVEN_a_choice_by_words_closed_by_its_flag_WHEN_reported_THEN_it_is_not_taken`; `GIVEN_another_character_a_closed_choice_or_a_later_stage_WHEN_the_interpreter_is_told_THEN_it_learns_nothing`; `cr.test authored_quest_said_choice` |
 | Deux choix par les mots dans une même réplique : seul le premier compte | `GIVEN_two_choices_by_words_reported_in_one_reply_WHEN_both_reach_the_game_THEN_only_the_first_is_taken` |
 | Un choix par les mots ne compte que pour la bonne personne et un id déclaré | `GIVEN_a_choice_by_words_WHEN_reported_for_the_wrong_person_an_unknown_path_or_the_right_one_THEN_only_the_right_one_counts`; `GIVEN_a_choice_by_words_open_with_this_character_WHEN_the_interpreter_is_told_THEN_it_learns_the_id_the_meaning_and_the_report` |
 | Un choix pris pose ses drapeaux | `GIVEN_a_stage_left_by_several_acts_WHEN_the_player_goes_back_to_the_lord_THEN_the_tale_ends_its_own_way_and_remembers_it`; `GIVEN_the_light_found_in_the_scene_WHEN_the_left_marker_is_written_THEN_the_story_follows_the_light_on_closing`; `GIVEN_an_undeclared_marker_WHEN_written_THEN_nothing_changes_and_closing_follows_the_default` |
@@ -171,7 +171,7 @@ En traçant le chemin de l'interpréteur pour les choix par les mots :
 
 Pour charger un conte non livré : copier `docs/design/quests/smoke_over_the_hills.json` ou `the_bell_in_the_marsh.json` dans `ModuleData/Quests/Custom/`, puis `cr.story_check`, `cr.story_start <id>`, `cr.story_status`, `cr.story_choose <id>`, `cr.story_step`.
 
-1. `cr.testall authored_quest_branches` et `cr.testall authored_quest_said_choice` : verts.
+1. `cr.test authored_quest_branches` et `cr.test authored_quest_said_choice` : verts.
 2. La liste numérotée sous la narration, dans les DEUX skins (Classic et Manuscript) : lisible, cliquable, bien placée sous la dernière narration, cachée pendant que le narrateur écrit et après la réponse du joueur; « Something else... » rend le clavier.
 3. Taper « 2 » seul envoie la deuxième voie ouverte; « 2 chevaux » part comme du texte.
 4. Avec un vrai modèle, dans `the_bell_in_the_marsh` : le narrateur écrit `[[choice:...]]` seulement quand tes mots prennent la voie, et la voie fermée (avant la trouvaille) n'est jamais offerte.

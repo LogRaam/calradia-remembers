@@ -61,10 +61,10 @@ namespace CalradiaRemembers.Encyclopedia
       private readonly MBBindingList<RegardPersonRowVM> _people = new();
       private readonly MBBindingList<RegardHouseRowVM> _houseRows = new();
 
-      // cr.testall reaches a page's mixin through the page it built.
+      // cr.test all reaches a page's mixin through the page it built.
       private static readonly ConditionalWeakTable<EncyclopediaHeroPageVM, EncyclopediaHeroPageRegardMixin> ByPage = new();
 
-      // cr.testall npc_regard_reason reads the rows through hooks set here, the first time a page is built: Diagnostics
+      // cr.test npc_regard_reason reads the rows through hooks set here, the first time a page is built: Diagnostics
       // naming the encyclopedia (or the submodule doing it for them) would draw it into the namespace cycle.
       static EncyclopediaHeroPageRegardMixin()
       {
@@ -74,7 +74,7 @@ namespace CalradiaRemembers.Encyclopedia
             .Select(r => (r.IsFriend, (IReadOnlyList<(IFaction, string)>) r.Houses.Select(h => (h.Faction?.Faction, h.Note)).ToList())).ToList();
       }
 
-      /// <summary>cr.testall: the mixin UIExtenderEx attached to this page, or null.</summary>
+      /// <summary>cr.test all: the mixin UIExtenderEx attached to this page, or null.</summary>
       internal static EncyclopediaHeroPageRegardMixin Of(EncyclopediaHeroPageVM page)
          => page != null && ByPage.TryGetValue(page, out EncyclopediaHeroPageRegardMixin m) ? m : null;
 
@@ -91,7 +91,7 @@ namespace CalradiaRemembers.Encyclopedia
          Refresh();
 
          // A later vanilla refresh (RefreshValues) runs this mixin's OnRefresh BEFORE it refills the lists, so the
-         // vanilla lists won (cr.testall npc_regard_reason, 17/10/2026: stillAfterTheVanillaRefresh=False). The page
+         // vanilla lists won (cr.test npc_regard_reason, 17/10/2026: stillAfterTheVanillaRefresh=False). The page
          // says when its own fill is done: Refresh ends with IsLoadingOver = true. The lists are corrected then.
          if (vm != null) vm.PropertyChangedWithBoolValue += OnPagePropertyChanged;
       }
@@ -142,10 +142,10 @@ namespace CalradiaRemembers.Encyclopedia
          }
       }
 
-      /// <summary>cr.testall: the person rows as shown (status, reason, friend), in order.</summary>
+      /// <summary>cr.test all: the person rows as shown (status, reason, friend), in order.</summary>
       internal IReadOnlyList<RegardPersonRowVM> PeopleForDiagnostics => _people.ToList();
 
-      /// <summary>cr.testall: the house rows as shown, in order.</summary>
+      /// <summary>cr.test all: the house rows as shown, in order.</summary>
       internal IReadOnlyList<RegardHouseRowVM> HouseRowsForDiagnostics => _houseRows.ToList();
 
       public override void OnRefresh()

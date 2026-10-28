@@ -26,7 +26,7 @@ namespace CalradiaRemembers.Diagnostics
       public const string ModGroup = "cr";
 
       /// <summary>
-      ///   The bare names ("testall", not "cr.testall") of every command registered under
+      ///   The bare names ("testall", not "cr.test all") of every command registered under
       ///   <paramref name="group" />, sorted. Never throws: a reflection failure yields an empty list, because a
       ///   help command that crashes is worse than one that is briefly unhelpful.
       /// </summary>

@@ -80,7 +80,7 @@ namespace CalradiaRemembers.Travel
          else _onRestore.Remove(party.StringId);
       }
 
-      /// <summary>Test seam (cr.testall): a save's despawn and the restore that follows it, without saving.</summary>
+      /// <summary>Test seam (cr.test all): a save's despawn and the restore that follows it, without saving.</summary>
       internal void DebugSaveCycle()
       {
          ReleaseAll();

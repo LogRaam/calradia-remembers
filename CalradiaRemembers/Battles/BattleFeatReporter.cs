@@ -45,7 +45,7 @@ namespace CalradiaRemembers.Battles
          return journal == null ? BattleFeatReport.Empty : BuildReport(journal, engagement);
       }
 
-      /// <summary>cr.testall seam: the per-recipient report for a journal, without consuming the live one.</summary>
+      /// <summary>cr.test all seam: the per-recipient report for a journal, without consuming the live one.</summary>
       internal static BattleFeatReport BuildReport(BattleFeatJournal journal, string engagement)
       {
          if (journal == null) return BattleFeatReport.Empty;

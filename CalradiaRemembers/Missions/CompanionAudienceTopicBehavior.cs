@@ -617,14 +617,14 @@ namespace CalradiaRemembers.Missions
       }
 
       /// <summary>
-      ///   cr.testall seam: the SAME contentment + shared-cooldown + topic-found decision <see cref="TryOfferAudience" />
+      ///   cr.test all seam: the SAME contentment + shared-cooldown + topic-found decision <see cref="TryOfferAudience" />
       ///   makes, without ever opening the popup or starting the cooldown clock, so a test can prove the gates
       ///   without a live UI side effect.
       /// </summary>
       internal bool DebugWouldOfferAudience() => FindEligibleAudience() != null;
 
       /// <summary>
-      ///   cr.testall seam: replays the road trigger's own safety gate PLUS the shared offer decision, exactly
+      ///   cr.test all seam: replays the road trigger's own safety gate PLUS the shared offer decision, exactly
       ///   what <see cref="OnDailyTick" /> checks after its dice roll lands, without ever rolling that die and
       ///   without opening the popup (see <see cref="DebugWouldOfferAudience" />). Proves the road trigger's
       ///   wiring reaches the real gates without depending on RNG or a live inquiry.

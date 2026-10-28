@@ -21,7 +21,7 @@
 // do are the two vanilla conversation windows this mod draws over. Those two are named and exempt; everything else
 // that claims focus gets the screen.
 //
-// A NAME LIST CANNOT BE COMPLETE, AND TWO RUNS PROVED IT. cr.testall caught the first miss: SceneLayer, the 3D
+// A NAME LIST CANNOT BE COMPLETE, AND TWO RUNS PROVED IT. cr.test all caught the first miss: SceneLayer, the 3D
 // world, is not a GauntletLayer at all and sets IsFocusLayer in its own constructor, so it claims focus on every
 // screen a conversation can happen on; unexempted, the arbiter yielded on the first frame of EVERY conversation.
 // Gabriel's play-test caught the second: a chat opened in a TAVERN, where the vanilla settlement menu
@@ -213,7 +213,7 @@ namespace CalradiaRemembers.Tests
             ChatFocusArbitrationPolicy.Decide(true, mission).Should().Be(ChatFocusVerdict.Hold);
         }
 
-        // The finding cr.testall returned on its first run, and the reason it was worth writing. The engine's
+        // The finding cr.test all returned on its first run, and the reason it was worth writing. The engine's
         // SceneLayer claims focus from its constructor on EVERY screen with a scene, which is every screen a
         // conversation happens on. Read as a modal, it would have slid the chat off the right edge on the first
         // frame of every conversation in the game and never brought it back: worse than the bug being fixed.

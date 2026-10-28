@@ -31,7 +31,7 @@ namespace CalradiaRemembers.Scenarios
 
       /// <summary>
       ///   The packs of these folders, in order, one rule per id. A folder that does not exist is skipped silently; a
-      ///   file that does not parse is logged and skipped. The seam cr.testall scenario_sources drives.
+      ///   file that does not parse is logged and skipped. The seam cr.test scenario_sources drives.
       /// </summary>
       public static ScenarioMergeResult Load(IReadOnlyList<ScenarioPackFolder> folders)
       {

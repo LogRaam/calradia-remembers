@@ -144,7 +144,7 @@ namespace CalradiaRemembers.Logic.Companions
    /// </summary>
    public static class CompanionServiceTransferPolicy
    {
-      // NO STARTING-RELATION CONSTANT. There was one, and cr.testall on a live campaign showed the engine
+      // NO STARTING-RELATION CONSTANT. There was one, and cr.test all on a live campaign showed the engine
       // ignoring the change (two heroes who are by then in the same clan). Rather than move the call earlier
       // to make a number stick, it was dropped: this project judges relationships on
       // NpcProfile.ReputationWithPlayer, and a vanilla relation between a lord and their own clan companion

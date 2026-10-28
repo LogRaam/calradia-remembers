@@ -22,7 +22,7 @@
 // secret" would be passed by a character who never mentions anyone at all, so each restraint is paired with a
 // disclosure that must happen.
 //
-// NOT part of cr.testall, deliberately: that sweep is free, fast and deterministic, and this spends tokens.
+// NOT part of cr.test all, deliberately: that sweep is free, fast and deterministic, and this spends tokens.
 
 #region
 

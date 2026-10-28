@@ -1,7 +1,7 @@
 // Code written by Gabriel Mailhot, 20/10/2026.
 // What the encyclopedia's Trauma section shows of a hero (Gabriel, 20/10/2026: at Hardcore, the aggressions a character
 // lived through, never on the player's own page). The words are TraumaPagePolicy's, the records TraumaLedgerBehavior's.
-// Shared by the page and cr.testall trauma_page, so the test reads exactly what the player reads.
+// Shared by the page and cr.test trauma_page, so the test reads exactly what the player reads.
 
 #region
 

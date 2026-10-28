@@ -186,7 +186,7 @@ namespace CalradiaRemembers.WorldEvents
             ? null
             : _history.FirstOrDefault(e => e.Id == id);
 
-      /// <summary>Removes a long-term event by id (cr.testall cleanup of a drawn past). True when one was removed.</summary>
+      /// <summary>Removes a long-term event by id (cr.test all cleanup of a drawn past). True when one was removed.</summary>
       public bool RemoveHistory(string id) => !string.IsNullOrEmpty(id) && _history.RemoveAll(e => e.Id == id) > 0;
 
       /// <summary>True when an event in either tier matches (a feeder's dedup that must also see what already aged out).</summary>

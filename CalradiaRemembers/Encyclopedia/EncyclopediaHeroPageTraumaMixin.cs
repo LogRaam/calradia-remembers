@@ -1,7 +1,7 @@
 // Code written by Gabriel Mailhot, 20/10/2026.
 // The encyclopedia's Trauma section (Gabriel, 20/10/2026): at Hardcore, on a character's page and never the player's, the
 // aggressions that character lived through before the player's eyes. The words are TraumaPagePolicy's and the reading of
-// the game TraumaPageReader's (in Mapping, so cr.testall reads the same lines without the diagnostics depending on the
+// the game TraumaPageReader's (in Mapping, so cr.test all reads the same lines without the diagnostics depending on the
 // encyclopedia).
 
 #region

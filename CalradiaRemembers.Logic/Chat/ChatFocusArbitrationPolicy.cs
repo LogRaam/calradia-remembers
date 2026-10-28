@@ -27,7 +27,7 @@
 // screens) plus exactly two exceptions: "MissionConversation" and "MapConversation", the vanilla conversation
 // windows this mod exists to replace. Those two are named here and never yielded to.
 //
-// A NAME LIST CANNOT BE COMPLETE, AND TWO RUNS PROVED IT. cr.testall caught the first miss:
+// A NAME LIST CANNOT BE COMPLETE, AND TWO RUNS PROVED IT. cr.test all caught the first miss:
 // TaleWorlds.Engine.Screens.SceneLayer, the 3D world, is not a GauntletLayer at all and its constructor reads
 //
 //      : base("SceneLayer", -100) { ... base.IsFocusLayer = true; }

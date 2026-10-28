@@ -654,7 +654,7 @@ namespace CalradiaRemembers.Quests
       /// </summary>
       /// <summary>
       ///   The SDK's one regard-change notice (subscribed once, at module load): an earn_regard task whose target
-      ///   has just reached the goal is done. (No self-test guard: cr.testall's contract is a reload afterwards, and
+      ///   has just reached the goal is done. (No self-test guard: cr.test all's contract is a reload afterwards, and
       ///   asking Diagnostics from here would tie Quests into it, which the dependency map flagged.)
       /// </summary>
       internal static void OnRegardChanged(NpcMemoryService.Core.Standing.RegardChange change)
@@ -670,7 +670,7 @@ namespace CalradiaRemembers.Quests
 
       /// <summary>
       ///   Stamps every outstanding earn_regard task whose target is <paramref name="npcId" /> and whose goal
-      ///   <paramref name="regard" /> reaches (Lordfadooboo, 01/10/2026). Returns how many. Internal for cr.testall.
+      ///   <paramref name="regard" /> reaches (Lordfadooboo, 01/10/2026). Returns how many. Internal for cr.test all.
       /// </summary>
       internal static int CreditRegard(string npcId, int regard)
       {
@@ -691,7 +691,7 @@ namespace CalradiaRemembers.Quests
 
       /// <summary>
       ///   A sway just landed: every outstanding plead_case task it answers (that person, won over toward the giver)
-      ///   is done (Lordfadooboo, fkasad, 01/10/2026). Returns how many. Internal for the bridge and cr.testall.
+      ///   is done (Lordfadooboo, fkasad, 01/10/2026). Returns how many. Internal for the bridge and cr.test all.
       /// </summary>
       internal static int CreditPlea(SwayFacts sway)
       {

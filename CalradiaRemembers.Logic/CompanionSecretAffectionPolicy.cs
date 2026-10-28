@@ -53,7 +53,7 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         /// <summary>
         ///   What a companion's confession rests on, read off the campaign by the caller. Named rather than
-        ///   positional (2026-09-10): this took FIVE booleans in a row, and cr.testall called it as
+        ///   positional (2026-09-10): this took FIVE booleans in a row, and cr.test all called it as
         ///   IsEligible(true, true, true, true, false, bar, warmth), six bare values with nothing to say which
         ///   was which, in the very test written to prove this bar had stopped drifting.
         /// </summary>

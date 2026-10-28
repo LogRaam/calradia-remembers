@@ -475,7 +475,7 @@ namespace CalradiaRemembers.Services
       ///   is guaranteed to be loaded by this point.
       /// </summary>
       /// <summary>
-      ///   Test seam (cr.testall): the exact action vocabulary taught to the model, so a self-test can assert an
+      ///   Test seam (cr.test all): the exact action vocabulary taught to the model, so a self-test can assert an
       ///   action's teaching still carries a required guard without going through the live chat pipeline. Used to
       ///   pin that end_conversation must not fire while the NPC is still awaiting the player's reply.
       /// </summary>
@@ -1029,7 +1029,7 @@ namespace CalradiaRemembers.Services
 
       /// <summary>
       ///   The REAL PromptBuilder the chat runs on, built exactly as <see cref="BuildChatService" /> builds it.
-      ///   Extracted so cr.testall can read the live construction rather than a copy of it: a self-test that
+      ///   Extracted so cr.test all can read the live construction rather than a copy of it: a self-test that
       ///   rebuilt these fields itself would agree with itself forever, which is precisely how the 2026-09-08
       ///   affection-bar drift went unseen for a release.
       /// </summary>

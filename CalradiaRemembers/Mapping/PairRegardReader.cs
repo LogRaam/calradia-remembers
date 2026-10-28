@@ -51,7 +51,7 @@ namespace CalradiaRemembers.Mapping
          }
       }
 
-      /// <summary>The facts, for cr.testall.</summary>
+      /// <summary>The facts, for cr.test all.</summary>
       internal static PairRegardFacts Facts(Hero speaker, Hero other, int today)
       {
          int daysInYear = Math.Max(1, CampaignTime.DaysInSeason * CampaignTime.SeasonsInYear);

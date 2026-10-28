@@ -86,16 +86,16 @@ namespace CalradiaRemembers.Chat
          _openingNarrationPending = true;
       }
 
-      /// <summary>cr.testall scene_opener: the scene is still being written.</summary>
+      /// <summary>cr.test scene_opener: the scene is still being written.</summary>
       internal bool SceneOpenerInFlightForDiagnostics => _sceneOpenerInFlight;
 
-      /// <summary>cr.testall scene_opener: what the player's first message does to a scene in flight, without sending one.</summary>
+      /// <summary>cr.test scene_opener: what the player's first message does to a scene in flight, without sending one.</summary>
       internal void SetSceneOpenerAsideForDiagnostics() => SetSceneOpenerAside();
 
-      /// <summary>cr.testall scene_opener: the last line this conversation remembers, or null.</summary>
+      /// <summary>cr.test scene_opener: the last line this conversation remembers, or null.</summary>
       internal string LastRememberedLineForDiagnostics => _transcript.Count > 0 ? _transcript.Lines[_transcript.Count - 1].Text : null;
 
-      /// <summary>cr.testall scene_opener: the greeting is still on screen.</summary>
+      /// <summary>cr.test scene_opener: the greeting is still on screen.</summary>
       internal bool ShowsLineForDiagnostics(string text) => System.Linq.Enumerable.Any(_messages, m => m?.DisplayText?.Contains(text) == true);
 
       /// <summary>The scene turn is over, whatever became of it.</summary>

@@ -54,7 +54,7 @@ namespace CalradiaRemembers.Tests.Tournaments
       public void GIVEN_null_traits_at_threshold_WHEN_evaluated_THEN_it_is_friendly_and_does_not_throw()
          => TournamentRivalryPolicy.Evaluate(2, 1, null).Should().Be(TournamentRivalryFlavor.Friendly);
       // The number 18 is not free: a bitter rivalry only leaves a mark if it clears the grudge system's OWN
-      // formation floor, which is trait-modulated. cr.testall failed on 2026-09-06 because the campaign happened to
+      // formation floor, which is trait-modulated. cr.test all failed on 2026-09-06 because the campaign happened to
       // offer a merciful lord first, and the same silent refusal was swallowing the leaked-letter consequence too.
       // This pins the reading: an unforgiving rival carries the grudge.
       [Test]

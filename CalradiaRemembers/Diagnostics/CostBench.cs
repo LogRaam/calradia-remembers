@@ -15,7 +15,7 @@
 // Each run also CAPTURES what its prose and standard rows sent, request by request (CalradiaRemembers_cost_capture.json
 // beside the report), so the conversation can be replayed outside the game against any model (Logic/Diagnostics/
 // CostReplay; Gabriel, 24/10/2026: "ça te donnerait la possibilité de vérifier des choses par toi-même").
-// Real-LLM, in-game, spends the player's credit: deliberately NOT part of cr.testall (like cr.rp_bench).
+// Real-LLM, in-game, spends the player's credit: deliberately NOT part of cr.test all (like cr.rp_bench).
 
 #region
 

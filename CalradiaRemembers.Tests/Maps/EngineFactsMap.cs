@@ -68,7 +68,7 @@ namespace CalradiaRemembers.Tests.Maps
                                                                   .Concat(Tools), StringComparer.Ordinal);
          notEngine.Remove("ModSettings");
          HashSet<string> logicStatics = TypesDeclaredIn(files, Layer.Logic, staticOnly: true);
-         // The console commands and cr.testall feed rules too, but to exercise them, not to play: they are left out.
+         // The console commands and cr.test all feed rules too, but to exercise them, not to play: they are left out.
          List<Read> reads = ReadsOf(files.Where(f => f.Layer == Layer.Mod && !IsDiagnostics(f)).ToList(), logicTypes, logicStatics, notEngine);
 
          var byFact = reads.GroupBy(r => r.Fact)

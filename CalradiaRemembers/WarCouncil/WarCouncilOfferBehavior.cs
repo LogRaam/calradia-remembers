@@ -79,7 +79,7 @@ namespace CalradiaRemembers.WarCouncil
       // ── Debug / self-test seams (no UI, no council opened) ────────────────
 
       /// <summary>
-      ///   Self-test seam (cr.testall war_council_offer): runs the REAL arm + policy + persisted-cooldown decision
+      ///   Self-test seam (cr.test war_council_offer): runs the REAL arm + policy + persisted-cooldown decision
       ///   for the supplied flags, WITHOUT reading a live army, checking the council can open, or showing any UI.
       ///   Returns true only when the offer is armed AND <see cref="WarCouncilTriggerPolicy.ShouldOffer" /> agrees,
       ///   so a test can assert "would offer" / "would not offer" deterministically.

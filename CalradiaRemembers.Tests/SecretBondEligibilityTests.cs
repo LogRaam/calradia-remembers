@@ -14,7 +14,7 @@
 //
 // Gabriel's rule, 2026-09-09: a proven regression sensitivity earns a MECHANISM, not merely a test. The mechanism
 // is that no caller knows the rule any more, so no caller can hold a private opinion about it. These tests are
-// what that one rule SAYS; cr.testall's secret_bond_bar_agrees is what proves the live callers still ask it.
+// what that one rule SAYS; cr.test all's secret_bond_bar_agrees is what proves the live callers still ask it.
 //
 // If these tests fail, one of the doors below has silently opened or shut for everyone at once, which is the
 // price of centralising: the blast radius is now the whole arc, and that is exactly why it is written down here.

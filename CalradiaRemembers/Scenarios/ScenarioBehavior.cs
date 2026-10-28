@@ -29,7 +29,7 @@ namespace CalradiaRemembers.Scenarios
          Runtime = new ScenarioRuntime(_fired);
       }
 
-      /// <summary>The triggers this behavior feeds; a pack naming any other never fires (checked by cr.testall scenario_packs).</summary>
+      /// <summary>The triggers this behavior feeds; a pack naming any other never fires (checked by cr.test scenario_packs).</summary>
       public static readonly IReadOnlyCollection<string> KnownTriggers = new[] {"ON_DEATH", "ON_MARRIAGE", "ON_WAR_DECLARED", "ON_PEACE", "ON_TALE", "ON_CAPTIVE_NIGHT"};
 
       /// <summary>The hour of the night ON_CAPTIVE_NIGHT is fired at, once a night.</summary>
@@ -50,7 +50,7 @@ namespace CalradiaRemembers.Scenarios
          Fire(KeywordToken.Parse($"ON_TALE:{taleId}:{where}"), ForTale(roles));
       }
 
-      /// <summary>What a tale's event is about, exactly as FireTale hands it to the rules (shared with cr.testall).</summary>
+      /// <summary>What a tale's event is about, exactly as FireTale hands it to the rules (shared with cr.test all).</summary>
       public static ScenarioContext ForTale(IReadOnlyDictionary<string, string> roles)
       {
          roles ??= new Dictionary<string, string>();
@@ -76,7 +76,7 @@ namespace CalradiaRemembers.Scenarios
       /// <summary>
       ///   What a death is about, exactly as the feeder hands it to the rules: the one who died first, then the one who
       ///   killed them; only the one who died is its subject (IF_HERO_IS), so a rule on a lord's death never answers a
-      ///   death they dealt. Shared with cr.testall so the self-test asks the rules what a real death asks them.
+      ///   death they dealt. Shared with cr.test all so the self-test asks the rules what a real death asks them.
       /// </summary>
       public static ScenarioContext ForDeath(Hero victim, Hero killer)
          => new(HeroList(victim, killer), FactionsOf(victim, killer), HeroList(victim));
@@ -100,7 +100,7 @@ namespace CalradiaRemembers.Scenarios
 
       /// <summary>
       ///   What a night in captivity is about (Gabriel, 24/10/2026: the night Rhagaea sends for her prisoner): the player, held
-      ///   by the realm that holds him. Shared with cr.testall.
+      ///   by the realm that holds him. Shared with cr.test all.
       /// </summary>
       public static ScenarioContext ForCaptiveNight()
       {

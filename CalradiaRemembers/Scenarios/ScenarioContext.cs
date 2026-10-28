@@ -3,7 +3,7 @@
 // resolver and consequence executor can interpret keyword references ("Rhagaea", "Southern Empire", "PLAYER")
 // against the real event. Pure logic (ScenarioSelector) decides WHICH rule fires; this is how the engine side
 // answers "who/what is involved".
-// 11/10/2026 (cr.testall scenario_death): IF_HERO_IS asked every hero of the event, so a rule on Rhagaea's death
+// 11/10/2026 (cr.test scenario_death): IF_HERO_IS asked every hero of the event, so a rule on Rhagaea's death
 // fired when she was the KILLER. The heroes a guard asks about are now the event's SUBJECTS (a death: the one who
 // died; a marriage: both), and a reference names its best match (ScenarioReferenceMatch: an id before any name).
 

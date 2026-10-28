@@ -4,7 +4,7 @@
 // self-tags it; (2) that SAME authored prose is fed to the dedicated INTERPRETER, and the two tag sets are compared by
 // the pure SingleCallAgreement. A high agreement rate is the evidence that one call can retire the two-call pipeline;
 // the divergences are where the single call's self-grounding drifts from an independent read. Real-LLM, spends tokens,
-// deliberately NOT part of cr.testall. The scoring, corpus, and report are the SDK's pure code; this only supplies the
+// deliberately NOT part of cr.test all. The scoring, corpus, and report are the SDK's pure code; this only supplies the
 // live clients (via the LlmServices.TestModelOverride seam) and writes the scoreboard where Gabriel can read it.
 
 #region

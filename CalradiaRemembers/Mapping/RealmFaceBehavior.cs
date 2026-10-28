@@ -51,7 +51,7 @@ namespace CalradiaRemembers.Mapping
          Portraits.ChatPortraitResolver.ByHero = heroId => Instance?.PortraitFor(heroId);
       }
 
-      /// <summary>What reading the faces files found wrong (cr.testall reports it).</summary>
+      /// <summary>What reading the faces files found wrong (cr.test all reports it).</summary>
       internal IReadOnlyList<string> Problems => _problems;
 
       /// <summary>The faces in use, by realm id.</summary>

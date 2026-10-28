@@ -53,7 +53,7 @@ namespace CalradiaRemembers.WarDuty
 
       private static bool _subscribed;
 
-      /// <summary>cr.testall seam: the letters are not written (no model call), everything else runs.</summary>
+      /// <summary>cr.test all seam: the letters are not written (no model call), everything else runs.</summary>
       internal static bool DebugSuppressLetters;
 
       public WarDutyBehavior()
@@ -134,7 +134,7 @@ namespace CalradiaRemembers.WarDuty
          return clan?.Kingdom != null && !clan.IsUnderMercenaryService ? clan.Kingdom : null;
       }
 
-      /// <summary>Brings the ledger up to today: the oath, the wars, a day in the realm's army. Also the cr.testall seam.</summary>
+      /// <summary>Brings the ledger up to today: the oath, the wars, a day in the realm's army. Also the cr.test all seam.</summary>
       internal void Upkeep(int today)
       {
          Kingdom kingdom = SwornKingdom();
@@ -175,7 +175,7 @@ namespace CalradiaRemembers.WarDuty
 
       /// <summary>
       ///   The day's reckoning, with the switch on: checks an open reckoning's deadline, or opens one when the player
-      ///   owes. Returns the verdict of the day. Also the cr.testall seam.
+      ///   owes. Returns the verdict of the day. Also the cr.test all seam.
       /// </summary>
       internal WarDutyStanding Reckon(int today)
       {
@@ -206,7 +206,7 @@ namespace CalradiaRemembers.WarDuty
          return standing;
       }
 
-      /// <summary>Opens a reckoning for this ruler and realm. Also the cr.testall seam.</summary>
+      /// <summary>Opens a reckoning for this ruler and realm. Also the cr.test all seam.</summary>
       internal void Open(Hero ruler, Kingdom kingdom, int today)
       {
          int levy = WarLevyPolicy.Amount(new WarLevyFacts {
@@ -247,7 +247,7 @@ namespace CalradiaRemembers.WarDuty
          SendLetter(ruler, LetterReason.WarSummons, context, today);
       }
 
-      /// <summary>Moves the reckoning a step and carries out what it returns. Also the cr.testall seam.</summary>
+      /// <summary>Moves the reckoning a step and carries out what it returns. Also the cr.test all seam.</summary>
       internal WarDutyEffect Step(WarDutyEvent ev, int today, int amount = 0)
       {
          WarDutyCase c = Ledger.Case;
@@ -301,7 +301,7 @@ namespace CalradiaRemembers.WarDuty
          return effect;
       }
 
-      /// <summary>A conversation opened with this hero. Also the cr.testall seam.</summary>
+      /// <summary>A conversation opened with this hero. Also the cr.test all seam.</summary>
       internal void OnConversationStarted(string npcId)
       {
          try
@@ -500,7 +500,7 @@ namespace CalradiaRemembers.WarDuty
 
       /// <summary>
       ///   Notes service when the player fought a faction his realm is at war with, as the ledger knows its wars.
-      ///   True when it counted. The cr.testall seam for a battle.
+      ///   True when it counted. The cr.test all seam for a battle.
       /// </summary>
       internal bool ServedAgainst(string enemyFactionId)
       {

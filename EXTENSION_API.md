@@ -137,7 +137,7 @@ reference to CR. Packs are read in this order: CR's own (`ModuleData/scenarios`)
   death happens once: a rule on one hero's death that cannot apply then never plays). Guards check the rest: `IF_AT_WAR:A,B`, `IF_AT_PEACE:A,B`, `IF_ALIVE:hero`, `IF_KINGDOM_EXISTS:kingdom`,
   `IF_RULES:hero,kingdom`, besides `IF_HERO_IS`, `IF_PLAYER_INVOLVED`, `IF_PLAYER_RULES`, `IF_PLAYER_AT_WAR` and the
   player's sex.
-- In game: `cr.scenarios` lists the loaded rules and whose pack each came from; `cr.testall` (`scenario_packs`)
+- In game: `cr.scenarios` lists the loaded rules and whose pack each came from; `cr.test all` (`scenario_packs`)
   reports a rule whose trigger, guard or consequence CR does not know, or whose hero or kingdom does not resolve.
 - **Answering a written tale** (since 2.7.10): every stage a tale reaches fires `ON_TALE:<tale id>:<stage id>`, and
   every ending `ON_TALE:<tale id>:end:<ending id>` (`end:reward`, `end:failure`). A rule naming the tale alone
@@ -177,7 +177,7 @@ carried out, each with `Type`, `WhoId`, `OtherId`, `Status` (`Done`, `NotDone` w
 the ones whose `if` held. Answer what is `Done`: an `elope` is `NotDone` when the marriage could not end (she is with
 child, a captive, or leads her house). A `return_spouse` is `Waiting` while her husband is on campaign or either is a
 captive; `ConsequenceSettled` follows (`Where` "settled") when it happens or is given up. An abandoned tale carries out
-nothing and is not sent to scenario rules. Tales whose id begins `cr_selftest_` are cr.testall's own.
+nothing and is not sent to scenario rules. Tales whose id begins `cr_selftest_` are cr.test all's own.
 
 ### Matches the player brokers (`CalradiaRemembers.CrMatches`, since 2.7.12)
 
@@ -297,7 +297,7 @@ Ctrl+C, one per realm id (`vlandia`, `empire_s`...). CR dresses each realm's rul
 each day, and gives a former queen her own face back when the king remarries or the face is taken out. Only the face
 changes: her name, age and build stay hers. Read in this order, the first one keeping a realm: the player's
 `Custom/faces.json`, each mod's `ModuleData/cr_faces.json` in launcher order, CR's `ModuleData/faces.json`.
-`cr.testall` (`realm_faces`) reports a line that does not load and a realm id the game does not know.
+`cr.test all` (`realm_faces`) reports a line that does not load and a realm id the game does not know.
 
 A realm can also carry her chat portrait: `"<realm id>": { "face": "<BodyProperties ... />", "portrait":
 "QueenPortraits/queen_<realm>.jpg" }`. The picture (.png or .jpg, any shape: the chat keeps its proportions) sits under
@@ -394,7 +394,7 @@ CrRomanceStatus s = CrRomance.GetStatus(npcId);   // null for an unknown hero or
 
 CrRomance.StatusChanged += change =>
 {
-    if (change.DuringSelfTest) return;            // cr.testall moves a bond and puts it back
+    if (change.DuringSelfTest) return;            // cr.test all moves a bond and puts it back
     // change.NpcId, change.Before.Bond, change.After.Bond, change.After.SinceDay, change.GameDay, change.SaveId
 };
 ```
@@ -425,7 +425,7 @@ departure from their realm. `Cause` is one of `conversation`, `letter`, `quest`,
 more may be added, so treat an unknown one as a change like any other. `clan_standing` (since 2.6.8) is the
 one-time warm start a character's clan standing gives at a first meeting: it comes FROM the game's relation, so
 a mod mirroring regard into that relation should skip it. `self_test` (since 2.6.9) is every change made while
-`cr.testall` runs: the tests move regard on real characters and put it back without a notice, so skip it too.
+`cr.test all` runs: the tests move regard on real characters and put it back without a notice, so skip it too.
 
 **Which deeds write the game's relation as well.** Of CR's own regard changes, only a divorce also writes the
 game's relation for the same event; council outcomes, ransoms and schemes write the game's relation without moving

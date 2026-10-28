@@ -28,7 +28,7 @@ namespace CalradiaRemembers.Mapping
       public static string Resolve(Hero hero, NpcProfile profile, string seatName)
          => Resolve(hero, profile, seatName, NarrativeLoader.CouncilSeatTemplate);
 
-      /// <summary>The same, with the template given (cr.testall's seam).</summary>
+      /// <summary>The same, with the template given (cr.test all's seam).</summary>
       internal static string Resolve(Hero hero, NpcProfile profile, string seatName, string template)
       {
          if (string.IsNullOrWhiteSpace(template)) return null;

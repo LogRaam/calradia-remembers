@@ -138,7 +138,7 @@ namespace CalradiaRemembers.Verbs
             ModLog.Info($"[WARPRESS] {npc.Name} ({npc.Clan?.Name}) will press {npc.MapFaction?.Name} toward war on {target.Name} on day {PressForWarPolicy.DueDay(today)}.");
         }
 
-        /// <summary>cr.testall seam: the gossip the last pressing recorded, so a test can find and remove it.</summary>
+        /// <summary>cr.test all seam: the gossip the last pressing recorded, so a test can find and remove it.</summary>
         internal static string DebugLastRumourId { get; private set; }
 
         /// <summary>The realms this lord's house could press a war against now, with its leaning, the most welcome first.</summary>
@@ -298,7 +298,7 @@ namespace CalradiaRemembers.Verbs
             return decision;
         }
 
-        /// <summary>cr.testall seam: forgets this house's pressing, filing nothing.</summary>
+        /// <summary>cr.test all seam: forgets this house's pressing, filing nothing.</summary>
         internal void DebugForget(string clanId) => _pending.RemoveAll(p => p.ClanId == clanId);
 
         private void Daily(int today)

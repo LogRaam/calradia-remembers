@@ -49,7 +49,7 @@ namespace CalradiaRemembers.Mapping
       public static int? WeddedOn(Hero hero)
          => hero?.StringId != null && _weddedOn.TryGetValue(hero.StringId, out int day) ? day : (int?) null;
 
-      /// <summary>cr.testall seam: records (day) or forgets (null) a hero's wedding day.</summary>
+      /// <summary>cr.test all seam: records (day) or forgets (null) a hero's wedding day.</summary>
       internal static void DebugSet(Hero hero, int? day)
       {
          if (hero?.StringId == null) return;

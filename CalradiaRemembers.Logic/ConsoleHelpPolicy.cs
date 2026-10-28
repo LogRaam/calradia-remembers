@@ -1,6 +1,6 @@
 // Code written by Gabriel Mailhot, 10/09/2026.
 // Gabriel asked whether cr.help was still complete. It was not, and not by a little: 70 commands were described
-// out of 259 registered, so 189 were invisible, including cr.testall and cr.test, which the two of us had run a
+// out of 259 registered, so 189 were invisible, including cr.test all and cr.test, which the two of us had run a
 // dozen times that same evening. One of the 70 was dead: cr.compose had been renamed cr.letter_compose and the
 // help still advertised the old name, so the single command a reader was most likely to copy verbatim was the one
 // that would fail.
@@ -12,7 +12,7 @@
 // The cause of the drift was the shape, not carelessness. A hand-written list of every command in a project that
 // gains commands weekly can only fall behind, and it falls behind in silence, because nothing ever compares it
 // with anything. So what EXISTS is read from the registry, what each one DOES comes from a table that
-// cr.testall refuses to let go incomplete, and the curated sections are an editorial layer on top: the twenty or
+// cr.test all refuses to let go incomplete, and the curated sections are an editorial layer on top: the twenty or
 // so commands worth grouping and explaining at length, in the order a reader wants them.
 //
 // Gabriel's rule, 2026-09-09: a proven drift earns a MECHANISM, not a one-time correction.
@@ -47,7 +47,7 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>
         ///   Registered commands with no entry in the description table. This is the omission that made
-        ///   cr.testall itself invisible, and the self-test treats any of it as a failure: adding a command now
+        ///   cr.test all itself invisible, and the self-test treats any of it as a failure: adding a command now
         ///   means writing its line, which is the only thing that keeps a help complete.
         /// </summary>
         public static List<string> Undocumented(IEnumerable<string> registered, IReadOnlyDictionary<string, ConsoleCommandDoc> docs)
@@ -142,7 +142,7 @@ namespace CalradiaRemembers.Logic
                 // An exact hit used to END the answer, and that quietly cost the player the whole family:
                 // `cr.help duel` explained cr.duel and never mentioned duel_challenge, duel_arm, duel_town,
                 // duel_courtship or duel_here, so the one word most likely to be typed was the one that hid
-                // five commands (cr.testall, 2026-09-10). A name that is also the stem of a family now answers
+                // five commands (cr.test all, 2026-09-10). A name that is also the stem of a family now answers
                 // as both: the command in full, then its relatives by name, because a player who typed the
                 // stem is exactly the player who does not yet know what the family contains.
                 List<string> family = hits.Where(c => !string.Equals(c, exact, StringComparison.OrdinalIgnoreCase))

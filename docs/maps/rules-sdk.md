@@ -2568,7 +2568,7 @@ _SectionResponseParser is the seam between a stochastic text generator and the m
 
 ### SelfTestPromptConversionTests.cs
 
-_PROTOTYPE (Etage A): converting in-game cr.testall LLM self-tests into headless, deterministic prompt assertions. Most "LLM" self-tests are really "does the prompt correctly INSTRUCT / INCLUDE X for this config"._
+_PROTOTYPE (Etage A): converting in-game cr.test all LLM self-tests into headless, deterministic prompt assertions. Most "LLM" self-tests are really "does the prompt correctly INSTRUCT / INCLUDE X for this config"._
 
 - GIVEN a mercenary bastard mother context, WHEN the prompt is built, THEN it briefs the secret and teaches pay blackmail
 - GIVEN a bastard mother context at content Off, WHEN the prompt is built, THEN the secret is not briefed

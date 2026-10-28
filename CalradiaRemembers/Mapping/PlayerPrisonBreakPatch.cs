@@ -57,7 +57,7 @@ namespace CalradiaRemembers.Mapping
          return hero != null && hero == _freed;
       }
 
-      /// <summary>cr.testall seam: marks a break as underway without freeing anyone; pass null to clear.</summary>
+      /// <summary>cr.test all seam: marks a break as underway without freeing anyone; pass null to clear.</summary>
       internal static void DebugMark(Hero hero, string prison)
       {
          _freed = hero;

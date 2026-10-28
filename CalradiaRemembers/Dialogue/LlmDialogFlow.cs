@@ -815,7 +815,7 @@ namespace CalradiaRemembers.Dialogue
       // The greeting the character's scene will stand in for, handed over once the chat is fully open.
       private string _sceneGreeting;
 
-      /// <summary>The facts this opening is judged on, read live (cr.testall scene_opener drives the same seam).</summary>
+      /// <summary>The facts this opening is judged on, read live (cr.test scene_opener drives the same seam).</summary>
       internal static SceneOpenerFacts SceneFacts(ChatViewModel vm, bool openedByGreeting, bool vanillaLinesCarried)
          => new() {
             SettingOn = ModSettings.CharactersSetTheScene,
@@ -849,7 +849,7 @@ namespace CalradiaRemembers.Dialogue
          return GreetingDeferencePolicy.Filter(candidates, GreetingDeferencePolicy.MayBeDeferential(Letters.CorrespondenceRank.Facts(hero, profile, null)));
       }
 
-      /// <summary>The cr.testall seam: every greeting <paramref name="hero" /> may open with in each mood, and whether they may defer.</summary>
+      /// <summary>The cr.test all seam: every greeting <paramref name="hero" /> may open with in each mood, and whether they may defer.</summary>
       internal static (List<string> Lines, bool MayDefer) DebugCandidates(Hero hero)
       {
          NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId);

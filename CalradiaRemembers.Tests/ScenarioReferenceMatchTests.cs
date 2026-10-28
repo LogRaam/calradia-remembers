@@ -1,6 +1,6 @@
 // Code written by Gabriel Mailhot, 11/10/2026.
 // Decides which hero or kingdom a scenario rule means when it names one ("empire_s", "lord_1_14", "Rhagaea").
-// If it is wrong, a shipped rule acts on the wrong realm: cr.testall scenario_death found "empire" (the Northern
+// If it is wrong, a shipped rule acts on the wrong realm: cr.test scenario_death found "empire" (the Northern
 // Empire's id) picking the Southern Empire, whose name contains the word, so the war the pack declares was skipped.
 // And the game translates names, so in French or Turkish only an id still resolves; an id must beat any name.
 

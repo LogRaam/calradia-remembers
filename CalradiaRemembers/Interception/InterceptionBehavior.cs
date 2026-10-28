@@ -573,7 +573,7 @@ namespace CalradiaRemembers.Interception
       }
 
       /// <summary>
-      ///   cr.testall seam: steers a party onto the player exactly as a pursuit does, reads whether it is held on
+      ///   cr.test all seam: steers a party onto the player exactly as a pursuit does, reads whether it is held on
       ///   course, then ends the steering and reads whether it is its own again. Refuses while a real pursuit runs.
       /// </summary>
       internal (bool Locked, bool OnThePlayer, bool FreeAfter, bool ThinksAgainAfter)? DebugSteerAndRelease(MobileParty party)
@@ -1182,7 +1182,7 @@ namespace CalradiaRemembers.Interception
                $"You rode out to ask the player about a recent happening that is the talk of the realm ({m.Summary}), but the chase came to nothing before you could reach them. You only heard of it and do not know the whole of it: do NOT state it as fact, but write to ASK what they know, curious."
          };
 
-      /// <summary>cr.testall seam: the register-framed missed-meeting letter context this lord would write now, WITHOUT marking the matter raised. Null when the lord holds no fresh matter.</summary>
+      /// <summary>cr.test all seam: the register-framed missed-meeting letter context this lord would write now, WITHOUT marking the matter raised. Null when the lord holds no fresh matter.</summary>
       internal string DebugRecentMatterLetterContext(Hero lord)
       {
          RecentMatter m = lord == null ? null : PickRecentMatter(lord, (int) CampaignTime.Now.ToDays);
@@ -1190,15 +1190,15 @@ namespace CalradiaRemembers.Interception
          return m == null ? null : RecentMatterLetterText(m);
       }
 
-      /// <summary>cr.testall seam: notes a piece of gossip as offered by this lord, as an invitation naming it does.</summary>
+      /// <summary>cr.test all seam: notes a piece of gossip as offered by this lord, as an invitation naming it does.</summary>
       internal void DebugNoteGossipOfferedBy(Hero lord, string matterKey)
          => _raisedMatterKeys.Add(RecentMatterSelector.OfferedPrefix + lord.StringId + "|" + matterKey);
 
-      /// <summary>cr.testall seam: forgets every ledger entry about this matter (cleanup).</summary>
+      /// <summary>cr.test all seam: forgets every ledger entry about this matter (cleanup).</summary>
       internal void DebugForgetMatter(string matterKey)
          => _raisedMatterKeys.RemoveWhere(entry => entry != null && entry.EndsWith("|" + matterKey, StringComparison.Ordinal));
 
-      /// <summary>cr.testall seam: the classified candidate matters this lord could raise right now (no mutation, no dedup marking).</summary>
+      /// <summary>cr.test all seam: the classified candidate matters this lord could raise right now (no mutation, no dedup marking).</summary>
       internal IReadOnlyList<RecentMatter> DebugBuildRecentMatters(Hero lord)
          => BuildRecentMatters(lord, (int) CampaignTime.Now.ToDays).ToList();
 
@@ -1547,7 +1547,7 @@ namespace CalradiaRemembers.Interception
       }
 
       /// <summary>
-      ///   cr.testall seam: the reason this lord would ride out for, with the player on his realm's land and notorious,
+      ///   cr.test all seam: the reason this lord would ride out for, with the player on his realm's land and notorious,
       ///   his war and his strength read from the live world (<paramref name="atWar" /> overrides the war when the world
       ///   holds no enemy), and every other matter (grudge, news) set by the caller.
       /// </summary>
@@ -1561,13 +1561,13 @@ namespace CalradiaRemembers.Interception
             LordOutnumbered = LordOutnumbered(lord?.PartyBelongedTo)
          });
 
-      /// <summary>cr.testall seam: whether this lord's realm is at war with the player's.</summary>
+      /// <summary>cr.test all seam: whether this lord's realm is at war with the player's.</summary>
       internal static bool DebugAtWarWithPlayer(Hero lord) => AtWarWithPlayer(lord);
 
-      /// <summary>cr.testall seam: whether this lord's party is outnumbered by the player's force.</summary>
+      /// <summary>cr.test all seam: whether this lord's party is outnumbered by the player's force.</summary>
       internal static bool DebugLordOutnumbered(Hero lord) => LordOutnumbered(lord?.PartyBelongedTo);
 
-      /// <summary>cr.testall seam: whether this lord, reaching the player for this reason, would ask first.</summary>
+      /// <summary>cr.test all seam: whether this lord, reaching the player for this reason, would ask first.</summary>
       internal static bool DebugAsksBeforeMeeting(Hero lord, InterceptionTrigger trigger)
          => InterceptionPolicy.AsksBeforeMeeting(trigger, AtWarWithPlayer(lord));
 

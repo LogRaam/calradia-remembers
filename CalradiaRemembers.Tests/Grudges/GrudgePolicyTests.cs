@@ -353,7 +353,7 @@ namespace CalradiaRemembers.Tests.Grudges
          GrudgePolicy.EffectiveMagnitude(grudge, 100000, PlainTraits()).Should().Be(0);
       }
 
-      // The bug this boundary exists to prevent, found by cr.testall in a live campaign (2026-07-18): the
+      // The bug this boundary exists to prevent, found by cr.test all in a live campaign (2026-07-18): the
       // clamp ceiling used to BE VendettaRigidity, so a grudge that merely saturated became indistinguishable
       // from one earned by putting someone's kin to death. Six rules downstream read rigidity 100 as
       // "vendetta": never resolvable, never decaying, narrated as unforgivable, every gesture rejected, the

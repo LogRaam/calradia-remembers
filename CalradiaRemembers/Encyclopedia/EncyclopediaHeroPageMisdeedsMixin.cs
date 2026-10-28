@@ -2,7 +2,7 @@
 // The encyclopedia's Misdeeds section (Gabriel, 23/10/2026: "Heart doit etre une section sur l'amour et le desir.
 // L'evenement 'take by force' devrait etre une autre section avec des actions reprehensibles."): at Hardcore, on the
 // player's own page, what the player did of their own will to a character. The words are MisdeedsPagePolicy's and the
-// reading of the game MisdeedsPageReader's (in Mapping, so cr.testall reads the same lines).
+// reading of the game MisdeedsPageReader's (in Mapping, so cr.test all reads the same lines).
 
 #region
 

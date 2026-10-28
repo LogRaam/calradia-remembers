@@ -152,7 +152,7 @@ namespace CalradiaRemembers.Portraits
                 // Swapping every image fixed the first and turned the second blue (Lordfadooboo, 23/10/2026: his own
                 // PNG portraits with alpha). So every image is handed over in the one encoding that renders true (the
                 // encoding of every CR icon and of the political map), never guessed from the file's own format.
-                // cr.testall portrait_channels reads the engine's pixels back to check it.
+                // cr.test portrait_channels reads the engine's pixels back to check it.
                 byte[] corrected = correctRedBlue ? NormalizeToRgba(File.ReadAllBytes(fullPath)) : File.ReadAllBytes(fullPath);
                 engineTexture = EngTex.CreateFromMemory(corrected);
 
@@ -234,7 +234,7 @@ namespace CalradiaRemembers.Portraits
         ///   Re-encodes any image GDI+ reads (JPG, RGB or RGBA PNG, palette or grey PNG) as a 32-bit RGBA PNG, colours
         ///   untouched. The clone to 32bppArgb is what makes GDI+ write PNG colour type 6 even for an opaque image (a
         ///   plain re-save keeps the source's own type). Anything unexpected falls back to the file's own bytes and says
-        ///   so: a portrait with the engine's own colours, never a missing one. Also the cr.testall seam.
+        ///   so: a portrait with the engine's own colours, never a missing one. Also the cr.test all seam.
         /// </summary>
         internal static byte[] NormalizeToRgba(byte[] imageBytes)
         {

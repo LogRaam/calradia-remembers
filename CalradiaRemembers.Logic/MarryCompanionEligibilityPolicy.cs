@@ -35,7 +35,7 @@ namespace CalradiaRemembers.Logic
       ///   What a match between the player and one of their own companions rests on, read off the campaign by
       ///   the caller.
       ///   <para>
-      ///     Named rather than positional (2026-09-10): this took SEVEN booleans in a row, and cr.testall called
+      ///     Named rather than positional (2026-09-10): this took SEVEN booleans in a row, and cr.test all called
       ///     it as CanMarry(true, true, true, true, false, false, true), seven bare values with nothing to say
       ///     which was which. Inverting "already wed" and "blood kin" there would have compiled, passed, and
       ///     quietly tested the wrong rule.

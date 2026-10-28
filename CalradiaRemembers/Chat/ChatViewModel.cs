@@ -4116,7 +4116,7 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       /// <summary>
       ///   How the Memories panel shows one memory: another mod's secret stays out of it unless the player asked to see them
-      ///   (tashmetu, 20/10/2026). Internal for cr.testall memory_panel_secrets.
+      ///   (tashmetu, 20/10/2026). Internal for cr.test memory_panel_secrets.
       /// </summary>
       internal static MemoryPanelShow PanelShow(NotableEvent e)
          => MemoryPanelPolicy.Show(new MemoryPanelFacts

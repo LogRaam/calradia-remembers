@@ -93,7 +93,7 @@ namespace CalradiaRemembers.Tests
          registry.ComposeTeachingsWhere("ctx", v => v.Name == "nothing").Should().BeNull();
       }
 
-      // The coverage guard (cr.testall every_verb_taught, 22/10/2026) reads CR's own verb names from here: four verbs
+      // The coverage guard (cr.test every_verb_taught, 22/10/2026) reads CR's own verb names from here: four verbs
       // and admit_secret_lover sat in no teaching list for weeks, so a name missed here would hide the next one.
       [Test]
       public void GIVEN_verbs_of_two_kinds_WHEN_listing_the_names_of_one_kind_THEN_exactly_those_come_back_in_registration_order()

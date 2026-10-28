@@ -69,9 +69,9 @@ goes as far as the player's setting allows, as for every tale).
 6. **Later, not first**: an ultimatum before the war (an envoy from the king: send her back, or war), built on the
    existing envoys.
 
-Each step is pure logic tested first, then the engine, a `cr.testall` test, the Tale Editor and the Scenario Composer
+Each step is pure logic tested first, then the engine, a `cr.test all` test, the Tale Editor and the Scenario Composer
 taught the new pieces, and HOWTO_Quests.md / EXTENSION_API.md. The reference tale is written (with the `cr-tale` skill)
-once steps 1 to 4 exist, and is the first thing `cr.testall` plays through them.
+once steps 1 to 4 exist, and is the first thing `cr.test all` plays through them.
 
 ## Gabriel's decisions (12/10/2026)
 

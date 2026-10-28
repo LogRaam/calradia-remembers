@@ -3,7 +3,7 @@
 // the token into his [QUEST] block, and the SDK parser turns it into a quest type. A token the parser does not know is a
 // task the lord offers and the game never records: the broken promise the menu exists to prevent.
 //
-// cr.testall's quest_menu used to check the menu against a hand-written list of known tokens, and failed on 01/10/2026
+// cr.test all's quest_menu used to check the menu against a hand-written list of known tokens, and failed on 01/10/2026
 // over scout_town, a perfectly good entry: the list had drifted behind the scanner for the third time (its own comment
 // records the first two). The referee is now the parser itself, here before the game is ever launched, and in game.
 

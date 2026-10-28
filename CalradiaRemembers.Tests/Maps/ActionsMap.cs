@@ -111,7 +111,7 @@ namespace CalradiaRemembers.Tests.Maps
 
       #region private
 
-      /// <summary>The game's own code: the mod layer, without the console's test commands and cr.testall.</summary>
+      /// <summary>The game's own code: the mod layer, without the console's test commands and cr.test all.</summary>
       private static List<SourceFile> GameFiles(IReadOnlyList<SourceFile> files)
          => files.Where(f => f.Layer == Layer.Mod
                              && !("/" + f.RelativePath).Contains("/Diagnostics/")

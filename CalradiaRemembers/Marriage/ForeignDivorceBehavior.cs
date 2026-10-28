@@ -49,7 +49,7 @@ namespace CalradiaRemembers.Marriage
       }
 
       /// <summary>
-      ///   cr.testall seam, records nothing: the couples the daily look would find if this hero's marriage had been
+      ///   cr.test all seam, records nothing: the couples the daily look would find if this hero's marriage had been
       ///   cleared by another mod (crByUs: as though CR had parted them itself).
       /// </summary>
       internal static IReadOnlyList<SpousePair> DebugFindIfParted(Hero hero, bool crByUs)

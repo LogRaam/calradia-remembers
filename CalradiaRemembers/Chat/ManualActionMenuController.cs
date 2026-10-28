@@ -425,7 +425,7 @@ namespace CalradiaRemembers.Chat
       // ── never re-deriving a gate. EncounterContextBuilder.Build itself is deliberately not called (see the ──
       // ── file header): several of its fields are one-shot and consumed on read for the next real LLM turn. ──
 
-      /// <summary>The cr.testall seam: the panel this character would get, from the same facts the menu reads.</summary>
+      /// <summary>The cr.test all seam: the panel this character would get, from the same facts the menu reads.</summary>
       internal static IReadOnlyList<ManualActionStatus> DebugDescribe(Hero npc, NpcProfile profile, IGameStateBridge bridge)
          => ManualActionAvailability.Describe(ResolveFacts(npc, profile, bridge));
 

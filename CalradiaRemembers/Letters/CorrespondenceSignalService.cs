@@ -3,7 +3,7 @@
 // dampers. Before this, the parse-then-apply logic lived inline inside GeneratePlayerLetterReplyAsync's
 // mutation closure, reachable only by actually sending a reply through the LLM. Pulling it out means the
 // "player asks to stop writing -> weight drops" chain can be exercised by the SAME code in game and in the
-// mechanical self-test (cr.testall's letters_mailbox), rather than the test re-implementing (and risking
+// mechanical self-test (cr.test all's letters_mailbox), rather than the test re-implementing (and risking
 // drifting from) what the reply path does.
 
 #region

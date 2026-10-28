@@ -188,7 +188,7 @@ namespace CalradiaRemembers.Battles
          return t;
       }
 
-      /// <summary>cr.testall seam: a hero's own part as though the mission had reported it.</summary>
+      /// <summary>cr.test all seam: a hero's own part as though the mission had reported it.</summary>
       internal void DebugTally(string heroId, int troopsFelled, string heroDownedId, string downedById)
       {
          if (string.IsNullOrEmpty(heroId)) return;
@@ -202,14 +202,14 @@ namespace CalradiaRemembers.Battles
          }
       }
 
-      /// <summary>cr.testall seam: binds a hand-made journal to a battle, as a mission would at its start.</summary>
+      /// <summary>cr.test all seam: binds a hand-made journal to a battle, as a mission would at its start.</summary>
       internal void DebugBind(MapEvent mapEvent, bool tournament)
       {
          BoundMapEvent = mapEvent;
          IsTournament = tournament;
       }
 
-      /// <summary>cr.testall seam: parks a hand-made journal as the finished one, as a mission's end would.</summary>
+      /// <summary>cr.test all seam: parks a hand-made journal as the finished one, as a mission's end would.</summary>
       internal static void DebugPark(BattleFeatJournal journal) => _completed = journal;
 
       /// <summary>The hero behind an agent, or null when it is a nameless soldier (whose fall is a tally, not a deed).</summary>
@@ -220,7 +220,7 @@ namespace CalradiaRemembers.Battles
          return character?.HeroObject?.StringId;
       }
 
-      /// <summary>cr.testall seam: record a deed as though the mission had reported it, so the real ledger is exercised without a battle.</summary>
+      /// <summary>cr.test all seam: record a deed as though the mission had reported it, so the real ledger is exercised without a battle.</summary>
       internal void DebugRecord(string heroDownedId, string downedPlayerById, int troopsFelled)
       {
          if (!string.IsNullOrEmpty(heroDownedId) && !_heroesDowned.Contains(heroDownedId)) _heroesDowned.Add(heroDownedId);

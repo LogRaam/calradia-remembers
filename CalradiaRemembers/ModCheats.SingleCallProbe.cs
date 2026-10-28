@@ -3,7 +3,7 @@
 // that asks the chosen model to write the NPC's reply AND ground+emit the tags together (SingleCallExtractionPromptBuilder),
 // then logs the prose, the parsed tags, and the RAW response (so the CHECK lines are visible) for Gabriel to eyeball.
 // The question it answers: does the CHECK discipline survive when one model, at a prose-friendly temperature, is also
-// being creative, and does it ground its OWN prose honestly? Throwaway tool: real-LLM (spends tokens), NOT in cr.testall,
+// being creative, and does it ground its OWN prose honestly? Throwaway tool: real-LLM (spends tokens), NOT in cr.test all,
 // changes nothing in the live pipeline. If the eyeball looks good, we build the scored single-call bench (increment 3).
 
 #region
@@ -34,7 +34,7 @@ namespace CalradiaRemembers
       ///   the currently configured scene model), forcing the model via <see cref="LlmServices.TestModelOverride" />.
       ///   Each scenario makes ONE call: the model writes the NPC reply AND grounds+emits the tags together. Writes
       ///   prose + parsed tags + the RAW response (CHECK lines included) to CalradiaRemembers_single_call_probe.log.
-      ///   Use: "cr.single_call_probe deepseek/deepseek-v4-flash-0731". Spike tool, spends tokens, not in cr.testall.
+      ///   Use: "cr.single_call_probe deepseek/deepseek-v4-flash-0731". Spike tool, spends tokens, not in cr.test all.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("single_call_probe", "cr")]
       public static string RunSingleCallProbe(List<string> args)

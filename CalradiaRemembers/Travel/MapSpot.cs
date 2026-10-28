@@ -1,5 +1,5 @@
 // Code written by Gabriel Mailhot, 19/10/2026.
-// Where a party can be put on the campaign map. cr.testall authored_quest_opening (Gabriel, 19/10/2026) failed with
+// Where a party can be put on the campaign map. cr.test authored_quest_opening (Gabriel, 19/10/2026) failed with
 // "[TALE] band spawn failed: AccessViolationException": the tale's band was placed at the village plus a random
 // offset. Creating a party with a spawn radius runs NavigationHelper.FindReachablePointAroundPosition, whose native
 // path query starts from the given point's navigation face; a point off the walkable map has no valid face, and the

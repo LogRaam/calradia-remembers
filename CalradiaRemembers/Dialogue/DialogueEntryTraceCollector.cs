@@ -216,7 +216,7 @@ namespace CalradiaRemembers.Dialogue
       }
 
       /// <summary>
-      ///   Test-only seam (cr.testall): forward-resolves a token NAME to its registered index using the
+      ///   Test-only seam (cr.test all): forward-resolves a token NAME to its registered index using the
       ///   exact reflection path <see cref="ResolveTokenName" /> reads, so the self-test drives the real
       ///   lookup rather than a parallel copy. Null when the token is unknown or reflection is unavailable.
       /// </summary>
@@ -231,7 +231,7 @@ namespace CalradiaRemembers.Dialogue
          catch { return null; }
       }
 
-      /// <summary>Test-only seam (cr.testall): exposes the private reverse-lookup for a self-test to call directly.</summary>
+      /// <summary>Test-only seam (cr.test all): exposes the private reverse-lookup for a self-test to call directly.</summary>
       internal static string DebugResolveTokenName(ConversationManager mgr, int token) => ResolveTokenName(mgr, token);
 
       #endregion

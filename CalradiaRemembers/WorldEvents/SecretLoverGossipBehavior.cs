@@ -243,7 +243,7 @@ namespace CalradiaRemembers.WorldEvents
          return friends[MBRandom.RandomInt(friends.Count)];
       }
 
-      /// <summary>cr.testall seam: run one propagation from this teller (bypassing the daily chance) and return the friend told, or null when the teller guards it or has no eligible friend.</summary>
+      /// <summary>cr.test all seam: run one propagation from this teller (bypassing the daily chance) and return the friend told, or null when the teller guards it or has no eligible friend.</summary>
       internal string DebugSpreadOnce(Hero teller, string subjectId)
       {
          NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
@@ -296,7 +296,7 @@ namespace CalradiaRemembers.WorldEvents
       public bool Knows(string lordId, string subjectId)
          => !string.IsNullOrEmpty(lordId) && !string.IsNullOrEmpty(subjectId) && _known.Contains(KnownKey(lordId, subjectId));
 
-      /// <summary>Retracts a recorded knowledge entry (cr.testall cleanup so a self-test leaves nothing persisted).</summary>
+      /// <summary>Retracts a recorded knowledge entry (cr.test all cleanup so a self-test leaves nothing persisted).</summary>
       public void ForgetKnows(Hero lord, string subjectId)
       {
          if (lord == null || string.IsNullOrEmpty(lord.StringId) || string.IsNullOrEmpty(subjectId)) return;
@@ -320,7 +320,7 @@ namespace CalradiaRemembers.WorldEvents
          return _hushPaid.TryGetValue(KnownKey(lordId, subjectId), out int day) ? day : (int?) null;
       }
 
-      /// <summary>Clears a recorded hush payment (cr.testall cleanup).</summary>
+      /// <summary>Clears a recorded hush payment (cr.test all cleanup).</summary>
       public void ForgetHushPaid(Hero lord, string subjectId)
       {
          if (lord == null || string.IsNullOrEmpty(lord.StringId) || string.IsNullOrEmpty(subjectId)) return;
@@ -352,7 +352,7 @@ namespace CalradiaRemembers.WorldEvents
          return subjects;
       }
 
-      /// <summary>cr.testall seam: record the existence-whisper now (bypassing the delay/roll) WITHOUT marking it, so a test can assert then retract it. Returns false when the hero is null.</summary>
+      /// <summary>cr.test all seam: record the existence-whisper now (bypassing the delay/roll) WITHOUT marking it, so a test can assert then retract it. Returns false when the hero is null.</summary>
       internal bool DebugForceLeak(Hero h)
       {
          if (h == null || WorldEventStore.Instance == null) return false;

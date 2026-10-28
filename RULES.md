@@ -7320,7 +7320,7 @@ _This composer rebuilds one participant's ChatSession from the shared attributed
 
 ### SettingEnforcersCoverageTests.cs
 
-_cr.testall settings_ranges_agree drives every integer MCM slider end to end and fails on one it does not know._
+_cr.test settings_ranges_agree drives every integer MCM slider end to end and fails on one it does not know._
 
 - GIVEN every integer slider in the menu, WHEN the testall table is read, THEN each has its line
 

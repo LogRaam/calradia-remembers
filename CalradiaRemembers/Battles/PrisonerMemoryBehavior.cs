@@ -78,7 +78,7 @@ namespace CalradiaRemembers.Battles
       /// <summary>
       ///   The player left <paramref name="captive" /> in <paramref name="place" />'s dungeon: the captive remembers it, and
       ///   so do the head of the house that holds the place and its governor (when they are not the player's). Also the
-      ///   cr.testall seam.
+      ///   cr.test all seam.
       /// </summary>
       internal static void RecordLeftInDungeon(Hero captive, Settlement place)
       {
@@ -93,7 +93,7 @@ namespace CalradiaRemembers.Battles
          ModLog.Info($"[PRISONER] {captive.Name} left by the player in the dungeon of {place.Name}.");
       }
 
-      /// <summary>cr.testall seam: forgets that the player left this prisoner anywhere.</summary>
+      /// <summary>cr.test all seam: forgets that the player left this prisoner anywhere.</summary>
       internal static void DebugForget(string heroId) => PlayerDungeons.Release(heroId);
 
       private static void OnReleased(Hero prisoner, PartyBase party, EndCaptivityDetail detail)

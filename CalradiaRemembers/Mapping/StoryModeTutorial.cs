@@ -25,7 +25,7 @@ namespace CalradiaRemembers.Mapping
       private static PropertyInfo _mainStoryLine;
       private static PropertyInfo _restricted;
 
-      /// <summary>Whether the game's flag was found (StoryMode.dll loaded and the members named as in 1.4.8): for cr.testall.</summary>
+      /// <summary>Whether the game's flag was found (StoryMode.dll loaded and the members named as in 1.4.8): for cr.test all.</summary>
       internal static bool FlagFound
       {
          get

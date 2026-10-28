@@ -109,10 +109,10 @@ namespace CalradiaRemembers.Arrests
       /// <summary>The player's case as it stands.</summary>
       internal ArrestCase Case => _state.Case;
 
-      /// <summary>Test seam (cr.testall): the whole saved state, as JSON, so a self-test can put it back exactly.</summary>
+      /// <summary>Test seam (cr.test all): the whole saved state, as JSON, so a self-test can put it back exactly.</summary>
       internal string DebugSnapshot() => JsonConvert.SerializeObject(_state, Formatting.None);
 
-      /// <summary>Test seam (cr.testall): restores a state taken by <see cref="DebugSnapshot" />.</summary>
+      /// <summary>Test seam (cr.test all): restores a state taken by <see cref="DebugSnapshot" />.</summary>
       internal void DebugRestore(string json)
       {
          _state = JsonConvert.DeserializeObject<SavedState>(json ?? "{}") ?? new SavedState();
@@ -551,7 +551,7 @@ namespace CalradiaRemembers.Arrests
 
       /// <summary>
       ///   froggyluv (22/10/2026): the option off and the hunters still came. Off, no bounty stands, unless the law already
-      ///   holds the player. Called each hour with the option's value (cr.testall passes it).
+      ///   holds the player. Called each hour with the option's value (cr.test all passes it).
       /// </summary>
       internal void LiftBountiesWhenOff(bool arrestsOn)
       {

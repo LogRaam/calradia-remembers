@@ -332,7 +332,7 @@ namespace CalradiaRemembers.Missions
          return NotHeld(CompanionAudienceReason.RumourReport, "no un-reported rumour this companion could plausibly have heard");
       }
 
-      /// <summary>The news against the world as it is now (CompanionRumourFreshnessPolicy). Internal for cr.testall.</summary>
+      /// <summary>The news against the world as it is now (CompanionRumourFreshnessPolicy). Internal for cr.test all.</summary>
       internal static CompanionRumourFreshnessFacts FreshnessFacts(WorldEvent ev, int today)
       {
          bool warOrPeace = ev.Type == WorldEventType.WarDeclared || ev.Type == WorldEventType.PeaceDeclared;

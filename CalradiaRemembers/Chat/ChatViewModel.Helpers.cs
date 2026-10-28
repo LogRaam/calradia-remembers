@@ -210,7 +210,7 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
-      ///   cr.testall seam: the compact recall a group scene would give this hero as a witness, read from their
+      ///   cr.test all seam: the compact recall a group scene would give this hero as a witness, read from their
       ///   profile through the SAME path (<see cref="BuildWitnessMemory" /> + <see cref="WitnessMemoryEventCap" />)
       ///   the live turn uses. Null when the hero has no profile or no events.
       /// </summary>
@@ -664,7 +664,7 @@ namespace CalradiaRemembers.Chat
       // ── Sprint 15B helpers ────────────────────────────────────────────────
 
       /// <summary>
-      ///   cr.testall seam: records a line into this chat's transcript exactly as a real turn would, so the
+      ///   cr.test all seam: records a line into this chat's transcript exactly as a real turn would, so the
       ///   sweep can drive a briefing to its close without an LLM, a window, or a player typing.
       /// </summary>
       public void RecordPlayerLineForDiagnostics(string text)

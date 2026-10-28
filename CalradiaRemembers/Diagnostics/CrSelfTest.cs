@@ -102,7 +102,7 @@ namespace CalradiaRemembers.Diagnostics
    ///   asserts what happened, and yields a <c>[SELFTEST]</c> PASS/FAIL/MANUAL line.
    ///   <para>
    ///     Adding a test is one method + one <see cref="Tests" /> entry — no new console command
-   ///     (cr.testall / cr.test &lt;name&gt; dispatch to the registry). Assertions go through
+   ///     (cr.test all / cr.test &lt;name&gt; dispatch to the registry). Assertions go through
    ///     <see cref="TestRun" />, which builds the detail string and the verdict for you.
    ///   </para>
    ///   <para>
@@ -276,7 +276,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("interception_nemesis_bounty", Severity.Light, "A third proactive channel, the announcement/discoverability layer on top of the EXISTING scripted hero_main_options nemesis bounty offer (roadmap piece 2, player wish, subsumes the 'tavern rumour: Coll raids near X' wish since the lord tells the player directly): a lord whose region is plagued by a nemesis he is eligible to bounty seeks the player out to name him and where he operates, never settling the bounty itself in this channel. Mints a nemesis anchored to a REAL lord's own region (MintBountyEligibleNemesis) and asserts InterceptionBehavior.HasNemesisBountyToOffer reuses the SAME NemesisBountyDialogFlow.FindEligibleNemesisFor gate the scripted offer uses (never a re-derived one), that the Detail names the nemesis, that the pure InterceptionPolicy.Choose surfaces NemesisBounty, that it is fief-valid, and the priority pin (a live grudge against the PLAYER still outranks it, mirroring InterceptionPolicyTests). Marks the minted identity dead afterwards", TestInterceptionNemesisBounty),
          new SelfTest("letters_mailbox", Severity.Light, "Mechanical: asking to stop writing (via the real preference parser + apply seam) drives a sender's correspondence damper to the floor and LOWERS that sender's mailbox weight; an Acknowledge also lowers it; the weighted scheduler prefers the important letter; a full budget window releases nothing; a 40-day-old event candidate is stale", TestLettersMailbox),
          new SelfTest("conversation_cut", Severity.Light, "Player report (17/09/2026): characters recited the conversation back, replies growing every turn; and (raphareish, 18/09/2026) asked after the progress of a quest agreed thirty seconds earlier. Both cures are a COUNT taken when the conversation opens, and both counts are produced by the HOST (ChatViewModel) and honoured by the SDK, so the pure tests on either side cannot see the wire between them. This is the wire: seeds one memory and one task on a real profile, takes the two cuts through the REAL ChatViewModel, seeds a second memory and task to stand for what the exchange itself writes, asserts neither cut moves, then builds the EXACT prompt the chat pipeline builds (LlmServices.ChatService.PromptBuilder, via EncounterContextBuilder.Build) and asserts the character still holds their past, does not have this conversation replayed at them as history, and reads a task agreed at the table as JUST AGREED rather than an errand under way. No LLM: the whole question is what the prompt CONTAINS, and an answer from a model would be a weaker reading of the same fact. Removes everything it seeded", TestConversationCut),
-         new SelfTest("letter_memory", Severity.Light, "Player report (Desporion): a marriage proposal 'agreed on the terms' over three letters was denied face to face because letters left only a generic 'Received a letter (Reason)' memory, never their substance. Pure half: LetterMemoryPolicy.ShouldRemember excludes the two re-ping reasons (AwaitingReply, QuestUpdate) and includes MarriageProposal; BaseMemory is first-person and reflects direction. Real-path half: drives the REAL LetterMemoryFinalizer.RecordLetterMemory (LetterPopupManager.MarkReceived's own seam) with a ShouldRemember=false reason (QuestUpdate), so the run can never fall through to the async LLM summarizer (Lane C, kept out of cr.testall), and asserts the base event actually lands on profile.Events. Removes the event it added", TestLetterMemory),
+         new SelfTest("letter_memory", Severity.Light, "Player report (Desporion): a marriage proposal 'agreed on the terms' over three letters was denied face to face because letters left only a generic 'Received a letter (Reason)' memory, never their substance. Pure half: LetterMemoryPolicy.ShouldRemember excludes the two re-ping reasons (AwaitingReply, QuestUpdate) and includes MarriageProposal; BaseMemory is first-person and reflects direction. Real-path half: drives the REAL LetterMemoryFinalizer.RecordLetterMemory (LetterPopupManager.MarkReceived's own seam) with a ShouldRemember=false reason (QuestUpdate), so the run can never fall through to the async LLM summarizer (Lane C, kept out of cr.test all), and asserts the base event actually lands on profile.Events. Removes the event it added", TestLetterMemory),
          new SelfTest("world_conditions", Severity.Light, "Mechanical: the engine reads the weekly world-conditions feeder depends on still work against the live game (a renamed field or a changed model signature would silently swallow to 0 inside the feeder's own guards, recording nothing forever). Reads GetScoreOfDeclaringWar in both directions between two live kingdoms and a live town's FoodStocks/FoodChange/Prosperity DIRECTLY, asserts each is finite, then runs the real RunScan and asserts both scanners ran. Skips when the world has fewer than two kingdoms or no town", TestWorldConditions),
          new SelfTest("realm_tidings", Severity.Light, "Mechanical: drives the REAL RealmTidingsBehavior.DebugEvaluate end to end and proves per-NPC dedup. Seeds a dominant known event for a friendly landed lord (regard forced to 30), asserts a RealmTidings letter candidate is queued and the event id enters the dedup ledger, then re-evaluates and asserts the same event is never relayed twice. Restores the writer's regard, ledger and candidates and removes the seed", TestRealmTidings),
          new SelfTest("siege_tidings_participation", Severity.Light, "Mechanical (player report: told by letter of a siege they FOUGHT IN, days later, as if it were news): stamps the REAL WorldEventFeeders siege-participation marker for a live settlement, then drives the REAL RecordSiegeCapture construction with a NON-player taker (a mere participant, never the credited capturer) -> assert the recorded WorldEvent has InvolvesPlayer true (so realm-tidings' own InvolvesPlayer filter will never relay it back) while Type stays SettlementCaptured and Aggrieved* stay empty (the conquest's attribution is NOT stolen from the real taker). Removes the seeded event afterwards", TestSiegeTidingsParticipation),
@@ -311,7 +311,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("tale_items", Severity.Light, "tashmetu (20/10/2026), items in tales: \"bring 30 grain to {giver}\" and a thing given in an ending; Gabriel approved it for a second phase. A tale written into this test (never a shipped file) is taken on with a real lord and asks him 3 grain; the party is given 8. The bag sees the goods asked of him (and of nobody else), a bag hand-over of 2 takes nothing and leaves the stage; a give_item worded in the chat (Gabriel 21/10: it counts) through the REAL bridge takes nothing while the party carries 2, is asked first naming the 3 asked, then takes exactly 3 of the 8, ends the tale, and its ending gives 2 wine through the REAL item consequence. Puts the party's grain and wine back, abandons and forgets the tale", TestTaleItems),
          new SelfTest("tale_locals_memory", Severity.Light, "tashmetu (20/10/2026), the Moonlit Maiden: a giver who is a notable of the village an ending speaks to remembered the same moment twice, as the giver and as one of the locals. Binds a real notable of a real village as the giver of an ending that gives him a memory and speaks to the village's locals, and asks the REAL recipients: the giver is left out of the locals' memory, and the village's other notables still hear it. Writes no memory", TestTaleLocalsMemory),
          new SelfTest("settings_ranges_agree", Severity.Light, "Mechanical (Gabriel, 2026-09-10, after the Regard Warmth Cooldown: \"je suis surpris que le bon comportement n'ait pas ete bien protege par des tests unitaires. Par exemple, 0 aurait du etre teste\"). The uncomfortable truth is that 0 WAS tested and the test agreed with the bug: it pinned what the code did, while the MCM control clamped its minimum to 1 and the v2.5.1 changelog promised 0 turned the cooldown off. Three artefacts, no place for any two of them to meet. This is that place. Reflects over EVERY [SettingPropertyInteger] on CrSettings, pairs it with the same-named ModSettings property that enforces it, drives the declared MIN and MAX through the live setting, and asserts the code honours every value the menu offers. Catches the whole family in one assertion, including settings that do not exist yet. Restores each setting to its prior value in a finally", TestSettingsRangesAgree),
-         new SelfTest("console_help_complete", Severity.Light, "Mechanical: cr.help against the REAL command registry. Asked on 2026-09-10 whether it was still complete, it described 70 of 259 registered commands, so cr.testall and cr.test were themselves invisible, and it advertised cr.compose, renamed cr.letter_compose long before, which made the one name a reader was most likely to copy verbatim the one that would fail. A hand-written list of every command in a project that gains commands weekly can only drift, so what EXISTS now comes from reflection over the assembly its own [CommandLineArgumentFunction] attributes and the prose is an overlay on top of it. Reads the live registry, drives the real ModCheats.Help in all three of its forms, and asserts: the help never names a command that does not exist (the cr.compose class of error), every registered command is reachable through cr.help all however undescribed, the curated page says where the rest of them are, and the search finds a command by fragment. Read-only, mutates nothing", TestConsoleHelpComplete),
+         new SelfTest("console_help_complete", Severity.Light, "Mechanical: cr.help against the REAL command registry. Asked on 2026-09-10 whether it was still complete, it described 70 of 259 registered commands, so cr.test all and cr.test were themselves invisible, and it advertised cr.compose, renamed cr.letter_compose long before, which made the one name a reader was most likely to copy verbatim the one that would fail. A hand-written list of every command in a project that gains commands weekly can only drift, so what EXISTS now comes from reflection over the assembly its own [CommandLineArgumentFunction] attributes and the prose is an overlay on top of it. Reads the live registry, drives the real ModCheats.Help in all three of its forms, and asserts: the help never names a command that does not exist (the cr.compose class of error), every registered command is reachable through cr.help all however undescribed, the curated page says where the rest of them are, and the search finds a command by fragment. Read-only, mutates nothing", TestConsoleHelpComplete),
          new SelfTest("seasonal_chronicle", Severity.Light, "The seasonal historian (Gabriel's design): at each turn of the season every realm is read, and what MOVED - a stronghold taken, coffers grown, armies thinned - is written into the world as ordinary news. Computed deterministically from the almanac's own power facts rather than written by a model, because \"Vlandia grew rich\" IS a delta description and a background call every season would cost tokens forever, fail halfway, and have a language to get wrong. Drives the REAL behaviour against the REAL store with a perturbed reading (the honest alternative is waiting a season and hoping), and asserts it is ordinary news rather than a fourth memory store. Removes the row it writes", TestSeasonalChronicle),
          new SelfTest("world_claims", Severity.Light, "Invented facts (Gabriel, 2026-09-12): a character makes up a blight, the gate judges it, and if it passes it becomes a real low-weight rumour a DIFFERENT character can have heard - which is the incoherence Gabriel named, closed through the rumour road that already existed instead of a second world model. A unit test can prove the RULE and never that the row reached the world, so this drives the real injector against the real store. Also asserts the two refusals that matter: the PLAYER never authors the world, and nothing the engine keeps on a screen is ever invented into it. Removes every row it writes", TestWorldClaims),
          new SelfTest("knowledge_composition", Severity.Light, "Mechanical (Gabriel + fkasad, 2026-09-11): the half a unit test CANNOT do. A unit test builds its own EncounterContext, so it can prove a companion WOULD carry his house's standing and never that anyone supplied it - which is exactly where the governor bug lived (the prompt was right, the rule would have been right, the host never filled the field). Sweeps up to 60 free REAL heroes PLUS up to 15 PRISONERS, asks NpcKnowledgeFactory which knowledge packs each one CARRIES, and asserts the live context actually SUPPLIED every one of them; reports the pack census so a pack that reaches nobody is visible rather than silently vacuous. Prisoners joined the sample on 16/09/2026: excluding them left the whole IsCutOff composition unverified in a live game - the one branch where packs are meant to go SILENT, and so the one where a mistake is hardest to spot by reading a transcript - and that blind spot was covering a real defect, since realm_news and underworld ignored the flag and a man in a cell was reading his realm's current fortunes. Read-only: builds contexts, mutates nothing", TestKnowledgeComposition),
@@ -627,7 +627,7 @@ namespace CalradiaRemembers.Diagnostics
 
       // True while the run includes the IRREVERSIBLE tests ('cr.test full' / 'cr.test <name>' on a throwaway save). Only
       // then may a test ARRANGE its context through diplomacy (a war, a peace, a realm joined or left): CR's world-event
-      // feeders, commitments, retainers and scenario rules all listen to those, so a routine cr.testall on a real save
+      // feeders, commitments, retainers and scenario rules all listen to those, so a routine cr.test all on a real save
       // must never change them (13/10/2026: Gabriel's rule to arrange every test, held against keeping his saves clean).
       private static bool _diplomacyMayBeArranged;
 
@@ -688,7 +688,7 @@ namespace CalradiaRemembers.Diagnostics
          sb.AppendLine($"[SELFTEST] {Tests.Count} registered test(s):");
          foreach (SelfTest t in Tests)
             sb.AppendLine($"  {t.Name}  [{t.Severity}{(t.CallsLlm ? ", LLM" : "")}]  — {t.Description}");
-         sb.AppendLine("Run all: cr.testall   |   one: cr.test <name>   |   conversations: cr.test chat   |   mechanical only: cr.test mech");
+         sb.AppendLine("Run all: cr.test all   |   one: cr.test <name>   |   conversations: cr.test chat   |   mechanical only: cr.test mech");
 
          return sb.ToString();
       }
@@ -717,14 +717,14 @@ namespace CalradiaRemembers.Diagnostics
          return result;
       }
 
-      // ── Public API (cr.testall / cr.test) ─────────────────────────────────
+      // ── Public API (cr.test all / cr.test) ─────────────────────────────────
 
       /// <summary>
-      ///   The routine sweep (cr.testall): every MECHANICAL test EXCEPT the irreversible ones. The real-LLM
+      ///   The routine sweep (cr.test all): every MECHANICAL test EXCEPT the irreversible ones. The real-LLM
       ///   roleplay/conversation tests (CallsLlm) are NOT run here any more: they are slow, cost tokens, and
       ///   are flaky on a slow or over-reasoning model, and the dedicated real-LLM tools now own that ground
       ///   (cr.rp_bench for scene quality, cr.action_bench for the interpreter, cr.test chat for the chat smoke
-      ///   set). So cr.testall is the FAST, FREE, deterministic logic sweep. The irreversible tests (declaring
+      ///   set). So cr.test all is the FAST, FREE, deterministic logic sweep. The irreversible tests (declaring
       ///   war, sealing a one-shot scenario) are also held back: they mutate the LIVE campaign in ways only a
       ///   reload undoes, so run them opt-in via <c>cr.test &lt;name&gt;</c>, or <c>cr.test full</c> on a
       ///   throwaway save. <paramref name="llmBudgetSeconds" /> is kept for signature stability but is moot
@@ -1707,7 +1707,7 @@ namespace CalradiaRemembers.Diagnostics
       ///   a timed-out LLM call is CANCELLED via the token threaded into the real chat pipeline (never merely
       ///   abandoned, since an orphaned call could still land and mutate state after the sweep moved on) and
       ///   the test reports FAIL with a clear timeout message; the sweep continues. <paramref name="mechanicalFirst" />
-      ///   reorders so the fast, free tests run before the LLM ones (cr.testall only; explicit groups and
+      ///   reorders so the fast, free tests run before the LLM ones (cr.test all only; explicit groups and
       ///   single-test runs keep registration order).
       /// </summary>
       private static string RunGroup(IEnumerable<SelfTest> group,
@@ -3654,7 +3654,7 @@ namespace CalradiaRemembers.Diagnostics
             targetResolves = CourtActionResolver.ResolveHeldPrisonerByName(targetName, captor) == victim;
          }
 
-         // Emission is MEMORY- and personality-dependent (in a full cr.testall sweep the mechanical
+         // Emission is MEMORY- and personality-dependent (in a full cr.test all sweep the mechanical
          // rp_release has often already freed this same captive minutes earlier, and the captor
          // REMEMBERS it: "he already breathes free air" is the memory system working, not a bug).
          // The wiring is proven by the mechanical rp_release, so this hard-fails only on a wiring
@@ -3981,7 +3981,7 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       /// <summary>
-      ///   Gabriel cannot play to test ride_with_me by hand, so this drives the WHOLE chain in cr.testall: raise an
+      ///   Gabriel cannot play to test ride_with_me by hand, so this drives the WHOLE chain in cr.test all: raise an
       ///   idle friendly lord's regard, arm the gated feature, and ask him IN CONVERSATION to ride at your side.
       ///   It asserts the model emits the ride_with_me action (the teaching + emission), then runs that action
       ///   through the real bridge and asserts he actually JOINED the player's party while staying in his own clan.
@@ -5252,7 +5252,7 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("unregisteredItIsGone", PairRegardReader.Assess(a, b).Verdict, Logic.PairRegardVerdict.Neither);
 
          // The function form (tashmetu, 20/10/2026), for a mod that keeps CR optional: the same weighing, no CR type named.
-         const string fnId = "cr.testall.pair_regard";
+         const string fnId = "cr.test all.pair_regard";
          CrPairRegard.RegisterPairRegardSource(fnId, (speaker, other, today) => speaker == a && other == b
             ? new[] {(30, "[SELFTEST] you rode together", "[SELFTEST] rode together", true)}
             : Array.Empty<(int, string, string, bool)>());
@@ -7905,7 +7905,7 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
-      // The test's bounty leaves the giver's profile once checked, so a save made after cr.testall keeps no task of it.
+      // The test's bounty leaves the giver's profile once checked, so a save made after cr.test all keeps no task of it.
       private static void DropTestBounty(NpcMemoryCampaignBehavior behavior, Hero giver, Hero nemesisHero)
       {
          NpcProfile p = behavior.Store.Get(giver.StringId);
@@ -11948,7 +11948,7 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(lord == null, "no lord the chat would refuse")) return t.Line();
 
          int before = behavior.Store.Get(lord.StringId)?.Events.Count ?? 0;
-         Logic.SharedIntimacyResult result = CrRomance.RecordSharedIntimacy(lord.StringId, "(selftest) a night that must not count", "cr.testall");
+         Logic.SharedIntimacyResult result = CrRomance.RecordSharedIntimacy(lord.StringId, "(selftest) a night that must not count", "cr.test all");
          t.Note($"{lord.Name}: {result}");
          t.Expect("refused", result == Logic.SharedIntimacyResult.NotWelcome || result == Logic.SharedIntimacyResult.RomanceOff, true);
          t.Expect("nothingWritten", behavior.Store.Get(lord.StringId)?.Events.Count ?? 0, before);
@@ -12694,9 +12694,9 @@ namespace CalradiaRemembers.Diagnostics
             behavior.Store.Set(headProfile);
 
             // STAKE: a decider with no say over her hand is refused at the door, before anyone is taught anything.
-            t.Expect("aDeciderWithNoSayIsRefused", CrMatches.Register(new CrMatchRequest {SuitorId = suitor.StringId, BrideId = bride.StringId, DeciderId = suitor.StringId, SourceMod = "cr.testall"}), MatchRegistrationResult.RejectedNoAuthority);
+            t.Expect("aDeciderWithNoSayIsRefused", CrMatches.Register(new CrMatchRequest {SuitorId = suitor.StringId, BrideId = bride.StringId, DeciderId = suitor.StringId, SourceMod = "cr.test all"}), MatchRegistrationResult.RejectedNoAuthority);
 
-            MatchRegistrationResult registered = CrMatches.Register(new CrMatchRequest {SuitorId = suitor.StringId, BrideId = bride.StringId, DeciderId = head.StringId, SourceMod = "cr.testall"});
+            MatchRegistrationResult registered = CrMatches.Register(new CrMatchRequest {SuitorId = suitor.StringId, BrideId = bride.StringId, DeciderId = head.StringId, SourceMod = "cr.test all"});
             t.Note($"{suitor.Name} for {bride.Name} ({bride.Clan.Name}), decided by {head.Name}: {registered}");
             // STAKE: a lawful match with the head of her house is taken.
             t.Expect("aLawfulMatchIsRegistered", registered, MatchRegistrationResult.Registered);
@@ -13709,8 +13709,8 @@ namespace CalradiaRemembers.Diagnostics
          int before = profile.Events.Count;
          try
          {
-            MemoryResult secret = CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = "(self-test) I wept at the feast.", Private = true, SourceMod = "cr.testall"});
-            MemoryResult plain = CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = "(self-test) We met at the ford.", SourceMod = "cr.testall"});
+            MemoryResult secret = CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = "(self-test) I wept at the feast.", Private = true, SourceMod = "cr.test all"});
+            MemoryResult plain = CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = "(self-test) We met at the ford.", SourceMod = "cr.test all"});
             NpcProfile after = store.Get(profile.Id);
             NotableEvent secretEvent = after.Events.LastOrDefault(e => e.summary == "(self-test) I wept at the feast.");
             NotableEvent plainEvent = after.Events.LastOrDefault(e => e.summary == "(self-test) We met at the ford.");
@@ -14566,8 +14566,8 @@ namespace CalradiaRemembers.Diagnostics
          bool keep = CrSettings.Instance.ShowSecretMemories;
          try
          {
-            CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = secret, Private = true, SourceMod = "cr.testall"});
-            CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = open, SourceMod = "cr.testall"});
+            CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = secret, Private = true, SourceMod = "cr.test all"});
+            CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = open, SourceMod = "cr.test all"});
             CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = briefing, Private = true, SourceMod = Logic.Chat.MemoryPanelPolicy.OwnSource});
             const string unnamed = "(self-test) A secret with no source.";
             CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = profile.Id, Summary = unnamed, Private = true});
@@ -15167,7 +15167,7 @@ namespace CalradiaRemembers.Diagnostics
 
             Hero groomSide = groom.Clan.Leader;
             t.Note($"{bride.Name} for {groom.Name}, asked by {groomSide.Name}");
-            t.Expect("theGroomsSideIsTaken", CrMatches.Register(new CrMatchRequest {SuitorId = groom.StringId, BrideId = bride.StringId, DeciderId = groomSide.StringId, SourceMod = "cr.testall"}),
+            t.Expect("theGroomsSideIsTaken", CrMatches.Register(new CrMatchRequest {SuitorId = groom.StringId, BrideId = bride.StringId, DeciderId = groomSide.StringId, SourceMod = "cr.test all"}),
                MatchRegistrationResult.Registered);
             PendingMatch taught = behavior.GameStateBridge.MatchToArrange(groomSide);
             t.Expect("heIsTaughtToAskThePlayer", taught?.AsksThePlayer, (bool?) true);
@@ -15386,7 +15386,7 @@ namespace CalradiaRemembers.Diagnostics
          // Gabriel, 2026-09-10: "les joueurs utilisent beaucoup les commandes consoles. Ce serait bien qu'elles
          // soient bien documentees." This is what makes that stick. A command added tomorrow without a line in
          // ConsoleCommandHelp fails here, so the help cannot fall behind in silence, which is the only way it has
-         // ever fallen behind: 70 of 259 described, cr.testall itself among the missing.
+         // ever fallen behind: 70 of 259 described, cr.test all itself among the missing.
          t.Expect("everyRegisteredCommandIsDocumented", undocumented.Count, 0);
 
          // The error that actively misleads rather than merely omitting. cr.compose sat in the help for months
@@ -15406,11 +15406,11 @@ namespace CalradiaRemembers.Diagnostics
                   curated.IndexOf("cr.help all", StringComparison.OrdinalIgnoreCase) >= 0, true);
 
          // And the two lookups a player actually uses: an exact name explains itself, a fragment finds its family.
-         string exact = ModCheats.Help(new List<string> {"testall"});
+         string exact = ModCheats.Help(new List<string> {"test"});
          string family = ModCheats.Help(new List<string> {"duel"});
 
          t.Expect("anExactNameExplainsItself",
-                  exact.IndexOf("cr.testall", StringComparison.Ordinal) >= 0 && exact.Length > 80, true);
+                  exact.IndexOf("cr.test", StringComparison.Ordinal) >= 0 && exact.Length > 80, true);
          t.Expect("aFragmentFindsItsFamily",
                   family.IndexOf("cr.duel_challenge", StringComparison.Ordinal) >= 0, true);
 
@@ -18485,7 +18485,7 @@ namespace CalradiaRemembers.Diagnostics
       // catalog entries the menu offers for a given snapshot of facts. Mechanical and engine-free by
       // construction (no Hero, no bridge call), so this drives it directly against seeded facts rather than
       // through a live conversation; the exhaustive per-gate coverage lives in
-      // ManualActionAvailabilityTests (CalradiaRemembers.Tests), this is the cr.testall smoke line proving the
+      // ManualActionAvailabilityTests (CalradiaRemembers.Tests), this is the cr.test all smoke line proving the
       // wiring the task brief itself named: a held prisoner exposes execute/free/recruit, and a non-ruler
       // hides grant_fief while keeping the always-on take_gold baseline.
       private static string TestManualConceptionEntry(NpcMemoryCampaignBehavior behavior)
@@ -19460,18 +19460,18 @@ namespace CalradiaRemembers.Diagnostics
             // STAKE: fkasad's report. Background work sent to the local server mid-conversation evicts its KV cache.
             s.HousekeepingProvider.SelectedValue = ProviderRolePolicy.OpenAiCompatibleValue;
             t.Expect("backgroundRoleReadsLocal", LlmServices.RunsLocally(ServiceRole.Housekeeping), true);
-            Task local = BackgroundCallHold.WhileConversationOpenAsync(LlmServices.RunsLocally(ServiceRole.Housekeeping), "cr.testall local summary");
+            Task local = BackgroundCallHold.WhileConversationOpenAsync(LlmServices.RunsLocally(ServiceRole.Housekeeping), "cr.test all local summary");
             t.Expect("localCallWaitsWhileConversationOpen", local.IsCompleted, false);
 
             // STAKE: a cloud player's summaries and letters must not wait for nothing.
             s.HousekeepingProvider.SelectedValue = ProviderRolePolicy.DefaultSelection;
-            Task cloud = BackgroundCallHold.WhileConversationOpenAsync(LlmServices.RunsLocally(ServiceRole.Housekeeping), "cr.testall cloud summary");
+            Task cloud = BackgroundCallHold.WhileConversationOpenAsync(LlmServices.RunsLocally(ServiceRole.Housekeeping), "cr.test all cloud summary");
             t.Expect("cloudCallGoesAtOnce", cloud.IsCompleted, true);
             t.Expect("cloudLetterGoesAtOnce", LlmServices.MainClientRunsLocally, false);
 
             // STAKE: with no conversation open, a held summary would never be written.
             BackgroundCallHold.DebugConversationOpen = false;
-            Task closed = BackgroundCallHold.WhileConversationOpenAsync(true, "cr.testall local summary, no conversation");
+            Task closed = BackgroundCallHold.WhileConversationOpenAsync(true, "cr.test all local summary, no conversation");
             t.Expect("localCallGoesWithNoConversation", closed.IsCompleted, true);
          }
          finally
@@ -19631,7 +19631,7 @@ namespace CalradiaRemembers.Diagnostics
       ///   prose_fallback (Prose + Interpreter truncation safety net, 15/08/2026): the fast-fail + redo-once-
       ///   elsewhere decision the live chat and cr.rp_bench both rely on before ever placing a real LLM call
       ///   (TruncationFallbackPolicy is pure, so its own clean/not-clean rule is covered by
-      ///   TruncationFallbackPolicyTests; this drives it again here so cr.testall proves the wiring reaches this
+      ///   TruncationFallbackPolicyTests; this drives it again here so cr.test all proves the wiring reaches this
       ///   assembly at all), plus the ONE piece that genuinely needs a live MCM instance:
       ///   LlmServices.ResolveProseFallbackModel. Phase 2 makes the hard-failure fallback the NSFW model, so this
       ///   asserts it reuses the current scene (PROSE) model when the NSFW field is left blank (the "no new config
@@ -21086,7 +21086,7 @@ namespace CalradiaRemembers.Diagnostics
       ///   cooldown still equals the shipped CompanionAudienceTopicPolicy.GlobalCooldownDays (the "default
       ///   reproduces today's feel" requirement, guarding against the dial's numbers drifting apart from the
       ///   constant they are meant to scale); then, with the dial restored to its prior value, reports whatever
-      ///   the live map state answers for the real safety-gated offer decision (informational only: cr.testall
+      ///   the live map state answers for the real safety-gated offer decision (informational only: cr.test all
       ///   can run from a state the road trigger would correctly refuse, e.g. mid-mission, so this is a NOTE,
       ///   never a hard assertion). Restores the MCM dial's prior index in a finally.
       /// </summary>
@@ -21120,7 +21120,7 @@ namespace CalradiaRemembers.Diagnostics
                CompanionAudienceTopicPolicy.GlobalCooldownDays);
 
             // Informational only: proves the wiring reaches RoadIsSafeForPrivateWord + the shared offer gate
-            // without asserting a specific answer, since cr.testall's own live state (mid-mission, a stray
+            // without asserting a specific answer, since cr.test all's own live state (mid-mission, a stray
             // conversation, etc.) is outside this test's control.
             bool wouldFireNow = audience.DebugRoadTriggerWouldFire();
             t.Note($"road offer right now (Occasionally, live map state): {(wouldFireNow ? "would fire" : "would not fire")}");
@@ -22005,7 +22005,7 @@ namespace CalradiaRemembers.Diagnostics
       ///   the write/reply direction. Real-path half: drives the REAL LetterMemoryFinalizer.RecordLetterMemory
       ///   (the seam LetterPopupManager.MarkReceived itself calls) with a ShouldRemember=false reason
       ///   (QuestUpdate), so the run can never fall through to the async LLM summarizer (Lane C, kept out of
-      ///   cr.testall) even against a live LLM client, while still proving the base event actually lands on
+      ///   cr.test all) even against a live LLM client, while still proving the base event actually lands on
       ///   profile.Events. Removes the event it added.
       /// </summary>
       /// <summary>
@@ -23180,7 +23180,7 @@ namespace CalradiaRemembers.Diagnostics
 
          // A DETACHED profile, built from the lord but never stored. Until 26/09/2026 this test ran the real
          // SuccessionBehavior.Apply, which reframed EVERY profile in the player's save (private memories erased, all
-         // marked inherited) and wrote a succession into the chronicle: running cr.testall on a real save damaged it.
+         // marked inherited) and wrote a succession into the chronicle: running cr.test all on a real save damaged it.
          // Apply is now one loop over SuccessionMemoryPolicy.Reframe, so reframing a copy proves the same rule.
          NpcProfile stored = behavior.Store.Get(subject.StringId);
          int storedEventsBefore = stored?.Events.Count ?? -1;

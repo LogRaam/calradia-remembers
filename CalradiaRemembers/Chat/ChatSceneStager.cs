@@ -562,13 +562,13 @@ namespace CalradiaRemembers.Chat
          _lastSeenAtSea = CampaignTime.Zero; // another campaign's clock means nothing here
       }
 
-      /// <summary>Test seam (cr.testall): how many conversations are held for landfall.</summary>
+      /// <summary>Test seam (cr.test all): how many conversations are held for landfall.</summary>
       internal static int DebugAwaitingLandfallCount => _awaitingLandfall.Count;
 
-      /// <summary>Test seam (cr.testall): holds <paramref name="request" /> for landfall exactly as the door does at sea.</summary>
+      /// <summary>Test seam (cr.test all): holds <paramref name="request" /> for landfall exactly as the door does at sea.</summary>
       internal static void DebugWaitForLandfall(ChatSceneRequest request) => WaitForLandfall(request, announce: false);
 
-      /// <summary>Test seam (cr.testall): drops every held conversation, receiving none.</summary>
+      /// <summary>Test seam (cr.test all): drops every held conversation, receiving none.</summary>
       internal static void DebugClearAwaitingLandfall() => ForgetAwaitingLandfall();
 
       #region private

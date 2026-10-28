@@ -207,7 +207,7 @@ namespace CalradiaRemembers.Missions
       /// <summary>
       ///   The patrol leaves: a clan party led by the companion, with the chosen men and companions moved (never
       ///   copied) out of the player's party, a few days of the player's food, and the patrol order. Returns a notice,
-      ///   or a reason it could not leave. The troop screen's confirm and cr.testall both come here.
+      ///   or a reason it could not leave. The troop screen's confirm and cr.test all both come here.
       /// </summary>
       internal string Confirm(Hero companion, Settlement target, TroopRoster chosen)
       {
@@ -314,7 +314,7 @@ namespace CalradiaRemembers.Missions
          }
       }
 
-      /// <summary>Set by cr.testall so a forced report is logged rather than written.</summary>
+      /// <summary>Set by cr.test all so a forced report is logged rather than written.</summary>
       internal static bool DebugSuppressLetters;
 
       private void SendReport(CompanionPatrol p)
@@ -622,7 +622,7 @@ namespace CalradiaRemembers.Missions
       private static Hero HeroById(string id)
          => string.IsNullOrEmpty(id) ? null : Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == id);
 
-      // ── cr.testall seams ──────────────────────────────────────────────────
+      // ── cr.test all seams ──────────────────────────────────────────────────
 
       /// <summary>Confirms a patrol with <paramref name="men" /> of the player's healthy soldiers, lowest tier first, as the screen would.</summary>
       internal string DebugConfirm(Hero companion, Settlement target, int men)
@@ -644,7 +644,7 @@ namespace CalradiaRemembers.Missions
       /// <summary>Runs the hourly handler now.</summary>
       internal void DebugHour() => OnHourlyTick();
 
-      /// <summary>The patrol's state and the day of its last letter, for cr.testall.</summary>
+      /// <summary>The patrol's state and the day of its last letter, for cr.test all.</summary>
       internal (CompanionPatrolState State, int LastReportDay)? DebugStateOf(Hero companion)
       {
          CompanionPatrol p = _patrols.FirstOrDefault(x => x.CompanionId == companion?.StringId);
@@ -652,10 +652,10 @@ namespace CalradiaRemembers.Missions
          return p == null ? null : (p.State, p.LastReportDay);
       }
 
-      /// <summary>The patrol's party, for cr.testall.</summary>
+      /// <summary>The patrol's party, for cr.test all.</summary>
       internal MobileParty DebugPartyOf(Hero companion) => FindParty(_patrols.FirstOrDefault(x => x.CompanionId == companion?.StringId)?.PartyId);
 
-      /// <summary>Brings the patrol home at once, wherever it is (cr.testall cleanup and the console).</summary>
+      /// <summary>Brings the patrol home at once, wherever it is (cr.test all cleanup and the console).</summary>
       internal string DebugBringHomeNow(Hero companion)
       {
          CompanionPatrol p = _patrols.FirstOrDefault(x => x.CompanionId == companion?.StringId);

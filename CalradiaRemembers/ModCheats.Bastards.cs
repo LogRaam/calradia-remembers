@@ -74,7 +74,7 @@ namespace CalradiaRemembers
       ///   fertile female (named, or auto-picked) and records her child count. Advance ~84 days (fast-
       ///   forward, NO reload — the marker is in memory), then call again to CHECK: a new child = PASS
       ///   (the IsPregnant flag is cosmetic); 84+ days and none = FAIL (the flag blocks delivery).
-      ///   Pass "reset" to re-arm. Not part of cr.testall — a birth cannot resolve inside one command.
+      ///   Pass "reset" to re-arm. Not part of cr.test all, a birth cannot resolve inside one command.
       /// </summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("preg_birth", "cr")]
       public static string PregBirthTest(List<string> args)

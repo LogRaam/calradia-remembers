@@ -112,7 +112,7 @@ namespace CalradiaRemembers
          Consequences = new List<CrTaleConsequence>(consequences ?? Array.Empty<CrTaleConsequence>());
       }
 
-      /// <summary>The tale's id, as in its file. Ids beginning "cr_selftest_" are cr.testall's own tales.</summary>
+      /// <summary>The tale's id, as in its file. Ids beginning "cr_selftest_" are cr.test all's own tales.</summary>
       public string TaleId { get; }
 
       /// <summary>
