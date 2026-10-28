@@ -234,7 +234,7 @@ namespace CalradiaRemembers.Portraits
         ///   Re-encodes any image GDI+ reads (JPG, RGB or RGBA PNG, palette or grey PNG) as a 32-bit RGBA PNG, colours
         ///   untouched. The clone to 32bppArgb is what makes GDI+ write PNG colour type 6 even for an opaque image (a
         ///   plain re-save keeps the source's own type). Anything unexpected falls back to the file's own bytes and says
-        ///   so: a portrait with the engine's own colours, never a missing one. Also the cr.test all seam.
+        ///   so: a portrait with the engine's own colours, never a missing one. Also the self-test seam.
         /// </summary>
         internal static byte[] NormalizeToRgba(byte[] imageBytes)
         {

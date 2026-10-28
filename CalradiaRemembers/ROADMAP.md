@@ -571,7 +571,7 @@ audience channels for another mod's aims still to come (the `Channels` field alr
 - Glue, in order: (1) conversation: CrConversation.Started -> AimConversationLeave.Open (enemy, captivity facts from the
   host), EncounterContextBuilder fills OwnAim*, Ended -> Close, Raised fired; (2) letter: a new LetterReason through
   the mailbox (budget, cooldown, ActionGate.Letter), marked when released; (3) audience: one more "live reason to
-  speak" below the existing ones in FiefAudience/RoadInterception, marked when granted. Each with a cr.test all test
+  speak" below the existing ones in FiefAudience/RoadInterception, marked when granted. Each with a self-test
   (register -> the prompt carries the want -> the leave holds on a later reply -> retract).
 
 **BUILT 15/10/2026, INTERNAL (Gabriel: the vassal war duty "passe par la nouvelle architecture"):** glue step (1),

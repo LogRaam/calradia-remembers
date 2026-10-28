@@ -18485,7 +18485,7 @@ namespace CalradiaRemembers.Diagnostics
       // catalog entries the menu offers for a given snapshot of facts. Mechanical and engine-free by
       // construction (no Hero, no bridge call), so this drives it directly against seeded facts rather than
       // through a live conversation; the exhaustive per-gate coverage lives in
-      // ManualActionAvailabilityTests (CalradiaRemembers.Tests), this is the cr.test all smoke line proving the
+      // ManualActionAvailabilityTests (CalradiaRemembers.Tests), this is the self-test smoke line proving the
       // wiring the task brief itself named: a held prisoner exposes execute/free/recruit, and a non-ruler
       // hides grant_fief while keeping the always-on take_gold baseline.
       private static string TestManualConceptionEntry(NpcMemoryCampaignBehavior behavior)

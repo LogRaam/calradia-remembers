@@ -1013,7 +1013,7 @@ namespace CalradiaRemembers.Chat
       /// <summary>
       ///   Council Tier 4: gathers the live facts SettleSupportClaimant's gates need and runs the pure
       ///   <see cref="ClaimantSupportPolicy.Evaluate" /> against them, WITHOUT moving any influence. Internal seam
-      ///   so a cr.test all self-test can drive the real fact-gathering + decision on a live backer non-destructively.
+      ///   so a self-test can drive the real fact-gathering + decision on a live backer non-destructively.
       /// </summary>
       internal static ClaimantSupportResult EvaluateSupportClaimant(Hero actorHero)
       {

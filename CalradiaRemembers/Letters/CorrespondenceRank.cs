@@ -28,7 +28,7 @@ namespace CalradiaRemembers.Letters
          return CorrespondenceRankPolicy.ScribeTitle(sender.Name?.ToString(), Mapping.StatureReader.Of(sender).IsRuler, sender.IsFemale);
       }
 
-      /// <summary>The facts the rule reads, for the cr.test all seam.</summary>
+      /// <summary>The facts the rule reads, for the self-test seam.</summary>
       internal static CorrespondenceRankFacts Facts(Hero sender, NpcProfile profile, LetterReason? reason)
       {
          Hero player = Hero.MainHero;

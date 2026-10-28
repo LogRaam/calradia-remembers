@@ -49,7 +49,7 @@ namespace CalradiaRemembers.UI
       private static Harmony _harmony;
       private static bool _patched;
 
-      /// <summary>True once the guard has been attached to the live engine method (a cr.test all self-test asserts this).</summary>
+      /// <summary>True once the guard has been attached to the live engine method (a self-test asserts this).</summary>
       public static bool IsPatched => _patched;
 
       /// <summary>

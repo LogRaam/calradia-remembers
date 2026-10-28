@@ -341,7 +341,7 @@ In `docs/design/quests/`:
    - The exploration scene: the plain narrator, findings, one encounter, and the hazards that need no spike
      (`injure`, `lose_time`, `alert`).
    - Rewards: regard and memories.
-   - The werewolf playable end to end, with unit tests on every rule and a cr.test all that walks the stages.
+   - The werewolf playable end to end, with unit tests on every rule and a self-test that walks the stages.
 2. **Offering and consequences.**
    - The giver comes to the player (step 1 of the roadmap).
    - Branches: built 04/10/2026, with endings, flags and the tale editor (below).

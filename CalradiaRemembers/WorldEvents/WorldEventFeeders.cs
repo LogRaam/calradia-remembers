@@ -319,7 +319,7 @@ namespace CalradiaRemembers.WorldEvents
       /// <summary>
       ///   Folds one small fight into the "small fights" memory of every companion riding in the main party (the
       ///   same companions <see cref="RecordCompanionBattleMemories" /> visits), or starts that memory. Returns how
-      ///   many companions it reached. Also the cr.test all seam (companion_skirmish_memory).
+      ///   many companions it reached. Also the self-test seam (companion_skirmish_memory).
       /// </summary>
       internal static int RecordCompanionSkirmishMemories(int day, SkirmishFacts fight, BattleFeatReport ownParts = null)
       {

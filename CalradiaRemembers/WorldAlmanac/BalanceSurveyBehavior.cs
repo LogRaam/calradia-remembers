@@ -75,7 +75,7 @@ namespace CalradiaRemembers.WorldAlmanac
          ModLog.Info($"[SURVEY] day {Today}: {rows.Count} realm(s) read into {FilePath}.");
       }
 
-      /// <summary>This week's reading of every living realm, written nowhere (the cr.test all seam and the weekly tick share it).</summary>
+      /// <summary>This week's reading of every living realm, written nowhere (the self-test seam and the weekly tick share it).</summary>
       public static List<SurveyRow> Reading()
       {
          List<KingdomPowerFacts> field = KingdomPowerFactsBuilder.Build();
