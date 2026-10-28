@@ -85,6 +85,16 @@ namespace CalradiaRemembers.Tests
          }
       }
 
+      // STAKE: what the player learned was the old anchor: once the world moves it (her child lost, now a score to settle),
+      // the page stays silent about the new one until she says it, and the prompt teaches the reveal again.
+      [Test]
+      public void GIVEN_an_anchor_the_player_knew_WHEN_it_moves_THEN_the_new_one_is_not_known()
+      {
+         MattersMostPolicy.StillKnown(MattersMost.Children, MattersMost.Vengeance, true).Should().BeFalse();
+         MattersMostPolicy.StillKnown(MattersMost.Children, MattersMost.Children, true).Should().BeTrue();
+         MattersMostPolicy.StillKnown(MattersMost.Children, MattersMost.Children, false).Should().BeFalse();
+      }
+
       // STAKE: nothing on the page until the player learned it from them.
       [Test]
       public void GIVEN_it_not_yet_learned_WHEN_her_page_opens_THEN_nothing_is_said()

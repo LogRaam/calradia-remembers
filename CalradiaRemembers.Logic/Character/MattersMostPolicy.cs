@@ -100,6 +100,12 @@ namespace CalradiaRemembers.Logic.Character
          return Draw(f, current == MattersMost.None ? f.HeroId : f.HeroId + "|" + current, current);
       }
 
+      /// <summary>
+      ///   Whether the player still knows what matters most to them after it moved from <paramref name="before" /> to
+      ///   <paramref name="now" />: what they learned was the old anchor, so a new one is unknown until said again.
+      /// </summary>
+      public static bool StillKnown(MattersMost before, MattersMost now, bool known) => known && before == now;
+
       /// <summary>The line on their page, or null while the player has not learned it.</summary>
       public static string PageLine(MattersMostPageFacts f)
       {

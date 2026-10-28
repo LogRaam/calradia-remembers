@@ -30,6 +30,9 @@ namespace CalradiaRemembers.Mapping
          RomanticProfile r = profile?.Romantic;
          bool spouseAlive = hero.Spouse != null && !hero.Spouse.IsDead;
          bool playerIsLover = r != null && r.Status is RomanticStatus.Intimate or RomanticStatus.SecretLover or RomanticStatus.Committed;
+         // A spouse estranged from the player, or wed for politics alone, does not live for them: the prompt would say
+         // "the player, whom you love" while their stance and grudges say otherwise.
+         bool bondBroken = r != null && r.Status is RomanticStatus.Estranged or RomanticStatus.Broken;
          Hero lover = !string.IsNullOrEmpty(r?.TakenLoverId) ? Hero.FindFirst(x => x.StringId == r.TakenLoverId) : null;
          bool isNoble = hero.IsLord && hero.Clan != null && hero.Clan != Clan.PlayerClan || hero.IsLord && hero.Clan == Clan.PlayerClan && hero.CompanionOf == null;
          var today = (int) CampaignTime.Now.ToDays;
@@ -40,7 +43,7 @@ namespace CalradiaRemembers.Mapping
             Traits = RomanticProfileBuilder.TraitsOf(hero),
             HasChildren = hero.Children?.Any(c => c != null && !c.IsDead) == true,
             HasSpouse = spouseAlive && hero.Spouse != player,
-            LovesThePlayer = spouseAlive && hero.Spouse == player || playerIsLover,
+            LovesThePlayer = !bondBroken && (spouseAlive && hero.Spouse == player || playerIsLover),
             HasLover = lover != null && !lover.IsDead && lover != player,
             HasKin = hero.Father?.IsDead == false || hero.Mother?.IsDead == false || hero.Siblings?.Any(s => s != null && !s.IsDead) == true,
             IsNoble = isNoble,
@@ -62,6 +65,7 @@ namespace CalradiaRemembers.Mapping
             if (now == before) return;
 
             profile.MattersMost = now;
+            profile.MattersMostKnown = MattersMostPolicy.StillKnown(before, now, profile.MattersMostKnown);
             if (before != MattersMost.None) ModLog.Info($"[MATTERS] {hero.Name}: what matters most moved from {before} to {now} (its ground fell).");
          }
          catch (Exception ex)
