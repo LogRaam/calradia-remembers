@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-609 rules read 466 facts.
+610 rules read 466 facts.
 
 ## Facts read by more than one rule
 
@@ -183,6 +183,9 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `PartyBelongedToAsPrisoner.MapFaction` (3) | `PowerBalanceFacts`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend` |
 | `Quest.Weight` (3) | `AuthoredMapTriggerPolicy.Begins`, `AuthoredQuestEngine.Start`, `AuthoredQuestOfferPolicy.PickByWeight` |
 | `Requires.Giver` (3) | `AuthoredCulturePolicy.Describe`, `AuthoredCulturePolicy.Matches`, `AuthoredGiverPolicy.WhyNot` |
+| `Romantic.DislikedActs` (3) | `IntimateActJudgeFacts`, `IntimateActReaderFacts`, `IntimateTastes` |
+| `Romantic.LessFondActs` (3) | `IntimateActJudgeFacts`, `IntimateActReaderFacts`, `IntimateTastes` |
+| `Romantic.LovedActs` (3) | `IntimateActJudgeFacts`, `IntimateActReaderFacts`, `IntimateTastes` |
 | `ScreenManager.TopScreen` (3) | `ChatFocusArbitrationPolicy.Decide`, `ChatFocusArbitrationPolicy.ReasonFor`, `EncyclopediaDetourFacts` |
 | `Settlement.IsVillage` (3) | `CommonerChatContext`, `CourierHirePlacePolicy.OfferedInTheMenu`, `SettlementSafetyFacts` |
 | `StatureReader.OfClan` (3) | `BastardPrestigePolicy.PrestigeScore`, `BastardPrestigePolicy.Resolve`, `LordRecruitmentFacts` |
@@ -274,11 +277,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `PersonalRegard.Invoke` (2) | `AimOpening`, `AimRaiseFacts` |
 | `Requires.Content` (2) | `AuthoredContentPolicy.Allows`, `AuthoredQuestOfferPolicy.WhyNot` |
 | `Romance.GetCourtedHeroInOtherClan` (2) | `LeaveHouseFacts`, `LeaveHouseForRulerPolicy.WhyNot` |
-| `Romantic.DislikedActs` (2) | `IntimateActJudgeFacts`, `IntimateActReaderFacts` |
 | `Romantic.IsSecretLover` (2) | `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Romantic.Kinks` (2) | `CaptiveEncounterPolicy.EncounterProbability`, `CaptiveEncounterPolicy.SelectIntent` |
-| `Romantic.LessFondActs` (2) | `IntimateActJudgeFacts`, `IntimateActReaderFacts` |
-| `Romantic.LovedActs` (2) | `IntimateActJudgeFacts`, `IntimateActReaderFacts` |
 | `Scan.Strength` (2) | `AudienceCandidate`, `TravellingAudiencePolicy.Choose` |
 | `Settlement.Culture` (2) | `AuthoredMapTriggerPolicy.WhyNot`, `MapTriggerFacts` |
 | `Settlement.Name` (2) | `QuestMenuEntry`, `ThirdPartyDescriptor.WhereaboutsClause` |
@@ -580,6 +580,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `IntimateActJudgeFacts`: `ModSettings.AdultContentLevel`, `Romantic.DislikedActs`, `Romantic.KnownActs`, `Romantic.LessFondActs`, `Romantic.LovedActs`
 - `IntimateActReaderFacts`: `Romantic.DislikedActs`, `Romantic.LessFondActs`, `Romantic.LovedActs`
 - `IntimateChroniclePolicy.BuildLine`: `Hero.IsFemale`, `ModSettings.AdultContentLevel`
+- `IntimateTastes`: `Romantic.DislikedActs`, `Romantic.LessFondActs`, `Romantic.LovedActs`
 - `ItemConfirmationFacts`: `Hero.Gold`
 - `ItemSaleFacts`: `EquipmentElement.Item`, `Hero.Gold`, `ItemRosterElement.Amount`
 - `JealousyHearingPolicy.WithinEarshot`: `CurrentSettlement.GetPosition2D`, `PartyBelongedTo.GetPosition2D`, `Value.Distance`

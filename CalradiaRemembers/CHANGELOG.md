@@ -4,6 +4,24 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.22.. open
 
+### Changed
+- **Tastes in bed: a wider list, weighed by who the character is** (Hardcore only; Gabriel, 27/10/2026: "Je trouve
+  interessant d'en mettre beaucoup. Ca peut amener des scenes plus subtiles et complexes", then "les kinks pourraient
+  fortement qualifier ou disqualifier certains gestes" and "les traits influencent les kinks qui eux influencent les
+  gestes"). Thirteen gestures join the eleven (`IntimateAct`, appended): being teased, kisses on the body, a slow
+  massage, tender words, lingering in each other's arms afterwards, taking the lead, being led, being held down or
+  bound, being spanked, haste, face to face, being undressed slowly, bathing together; chosen in pairs that pull against
+  each other (tender words and crude ones, leading and being led, slow and urgent). Each character now loves two or
+  three, is less fond of one or two, and about one in two dislikes one outright (rarely two). The roll
+  (`IntimateActPolicy.Roll(IntimateTasteFacts)`) reads the kinks and romantic preferences the traits gave them: a kink's
+  gestures are likelier loved and never disliked nor less loved (a masochist who disliked rough handling told the model
+  two opposite things), a preference's gestures are likelier loved, and what runs against a nature (a dominant being
+  led) is rarer to love and likelier to dislike, never impossible. A profile rolled before (`TastesRevision` 0) keeps
+  what it loved, was less fond of and disliked, is completed with the new gestures (`IntimateActPolicy.Complete`), and
+  loses a dislike its kinks contradict unless the player already learned it. The reader, the Heart line, the imposed
+  memory and the prompt name every new gesture; `character_overrides.json` lists their ids. `cr.test intimate_acts`
+  completes an old profile through the real load path.
+
 ## v2.7.21.. 2026-10-27
 
 ### New

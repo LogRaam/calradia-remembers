@@ -8,6 +8,7 @@
 #region
 
 using System.Collections.Generic;
+using System.Linq;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Romance;
 using FluentAssertions;
@@ -165,6 +166,24 @@ namespace CalradiaRemembers.Tests
          foreach (IntimateAct a in IntimateActPolicy.All) IntimateActReading.Parse(IntimateActReading.IdOf(a)).Should().Be(a);
          IntimateActReading.Parse("OralGiving").Should().Be(IntimateAct.OralGiving);
          IntimateActReading.Parse("nonsense").Should().Be(IntimateAct.None);
+      }
+
+      // STAKE: a gesture appended without its words would reach the reader as a bare id it cannot match, and the memory
+      // of an imposed one would read "pressed something on me".
+      [Test]
+      public void GIVEN_every_gesture_WHEN_watched_or_remembered_THEN_it_is_told_in_words()
+      {
+         foreach (IntimateAct act in IntimateActPolicy.All)
+         {
+            string block = IntimateActReading.ForReader(new IntimateActReaderFacts {
+               Hardcore = true, IntimacyPermitted = true, NpcName = "Rhagaea", Loved = new[] {act}
+            });
+            string prefix = "- " + IntimateActReading.IdOf(act) + ": ";
+            string line = block.Split('\n').Single(l => l.StartsWith(prefix)).Trim();
+            line.Length.Should().BeGreaterThan(prefix.Length + 3, act.ToString());
+            IntimateActReading.ImposedMemory(act, "Aldric").Should().NotContain("something", act.ToString());
+            IntimateActReading.Parse(IntimateActReading.IdOf(act)).Should().Be(act);
+         }
       }
    }
 }

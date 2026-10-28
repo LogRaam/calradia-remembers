@@ -123,6 +123,19 @@ namespace CalradiaRemembers.Logic.Romance
          IntimateAct.HandsAndFingers => $"your hands and fingers on {her}",
          IntimateAct.RoughHandling => "being handled roughly",
          IntimateAct.DirtyTalk => "crude words",
+         IntimateAct.Teasing => "being teased and made to wait",
+         IntimateAct.BodyKisses => $"your kisses on {(female ? "her" : "his")} body",
+         IntimateAct.Massage => "a slow massage",
+         IntimateAct.SweetWords => "tender words",
+         IntimateAct.LingeringAfter => "lingering in your arms afterwards",
+         IntimateAct.TakingTheLead => "taking the lead",
+         IntimateAct.BeingLed => "being led",
+         IntimateAct.Restrained => "being held down or bound",
+         IntimateAct.Spanking => "being spanked",
+         IntimateAct.Urgency => "haste",
+         IntimateAct.FaceToFace => "facing you, eyes held",
+         IntimateAct.BeingUndressed => "being undressed slowly",
+         IntimateAct.Bathing => "a bath together",
          _ => "something"
       };
 

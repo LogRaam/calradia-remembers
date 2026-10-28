@@ -132,6 +132,18 @@ namespace CalradiaRemembers.Tests
          HeartIntimacyPolicy.TastesLine(new HeartTastesFacts {Loved = new[] {IntimateAct.Kissing}}).Should().BeNull();
       }
 
+      // STAKE: a gesture appended to the list without its words would read "In bed she loves something" on her page, and
+      // the player would learn nothing.
+      [Test]
+      public void GIVEN_every_gesture_WHEN_learned_THEN_her_page_names_it_in_words()
+      {
+         foreach (IntimateAct act in IntimateActPolicy.All)
+         {
+            string line = HeartIntimacyPolicy.TastesLine(new HeartTastesFacts {IsFemale = true, Loved = new[] {act}, Known = new[] {act}});
+            line.Should().NotBeNull().And.NotContain("something", act.ToString());
+         }
+      }
+
       // STAKE: three tastes read as a list, and a man's page speaks of him.
       [Test]
       public void GIVEN_three_loved_tastes_WHEN_his_page_opens_THEN_they_read_as_a_list()

@@ -55,28 +55,41 @@ namespace CalradiaRemembers.Mapping
             };
 
             var (relational, intimate) = GetSketches(archetypeName, traits);
-            // Their own generator (IntimateActPolicy): the rolls above stay what they were for every character already met.
-            Logic.Romance.IntimateTastes tastes = Logic.Romance.IntimateActPolicy.Roll(hero.StringId, hero.IsFemale);
+            // Drawn from rng in the order the initializer drew them before, so every character already met rolls the same.
+            SexualOrientation orientation = RomanticProfilePolicy.DetermineOrientation(rng);
+            // The hero's OWN culture decides whether shared partners are normal for them, read from
+            // jealousy_cultures.json rather than guessed from a trait (Gabriel's ruling 2026-09-07).
+            List<RomanticPreference> preferences = RomanticProfilePolicy.DeterminePreferences(
+                rng, traits,
+                Jealousy.JealousyCultureLoader.GetCulture(hero.Culture?.Name?.ToString()),
+                StatureReader.Of(hero).ClanTier);
+            List<Kink> kinks = RomanticProfilePolicy.DetermineKinks(rng, traits);
+            // Their own generator (IntimateActPolicy), weighed by the kinks and preferences the traits gave them
+            // (Gabriel, 27/10/2026: "les traits influencent les kinks qui eux influencent les gestes").
+            Logic.Romance.IntimateTastes tastes = Logic.Romance.IntimateActPolicy.Roll(TasteFacts(hero, kinks, preferences));
 
             return new RomanticProfile
             {
                 ArchetypeName    = archetypeName,
                 RelationalSketch = relational,
                 IntimateSketch   = intimate,
-                Orientation      = RomanticProfilePolicy.DetermineOrientation(rng),
+                Orientation      = orientation,
                 IsFemale         = hero.IsFemale,
-                // The hero's OWN culture decides whether shared partners are normal for them, read from
-                // jealousy_cultures.json rather than guessed from a trait (Gabriel's ruling 2026-09-07).
-                Preferences      = RomanticProfilePolicy.DeterminePreferences(
-                    rng, traits,
-                    Jealousy.JealousyCultureLoader.GetCulture(hero.Culture?.Name?.ToString()),
-                    StatureReader.Of(hero).ClanTier),
-                Kinks            = RomanticProfilePolicy.DetermineKinks(rng, traits),
+                Preferences      = preferences,
+                Kinks            = kinks,
                 LovedActs        = tastes.Loved,
                 LessFondActs     = tastes.LessFond,
-                DislikedActs     = tastes.Disliked
+                DislikedActs     = tastes.Disliked,
+                TastesRevision   = Logic.Romance.IntimateActPolicy.Revision
             };
         }
+
+        /// <summary>What weighs a hero's tastes in bed: their id, sex, kinks and preferences.</summary>
+        internal static Logic.Romance.IntimateTasteFacts TasteFacts(Hero hero, List<Kink> kinks, List<RomanticPreference> preferences)
+            => new() {
+                HeroId = hero.StringId, IsFemale = hero.IsFemale, Kinks = kinks ?? new List<Kink>(),
+                Preferences = preferences ?? new List<RomanticPreference>()
+            };
 
         #region private
 

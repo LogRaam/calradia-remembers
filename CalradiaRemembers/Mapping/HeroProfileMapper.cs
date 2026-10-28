@@ -119,18 +119,36 @@ namespace CalradiaRemembers.Mapping
          // below so it logs even for otherwise up-to-date profiles.
          if (profile.Romantic != null) LogExistingRomanticCompatibility(profile);
 
-         // A profile from before 27/10/2026 has no gestures loved or disliked yet: rolled once now, then kept. One rolled
-         // before the less-loved gesture existed is given it alone, never one it already loves or dislikes.
+         // A profile from before 27/10/2026 has no gestures loved or disliked yet: rolled once now, weighed by its kinks and
+         // preferences, then kept. One rolled before the less-loved gesture existed is given it alone, never one it already
+         // loves or dislikes; one rolled before the list widened (TastesRevision 0) is completed with the new gestures, and
+         // a dislike its kinks contradict goes unless the player already learned it.
          if (profile.Romantic is {LovedActs: null} || profile.Romantic is {DislikedActs: null})
          {
-            Logic.Romance.IntimateTastes tastes = Logic.Romance.IntimateActPolicy.Roll(hero.StringId, hero.IsFemale);
+            Logic.Romance.IntimateTastes tastes = Logic.Romance.IntimateActPolicy.Roll(
+               RomanticProfileBuilder.TasteFacts(hero, profile.Romantic.Kinks, profile.Romantic.Preferences));
             profile.Romantic.LovedActs ??= tastes.Loved;
             profile.Romantic.DislikedActs ??= tastes.Disliked;
+            profile.Romantic.LessFondActs ??= tastes.LessFond;
+            profile.Romantic.TastesRevision = Logic.Romance.IntimateActPolicy.Revision;
          }
 
          if (profile.Romantic is {LessFondActs: null})
             profile.Romantic.LessFondActs = Logic.Romance.IntimateActPolicy.LessFondFor(hero.StringId, hero.IsFemale,
                (profile.Romantic.LovedActs ?? new List<IntimateAct>()).Concat(profile.Romantic.DislikedActs ?? new List<IntimateAct>()));
+
+         if (profile.Romantic != null && profile.Romantic.TastesRevision < Logic.Romance.IntimateActPolicy.Revision)
+         {
+            Logic.Romance.IntimateTastes done = Logic.Romance.IntimateActPolicy.Complete(
+               new Logic.Romance.IntimateTastes {
+                  Loved = profile.Romantic.LovedActs ?? new List<IntimateAct>(), LessFond = profile.Romantic.LessFondActs ?? new List<IntimateAct>(),
+                  Disliked = profile.Romantic.DislikedActs ?? new List<IntimateAct>()
+               }, profile.Romantic.KnownActs, RomanticProfileBuilder.TasteFacts(hero, profile.Romantic.Kinks, profile.Romantic.Preferences));
+            profile.Romantic.LovedActs = done.Loved;
+            profile.Romantic.LessFondActs = done.LessFond;
+            profile.Romantic.DislikedActs = done.Disliked;
+            profile.Romantic.TastesRevision = Logic.Romance.IntimateActPolicy.Revision;
+         }
 
          bool needsRomantic = profile.Romantic == null;
 

@@ -172,6 +172,19 @@ namespace CalradiaRemembers.Logic.Romance
          IntimateAct.HandsAndFingers => $"the player's hands and fingers on and in {npc}",
          IntimateAct.RoughHandling => $"the player bites, scratches, pulls the hair of or holds {npc} hard",
          IntimateAct.DirtyTalk => "crude words in the act",
+         IntimateAct.Teasing => $"the player teases {npc}: slow caresses, making {npc} wait",
+         IntimateAct.BodyKisses => $"the player kisses {npc}'s neck, breasts or chest, belly",
+         IntimateAct.Massage => $"the player massages {npc}, slow oiled hands",
+         IntimateAct.SweetWords => "tender words of love in the act",
+         IntimateAct.LingeringAfter => $"the player stays holding {npc} afterwards",
+         IntimateAct.TakingTheLead => $"the player lets {npc} lead, or asks {npc} to say what to do",
+         IntimateAct.BeingLed => $"the player leads {npc}, telling {npc} what to do",
+         IntimateAct.Restrained => $"the player holds {npc}'s wrists down or binds them",
+         IntimateAct.Spanking => $"the player spanks {npc}",
+         IntimateAct.Urgency => "haste: half-clothed, at once, without waiting",
+         IntimateAct.FaceToFace => $"face to face, the player holding {npc}'s eyes",
+         IntimateAct.BeingUndressed => $"the player undresses {npc} slowly",
+         IntimateAct.Bathing => $"the player bathes with {npc}, washing each other",
          _ => ""
       };
 
@@ -187,6 +200,19 @@ namespace CalradiaRemembers.Logic.Romance
          IntimateAct.HandsAndFingers => "their fingers in me",
          IntimateAct.RoughHandling => "rough handling",
          IntimateAct.DirtyTalk => "crude words",
+         IntimateAct.Teasing => "teasing me and making me wait",
+         IntimateAct.BodyKisses => "kisses all over my body",
+         IntimateAct.Massage => "their oiled hands on me",
+         IntimateAct.SweetWords => "sweet words",
+         IntimateAct.LingeringAfter => "holding me afterwards",
+         IntimateAct.TakingTheLead => "making me lead",
+         IntimateAct.BeingLed => "ordering me about",
+         IntimateAct.Restrained => "holding me down",
+         IntimateAct.Spanking => "spanking me",
+         IntimateAct.Urgency => "taking me in haste",
+         IntimateAct.FaceToFace => "their eyes held on mine",
+         IntimateAct.BeingUndressed => "undressing me",
+         IntimateAct.Bathing => "a bath together",
          _ => "something"
       };
    }
