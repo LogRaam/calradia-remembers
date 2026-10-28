@@ -261,16 +261,23 @@ model's review of war and peace parked.
   tournament, ambush, hideout and console only). Proposal: at war start each lord settles ONCE how he stands toward
   the player (from his regard, `NpcProfile.ReputationWithPlayer`, kinship and traits), a pure Logic policy, no model
   call; a rule then keeps a friend from raiding or burning the player's villages (and perhaps from leading the first
-  siege of the player's fiefs). Cheap, deterministic, a cr.test all. Open: what a friend does instead (raids elsewhere,
-  stays home, warns the player by letter); whether a stance changes during the war; the realm's own stake (a ruler who
-  orders the raid anyway). Needs an engine spike on the party AI's raid choice (decompile 1.4.8, never guess).
+  siege of the player's fiefs). Cheap, deterministic, its own self-test (cr.test). Open: what a friend does instead
+  (raids elsewhere, stays home, warns the player by letter); whether a stance changes during the war; the realm's own
+  stake (a ruler who orders the raid anyway). Needs an engine spike on the party AI's raid choice (decompile 1.4.8,
+  never guess). DepaHN's follow-up (27/10): kin and in-laws too, not only friends ("I've had a son and a son-in-law
+  fight me despite very strong relations. They would only act against me when there is open hostility or a clear
+  reason"): the stance reads kinship (`PlayerKinshipPolicy`, 27/10) as well as regard, and a kinsman turns on the
+  player only for a reason the game can name (an open grudge, a betrayal, a killing).
 - **1b. The model reviews war and peace decisions (PARKED).** DepaHN: before a war declaration, a war vote or a peace
   deal goes through, the model reads the context and returns it with an in-world reason if it makes no sense; if the
   model is unavailable, it passes. Not done: the AI takes these decisions constantly across Calradia, off screen, so it
   is a cost and a delay on every one, and a change to the base game's balance; and Gabriel's ruling holds (02/07/2026,
   [war = leader-only]): war is the ruler's decision alone, after a real strategic evaluation, never a model's veto. If
   ever, only on the votes of the player's own realm, which the player sees. The "war and peace tied to relations"
-  point of the 26/10 entry below is the same wish.
+  point of the 26/10 entry below is the same wish. DepaHN's follow-up (27/10): an MCM option, off by default, for
+  players who accept the cost; or narrowed to decisions that involve the player, their family and allies. That answers
+  the cost; the leader-only ruling is Gabriel's to weigh (a model that can return a ruler's decision is a veto, even
+  opt-in).
 - **2. Calls for help by letter.** DepaHN: "Friends, relatives, and allies could write to the player when they need
   help: military (joining a war, sending troops), financial, or economic, depending on their situation, what the
   player has, and the relationship." What exists: the ruler's war duty (`WarDuty/WarDutyBehavior`: a summons, a levy
