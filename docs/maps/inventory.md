@@ -6,9 +6,9 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 574 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1356 types in 46 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 270 types in 17 namespaces, 9 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 579 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1359 types in 47 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 272 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -95,7 +95,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
-| `ModCheats` | public static class, partial over 64 files | Exposes diagnostic commands to the Bannerlord cheat console. |
+| `ModCheats` | public static class, partial over 65 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
 | `ProseInterpretTestRunner` | internal static class | The runner behind cr.prose_interpret_test. |
 | `RomanceBondWatchBehavior` | internal class | Reads the bonds with the player at session start and every hour, for CrRomance.StatusChanged. |
@@ -342,7 +342,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EdictModelPatches` | public static class | Adds the edict holding on a town to the game's own loyalty, security, prosperity, militia, food and tax. |
 | `EdictNews` | public class | One piece of realm news an edict makes (a decree, a contest, a repeal), told through EdictBehavior.News. |
 
-### CalradiaRemembers.Encyclopedia (44)
+### CalradiaRemembers.Encyclopedia (47)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -354,6 +354,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EncyclopediaHeroPageHappinessMixin` | public class | UIExtenderEx mixin that surfaces a player COMPANION's contentment in your service on the hero encyclopedia page — a sibling of the personal-relation line. |
 | `EncyclopediaHeroPageHeartMixin` | public class | UIExtenderEx mixin for the Heart section of a hero page: @CalradiaHeartLabel (cream header) and @CalradiaHeartItems (gold lines). |
 | `EncyclopediaHeroPageKindnessesMixin` | public class | UIExtenderEx mixin that displays the kindnesses the player has EARNED knowledge of from this NPC, on that NPC's encyclopedia hero page. |
+| `EncyclopediaHeroPageKnownMixin` | public class | UIExtenderEx mixin for the What You Know section of a hero page: @CalradiaKnownLabel (cream header) and @CalradiaKnownItems (gold lines). |
 | `EncyclopediaHeroPageLettersMixin` | public class | UIExtenderEx mixin adding a per-contact "Letters" button to the hero encyclopedia page. |
 | `EncyclopediaHeroPageMisdeedsMixin` | public class | UIExtenderEx mixin for the Misdeeds section of the player's page: @CalradiaMisdeedsLabel (cream header) and @CalradiaMisdeedsItems (gold lines). |
 | `EncyclopediaHeroPageNemesisMixin` | public class | UIExtenderEx mixin that displays the shared history the player has with a nemesis they have ALREADY ENCOUNTERED, on that nemesis's own encyclopedia hero page. |
@@ -373,6 +374,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroPageHeartPatchB` | internal class | Appends the "Heart:" header line to the hero page. |
 | `HeroPageKindnessesPatchA` | internal class | Appends the kindnesses bullet list to the hero encyclopedia page. |
 | `HeroPageKindnessesPatchB` | internal class | Appends the "Kindnesses:" header line to the hero encyclopedia page. |
+| `HeroPageKnownPatchA` | internal class | Appends the What You Know lines (what the player has learned of who the character is) to the hero page. |
+| `HeroPageKnownPatchB` | internal class | Appends the "What You Know:" header line to the hero page. |
 | `HeroPageLettersPatch` | internal class | Inserts the per-contact "Letters" button into the hero encyclopedia page's info block. |
 | `HeroPageMisdeedsPatchA` | internal class | Appends the Misdeeds lines (what the player did of their own will, on the player's page, Hardcore only) to the hero page. |
 | `HeroPageMisdeedsPatchB` | internal class | Appends the "Misdeeds:" header line to the hero page. |
@@ -552,7 +555,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (40)
+### CalradiaRemembers.Mapping (42)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -573,6 +576,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroSeats` | public static class | The places a character answers for, closest first. |
 | `IntimacyBargainEligibility` | public static class | Resolves the adult-gated, archetype-filtered eligibility for the intimacy-as-currency dynamic. |
 | `IntimateActApplier` | internal static class | Teaches the reader a character's tastes in bed, and carries out a reported gesture. |
+| `KnownPageReader` | internal static class | Reads the What You Know lines of a hero's page. |
+| `MattersMostReader` | internal static class | Reads what is true of a character, keeps what matters most to them up to date, and words it for their page. |
 | `MisdeedLedgerBehavior` | public class | The ledger of the player's misdeeds no other source records as a deed, one record per deed and day. |
 | `MisdeedsPageReader` | internal static class | Reads what the player did of their own will for the Misdeeds section. |
 | `NarrativeLoader` | public static class | Loads narrative text files from the mod's ModuleData folder at session launch. |
@@ -1766,6 +1771,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptureStake` | public enum | What the captive is to the one who hears of the capture. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 
+### CalradiaRemembers.Logic.Character (3)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `MattersMostFacts` | public class | What is true of a character, as what matters most to them is chosen from it. |
+| `MattersMostPageFacts` | public class | What the encyclopedia says of what matters most to a character. |
+| `MattersMostPolicy` | public static class | Chooses, keeps and words what matters most to a character. |
+
 ### CalradiaRemembers.Logic.Chat (24)
 
 | Type | Kind | What it is |
@@ -2673,7 +2686,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `SharedRecall` | public class | What a character may be shown to REMEMBER in front of others: their own memories, minus anything held in confidence, folded to a bounded recall. |
 
-### NpcMemoryService.Core.Models (77)
+### NpcMemoryService.Core.Models (79)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2718,6 +2731,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LlmUsage` | public class | Token consumption reported by the provider. |
 | `MarriageBlockReason` | public enum | Why a marriage between the player and this NPC cannot be sealed right now. |
 | `MarriedSeductionStance` | public enum | Stolen Love pillar: how a THIRD-PARTY-married NPC stands toward the player's advances. |
+| `MattersMost` | public enum | What matters most to a character, above everything else (Gabriel, 27/10/2026: "qu'est-ce qui compte le plus pour un NPC. Ses enfants? |
+| `MattersMostDiscovery` | public static class | How the player learns what matters most to a character. |
 | `MemoryStrand` | public enum | What a memory is to the character's history with the player. |
 | `MessageAlternationPolicy` | public static class | Turns the conversation as CR models it into the shape every chat template can accept: a strictly alternating user/assistant sequence that begins with the user. |
 | `MessageRole` | public enum | (no summary) |

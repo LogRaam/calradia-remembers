@@ -366,6 +366,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("scene_opener", Severity.Light, "Lordfadooboo (Nexus, 21/10/2026): a conversation opened cold; Gabriel (22/10/2026): the character sets the scene by default, as captive scenes do. Reads the LIVE opening facts (LlmDialogFlow.SceneFacts) and asserts a conversation opened by the greeting gets a scene while one opened any other way (an interception, a tale meeting) does not, nor one put back from earlier today, nor one carrying the game's own dialogue, nor any with the MCM switch off (set off for a moment, restored). Then, with a model available and nothing on screen, opens a REAL conversation with a lord, starts the scene on a test greeting and plays the player speaking first: the scene is set aside, the greeting stays on screen and is the line remembered, and the call is aborted. Closes the conversation", TestSceneOpener),
          new SelfTest("scene_image_shown", Severity.Light, "Gabriel (08/10/2026): a tale's stage may carry a picture, opening by itself beside the chat when its scene opens. Writes a small picture to a temporary file, opens a scene with it through the real door (its narration refused before any model call), checks the left panel shows that very file, then closes the scene and deletes the file.", TestSceneImageShown),
          new SelfTest("intimate_acts", Severity.Light, "Gabriel (26/10/2026): 'chaque NPC avait des preferences pour certains gestes sexuels, et meme parfois des gestes qu'il n'aime pas', and 'un geste impose que le NPC n'aime pas devrait reduire le personal regard'. At Hardcore, with a lord arranged as the player's lover (regard 60, intimate; put back after) who loves oral given and dislikes anal received: the turn's reader is taught both from the real EncounterContextBuilder seam; the disliked gesture only asked for costs nothing and is learned; performed, it costs 4 personal regard and leaves a memory; performed again the same day, nothing more; the loved gesture found warms them by 1; one they are less fond of costs nothing; the Heart section names a taste only once it is learned; a profile rolled before the list widened (27/10/2026: 'd'en mettre beaucoup') is completed through the real load path, keeping what she loved and what the player learned. Skips below Hardcore", TestIntimateActs),
+         new SelfTest("matters_most", Severity.Light, "Gabriel (27/10/2026): 'qu'est-ce qui compte le plus pour un NPC. Ses enfants? Sa richesse? Son amoureux?', and 'il faudra penser a les indiquer dans des sections de l'encyclopedia'. With a married lord (put back after): read through the real load path, what matters most to him is chosen and true of him; his page says nothing of it until he says it himself; the reserved discovery from his reply marks it learned without a free-text discovery beside it, and his What You Know section names it; an anchor whose ground is gone (a spouse he does not have) is moved at the next reading", TestMattersMost),
          new SelfTest("summoned_meeting_on_backdrop", Severity.Light, "Gabriel (26/10/2026, Rhagaea's night): the conversation a scenario's tale brings to the player opened over the game's own map conversation (the Empress in armour among her guards in the street, her vanilla greeting under the video of her bed) and the chat stayed empty until he typed. Opens the REAL summoned meeting with a lord, nothing else on screen: the chat sits on the scene's dark backdrop, no vanilla conversation runs, the character's opening line is pending (its call is aborted by the close). Then closes it: the backdrop is gone and the map is given back as it was", TestSummonedMeetingOnBackdrop),
          new SelfTest("scene_close_gives_the_map_back", Severity.Light, "fkasad (Nexus, 07/10/2026): closing a tale's scene left a black screen with no way back. The close queued the backdrop's pop for the next frame, then wiped its own queue at the end. Opens a scene through the real door (its narration refused before any model call, so the log shows one [SCENE] error on purpose), closes it as the button does, runs one frame: the scene's own close must have run, what it queued must have run, and the map must be given back.", TestSceneCloseGivesTheMapBack),
          new SelfTest("scene_backdrop_suspends_the_map", Severity.Light, "Gabriel's play test (04/10/2026): closing a written tale's scene crashed the game natively; the scene had opened over the bare live map, which the hosting rule forbids. The scene's chat now sits on a pushed GameState. Opens that backdrop through the real host: the map must be suspended (a CrPanelState active, the settlement-visual tick suppressed), then given back exactly as it was, with the clock stopped. Opens no chat.", TestSceneBackdropSuspendsTheMap),
@@ -12139,6 +12140,56 @@ namespace CalradiaRemembers.Diagnostics
             if (Chat.ExplorationBackdrop.IsOpen) Chat.ExplorationBackdrop.Close();
             Campaign.Current.TimeControlMode = timeBefore;
             try { System.IO.File.Delete(path); } catch { /* a temp file left behind harms nothing */ }
+         }
+
+         return t.Line();
+      }
+
+      private static string TestMattersMost(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("matters_most");
+         if (t.Skip(behavior?.Store == null || Hero.MainHero == null, "no campaign")) return t.Line();
+
+         // A lord already known to the store, so nothing is left behind in it.
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && h.Clan != Clan.PlayerClan && h.Spouse != null
+                                                            && Mapping.ActionGate.Allows(h, Logic.ActionKind.Witness) && behavior.Store.Get(h.StringId) != null);
+         if (t.Skip(lord == null, "no married lord met yet (talk to one first)")) return t.Line();
+
+         NpcProfile profile = behavior.Store.Get(lord.StringId);
+         MattersMost mattersBefore = profile.MattersMost;
+         bool knownBefore = profile.MattersMostKnown;
+         int discoveriesBefore = profile.DiscoveredTraits.Count;
+         try
+         {
+            t.Note($"{lord.Name}");
+            profile.MattersMost = MattersMost.None;
+            profile.MattersMostKnown = false;
+            Mapping.HeroProfileMapper.UpgradeIfNeeded(profile, lord);
+            Logic.Character.MattersMostFacts facts = Mapping.MattersMostReader.FactsOf(lord, profile);
+            t.Expect("somethingIsChosen", profile.MattersMost != MattersMost.None, true);
+            t.Expect("andItIsTrueOfHim", Logic.Character.MattersMostPolicy.Grounded(profile.MattersMost, facts), true);
+            t.Expect("hisPageIsSilentUntilHeSaysIt", Mapping.KnownPageReader.LinesFor(lord).Count, 0);
+
+            ProfileMutator.Apply(profile, new ParsedResponse {
+               Dialogue = "", Discovery = new DiscoveredTrait {Key = MattersMostDiscovery.Key, Description = "It is what he lives for."}
+            }, (int) CampaignTime.Now.ToDays);
+            t.Expect("hisWordsMarkItLearned", profile.MattersMostKnown, true);
+            t.Expect("withNoFreeTextBesideIt", profile.DiscoveredTraits.Count, discoveriesBefore);
+            t.Expect("hisPageNamesIt", Mapping.KnownPageReader.LinesFor(lord).FirstOrDefault()?.StartsWith("What matters most to ") == true, true);
+
+            Logic.Character.MattersMostFacts unwed = new() {
+               HeroId = facts.HeroId, Traits = facts.Traits, HasChildren = facts.HasChildren, HasSpouse = false, HasLover = facts.HasLover,
+               LovesThePlayer = facts.LovesThePlayer, HasKin = facts.HasKin, IsNoble = facts.IsNoble, LeadsTheirHouse = facts.LeadsTheirHouse,
+               HoldsLands = facts.HoldsLands, IsWanderer = facts.IsWanderer, HasScoreToSettle = facts.HasScoreToSettle
+            };
+            t.Expect("aSpouseLostMovesIt", Logic.Character.MattersMostPolicy.Resolve(MattersMost.Spouse, unwed) != MattersMost.Spouse, true);
+         }
+         finally
+         {
+            profile.MattersMost = mattersBefore;
+            profile.MattersMostKnown = knownBefore;
+            if (profile.DiscoveredTraits.Count > discoveriesBefore) profile.DiscoveredTraits.RemoveRange(discoveriesBefore, profile.DiscoveredTraits.Count - discoveriesBefore);
+            behavior.Store.Set(profile);
          }
 
          return t.Line();

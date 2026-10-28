@@ -4,6 +4,27 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.7.22.. open
 
+### New
+- **What matters most to a character, and a What You Know section in the encyclopedia** (Gabriel, 27/10/2026: "Et
+  aussi, 'qu'est-ce qui compte le plus' pour un NPC. Ses enfants? Sa richesse? Son amoureux? etc.", then "On va le
+  faire maintenant" and "il faudra penser a les indiquer dans des sections de l'encyclopedia"). Every character met is
+  given one anchor (`MattersMost`, SDK, saved as an integer, append only): their children, their spouse, a lover, the
+  player, their family, the honour of their house, wealth, power, glory in battle, their lands and people, their
+  freedom, or a score to settle. `MattersMostPolicy` chooses it among what is TRUE of them (no children, no "my
+  children"; freedom only for one of no noble house; a score to settle only with a live grudge the player may know of),
+  weighed by their traits, seeded by their id; it is kept while its ground stands and moves when the world takes it
+  away (a mother whose child is lost and who holds a grudge now lives for a score to settle). Read on every load
+  (`MattersMostReader`, called from `HeroProfileMapper.UpgradeIfNeeded`). The prompt states it at every adult level, in
+  the cacheable prefix (`matters_most` section): it weighs on what they agree to, forgive and never forgive; a guarded
+  nature may keep it private, never name a false one. The player learns it when the character says it: a [DISCOVERY]
+  with the reserved key `matters_most` (`MattersMostDiscovery.Key`) marks it known and is never stored as free text
+  beside it. The new What You Know section (`KnownPageReader`, `EncyclopediaHeroPageKnownMixin`, CR_HeroKnown*
+  prefabs; NPC pages only) then names it in the game's own words, without leaking a secret: a lover the player does
+  not know of reads "someone she loves". Unlike Discoveries, whose lines the model writes, every line there is the
+  game's; the pillar's later increments (gifts, fears and superstitions, pastimes) add theirs. `cr.matters [learn|forget]
+  [name]`; `cr.test matters_most`. Defaults awaiting Gabriel's ruling: one anchor, not two; it moves only on an event of
+  the world, never with time alone; no dark lever (threatening what matters is not a mechanic).
+
 ### Changed
 - **Tastes in bed: a wider list, weighed by who the character is** (Hardcore only; Gabriel, 27/10/2026: "Je trouve
   interessant d'en mettre beaucoup. Ca peut amener des scenes plus subtiles et complexes", then "les kinks pourraient

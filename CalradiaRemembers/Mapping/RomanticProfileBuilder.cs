@@ -45,14 +45,7 @@ namespace CalradiaRemembers.Mapping
 
             // Thin Hero-to-traits adapter: the pure derivation lives in
             // CalradiaRemembers.Logic.RomanticProfilePolicy, unit-tested there.
-            RomanticTraits traits = new()
-            {
-                Calculating = ConvertLevel(hero.GetTraitLevel(DefaultTraits.Calculating)),
-                Generosity  = ConvertLevel(hero.GetTraitLevel(DefaultTraits.Generosity)),
-                Mercy       = ConvertLevel(hero.GetTraitLevel(DefaultTraits.Mercy)),
-                Honor       = ConvertLevel(hero.GetTraitLevel(DefaultTraits.Honor)),
-                Valor       = ConvertLevel(hero.GetTraitLevel(DefaultTraits.Valor))
-            };
+            RomanticTraits traits = TraitsOf(hero);
 
             var (relational, intimate) = GetSketches(archetypeName, traits);
             // Drawn from rng in the order the initializer drew them before, so every character already met rolls the same.
@@ -83,6 +76,17 @@ namespace CalradiaRemembers.Mapping
                 TastesRevision   = Logic.Romance.IntimateActPolicy.Revision
             };
         }
+
+        /// <summary>The hero's five personality traits, each -2..2.</summary>
+        internal static RomanticTraits TraitsOf(Hero hero)
+            => new()
+            {
+                Calculating = ConvertLevel(hero.GetTraitLevel(DefaultTraits.Calculating)),
+                Generosity  = ConvertLevel(hero.GetTraitLevel(DefaultTraits.Generosity)),
+                Mercy       = ConvertLevel(hero.GetTraitLevel(DefaultTraits.Mercy)),
+                Honor       = ConvertLevel(hero.GetTraitLevel(DefaultTraits.Honor)),
+                Valor       = ConvertLevel(hero.GetTraitLevel(DefaultTraits.Valor))
+            };
 
         /// <summary>What weighs a hero's tastes in bed: their id, sex, kinks and preferences.</summary>
         internal static Logic.Romance.IntimateTasteFacts TasteFacts(Hero hero, List<Kink> kinks, List<RomanticPreference> preferences)

@@ -150,6 +150,10 @@ namespace CalradiaRemembers.Mapping
             profile.Romantic.TastesRevision = Logic.Romance.IntimateActPolicy.Revision;
          }
 
+         // What matters most to them (Gabriel, 27/10/2026): chosen once among what is true of them, kept while its ground
+         // stands, moved when the world takes it away. Read on every load, so a child's death is seen the next time.
+         MattersMostReader.Refresh(hero, profile);
+
          bool needsRomantic = profile.Romantic == null;
 
          // Orientation conflicts with actual spouse gender → regenerate.
