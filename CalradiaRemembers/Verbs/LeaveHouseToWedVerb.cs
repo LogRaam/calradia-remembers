@@ -44,11 +44,11 @@ namespace CalradiaRemembers.Verbs
          var sb = new StringBuilder();
          sb.AppendLine("LEAVE_HOUSE_TO_WED, THE ONE ROAD TO YOUR HAND:");
          sb.AppendLine($"You will never give up your house or its rule, but you would take the player as your {role} if they");
-         sb.AppendLine("gave up the rule of theirs for you, you remaining head of your house. They may do it");
+         sb.AppendLine("gave up the rule of theirs, or its lands and gold, for you, you remaining head of your house. They may do it");
          if (roads.Contains(LeaveHouseRoad.ThroughTheHeir))
             sb.AppendLine($"- by handing {house} to their heir, {heir?.Name}, and living on at your side;");
          if (roads.Contains(LeaveHouseRoad.GiveHerAll))
-            sb.AppendLine("- or by bringing you their lands, their gold and any realm they rule, their kin staying with them in your service.");
+            sb.AppendLine(LeaveHouseWording.GiveHerAllTeaching(WordingFor(ctx.Npc)));
          sb.AppendLine("When the player resolves in earnest to do this, and you accept them, and only then, emit:");
          sb.AppendLine("[ACTION]");
          sb.AppendLine("type: leave_house_to_wed");
@@ -71,18 +71,19 @@ namespace CalradiaRemembers.Verbs
                return ActionOutcome.Refused($"(Leaving your house for {ruler.Name} is not possible now: {LeaveHouseForRulerBehavior.WhyNot(ruler, LeaveHouseRoad.GiveHerAll)}.)");
 
             string house = Hero.MainHero.Clan?.Name?.ToString() ?? "your house";
+            LeaveHouseWordingFacts words = WordingFor(ruler);
 
             // Irreversible, and the model only proposed it: the player has the last word, as for a killing, and chooses the
             // road when both are open (Gabriel, 26/10/2026).
             var choices = roads.Select(r => new InquiryElement(r, Title(r), null, true, Describe(r, ruler))).ToList();
             MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
-               $"Leave {house} for {ruler.Name}?",
+               LeaveHouseWording.InquiryTitle(words),
                string.Join("\n\n", roads.Select(r => Describe(r, ruler))) + "\n\nThis cannot be undone.",
-               choices, true, 1, 1, "Leave the house", "Not yet",
+               choices, true, 1, 1, LeaveHouseWording.ConfirmButton, "Not yet",
                picked => Confirmed(ruler, picked?.FirstOrDefault()?.Identifier is LeaveHouseRoad r ? r : roads[0]),
                _ => Declined(ruler)), true);
 
-            return new ActionOutcome($"The choice to leave {house} for {ruler.Name} waits on your word.", false);
+            return new ActionOutcome($"The choice of how {house} gives way for {ruler.Name} waits on your word.", false);
          }
          catch (Exception ex)
          {
@@ -114,15 +115,21 @@ namespace CalradiaRemembers.Verbs
             : war > 0 ? $" {people} people's rivals may answer with war (about {war} in 100)."
             : "";
 
-         return $"You keep your character and your family. {ruler.Name} receives your {union.FiefsBrought} town(s) and castle(s) and all your gold.{crown} "
-                + $"Your house serves {her} realm, you wed {(ruler.IsFemale ? "her" : "him")}, and {(ruler.IsFemale ? "she" : "he")} pays a season of your troops' wages.{rivals}";
+         return $"You keep your character and your family. {LeaveHouseWording.GiveHerAllStanding(WordingFor(ruler))} {ruler.Name} receives your {union.FiefsBrought} town(s) and castle(s) and all your gold.{crown} "
+                + $"You wed {(ruler.IsFemale ? "her" : "him")}, and {(ruler.IsFemale ? "she" : "he")} pays a season of your troops' wages.{rivals}";
       }
 
       private static void Confirmed(Hero ruler, LeaveHouseRoad road)
       {
          LeaveHouseForRulerBehavior.Instance?.Request(ruler, road);
-         InformationManager.DisplayMessage(new InformationMessage($"You will leave your house for {ruler.Name} once this conversation is over and you are back at the map or a town's menu."));
+         InformationManager.DisplayMessage(new InformationMessage(LeaveHouseWording.ChosenNotice(road, WordingFor(ruler))));
       }
+
+      private static LeaveHouseWordingFacts WordingFor(Hero ruler)
+         => new() {
+            RulerName = ruler?.Name?.ToString() ?? "", RulerHouse = ruler?.Clan?.Name?.ToString() ?? (ruler?.IsFemale == true ? "her house" : "his house"), RulerIsFemale = ruler?.IsFemale == true,
+            PlayerHouse = Hero.MainHero?.Clan?.Name?.ToString() ?? "your house"
+         };
 
       private static void Declined(Hero ruler)
          => ModLog.Info($"[ACTION] leave_house_to_wed: the player declined to leave the house for {ruler?.Name}.");

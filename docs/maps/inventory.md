@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 580 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1368 types in 47 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1370 types in 47 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 276 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2146,7 +2146,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SecretHandoffKind` | public enum | How a carried secret changes hands. |
 | `WhereaboutsFacts` | public class | Where someone is, as the letter needs it. |
 
-### CalradiaRemembers.Logic.Marriage (44)
+### CalradiaRemembers.Logic.Marriage (46)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2176,6 +2176,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LeaveHouseForRulerPolicy` | public static class | Whether the player may leave their house for a ruler, and the order the hand-over runs in. |
 | `LeaveHouseRoad` | public enum | How the player leaves their house for her (Gabriel, 26/10/2026). |
 | `LeaveHouseStep` | public enum | One engine step of the hand-over, in the order it must run. |
+| `LeaveHouseWording` | public static class | The words of the choice between the two roads, and of the model's teaching. |
+| `LeaveHouseWordingFacts` | public class | Who the wording names. |
 | `MarriageBlockOverridePolicy` | public static class | Pure soft-vs-hard table: which MarriageBlockReason a passed courtship trial may override. |
 | `MarriageClaimPolicy` | public static class | Detects whether an [EVENT] summary CLAIMS that the conversation NPC and the player are now married, so the mod can withhold the memory (and the romantic-arc advancement riding on it) until Hero.Spouse confirms the weddin... |
 | `MarriageCustomReading` | public struct | A culture's marriage custom: strictness 0 (low) to 2 (high), and whether a house of the tier asked shares partners. |

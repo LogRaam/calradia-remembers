@@ -62,6 +62,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   memory and the prompt name every new gesture; `character_overrides.json` lists their ids. `cr.test intimate_acts`
   completes an old profile through the real load path.
 
+### Fixed
+- **Giving a ruler all you own no longer reads as joining her house** (RaveN017Mod, Nexus, 28/10/2026: "I assumed this
+  would mean joining House Pethros [...] I specifically chose the second option: to give her everything and join
+  her"). On that road the player stays head of their own house, sworn to her realm: the game always keeps the player
+  at the head of their own clan. The window said "Leave {house} for Rhagaea?" with a "Leave the house" button, and
+  the ruler was taught nothing against promising her house. Now (`LeaveHouseWording`): the window is titled "Wed
+  Rhagaea: choose your road", its button "Take this road"; the give-her-all road says "You remain head of {house},
+  now sworn to her realm; you do not join {her house}"; the ruler is told never to say they will; the note after the
+  choice names the road taken. Nothing in the hand-over itself changed.
+
 ## v2.7.21.. 2026-10-27
 
 ### New
