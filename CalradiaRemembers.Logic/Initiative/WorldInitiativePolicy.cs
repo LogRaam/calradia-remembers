@@ -73,7 +73,10 @@ namespace CalradiaRemembers.Logic.Initiative
          List<InitiativeRequest> all = (requests ?? new List<InitiativeRequest>()).Where(r => r != null).ToList();
          List<InitiativeRequest> expired = all.Where(r => r.Rank != InitiativeRank.Imposed && now - r.FiledAtHour > settings.ExpireDays * 24.0).ToList();
          // A family weighed at 0 is off; the world's impositions are never switched off here (each has its own option).
-         List<InitiativeRequest> live = all.Except(expired).Where(r => r.Rank == InitiativeRank.Imposed || WeightOf(r.Family, settings) > 0).ToList();
+         // Only what is asking at the door now: a request whose system stopped asking never blocks one that is.
+         List<InitiativeRequest> live = all.Except(expired)
+                                           .Where(r => now - AskedAt(r) <= settings.StaleAfterHours)
+                                           .Where(r => r.Rank == InitiativeRank.Imposed || WeightOf(r.Family, settings) > 0).ToList();
 
          InitiativeDecision None(InitiativeVerdict v) => new() {Verdict = v, Expired = expired};
 
@@ -151,6 +154,8 @@ namespace CalradiaRemembers.Logic.Initiative
 
          return pool[pool.Count - 1];
       }
+
+      private static double AskedAt(InitiativeRequest r) => r.LastAskedAtHour > 0 ? r.LastAskedAtHour : r.FiledAtHour;
 
       private static int WeightOf(InitiativeFamily family, InitiativeSettings settings)
          => settings.FamilyWeights != null && settings.FamilyWeights.TryGetValue(family, out int w) ? Math.Max(0, w) : 100;

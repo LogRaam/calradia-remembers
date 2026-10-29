@@ -26,8 +26,8 @@ namespace CalradiaRemembers.Tests.Initiative
       private const double Now = 100 * Day;
 
       private static InitiativeRequest Req(string key, InitiativeFamily family, InitiativeRank rank = InitiativeRank.Ordinary, double filedDaysAgo = 1,
-         string character = null, bool letter = false)
-         => new() {Key = key, Family = family, Rank = rank, FiledAtHour = Now - filedDaysAgo * Day, CharacterId = character, IsLetter = letter};
+         string character = null, bool letter = false, double askedHoursAgo = 1)
+         => new() {Key = key, Family = family, Rank = rank, FiledAtHour = Now - filedDaysAgo * Day, LastAskedAtHour = Now - askedHoursAgo, CharacterId = character, IsLetter = letter};
 
       private static InitiativeGrant Turn(InitiativeFamily family, double daysAgo, string character = null, double cost = 1)
          => new() {Key = "past", Family = family, GrantedAtHour = Now - daysAgo * Day, CharacterId = character, Cost = cost};
@@ -173,6 +173,17 @@ namespace CalradiaRemembers.Tests.Initiative
          WorldInitiativePolicy.CostOf(Req("l", InitiativeFamily.Letters, letter: true), new InitiativeSettings()).Should().Be(0.5);
          WorldInitiativePolicy.CostOf(Req("l", InitiativeFamily.Letters, letter: true), new InitiativeSettings {LettersCountAs = LetterCost.Full}).Should().Be(1);
          WorldInitiativePolicy.CostOf(Req("a", InitiativeFamily.Lords), new InitiativeSettings()).Should().Be(1);
+      }
+
+      // STAKE: a lord who asked for a word in a town the player has since left must not keep every other system silent: a
+      // request whose system stopped asking is passed over, and the one asking now has its turn.
+      [Test]
+      public void GIVEN_a_stale_pressing_request_and_a_fresh_ordinary_asker_WHEN_decided_THEN_the_asker_has_its_turn()
+      {
+         InitiativeRequest gone = Req("audience_left_town", InitiativeFamily.Lords, InitiativeRank.Pressing, askedHoursAgo: 48);
+         InitiativeRequest asking = Req("companion_word", InitiativeFamily.Companions);
+
+         Decide(new[] {gone, asking}).Granted.Should().BeSameAs(asking);
       }
 
       // STAKE: the one dial: Rarely comes less often and waits longer than Often.

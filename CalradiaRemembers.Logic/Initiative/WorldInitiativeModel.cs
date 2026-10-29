@@ -115,6 +115,13 @@ namespace CalradiaRemembers.Logic.Initiative
       /// <summary>The campaign hour it was filed.</summary>
       public double FiledAtHour { get; init; }
 
+      /// <summary>
+      ///   The campaign hour its system last asked (asking again refreshes it and keeps <see cref="FiledAtHour" />). A system
+      ///   asks at the door, so a request whose system stopped asking (the player left the town, the reason went) is not
+      ///   live and never blocks the systems that are asking. 0 reads as <see cref="FiledAtHour" />.
+      /// </summary>
+      public double LastAskedAtHour { get; init; }
+
       /// <summary>A letter arriving, which costs what <see cref="InitiativeSettings.LettersCountAs" /> says.</summary>
       public bool IsLetter { get; init; }
    }
@@ -161,6 +168,12 @@ namespace CalradiaRemembers.Logic.Initiative
 
       /// <summary>How much a family that just had its turn steps back.</summary>
       public InitiativeVariety Variety { get; init; } = InitiativeVariety.Normal;
+
+      /// <summary>
+      ///   Hours after its system last asked past which a request no longer counts as waiting at the door (systems tick
+      ///   daily at the slowest, hence a day and a little more).
+      /// </summary>
+      public double StaleAfterHours { get; init; } = 26;
 
       /// <summary>Days after which a request still waiting is dropped (the world's impositions never are).</summary>
       public int ExpireDays { get; init; } = 10;
