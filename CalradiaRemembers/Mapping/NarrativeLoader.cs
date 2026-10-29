@@ -25,6 +25,7 @@ namespace CalradiaRemembers.Mapping
    public static class NarrativeLoader
    {
       private static readonly Dictionary<string, string> _stationGuidelines = new();
+      private static readonly Dictionary<string, IReadOnlyDictionary<string, string>> _stationDefinitions = new();
       public static string BehaviorGuidelines { get; private set; } = "";
       public static string PlayerDescription { get; private set; } = "";
       public static string PostHistoryInstructions { get; private set; } = "";
@@ -55,6 +56,10 @@ namespace CalradiaRemembers.Mapping
          // A notable's own trade, read before the shared notable file (Windmolen, 19/10/2026). None ships.
          foreach (string trade in CalradiaRemembers.Logic.StationGuidelinesPolicy.TradeKeys)
             _stationGuidelines[trade] = ReadFile($"behavior_guidelines_{trade}.txt", $"{trade} guidelines");
+         // One definition per social station (Gabriel, 28/10/2026), each meeting the player by their rung.
+         _stationDefinitions.Clear();
+         foreach (string key in CalradiaRemembers.Logic.Social.SocialStationPolicy.Keys)
+            _stationDefinitions[key] = CalradiaRemembers.Logic.Social.SocialStationPolicy.Parse(ReadFile($"stations/{key}.txt", $"{key} station"));
       }
 
       /// <summary>
@@ -98,6 +103,10 @@ namespace CalradiaRemembers.Mapping
          => stationKey != null && _stationGuidelines.TryGetValue(stationKey, out string text)
             ? text
             : "";
+
+      /// <summary>The parsed definition of a social station (ModuleData/stations/&lt;key&gt;.txt), or null when none was read.</summary>
+      public static IReadOnlyDictionary<string, string> StationDefinition(string key)
+         => key != null && _stationDefinitions.TryGetValue(key, out IReadOnlyDictionary<string, string> definition) ? definition : null;
 
       /// <summary>
       ///   Test seam for cr.test all: sets one station or trade text in memory and returns what was there, so the

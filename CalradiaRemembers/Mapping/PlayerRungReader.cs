@@ -44,7 +44,11 @@ namespace CalradiaRemembers.Mapping
             PlayerRung rung = Rung();
             if (speaker == null || speaker == Hero.MainHero) return PlayerRungPolicy.RungLine(rung);
 
-            return PlayerRungPolicy.Line(rung, PlayerRungPolicy.Gap(BattleFeatFacts.For(speaker), BattleFeatFacts.For(Hero.MainHero)));
+            string line = PlayerRungPolicy.Line(rung, PlayerRungPolicy.Gap(BattleFeatFacts.For(speaker), BattleFeatFacts.For(Hero.MainHero)));
+            // How their station meets that rung (ModuleData/stations), Gabriel's "un paysan [...] plus rude".
+            string toward = SocialStationReader.Toward(speaker, rung);
+
+            return string.IsNullOrWhiteSpace(toward) ? line : line + " " + toward;
          }
          catch (Exception ex)
          {

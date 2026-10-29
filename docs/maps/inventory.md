@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 582 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1378 types in 47 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 583 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1381 types in 47 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 276 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -96,7 +96,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
-| `ModCheats` | public static class, partial over 65 files | Exposes diagnostic commands to the Bannerlord cheat console. |
+| `ModCheats` | public static class, partial over 66 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
 | `ProseInterpretTestRunner` | internal static class | The runner behind cr.prose_interpret_test. |
 | `RomanceBondWatchBehavior` | internal class | Reads the bonds with the player at session start and every hour, for CrRomance.StatusChanged. |
@@ -555,7 +555,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (45)
+### CalradiaRemembers.Mapping (46)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -597,6 +597,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SeductionFactsMapper` | public static class | Builds SeductionFacts for a married NPC from live game state. |
 | `SettlementContextResolver` | public static class | Builds a ready-to-inject geography note for the LLM prompt from live map data. |
 | `ShownText` | public static class | Text on its way to the screen, with "the player" naming the player's character. |
+| `SocialStationReader` | public static class | A character's station, and what its definition says. |
 | `StatureReader` | public static class | Reads a Stature from the live game. |
 | `StoryModeTutorial` | internal static class | Whether the game's Story Mode tutorial restricts the player's interactions right now. |
 | `TownNeeds` | public static class | What the towns a character answers for are short of. |
@@ -1776,10 +1777,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptureStake` | public enum | What the captive is to the one who hears of the capture. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 
-### CalradiaRemembers.Logic.Character (12)
+### CalradiaRemembers.Logic.Character (13)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `ArchetypeWording` | public static class | Words an archetype for the station of the one who carries it. |
 | `GiftPageFacts` | public class | What the encyclopedia says of a character's gift tastes. |
 | `GiftTasteFacts` | public class | Who is rolled for gift tastes. |
 | `GiftTastePolicy` | public static class | Rolls gift tastes, reads an item's kind, sizes a gift's regard and words what was learned. |
@@ -2371,7 +2373,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WarPressFacts` | public class | What a king weighs when a lord of his realm presses him toward war. |
 | `WarPressPolicy` | public static class | Whether a king goes to war when a lord presses him (PRESS_FOR_WAR). |
 
-### CalradiaRemembers.Logic.Social (12)
+### CalradiaRemembers.Logic.Social (14)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2387,6 +2389,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PlayerRungPolicy` | public static class | Reads the player's rung and the gap at arms, and says them to the one speaking. |
 | `PresenceDescriber` | public static class | Renders the spatial "you are with the player like THIS" line, and gates the separate elapsed-gap note (handled by MeetingGapDescriber) so it never fires for someone who travels with the player daily. |
 | `PresenceTier` | public enum | Where an NPC stands relative to the player at this moment, from closest to farthest. |
+| `SocialStationFacts` | public class | What a character's station is read from. |
+| `SocialStationPolicy` | public static class | Resolves a character's station and composes its definition for the player's rung. |
 
 ### CalradiaRemembers.Logic.Styles (3)
 

@@ -478,6 +478,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("stance_warning", Severity.Heavy, "stance with teeth increment 2: seed a secret scheme against the player -> force a friendly Warning-verdict lord -> assert the letter NAMES the real plotter", TestStanceWarning),
          new SelfTest("scheme_assist", Severity.Heavy, "plot + regard -> PlayerAssists -> assert the plot advanced", TestSchemeAssist),
          new SelfTest("pregnancy", Severity.Heavy, "fertile female -> TryConceive(force) -> assert pregnant", TestPregnancy),
+         new SelfTest("station_definitions", Severity.Light, "Gabriel 28/10: one definition per social status, adjusting to the player's rung; avalanche24 28/10: companions and a landowner spoke above their station. Reads every station definition as the game loaded it (ModuleData/stations, Custom and patches applied): each says who the character is and meets each of the five rungs. Then finds a living companion, notable or lord and expects the prompt's station lines for them to be the definition's. Changes no game state", TestStationDefinitions),
          new SelfTest("player_rung", Severity.Light, "Gabriel 28/10: a villager is ruder to a nobody than to the head of a tier 3 house; avalanche24 28/10: a weak companion boasted before a master of arms. Reads the player's rung from the live game and the line a real lord would be given about the player: it names the player's place in the world, and the gap at arms follows the two fighters' prowess. Changes no game state", TestPlayerRung),
          new SelfTest("conception_veto", Severity.Light, "tashmetu 28/10: a Sterile character (Traits of Calradia) conceived through CR. A veto registered through CrConception against an eligible mother -> TryConceive(force) -> assert no conception and she is not carrying; the veto is withdrawn after", TestConceptionVeto),
          new SelfTest("companion_mission", Severity.Heavy, "dispatch a companion -> assert away -> resolve -> assert home", TestCompanionMission),
@@ -8529,6 +8530,36 @@ namespace CalradiaRemembers.Diagnostics
             t.Note($"ageGate={infertile.Name}(age {infertile.Age:0})");
             t.Expect("infertileRefused", refused == null, true);
          }
+
+         return t.Line();
+      }
+
+      private static string TestStationDefinitions(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("station_definitions");
+
+         var missing = new List<string>();
+         foreach (string key in SocialStationPolicy.Keys)
+         {
+            IReadOnlyDictionary<string, string> definition = NarrativeLoader.StationDefinition(key);
+            if (SocialStationPolicy.Who(definition) == null) missing.Add(key + ":who");
+            foreach (PlayerRung r in Enum.GetValues(typeof(PlayerRung)))
+               if (SocialStationPolicy.Toward(definition, r) == null) missing.Add($"{key}:{r}");
+         }
+
+         t.Note(missing.Count == 0 ? "every definition complete" : "missing " + string.Join(", ", missing));
+         t.Expect("definitionsComplete", missing.Count == 0, true);
+
+         Hero someone = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && !h.IsChild && SocialStationReader.StationOf(h) != null);
+         if (t.Skip(someone == null, "no living character with a station")) return t.Line();
+
+         string station = SocialStationReader.StationOf(someone);
+         string who = SocialStationReader.Who(someone);
+         string toward = SocialStationReader.Toward(someone, PlayerRungReader.Rung());
+         string beside = PlayerRungReader.LineFor(someone);
+         t.Note($"{someone.Name}: station={station}, rung={PlayerRungReader.Rung()}");
+         t.Expect("whoIsTheDefinitions", who == SocialStationPolicy.Who(NarrativeLoader.StationDefinition(station)), true);
+         t.Expect("besideCarriesTheRungReaction", toward == null || beside != null && beside.EndsWith(toward), true);
 
          return t.Line();
       }

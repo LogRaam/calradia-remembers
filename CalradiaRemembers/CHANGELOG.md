@@ -66,6 +66,19 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   far below, below, even (nothing said), above, far above. The station pack carries the line for everyone, Lean too
   (`EncounterContext.BesideThePlayer`, `PlayerRungReader`). `BattleFeatFacts` moved to `Mapping` so no new namespace cycle
   formed. How each station treats each rung comes with the station definitions. cr.test `player_rung`.
+- **One definition per social station, meeting the player by their rung** (Gabriel, 28/10/2026: "faire une definition
+  par statut social, et injecter par composition le bon statut dans le prompt", in "txt"). Third step of the station
+  pillar. `ModuleData/stations/` ships eleven: ruler, lord (heads a landed house), noble (of a house, commanding nothing),
+  companion, wanderer, merchant, artisan, ruralnotable (landowner), headman, preacher, gangleader (bandit chiefs too).
+  Each says who the character is (`[who]`, rendered first in the station pack, `EncounterContext.OwnStation`) and how they
+  treat the player at each rung, which follows the rung line (a landowner is rude to a nobody, takes his hat off to the
+  head of a rising house, is afraid of a great lord). `SocialStationPolicy` resolves the station and reads the files;
+  `ModuleData/Custom/stations/` and `cr_patch` apply as to every narrative file; what a station may DO stays in code. The
+  companion guidelines lose "your place is not in doubt" and the familiarity of long campaigns for a new hire, and gain
+  "Then you follow their order: the player is your captain". The archetypes written for lords ("A formidable lord.", "The
+  Hollow Lord") are worded without lordship for everyone else (`ArchetypeWording`, the romance still reads the original),
+  existing saves included; a companion's and a wanderer's rank line names them instead of "a person of some standing".
+  `cr.station [name]` shows it all; cr.test `station_definitions`.
 - **Tastes in bed: a wider list, weighed by who the character is** (Hardcore only; Gabriel, 27/10/2026: "Je trouve
   interessant d'en mettre beaucoup. Ca peut amener des scenes plus subtiles et complexes", then "les kinks pourraient
   fortement qualifier ou disqualifier certains gestes" and "les traits influencent les kinks qui eux influencent les

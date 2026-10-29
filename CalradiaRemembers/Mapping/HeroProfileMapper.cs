@@ -31,7 +31,8 @@ namespace CalradiaRemembers.Mapping
             // The old "No clan" sentinel leaked into templates as "of the No clan clan".
             Clan = hero.Clan?.Name?.ToString() ?? "",
             Personality = BuildPersonality(hero),
-            Trait = archetype,
+            // avalanche24 (28/10/2026): a commoner keeps the nature, worded without a lordship (the romance reads the original).
+            Trait = Logic.Character.ArchetypeWording.ForStation(archetype, hero.IsLord),
             SpouseName = hero.Spouse?.IsAlive == true
                ? hero.Spouse.Name?.ToString()
                : null,
@@ -173,7 +174,9 @@ namespace CalradiaRemembers.Mapping
          bool maybeStaleTrait = string.IsNullOrEmpty(profile.Trait) || profile.Trait.StartsWith("Thoroughly Conventional")
                                 || Logic.RetiredArchetypes.IsRetired(profile.Trait)
                                 // every hero with a +-2 trait got this generic line before 03/10/2026 (no archetype matched)
-                                || profile.Trait.StartsWith("A figure of contradictions");
+                                || profile.Trait.StartsWith("A figure of contradictions")
+                                // a commoner's archetype worded for a lord before 28/10/2026 (avalanche24)
+                                || !hero.IsLord && Logic.Character.ArchetypeWording.HasLordlyWords(profile.Trait);
 
          // Cheap exit — nothing to do for already-upgraded profiles.
          if (!needsRomantic && !maybeStaleTrait) return;
@@ -181,11 +184,12 @@ namespace CalradiaRemembers.Mapping
          // Compute current archetype (also writes trait diagnostics to the log).
          string currentArchetype = RetrievePersonalityFor(hero);
 
-         if (maybeStaleTrait && profile.Trait != currentArchetype)
+         string wordedArchetype = Logic.Character.ArchetypeWording.ForStation(currentArchetype, hero.IsLord);
+         if (maybeStaleTrait && profile.Trait != wordedArchetype)
          {
             ModLog.Info(
-               $"  Upgrading Trait for {profile.Name}: " + $"was '{profile.Trait}' → now '{currentArchetype}'");
-            profile.Trait = currentArchetype;
+               $"  Upgrading Trait for {profile.Name}: " + $"was '{profile.Trait}' → now '{wordedArchetype}'");
+            profile.Trait = wordedArchetype;
          }
 
          if (!needsRomantic) return;
@@ -283,6 +287,9 @@ namespace CalradiaRemembers.Mapping
          if (hero.IsFactionLeader) return "Leads a faction.";
          if (hero.IsClanLeader) return "Leads a noble clan.";
          if (hero.IsLord) return "A noble lord with land and retainers.";
+         // avalanche24 (28/10/2026): a hireling read "a person of some standing" and spoke as one.
+         if (hero.CompanionOf != null && hero.CompanionOf == Clan.PlayerClan) return "A hired companion in the player's company, with no house of their own.";
+         if (hero.IsWanderer) return "A wanderer, a free blade with no lord and no lands.";
          // All five notable trades by name (Windmolen, 19/10/2026): a guideline written for one trade needs the
          // model to know which trade it is speaking as.
          string trade = CalradiaRemembers.Logic.StationGuidelinesPolicy.NotableTradeLine(hero.Occupation.ToString());
