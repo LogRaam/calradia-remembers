@@ -16110,6 +16110,10 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("theParentIsNamedAsKin", standing.StartsWith(parent.IsFemale ? "your mother" : "your father"), true);
          if (leadsTheClan) t.Expect("andAsHeadOfTheClan", standing.Contains("head of your clan"), true);
 
+         // The council's whole-table call says it of the seat: the parent's seat names whose parent it is.
+         string seat = WitnessStandingText.AtTable(new[] {new TableTie {Kin = WitnessResolver.KinOf(child, parent), Other = child.Name.ToString()}}, parent.IsFemale) ?? "";
+         t.Expect("atTheCouncilTheParentsSeatNamesTheChild", seat, $"{(parent.IsFemale ? "mother" : "father")} of {child.Name}");
+
          Kingdom realm = Kingdom.All?.FirstOrDefault(k => k?.Leader != null && Mapping.HeroPresence.IsInTheWorld(k.Leader));
          Hero foreigner = realm == null ? null : Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h.Clan?.Kingdom != null && h.Clan.Kingdom != realm);
          if (realm != null && foreigner != null)

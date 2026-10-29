@@ -709,7 +709,7 @@ namespace CalradiaRemembers.Witnesses
       }
 
       /// <summary>How <paramref name="subject" /> is kin to <paramref name="observer" />, from the engine's family links.</summary>
-      private static WitnessKin KinOf(Hero observer, Hero subject)
+      internal static WitnessKin KinOf(Hero observer, Hero subject)
       {
          if (observer.Spouse == subject) return WitnessKin.Spouse;
          if (observer.Father == subject || observer.Mother == subject) return WitnessKin.Parent;

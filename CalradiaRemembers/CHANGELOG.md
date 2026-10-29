@@ -230,9 +230,10 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   prompt, which drops RELATIONSHIPS whole, now keeps the family part as YOUR FAMILY (`NpcProfile.Family`). Fixed on the
   way: a person with a memory lost their gear line in a group scene (the copy that adds the memory dropped it).
   A kinsman of the player asking for a private word is pointed at YOUR FAMILY in Compact, not at the RELATIONSHIPS
-  heading Compact drops. `cr.test witness_standing`. Not changed: the council's whole-table call states each seat's
-  rank (its own `StationLine`) but not the kinship between the seated; a council run voice by voice goes through the
-  chat's road and gets both.
+  heading Compact drops. `cr.test witness_standing`. The council's whole-table call, which writes every seat at
+  once, now says each seat's kin beside its rank, of the seat: "father of Lady Ira; the player's husband"
+  (`CouncilMemberInput.KinAtTable`, `WitnessStandingText.AtTable`); a council run voice by voice goes through the
+  chat's road and gets the standing as above.
 - **Lords no longer invent lands or wars to fill a silence** (RaveN017Mod, Nexus PM, 29/10/2026: lords and vassals
   "make up possessions they don't have or wars that don't exist"). A lord was told which towns and castles his house
   holds and which realms it fights only when there was something to list; a landless house or a realm at peace got no

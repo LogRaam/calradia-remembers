@@ -63,6 +63,19 @@ namespace CalradiaRemembers.Logic.Witnesses
         public string Governs { get; init; } = "";
     }
 
+    /// <summary>One tie between a council seat and someone else at the table (or the player): the seat IS their Kin.</summary>
+    public sealed class TableTie
+    {
+        /// <summary>What the seat is to the other: Parent means the seat is the other's father or mother.</summary>
+        public WitnessKin Kin { get; init; }
+
+        /// <summary>The other's name, as the table knows it; ignored when <see cref="OtherIsPlayer" />.</summary>
+        public string Other { get; init; } = "";
+
+        /// <summary>The other is the player.</summary>
+        public bool OtherIsPlayer { get; init; }
+    }
+
     /// <summary>
     ///   The words for who a person present is to the speaker: "your father, head of your clan", "ruler of Vlandia",
     ///   "your sister, governor of Pravend". Null when they are no kin and hold no rank: the witness line then says
@@ -94,6 +107,24 @@ namespace CalradiaRemembers.Logic.Witnesses
             parts.AddRange(titles);
 
             return parts.Count == 0 ? null : string.Join(", ", parts);
+        }
+
+        /// <summary>
+        ///   A council seat's kin at the table, said of the seat in the third person, since the whole-table call writes
+        ///   every seat at once: "father of Lady Ira; the player's wife". Null when the seat is kin to no one present.
+        /// </summary>
+        public static string AtTable(IReadOnlyList<TableTie> ties, bool seatIsFemale)
+        {
+            var parts = new List<string>();
+            foreach (TableTie tie in ties ?? new List<TableTie>())
+            {
+                string word = tie == null ? null : KinWord(tie.Kin, seatIsFemale);
+                if (word == null) continue;
+                if (tie.OtherIsPlayer) parts.Add($"the player's {word}");
+                else if (!string.IsNullOrWhiteSpace(tie.Other)) parts.Add($"{word} of {tie.Other.Trim()}");
+            }
+
+            return parts.Count == 0 ? null : string.Join("; ", parts);
         }
 
         private static string KinWord(WitnessKin kin, bool female) => kin switch {

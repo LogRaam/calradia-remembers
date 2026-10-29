@@ -21,6 +21,8 @@ using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.Logic.Witnesses;
+using CalradiaRemembers.Witnesses;
 using NpcMemoryService.Core.Knowledge;
 using NpcMemoryService.Core.Compression;
 using NpcMemoryService.Core.Models;
@@ -1181,16 +1183,39 @@ namespace CalradiaRemembers.Chat
       ///   direction, so it rides in as <see cref="CouncilPromptInput.OpeningCue" /> and the player line is left
       ///   empty (the table opens on its own); on every later turn it is the player's own spoken line.
       /// </summary>
+      private static string SeatKin(Hero seat, List<Hero> seated, List<string> names)
+      {
+         if (seat == null) return null;
+         try
+         {
+            var ties = new List<TableTie>();
+            for (var j = 0; j < seated.Count; j++)
+               if (seated[j] != null && seated[j] != seat)
+                  ties.Add(new TableTie {Kin = WitnessResolver.KinOf(seated[j], seat), Other = names[j]});
+            if (Hero.MainHero != null && Hero.MainHero != seat)
+               ties.Add(new TableTie {Kin = WitnessResolver.KinOf(Hero.MainHero, seat), OtherIsPlayer = true});
+
+            return WitnessStandingText.AtTable(ties, seat.IsFemale);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[COUNCIL] kin at the table failed for {seat.Name}: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
       private CouncilPromptInput BuildCouncilPromptInput(string playerMessage, bool isOpener = false)
       {
          var behavior = NpcMemoryCampaignBehavior.Instance;
          (List<string> names, List<string> heroIds) = SeatedMembers();
 
          var roster = new List<CouncilMemberInput>();
+         List<Hero> seatedHeroes = heroIds.Select(id => string.IsNullOrEmpty(id) ? null : Hero.FindFirst(h => h.StringId == id)).ToList();
          for (var i = 0; i < names.Count; i++)
          {
             string heroId = heroIds[i];
-            Hero hero = string.IsNullOrEmpty(heroId) ? null : Hero.FindFirst(h => h.StringId == heroId);
+            Hero hero = seatedHeroes[i];
             NpcProfile p = string.IsNullOrEmpty(heroId) ? null : behavior?.Store?.Get(heroId);
 
             roster.Add(new CouncilMemberInput {
@@ -1206,6 +1231,8 @@ namespace CalradiaRemembers.Chat
                // Read through EncounterContextBuilder.StationContextFor, the SAME reader a private word uses,
                // and rendered by StationPack itself. The table had no station at all before this.
                StationLine = StationPack.DescribeBriefly(EncounterContextBuilder.StationContextFor(hero)),
+               // Who this seat is to the others seated and to the player (fearente, 29/10/2026).
+               KinAtTable = SeatKin(hero, seatedHeroes, names),
                // Through the SAME builder the witness path uses, so the private-memory leak guard is inherited
                // rather than re-reasoned. A council is one prompt for the whole table: every seat's recall is
                // read by the voice writing every other seat.

@@ -80,6 +80,23 @@ namespace CalradiaRemembers.Tests.Witnesses
             WitnessStandingText.Describe(new WitnessStandingFacts {Kin = kin, IsFemale = female}).Should().Be(expected);
         }
 
+        // The council writes every seat at once, so a seat's kin is said of the seat: her father's line names her.
+        [Test]
+        public void GIVEN_a_father_seated_with_his_daughter_and_the_player_his_son_in_law_WHEN_his_seat_is_written_THEN_both_ties_are_said()
+        {
+            WitnessStandingText.AtTable(new[] {
+                new TableTie {Kin = WitnessKin.Parent, Other = "Lady Ira"}, new TableTie {Kin = WitnessKin.Spouse, OtherIsPlayer = true}
+            }, false).Should().Be("father of Lady Ira; the player's husband");
+        }
+
+        // A seat kin to no one present gets no clause at all.
+        [Test]
+        public void GIVEN_a_seat_kin_to_no_one_WHEN_written_THEN_there_is_no_clause()
+        {
+            WitnessStandingText.AtTable(new[] {new TableTie {Kin = WitnessKin.None, Other = "Lord Olek"}}, false).Should().BeNull();
+            WitnessStandingText.AtTable(null, true).Should().BeNull();
+        }
+
         // Nothing to say must stay nothing: an ordinary witness keeps exactly the line it had before.
         [Test]
         public void GIVEN_no_kin_and_no_rank_WHEN_described_THEN_there_is_no_clause()

@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 587 types in 63 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1410 types in 48 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1411 types in 48 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 276 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2545,10 +2545,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WarLevyPolicy` | public static class | Pure: how much coin stands for a vassal's absence from a war. |
 | `WarServiceLedger` | public class | The war-duty ledger: service, wars, and the reckoning in progress. |
 
-### CalradiaRemembers.Logic.Witnesses (10)
+### CalradiaRemembers.Logic.Witnesses (11)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `TableTie` | public class | One tie between a council seat and someone else at the table (or the player): the seat IS their Kin. |
 | `WitnessDedup` | public static class | Decides whether two WitnessEntry values denote the same present witness. |
 | `WitnessDensity` | public enum | How many ambient hero witnesses a conversation gathers. |
 | `WitnessKin` | public enum | How a person present is kin to the one speaking, read off the engine's family links. |
