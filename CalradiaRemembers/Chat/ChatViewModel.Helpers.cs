@@ -1154,6 +1154,19 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
+         DuelKind kind = DuelEligibilityResolver.KindOf(opponent) ?? DuelKind.Honour;
+         bool brawl = kind == DuelKind.Brawl;
+
+         // avalanche24 (Nexus, 28/10/2026): a new hire called him out for being told to follow orders. A commoner starts a
+         // brawl only over a real grievance and with the nerve for it; otherwise the words stand and nothing is armed.
+         if (!playerIssued && !DuelEligibilityResolver.MayCallOut(opponent, profile))
+         {
+            IsSendEnabled = !_conversationEnded;
+            ModLog.Info($"[DUEL] {speakerName} called the player out to a {(brawl ? "brawl" : "duel")} with no grievance worth it; nothing armed.");
+
+            return;
+         }
+
                   // The player called them out, so the NPC's answer is the policy's, not the model's. An NPC who balks
          // does not simply go quiet: the refusal is a deed, it costs them (contempt, and renown to the player
          // who called a bluff), and the conversation carries on from there.
@@ -1169,7 +1182,7 @@ namespace CalradiaRemembers.Chat
             // Recorded as scene narration rather than a bare system line, so it enters the transcript and the
             // NPC's very next reply is spoken by someone who knows they refused.
             AppendNarration($"{profile?.Name ?? speakerName} lets the challenge hang, and will not take it up.");
-            DuelOutcomeApplier.Apply(reason, DuelResolution.NpcForfeited, opponent, null, _witnesses.Count);
+            DuelOutcomeApplier.Apply(reason, DuelResolution.NpcForfeited, opponent, null, _witnesses.Count, kind);
             IsSendEnabled = !_conversationEnded;
             ModLog.Info($"[DUEL] {speakerName} refused the player's challenge (acceptance score below the threshold).");
 
@@ -1180,7 +1193,7 @@ namespace CalradiaRemembers.Chat
          // is dismissed rather than fought (ratified 2026-08-26). See DuelStationGap / DuelStation below.
          // Carry the conversation that led here so the post-duel scene resumes it (Transcript is this chat's
          // live source of truth; a duel never spans a save, so the reference travels as-is).
-         DuelCoordinator.Arm(opponent, reason, venue, !playerIssued, _witnesses.Count, null, Transcript);
+         DuelCoordinator.Arm(opponent, reason, venue, !playerIssued, _witnesses.Count, null, Transcript, kind);
 
          // Same deliberate transition as the escape: lock the input and leave only the close button. Clicking
          // it closes the chat, and the coordinator stages the duel on the next tick, on the live map.
@@ -1190,11 +1203,15 @@ namespace CalradiaRemembers.Chat
          IsPrivateRequestVisible = false;
          IsPleaseContinueVisible = false;
          IsSendEnabled = false;
-         CloseButtonText = playerIssued ? "Take the field" : "Answer him";
+         CloseButtonText = brawl ? playerIssued ? "Step outside" : "Answer them" : playerIssued ? "Take the field" : "Answer him";
          NotifyConversationEndedChanged();
-         AppendSystemMessage(playerIssued
-            ? $"{profile?.Name ?? speakerName} takes up your challenge. Close this conversation to take the field."
-            : $"{profile?.Name ?? speakerName} demands satisfaction of you. Close this conversation to take the field.", false);
+         AppendSystemMessage(brawl
+            ? playerIssued
+               ? $"{profile?.Name ?? speakerName} takes you up on it. Close this conversation to settle it with fists."
+               : $"{profile?.Name ?? speakerName} calls you out to settle it with fists. Close this conversation to answer."
+            : playerIssued
+               ? $"{profile?.Name ?? speakerName} takes up your challenge. Close this conversation to take the field."
+               : $"{profile?.Name ?? speakerName} demands satisfaction of you. Close this conversation to take the field.", false);
          ModLog.Info($"[DUEL] armed from chat against {speakerName}: venue={venue}, "
                    + $"challenger={(playerIssued ? "player" : "npc")}, {_witnesses.Count} witness(es).");
       }

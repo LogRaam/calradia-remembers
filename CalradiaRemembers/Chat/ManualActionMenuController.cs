@@ -526,7 +526,8 @@ namespace CalradiaRemembers.Chat
                NpcIsEscortingPlayer = npcIsEscortingPlayer,
                NpcCanRideWithPlayer = npcCanRideWithPlayer,
                NpcIsRidingWithPlayer = npcIsRidingWithPlayer,
-               NpcCanBeChallengedToDuel = DuelEligibilityResolver.CanDuelNow(npc, profile, out _),
+               // "Call them out to a duel" is the nobles' (Gabriel, 28/10/2026); a commoner is not offered steel.
+               NpcCanBeChallengedToDuel = DuelEligibilityResolver.CanDuelNow(npc, profile, out _) && DuelEligibilityResolver.KindOf(npc) == Logic.Duels.DuelKind.Honour,
                NpcCanBeGrantedFief = npcCanBeGrantedFief,
                GrantableFiefs = grantableFiefs,
                NpcCanHaveFiefRevoked = npcCanHaveFiefRevoked,

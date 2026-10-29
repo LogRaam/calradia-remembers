@@ -6,7 +6,6 @@
 #region
 
 using System.Collections.Generic;
-using System.Linq;
 using CalradiaRemembers.Logic.Social;
 using TaleWorlds.CampaignSystem;
 
@@ -25,7 +24,7 @@ namespace CalradiaRemembers.Mapping
          return SocialStationPolicy.Resolve(new SocialStationFacts {
             IsRuler = StatureReader.Of(hero).IsRuler,
             IsNoble = hero.IsLord,
-            HeadsLandedHouse = hero.Clan?.Leader == hero && hero.Clan.Settlements?.Any(s => s != null && (s.IsTown || s.IsCastle)) == true,
+            HeadsHouse = hero.Clan?.Leader == hero,
             IsPlayerCompanion = hero.CompanionOf == Clan.PlayerClan && Clan.PlayerClan != null,
             Occupation = hero.Occupation.ToString()
          });

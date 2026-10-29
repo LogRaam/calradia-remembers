@@ -189,6 +189,7 @@ namespace CalradiaRemembers.Chat
       // AppendPostDuelContext every turn so the victor/loser register holds past the opener.
       private bool _postDuelActive;
       private bool _postDuelPlayerWon;
+      private bool _postDuelWasBrawl; // the fight was fists, not steel (Gabriel, 28/10/2026)
       private string _postDuelCourtedHeroName; // the contested hero's name for a courtship duel; null otherwise
 
       // Companion AUDIENCE — a normal conversation the companion themselves requested (grievance / retirement),
@@ -1623,6 +1624,7 @@ namespace CalradiaRemembers.Chat
          _mode = ChatMode.Conversation;
          _postDuelActive = true;
          _postDuelPlayerWon = playerWon;
+         _postDuelWasBrawl = Duels.DuelEligibilityResolver.KindOf(_npcHero) == Logic.Duels.DuelKind.Brawl;
          _postDuelCourtedHeroName = reason == DuelReason.CourtshipRivalry && courtedHero != null ? courtedHero.Name?.ToString() : null;
 
          // A duel can be fought against a lord the player never conversed with, so no profile is stored yet and

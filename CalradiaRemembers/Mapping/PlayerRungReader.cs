@@ -45,8 +45,11 @@ namespace CalradiaRemembers.Mapping
             if (speaker == null || speaker == Hero.MainHero) return PlayerRungPolicy.RungLine(rung);
 
             string line = PlayerRungPolicy.Line(rung, PlayerRungPolicy.Gap(BattleFeatFacts.For(speaker), BattleFeatFacts.For(Hero.MainHero)));
-            // How their station meets that rung (ModuleData/stations), Gabriel's "un paysan [...] plus rude".
-            string toward = SocialStationReader.Toward(speaker, rung);
+            // How their station meets that rung (ModuleData/stations), Gabriel's "un paysan [...] plus rude". Never for the
+            // player's spouse or kin: those reactions are written for strangers, and family heard as strangers is what
+            // Eisendrache2 (25/10/2026) and DepaHN (26/10/2026) reported.
+            bool family = speaker.Spouse == Hero.MainHero || EncounterContextBuilder.ResolveKinshipToPlayer(speaker) != null;
+            string toward = family ? null : SocialStationReader.Toward(speaker, rung);
 
             return string.IsNullOrWhiteSpace(toward) ? line : line + " " + toward;
          }

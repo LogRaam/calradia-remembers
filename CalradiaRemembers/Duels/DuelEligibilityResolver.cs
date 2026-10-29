@@ -61,11 +61,9 @@ namespace CalradiaRemembers.Duels
                BothAbleToFight = BothAbleToFight(player, npc),
                IsSelfOrFamily = IsSelfOrFamily(player, npc),
                EitherHoldsOtherPrisoner = EitherHoldsOtherPrisoner(player, npc),
-               // avalanche24 (Nexus, 28/10/2026) and Gabriel's ruling: the duel is the nobles' affair; a companion only
-               // brawls, and a notable has no duel to call. The v1.31.9 widening to companions and notables is undone.
-               TargetIsAPeer = DuelPeerPolicy.IsHonourPeer(new DuelPeerFacts {
-                  IsNoble = npc.IsLord, IsPlayerCompanion = npc.IsPlayerCompanion, IsNotable = npc.IsNotable
-               }),
+               // Gabriel (28/10/2026): nobles duel with steel, a companion, a wanderer, the street and the notables of trade
+               // brawl with fists (KindOf says which); a preacher, or anyone no station covers, does not fight the player.
+               TargetIsAPeer = KindOf(npc) != null,
                // The two ONLY share a place if they are genuinely beside one another right now: the exact
                // engine-live gate PlayerPresenceResolver already offers every other channel (chat, letters,
                // jealousy), re-checked fresh at commit time, which is what catches an NPC who walked off
@@ -84,6 +82,42 @@ namespace CalradiaRemembers.Duels
          {
             ModLog.Fault("DuelEligibilityResolver.CanDuelNow", ex);
             venue = DuelVenue.NotNow;
+
+            return false;
+         }
+      }
+
+      /// <summary>How <paramref name="npc" /> fights the player: a duel for a noble, a brawl for a commoner, null for neither.</summary>
+      public static DuelKind? KindOf(Hero npc) => BrawlPolicy.KindFor(Mapping.SocialStationReader.StationOf(npc));
+
+      /// <summary>
+      ///   Whether <paramref name="npc" /> may call the player out themselves (the player may always call them out). A noble's
+      ///   challenge is unchanged; a commoner's brawl needs a real grievance and the nerve for it (BrawlPolicy.MayCallOut;
+      ///   avalanche24, 28/10/2026: a new hire called him out for being told to follow orders). Asked when the verb is taught
+      ///   and again before a challenge is armed. Never throws: false on any failure.
+      /// </summary>
+      public static bool MayCallOut(Hero npc, NpcProfile profile)
+      {
+         try
+         {
+            DuelKind? kind = KindOf(npc);
+            if (kind == DuelKind.Honour) return true;
+            if (kind != DuelKind.Brawl || Hero.MainHero == null) return false;
+
+            var today = (int) CampaignTime.Now.ToDays;
+
+            return BrawlPolicy.MayCallOut(new BrawlInitiativeFacts {
+               Station = Mapping.SocialStationReader.StationOf(npc),
+               HoldsAGrudge = Grudges.GrudgeBehavior.Instance?.LiveGrudgesFor(npc, today)?.Count > 0,
+               Regard = profile?.ReputationWithPlayer ?? 0,
+               Rung = Mapping.PlayerRungReader.Rung(),
+               Gap = Logic.Social.PlayerRungPolicy.Gap(Mapping.BattleFeatFacts.For(npc), Mapping.BattleFeatFacts.For(Hero.MainHero)),
+               Valor = npc.GetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Valor)
+            });
+         }
+         catch (Exception ex)
+         {
+            ModLog.Fault("DuelEligibilityResolver.MayCallOut", ex);
 
             return false;
          }

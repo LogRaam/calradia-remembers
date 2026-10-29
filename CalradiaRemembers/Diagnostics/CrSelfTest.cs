@@ -478,6 +478,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("stance_warning", Severity.Heavy, "stance with teeth increment 2: seed a secret scheme against the player -> force a friendly Warning-verdict lord -> assert the letter NAMES the real plotter", TestStanceWarning),
          new SelfTest("scheme_assist", Severity.Heavy, "plot + regard -> PlayerAssists -> assert the plot advanced", TestSchemeAssist),
          new SelfTest("pregnancy", Severity.Heavy, "fertile female -> TryConceive(force) -> assert pregnant", TestPregnancy),
+         new SelfTest("brawl_initiative", Severity.Light, "avalanche24 28/10: a companion hired hours before called him out for being told to follow orders; Gabriel 28/10: nobles duel, a companion only brawls. Asks the real resolver (the gate the prompt and the bridge both ask): a lord fights with steel, a companion with fists; a companion with no grudge and a plain regard may not call the player out; soured to -30 she may, unless the player is far the better fighter and she is not reckless. Restores her regard; arms nothing", TestBrawlInitiative),
          new SelfTest("station_definitions", Severity.Light, "Gabriel 28/10: one definition per social status, adjusting to the player's rung; avalanche24 28/10: companions and a landowner spoke above their station. Reads every station definition as the game loaded it (ModuleData/stations, Custom and patches applied): each says who the character is and meets each of the five rungs. Then finds a living companion, notable or lord and expects the prompt's station lines for them to be the definition's. Changes no game state", TestStationDefinitions),
          new SelfTest("player_rung", Severity.Light, "Gabriel 28/10: a villager is ruder to a nobody than to the head of a tier 3 house; avalanche24 28/10: a weak companion boasted before a master of arms. Reads the player's rung from the live game and the line a real lord would be given about the player: it names the player's place in the world, and the gap at arms follows the two fighters' prowess. Changes no game state", TestPlayerRung),
          new SelfTest("conception_veto", Severity.Light, "tashmetu 28/10: a Sterile character (Traits of Calradia) conceived through CR. A veto registered through CrConception against an eligible mother -> TryConceive(force) -> assert no conception and she is not carrying; the veto is withdrawn after", TestConceptionVeto),
@@ -8529,6 +8530,40 @@ namespace CalradiaRemembers.Diagnostics
             string refused = PregnancyService.TryConceive(infertile, Hero.MainHero, true);
             t.Note($"ageGate={infertile.Name}(age {infertile.Age:0})");
             t.Expect("infertileRefused", refused == null, true);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestBrawlInitiative(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("brawl_initiative");
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsChild);
+         if (lord != null) t.Expect("lordFightsWithSteel", DuelEligibilityResolver.KindOf(lord) == DuelKind.Honour, true);
+
+         Hero companion = Clan.PlayerClan?.Companions?.FirstOrDefault(h => h != null && !h.IsChild && Mapping.HeroPresence.IsInTheWorld(h)
+                                                                           && (GrudgeBehavior.Instance?.LiveGrudgesFor(h, (int) CampaignTime.Now.ToDays)?.Count ?? 0) == 0);
+         if (t.Skip(companion == null, "no companion without a grudge in the player's clan")) return t.Line();
+
+         NpcProfile profile = behavior.Store.Get(companion.StringId) ?? HeroProfileMapper.FromHero(companion);
+         int before = profile.ReputationWithPlayer;
+         try
+         {
+            t.Expect("companionBrawls", DuelEligibilityResolver.KindOf(companion) == DuelKind.Brawl, true);
+
+            profile.ReputationWithPlayer = 0;
+            t.Expect("noGrievanceNoCallOut", DuelEligibilityResolver.MayCallOut(companion, profile), false);
+
+            profile.ReputationWithPlayer = -30;
+            ArmsGap gap = PlayerRungPolicy.Gap(BattleFeatFacts.For(companion), BattleFeatFacts.For(Hero.MainHero));
+            bool reckless = companion.GetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Valor) >= 2;
+            t.Note($"{companion.Name}: gap={gap}, reckless={reckless}");
+            t.Expect("grievanceCallsOutUnlessOutmatched", DuelEligibilityResolver.MayCallOut(companion, profile), gap != ArmsGap.FarBelow || reckless);
+         }
+         finally
+         {
+            profile.ReputationWithPlayer = before;
          }
 
          return t.Line();

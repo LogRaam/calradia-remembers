@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 583 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1381 types in 47 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1382 types in 47 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 276 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1948,10 +1948,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RecapSignal` | public static class | Whether a late reply found what the folded recap holds: the levies agreed early in the conversation. |
 | `SermonSignal` | public static class | The fearente signal: a reply that still warns or lectures after the player has answered the concern. |
 
-### CalradiaRemembers.Logic.Duels (29)
+### CalradiaRemembers.Logic.Duels (30)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `BrawlInitiativeFacts` | public class | What decides whether a commoner calls the player out to a brawl. |
+| `BrawlPolicy` | public static class | Who fights the player how, and who may start a brawl. |
 | `CourtshipDuelConsequence` | public class | The courtship-specific extra a duel over a hero produces, applied by the host to the courted hero's RomanticProfile.AttractionToPlayer (clamped [-100,100] there). |
 | `CourtshipDuelPolicy` | public static class | Resolves a courtship-rivalry duel into how the courted hero's attraction moves. |
 | `CourtshipRivalryEligibility` | public static class | Whether a rival mounts a courtship-rivalry duel over a hero the player courts. |
@@ -1963,10 +1965,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DuelEligibility` | public enum | Why a duel challenge is or is not admissible right now. |
 | `DuelGrudgeEffect` | public enum | What the duel did to a grudge that drove it. |
 | `DuelInterlocutorPolicy` | public static class | Decides whether the speaker who just emitted challenge_duel is the player's real conversational partner (and so a fair target for a player-vs-NPC duel), or a bystander witness who happened to hold the floor for other rea... |
+| `DuelKind` | public enum | A fight with steel between nobles, or with fists between anyone else. |
 | `DuelOutcomePolicy` | public static class | Resolves a finished (or refused) duel into its consequences. |
 | `DuelOutcomeResult` | public class | The stance, renown, grudge and wager consequences of a duel. |
-| `DuelPeerFacts` | public class | What the game says of the one the player would duel. |
-| `DuelPeerPolicy` | public static class | Whether someone is of the standing a duel of honour asks. |
 | `DuelPublicityPolicy` | public static class | Who saw a duel, and how far word of it travels. |
 | `DuelReason` | public enum | Why a duel was fought, so the right consequence policy applies on top of the generic outcome. |
 | `DuelResolution` | public enum | How a duel ended. |

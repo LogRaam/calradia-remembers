@@ -295,6 +295,23 @@ namespace CalradiaRemembers.Tests.Duels
 
       #endregion
 
+      // STAKE: Gabriel's brawl is a settling of scores between two people, not a feat of arms: winning or losing one never
+      // moves the player's renown or a house's influence, before any crowd, while the two still think differently of each
+      // other.
+      [TestCase(DuelResolution.PlayerWon)]
+      [TestCase(DuelResolution.NpcWon)]
+      [TestCase(DuelResolution.PlayerForfeited)]
+      public void GIVEN_a_brawl_WHEN_it_ends_THEN_no_renown_and_no_influence_move_but_the_two_regard_each_other_anew(DuelResolution resolution)
+      {
+         DuelResolutionContext ctx = Ctx(resolution, witnesses: 12);
+         ctx.Kind = DuelKind.Brawl;
+         DuelOutcomeResult r = DuelOutcomePolicy.Resolve(ctx);
+
+         r.PlayerRenownDelta.Should().Be(0);
+         r.LoserInfluenceDelta.Should().Be(0);
+         (r.NpcRespectDelta != 0 || r.NpcAffectionDelta != 0).Should().BeTrue();
+      }
+
       private static DuelResolutionContext Ctx(
          DuelResolution resolution,
          bool grudge = false,

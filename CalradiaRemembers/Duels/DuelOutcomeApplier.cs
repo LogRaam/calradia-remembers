@@ -51,7 +51,8 @@ namespace CalradiaRemembers.Duels
       ///   the NPC balks at the player's own challenge), so the cooldown has to close on a duck exactly as it
       ///   does on a real fight.
       /// </summary>
-      public static void Apply(DuelReason reason, DuelResolution resolution, Hero opponent, Hero courtedHero, int witnessCount)
+      public static void Apply(DuelReason reason, DuelResolution resolution, Hero opponent, Hero courtedHero, int witnessCount,
+         DuelKind kind = DuelKind.Honour)
       {
          if (opponent == null || Hero.MainHero == null) return;
 
@@ -72,6 +73,7 @@ namespace CalradiaRemembers.Duels
          var ctx = new DuelResolutionContext {
             Resolution = resolution,
             Reason = reason, // a friendly bout is settled entirely differently; see DuelOutcomePolicy
+            Kind = kind, // a brawl moves only the two who fought (Gabriel, 28/10/2026)
             AGrudgeDroveIt = drivingGrudge != null,
             Stake = DuelStakeKind.Honour,
             WitnessCount = witnessCount
@@ -119,7 +121,9 @@ namespace CalradiaRemembers.Duels
          }
 
          StampLastDuelDay(opponent);
-         RecordDuelEvent(reason, resolution, opponent, courtedHero, witnessCount);
+         // A brawl is a settling of scores between two people: it does not travel as the realm's news (Gabriel, 28/10/2026).
+         if (kind == DuelKind.Brawl) ModLog.Info($"[DUEL] brawl with {opponent.Name} ended {resolution}; it stays between the two.");
+         else RecordDuelEvent(reason, resolution, opponent, courtedHero, witnessCount);
       }
 
       #region private

@@ -36,6 +36,7 @@ namespace CalradiaRemembers.Duels
       /// <summary>A duel is armed and waits for the chat to close.</summary>
       internal static bool IsArmed => _pendingOpponent != null;
       private static DuelReason _pendingReason;
+      private static DuelKind _pendingKind;           // steel or fists (Gabriel, 28/10/2026: the duel is noble, the brawl a settling of scores)
       private static DuelVenue _pendingVenue;
       private static bool _pendingNpcIssuedChallenge; // true = the NPC called the player out (player must answer)
       private static int _pendingWitnessCount;
@@ -49,6 +50,10 @@ namespace CalradiaRemembers.Duels
       private static DuelResolution? _pendingResolution;
       private static Hero _outcomeOpponent;
       private static DuelReason _outcomeReason;
+      private static DuelKind _outcomeKind;
+
+      /// <summary>The kind of the fight being staged now, read by the missions that stage it (fists strip the weapons).</summary>
+      internal static DuelKind StagedKind { get; private set; }
       private static Hero _outcomeCourtedHero;
       private static int _outcomeWitnessCount;
       private static ConversationTranscript _outcomeTranscript; // survives to Phase 2 so the post-duel chat can resume the pre-duel conversation
@@ -62,10 +67,11 @@ namespace CalradiaRemembers.Duels
       ///   <paramref name="courtedHero" /> is only meaningful for <see cref="DuelReason.CourtshipRivalry" />.
       /// </summary>
       public static void Arm(Hero opponent, DuelReason reason, DuelVenue venue, bool npcIssuedChallenge, int witnessCount, Hero courtedHero,
-         ConversationTranscript transcript = null)
+         ConversationTranscript transcript = null, DuelKind kind = DuelKind.Honour)
       {
          _pendingOpponent = opponent;
          _pendingReason = reason;
+         _pendingKind = kind;
          _pendingVenue = venue;
          _pendingNpcIssuedChallenge = npcIssuedChallenge;
          _pendingWitnessCount = witnessCount;
@@ -90,6 +96,7 @@ namespace CalradiaRemembers.Duels
                DuelResolution resolution = _pendingResolution.Value;
                Hero opponent = _outcomeOpponent;
                DuelReason reason = _outcomeReason;
+               DuelKind fightKind = _outcomeKind;
                Hero courtedHero = _outcomeCourtedHero;
                int witnessCount = _outcomeWitnessCount;
                ConversationTranscript transcript = _outcomeTranscript;
@@ -98,7 +105,7 @@ namespace CalradiaRemembers.Duels
                _outcomeCourtedHero = null;
                _outcomeTranscript = null;
 
-               DuelOutcomeApplier.Apply(reason, resolution, opponent, courtedHero, witnessCount);
+               DuelOutcomeApplier.Apply(reason, resolution, opponent, courtedHero, witnessCount, fightKind);
                // Self-esteem (30/09/2026): a duel with the player is won or lost in front of others.
                if (resolution == DuelResolution.PlayerWon) Standing.SelfEsteemService.Record(opponent, Logic.SelfEsteemEvent.DuelLostToPlayer);
                else if (resolution == DuelResolution.NpcWon) Standing.SelfEsteemService.Record(opponent, Logic.SelfEsteemEvent.DuelWonAgainstPlayer);
@@ -180,6 +187,7 @@ namespace CalradiaRemembers.Duels
 
                Hero opponent = _pendingOpponent;
                DuelReason reason = _pendingReason;
+               StagedKind = _pendingKind;
                bool npcIssuedChallenge = _pendingNpcIssuedChallenge;
                int witnessCount = _pendingWitnessCount;
                Hero courtedHero = _pendingCourtedHero;
@@ -231,16 +239,19 @@ namespace CalradiaRemembers.Duels
       private static void AskPlayerToAnswer(Hero opponent, DuelReason reason, DuelVenue venue, Hero courtedHero, int witnessCount,
          ConversationTranscript transcript)
       {
+         bool brawl = StagedKind == DuelKind.Brawl;
          InformationManager.ShowInquiry(new InquiryData(
-            "A Challenge",
-            $"{opponent.Name} demands satisfaction of you: only steel will answer this. Do you take up the challenge?",
+            brawl ? "Called Out" : "A Challenge",
+            brawl
+               ? $"{opponent.Name} wants to settle this with fists. Do you step outside?"
+               : $"{opponent.Name} demands satisfaction of you: only steel will answer this. Do you take up the challenge?",
             true, true,
-            "Draw your sword", "Decline",
+            brawl ? "Raise your fists" : "Draw your sword", "Decline",
             () => LaunchDuel(opponent, reason, venue, courtedHero, witnessCount, transcript),
             () =>
             {
-               DuelOutcomeApplier.Apply(reason, DuelResolution.PlayerForfeited, opponent, courtedHero, witnessCount);
-               InformationManager.DisplayMessage(new InformationMessage($"You would not draw on {opponent.Name}."));
+               DuelOutcomeApplier.Apply(reason, DuelResolution.PlayerForfeited, opponent, courtedHero, witnessCount, StagedKind);
+               InformationManager.DisplayMessage(new InformationMessage(brawl ? $"You would not trade blows with {opponent.Name}." : $"You would not draw on {opponent.Name}."));
             }), true);
       }
 
@@ -258,6 +269,7 @@ namespace CalradiaRemembers.Duels
          {
             _outcomeOpponent = opponent;
             _outcomeReason = reason;
+            _outcomeKind = StagedKind;
             _outcomeCourtedHero = courtedHero;
             _outcomeWitnessCount = witnessCount;
             _outcomeTranscript = transcript; // carried to Phase 2 so the post-duel chat resumes the pre-duel conversation

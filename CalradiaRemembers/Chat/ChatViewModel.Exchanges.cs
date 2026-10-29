@@ -859,6 +859,7 @@ namespace CalradiaRemembers.Chat
                // not fanfare, a victor does not grovel), and name the contested hero for a courtship duel.
                isPostDuel: _postDuelActive,
                postDuelPlayerWon: _postDuelPlayerWon,
+               postDuelWasBrawl: _postDuelWasBrawl,
                postDuelCourtedHeroName: _postDuelCourtedHeroName,
                // Player agency: draw THIS turn's verdict for any physical attempt the player makes, so the model
                // narrates an outcome it did not choose. Only on a real player turn in a captive scene; a synthetic

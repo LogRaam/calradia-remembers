@@ -199,9 +199,19 @@ namespace CalradiaRemembers.Duels
             try { opponent.TeleportToPosition(dest); }
             catch (Exception ex) { ModLog.Info($"[DUEL] could not place the opponent ({ex.GetType().Name}); he closes from where he stands."); }
 
-         ArmThePlayer();
          StandCompanionsAside(opponent);
 
+         // Gabriel (28/10/2026): a brawl is fists. The game's own fistfight takes both fighters' weapons away and gives
+         // them back after (MissionFightHandler.StartFistFight, decompiled 1.4.8), so the player is not armed for it.
+         if (DuelCoordinator.StagedKind == DuelKind.Brawl)
+         {
+            fight.StartFistFight(opponent, OnFightEnd);
+            ModLog.Info("[DUEL] town brawl started in the town centre.");
+
+            return;
+         }
+
+         ArmThePlayer();
          fight.StartCustomFight(
             new List<Agent> {Mission.MainAgent},
             new List<Agent> {opponent},

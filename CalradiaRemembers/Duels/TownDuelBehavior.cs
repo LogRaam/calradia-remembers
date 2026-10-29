@@ -204,7 +204,7 @@ namespace CalradiaRemembers.Duels
             false,
             LocationCharacter.CharacterRelations.Neutral,
             null,
-            false, // his battle gear: a duel is fought armed
+            DuelCoordinator.StagedKind == DuelKind.Brawl, // his battle gear for a duel; his town clothes for a brawl (fists)
             false,
             null,
             false,

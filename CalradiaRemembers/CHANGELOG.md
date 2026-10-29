@@ -53,9 +53,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   as hers ("with no noble house of your own, riding for hire in the player's company"); the station pack tells her the
   player is her captain and pays her wage, that she may argue in private but never commands their men nor asks them to
   prove themselves; the house packs say she serves the player's house rather than being of it (`HouseStandingPack`,
-  `HouseMeansPack`). A duel of honour is now offered only with a noble (`DuelPeerPolicy`): companions and notables, a
-  peer since v1.31.9 (a player then asked to duel a companion), no longer duel, nor does the player call them out; the
-  street brawl that replaces it for them is still to come, so a friendly bout with a companion is gone until then.
+  `HouseMeansPack`). A duel of honour is now offered only with a noble: companions and notables, a peer since v1.31.9 (a
+  player then asked to duel a companion), no longer duel with steel; they brawl instead (below).
 - **Every character knows where the player stands beside them, in rank and at arms** (Gabriel, 28/10/2026: "Un paysan qui
   parle au joueur niveau 1 sera plus rude que si il parle au joueur niveau 20 Clan tier 3"; avalanche24, 28/10/2026: a
   companion "with his best stat less than 100" talked of winning a war beside a player who kills a hundred a battle).
@@ -79,6 +78,22 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   Hollow Lord") are worded without lordship for everyone else (`ArchetypeWording`, the romance still reads the original),
   existing saves included; a companion's and a wanderer's rank line names them instead of "a person of some standing".
   `cr.station [name]` shows it all; cr.test `station_definitions`.
+- **The street brawl beside the duel** (Gabriel, 28/10/2026: "je ferais la difference entre le duel qui est noble et la
+  bagarre de rue qui est un reglement de compte", "bagarre seulement pour le compagnon"). Last step of the station pillar.
+  `BrawlPolicy.KindFor`: a crown, a lord or a noble duel with steel; a companion, a wanderer, the street (gang leaders,
+  bandit chiefs) and the notables of trade brawl with fists; a preacher fights no one. The same verb and the same road
+  (`challenge_duel`, `DuelEligibilityResolver`): the character is taught "A SCORE MAY BE SETTLED WITH FISTS" (no standing,
+  no steel, no satisfaction), the player answers "Raise your fists", and the fight is staged where the duel would be: in
+  town through the game's own fistfight (`MissionFightHandler.StartFistFight`, both disarmed, gear given back after),
+  in the field with town clothes and the weapon slots cleared. Nobody dies, as in a duel. A brawl moves only what the two
+  think of each other: no renown, no house influence, no wager, and it is not recorded as the realm's news. A commoner
+  starts one only over a real grievance (a live grudge, or a regard at `Regard.WaryTier` or below), a notable of trade
+  never does it himself, and one far outmatched at arms, or facing a lord when they are not the player's companion, keeps
+  his fists down unless reckless (Valor 2) (`BrawlPolicy.MayCallOut`, asked when the verb is taught and again before
+  anything is armed; a refused call-out is absorbed, nothing armed). The friendly bout with a companion comes back as a
+  friendly scuffle. The resumed conversation after a brawl speaks of blows traded, never of crossed blades
+  (`PostDuelWasBrawl`). The menu's "Call them out to a duel" stays for nobles; a brawl is called for in words.
+  cr.test `brawl_initiative`. Not play-verified: whether the AI engages bare-handed in the open field.
 - **Tastes in bed: a wider list, weighed by who the character is** (Hardcore only; Gabriel, 27/10/2026: "Je trouve
   interessant d'en mettre beaucoup. Ca peut amener des scenes plus subtiles et complexes", then "les kinks pourraient
   fortement qualifier ou disqualifier certains gestes" and "les traits influencent les kinks qui eux influencent les

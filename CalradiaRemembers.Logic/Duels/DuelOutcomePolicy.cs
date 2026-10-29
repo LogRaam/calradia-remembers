@@ -65,6 +65,12 @@ namespace CalradiaRemembers.Logic.Duels
       /// </summary>
       public DuelReason Reason { get; set; } = DuelReason.HonourAffront;
 
+      /// <summary>
+      ///   A duel with steel or a brawl with fists (Gabriel, 28/10/2026: the duel is noble, the brawl a settling of
+      ///   scores). A brawl moves only the two who fought: no renown, no house's influence, no wager.
+      /// </summary>
+      public DuelKind Kind { get; set; } = DuelKind.Honour;
+
       /// <summary>A grudge against the player drove this duel, so its fate (settled or hardened) is in play.</summary>
       public bool AGrudgeDroveIt { get; set; }
 
@@ -272,6 +278,14 @@ namespace CalradiaRemembers.Logic.Duels
                if (ctx.AGrudgeDroveIt) result.GrudgeEffect = DuelGrudgeEffect.Hardened;
 
                break;
+         }
+
+         // A brawl is between the two who fought: what they think of each other moves as it would, nothing else does.
+         if (ctx.Kind == DuelKind.Brawl)
+         {
+            result.PlayerRenownDelta = 0;
+            result.LoserInfluenceDelta = 0;
+            result.StakeAward = DuelStakeAward.None;
          }
 
          return result;

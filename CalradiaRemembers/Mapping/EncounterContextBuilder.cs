@@ -212,6 +212,7 @@ namespace CalradiaRemembers.Mapping
          bool isRoundTableTurn = false,
          bool isPostDuel = false,
          bool postDuelPlayerWon = false,
+         bool postDuelWasBrawl = false,
          string postDuelCourtedHeroName = null,
          bool? playerAttemptSucceeds = null,
          // Companion-briefing pillar, revised per Gabriel's ruling (2026-09-07): true for every turn of the
@@ -452,6 +453,7 @@ namespace CalradiaRemembers.Mapping
             // AppendPostDuelContext so the register (a beaten NPC, or a victorious one) holds on every turn.
             IsPostDuel = isPostDuel,
             PostDuelPlayerWon = postDuelPlayerWon,
+            PostDuelWasBrawl = postDuelWasBrawl,
             PostDuelCourtedHeroName = postDuelCourtedHeroName,
             // This turn's pre-drawn verdict for a captive player's physical attempt: the mod decides, the model
             // narrates (an LLM judging the struggle it is also writing always sides with its own story).
@@ -523,6 +525,9 @@ namespace CalradiaRemembers.Mapping
             // taught exactly when DuelEligibilityResolver (the same gate the bridge re-checks at commit time)
             // rules the game can actually stage the fight this instant.
             DuelChallengeAvailable = duelChallengeAvailable,
+            // Gabriel (28/10/2026): nobles duel, everyone else brawls; avalanche24: no brawl started without a grievance.
+            DuelIsBrawl = duelChallengeAvailable && DuelEligibilityResolver.KindOf(hero) == Logic.Duels.DuelKind.Brawl,
+            NpcMayNotCallOut = duelChallengeAvailable && !DuelEligibilityResolver.MayCallOut(hero, profile),
             DuelVenueLabel = duelVenueLabel,
             // The grounded quest menu (viable-quest referential): the tasks this giver can TRULY hand out,
             // pre-validated against the live world so a spoken offer always registers. Skipped for a captor
@@ -2432,7 +2437,7 @@ namespace CalradiaRemembers.Mapping
             : LeaveHouseObstacle.None;
 
       /// <summary>What <paramref name="hero" /> is to the player by blood (DepaHN, 27/10/2026), read off the game's family links.</summary>
-      private static string ResolveKinshipToPlayer(Hero hero)
+      internal static string ResolveKinshipToPlayer(Hero hero)
       {
          Hero me = Hero.MainHero;
          if (hero == null || me == null || hero == me) return null;

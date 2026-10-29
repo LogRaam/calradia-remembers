@@ -16,6 +16,7 @@ using TaleWorlds.Engine;
 using TaleWorlds.Library;
 using TaleWorlds.MountAndBlade;
 using CalradiaRemembers.Foundation;
+using CalradiaRemembers.Logic.Duels;
 
 #endregion
 
@@ -173,7 +174,11 @@ namespace CalradiaRemembers.Duels
          return new Vec3(point.x, point.y, z);
       }
 
-      /// <summary>Builds and spawns one dismounted fighter in battle gear, or logs and returns null on failure.</summary>
+      /// <summary>
+      ///   Builds and spawns one dismounted fighter, or logs and returns null on failure: in battle gear for a duel, in
+      ///   civilian clothes with every weapon taken away for a brawl (Gabriel, 28/10/2026: a brawl is fists, not steel; the
+      ///   weapon slots cleared as the game's own fistfight clears them, MissionFightHandler.RemoveWeaponsFromAgents).
+      /// </summary>
       private Agent SpawnOne(CharacterObject character, Team team, Vec3 position, Vec2 direction)
       {
          try
@@ -182,11 +187,15 @@ namespace CalradiaRemembers.Duels
                .Team(team)
                .InitialPosition(position)
                .InitialDirection(direction)
-               .CivilianEquipment(false)
+               .CivilianEquipment(DuelCoordinator.StagedKind == DuelKind.Brawl)
                .NoHorses(true);
 
             Agent agent = MissionSpawn.Spawn(Mission, build);
-            agent.WieldInitialWeapons(Agent.WeaponWieldActionType.InstantAfterPickUp);
+            if (DuelCoordinator.StagedKind == DuelKind.Brawl)
+               for (EquipmentIndex i = EquipmentIndex.WeaponItemBeginSlot; i < EquipmentIndex.NumAllWeaponSlots; i++)
+                  agent.RemoveEquippedWeapon(i);
+            else
+               agent.WieldInitialWeapons(Agent.WeaponWieldActionType.InstantAfterPickUp);
 
             return agent;
          }

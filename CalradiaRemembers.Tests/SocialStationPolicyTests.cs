@@ -34,12 +34,13 @@ namespace CalradiaRemembers.Tests
          SocialStationPolicy.Resolve(new SocialStationFacts {Occupation = "RuralNotable"}).Should().Be("ruralnotable");
       }
 
-      // STAKE: a lord heading a landed house, a lady of a house who commands nothing, and a crown are three stations.
+      // STAKE: a lord heading his house (landed or not: the station pack tells him he heads it), a lady of a house who
+      // commands nothing, and a crown are three stations.
       [Test]
       public void GIVEN_nobles_WHEN_resolved_THEN_ruler_landed_lord_and_noble_are_apart()
       {
-         SocialStationPolicy.Resolve(new SocialStationFacts {IsRuler = true, IsNoble = true, HeadsLandedHouse = true}).Should().Be(SocialStationPolicy.Ruler);
-         SocialStationPolicy.Resolve(new SocialStationFacts {IsNoble = true, HeadsLandedHouse = true}).Should().Be(SocialStationPolicy.Lord);
+         SocialStationPolicy.Resolve(new SocialStationFacts {IsRuler = true, IsNoble = true, HeadsHouse = true}).Should().Be(SocialStationPolicy.Ruler);
+         SocialStationPolicy.Resolve(new SocialStationFacts {IsNoble = true, HeadsHouse = true}).Should().Be(SocialStationPolicy.Lord);
          SocialStationPolicy.Resolve(new SocialStationFacts {IsNoble = true}).Should().Be(SocialStationPolicy.Noble);
       }
 

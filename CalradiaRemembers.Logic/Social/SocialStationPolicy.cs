@@ -26,8 +26,8 @@ namespace CalradiaRemembers.Logic.Social
       /// <summary>A lord or a lady of a noble house (the game's Lord occupation).</summary>
       public bool IsNoble { get; init; }
 
-      /// <summary>Heads their own house, and that house holds a town or a castle.</summary>
-      public bool HeadsLandedHouse { get; init; }
+      /// <summary>Heads their own house, landed or not (a minor or a mercenary clan's head too).</summary>
+      public bool HeadsHouse { get; init; }
 
       /// <summary>A companion hired into the player's company.</summary>
       public bool IsPlayerCompanion { get; init; }
@@ -54,7 +54,7 @@ namespace CalradiaRemembers.Logic.Social
       {
          if (f == null) return null;
          if (f.IsRuler) return Ruler;
-         if (f.IsNoble) return f.HeadsLandedHouse ? Lord : Noble;
+         if (f.IsNoble) return f.HeadsHouse ? Lord : Noble;
          if (f.IsPlayerCompanion) return Companion;
 
          switch (f.Occupation)
