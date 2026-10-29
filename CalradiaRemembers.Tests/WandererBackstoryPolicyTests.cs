@@ -45,6 +45,33 @@ namespace CalradiaRemembers.Tests
          kept.IndexOf("Pravend").Should().BeLessThan(kept.IndexOf("horses"));
       }
 
+      // STAKE: fearente (Nexus, 29/10/2026): Brave believed the creditor officer of his backstory still existed and set
+      // out to settle with him. The story says, once and at its end, that its people belong to the past.
+      [Test]
+      public void GIVEN_a_story_told_over_several_lines_WHEN_kept_THEN_it_ends_once_by_saying_its_people_are_not_in_the_world()
+      {
+         string kept = WandererBackstoryPolicy.Keep(null, "I owed money to an officer of the guard.");
+         kept = WandererBackstoryPolicy.Keep(kept, "He swore he would see me hanged.");
+
+         kept.Should().EndWith(WandererBackstoryPolicy.PastOnly);
+         kept.IndexOf(WandererBackstoryPolicy.PastOnly).Should().Be(kept.LastIndexOf(WandererBackstoryPolicy.PastOnly));
+         kept.IndexOf("hanged").Should().BeLessThan(kept.IndexOf(WandererBackstoryPolicy.PastOnly));
+      }
+
+      // STAKE: a companion met before 2.7.22 kept the story without the closing, and Brave's case is exactly such a save.
+      // Framing it again must add the closing once and never touch any other memory.
+      [Test]
+      public void GIVEN_a_story_kept_before_the_closing_existed_WHEN_framed_THEN_it_gains_the_closing_once()
+      {
+         string old = WandererBackstoryPolicy.Opening + " \"I owed money to an officer.\"";
+
+         string framed = WandererBackstoryPolicy.Framed(old);
+
+         framed.Should().EndWith(WandererBackstoryPolicy.PastOnly);
+         WandererBackstoryPolicy.Framed(framed).Should().Be(framed);
+         WandererBackstoryPolicy.Framed("We fought bandits near Sargot.").Should().Be("We fought bandits near Sargot.");
+      }
+
       // STAKE: a story heard twice (a second conversation, a reload) must not be kept twice.
       [Test]
       public void GIVEN_a_line_already_kept_WHEN_told_again_THEN_the_memory_is_unchanged()

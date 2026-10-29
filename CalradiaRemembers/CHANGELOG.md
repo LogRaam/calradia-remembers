@@ -188,6 +188,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   and passed over, the same source replaces its veto). Documented in EXTENSION_API.md. cr.test `conception_veto`.
 
 ### Fixed
+- **A companion's backstory no longer sends him after people who are not in the world** (fearente, Nexus, 29/10/2026:
+  his companion Brave believed the creditor officer of his backstory still existed and wanted to settle with him). The
+  story a wanderer tells at the first meeting is kept as his own life, and nothing said its people are not in Calradia.
+  It now closes, once, on "the people, debts and quarrels in this story belong to my past [...] I cannot meet them, and
+  I do not set out to find them or settle with them. I may remember them and speak of them"
+  (`WandererBackstoryPolicy.PastOnly`). A story kept in an older save gains the closing when profiles are refreshed at
+  load. `cr.test companion_identity` checks the closing reaches the real prompt. Not built: an out-of-character channel
+  for the player's quick corrections (still a ROADMAP wish, it needs design first).
 - **Characters know who the others in the room are, and their own children** (fearente, Nexus, 29/10/2026: a lady
   governor spoke to her father, the head of her clan, "like he was a servant"; a ruler was treated like an ordinary
   noble; a brother spoke of his son "Lorgand" when he has a daughter). A person present was described only by how the

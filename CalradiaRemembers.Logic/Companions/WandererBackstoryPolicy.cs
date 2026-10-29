@@ -21,6 +21,14 @@ namespace CalradiaRemembers.Logic.Companions
       /// <summary>How the kept story opens, which is also how it is found again.</summary>
       public const string Opening = "My story, as I told it when we first met:";
 
+      /// <summary>
+      ///   How the kept story closes. fearente (Nexus, 29/10/2026): his companion Brave believed the creditor officer of
+      ///   his backstory still existed and wanted to settle with him; nothing told the model that the people of the story
+      ///   are not in the world. They are remembered and spoken of, never sought.
+      /// </summary>
+      public const string PastOnly = "(The people, debts and quarrels in this story belong to my past. They are not in Calradia as I travel it now: "
+                                   + "I cannot meet them, and I do not set out to find them or settle with them. I may remember them and speak of them.)";
+
       // The game's own dialogue ids for the story, in order. The generic lines ("I do not care to talk about my past")
       // are no story and are left out.
       private static readonly HashSet<string> StoryLineIds = new(StringComparer.Ordinal) {
@@ -41,10 +49,20 @@ namespace CalradiaRemembers.Logic.Companions
       {
          string told = line?.Trim();
          if (string.IsNullOrEmpty(told)) return keptSoFar;
-         if (!IsTheKeptStory(keptSoFar)) return $"{Opening} \"{told}\"";
-         if (keptSoFar.IndexOf(told, StringComparison.Ordinal) >= 0) return keptSoFar;
+         if (!IsTheKeptStory(keptSoFar)) return $"{Opening} \"{told}\" {PastOnly}";
+         if (keptSoFar.IndexOf(told, StringComparison.Ordinal) >= 0) return Framed(keptSoFar);
 
-         return $"{keptSoFar} \"{told}\"";
+         return $"{Unframed(keptSoFar)} \"{told}\" {PastOnly}";
       }
+
+      /// <summary>
+      ///   The kept story closed by <see cref="PastOnly" />, once. A story kept before 2.7.22 has no closing; it is given
+      ///   one when profiles are refreshed. Anything that is not the kept story comes back as it was.
+      /// </summary>
+      public static string Framed(string summary)
+         => !IsTheKeptStory(summary) || summary.EndsWith(PastOnly, StringComparison.Ordinal) ? summary : $"{summary.TrimEnd()} {PastOnly}";
+
+      private static string Unframed(string kept)
+         => kept.EndsWith(PastOnly, StringComparison.Ordinal) ? kept.Substring(0, kept.Length - PastOnly.Length).TrimEnd() : kept;
    }
 }
