@@ -5,6 +5,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ## v2.7.22.. open
 
 ### New
+- **Reply Length, in the MCM** (RaveN017Mod, Nexus PM, 29/10/2026: replies too long, "like a novel", next to the short
+  replies he was used to; he asked for a minimum and maximum word count). Content group, Reply Length: Full (the length
+  the mod has always taught, 3 to 7 sentences, longer for a story; the default, so nothing changes untouched),
+  Balanced (2 to 4, up to 6 for a story) or Short (1 to 3, always). Counted in sentences rather than words: a word cap
+  cuts a reply off mid-sentence, and a model keeps to a sentence count far better. A length chosen on purpose holds
+  against the chat's narrative style, which may otherwise run speeches long; Short also shortens a street commoner's
+  replies. Applies at once, no restart (`ReplyLengthPolicy`, `PromptBuilder.ReplyLength`, SDK `b90dc8c`).
+  `cr.test reply_length`. Not changed: the council (its table has its own length rules) and letters.
 - **Who is here, and who speaks: the participants panel in the chat** (RaveN017Mod, Nexus PM, 29/10/2026: the clan
   members he invited "often don't interact much at all", "maybe we should add an @ system so it's clear who I'm
   addressing"; Gabriel's design the same day). Invited companions were witnesses: they react only when the model lets
