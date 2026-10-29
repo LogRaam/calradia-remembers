@@ -41,9 +41,9 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   star). `NpcProfile.LettersAwaited` (additive): that character's letters come first in the mailbox, past the diversity
   roll (`LetterCandidate.Awaited`), and press with the world's initiative. Priority only: the budget, the cooldowns and
   the courier are unchanged. The ribbon hangs from the letter book's left page, by the spine: faint, a click marks the
-  correspondence as awaited; full, it is awaited (`LetterViewModel.ExecuteToggleRibbon`, `GUI/Images/cr_ribbon_a.png`
-  and `cr_ribbon_b.png`). `cr.awaited <name>` does the same from the console. Both drawings ship while Gabriel compares
-  them in game (`cr.ribbon a|b`, session-only, b by default); the other goes once one is chosen.
+  correspondence as awaited; full, it is awaited (`LetterViewModel.ExecuteToggleRibbon`, `GUI/Images/cr_ribbon.png`, the
+  broad gold-trimmed drawing Gabriel chose in game over a narrow one with a clasp). `cr.awaited <name>` does the same from
+  the console.
 - **What matters most to a character, and a What You Know section in the encyclopedia** (Gabriel, 27/10/2026: "Et
   aussi, 'qu'est-ce qui compte le plus' pour un NPC. Ses enfants? Sa richesse? Son amoureux? etc.", then "On va le
   faire maintenant" and "il faudra penser a les indiquer dans des sections de l'encyclopedia"). Every character met is

@@ -201,12 +201,12 @@
 
             <!-- ============================ The ribbon bookmark (Gabriel, 28/10/2026) ============================
                  Hangs from the left page's top edge, by the spine. Faint: click to await this correspondent's letters
-                 (they come before others'); full: awaited. Drawing a or b while Gabriel compares (cr.ribbon). -->
+                 (they come before others'); full: awaited. 96x220 art shown at 48x110. -->
             <ButtonWidget Id="RibbonButton"
                           WidthSizePolicy="Fixed"
                           HeightSizePolicy="Fixed"
-                          SuggestedWidth="@RibbonWidth"
-                          SuggestedHeight="@RibbonHeightOnPage"
+                          SuggestedWidth="48"
+                          SuggestedHeight="110"
                           HorizontalAlignment="Left"
                           VerticalAlignment="Top"
                           MarginLeft="400"
