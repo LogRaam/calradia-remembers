@@ -5868,7 +5868,9 @@ granted, withdraw when their reason goes), the MCM group, `cr.knocks`, and the b
 companions, letters). Step 3: the rest. Step 4: lords' aims of their own as strategists (an advantage for the lord;
 between NPCs too, played offscreen and heard as news; only aims with a part for the player knock).
 
-**Wished the same day (Gabriel): a starred correspondence.** The player lights a star on a correspondent in the letter
-book ("si je suis en train d'ecrire des lettres d'amour a une NPC, peut-etre que j'aimerais avoir de ses nouvelles
-rapidement meme si c'est la guerre"): that correspondent's letters rank Pressing in the director and outweigh the others
-in the mailbox. To design with step 2's letters.
+**Wished the same day (Gabriel): an awaited correspondence, marked by a ribbon bookmark** (Gabriel chose the ribbon over
+a star, 28/10/2026; it may be drawn with the OpenAI image model; tooltip "Awaited: their letters come before others'").
+The player puts out the ribbon on a correspondent in the letter book ("si je suis en train d'ecrire des lettres d'amour a une NPC, peut-etre que j'aimerais avoir de ses nouvelles
+rapidement meme si c'est la guerre"): that correspondent's letters rank Pressing in the director, and that is all it does
+(Gabriel: "ne fait que donner la priorite pour l'orchestrateur"); they still count in the budget. Saved on the profile.
+To build with step 2's letters.
