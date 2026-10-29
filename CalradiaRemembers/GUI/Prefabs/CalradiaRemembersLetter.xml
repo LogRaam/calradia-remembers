@@ -199,6 +199,31 @@
               </Children>
             </Widget>
 
+            <!-- ============================ The ribbon bookmark (Gabriel, 28/10/2026) ============================
+                 Hangs from the left page's top edge, by the spine. Faint: click to await this correspondent's letters
+                 (they come before others'); full: awaited. Drawing a or b while Gabriel compares (cr.ribbon). -->
+            <ButtonWidget Id="RibbonButton"
+                          WidthSizePolicy="Fixed"
+                          HeightSizePolicy="Fixed"
+                          SuggestedWidth="@RibbonWidth"
+                          SuggestedHeight="@RibbonHeightOnPage"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Top"
+                          MarginLeft="400"
+                          MarginTop="22"
+                          IsVisible="@ShowRibbon"
+                          DoNotPassEventsToChildren="true"
+                          Command.Click="ExecuteToggleRibbon">
+              <Children>
+                <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                      ImagePath="@RibbonImagePath" CorrectRedBlue="false" IsDisabled="true"
+                                      IsVisible="@IsAwaited" />
+                <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                      ImagePath="@RibbonImagePath" CorrectRedBlue="false" IsDisabled="true"
+                                      IsHidden="@IsAwaited" AlphaFactor="0.35" />
+              </Children>
+            </ButtonWidget>
+
             <!-- ============================ RIGHT PAGE: the current letter ============================ -->
             <Widget Id="RightPage"
                     WidthSizePolicy="Fixed"

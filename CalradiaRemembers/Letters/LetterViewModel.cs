@@ -335,6 +335,65 @@ namespace CalradiaRemembers.Letters
          }
       }
 
+      // ── The ribbon bookmark (Gabriel, 28/10/2026: "oui pour le signet") ─────────
+
+      /// <summary>
+      ///   Which of the two ribbon drawings the book shows, "a" (broad, gold-trimmed) or "b" (narrow, gold clasp), while
+      ///   Gabriel compares them in game ("peux-tu faire les deux pour que je compare", 29/10/2026). Session-only, set by
+      ///   cr.ribbon; it goes once one is chosen.
+      /// </summary>
+      public static string RibbonStyle = "b";
+
+      private const float RibbonHeight = 110f;
+
+      /// <summary>The ribbon drawing hanging from the left page's top edge.</summary>
+      [DataSourceProperty]
+      public string RibbonImagePath => System.IO.Path.Combine(
+         CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", $"cr_ribbon_{RibbonStyle}.png");
+
+      /// <summary>The ribbon's width on the page, each drawing kept to its own proportions (96x220 and 62x220).</summary>
+      [DataSourceProperty]
+      public float RibbonWidth => RibbonStyle == "a" ? RibbonHeight * 96f / 220f : RibbonHeight * 62f / 220f;
+
+      /// <summary>The ribbon's height on the page.</summary>
+      [DataSourceProperty]
+      public float RibbonHeightOnPage => RibbonHeight;
+
+      /// <summary>A correspondent is named, so there is a correspondence to mark.</summary>
+      [DataSourceProperty]
+      public bool ShowRibbon => !string.IsNullOrEmpty(_profile?.Id);
+
+      /// <summary>
+      ///   The player awaits this correspondent's letters: the ribbon lies full on the page; otherwise it shows faint,
+      ///   an invitation to mark it. Priority only (Gabriel: "l'etoile ne fait que donner la priorite pour l'orchestrateur").
+      /// </summary>
+      [DataSourceProperty]
+      public bool IsAwaited => ShowRibbon && (NpcMemoryCampaignBehavior.Instance?.Store?.Get(_profile.Id) ?? _profile).LettersAwaited;
+
+      /// <summary>Marks or unmarks this correspondence as awaited, as cr.awaited does.</summary>
+      public void ExecuteToggleRibbon()
+      {
+         if (!ShowRibbon) return;
+
+         var behavior = NpcMemoryCampaignBehavior.Instance;
+         NpcProfile p = behavior?.Store?.Get(_profile.Id) ?? _profile;
+         p.LettersAwaited = !p.LettersAwaited;
+         behavior?.Store?.Set(p);
+
+         InformationManager.DisplayMessage(new InformationMessage(p.LettersAwaited
+            ? $"You await {p.Name}'s letters: they will come before others'."
+            : $"{p.Name}'s letters are no longer awaited."));
+         RefreshRibbon();
+      }
+
+      private void RefreshRibbon()
+      {
+         OnPropertyChanged(nameof(RibbonImagePath));
+         OnPropertyChanged(nameof(RibbonWidth));
+         OnPropertyChanged(nameof(ShowRibbon));
+         OnPropertyChanged(nameof(IsAwaited));
+      }
+
       // ── Correspondence left page bindings ───────────────────────────────
 
       /// <summary>The absolute file path to the leather two-page book art (cr_letters.jpg), painted behind the whole window.</summary>
@@ -666,6 +725,7 @@ namespace CalradiaRemembers.Letters
          OnPropertyChanged(nameof(PortraitTextureProviderName));
          OnPropertyChanged(nameof(PortraitId));
          OnPropertyChanged(nameof(PortraitAdditionalArgs));
+         RefreshRibbon();
          RecomputeSendEnabled();
       }
 

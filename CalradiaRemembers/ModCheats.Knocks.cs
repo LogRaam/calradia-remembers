@@ -78,5 +78,21 @@ namespace CalradiaRemembers
             ? $"{hero.Name}'s letters are awaited: they come before others' (the budget still holds)."
             : $"{hero.Name}'s letters are no longer awaited.";
       }
+
+      /// <summary>
+      ///   cr.ribbon a|b: which ribbon drawing the letter book shows, while Gabriel compares the two (29/10/2026).
+      ///   Session-only; takes effect the next time the book opens.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("ribbon", "cr")]
+      public static string Ribbon(List<string> args)
+      {
+         string style = args != null && args.Count > 0 ? args[0].Trim().ToLowerInvariant() : "";
+         if (style != "a" && style != "b")
+            return $"The letter book shows ribbon '{Letters.LetterViewModel.RibbonStyle}'. Usage: cr.ribbon a|b (a: broad, gold-trimmed; b: narrow, gold clasp).";
+
+         Letters.LetterViewModel.RibbonStyle = style;
+
+         return $"The letter book will show ribbon '{style}' the next time it opens.";
+      }
    }
 }
