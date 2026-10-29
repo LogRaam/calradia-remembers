@@ -45,6 +45,17 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   Defaults awaiting Gabriel: a cold gift costs nothing; pastimes not built yet (narrated only, when they come).
 
 ### Changed
+- **Companions know their place, and the duel is a noble's affair** (avalanche24, Nexus, 28/10/2026: a companion reasoned
+  she was "from the Rauvegroving clan of Vlandia ... loyal to her house", another told him to "take her men and prove"
+  himself, a companion hired hours before and a landowner with no skill at arms each called him out to a duel; Gabriel,
+  28/10/2026: "je ferais la difference entre le duel qui est noble et la bagarre de rue", "bagarre seulement pour le
+  compagnon"). First step of the station pillar. A hired companion's header no longer names the player's clan and realm
+  as hers ("with no noble house of your own, riding for hire in the player's company"); the station pack tells her the
+  player is her captain and pays her wage, that she may argue in private but never commands their men nor asks them to
+  prove themselves; the house packs say she serves the player's house rather than being of it (`HouseStandingPack`,
+  `HouseMeansPack`). A duel of honour is now offered only with a noble (`DuelPeerPolicy`): companions and notables, a
+  peer since v1.31.9 (a player then asked to duel a companion), no longer duel, nor does the player call them out; the
+  street brawl that replaces it for them is still to come, so a friendly bout with a companion is gone until then.
 - **Tastes in bed: a wider list, weighed by who the character is** (Hardcore only; Gabriel, 27/10/2026: "Je trouve
   interessant d'en mettre beaucoup. Ca peut amener des scenes plus subtiles et complexes", then "les kinks pourraient
   fortement qualifier ou disqualifier certains gestes" and "les traits influencent les kinks qui eux influencent les
