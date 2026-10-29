@@ -351,6 +351,7 @@ namespace CalradiaRemembers.Behaviors
 
             HeroProfileMapper.RefreshPersonality(profile, hero);
             profile.Relationships = RelationshipsBuilder.Build(hero);
+            profile.Family = RelationshipsBuilder.BuildFamily(hero);
             refreshed++;
          }
 

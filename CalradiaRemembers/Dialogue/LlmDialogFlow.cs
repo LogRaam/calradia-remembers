@@ -446,6 +446,7 @@ namespace CalradiaRemembers.Dialogue
             // conversation open so a parent who died mid-session reads as dead now,
             // not at the next session launch.
             existing.Relationships = RelationshipsBuilder.Build(hero);
+            existing.Family = RelationshipsBuilder.BuildFamily(hero);
 
             // Age was never carried on an existing profile before this field existed, and a
             // fresh session-launch refresh could still be a stale in-game year old, so keep it
@@ -462,6 +463,7 @@ namespace CalradiaRemembers.Dialogue
 
          NpcProfile fresh = HeroProfileMapper.FromHero(hero);
          fresh.Relationships = RelationshipsBuilder.Build(hero);
+         fresh.Family = RelationshipsBuilder.BuildFamily(hero);
          store.Set(fresh);
          ModLog.Info($"Created new profile for {hero.Name} from Hero traits.");
 

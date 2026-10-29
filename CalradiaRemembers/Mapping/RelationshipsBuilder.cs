@@ -46,6 +46,20 @@ namespace CalradiaRemembers.Mapping
          return sb.ToString().TrimEnd();
       }
 
+      /// <summary>
+      ///   The close family alone, the same words as the family part of <see cref="Build" />. The Compact prompt drops
+      ///   the rest of RELATIONSHIPS and keeps this (fearente, Nexus, 29/10/2026: a brother invented a son).
+      /// </summary>
+      public static string BuildFamily(Hero hero)
+      {
+         if (hero == null) return "";
+
+         var sb = new StringBuilder();
+         AppendFamily(sb, hero);
+
+         return sb.ToString().TrimEnd();
+      }
+
       #region private
 
       /// <summary>
@@ -135,9 +149,11 @@ namespace CalradiaRemembers.Mapping
          // a deceased first wife was addressed as "our child" by the player-character spouse).
          // Dead children too (Maifailun via tashmetu, 15/10/2026: the player's wife Debana died in childbirth and her
          // father asked "Which Debana?", because a dead child was left out of his family altogether).
-         List<Hero> children = hero.Children?.Where(c => c != null).ToList();
-         if (children is {Count: > 0})
-            parts.Add($"Children: {string.Join(", ", children.Select(c => DescribeChild(c, hero) + Partner(c)))}");
+         // Said as a whole list, and "none" for a grown character with none (fearente, 29/10/2026: a brother spoke of a
+         // son "Lorgand" when he has a daughter).
+         List<Hero> children = hero.Children?.Where(c => c != null).ToList() ?? new List<Hero>();
+         string childrenPart = ChildrenListText.Part(children.Select(c => DescribeChild(c, hero) + Partner(c)).ToList(), IsGrown(hero));
+         if (childrenPart != null) parts.Add(childrenPart);
 
 
          // Siblings, named with sex, so the NPC knows their own brothers and sisters.
@@ -160,6 +176,19 @@ namespace CalradiaRemembers.Mapping
                Name = s.Name?.ToString(), DeathClause = DeathOnly(s), KinToSubject = KinTo(hero, s)
             }).ToList());
             if (late != null) sb.AppendLine(late);
+         }
+      }
+
+      /// <summary>Of an age to have children, by the game's own coming of age.</summary>
+      private static bool IsGrown(Hero hero)
+      {
+         try
+         {
+            return hero.Age >= (Campaign.Current?.Models?.AgeModel?.HeroComesOfAge ?? 18);
+         }
+         catch
+         {
+            return hero.Age >= 18;
          }
       }
 

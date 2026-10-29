@@ -283,6 +283,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("siege_tidings_participation", Severity.Light, "Mechanical (player report: told by letter of a siege they FOUGHT IN, days later, as if it were news): stamps the REAL WorldEventFeeders siege-participation marker for a live settlement, then drives the REAL RecordSiegeCapture construction with a NON-player taker (a mere participant, never the credited capturer) -> assert the recorded WorldEvent has InvolvesPlayer true (so realm-tidings' own InvolvesPlayer filter will never relay it back) while Type stays SettlementCaptured and Aggrieved* stay empty (the conquest's attribution is NOT stolen from the real taker). Removes the seeded event afterwards", TestSiegeTidingsParticipation),
          new SelfTest("companion_skirmish_memory", Severity.Light, "Thoragoros1 (Nexus, 15/10/2026): companions remembered none of the early fights (bandits, a patrol, lords' lone parties), because only chronicle-worthy battles left a memory. Arranges a companion in the party with NO profile yet (hired through the game's own dialogue, never spoken to here), drives the real small-fight recorder twice, and asserts a profile is made and keeps ONE memory counting both fights and naming the foe. Puts the companion's own profile back exactly", TestCompanionSkirmishMemory),
          new SelfTest("companion_battle_memory", Severity.Light, "Mechanical: the companion 'fought together' memory (WorldEventFeeders' main-party companion loop), which a real MapEvent drives in game. Borrows a companion into the party if none rides along, calls the DebugRecordCompanionBattleMemories seam, and asserts the companion's profile gained a fresh 'Fought at your side' memory. Removes the memory it added and returns any borrowed companion", TestCompanionBattleMemory),
+         new SelfTest("witness_standing", Severity.Light, "Who the people in the room are, and the speaker's own family in Compact (fearente, Nexus, 29/10/2026: a lady governor spoke to her father, the head of her clan, like a servant; a ruler was treated like an ordinary noble; a brother spoke of a son 'Lorgand' when he has a daughter). Drives the REAL ChatViewModel with a real character and a real living parent brought in as a companion of the player: asserts the parent's line, as the child will read it this turn, names them 'your father' or 'your mother' and, when they lead the child's clan, 'head of your clan'; that the ruler of a realm is named its ruler to a lord of another realm; that the parent's family list closes its children ('and no other children'); and that the Compact prompt, built by the real PromptBuilder, keeps the family (YOUR FAMILY) while RELATIONSHIPS is dropped", TestWitnessStanding),
          new SelfTest("participants_panel", Severity.Light, "The chat's participants panel (RaveN017Mod, Nexus PM, 29/10/2026: invited clan members 'often don't interact much at all', and he wanted a way to make clear who he addresses; Gabriel's answer the same day: a panel listing the active voices and the witnesses, a click on a witness makes them active). Drives the REAL ChatViewModel with a real lord and three real witnesses brought in through AddWitness: asserts the panel is offered and lists all four, that a click on a witness turns the player to them and draws them in, that the third voice fills the table and a fourth is answered but stays a witness (three at most: each voice is a model call every turn), that Step back sends a voice back and returns the player to the lord when it was the one addressed, and that an emptied room (a private audience) takes the departed out of the cast so the scene is no longer an ensemble", TestParticipantsPanel),
          new SelfTest("spotlight_cast", Severity.Light, "Spotlight pillar wiring (found in play by Gabriel 2026-09-12: he addressed his companion Sley by name in a conversation with Ira, the turn routed to Sley, and no [SPOTLIGHT] line was ever written - the promotion silently did nothing). ConversationCast has been correct and unit-tested since 27/08; both faults were in the HOST. (1) The cast was born inside SetWitnesses, so a conversation with no auto-detected witness - a lord standing alone - had no cast at all, not even its own anchor. (2) AddWitness never introduced the arrival, and AddWitness is how a companion joins: the picker resolves ASYNCHRONOUSLY, after the cast was built, so every brought companion sat in the witness list while absent from the cast, Promote read RoleOf == null and returned false. ConversationCast.Introduce was written for exactly this on 27/08 and had never once been called from the game. Drives the REAL ChatViewModel: sets a real anchor hero with NO witnesses and asserts a cast exists with that anchor Active (hole 1), then AddWitness a real companion and asserts they are IN the cast as a Witness and therefore promotable (hole 2), then promotes and asserts the scene became an ensemble. A pure test cannot catch either: it would build the very cast the host failed to fill", TestSpotlightCast),
          new SelfTest("private_memory", Severity.Light, "The leak guard the companion briefing is built on (Gabriel 2026-09-13: what was decided in a briefing should live in the companion MEMORY and be used from there). A memory is normally shared: a witness carries theirs into the prompt of whoever is speaking, which is right for \"he was there when you took the town\" and catastrophic for \"Arwa asked me to charm Ira\", read out in Ira own prompt while she stands there. Until now the briefing dealt with that by DROPPING its memories outright, so nothing of the private word survived. NotableEvent.IsPrivate now marks a memory the holder keeps to themselves. Plants one PUBLIC and one PRIVATE event on a real hero profile and drives the REAL ChatViewModel.DebugWitnessMemory - the same BuildWitnessMemory path a live turn uses, and the ONLY path by which one hero memories reach another hero prompt - asserting the public one is carried and the private one is not, and that a hero holding NOTHING but private memories contributes no recall at all rather than an empty husk. Restores the profile events in a finally", TestPrivateMemory),
@@ -16033,6 +16034,49 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("aLoneAnchorIsNotYetAnEnsemble", !vm.IsEnsembleScene, true);
          t.Expect("thePromotionThatUsedToFailNowTakes", vm.PromoteForDiagnostics(arrival.StringId), true);
          t.Expect("twoActiveVoicesMakeAnEnsemble", vm.IsEnsembleScene, true);
+
+         return t.Line();
+      }
+
+      private static string TestWitnessStanding(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("witness_standing");
+         if (t.Skip(behavior?.LlmServices?.ChatService == null, "the chat service is not ready")) return t.Line();
+
+         Hero Parent(Hero h) => new[] {h.Father, h.Mother}.FirstOrDefault(p => p != null && p != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(p));
+         Hero child = Hero.AllAliveHeroes?.Where(h => h != null && h != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(h) && Parent(h) != null)
+                          .OrderByDescending(h => Parent(h).Clan != null && Parent(h).Clan == h.Clan && Parent(h).Clan.Leader == Parent(h))
+                          .FirstOrDefault();
+         if (t.Skip(child == null, "no character in the world with a living parent")) return t.Line();
+
+         Hero parent = Parent(child);
+         bool leadsTheClan = parent.Clan != null && parent.Clan == child.Clan && parent.Clan.Leader == parent;
+         t.Note($"{child.Name}, with the parent {parent.Name}{(leadsTheClan ? ", head of the clan" : "")}");
+
+         var vm = new ChatViewModel();
+         vm.SetNpcHero(child);
+         vm.AddWitness(WitnessResolver.EntryForCompanion(parent));
+         WitnessEntry line = vm.MainSpeakerWitnessesForDiagnostics()?.FirstOrDefault(w => w?.HeroStringId == parent.StringId);
+         string standing = line?.Standing ?? "";
+         t.Note($"line: {standing}");
+
+         t.Expect("theParentIsNamedAsKin", standing.StartsWith(parent.IsFemale ? "your mother" : "your father"), true);
+         if (leadsTheClan) t.Expect("andAsHeadOfTheClan", standing.Contains("head of your clan"), true);
+
+         Kingdom realm = Kingdom.All?.FirstOrDefault(k => k?.Leader != null && Mapping.HeroPresence.IsInTheWorld(k.Leader));
+         Hero foreigner = realm == null ? null : Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h.Clan?.Kingdom != null && h.Clan.Kingdom != realm);
+         if (realm != null && foreigner != null)
+            t.Expect("aRulerIsNamedRulerOfHisRealm", (WitnessResolver.DescribeStanding(foreigner, realm.Leader) ?? "").Contains($"ruler of {realm.Name}"), true);
+
+         t.Expect("theChildrenListIsWhole", RelationshipsBuilder.BuildFamily(parent).Contains("and no other children"), true);
+
+         NpcProfile profile = HeroProfileMapper.FromHero(child);
+         profile.Relationships = RelationshipsBuilder.Build(child);
+         profile.Family = RelationshipsBuilder.BuildFamily(child);
+         EncounterContext ctx = EncounterContextBuilder.Build(child, profile, behavior.GameStateBridge).WithLeanLevel(LeanPromptLevel.Lean);
+         string compact = behavior.LlmServices.ChatService.PromptBuilder.BuildSystemPrompt(profile, new WorldState {CurrentDay = behavior.GameStateBridge.GetCurrentGameDay()}, ctx);
+         t.Expect("compactKeepsTheFamily", compact.Contains("YOUR FAMILY:") && compact.Contains(parent.Name.ToString()), true);
+         t.Expect("compactStillDropsRelationships", compact.Contains("RELATIONSHIPS:"), false);
 
          return t.Line();
       }

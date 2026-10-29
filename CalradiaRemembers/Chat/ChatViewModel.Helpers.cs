@@ -160,7 +160,7 @@ namespace CalradiaRemembers.Chat
       private IReadOnlyList<WitnessEntry> BuildContextWitnesses(ChatSpeaker speaker)
       {
          if (speaker.IsMain)
-            return _witnesses.Count == 0 ? null : WithMemories(_witnesses);
+            return _witnesses.Count == 0 ? null : WithStandings(WithMemories(_witnesses), _npcHero);
 
          // Round-table audit D2: entries were built once from the HOST's angle and handed unchanged to every
          // other speaker, so a participant read the room through someone else's eyes ("Aldric (your vassal)"
@@ -177,9 +177,19 @@ namespace CalradiaRemembers.Chat
          if (host != null) list.Add(host);
 
          return list.Count > 0
-            ? WithMemories(list)
+            ? WithStandings(WithMemories(list), speaker.Hero)
             : null;
       }
+
+      /// <summary>
+      ///   Tells the speaker of the turn who each person present is to them: kin and rank (fearente, Nexus, 29/10/2026).
+      ///   Last, so every copy made before it cannot drop it, and from the speaker's own side of the room.
+      /// </summary>
+      private static IReadOnlyList<WitnessEntry> WithStandings(IReadOnlyList<WitnessEntry> entries, Hero observer)
+         => entries?.Select(w => WitnessResolver.WithStanding(w, observer)).ToList();
+
+      /// <summary>The room as the one the conversation is with will read it this turn. For cr.test.</summary>
+      public IReadOnlyList<WitnessEntry> MainSpeakerWitnessesForDiagnostics() => BuildContextWitnesses(MainSpeaker());
 
       /// <summary>
       ///   Gives every person in the room their OWN memory (player report 2026-08-23: the call that voices a
@@ -239,6 +249,10 @@ namespace CalradiaRemembers.Chat
             Persona = e.Persona,
             PresenceStatus = e.PresenceStatus,
             IsFemale = e.IsFemale,
+            // Gear was dropped here whenever the person had a memory, so the gear line never reached a room of
+            // people with a past (found 29/10/2026 while threading Standing through this copy).
+            Gear = e.Gear,
+            Standing = e.Standing,
             Memory = memory
          };
       }

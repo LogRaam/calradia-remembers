@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 586 types in 63 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1404 types in 48 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1408 types in 48 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 276 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -40,6 +40,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 1000+ | Mod | `Letters/LetterTriggerEvaluator.cs` |
 | 1000+ | Sdk | `Parsing/SectionResponseParser.cs` |
 | 1000+ | Mod | `Services/LlmServices.cs` |
+| 1000+ | Mod | `Witnesses/WitnessResolver.cs` |
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
@@ -946,7 +947,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (460)
+### CalradiaRemembers.Logic (461)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1001,6 +1002,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CardinalDirectionPolicy` | public static class | Pure 8-point compass bearing from one campaign-map position to another, for phrasing a quest's direction ("the hideout lies to the north of Town X"). |
 | `CharacterOverride` | public class | One author's override for a single NPC: optional trait values (null = leave the vanilla value untouched) and an optional backstory. |
 | `CharacterOverrideSet` | public class | The authored overrides as a whole, with the rule for picking one for a hero. |
+| `ChildrenListText` | public static class | The children part of the family line. |
 | `ChronicleCalendar` | public static class | The shared calendar constants and year math for the player chronicle and letter archive. |
 | `ClanRegardCandidate` | public class | One other house, as the page's house sees it. |
 | `ClanRegardGroup` | public class | One row of the houses list: a side, a reason, and the houses sharing it. |
@@ -2540,17 +2542,20 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WarLevyPolicy` | public static class | Pure: how much coin stands for a vassal's absence from a war. |
 | `WarServiceLedger` | public class | The war-duty ledger: service, wars, and the reckoning in progress. |
 
-### CalradiaRemembers.Logic.Witnesses (7)
+### CalradiaRemembers.Logic.Witnesses (10)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `WitnessDedup` | public static class | Decides whether two WitnessEntry values denote the same present witness. |
 | `WitnessDensity` | public enum | How many ambient hero witnesses a conversation gathers. |
+| `WitnessKin` | public enum | How a person present is kin to the one speaking, read off the engine's family links. |
 | `WitnessPresencePolicy` | public static class | Thins a gathered list of ambient hero witnesses according to the player's chosen WitnessDensity. |
 | `WitnessReactionDecision` | public class | The verdict, plus the canonical spelling of the speaker's name when the line is kept. |
 | `WitnessReactionGate` | public static class | Decides, for one emitted reaction, whether it may be voiced. |
 | `WitnessReactionVerdict` | public enum | Why a witness reaction was kept or dropped. |
 | `WitnessSpeechDetector` | public static class | Classifies a witness reaction's text as containing actual SPOKEN words, or being nothing but a stage-direction/gesture. |
+| `WitnessStandingFacts` | public class | What the speaker knows of a person in the room: kinship and rank. |
+| `WitnessStandingText` | public static class | The words for who a person present is to the speaker: "your father, head of your clan", "ruler of Vlandia", "your sister, governor of Pravend". |
 
 ### CalradiaRemembers.Logic.WorldAlmanac (27)
 

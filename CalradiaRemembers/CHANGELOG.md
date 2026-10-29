@@ -188,6 +188,19 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   and passed over, the same source replaces its veto). Documented in EXTENSION_API.md. cr.test `conception_veto`.
 
 ### Fixed
+- **Characters know who the others in the room are, and their own children** (fearente, Nexus, 29/10/2026: a lady
+  governor spoke to her father, the head of her clan, "like he was a servant"; a ruler was treated like an ordinary
+  noble; a brother spoke of his son "Lorgand" when he has a daughter). A person present was described only by how the
+  speaker felt about them ("your clan member", "a lord you know"), and a companion of the player's party only as "the
+  player's companion". Each line now says who they are to the speaker of the turn: kin (father, mother, son, daughter,
+  brother, sister, husband, wife, grandparents and grandchildren) and rank (ruler of a realm and whether it is the
+  speaker's own, head of a clan and whether it is the speaker's own, governor of a town or castle), in both prompt
+  modes (`WitnessStandingText`, `WitnessResolver.WithStanding`, `WitnessEntry.Standing`). It is composed last, for
+  whoever speaks, so in a group scene each voice reads the room from its own side. The family list is now closed
+  ("..., and no other children", or "Children: none" for a grown character; `ChildrenListText`), and the Compact
+  prompt, which drops RELATIONSHIPS whole, now keeps the family part as YOUR FAMILY (`NpcProfile.Family`). Fixed on the
+  way: a person with a memory lost their gear line in a group scene (the copy that adds the memory dropped it).
+  `cr.test witness_standing`. Not changed: the council table, which describes its seats on its own road.
 - **Lords no longer invent lands or wars to fill a silence** (RaveN017Mod, Nexus PM, 29/10/2026: lords and vassals
   "make up possessions they don't have or wars that don't exist"). A lord was told which towns and castles his house
   holds and which realms it fights only when there was something to list; a landless house or a realm at peace got no

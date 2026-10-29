@@ -650,6 +650,79 @@ namespace CalradiaRemembers.Witnesses
          }
       }
 
+      /// <summary>
+      ///   A copy of <paramref name="entry" /> carrying who that person is to <paramref name="observer" />: kin and
+      ///   rank (WitnessStandingText). Applied last, for the speaker of the turn, so it is never built from someone
+      ///   else's side of the room. fearente (Nexus, 29/10/2026): a lady governor spoke to her father, the head of
+      ///   her clan, like a servant; a ruler was treated like an ordinary noble.
+      /// </summary>
+      public static WitnessEntry WithStanding(WitnessEntry entry, Hero observer)
+      {
+         if (entry == null || observer == null || string.IsNullOrEmpty(entry.HeroStringId) || entry.HeroStringId == observer.StringId) return entry;
+
+         try
+         {
+            Hero subject = Hero.FindFirst(h => h != null && h.StringId == entry.HeroStringId);
+            string standing = subject == null ? null : DescribeStanding(observer, subject);
+
+            if (standing == entry.Standing) return entry;
+
+            return new WitnessEntry {
+               Name = entry.Name,
+               RelationToNpc = entry.RelationToNpc,
+               HeroStringId = entry.HeroStringId,
+               IsPlayerCompanion = entry.IsPlayerCompanion,
+               IsCaptiveVictim = entry.IsCaptiveVictim,
+               IsBroughtCaptive = entry.IsBroughtCaptive,
+               Persona = entry.Persona,
+               PresenceStatus = entry.PresenceStatus,
+               IsFemale = entry.IsFemale,
+               Gear = entry.Gear,
+               Memory = entry.Memory,
+               Standing = standing
+            };
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[WITNESS] could not tell {observer.Name} who {entry.Name} is: {ex.GetType().Name}: {ex.Message}");
+
+            return entry;
+         }
+      }
+
+      /// <summary>Who <paramref name="subject" /> is to <paramref name="observer" />: kin and rank, or null.</summary>
+      internal static string DescribeStanding(Hero observer, Hero subject)
+      {
+         Kingdom realm = subject.Clan?.Kingdom;
+         bool rules = realm != null && realm.Leader == subject;
+         bool heads = subject.Clan != null && subject.Clan.Leader == subject;
+
+         return WitnessStandingText.Describe(new WitnessStandingFacts {
+            Kin = KinOf(observer, subject),
+            IsFemale = subject.IsFemale,
+            RulesRealm = rules ? realm.Name?.ToString() ?? "" : "",
+            RulesSpeakersRealm = rules && observer.Clan?.Kingdom == realm,
+            HeadsClan = heads ? subject.Clan.Name?.ToString() ?? "" : "",
+            HeadsSpeakersClan = heads && observer.Clan == subject.Clan,
+            Governs = subject.GovernorOf?.Settlement?.Name?.ToString() ?? ""
+         });
+      }
+
+      /// <summary>How <paramref name="subject" /> is kin to <paramref name="observer" />, from the engine's family links.</summary>
+      private static WitnessKin KinOf(Hero observer, Hero subject)
+      {
+         if (observer.Spouse == subject) return WitnessKin.Spouse;
+         if (observer.Father == subject || observer.Mother == subject) return WitnessKin.Parent;
+         if (subject.Father == observer || subject.Mother == observer) return WitnessKin.Child;
+         if (observer.Siblings?.Contains(subject) == true) return WitnessKin.Sibling;
+         if (IsParentOf(subject, observer.Father) || IsParentOf(subject, observer.Mother)) return WitnessKin.Grandparent;
+         if (IsParentOf(observer, subject.Father) || IsParentOf(observer, subject.Mother)) return WitnessKin.Grandchild;
+
+         return WitnessKin.None;
+      }
+
+      private static bool IsParentOf(Hero parent, Hero child) => child != null && parent != null && (child.Father == parent || child.Mother == parent);
+
       private static string DescribeWitnessRelation(Hero npcHero, Hero witness)
       {
          try
