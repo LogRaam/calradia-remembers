@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 583 types in 62 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 585 types in 63 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1398 types in 48 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 276 types in 17 namespaces, 9 without a summary
 
@@ -96,7 +96,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
-| `ModCheats` | public static class, partial over 66 files | Exposes diagnostic commands to the Bannerlord cheat console. |
+| `ModCheats` | public static class, partial over 67 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
 | `ProseInterpretTestRunner` | internal static class | The runner behind cr.prose_interpret_test. |
 | `RomanceBondWatchBehavior` | internal class | Reads the bonds with the player at session start and every hour, for CrRomance.StatusChanged. |
@@ -476,6 +476,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GrudgeResolutionAttemptResult` | public class | The outcome of one GrudgeResolutionService.TryResolveDominant call: whether a resolvable live grudge against the player existed at all, the verdict when it did, and the affected Grudge itself (already mutated in place wh... |
 | `GrudgeResolutionService` | public static class | Shared glue between the make_amends verb and the gift-routing hooks (ExecuteTakeGold, ExecuteGiveItem): evaluate the player's offered gesture against the holder's dominant resolvable live grudge, apply the verdict, and p... |
 | `SwayExposureBehavior` | public class | Owns the delayed reveal for the GrudgeSource.SwayExposed grudge source. |
+
+### CalradiaRemembers.Initiative (2)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `WorldInitiativeBehavior` | public class | Decides, for every system that would come to the player unasked, whether it is its turn. |
+| `WorldInitiativeState` | internal class | What the director keeps across saves. |
 
 ### CalradiaRemembers.Interception (7)
 

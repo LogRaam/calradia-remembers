@@ -191,5 +191,42 @@
     <string id="CR_MCM_VerboseLogging_Hint" text="Logs the full system prompt and NPC reply on every exchange. Turn on only to capture a bug report: it floods the log. Requires Enable Logging." />
     <string id="CR_MCM_WitnessDensity" text="Witness Density" />
     <string id="CR_MCM_WitnessDensity_Hint" text="How many ambient bystanders a conversation gathers. Sparse thins the room fast; Normal keeps a genuine middle ground; Bustling (default) is today's full room, unchanged. Never touches companions you bring yourself. Applies on your next conversation." />
+    <string id="CR_MCM_WorldInitiativePace" text="How Often the World Comes to You" />
+    <string id="CR_MCM_WorldInitiativePace_Hint" text="One conductor decides whose turn it is to come to you unasked (lords, companions, letters...). Off: each paces itself, as before. Custom uses the settings below." />
+    <string id="CR_MCM_Group_WorldInitiative" text="The World's Initiative" />
+    <string id="CR_MCM_InitiativeAtOnce" text="At Once (Custom)" />
+    <string id="CR_MCM_InitiativeAtOnce_Hint" text="How many of them may be at you at the same time, e.g. a lord riding after you and a word asked in town. Custom only." />
+    <string id="CR_MCM_InitiativePerWindow" text="Interruptions per Window (Custom)" />
+    <string id="CR_MCM_InitiativePerWindow_Hint" text="How many times the world may come to you within the window below. A letter counts as set further down. Custom only." />
+    <string id="CR_MCM_InitiativeWindowDays" text="Window (days, Custom)" />
+    <string id="CR_MCM_InitiativeWindowDays_Hint" text="The span, in game days, the interruptions above are counted over. Custom only." />
+    <string id="CR_MCM_InitiativeGapHours" text="Time Between Two (hours, Custom)" />
+    <string id="CR_MCM_InitiativeGapHours_Hint" text="The least time, in game hours, between two interruptions. Custom only." />
+    <string id="CR_MCM_InitiativeSettlingHours" text="Settling Delay (hours, Custom)" />
+    <string id="CR_MCM_InitiativeSettlingHours_Hint" text="How long the world waits, in game hours, after a battle or a conversation ends before it comes to you. Custom only." />
+    <string id="CR_MCM_InitiativeQuietHours" text="Quiet After Your Own Talk (hours, Custom)" />
+    <string id="CR_MCM_InitiativeQuietHours_Hint" text="After a conversation you opened yourself, the world leaves you alone this many game hours. Custom only." />
+    <string id="CR_MCM_InitiativeVariety" text="Variety" />
+    <string id="CR_MCM_InitiativeVariety_Hint" text="How far a kind that just came to you steps back so the others get their turn. The world's urgent matters are not affected." />
+    <string id="CR_MCM_InitiativeExpireDays" text="Requests Expire After (days)" />
+    <string id="CR_MCM_InitiativeExpireDays_Hint" text="A wish to come to you that waited this many game days is dropped, like stale news. The world's urgent matters never expire." />
+    <string id="CR_MCM_InitiativeLettersCountAs" text="Letters Count As" />
+    <string id="CR_MCM_InitiativeLettersCountAs_Hint" text="What a letter arriving costs from the count above: it closes with a click and waits in the book." />
+    <string id="CR_MCM_InitiativeUrgentWait" text="Urgent Matters Wait Their Turn" />
+    <string id="CR_MCM_InitiativeUrgentWait_Hint" text="Off (default): an arrest, your liege's war summons, an ambush or an envoy with a short deadline comes whenever the moment allows. On: they wait their turn like the rest." />
+    <string id="CR_MCM_InitiativeWeightLords" text="Weight: Lords (%)" />
+    <string id="CR_MCM_InitiativeWeightLords_Hint" text="How much lords seeking a word or riding out to you weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits." />
+    <string id="CR_MCM_InitiativeWeightCompanions" text="Weight: Companions (%)" />
+    <string id="CR_MCM_InitiativeWeightCompanions_Hint" text="How much your companions asking for a word weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits." />
+    <string id="CR_MCM_InitiativeWeightHousehold" text="Weight: Household (%)" />
+    <string id="CR_MCM_InitiativeWeightHousehold_Hint" text="How much your spouse and kin weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits." />
+    <string id="CR_MCM_InitiativeWeightLetters" text="Weight: Letters (%)" />
+    <string id="CR_MCM_InitiativeWeightLetters_Hint" text="How much letters arriving weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits." />
+    <string id="CR_MCM_InitiativeWeightTales" text="Weight: Tales (%)" />
+    <string id="CR_MCM_InitiativeWeightTales_Hint" text="How much written tales offered on the map weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits." />
+    <string id="CR_MCM_InitiativeWeightWarAndLaw" text="Weight: War and Law (%)" />
+    <string id="CR_MCM_InitiativeWeightWarAndLaw_Hint" text="How much war and the law (not the urgent matters) weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits." />
+    <string id="CR_MCM_InitiativeWeightAims" text="Weight: Lords' Aims (%)" />
+    <string id="CR_MCM_InitiativeWeightAims_Hint" text="How much lords putting a matter of their own to you weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits." />
   </strings>
 </base>

@@ -221,6 +221,13 @@ namespace CalradiaRemembers
          GameState.WarLevyDesk.TermsFor = h => WarDuty.WarDutyBehavior.Instance?.TermsFor(h);
          GameState.WarLevyDesk.CallingRuler = () => WarDuty.WarDutyBehavior.Instance?.CallingRuler();
          campaignStarter.AddBehavior(new Aims.AimsBehavior());
+         // The world's initiative (Gabriel, 28/10/2026): one director for whose turn it is to come to the player unasked. It
+         // reads the chat and the road pursuit through these, so its namespace names neither.
+         campaignStarter.AddBehavior(new Initiative.WorldInitiativeBehavior());
+         Initiative.WorldInitiativeBehavior.IsBusy = () => Chat.ChatManager.IsOpen
+                                                           || TaleWorlds.CampaignSystem.Party.MobileParty.MainParty?.MapEvent != null
+                                                           || Campaign.Current?.ConversationManager?.IsConversationFlowActive == true;
+         Initiative.WorldInitiativeBehavior.ActiveCount = () => Interception.InterceptionBehavior.Instance?.HasActivePursuer == true ? 1 : 0;
          Aims.AimsBehavior.PersonalRegard = h => NpcMemoryCampaignBehavior.Instance?.Store?.Get(h.StringId)?.ReputationWithPlayer;
          // Divorce, Phase 1 (the first verb built on the IConversationVerb contract): end_marriage begins a
          // multi-day estrangement process (the spouse may resist, delay, or defeat it outright); reaching the
@@ -499,6 +506,9 @@ namespace CalradiaRemembers
          Letters.ModLetterNotices.SetAside = CrLetters.OnSetAside;
          // A lord given the floor for another mod's aim is announced through the public door (static, once per process).
          Aims.AimsBehavior.Raised += CrAims.OnRaised;
+         // The world's initiative tells the player's own conversations from the turns it gave, and lets them settle after one.
+         CrConversation.Started += info => Initiative.WorldInitiativeBehavior.Instance?.NoteConversationStarted(info?.NpcId);
+         CrConversation.Ended += _ => Initiative.WorldInitiativeBehavior.Instance?.NoteSettled();
 
          try
          {

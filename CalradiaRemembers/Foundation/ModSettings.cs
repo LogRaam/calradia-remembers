@@ -341,6 +341,103 @@ namespace CalradiaRemembers.Foundation
       /// <summary>Characters may offer a written tale (authored quests); on when MCM has not loaded. Off stops new offers only.</summary>
       public static bool AuthoredQuests => CrSettings.Instance?.AuthoredQuests ?? false;
 
+      /// <summary>The world's initiative is Off: every system paces itself as before (Gabriel, 28/10/2026). Occasionally without MCM.</summary>
+      public static bool WorldInitiativeOff => CrSettings.Instance?.WorldInitiativePace?.SelectedValue == "Off";
+
+      /// <summary>
+      ///   The director's settings (Gabriel, 28/10/2026): the pace's preset for the timing, or the player's own values in
+      ///   Custom; the variety, expiry, letters' cost, urgent matters and the family weights apply at every pace. The
+      ///   shipped Occasionally when MCM has not loaded.
+      /// </summary>
+      public static Logic.Initiative.InitiativeSettings WorldInitiative
+      {
+         get
+         {
+            CrSettings s = CrSettings.Instance;
+            string pace = s?.WorldInitiativePace?.SelectedValue;
+            Logic.Initiative.InitiativeSettings timing = pace switch {
+               "Rarely" => Logic.Initiative.WorldInitiativePolicy.Preset(Logic.Initiative.InitiativePace.Rarely),
+               "Often" => Logic.Initiative.WorldInitiativePolicy.Preset(Logic.Initiative.InitiativePace.Often),
+               _ => Logic.Initiative.WorldInitiativePolicy.Preset(Logic.Initiative.InitiativePace.Occasionally)
+            };
+            if (s == null) return timing;
+
+            bool custom = pace == "Custom";
+
+            return new Logic.Initiative.InitiativeSettings {
+               AtOnce = custom ? InitiativeAtOnce : timing.AtOnce,
+               PerWindow = custom ? InitiativePerWindow : timing.PerWindow,
+               WindowDays = custom ? InitiativeWindowDays : timing.WindowDays,
+               MinGapHours = custom ? InitiativeGapHours : timing.MinGapHours,
+               SettlingDelayHours = custom ? InitiativeSettlingHours : timing.SettlingDelayHours,
+               QuietAfterOwnTalkHours = custom ? InitiativeQuietHours : timing.QuietAfterOwnTalkHours,
+               Variety = s.InitiativeVariety?.SelectedValue switch {
+                  "Low" => Logic.Initiative.InitiativeVariety.Low,
+                  "Strong" => Logic.Initiative.InitiativeVariety.Strong,
+                  _ => Logic.Initiative.InitiativeVariety.Normal
+               },
+               ExpireDays = InitiativeExpireDays,
+               LettersCountAs = s.InitiativeLettersCountAs?.SelectedValue switch {
+                  "A Full Interruption" => Logic.Initiative.LetterCost.Full,
+                  "Nothing" => Logic.Initiative.LetterCost.None,
+                  _ => Logic.Initiative.LetterCost.Half
+               },
+               UrgentMattersWait = s.InitiativeUrgentWait,
+               FamilyWeights = new System.Collections.Generic.Dictionary<Logic.Initiative.InitiativeFamily, int> {
+                  [Logic.Initiative.InitiativeFamily.Lords] = InitiativeWeightLords,
+                  [Logic.Initiative.InitiativeFamily.Companions] = InitiativeWeightCompanions,
+                  [Logic.Initiative.InitiativeFamily.Household] = InitiativeWeightHousehold,
+                  [Logic.Initiative.InitiativeFamily.Letters] = InitiativeWeightLetters,
+                  [Logic.Initiative.InitiativeFamily.Tales] = InitiativeWeightTales,
+                  [Logic.Initiative.InitiativeFamily.WarAndLaw] = InitiativeWeightWarAndLaw,
+                  [Logic.Initiative.InitiativeFamily.Aims] = InitiativeWeightAims
+               }
+            };
+         }
+      }
+
+      /// <summary>The world's initiative: how many may be at the player at once, in Custom, as the player set it (1 without MCM).</summary>
+      public static int InitiativeAtOnce => CrSettings.Instance?.InitiativeAtOnce ?? 1;
+
+      /// <summary>The world's initiative: the turns per window, in Custom, as the player set it (3 without MCM).</summary>
+      public static int InitiativePerWindow => CrSettings.Instance?.InitiativePerWindow ?? 3;
+
+      /// <summary>The world's initiative: the window's days, in Custom, as the player set it (7 without MCM).</summary>
+      public static int InitiativeWindowDays => CrSettings.Instance?.InitiativeWindowDays ?? 7;
+
+      /// <summary>The world's initiative: the hours between two turns, in Custom, as the player set it (12 without MCM).</summary>
+      public static int InitiativeGapHours => CrSettings.Instance?.InitiativeGapHours ?? 12;
+
+      /// <summary>The world's initiative: the settling delay, in Custom, as the player set it (2 without MCM).</summary>
+      public static int InitiativeSettlingHours => CrSettings.Instance?.InitiativeSettlingHours ?? 2;
+
+      /// <summary>The world's initiative: the quiet after the player's own talk, in Custom, as the player set it (24 without MCM).</summary>
+      public static int InitiativeQuietHours => CrSettings.Instance?.InitiativeQuietHours ?? 24;
+
+      /// <summary>The world's initiative: the days a request waits before it is dropped, as the player set it (10 without MCM).</summary>
+      public static int InitiativeExpireDays => CrSettings.Instance?.InitiativeExpireDays ?? 10;
+
+      /// <summary>The world's initiative: the lords' weight in the draw, as the player set it (100 without MCM).</summary>
+      public static int InitiativeWeightLords => CrSettings.Instance?.InitiativeWeightLords ?? 100;
+
+      /// <summary>The world's initiative: the companions' weight in the draw, as the player set it (100 without MCM).</summary>
+      public static int InitiativeWeightCompanions => CrSettings.Instance?.InitiativeWeightCompanions ?? 100;
+
+      /// <summary>The world's initiative: the household's weight in the draw, as the player set it (100 without MCM).</summary>
+      public static int InitiativeWeightHousehold => CrSettings.Instance?.InitiativeWeightHousehold ?? 100;
+
+      /// <summary>The world's initiative: the letters' weight in the draw, as the player set it (100 without MCM).</summary>
+      public static int InitiativeWeightLetters => CrSettings.Instance?.InitiativeWeightLetters ?? 100;
+
+      /// <summary>The world's initiative: the tales' weight in the draw, as the player set it (100 without MCM).</summary>
+      public static int InitiativeWeightTales => CrSettings.Instance?.InitiativeWeightTales ?? 100;
+
+      /// <summary>The world's initiative: war and law's weight in the draw, as the player set it (100 without MCM).</summary>
+      public static int InitiativeWeightWarAndLaw => CrSettings.Instance?.InitiativeWeightWarAndLaw ?? 100;
+
+      /// <summary>The world's initiative: the lords' aims' weight in the draw, as the player set it (100 without MCM).</summary>
+      public static int InitiativeWeightAims => CrSettings.Instance?.InitiativeWeightAims ?? 100;
+
       public static InterceptionPacing LordsApproaching
       {
          get

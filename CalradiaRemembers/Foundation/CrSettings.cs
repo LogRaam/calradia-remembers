@@ -702,5 +702,101 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public Dropdown<string> WitnessDensity { get; set; } =
          new(new[] {"Sparse", "Normal", "Bustling"}, 2); // default: Bustling (today's live behaviour, unchanged)
+
+      // The world's initiative (Gabriel, 28/10/2026): one director decides whose turn it is to come to the player unasked,
+      // and the player tunes it ("combien de systemes peuvent se manifester en meme temps, le delai avant que l'orchestrateur
+      // decide de lancer une intervention"). Off leaves every system to pace itself as before.
+      [SettingPropertyDropdown("{=CR_MCM_WorldInitiativePace}How Often the World Comes to You", RequireRestart = false, Order = 1,
+         HintText = "{=CR_MCM_WorldInitiativePace_Hint}One conductor decides whose turn it is to come to you unasked (lords, companions, letters...). Off: each paces itself, as before. Custom uses the settings below.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public Dropdown<string> WorldInitiativePace { get; set; } =
+         new(new[] {"Off", "Rarely", "Occasionally", "Often", "Custom"}, 2); // default: Occasionally
+
+      [SettingPropertyInteger("{=CR_MCM_InitiativeAtOnce}At Once (Custom)", 1, 3, "0", RequireRestart = false, Order = 2,
+         HintText = "{=CR_MCM_InitiativeAtOnce_Hint}How many of them may be at you at the same time, e.g. a lord riding after you and a word asked in town. Custom only.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public int InitiativeAtOnce { get; set; } = 1;
+
+      [SettingPropertyInteger("{=CR_MCM_InitiativePerWindow}Interruptions per Window (Custom)", 1, 10, "0", RequireRestart = false, Order = 3,
+         HintText = "{=CR_MCM_InitiativePerWindow_Hint}How many times the world may come to you within the window below. A letter counts as set further down. Custom only.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public int InitiativePerWindow { get; set; } = 3;
+
+      [SettingPropertyInteger("{=CR_MCM_InitiativeWindowDays}Window (days, Custom)", 1, 30, "0", RequireRestart = false, Order = 4,
+         HintText = "{=CR_MCM_InitiativeWindowDays_Hint}The span, in game days, the interruptions above are counted over. Custom only.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public int InitiativeWindowDays { get; set; } = 7;
+
+      [SettingPropertyInteger("{=CR_MCM_InitiativeGapHours}Time Between Two (hours, Custom)", 0, 72, "0", RequireRestart = false, Order = 5,
+         HintText = "{=CR_MCM_InitiativeGapHours_Hint}The least time, in game hours, between two interruptions. Custom only.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public int InitiativeGapHours { get; set; } = 12;
+
+      [SettingPropertyInteger("{=CR_MCM_InitiativeSettlingHours}Settling Delay (hours, Custom)", 0, 24, "0", RequireRestart = false, Order = 6,
+         HintText = "{=CR_MCM_InitiativeSettlingHours_Hint}How long the world waits, in game hours, after a battle or a conversation ends before it comes to you. Custom only.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public int InitiativeSettlingHours { get; set; } = 2;
+
+      [SettingPropertyInteger("{=CR_MCM_InitiativeQuietHours}Quiet After Your Own Talk (hours, Custom)", 0, 96, "0", RequireRestart = false, Order = 7,
+         HintText = "{=CR_MCM_InitiativeQuietHours_Hint}After a conversation you opened yourself, the world leaves you alone this many game hours. Custom only.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public int InitiativeQuietHours { get; set; } = 24;
+
+      [SettingPropertyDropdown("{=CR_MCM_InitiativeVariety}Variety", RequireRestart = false, Order = 8,
+         HintText = "{=CR_MCM_InitiativeVariety_Hint}How far a kind that just came to you steps back so the others get their turn. The world's urgent matters are not affected.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public Dropdown<string> InitiativeVariety { get; set; } =
+         new(new[] {"Low", "Normal", "Strong"}, 1); // default: Normal
+
+      [SettingPropertyInteger("{=CR_MCM_InitiativeExpireDays}Requests Expire After (days)", 1, 30, "0", RequireRestart = false, Order = 9,
+         HintText = "{=CR_MCM_InitiativeExpireDays_Hint}A wish to come to you that waited this many game days is dropped, like stale news. The world's urgent matters never expire.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public int InitiativeExpireDays { get; set; } = 10;
+
+      [SettingPropertyDropdown("{=CR_MCM_InitiativeLettersCountAs}Letters Count As", RequireRestart = false, Order = 10,
+         HintText = "{=CR_MCM_InitiativeLettersCountAs_Hint}What a letter arriving costs from the count above: it closes with a click and waits in the book.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public Dropdown<string> InitiativeLettersCountAs { get; set; } =
+         new(new[] {"A Full Interruption", "Half", "Nothing"}, 1); // default: Half
+
+      [SettingPropertyBool("{=CR_MCM_InitiativeUrgentWait}Urgent Matters Wait Their Turn", RequireRestart = false, Order = 11,
+         HintText = "{=CR_MCM_InitiativeUrgentWait_Hint}Off (default): an arrest, your liege's war summons, an ambush or an envoy with a short deadline comes whenever the moment allows. On: they wait their turn like the rest.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public bool InitiativeUrgentWait { get; set; } = false;
+
+      [SettingPropertyInteger("{=CR_MCM_InitiativeWeightLords}Weight: Lords (%)", 0, 200, "0 '%'", RequireRestart = false, Order = 12,
+         HintText = "{=CR_MCM_InitiativeWeightLords_Hint}How much lords seeking a word or riding out to you weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public int InitiativeWeightLords { get; set; } = 100;
+
+      [SettingPropertyInteger("{=CR_MCM_InitiativeWeightCompanions}Weight: Companions (%)", 0, 200, "0 '%'", RequireRestart = false, Order = 13,
+         HintText = "{=CR_MCM_InitiativeWeightCompanions_Hint}How much your companions asking for a word weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public int InitiativeWeightCompanions { get; set; } = 100;
+
+      [SettingPropertyInteger("{=CR_MCM_InitiativeWeightHousehold}Weight: Household (%)", 0, 200, "0 '%'", RequireRestart = false, Order = 14,
+         HintText = "{=CR_MCM_InitiativeWeightHousehold_Hint}How much your spouse and kin weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public int InitiativeWeightHousehold { get; set; } = 100;
+
+      [SettingPropertyInteger("{=CR_MCM_InitiativeWeightLetters}Weight: Letters (%)", 0, 200, "0 '%'", RequireRestart = false, Order = 15,
+         HintText = "{=CR_MCM_InitiativeWeightLetters_Hint}How much letters arriving weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public int InitiativeWeightLetters { get; set; } = 100;
+
+      [SettingPropertyInteger("{=CR_MCM_InitiativeWeightTales}Weight: Tales (%)", 0, 200, "0 '%'", RequireRestart = false, Order = 16,
+         HintText = "{=CR_MCM_InitiativeWeightTales_Hint}How much written tales offered on the map weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public int InitiativeWeightTales { get; set; } = 100;
+
+      [SettingPropertyInteger("{=CR_MCM_InitiativeWeightWarAndLaw}Weight: War and Law (%)", 0, 200, "0 '%'", RequireRestart = false, Order = 17,
+         HintText = "{=CR_MCM_InitiativeWeightWarAndLaw_Hint}How much war and the law (not the urgent matters) weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public int InitiativeWeightWarAndLaw { get; set; } = 100;
+
+      [SettingPropertyInteger("{=CR_MCM_InitiativeWeightAims}Weight: Lords' Aims (%)", 0, 200, "0 '%'", RequireRestart = false, Order = 18,
+         HintText = "{=CR_MCM_InitiativeWeightAims_Hint}How much lords putting a matter of their own to you weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
+      public int InitiativeWeightAims { get; set; } = 100;
    }
 }

@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-630 rules read 471 facts.
+633 rules read 481 facts.
 
 ## Facts read by more than one rule
 
@@ -204,6 +204,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Vec2.x` (3) | `CardinalDirectionPolicy.Describe`, `GeographyDescriber.Bearing`, `QuestMenuEntry` |
 | `Vec2.y` (3) | `CardinalDirectionPolicy.Describe`, `GeographyDescriber.Bearing`, `QuestMenuEntry` |
 | `AccessTools.Method` (2) | `LeaveHouseFacts`, `LeaveHouseForRulerPolicy.WhyNot` |
+| `ActiveCount.Invoke` (2) | `InitiativeGrant`, `WorldInitiativePolicy.Decide` |
 | `AgeModel.HeroComesOfAge` (2) | `CaptiveOfferFacts`, `SharedPastPairFacts` |
 | `AiBehavior.EngageParty` (2) | `CompanionPatrolPolicy.ShouldReissue`, `PatrolLeashFacts` |
 | `AiBehavior.FleeToGate` (2) | `CompanionPatrolPolicy.ShouldReissue`, `PatrolLeashFacts` |
@@ -231,6 +232,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.HasMet` (2) | `AudienceWhoFacts`, `WeddingFacts` |
 | `Hero.HeroState` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `IFaction.Leader` (2) | `HeroNaming`, `RescueCaptorFacts` |
+| `IsBusy.Invoke` (2) | `InitiativeGrant`, `WorldInitiativePolicy.Decide` |
 | `Item.Tier` (2) | `HeldItem`, `ScatteredLootItem` |
 | `ItemObject.IsCivilian` (2) | `GiftEquipFacts`, `GiftEquipPolicy.WearsOnBattleSet` |
 | `Kingdom.IsAllyWith` (2) | `PressForWarFacts`, `PressForWarPolicy.WhyNot` |
@@ -271,6 +273,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.ReplyLanguage` (2) | `PendingSummaryJob`, `ReplyLanguagePolicy.WithLanguage` |
 | `ModSettings.SelfEsteemClimb` (2) | `SelfEsteemClimb`, `SelfEsteemPolicy.Record` |
 | `ModSettings.WarDutyWindowDays` (2) | `WarDutyLive`, `WarDutyPolicy.Decide` |
+| `ModSettings.WorldInitiative` (2) | `InitiativeGrant`, `WorldInitiativePolicy.Decide` |
 | `Models.MapDistanceModel` (2) | `CourierGateFacts`, `EscortCostPolicy.EscortPremium` |
 | `Models.MarriageModel` (2) | `LeaveHouseFacts`, `LeaveHouseForRulerPolicy.WhyNot` |
 | `NavigationType.Default` (2) | `CourierGateFacts`, `EscortCostPolicy.EscortPremium` |
@@ -292,6 +295,11 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Settlement.Position` (2) | `TaleVillagePolicy.Pick`, `TaleVillagePolicy.WhyNoneQuiet` |
 | `Settlement.SiegeEvent` (2) | `ChaseFacts`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter` |
 | `Settlement.Town` (2) | `HardshipPolicy.ShouldRecord`, `TownFoodPolicy.StocksAfterRelief` |
+| `State.Grants` (2) | `InitiativeGrant`, `WorldInitiativePolicy.Decide` |
+| `State.KeptSinceHour` (2) | `InitiativeGrant`, `WorldInitiativePolicy.Decide` |
+| `State.LastOwnTalkHour` (2) | `InitiativeGrant`, `WorldInitiativePolicy.Decide` |
+| `State.LastSettledHour` (2) | `InitiativeGrant`, `WorldInitiativePolicy.Decide` |
+| `State.Requests` (2) | `InitiativeGrant`, `WorldInitiativePolicy.Decide` |
 | `Status.IsCourtingOrDeeper` (2) | `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible` |
 | `Store.MostRecentMatching` (2) | `HardshipPolicy.ShouldRecord`, `WarLoomingPolicy.ShouldRecord` |
 | `Store.Set` (2) | `SkirmishLine`, `SkirmishMemoryText.CountIn` |
@@ -574,6 +582,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `HouseHeadFacts`: `Clan.Leader`
 - `HuntFacts`: `Army.LeaderParty`, `MobileParty.Army`, `ModSettings.EnableArrests`
 - `HusbandFacts`: `Clan.Kingdom`, `Hero.Spouse`, `Kingdom.Leader`
+- `InitiativeGrant`: `ActiveCount.Invoke`, `IsBusy.Invoke`, `ModSettings.WorldInitiative`, `State.Grants`, `State.KeptSinceHour`, `State.LastOwnTalkHour`, `State.LastSettledHour`, `State.Requests`
+- `InitiativeSettings`: `InitiativeLettersCountAs.SelectedValue`, `WorldInitiativePace.SelectedValue`
 - `InterceptionFacts`: `Army.EstimatedStrength`, `Army.LeaderParty`, `Clan.Renown`, `FactionManager.IsAtWarAgainstFaction`, `Hero.GetRelation`, `Hero.MapFaction`, `Hero.PartyBelongedTo`, `MobileParty.Army`, `MobileParty.GetPosition2D`, `MobileParty.Party`, `ModSettings.LordsApproaching`, `Party.EstimatedStrength`, `Settlement.MapFaction`
 - `InterceptionPacingRules.CooldownDays`: `ModSettings.LordsApproaching`
 - `InterceptionPacingRules.DailyChancePercent`: `ModSettings.LordsApproaching`
@@ -938,3 +948,4 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `WardPolicy.IsWithinAgeBand`: `Hero.Age`
 - `WeddingFacts`: `Hero.Clan`, `Hero.HasMet`
 - `WhereaboutsFacts`: `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `Hero.StayingInSettlement`, `MemberRoster.TotalManCount`, `MobileParty.Army`
+- `WorldInitiativePolicy.Decide`: `ActiveCount.Invoke`, `IsBusy.Invoke`, `ModSettings.WorldInitiative`, `State.Grants`, `State.KeptSinceHour`, `State.LastOwnTalkHour`, `State.LastSettledHour`, `State.Requests`

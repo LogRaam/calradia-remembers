@@ -43,6 +43,7 @@ using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Logic.Dynasty;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Logic.Initiative;
 using CalradiaRemembers.Logic.Items;
 using CalradiaRemembers.Logic.Letters;
 using CalradiaRemembers.Logic.Marriage;
@@ -325,6 +326,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("background_hold", Severity.Light, "fkasad (Nexus, 15/10/2026): on a local server, summaries, memory compaction and letters slipped in between two replies, the server swapped its KV cache and replies timed out. With a conversation forced open through the seam: a background call routed to OpenAI-Compatible (local) waits; the same call routed to a cloud provider goes at once; with no conversation open a local call goes at once. Restores the provider dropdowns and the seam (the held wait ends within a second)", TestBackgroundHold),
          new SelfTest("war_duty_ledger", Severity.Light, "Maifailun (Nexus, 15/10/2026): a vassal who sits out the realm's war is called to account, so the mod must see his service. On a fresh ledger through the real upkeep: the realm the player is sworn to (none as a mercenary or a free lord) and its enemy kingdoms are recorded from today, so no one owes on the first day. A battle against a realm at war with his counts as service; one against bandits does not. Restores the player's own ledger", TestWarDutyLedger),
          new SelfTest("aims_conversation", Severity.Light, "CrAims (tashmetu, 14/10/2026: lords with aims of their own; 'the real risk is a lord who brings up Lakonon in every conversation'). A test aim is registered on a real lord not at war with the player; a conversation opening with him gives him leave to raise it and the encounter context carries his want; a second conversation the same day does not give it again; the leave ends with the conversation. An aim Calradia Remembers seeds for its own mechanics is not voiced by the generic section. Retracts both aims", TestAimsConversation),
+         new SelfTest("initiative_director", Severity.Light, "Gabriel 28/10: one conductor decides whose turn it is to come to the player unasked; its queue and its turns are kept in the save. Writes a copy of the live state with a request and a turn, reads it back through the save's own serializer, and expects the same keys, families, ranks and hours (the init-only fields filled under this runtime). Then asks the rule on that copy at a calm moment and expects a turn given. Touches no live state", TestInitiativeDirector),
          new SelfTest("aims_channels", Severity.Light, "CrAims audience and letter channels (tashmetu 14/10: 'nobody takes the first step with the player'; Gabriel 28/10: 'fait 2 et 1'). A test aim open to audiences and letters is registered on a lord at peace with the player: he may raise it by audience and by letter; an audience he sought gives him leave in the conversation that follows, recorded as an audience, even with the conversation channel closed; after it, the letter waits (raised too recently). An aim closed to audiences is not a reason to seek the player. Retracts after", TestAimsChannels),
          new SelfTest("aims_door", Severity.Light, "The public CrAims door (tashmetu, 14/10/2026: 'nobody takes the first step with the player'; proposed in ROADMAP, approved by Gabriel 20/10/2026). Registers an aim for a lord at peace with the player through the REAL door: accepted, updated under the same id, refused for a second aim on the same lord, an unknown hero, and CR's own name; a conversation opened with him gives him leave and the context carries the want; CrAims.Raised tells the mod, with the aim's id, the lord and the channel; retracted, it is gone. Retracts and closes after", TestAimsDoor),
          new SelfTest("player_named_on_screen", Severity.Light, "Gabriel (17/10/2026): a grievance read 'over The marriage was ended by the player's own choice'; never 'the player' in the game, the character by name. Passes a stored cause saying 'the player' through the real grievance line and the real chat message line, and asserts both show the player's name, never 'the player', and that a sentence cause follows a colon. Changes nothing", TestPlayerNamedOnScreen),
@@ -14342,6 +14344,34 @@ namespace CalradiaRemembers.Diagnostics
       /// </summary>
       private static readonly Dictionary<string, (string Accessor, SettingShape Shape, string Why)> SettingEnforcers =
          new(StringComparer.Ordinal) {
+            ["InitiativeAtOnce"] = ("InitiativeAtOnce", SettingShape.Honours,
+               "the world's initiative reads how many may be at the player at once, in Custom exactly as set"),
+            ["InitiativePerWindow"] = ("InitiativePerWindow", SettingShape.Honours,
+               "the world's initiative reads the turns per window, in Custom exactly as set"),
+            ["InitiativeWindowDays"] = ("InitiativeWindowDays", SettingShape.Honours,
+               "the world's initiative reads the window's days, in Custom exactly as set"),
+            ["InitiativeGapHours"] = ("InitiativeGapHours", SettingShape.Honours,
+               "the world's initiative reads the hours between two turns, in Custom exactly as set"),
+            ["InitiativeSettlingHours"] = ("InitiativeSettlingHours", SettingShape.Honours,
+               "the world's initiative reads the settling delay, in Custom exactly as set"),
+            ["InitiativeQuietHours"] = ("InitiativeQuietHours", SettingShape.Honours,
+               "the world's initiative reads the quiet after the player's own talk, in Custom exactly as set"),
+            ["InitiativeExpireDays"] = ("InitiativeExpireDays", SettingShape.Honours,
+               "the world's initiative reads the days a request waits before it is dropped exactly as set"),
+            ["InitiativeWeightLords"] = ("InitiativeWeightLords", SettingShape.Honours,
+               "the world's initiative reads the lords' weight in the draw exactly as set"),
+            ["InitiativeWeightCompanions"] = ("InitiativeWeightCompanions", SettingShape.Honours,
+               "the world's initiative reads the companions' weight in the draw exactly as set"),
+            ["InitiativeWeightHousehold"] = ("InitiativeWeightHousehold", SettingShape.Honours,
+               "the world's initiative reads the household's weight in the draw exactly as set"),
+            ["InitiativeWeightLetters"] = ("InitiativeWeightLetters", SettingShape.Honours,
+               "the world's initiative reads the letters' weight in the draw exactly as set"),
+            ["InitiativeWeightTales"] = ("InitiativeWeightTales", SettingShape.Honours,
+               "the world's initiative reads the tales' weight in the draw exactly as set"),
+            ["InitiativeWeightWarAndLaw"] = ("InitiativeWeightWarAndLaw", SettingShape.Honours,
+               "the world's initiative reads war and law's weight in the draw exactly as set"),
+            ["InitiativeWeightAims"] = ("InitiativeWeightAims", SettingShape.Honours,
+               "the world's initiative reads the lords' aims' weight in the draw exactly as set"),
             ["RegardDecayDays"] = ("RegardDecayDays", SettingShape.Honours,
                "the whole point of the FloatingMammal fix: 0 must reach the gate as 0"),
             ["NpcCrossTalkRounds"] = ("NpcCrossTalkRounds", SettingShape.Honours,
@@ -19027,6 +19057,33 @@ namespace CalradiaRemembers.Diagnostics
       ///   strings only, never a real key. Snapshots and restores every dropdown + the custom endpoint/key fields it
       ///   touches, so a real campaign is unchanged.
       /// </summary>
+      private static string TestInitiativeDirector(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("initiative_director");
+         if (t.Skip(Initiative.WorldInitiativeBehavior.Instance == null, "the director is not registered")) return t.Line();
+
+         double now = CampaignTime.Now.ToHours;
+         var copy = new Initiative.WorldInitiativeState {
+            KeptSinceHour = now - 48,
+            Requests = {new InitiativeRequest {Key = "cr_selftest_req", Family = InitiativeFamily.Household, Rank = InitiativeRank.Pressing, CharacterId = "x", FiledAtHour = now - 5, LastAskedAtHour = now - 1}},
+            Grants = {new InitiativeGrant {Key = "cr_selftest_turn", Family = InitiativeFamily.Letters, GrantedAtHour = now - 30, Cost = 0.5}}
+         };
+
+         Initiative.WorldInitiativeState back = Initiative.WorldInitiativeBehavior.Deserialize(Initiative.WorldInitiativeBehavior.Serialize(copy));
+         InitiativeRequest r = back?.Requests.FirstOrDefault();
+         InitiativeGrant g = back?.Grants.FirstOrDefault();
+         t.Expect("requestRoundTrip", r != null && r.Key == "cr_selftest_req" && r.Family == InitiativeFamily.Household && r.Rank == InitiativeRank.Pressing
+                                      && r.CharacterId == "x" && System.Math.Abs(r.LastAskedAtHour - (now - 1)) < 0.01, true);
+         t.Expect("turnRoundTrip", g != null && g.Family == InitiativeFamily.Letters && System.Math.Abs(g.Cost - 0.5) < 0.01, true);
+         t.Expect("keptSinceRoundTrip", back != null && System.Math.Abs(back.KeptSinceHour - (now - 48)) < 0.01, true);
+
+         InitiativeDecision d = WorldInitiativePolicy.Decide(back?.Requests, back?.Grants, new InitiativeSettings(),
+            new InitiativeMoment {NowHour = now, KeptSinceHour = now - 48}, 0.5);
+         t.Expect("calmMomentGivesTheTurn", d.Verdict, InitiativeVerdict.Granted);
+
+         return t.Line();
+      }
+
       private static string TestAimsChannels(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("aims_channels");
