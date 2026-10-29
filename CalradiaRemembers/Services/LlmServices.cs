@@ -60,6 +60,7 @@ namespace CalradiaRemembers.Services
       private AdultContentLevel _builtAdultLevel;
       private RelationWarmth _builtWarmth;
       private string _builtReplyLanguage;
+      private NpcMemoryService.Core.Prompts.ReplyLength _builtReplyLength;
 
       // The player's clan and realm as the builder last captured them. They feed {{user_clan}}, {{user_faction}} and
       // {{faction}}, which were read once and kept until the next load: a bridge mod writing {{faction}} kept naming
@@ -127,13 +128,14 @@ namespace CalradiaRemembers.Services
             AdultContentLevel current = ModSettings.AdultContentLevel;
             RelationWarmth warmth = ModSettings.RelationWarmth;
             string replyLanguage = ModSettings.ReplyLanguage;
+            NpcMemoryService.Core.Prompts.ReplyLength replyLength = ModSettings.ReplyLength;
             float temperature = ModSettings.ChatTemperature;
 
             string playerFaction = Hero.MainHero?.MapFaction?.Name?.ToString() ?? "";
             string playerClan = Hero.MainHero?.Clan?.Name?.ToString() ?? "";
 
             if (_chatService != null && _builtAdultLevel == current && _builtWarmth == warmth
-                                      && _builtReplyLanguage == replyLanguage
+                                      && _builtReplyLanguage == replyLanguage && _builtReplyLength == replyLength
                                       && _builtPlayerFaction == playerFaction && _builtPlayerClan == playerClan
                                       && _builtTemperature == temperature)
                return _chatService;
@@ -141,6 +143,7 @@ namespace CalradiaRemembers.Services
             _builtAdultLevel = current;
             _builtWarmth = warmth;
             _builtReplyLanguage = replyLanguage;
+            _builtReplyLength = replyLength;
             _builtPlayerFaction = playerFaction;
             _builtPlayerClan = playerClan;
             _builtTemperature = temperature;
@@ -1064,6 +1067,7 @@ namespace CalradiaRemembers.Services
             PostHistoryInstructions = NarrativeLoader.PostHistoryInstructions,
             HeardNowInstructions = NarrativeLoader.HeardNowInstructions,
             ReplyLanguage = ModSettings.ReplyLanguage,
+            ReplyLength = ModSettings.ReplyLength,
             ActionVocabulary = ProseActionVocabulary.Build(ModSettings.RelationWarmth),
             // The intimacy consent bar follows the same Relationship Pacing dial as every other gate; the
             // SDK owns the bar, the mod owns how far the player's dial lowers it (audit M3).

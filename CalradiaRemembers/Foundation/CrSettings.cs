@@ -520,6 +520,15 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public string ReplyLanguage { get; set; } = "";
 
+      // RaveN017Mod (Nexus PM, 29/10/2026): replies too long, "like a novel". Sentences, not words: a word cap cuts mid-sentence.
+      [SettingPropertyDropdown("{=CR_MCM_ReplyLength}Reply Length", RequireRestart = false, Order = 3,
+         HintText = "{=CR_MCM_ReplyLength_Hint}How long characters' replies run. Full is the length the mod has always used (3 to 7 " +
+                    "sentences, longer for a story). Balanced: 2 to 4. Short: 1 to 3, always. Counted in sentences, so a " +
+                    "reply is never cut off mid-way.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
+      public Dropdown<string> ReplyLength { get; set; } =
+         new(new[] {"Full", "Balanced", "Short"}, 0); // default: Full, the shipped length
+
       // Three players in two days, none of them defending it (Kilju101 17/09, Lordfadooboo 18/09, fkasad 18/09).
       // fkasad put the cost plainly: "Maybe one in ten NPCs has something interesting to say, but unfortunately,
       // I'm forced to decline the conversation because of the other nine... it's wasted playtime."

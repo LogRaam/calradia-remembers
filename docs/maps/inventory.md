@@ -8,7 +8,7 @@ sentence beside each type is the first sentence of its own doc comment; `(no sum
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 587 types in 63 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1411 types in 48 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 276 types in 17 namespaces, 9 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 278 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 23500+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 24000+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -2874,7 +2874,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpeakerScriptVerdict` | public class | What a reply had to have removed from it, if anything. |
 | `StageDirectionDedupe` | public static class | Drops the second and later copies of the same *stage direction* in a reply. |
 
-### NpcMemoryService.Core.Prompts (43)
+### NpcMemoryService.Core.Prompts (45)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2919,6 +2919,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PromptVariableExpander` | public static class | Expands {{token}} placeholders in player-authored prompt text against a lookup of known variables (NPC name, player name, and the like), matching the "macro" convention SillyTavern users already know from {{char}}/{{user... |
 | `PromptZone` | public enum | Which side of the cache marker a section is written on. |
 | `RegardBands` | public static class | The single canonical banding of Models.NpcProfile.ReputationWithPlayer into the 15 named tiers (14 first established by the encyclopedia's "Personal regard" row (EncyclopediaHeroPagePersonalRelationMixin.Describe), plus... |
+| `ReplyLength` | public enum | How long a character's spoken replies run. |
+| `ReplyLengthPolicy` | public static class | The length lines DIALOGUE STYLE teaches for each ReplyLength. |
 | `SingleCallExtractionPromptBuilder` | public static class | Builds the single-call composer+extractor system prompt used by the spike (cr.single_call_probe). |
 | `VerbCatalogPolicy` | public static class | Decides which verbs the GAME ACTIONS catalogue lists, by reading back what the finished prompt already taught. |
 

@@ -787,6 +787,20 @@ namespace CalradiaRemembers.Foundation
       /// </summary>
       // Blank means the game's own language since 2.7.14 (RaveN017Mod, 17/10/2026: "Is there a way for your mod to
       // detect the base language that the user has selected for Bannerlord?"); an English game keeps the mirror.
+      /// <summary>How long characters' replies run (MCM Reply Length); Full when unset.</summary>
+      public static NpcMemoryService.Core.Prompts.ReplyLength ReplyLength
+      {
+         get
+         {
+            switch (CrSettings.Instance?.ReplyLength?.SelectedValue)
+            {
+               case "Balanced": return NpcMemoryService.Core.Prompts.ReplyLength.Balanced;
+               case "Short": return NpcMemoryService.Core.Prompts.ReplyLength.Short;
+               default: return NpcMemoryService.Core.Prompts.ReplyLength.Full;
+            }
+         }
+      }
+
       public static string ReplyLanguage => Logic.ReplyLanguagePolicy.Resolve(CrSettings.Instance?.ReplyLanguage, GameLanguage());
 
       private static string GameLanguage()

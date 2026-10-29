@@ -145,6 +145,8 @@
     <string id="CR_MCM_RelationshipWarmth_Hint" text="How relationships grow through conversation: a philosophy, not a difficulty. Grounded keeps the core game's feel; Warm rewards good company; Storyteller is roleplay-first. Insults cost the same everywhere." />
     <string id="CR_MCM_ReplyLanguage" text="Reply Language" />
     <string id="CR_MCM_ReplyLanguage_Hint" text="Leave blank to use the game's language (an English game mirrors whatever language you write in). Name a language (e.g. Spanish) to force every reply, letter, memory, and the illuminated chronicle into it, no matter what you write." />
+    <string id="CR_MCM_ReplyLength" text="Reply Length" />
+    <string id="CR_MCM_ReplyLength_Hint" text="How long characters' replies run. Full is the length the mod has always used (3 to 7 sentences, longer for a story). Balanced: 2 to 4. Short: 1 to 3, always. Counted in sentences, so a reply is never cut off mid-way." />
     <string id="CR_MCM_NpcsRaiseWorldNews" text="NPCs Raise World News" />
     <string id="CR_MCM_NpcsRaiseWorldNews_Hint" text="Off (default): an NPC approaches you only about something between the two of you. On: they may also stop you to ask what you make of distant news. Their own deeds and yours are always allowed either way." />
     <string id="CR_MCM_CharactersSetTheScene" text="Characters Set The Scene" />
