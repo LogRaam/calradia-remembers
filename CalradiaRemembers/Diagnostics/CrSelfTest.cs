@@ -327,6 +327,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("war_duty_ledger", Severity.Light, "Maifailun (Nexus, 15/10/2026): a vassal who sits out the realm's war is called to account, so the mod must see his service. On a fresh ledger through the real upkeep: the realm the player is sworn to (none as a mercenary or a free lord) and its enemy kingdoms are recorded from today, so no one owes on the first day. A battle against a realm at war with his counts as service; one against bandits does not. Restores the player's own ledger", TestWarDutyLedger),
          new SelfTest("aims_conversation", Severity.Light, "CrAims (tashmetu, 14/10/2026: lords with aims of their own; 'the real risk is a lord who brings up Lakonon in every conversation'). A test aim is registered on a real lord not at war with the player; a conversation opening with him gives him leave to raise it and the encounter context carries his want; a second conversation the same day does not give it again; the leave ends with the conversation. An aim Calradia Remembers seeds for its own mechanics is not voiced by the generic section. Retracts both aims", TestAimsConversation),
          new SelfTest("initiative_director", Severity.Light, "Gabriel 28/10: one conductor decides whose turn it is to come to the player unasked; its queue and its turns are kept in the save. Writes a copy of the live state with a request and a turn, reads it back through the save's own serializer, and expects the same keys, families, ranks and hours (the init-only fields filled under this runtime). Then asks the rule on that copy at a calm moment and expects a turn given. Touches no live state", TestInitiativeDirector),
+         new SelfTest("initiative_turns", Severity.Light, "Gabriel 28/10: lords and the rest ask the conductor before they come to the player unasked. Through the REAL MayKnock: a lord asking right after another turn waits (too soon), his request is kept, no turn is recorded for him; asked again at a free moment he has it. Skipped when the pace is Off (each system paces itself). The live queue and turns are put back as they were", TestInitiativeTurns),
          new SelfTest("aims_channels", Severity.Light, "CrAims audience and letter channels (tashmetu 14/10: 'nobody takes the first step with the player'; Gabriel 28/10: 'fait 2 et 1'). A test aim open to audiences and letters is registered on a lord at peace with the player: he may raise it by audience and by letter; an audience he sought gives him leave in the conversation that follows, recorded as an audience, even with the conversation channel closed; after it, the letter waits (raised too recently). An aim closed to audiences is not a reason to seek the player. Retracts after", TestAimsChannels),
          new SelfTest("aims_door", Severity.Light, "The public CrAims door (tashmetu, 14/10/2026: 'nobody takes the first step with the player'; proposed in ROADMAP, approved by Gabriel 20/10/2026). Registers an aim for a lord at peace with the player through the REAL door: accepted, updated under the same id, refused for a second aim on the same lord, an unknown hero, and CR's own name; a conversation opened with him gives him leave and the context carries the want; CrAims.Raised tells the mod, with the aim's id, the lord and the channel; retracted, it is gone. Retracts and closes after", TestAimsDoor),
          new SelfTest("player_named_on_screen", Severity.Light, "Gabriel (17/10/2026): a grievance read 'over The marriage was ended by the player's own choice'; never 'the player' in the game, the character by name. Passes a stored cause saying 'the player' through the real grievance line and the real chat message line, and asserts both show the player's name, never 'the player', and that a sentence cause follows a colon. Changes nothing", TestPlayerNamedOnScreen),
@@ -19080,6 +19081,53 @@ namespace CalradiaRemembers.Diagnostics
          InitiativeDecision d = WorldInitiativePolicy.Decide(back?.Requests, back?.Grants, new InitiativeSettings(),
             new InitiativeMoment {NowHour = now, KeptSinceHour = now - 48}, 0.5);
          t.Expect("calmMomentGivesTheTurn", d.Verdict, InitiativeVerdict.Granted);
+
+         return t.Line();
+      }
+
+      private static string TestInitiativeTurns(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("initiative_turns");
+         Initiative.WorldInitiativeBehavior director = Initiative.WorldInitiativeBehavior.Instance;
+         if (t.Skip(director == null, "the director is not registered")) return t.Line();
+         if (t.Skip(ModSettings.WorldInitiativeOff, "the world's initiative is Off in the MCM")) return t.Line();
+         if (t.Skip(director.MomentAt(CampaignTime.Now.ToHours).Busy, "the player is busy right now")) return t.Line();
+         if (t.Skip(director.MomentAt(CampaignTime.Now.ToHours).ActiveCount > 0, "a lord is riding after the player right now")) return t.Line();
+
+         Initiative.WorldInitiativeState live = director.State;
+         var savedRequests = live.Requests.ToList();
+         var savedGrants = live.Grants.ToList();
+         double savedSettled = live.LastSettledHour, savedOwnTalk = live.LastOwnTalkHour;
+         const string key = "road:cr_selftest";
+         double now = CampaignTime.Now.ToHours;
+
+         try
+         {
+            live.LastSettledHour = double.MinValue;
+            live.LastOwnTalkHour = double.MinValue;
+            live.Requests.Clear();
+            live.Grants.Clear();
+            live.Grants.Add(new InitiativeGrant {Key = "cr_selftest_before", Family = InitiativeFamily.Letters, GrantedAtHour = now - 0.5});
+
+            // STAKE: two knocks back to back pull the player out of the game: the second waits, and nothing is recorded for it.
+            t.Expect("waitsRightAfterAnother", director.MayKnock(key, InitiativeFamily.Lords, InitiativeRank.Pressing), false);
+            t.Expect("requestKept", live.Requests.Any(r => r.Key == key), true);
+            t.Expect("noTurnRecorded", live.Grants.Any(g => g.Key == key), false);
+
+            // STAKE: at a free moment the lord has his turn, and it is recorded.
+            live.Grants.Clear();
+            t.Expect("hasItsTurnWhenFree", director.MayKnock(key, InitiativeFamily.Lords, InitiativeRank.Pressing), true);
+            t.Expect("turnRecorded", live.Grants.Any(g => g.Key == key), true);
+         }
+         finally
+         {
+            live.Requests.Clear();
+            live.Requests.AddRange(savedRequests);
+            live.Grants.Clear();
+            live.Grants.AddRange(savedGrants);
+            live.LastSettledHour = savedSettled;
+            live.LastOwnTalkHour = savedOwnTalk;
+         }
 
          return t.Line();
       }

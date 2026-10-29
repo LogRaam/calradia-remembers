@@ -161,6 +161,12 @@ namespace CalradiaRemembers.Interception
          Hero npc = Hero.FindFirst(h => h != null && h.StringId == best.HeroId);
          if (npc == null) return false;
 
+         // The world's initiative (Gabriel, 28/10/2026): asked before the cooldown is stamped; a lord kept waiting asks
+         // again on the player's next entry, and his request goes when the player leaves the town ("here:").
+         bool myTurn = Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"{Initiative.WorldInitiativeBehavior.HerePrefix}audience:{npc.StringId}",
+                          Logic.Initiative.InitiativeRanks.FamilyOf(best.Trigger), Logic.Initiative.InitiativeRanks.RankOf(best.Trigger), npc) ?? true;
+         if (!myTurn) return false;
+
          RequestAudience(npc, best.Trigger, best.Detail);
 
          return true;

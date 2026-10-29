@@ -38,6 +38,9 @@ namespace CalradiaRemembers.Initiative
       // Additive: a save written before this has no such key and starts keeping turns from its first load.
       private const string SaveKey = "cr_world_initiative";
 
+      /// <summary>The prefix of a request bound to the place the player stands in; such requests go when the player leaves.</summary>
+      internal const string HerePrefix = "here:";
+
       /// <summary>Hours within which a conversation with a character the director just gave a turn is that turn, not the player's own.</summary>
       private const double TurnConversationHours = 72;
 
@@ -67,6 +70,11 @@ namespace CalradiaRemembers.Initiative
          CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, _ =>
          {
             if (State.KeptSinceHour <= 0) State.KeptSinceHour = Now;
+         });
+         // A request bound to a place ("here:" keys: a word asked in the town) goes when the player leaves it.
+         CampaignEvents.OnSettlementLeftEvent.AddNonSerializedListener(this, (party, _) =>
+         {
+            if (party != null && party == TaleWorlds.CampaignSystem.Party.MobileParty.MainParty) State.Requests.RemoveAll(r => r.Key.StartsWith(HerePrefix, StringComparison.Ordinal));
          });
          CampaignEvents.MapEventEnded.AddNonSerializedListener(this, e =>
          {

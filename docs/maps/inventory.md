@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 585 types in 63 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1398 types in 48 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1399 types in 48 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 276 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2084,7 +2084,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `UnblessedMarriageFacts` | public class | Facts for Tier2GrudgeRules.UnblessedMarriageGrudge: a family member who opposed an unblessed marriage the player made. |
 | `WorldEventFacts` | public class | A persisted WorldEvent, as read by the engine-side scan. |
 
-### CalradiaRemembers.Logic.Initiative (13)
+### CalradiaRemembers.Logic.Initiative (14)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2095,6 +2095,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `InitiativeMoment` | public class | The moment the director is asked at. |
 | `InitiativePace` | public enum | How readily the world comes to the player, as one dial over the fine settings. |
 | `InitiativeRank` | public enum | How the request ranks: the world's imposition, a matter that presses, or the rest. |
+| `InitiativeRanks` | public static class | Who knocks and how it ranks, for a reason a system already has. |
 | `InitiativeRequest` | public class | One system's wish to come to the player. |
 | `InitiativeSettings` | public class | The player's tuning (MCM "The World's Initiative"); a pace fills them all. |
 | `InitiativeVariety` | public enum | How much a family that just had its turn steps back. |

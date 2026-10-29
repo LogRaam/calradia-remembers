@@ -468,6 +468,11 @@ namespace CalradiaRemembers.Interception
          }
       }
 
+      /// <summary>Whether the world's initiative gives this lord the turn to ride out to the player now (true when it is Off or absent).</summary>
+      private static bool AskTheConductor(Hero lord, InterceptionTrigger trigger)
+         => Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"road:{lord.StringId}", Logic.Initiative.InitiativeRanks.FamilyOf(trigger),
+               Logic.Initiative.InitiativeRanks.RankOf(trigger), lord) ?? true;
+
       /// <summary>
       ///   Production entry point for the stance-consequence weekly tick ("stance with teeth" increment 2):
       ///   a lord whose earned posture warrants the Intercept verdict actually rides out, through the same
@@ -484,6 +489,7 @@ namespace CalradiaRemembers.Interception
          var today = (int) CampaignTime.Now.ToDays;
          if (_cooldown.TryGetValue(lord.StringId, out int last) && today - last < CooldownDays) return false;
 
+         if (!AskTheConductor(lord, InterceptionTrigger.HeardOfDeed)) return false;
          BeginPursuit(lord, InterceptionTrigger.HeardOfDeed, today);
 
          return _activePursuerId == lord.StringId;
@@ -1873,6 +1879,9 @@ namespace CalradiaRemembers.Interception
                _ => null
             };
 
+            // The world's initiative (Gabriel, 28/10/2026): the conductor says whether it is a lord's turn to come to the
+            // player. Asked before anything is stamped, so a lord kept waiting keeps no cooldown and rides another day.
+            if (!AskTheConductor(lord, trigger)) return;
             BeginPursuit(lord, trigger, today, detail);
 
             return; // one interception started per day

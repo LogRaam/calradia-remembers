@@ -15,8 +15,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   `WorldInitiativeBehavior`, save key `cr_world_initiative`). MCM group "The World's Initiative": How Often the World
   Comes to You (Off = each system paces itself as before; Rarely; Occasionally, the default; Often; Custom), the Custom
   timing, Variety, Requests Expire After, Letters Count As (Half), Urgent Matters Wait Their Turn (off), and a weight per
-  kind. `cr.knocks` shows who waits and who had a turn. Which systems ask the conductor is listed below as they are
-  wired. cr.test `initiative_director`.
+  kind. `cr.knocks` shows who waits and who had a turn. cr.test `initiative_director`, `initiative_turns`.
+  Asking the conductor now (each asks before it stamps its own cooldown, so a lord kept waiting comes another day):
+  - a lord riding out to the player on the road, including the stance-driven ride (key `road:<lord>`, the lords' family,
+    or the aims' for a lord's own aim; the war duty imposed; a grudge, news, a nemesis or a patrol pressing; a kindness
+    or an aim ordinary, `InitiativeRanks`);
+  - a lord asking for a word in the town the player walks into (`here:audience:<lord>`, withdrawn when the player
+    leaves the town).
 - **What matters most to a character, and a What You Know section in the encyclopedia** (Gabriel, 27/10/2026: "Et
   aussi, 'qu'est-ce qui compte le plus' pour un NPC. Ses enfants? Sa richesse? Son amoureux? etc.", then "On va le
   faire maintenant" and "il faudra penser a les indiquer dans des sections de l'encyclopedia"). Every character met is
