@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 583 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1382 types in 47 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1384 types in 47 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 276 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1468,7 +1468,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestOutcomeFacts` | public class | A terminated InformalQuest (Completed), as read by the engine-side scan. |
 | `TraitFacts` | public class | A hero's trait levels relevant to appreciation formation and decay: Generosity and Mercy (a warm heart remembers a favour more readily and for longer), Calculating (a cold ledger-keeper is less moved by a mere kindness),... |
 
-### CalradiaRemembers.Logic.Assemblies (116)
+### CalradiaRemembers.Logic.Assemblies (118)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1557,6 +1557,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NonAggressionPactPolicy` | public static class | Pure policy for non_aggression_pact: the fixed term and the faction-pair/breach-fault predicates. |
 | `OathGroundingCodec` | public static class | Composes/splits swear_oath's (oath kind, target value) pair into AssemblyResolutionEntry.TargetHint's one slot. |
 | `OathOfferPolicy` | public static class | Pure 1:1 teaching gate for swear_oath: mirrors the council's own swearer eligibility. |
+| `ParleyEntryFacts` | public class | What decides whether a parley is offered with one realm. |
+| `ParleyEntryPolicy` | public static class | Whether the campaign bar offers a parley with a realm. |
 | `PartyCommandOfferPolicy` | public static class | The 1:1 conversation TEACHING gates for the three party-command verbs. |
 | `PartyRoleParser` | public static class | Resolves a council resolution's TargetHint string to the party role it names. |
 | `PledgeAgainstPolicy` | public static class | Pure policy for pledge_against's council-only caveat: refusing a pledge against a fellow seat. |

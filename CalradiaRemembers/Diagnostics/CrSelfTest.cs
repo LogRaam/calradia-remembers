@@ -478,6 +478,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("stance_warning", Severity.Heavy, "stance with teeth increment 2: seed a secret scheme against the player -> force a friendly Warning-verdict lord -> assert the letter NAMES the real plotter", TestStanceWarning),
          new SelfTest("scheme_assist", Severity.Heavy, "plot + regard -> PlayerAssists -> assert the plot advanced", TestSchemeAssist),
          new SelfTest("pregnancy", Severity.Heavy, "fertile female -> TryConceive(force) -> assert pregnant", TestPregnancy),
+         new SelfTest("parley_entry", Severity.Light, "timicu 28/10: the parley with an enemy ruler (peace, tribute, prisoners, hostage, non-aggression) was reachable only from the console. Reads the council picker's parley lines from the live game: every realm offered is at war with the player's faction and has a ruler, and none is offered unless the player leads their faction. Opens no council", TestParleyEntry),
          new SelfTest("brawl_initiative", Severity.Light, "avalanche24 28/10: a companion hired hours before called him out for being told to follow orders; Gabriel 28/10: nobles duel, a companion only brawls. Asks the real resolver (the gate the prompt and the bridge both ask): a lord fights with steel, a companion with fists; a companion with no grudge and a plain regard may not call the player out; soured to -30 she may, unless the player is far the better fighter and she is not reckless. Restores her regard; arms nothing", TestBrawlInitiative),
          new SelfTest("station_definitions", Severity.Light, "Gabriel 28/10: one definition per social status, adjusting to the player's rung; avalanche24 28/10: companions and a landowner spoke above their station. Reads every station definition as the game loaded it (ModuleData/stations, Custom and patches applied): each says who the character is and meets each of the five rungs. Then finds a living companion, notable or lord and expects the prompt's station lines for them to be the definition's. Changes no game state", TestStationDefinitions),
          new SelfTest("player_rung", Severity.Light, "Gabriel 28/10: a villager is ruder to a nobody than to the head of a tier 3 house; avalanche24 28/10: a weak companion boasted before a master of arms. Reads the player's rung from the live game and the line a real lord would be given about the player: it names the player's place in the world, and the gap at arms follows the two fighters' prowess. Changes no game state", TestPlayerRung),
@@ -8531,6 +8532,22 @@ namespace CalradiaRemembers.Diagnostics
             t.Note($"ageGate={infertile.Name}(age {infertile.Age:0})");
             t.Expect("infertileRefused", refused == null, true);
          }
+
+         return t.Line();
+      }
+
+      private static string TestParleyEntry(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("parley_entry");
+         IFaction mine = Hero.MainHero?.MapFaction;
+         if (t.Abort(mine == null, "the player has no faction")) return t.Line();
+
+         List<Kingdom> offered = Chat.CouncilEntry.ParleyTargets();
+         bool leads = Hero.MainHero.IsFactionLeader;
+         int atWar = Kingdom.All.Count(k => k != null && k != mine && !k.IsEliminated && k.Leader != null && FactionManager.IsAtWarAgainstFaction(mine, k));
+         t.Note($"leads={leads}, realms at war with a ruler={atWar}, offered={offered.Count} ({string.Join(", ", offered.Select(k => k.Name.ToString()))})");
+         t.Expect("everyOfferedIsAnEnemyWithARuler", offered.All(k => k.Leader != null && FactionManager.IsAtWarAgainstFaction(mine, k)), true);
+         t.Expect("offeredOnlyToOneWhoLeads", leads ? offered.Count == atWar : offered.Count == 0, true);
 
          return t.Line();
       }

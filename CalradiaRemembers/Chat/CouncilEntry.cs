@@ -13,6 +13,7 @@ using System.Linq;
 using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Assemblies;
+using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -25,8 +26,8 @@ namespace CalradiaRemembers.Chat
    /// <summary>Shared "convene a council" logic behind the campaign-bar button (reachable on the map and inside a settlement).</summary>
    public static class CouncilEntry
    {
-      // The scopes a player convenes directly. Assembly is the separate invite-and-wait model; Parley is
-      // contextual to a specific war (it needs an enemy target), so neither belongs in this general picker.
+      // The scopes a player convenes directly. Assembly is the separate invite-and-wait model. Parley needs an enemy
+      // target, so it is offered after these, one line per realm (ParleyTargets, timicu 28/10/2026).
       private static readonly CouncilScope[] PlayerScopes =
          {CouncilScope.Party, CouncilScope.Companions, CouncilScope.Family, CouncilScope.ClanLords, CouncilScope.WarCouncil};
 
@@ -42,7 +43,36 @@ namespace CalradiaRemembers.Chat
             }
             catch (Exception ex) { ModLog.Error($"[COUNCIL ENTRY] scope {scope} check failed: {ex.Message}"); }
 
+         if (ParleyTargets().Count > 0) list.Add(CouncilScope.Parley);
+
          return list;
+      }
+
+      /// <summary>
+      ///   The realms the player may seek a parley with right now (ParleyEntryPolicy): at war with the faction the player
+      ///   leads, still standing, with a ruler to meet. timicu (Nexus, 28/10/2026): peace treaties and concessions
+      ///   negotiated in conversation; the parley was built but reachable only from the console.
+      /// </summary>
+      public static List<Kingdom> ParleyTargets()
+      {
+         try
+         {
+            IFaction mine = Hero.MainHero?.MapFaction;
+            bool leads = Hero.MainHero?.IsFactionLeader == true;
+            if (mine == null) return new List<Kingdom>();
+
+            return Kingdom.All.Where(k => k != null && k != mine && ParleyEntryPolicy.MayOffer(new ParleyEntryFacts {
+                             PlayerLeadsFaction = leads, AtWarWithPlayer = FactionManager.IsAtWarAgainstFaction(mine, k),
+                             HasRuler = k.Leader != null, Eliminated = k.IsEliminated
+                          }))
+                          .ToList();
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[COUNCIL ENTRY] parley targets failed: {ex.GetType().Name}: {ex.Message}");
+
+            return new List<Kingdom>();
+         }
       }
 
       /// <summary>
@@ -95,6 +125,8 @@ namespace CalradiaRemembers.Chat
          List<InquiryElement> elements = PlayerScopes
                                          .Select(s => new InquiryElement(s, ScopeLabel(s) + " (" + CouncilRosterResolver.Seated(s).Count + ")", null))
                                          .ToList();
+         // A parley with each realm at war with the player's, its ruler named (timicu, 28/10/2026).
+         elements.AddRange(ParleyTargets().Select(k => new InquiryElement(k, $"A parley with {k.Name} ({k.Leader?.Name})", null)));
 
          MBInformationManager.ShowMultiSelectionInquiry(
             new MultiSelectionInquiryData(
@@ -120,13 +152,14 @@ namespace CalradiaRemembers.Chat
       {
          if (selected == null || selected.Count == 0) return;
          if (selected[0].Identifier is CouncilScope scope) Convene(scope);
+         else if (selected[0].Identifier is Kingdom realm) Convene(CouncilScope.Parley, realm.StringId);
       }
 
-      private static void Convene(CouncilScope scope)
+      private static void Convene(CouncilScope scope, string parleyTargetFactionId = null)
       {
          try
          {
-            string result = CouncilConversationStager.StageCouncil(scope);
+            string result = CouncilConversationStager.StageCouncil(scope, parleyTargetFactionId);
             ModLog.Info($"[COUNCIL ENTRY] convene {scope} -> {result}");
 
             // Staging did not start and no window opened: surface the reason instead of doing nothing.

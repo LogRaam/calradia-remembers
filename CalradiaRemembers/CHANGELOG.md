@@ -45,6 +45,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   Defaults awaiting Gabriel: a cold gift costs nothing; pastimes not built yet (narrated only, when they come).
 
 ### Changed
+- **A parley with an enemy ruler, from the campaign bar** (timicu, Nexus, 28/10/2026: "negotiating wars, peace treaties
+  [...] through natural conversations with NPCs, with successful negotiations actually changing the game world"; Gabriel,
+  28/10/2026: "go"). The parley (peace, tribute, prisoners released, a hostage given, a non-aggression pact) was built and
+  tested but opened only from the console (`cr.council parley <faction>`). The council picker now lists "A parley with
+  {realm} ({ruler})" for every realm at war with the faction the player leads (`ParleyEntryPolicy`: a ruler or the head of
+  an independent clan only, since the parley's peace and war are refused to anyone else). cr.test `parley_entry`.
 - **Companions know their place, and the duel is a noble's affair** (avalanche24, Nexus, 28/10/2026: a companion reasoned
   she was "from the Rauvegroving clan of Vlandia ... loyal to her house", another told him to "take her men and prove"
   himself, a companion hired hours before and a landowner with no skill at arms each called him out to a duel; Gabriel,
