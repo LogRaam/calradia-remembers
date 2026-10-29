@@ -32,5 +32,11 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>The game day this letter first became eligible to send; the anchor for aging and tie-breaks.</summary>
         public int EligibleSinceDay { get; set; }
+
+        /// <summary>
+        ///   The player awaits this sender's letters (the ribbon bookmark, Gabriel 28/10/2026): such a letter comes before
+        ///   any other the budget allows. Priority only: the budget, the cooldowns and the courier are unchanged.
+        /// </summary>
+        public bool Awaited { get; set; }
     }
 }

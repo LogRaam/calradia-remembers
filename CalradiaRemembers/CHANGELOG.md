@@ -26,7 +26,17 @@ All notable changes to the mod, newest first. Dates are calendar dates.
     companion asking to be heard (`retention:<id>`), a war-weary one asking to retire (`retirement:<id>`). A companion
     kept waiting by the conductor is not turned away by the player: no refusal is counted, no decline cooldown starts,
     and they ask again at the next pass. Leaving, retiring, a plot uncovered and an errand's news press; the rest can
-    wait (`InitiativeRanks.RankOf(CompanionAudienceReason)`).
+    wait (`InitiativeRanks.RankOf(CompanionAudienceReason)`);
+  - the mailbox: the letter it chose asks for its turn (`letter:<sender>:<reason>`, a letter costing what Letters Count
+    As says); kept waiting, it competes again the next day. The letters that bypass the mailbox (a divorce, child
+    support, a farewell, the war duty, a patrol report, a reply to the player, another mod's letter) do not ask yet.
+  Not asking yet: tales on the map, the prisoner envoy, the war council offer, the arrest, the town ambush, captive
+  scenes. Nothing feeds the Household family yet.
+- **An awaited correspondence** (Gabriel, 28/10/2026: "si je suis en train d'ecrire des lettres d'amour a une NPC,
+  peut-etre que j'aimerais avoir de ses nouvelles rapidement meme si c'est la guerre"; the ribbon bookmark he chose over a
+  star). `NpcProfile.LettersAwaited` (additive): that character's letters come first in the mailbox, past the diversity
+  roll (`LetterCandidate.Awaited`), and press with the world's initiative. Priority only: the budget, the cooldowns and
+  the courier are unchanged. Set with `cr.awaited <name>` until the ribbon is drawn and put in the letter book.
 - **What matters most to a character, and a What You Know section in the encyclopedia** (Gabriel, 27/10/2026: "Et
   aussi, 'qu'est-ce qui compte le plus' pour un NPC. Ses enfants? Sa richesse? Son amoureux? etc.", then "On va le
   faire maintenant" and "il faudra penser a les indiquer dans des sections de l'encyclopedia"). Every character met is

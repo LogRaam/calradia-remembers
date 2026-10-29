@@ -108,12 +108,22 @@ namespace CalradiaRemembers.Letters
          LetterBudget budget = LetterPacingRules.BudgetFor(ModSettings.LettersFromNpcs);
          IReadOnlyList<int> recent = GatherRecentReleaseDays(store, today, budget.WindowDays);
 
+         // The ribbon bookmark: a correspondent the player awaits writes first (priority only).
+         foreach (LetterCandidate c in pool) c.Awaited = store.Get(c.SenderId)?.LettersAwaited == true;
+
          LetterCandidate chosen = LetterMailboxPolicy.SelectNext(pool, recent, today, budget, MBRandom.RandomInt(100));
 
          if (ModSettings.VerboseLogging)
             ModLog.Info($"[LETTER] mailbox tick: pool={pool.Count}, budget={budget.MaxPerWindow}/{budget.WindowDays}d, released={(chosen != null ? chosen.Reason.ToString() : "none")}.");
 
          if (chosen == null || !release.TryGetValue(chosen, out Action act)) return;
+
+         // The world's initiative (Gabriel, 28/10/2026): the letter the mailbox chose asks the conductor for its turn; kept
+         // waiting, it stays a candidate and competes again tomorrow. An awaited correspondent's letter presses.
+         Hero sender = Hero.FindFirst(h => h != null && h.StringId == chosen.SenderId);
+         bool turn = Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"letter:{chosen.SenderId}:{chosen.Reason}", Logic.Initiative.InitiativeFamily.Letters,
+                        chosen.Awaited ? Logic.Initiative.InitiativeRank.Pressing : Logic.Initiative.InitiativeRank.Ordinary, sender, isLetter: true) ?? true;
+         if (!turn) return;
 
          act();
          _lastDailyLetterDay = today;

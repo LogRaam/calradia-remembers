@@ -218,5 +218,29 @@ namespace CalradiaRemembers.Tests
 
             first.SenderId.Should().Be(second.SenderId);
         }
+
+        // STAKE: Gabriel's love letters in wartime: the correspondent the player marked as awaited writes before louder
+        // news, and the diversity roll never passes them over.
+        [Test]
+        public void GIVEN_an_awaited_correspondent_among_louder_letters_WHEN_selecting_THEN_the_awaited_letter_comes_first()
+        {
+            LetterBudget budget = Budget(maxPerWindow: 2, windowDays: 7, diversityChancePercent: 100);
+            LetterCandidate beloved = Candidate("lady.awaited", 30, Today);
+            beloved.Awaited = true;
+            var candidates = new List<LetterCandidate> { Candidate("lord.war", 90, Today - 5), beloved };
+
+            LetterMailboxPolicy.SelectNext(candidates, new List<int>(), Today, budget, diversityRoll: 0).Should().BeSameAs(beloved);
+        }
+
+        // STAKE: priority only (Gabriel: "ne fait que donner la priorite"): a spent budget still holds the awaited letter back.
+        [Test]
+        public void GIVEN_an_awaited_correspondent_and_a_spent_budget_WHEN_selecting_THEN_nothing_is_released()
+        {
+            LetterBudget budget = Budget(maxPerWindow: 1, windowDays: 7, diversityChancePercent: 0);
+            LetterCandidate beloved = Candidate("lady.awaited", 30, Today);
+            beloved.Awaited = true;
+
+            LetterMailboxPolicy.SelectNext(new List<LetterCandidate> { beloved }, new List<int> { Today - 1 }, Today, budget, diversityRoll: 99).Should().BeNull();
+        }
     }
 }

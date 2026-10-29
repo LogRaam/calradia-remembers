@@ -58,5 +58,25 @@ namespace CalradiaRemembers
 
          return sb.ToString().TrimEnd();
       }
+
+      /// <summary>
+      ///   cr.awaited [name]: marks or unmarks a correspondence as awaited (the ribbon bookmark, Gabriel 28/10/2026): their
+      ///   letters come before others' in the mailbox and press with the world's initiative. Until the ribbon is in the book.
+      /// </summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("awaited", "cr")]
+      public static string Awaited(List<string> args)
+      {
+         if (!TryContext(out Behaviors.NpcMemoryCampaignBehavior behavior, out string error)) return error;
+         Hero hero = ResolveHero(args);
+         if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
+
+         NpcMemoryService.Core.Models.NpcProfile profile = GetOrCreateProfile(behavior, hero);
+         profile.LettersAwaited = !profile.LettersAwaited;
+         behavior.Store.Set(profile);
+
+         return profile.LettersAwaited
+            ? $"{hero.Name}'s letters are awaited: they come before others' (the budget still holds)."
+            : $"{hero.Name}'s letters are no longer awaited.";
+      }
    }
 }

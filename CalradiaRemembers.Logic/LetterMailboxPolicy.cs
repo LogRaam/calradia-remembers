@@ -120,6 +120,10 @@ namespace CalradiaRemembers.Logic
                 .ThenBy(c => c.SenderId, StringComparer.Ordinal)
                 .ToList();
 
+            // An awaited correspondence (the ribbon bookmark, Gabriel 28/10/2026) comes first, past the diversity roll.
+            LetterCandidate awaited = ordered.FirstOrDefault(c => c.Awaited);
+            if (awaited != null) return awaited;
+
             LetterCandidate top = ordered[0];
             int topWeight = EffectiveWeight(top, today);
 
