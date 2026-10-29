@@ -725,9 +725,14 @@ namespace CalradiaRemembers.Chat
 
       private void RefreshWitnessUi()
       {
+         // Whoever left the room leaves the cast too (the participants panel, 29/10/2026): a departed voice must
+         // neither keep the scene an ensemble nor hold one of the three seats.
+         ForgetDepartedFromCast();
+
          bool any = _witnesses.Count > 0;
+         // The line opens the participants panel (RaveN017Mod, 29/10/2026), so it says so.
          string baseList = any
-            ? "Present: " + string.Join(" · ", _witnesses.Select(w => w.Name))
+            ? "Present: " + string.Join(" · ", _witnesses.Select(w => w.Name)) + (IsParticipantsAvailable ? "   (click: who speaks)" : "")
             : "";
 
          // Sprint 15B: when addressing a witness, surface it so a misfire is visible.
@@ -753,6 +758,7 @@ namespace CalradiaRemembers.Chat
          // chat, revised per Gabriel's ruling: this is now a real multi-participant scene like any other, so the
          // player may open the floor to every chosen companion at once, exactly as elsewhere.
          IsRoundTableVisible = _roundTable.ComputeVisible(_witnesses.Count, IsCaptiveEncounter, _conversationEnded);
+         RefreshParticipants();
       }
 
       /// <summary>A ChatSpeaker for a present witness (resolved Hero + stored profile + colour), or null if gone.</summary>

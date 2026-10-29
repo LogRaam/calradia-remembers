@@ -71,20 +71,31 @@
                             Brush.TextHorizontalAlignment="Center" Text="?" IsDisabled="true" />
               </Children>
             </ButtonWidget>
-            <TextWidget Id="WitnessesTextWidget"
-                        WidthSizePolicy="StretchToParent"
-                        HeightSizePolicy="Fixed"
-                        SuggestedHeight="20"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Top"
-                        MarginTop="47"
-                        IsVisible="@HasWitnesses"
-                        Brush="Default"
-                        Brush.FontSize="14"
-                        Brush.FontColor="#7a9070FF"
-                        Brush.TextHorizontalAlignment="Center"
-                        Text="@WitnessesText"
-                        IsDisabled="true" />
+            <!-- The witnesses line opens the participants panel (29/10/2026). -->
+            <ButtonWidget Id="WitnessesLineButton"
+                          WidthSizePolicy="StretchToParent"
+                          HeightSizePolicy="Fixed"
+                          SuggestedHeight="20"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Top"
+                          MarginTop="47"
+                          MarginLeft="60"
+                          MarginRight="60"
+                          IsVisible="@HasWitnesses"
+                          DoNotPassEventsToChildren="true"
+                          Command.Click="ExecuteToggleParticipants">
+              <Children>
+                <TextWidget Id="WitnessesTextWidget"
+                            WidthSizePolicy="StretchToParent"
+                            HeightSizePolicy="StretchToParent"
+                            Brush="Default"
+                            Brush.FontSize="14"
+                            Brush.FontColor="#7a9070FF"
+                            Brush.TextHorizontalAlignment="Center"
+                            Text="@WitnessesText"
+                            IsDisabled="true" />
+              </Children>
+            </ButtonWidget>
             <TextWidget Id="RelationSummaryWidget"
                         WidthSizePolicy="StretchToParent"
                         HeightSizePolicy="Fixed"
@@ -861,6 +872,101 @@
           </Children>
         </ButtonWidget>
 
+      </Children>
+    </Widget>
+
+    <!-- The participants panel (RaveN017Mod / Gabriel, 29/10/2026): opened by the witnesses line, beside the chat on
+         its left. Lists the one spoken to, the active voices and the witnesses; a click on a name turns the player to
+         them (a witness joins while there is room), "Step back" sends an active voice back among the witnesses. -->
+    <Widget Id="ParticipantsArea"
+            WidthSizePolicy="StretchToParent"
+            HeightSizePolicy="StretchToParent"
+            MarginRight="!Chat.Width"
+            PositionXOffset="@ChatVisualOffsetX"
+            IsVisible="@IsParticipantsOpen"
+            DoNotAcceptEvents="true">
+      <Children>
+        <Widget Id="ParticipantsPanel"
+                WidthSizePolicy="Fixed"
+                HeightSizePolicy="CoverChildren"
+                SuggestedWidth="300"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                MarginTop="100"
+                MarginRight="16"
+                Sprite="BlankWhiteSquare_9"
+                Color="#1a1612F2">
+          <Children>
+            <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                    Sprite="frame_9" ExtendLeft="8" ExtendTop="8" ExtendRight="8" ExtendBottom="8"
+                    AlphaFactor="0.4" IsDisabled="true" />
+            <ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                       MarginLeft="14" MarginRight="14" MarginTop="12" MarginBottom="12"
+                       StackLayout.LayoutMethod="VerticalTopToBottom">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="28"
+                            Brush="Default" Brush.FontSize="20" Brush.FontColor="#c8a878FF"
+                            Brush.TextHorizontalAlignment="Center" Text="@ParticipantsTitle" IsDisabled="true" />
+                <NavigatableListPanel DataSource="{ParticipantRows}"
+                                      WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                      MarginTop="6"
+                                      StackLayout.LayoutMethod="VerticalTopToBottom">
+                  <ItemTemplate>
+                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="46" MarginBottom="4">
+                      <Children>
+                        <ButtonWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                      MarginRight="92"
+                                      Sprite="BlankWhiteSquare_9" Color="#0d0a0899"
+                                      IsDisabled="@IsAddressDisabled"
+                                      DoNotPassEventsToChildren="true"
+                                      Command.Click="ExecuteAddress">
+                          <Children>
+                            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="24"
+                                        VerticalAlignment="Top" MarginLeft="8" MarginTop="2"
+                                        Brush="Default" Brush.FontSize="16" Brush.FontColor="#e0d0b0FF"
+                                        Brush.TextHorizontalAlignment="Left" Text="@NameText" IsDisabled="true" />
+                            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="18"
+                                        VerticalAlignment="Bottom" MarginLeft="8" MarginBottom="2"
+                                        Brush="Default" Brush.FontSize="12" Brush.FontColor="#7a9070FF"
+                                        Brush.TextHorizontalAlignment="Left" Text="@StandingText" IsDisabled="true" />
+                          </Children>
+                        </ButtonWidget>
+                        <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="86" SuggestedHeight="24"
+                                      HorizontalAlignment="Right" VerticalAlignment="Center"
+                                      IsVisible="@CanStepBack"
+                                      DoNotPassEventsToChildren="true"
+                                      Brush="ButtonBrush1"
+                                      UpdateChildrenStates="true"
+                                      Command.Click="ExecuteStepBack">
+                          <Children>
+                            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                                        Brush="Popup.Button.Text" Brush.FontSize="13" Text="@StepBackText" />
+                          </Children>
+                        </ButtonWidget>
+                      </Children>
+                    </Widget>
+                  </ItemTemplate>
+                </NavigatableListPanel>
+                <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginTop="6"
+                                Brush="Default" Brush.FontSize="12" Brush.FontColor="#9a8a70FF"
+                                Brush.TextHorizontalAlignment="Center" Text="@ParticipantsFootnote" IsDisabled="true" />
+                <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="100" SuggestedHeight="24"
+                              HorizontalAlignment="Center" MarginTop="8"
+                              DoNotPassEventsToChildren="true"
+                              Brush="ButtonBrush1"
+                              UpdateChildrenStates="true"
+                              Command.Click="ExecuteCloseParticipants">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="13" Text="@ParticipantsCloseText" />
+                  </Children>
+                </ButtonWidget>
+              </Children>
+            </ListPanel>
+          </Children>
+        </Widget>
       </Children>
     </Widget>
 

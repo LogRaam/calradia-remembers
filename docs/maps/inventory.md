@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 585 types in 63 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1399 types in 48 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 586 types in 63 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1404 types in 48 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 276 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -187,7 +187,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `NpcMemoryCampaignBehavior` | public class | Bridges the NpcMemoryService SDK to the Bannerlord campaign lifecycle. |
 
-### CalradiaRemembers.Chat (50)
+### CalradiaRemembers.Chat (51)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -209,7 +209,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatScreen` | internal class | A minimal screen that carries the pre-built chat layer and takes focus when pushed. |
 | `ChatScrollablePanel` | public class | Custom ScrollablePanel that supports a deferred "scroll to bottom" request. |
 | `ChatSpeaker` | internal class | One participant of a chat exchange: the main NPC or a present witness, with the hero, stored profile and display colour used to route the turn and render the line. |
-| `ChatViewModel` | public class, partial over 9 files | (no summary) |
+| `ChatViewModel` | public class, partial over 10 files | (no summary) |
 | `CompanionAudiencePayload` | public class | The companion-audience specifics. |
 | `ComposeScrollablePanel` | public class | A plain ScrollablePanel for the composer's multi-line input. |
 | `ConversationMood` | public static class | How far the player has moved each character's mood in the current conversation. |
@@ -236,6 +236,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryEntryViewModel` | public class | One row in the in-chat "shared memories" panel: a muted meta line (the dated day, and the event type when it is not a plain remark) above the memory's summary. |
 | `MemoryScrollablePanel` | public class | A plain ScrollablePanel for the shared-memories list. |
 | `OfferController` | internal class | Owns the offer ("give") flow so it no longer threads through the shared ChatViewModel partials (which forced a surgical-commit dance every release), mirroring RoundTableController and ActionConfirmationController. |
+| `ParticipantRowViewModel` | public class | One person present in the conversation, as the participants panel shows them. |
 | `PortraitScrollablePanel` | public class | A plain ScrollablePanel for the portrait panel's roleplay dossier (facts, background, backstory, appearance, discoveries, grievances, then the portrait at the bottom). |
 | `PostDuelPayload` | public class | The post-duel specifics: who prevailed and what the duel was over, so the resumed chat is coloured correctly. |
 | `ProseFallbackComposer` | public static class | PROSE FALLBACK (Prose + Interpreter composition, truncation safety net): when the PROSE model returns a beat that did not finish cleanly (see Logic.TruncationFallbackPolicy), the caller skips the slow double-budget retry... |
@@ -1888,11 +1889,16 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RetentionStep` | public enum | What the engine should do this tick for an unhappy companion. |
 | `WandererBackstoryPolicy` | public static class | Which of the game's lines are a wanderer's own story, and the one memory that keeps it. |
 
-### CalradiaRemembers.Logic.Conversation (29)
+### CalradiaRemembers.Logic.Conversation (34)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `BriefingReturnDecision` | public static class | The whole decision the briefing return makes, as a pure function of four facts. |
+| `CastPanelFacts` | public class | What the panel is built from. |
+| `CastPanelMember` | public class | One person present, as the chat knows them. |
+| `CastPanelPolicy` | public static class | Builds the participants panel's rows. |
+| `CastPanelRow` | public class | One line of the panel. |
+| `CastPanelStanding` | public enum | Where a row stands in the scene, in the order the panel lists them. |
 | `CastRole` | public enum | A present character's standing in the conversation. |
 | `ChatCloseKind` | public enum | Why a chat is closing, which is what decides how much of the world it gives back. |
 | `ChatClosePlan` | public static class | Which steps a close runs, in order. |

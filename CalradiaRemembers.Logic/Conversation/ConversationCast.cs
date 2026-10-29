@@ -35,6 +35,14 @@ namespace CalradiaRemembers.Logic.Conversation
    /// </summary>
    public sealed class ConversationCast
    {
+      /// <summary>
+      ///   The most voices active at once, the anchor among them (Gabriel, 29/10/2026, the participants panel). Each
+      ///   active voice is its own model call and its own wait on every turn the player speaks, so a larger table
+      ///   belongs to the council, which is built for it. Asked by every road that draws a witness in: the panel's
+      ///   click and being spoken to by name.
+      /// </summary>
+      public const int MaxActiveVoices = 3;
+
       private readonly Dictionary<string, CastRole> _roles = new Dictionary<string, CastRole>();
 
       /// <summary>
@@ -63,6 +71,9 @@ namespace CalradiaRemembers.Logic.Conversation
 
       /// <summary>True once a witness has been drawn in, so two or more voices are active and every active one may speak the turn.</summary>
       public bool IsEnsemble => ActiveCount >= 2;
+
+      /// <summary>True while another witness may still be drawn in (fewer than <see cref="MaxActiveVoices" /> active).</summary>
+      public bool HasRoom => ActiveCount < MaxActiveVoices;
 
       /// <summary>The active participants, the anchor among them.</summary>
       public IReadOnlyList<string> ActiveIds => _roles.Where(kv => kv.Value == CastRole.Active).Select(kv => kv.Key).ToList();
@@ -96,11 +107,13 @@ namespace CalradiaRemembers.Logic.Conversation
       /// <summary>
       ///   Promotes a present witness to a full active participant (they were spoken to and are now in the
       ///   conversation). Returns true only when it actually changed a witness to active; a no-op (false) for the
-      ///   anchor, someone already active, or a character not in the scene.
+      ///   anchor, someone already active, a character not in the scene, or when <see cref="MaxActiveVoices" /> are
+      ///   already active (the witness may still be answered this turn; they simply do not join for good).
       /// </summary>
       public bool Promote(string heroId)
       {
          if (RoleOf(heroId) != CastRole.Witness) return false;
+         if (!HasRoom) return false;
 
          _roles[heroId] = CastRole.Active;
 
@@ -120,6 +133,18 @@ namespace CalradiaRemembers.Logic.Conversation
          _roles[heroId] = CastRole.Witness;
 
          return true;
+      }
+
+      /// <summary>
+      ///   Takes a character out of the scene altogether (they left the room: a private audience, a companion sent
+      ///   away). Without it a departed active voice still counted toward the ensemble and the cap. Never the
+      ///   anchor. Returns true only when someone was actually removed.
+      /// </summary>
+      public bool Remove(string heroId)
+      {
+         if (string.IsNullOrEmpty(heroId) || heroId == AnchorId) return false;
+
+         return _roles.Remove(heroId);
       }
    }
 }

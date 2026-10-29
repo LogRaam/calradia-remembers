@@ -609,6 +609,7 @@ namespace CalradiaRemembers.Chat
             _isComposeOpen = value;
             OnPropertyChangedWithValue(value);
             OnPropertyChanged(nameof(IsComposeToggleVisible));
+            if (value) IsParticipantsOpen = false; // the two share the ground left of the chat
          }
       }
 

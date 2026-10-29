@@ -5,6 +5,19 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ## v2.7.22.. open
 
 ### New
+- **Who is here, and who speaks: the participants panel in the chat** (RaveN017Mod, Nexus PM, 29/10/2026: the clan
+  members he invited "often don't interact much at all", "maybe we should add an @ system so it's clear who I'm
+  addressing"; Gabriel's design the same day). Invited companions were witnesses: they react only when the model lets
+  them, and the one way to draw them in, speaking their name, was invisible. The "Present: ..." line in the chat's
+  title now opens a panel on the left (both skins) listing the one you came to see, the active voices and the
+  witnesses. A click on a name turns you to them; a witness you turn to joins the conversation and then speaks every
+  turn, each with their own memory (the ensemble turn that speaking a name already started). "Step back" sends an
+  active voice back among the witnesses. At most three voices speak at once, the one you came to see among them
+  (`ConversationCast.MaxActiveVoices`): each is a model call and a wait every turn, and a larger table is the
+  council's. The cap holds for a name spoken in the message too; a fourth is answered and stays a witness. Someone who
+  leaves the room (a private audience) now leaves the cast as well, so they no longer keep the scene an ensemble.
+  `CastPanelPolicy`, `ChatViewModel.Participants`, cr.test `participants_panel`. Not in a council, a captive or a
+  captor scene. Not play-verified: the panel's place and look.
 - **The world's initiative: one conductor for everything that comes to you unasked** (Gabriel, 28/10/2026: keep the
   player in the game, "pas le sortir trop souvent vers une gestion de conversation sans que le joueur l'ait initie de
   lui-meme"; "a qui le tour", coherent priorities and variety; every kind in the queue at least once a month). Lords

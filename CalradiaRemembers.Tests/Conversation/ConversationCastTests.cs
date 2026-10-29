@@ -131,5 +131,47 @@ namespace CalradiaRemembers.Tests.Conversation
          cast.Promote("late_c").Should().BeTrue();
          cast.IsActive("late_c").Should().BeTrue();
       }
+
+      // Gabriel, 29/10/2026 (the participants panel): every active voice is its own model call and its own wait on
+      // every turn, so the chat seats three at most, the anchor among them; a larger table is the council's. The
+      // fourth stays a witness, whether the player clicked them or spoke their name.
+      [Test]
+      public void GIVEN_three_voices_already_active_WHEN_a_fourth_is_drawn_in_THEN_they_stay_a_witness()
+      {
+         var cast = new ConversationCast("lord_anchor", new[] {"lady_a", "guard_b", "squire_c"});
+         cast.Promote("lady_a").Should().BeTrue();
+         cast.Promote("guard_b").Should().BeTrue();
+
+         cast.HasRoom.Should().BeFalse();
+         cast.Promote("squire_c").Should().BeFalse();
+         cast.IsWitness("squire_c").Should().BeTrue();
+      }
+
+      // A voice that steps back frees its seat: the cap counts who is speaking now, not who once spoke.
+      [Test]
+      public void GIVEN_a_full_table_WHEN_one_steps_back_THEN_another_may_join()
+      {
+         var cast = new ConversationCast("lord_anchor", new[] {"lady_a", "guard_b", "squire_c"});
+         cast.Promote("lady_a");
+         cast.Promote("guard_b");
+
+         cast.Demote("lady_a").Should().BeTrue();
+         cast.Promote("squire_c").Should().BeTrue();
+      }
+
+      // Someone who left the room (a private audience accepted, a companion sent away) must not keep the scene an
+      // ensemble nor hold a seat; the anchor, the reason the conversation exists, can never be removed.
+      [Test]
+      public void GIVEN_an_active_voice_who_leaves_WHEN_removed_THEN_the_scene_is_no_longer_an_ensemble()
+      {
+         var cast = new ConversationCast("lord_anchor", new[] {"lady_a"});
+         cast.Promote("lady_a");
+
+         cast.Remove("lady_a").Should().BeTrue();
+         cast.RoleOf("lady_a").Should().BeNull();
+         cast.IsEnsemble.Should().BeFalse();
+         cast.Remove("lord_anchor").Should().BeFalse();
+         cast.IsActive("lord_anchor").Should().BeTrue();
+      }
    }
 }

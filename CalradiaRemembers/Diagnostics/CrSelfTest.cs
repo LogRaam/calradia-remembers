@@ -283,6 +283,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("siege_tidings_participation", Severity.Light, "Mechanical (player report: told by letter of a siege they FOUGHT IN, days later, as if it were news): stamps the REAL WorldEventFeeders siege-participation marker for a live settlement, then drives the REAL RecordSiegeCapture construction with a NON-player taker (a mere participant, never the credited capturer) -> assert the recorded WorldEvent has InvolvesPlayer true (so realm-tidings' own InvolvesPlayer filter will never relay it back) while Type stays SettlementCaptured and Aggrieved* stay empty (the conquest's attribution is NOT stolen from the real taker). Removes the seeded event afterwards", TestSiegeTidingsParticipation),
          new SelfTest("companion_skirmish_memory", Severity.Light, "Thoragoros1 (Nexus, 15/10/2026): companions remembered none of the early fights (bandits, a patrol, lords' lone parties), because only chronicle-worthy battles left a memory. Arranges a companion in the party with NO profile yet (hired through the game's own dialogue, never spoken to here), drives the real small-fight recorder twice, and asserts a profile is made and keeps ONE memory counting both fights and naming the foe. Puts the companion's own profile back exactly", TestCompanionSkirmishMemory),
          new SelfTest("companion_battle_memory", Severity.Light, "Mechanical: the companion 'fought together' memory (WorldEventFeeders' main-party companion loop), which a real MapEvent drives in game. Borrows a companion into the party if none rides along, calls the DebugRecordCompanionBattleMemories seam, and asserts the companion's profile gained a fresh 'Fought at your side' memory. Removes the memory it added and returns any borrowed companion", TestCompanionBattleMemory),
+         new SelfTest("participants_panel", Severity.Light, "The chat's participants panel (RaveN017Mod, Nexus PM, 29/10/2026: invited clan members 'often don't interact much at all', and he wanted a way to make clear who he addresses; Gabriel's answer the same day: a panel listing the active voices and the witnesses, a click on a witness makes them active). Drives the REAL ChatViewModel with a real lord and three real witnesses brought in through AddWitness: asserts the panel is offered and lists all four, that a click on a witness turns the player to them and draws them in, that the third voice fills the table and a fourth is answered but stays a witness (three at most: each voice is a model call every turn), that Step back sends a voice back and returns the player to the lord when it was the one addressed, and that an emptied room (a private audience) takes the departed out of the cast so the scene is no longer an ensemble", TestParticipantsPanel),
          new SelfTest("spotlight_cast", Severity.Light, "Spotlight pillar wiring (found in play by Gabriel 2026-09-12: he addressed his companion Sley by name in a conversation with Ira, the turn routed to Sley, and no [SPOTLIGHT] line was ever written - the promotion silently did nothing). ConversationCast has been correct and unit-tested since 27/08; both faults were in the HOST. (1) The cast was born inside SetWitnesses, so a conversation with no auto-detected witness - a lord standing alone - had no cast at all, not even its own anchor. (2) AddWitness never introduced the arrival, and AddWitness is how a companion joins: the picker resolves ASYNCHRONOUSLY, after the cast was built, so every brought companion sat in the witness list while absent from the cast, Promote read RoleOf == null and returned false. ConversationCast.Introduce was written for exactly this on 27/08 and had never once been called from the game. Drives the REAL ChatViewModel: sets a real anchor hero with NO witnesses and asserts a cast exists with that anchor Active (hole 1), then AddWitness a real companion and asserts they are IN the cast as a Witness and therefore promotable (hole 2), then promotes and asserts the scene became an ensemble. A pure test cannot catch either: it would build the very cast the host failed to fill", TestSpotlightCast),
          new SelfTest("private_memory", Severity.Light, "The leak guard the companion briefing is built on (Gabriel 2026-09-13: what was decided in a briefing should live in the companion MEMORY and be used from there). A memory is normally shared: a witness carries theirs into the prompt of whoever is speaking, which is right for \"he was there when you took the town\" and catastrophic for \"Arwa asked me to charm Ira\", read out in Ira own prompt while she stands there. Until now the briefing dealt with that by DROPPING its memories outright, so nothing of the private word survived. NotableEvent.IsPrivate now marks a memory the holder keeps to themselves. Plants one PUBLIC and one PRIVATE event on a real hero profile and drives the REAL ChatViewModel.DebugWitnessMemory - the same BuildWitnessMemory path a live turn uses, and the ONLY path by which one hero memories reach another hero prompt - asserting the public one is carried and the private one is not, and that a hero holding NOTHING but private memories contributes no recall at all rather than an empty husk. Restores the profile events in a finally", TestPrivateMemory),
          new SelfTest("briefing_to_chat", Severity.Light, "The WHOLE briefing-to-meeting vector, end to end, driven through the real objects (Gabriel asked for it 2026-09-13 after three faults in one evening that every existing test was green through - each piece worked and the joins did not). Borrows two companions and a third hero as the target. Drives: RememberReturn (what the picker decides, without the picker), a REAL ChatViewModel put into briefing mode with both companions seated, four REAL player turns recorded into its transcript, then the REAL FinalizeCompanionBriefs. Asserts the private word reached the memory of BOTH companions and not just the anchor; that it is marked private; that the FIRST thing said survives as well as the last (the cap that ate his mission statement); that the target cannot read it through the REAL witness-recall path NOR through a REAL EncounterContextBuilder.Build with both companions standing as witnesses (the load-bearing property); that the return is armed at the right target with both companions; and that the REAL staged request names them so the meeting reopens with them seated. What it CANNOT prove is the two moments only play can: that the window opens and that the tick fires. Restores both profiles and clears the pending return in a finally", TestBriefingToChat),
@@ -16032,6 +16033,55 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("aLoneAnchorIsNotYetAnEnsemble", !vm.IsEnsembleScene, true);
          t.Expect("thePromotionThatUsedToFailNowTakes", vm.PromoteForDiagnostics(arrival.StringId), true);
          t.Expect("twoActiveVoicesMakeAnEnsemble", vm.IsEnsembleScene, true);
+
+         return t.Line();
+      }
+
+      private static string TestParticipantsPanel(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("participants_panel");
+
+         Hero anchor = Hero.AllAliveHeroes?.FirstOrDefault(h => h != null && h != Hero.MainHero && h.IsAlive && h.IsLord);
+         List<Hero> others = Hero.AllAliveHeroes?.Where(h => h != null && h != Hero.MainHero && h.IsAlive && h != anchor).Take(3).ToList()
+                             ?? new List<Hero>();
+
+         if (t.Skip(anchor == null || others.Count < 3, "no lord and three other living heroes to seat")) return t.Line();
+
+         var vm = new ChatViewModel();
+         vm.SetNpcHero(anchor);
+         foreach (Hero h in others)
+            vm.AddWitness(new WitnessEntry {
+               Name = h.Name?.ToString(), HeroStringId = h.StringId, RelationToNpc = "brought into the room by this test", IsFemale = h.IsFemale
+            });
+
+         string a = others[0].StringId, b = others[1].StringId, c = others[2].StringId;
+         t.Note($"anchor={anchor!.Name}, witnesses={string.Join(", ", others.Select(h => h.Name))}");
+
+         t.Expect("thePanelIsOffered", vm.IsParticipantsAvailable, true);
+         t.Expect("itListsTheLordAndTheThree", vm.ParticipantRows.Count, 4);
+
+         vm.AddressFromPanel(a);
+         t.Expect("aClickTurnsThePlayerToThem", vm.AddressedHeroIdForDiagnostics, a);
+         t.Expect("aClickDrawsAWitnessIn", vm.CastRoleOf(a) == CastRole.Active, true);
+         t.Expect("twoVoicesMakeAnEnsemble", vm.IsEnsembleScene, true);
+
+         vm.AddressFromPanel(b);
+         vm.AddressFromPanel(c);
+         t.Expect("theThirdVoiceFillsTheTable", vm.CastRoleOf(b) == CastRole.Active, true);
+         t.Expect("aFourthIsAnsweredButStaysAWitness", vm.CastRoleOf(c) == CastRole.Witness && vm.AddressedHeroIdForDiagnostics == c, true);
+
+         vm.AddressFromPanel(a);
+         vm.StepBackFromPanel(a);
+         t.Expect("stepBackSendsTheVoiceBack", vm.CastRoleOf(a) == CastRole.Witness, true);
+         t.Expect("andThePlayerIsBackWithTheLord", vm.AddressedHeroIdForDiagnostics, "");
+
+         vm.StepBackFromPanel(anchor.StringId);
+         t.Expect("theLordCanNeverBeSentBack", vm.CastRoleOf(anchor.StringId) == CastRole.Active, true);
+
+         vm.ForcePrivateAudience();
+         t.Expect("anEmptiedRoomLeavesTheCast", vm.CastRoleOf(b) == null, true);
+         t.Expect("andIsNoLongerAnEnsemble", vm.IsEnsembleScene, false);
+         t.Expect("andThePanelIsNoLongerOffered", vm.IsParticipantsAvailable, false);
 
          return t.Line();
       }
