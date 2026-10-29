@@ -20,6 +20,7 @@ using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.AuthoredQuests;
 using CalradiaRemembers.Logic.Captivity;
+using CalradiaRemembers.Logic.Character;
 using CalradiaRemembers.Logic.Grudges;
 using CalradiaRemembers.Logic.Items;
 using CalradiaRemembers.Logic.Marriage;
@@ -2084,8 +2085,21 @@ namespace CalradiaRemembers.GameState
          {
             if (MobileParty.MainParty?.ItemRoster == null) return null;
 
+            // Goods chosen in the bag, each in the amount the player set (fearente, Nexus, 29/10/2026). The first
+            // give_item of the turn hands them all over; any other the model writes in the same turn is the same
+            // gesture said twice and moves nothing more (silently: "you have none" would contradict the handover).
+            GiftBundle bundle = context?.OfferedBundle;
+            ItemOffer? bagOne = null;
+            if (bundle?.Items is {Count: > 0})
+            {
+               if (bundle.Handed) return null;
+               bundle.Handed = true;
+               if (bundle.Items.Count > 1) return GiveBundle(bundle, npcHero, context);
+               bagOne = bundle.Items[0];
+            }
+
             action.Parameters.TryGetValue("item", out string itemName);
-            string itemId = context?.OfferedItemId; // the exact item the player picked from the bag, if any
+            string itemId = bagOne?.ItemId ?? context?.OfferedItemId; // the exact item the player picked from the bag, if any
 
             // Was a silent no-op that let the model replay a phantom gift: no item was named at all.
             if (string.IsNullOrWhiteSpace(itemName) && string.IsNullOrWhiteSpace(itemId))
@@ -2111,34 +2125,20 @@ namespace CalradiaRemembers.GameState
             if (fuzzy)
                ModLog.Info($"[ACTION] give_item: fuzzy-resolved '{itemName}' -> '{found.EquipmentElement.Item.Name}'");
 
-            // The goods a tale asks of this person, worded in the chat rather than handed with the bag (Gabriel,
-            // 21/10/2026: a typed hand-over counts): exactly the count asked leaves and the tale moves, whatever count was
-            // said (the confirmation named it); short of it nothing leaves, as with the bag.
-            string giftId = found.EquipmentElement.Item.StringId;
-            AuthoredQuestBehavior tales = AuthoredQuestBehavior.Instance;
-            int taleHeld = 0;
-            string taleLabel = null;
-            int taleAsked = tales == null ? 0 : tales.AskedOfGift(npcHero, giftId, out taleHeld, out taleLabel);
-            switch (TaleItemPolicy.ReadGift(taleAsked, taleHeld))
-            {
-               case TaleGiftReading.HandOver:
-                  return tales.HandOverHeld(npcHero, giftId, out string handed)
-                     ? new ActionOutcome(handed, false)
-                     : ActionOutcome.Refused($"({handed ?? "Nothing changed hands."})");
-               case TaleGiftReading.Short:
-                  return ActionOutcome.Refused($"({npcHero?.Name} awaits {taleAsked} {taleLabel}; you carry {taleHeld}, so you keep them until you have them all.)");
-            }
-
-            // froggyluv (26/10/2026): goods a supply task asks of this person, handed over in words or through the Give
-            // menu, settle it as the bag does; only the bag did, and the famine grain left the party while the task
-            // expired as a broken promise. Short of the count nothing leaves, as with the bag.
-            ActionOutcome supplied = TrySettleSupplyByGift(found.EquipmentElement.Item, npcHero, context?.Profile);
-            if (supplied != null) return supplied;
+            ActionOutcome intercepted = InterceptGift(found.EquipmentElement.Item, npcHero, context);
+            if (intercepted != null) return intercepted;
 
             // Honour the STATED quantity, clamped to what the player holds (player report: "I give you 10 ingots"
-            // moved a single one). The pure GiftQuantityPolicy decides; a missing count is one item.
-            action.Parameters.TryGetValue("count", out string countStr);
-            int.TryParse(countStr?.Trim(), out int requestedCount);
+            // moved a single one). The pure GiftQuantityPolicy decides; a missing count is one item. A bag pick carries
+            // the amount the player chose in the bag (fearente, 29/10/2026), whatever count the model wrote.
+            int requestedCount;
+            if (bagOne != null) requestedCount = bagOne.Value.Count;
+            else
+            {
+               action.Parameters.TryGetValue("count", out string countStr);
+               int.TryParse(countStr?.Trim(), out requestedCount);
+            }
+
             int count = GiftQuantityPolicy.Resolve(requestedCount, found.Amount);
             if (count <= 0) return ActionOutcome.Refused("(You don't seem to have any of that left to give.)");
 
@@ -2161,33 +2161,7 @@ namespace CalradiaRemembers.GameState
                return new ActionOutcome($"You hand {gaveDesc} to {npcHero?.Name} toward the levy; {credit} denars of it are counted.{WarLevyDesk.AfterPayment(stillOwed)}", false);
             }
 
-            StanceService.OnGiftReceived(npcHero); // a freely given gift builds a little trust
-            ModLog.Info($"[ACTION] give_item: player gave '{gaveDesc}' (value {totalValue}) to {npcHero?.Name}");
-
-            // Appreciations pillar: a freely given gift is also a remembered kindness, a channel separate
-            // from the trust bump above and from the grudge-softening tail below. The whole stack's worth counts.
-            // What You Know (Gabriel, 27/10/2026: "un NPC pourrait [...] preferer certains cadeaux"): a kind they love
-            // earns twice the regard, a cold one half, and the player learns that taste by giving it.
-            if (npcHero != null)
-            {
-               Logic.Character.GiftWelcome welcome = Mapping.NatureReader.WelcomeOf(found.EquipmentElement.Item, npcHero, context?.Profile);
-               string cause = welcome == Logic.Character.GiftWelcome.Loved ? $"The player gave me {gaveDesc}, a gift after my own heart." : $"The player gave me {gaveDesc}.";
-               TryPlantValueAppreciation(npcHero, AppreciationSource.GiftReceived, totalValue, cause, welcome);
-            }
-
-            // Grudges pillar (Gift gesture): the same gift may also soften or mend a grudge npcHero holds
-            // against the player, a channel separate from the trust bump above.
-            string grudgeTail = npcHero != null
-               ? TryGrudgeGiftTail(npcHero, totalValue)
-               : "";
-
-            // If the gift is something they can wear or wield, they may put it on then and there: an empty slot
-            // or a real upgrade always, a lateral gift only if they are fond of you (the wife wears the gifted
-            // gown; a rival keeps his own blade). The bridge is the law, so this note claims it only when the
-            // equip actually happened.
-            string equipTail = TryEquipGift(npcHero, found.EquipmentElement.Item);
-
-            return new ActionOutcome($"You give {gaveDesc} to {npcHero?.Name}.{grudgeTail}{equipTail}", false);
+            return GiftEffects(npcHero, context, new List<(ItemObject Item, int Count)> {(found.EquipmentElement.Item, count)});
          }
          catch (Exception ex)
          {
@@ -2195,6 +2169,130 @@ namespace CalradiaRemembers.GameState
 
             return null;
          }
+      }
+
+      /// <summary>
+      ///   The goods a tale or a supply task asks of this person, handed over as a gift: they settle that ask instead
+      ///   (or, short of the count, nothing leaves). Null when the gift answers no ask and is a plain gift.
+      /// </summary>
+      private ActionOutcome InterceptGift(ItemObject gift, Hero npcHero, ActionContext context)
+      {
+         // The goods a tale asks of this person, worded in the chat rather than handed with the bag (Gabriel,
+         // 21/10/2026: a typed hand-over counts): exactly the count asked leaves and the tale moves, whatever count was
+         // said (the confirmation named it); short of it nothing leaves, as with the bag.
+         string giftId = gift.StringId;
+         AuthoredQuestBehavior tales = AuthoredQuestBehavior.Instance;
+         int taleHeld = 0;
+         string taleLabel = null;
+         int taleAsked = tales == null ? 0 : tales.AskedOfGift(npcHero, giftId, out taleHeld, out taleLabel);
+         switch (TaleItemPolicy.ReadGift(taleAsked, taleHeld))
+         {
+            case TaleGiftReading.HandOver:
+               return tales.HandOverHeld(npcHero, giftId, out string handed)
+                  ? new ActionOutcome(handed, false)
+                  : ActionOutcome.Refused($"({handed ?? "Nothing changed hands."})");
+            case TaleGiftReading.Short:
+               return ActionOutcome.Refused($"({npcHero?.Name} awaits {taleAsked} {taleLabel}; you carry {taleHeld}, so you keep them until you have them all.)");
+         }
+
+         // froggyluv (26/10/2026): goods a supply task asks of this person, handed over in words or through the Give
+         // menu, settle it as the bag does; only the bag did, and the famine grain left the party while the task
+         // expired as a broken promise. Short of the count nothing leaves, as with the bag.
+         return TrySettleSupplyByGift(gift, npcHero, context?.Profile);
+      }
+
+      /// <summary>
+      ///   Several goods handed over in one gesture, each in the amount chosen in the bag (fearente, Nexus, 29/10/2026:
+      ///   grain, fish and meat had to go one by one, one unit each). Each good goes the road a single one does: a tale or
+      ///   a supply task it answers settles it, horses and weapons owed to a liege count toward the levy, and the rest is
+      ///   ONE gift: one trust bump, one remembered kindness weighed on the whole value, one grudge eased.
+      /// </summary>
+      private ActionOutcome GiveBundle(GiftBundle bundle, Hero npcHero, ActionContext context)
+      {
+         ItemRoster roster = MobileParty.MainParty.ItemRoster;
+         var notes = new List<string>();
+         var gifts = new List<(ItemObject Item, int Count)>();
+         var levyGoods = new List<(ItemObject Item, int Count)>();
+         int levyOwed = WarLevyDesk.Owed(npcHero);
+         var refusedOnly = true;
+
+         foreach (ItemOffer offer in bundle.Items)
+         {
+            ItemRosterElement found = FindRosterElementById(offer.ItemId);
+            ItemObject item = found.EquipmentElement.Item;
+            if (item == null || found.Amount <= 0) continue;
+
+            ActionOutcome intercepted = InterceptGift(item, npcHero, context);
+            if (intercepted != null)
+            {
+               if (!string.IsNullOrWhiteSpace(intercepted.Message)) notes.Add(intercepted.Message);
+               if (!intercepted.WasRefused) refusedOnly = false;
+
+               continue;
+            }
+
+            int count = GiftQuantityPolicy.Resolve(offer.Count, found.Amount);
+            if (count <= 0) continue;
+
+            roster.AddToCounts(found.EquipmentElement, -count);
+            refusedOnly = false;
+            if (levyOwed > 0 && WarLevyPayment.Counts(LevyGoodsKindOf(item))) levyGoods.Add((item, count));
+            else gifts.Add((item, count));
+         }
+
+         if (levyGoods.Count > 0)
+         {
+            int levyValue = levyGoods.Sum(g => g.Item.Value * g.Count);
+            int credit = WarLevyPayment.GoodsCredit(levyValue, levyOwed);
+            int stillOwed = WarLevyDesk.Pay?.Invoke(npcHero, credit) ?? levyOwed;
+            string levyDesc = GiftBundlePolicy.Describe(levyGoods.Select(g => new GiftLine {Name = g.Item.Name.ToString(), Count = g.Count}).ToList());
+            ModLog.Info($"[ACTION] give_item: '{levyDesc}' (value {levyValue}) handed to {npcHero?.Name} toward the levy, {credit} counted.");
+            notes.Add($"You hand {levyDesc} to {npcHero?.Name} toward the levy; {credit} denars of it are counted.{WarLevyDesk.AfterPayment(stillOwed)}");
+         }
+
+         if (gifts.Count > 0) notes.Insert(0, GiftEffects(npcHero, context, gifts).Message);
+
+         if (notes.Count == 0) return ActionOutcome.Refused("(You no longer carry what you meant to give.)");
+
+         return refusedOnly ? ActionOutcome.Refused(string.Join(" ", notes)) : new ActionOutcome(string.Join(" ", notes), false);
+      }
+
+      /// <summary>
+      ///   What a freely given gift does, once for the whole of it: a little trust, a remembered kindness weighed on its
+      ///   whole value and on how welcome it is, a grudge it may ease, and anything they can wear put on.
+      /// </summary>
+      private static ActionOutcome GiftEffects(Hero npcHero, ActionContext context, List<(ItemObject Item, int Count)> gifts)
+      {
+         int totalValue = gifts.Sum(g => g.Item.Value * g.Count);
+         string gaveDesc = GiftBundlePolicy.Describe(gifts.Select(g => new GiftLine {Name = g.Item.Name.ToString(), Count = g.Count}).ToList());
+
+         StanceService.OnGiftReceived(npcHero); // a freely given gift builds a little trust
+         ModLog.Info($"[ACTION] give_item: player gave '{gaveDesc}' (value {totalValue}) to {npcHero?.Name}");
+
+         // Appreciations pillar: a freely given gift is also a remembered kindness, a channel separate
+         // from the trust bump above and from the grudge-softening tail below. The whole gift's worth counts.
+         // What You Know (Gabriel, 27/10/2026: "un NPC pourrait [...] preferer certains cadeaux"): a kind they love
+         // earns twice the regard, a cold one half, and the player learns that taste by giving it.
+         if (npcHero != null)
+         {
+            Logic.Character.GiftWelcome welcome = GiftBundlePolicy.Welcome(gifts.Select(g => Mapping.NatureReader.WelcomeOf(g.Item, npcHero, context?.Profile)).ToList());
+            string cause = welcome == Logic.Character.GiftWelcome.Loved ? $"The player gave me {gaveDesc}, a gift after my own heart." : $"The player gave me {gaveDesc}.";
+            TryPlantValueAppreciation(npcHero, AppreciationSource.GiftReceived, totalValue, cause, welcome);
+         }
+
+         // Grudges pillar (Gift gesture): the same gift may also soften or mend a grudge npcHero holds
+         // against the player, a channel separate from the trust bump above.
+         string grudgeTail = npcHero != null
+            ? TryGrudgeGiftTail(npcHero, totalValue)
+            : "";
+
+         // If the gift is something they can wear or wield, they may put it on then and there: an empty slot
+         // or a real upgrade always, a lateral gift only if they are fond of you (the wife wears the gifted
+         // gown; a rival keeps his own blade). The bridge is the law, so this note claims it only when the
+         // equip actually happened.
+         string equipTail = string.Concat(gifts.Select(g => TryEquipGift(npcHero, g.Item)));
+
+         return new ActionOutcome($"You give {gaveDesc} to {npcHero?.Name}.{grudgeTail}{equipTail}", false);
       }
 
       /// <summary>What an item is, for the war levy: a mount, a weapon, or anything else (never the levy).</summary>

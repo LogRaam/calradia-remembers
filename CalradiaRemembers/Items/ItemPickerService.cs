@@ -4,11 +4,15 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Character;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
+using TaleWorlds.Library;
 using TaleWorlds.Localization;
 
 #endregion
@@ -235,9 +239,136 @@ namespace CalradiaRemembers.Items
          }
       }
 
+      /// <summary>
+      ///   The gift bag: several goods at once, each in the amount the player chooses (fearente, Nexus, 29/10/2026: he
+      ///   gave grain, then fish and meat one by one, one unit each). Gold stays its own entry: picked alone, it opens the
+      ///   amount of denars; picked with goods, the goods are given and gold is offered on its own afterwards. For each
+      ///   good held more than once, a box asks how many, filled with all of it, so Enter gives the whole stack. Fires
+      ///   <paramref name="onGoods" /> with every good and its amount once all are answered; Cancel on any box gives
+      ///   nothing.
+      /// </summary>
+      public static void ShowGiftPicker(Action<List<ItemOffer>> onGoods, Action onGoldSelected)
+      {
+         if (onGoods == null) return;
+         try
+         {
+            if (MobileParty.MainParty?.ItemRoster == null) return;
+
+            List<(ItemObject item, int amount)> eligible = BuildEligibleItems();
+            if (eligible.Count == 0 && onGoldSelected == null)
+            {
+               MBInformationManager.AddQuickInformation(new TextObject("Your party carries no items available to offer."));
+
+               return;
+            }
+
+            eligible.Sort(CompareItems);
+            List<InquiryElement> elements = BuildInquiryElements(eligible);
+            if (onGoldSelected != null)
+            {
+               int gold = Hero.MainHero?.Gold ?? 0;
+               elements.Insert(0, new InquiryElement(GoldIdentifier, $"Gold (you carry {gold:N0} denars)", null));
+            }
+
+            MBInformationManager.ShowMultiSelectionInquiry(
+               new MultiSelectionInquiryData(
+                  "Give",
+                  "Choose gold, or one or more goods from your party to give (you choose how many of each next):",
+                  elements,
+                  true,
+                  1, elements.Count,
+                  "Give", "Cancel",
+                  selected =>
+                  {
+                     if (selected == null || selected.Count == 0) return;
+                     List<string> ids = selected.Select(e => e.Identifier as string).Where(id => !string.IsNullOrEmpty(id)).ToList();
+                     bool gold = ids.Remove(GoldIdentifier);
+                     if (ids.Count == 0)
+                     {
+                        if (gold) onGoldSelected?.Invoke();
+
+                        return;
+                     }
+
+                     if (gold)
+                        MBInformationManager.AddQuickInformation(new TextObject("Gold is given on its own: offer it once these goods are handed over."));
+
+                     AskAmounts(ids, 0, new List<ItemOffer>(), onGoods);
+                  },
+                  null),
+               false,
+               false); // queued, not prioritized: opened from a parent inquiry's closing callback it would be swallowed
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ItemPickerService] ShowGiftPicker failed: {ex.Message}");
+         }
+      }
+
       #region private
 
       // ── private ──────────────────────────────────────────────────────────
+
+      /// <summary>Asks, one good after another, how many of it to give; fires <paramref name="done" /> after the last.</summary>
+      private static void AskAmounts(List<string> ids, int index, List<ItemOffer> chosen, Action<List<ItemOffer>> done)
+      {
+         if (index >= ids.Count)
+         {
+            if (chosen.Count > 0) done(chosen);
+
+            return;
+         }
+
+         string id = ids[index];
+         int held = CountInRoster(id);
+         if (held <= 0)
+         {
+            AskAmounts(ids, index + 1, chosen, done);
+
+            return;
+         }
+
+         if (held == 1)
+         {
+            chosen.Add(new ItemOffer(id, 1));
+            AskAmounts(ids, index + 1, chosen, done);
+
+            return;
+         }
+
+         string name = NameOf(id);
+         InformationManager.ShowTextInquiry(new TextInquiryData(
+            "How Many?",
+            $"How many {name} do you give? (You carry {held}.)",
+            true, true,
+            "Give", "Cancel",
+            typed =>
+            {
+               int? amount = GiftBundlePolicy.Amount(typed, held);
+               if (amount == null) return;
+               chosen.Add(new ItemOffer(id, amount.Value));
+               AskAmounts(ids, index + 1, chosen, done);
+            },
+            null,
+            false,
+            typed => GiftBundlePolicy.Amount(typed, held) != null
+               ? new Tuple<bool, string>(true, "")
+               : new Tuple<bool, string>(false, $"A number from 1 to {held}."),
+            "",
+            held.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+            false,
+            false);
+      }
+
+      /// <summary>An item's display name from the party roster, or its id when it cannot be read.</summary>
+      private static string NameOf(string itemId)
+      {
+         foreach (ItemRosterElement el in MobileParty.MainParty.ItemRoster)
+            if (el.EquipmentElement.Item?.StringId == itemId)
+               return el.EquipmentElement.Item.Name.ToString();
+
+         return itemId;
+      }
 
       private static List<(ItemObject item, int amount)> BuildEligibleItems()
       {

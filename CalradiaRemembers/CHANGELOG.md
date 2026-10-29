@@ -188,6 +188,17 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   and passed over, the same source replaces its veto). Documented in EXTENSION_API.md. cr.test `conception_veto`.
 
 ### Fixed
+- **Give several goods at once, each in the amount you choose** (fearente, Nexus, 29/10/2026: he gave 60 grain, then
+  fish and meat one by one, and had to add an out-of-character note to say how much). The Give bag now takes several
+  goods; for each one held more than once, a box asks how many (it opens filled with all of it, so Enter gives the whole
+  stack). The chat line names them all ("*I hand you 20 Fish, 10 Meat and Grain (worth N denars).*") and the first
+  give_item of the turn hands the whole bundle over (`ItemPickerService.ShowGiftPicker`, `GiftBundle`,
+  `ActionContext.OfferedBundle`); another give_item the model writes in the same turn moves nothing more. Each good
+  still goes the road a single one does: a tale or a supply task it answers settles it, horses and weapons owed to a
+  liege count toward the levy. The rest is ONE gift: one trust bump, one remembered kindness weighed on the whole value
+  (so the second good no longer earns nothing for being "a second gift today"), one grudge eased; it is loved when it
+  holds something they love, cold only when all of it leaves them cold (`GiftBundlePolicy`). A single good picked
+  from the bag now leaves in the amount chosen, not one unit. Gold stays its own entry. `cr.test give_bundle`.
 - **A lord who asks for food takes any food** (fearente, Nexus, 29/10/2026: asked for food, he handed over grain, fish
   and meat, and only the grain counted). "food" and "provisions" were read as grain. They now ground a new `food`
   category (`ProvideGoodsPolicy.Food`) that takes whatever the game counts as food (`ItemObject.IsFood`); "grain",

@@ -10,11 +10,13 @@ using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Items;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Character;
 using CalradiaRemembers.Quests;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
+using TaleWorlds.ObjectSystem;
 
 #endregion
 
@@ -44,7 +46,16 @@ namespace CalradiaRemembers.Chat
       ///   Clears the picked item so a later, unrelated give_item never re-transfers it. Called from the exchange
       ///   loop's finally, once the offering turn has been sent.
       /// </summary>
-      public void ClearOfferedItem() => _offeredItemId = null;
+      public void ClearOfferedItem()
+      {
+         _offeredItemId = null;
+         _offeredBundle = null;
+      }
+
+      private GiftBundle _offeredBundle;
+
+      /// <summary>The goods chosen in the bag this turn with their amounts, handed over by the first give_item; null when none.</summary>
+      public GiftBundle OfferedBundle => _offeredBundle;
 
       // The item last held out with the bag in this conversation: kept past its turn for a sale haggled over several
       // replies (3chmidt, 13/10/2026). This controller lives as long as the chat, so it ends with the conversation.
@@ -129,21 +140,33 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       public void PromptGold(IOfferHost host) => PromptGoldOffer(host);
 
-      /// <summary>Opens the item picker (with a give-gold fallback) and pre-fills the chosen item into the input.</summary>
+      /// <summary>
+      ///   Opens the gift bag (several goods, each in a chosen amount, or gold) and pre-fills the handover into the input
+      ///   (fearente, Nexus, 29/10/2026: grain, fish and meat had to be given one by one, one unit each).
+      /// </summary>
       private void ShowInventoryOffer(IOfferHost host)
       {
-         // Remember the exact item id so give_item transfers THAT item, not whatever name the LLM echoes back.
-         ItemPickerService.ShowItemPicker(
-            (itemId, name, value) =>
+         // Remember the exact items and amounts so give_item transfers THOSE, not whatever the LLM echoes back.
+         ItemPickerService.ShowGiftPicker(
+            offers =>
             {
-               _offeredItemId = itemId;
-               _itemOnTheTable = itemId;
+               List<(ItemObject Item, int Count)> goods = offers
+                  .Select(o => (Item: MBObjectManager.Instance?.GetObject<ItemObject>(o.ItemId), o.Count))
+                  .Where(g => g.Item != null)
+                  .ToList();
+               if (goods.Count == 0) return;
+
+               _offeredBundle = new GiftBundle {Items = offers};
+               _offeredItemId = offers[0].ItemId;
+               _itemOnTheTable = offers[0].ItemId;
+               string named = GiftBundlePolicy.Describe(goods.Select(g => new GiftLine {Name = g.Item.Name.ToString(), Count = g.Count}).ToList());
+               int value = goods.Sum(g => g.Item.Value * g.Count);
                // Frame it as a COMPLETED handover (a stage direction), not a tentative "I would like to offer":
                // the offer wording read as a proposal, so the NPC reacted to the OFFER and the gift needed a
                // second turn to land (player report: two reactions for one gift). Handing it over now makes the
                // NPC react ONCE, to receiving it, and the give_item action fires in the same turn.
-               host.SetInputText($"*I hand you {name} (worth {value:N0} denars).*");
-               ModLog.Info($"[OFFER] player pre-filled gift: {name} ({value} denars, id={itemId}).");
+               host.SetInputText($"*I hand you {named} (worth {value:N0} denars).*");
+               ModLog.Info($"[OFFER] player pre-filled gift: {named} ({value} denars, {offers.Count} kind(s)).");
             },
             () => PromptGoldOffer(host));
       }

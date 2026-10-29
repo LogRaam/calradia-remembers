@@ -1456,6 +1456,7 @@ namespace CalradiaRemembers.Chat
                string playerWords = string.Join("\n", _transcript.Lines.Where(l => l != null && l.IsPlayer && !string.IsNullOrWhiteSpace(l.Text)).Select(l => l.Text));
                var actionContext = new ActionContext(profile, emittedForGate) {
                   OfferedItemId = _offer.OfferedItemId,
+                  OfferedBundle = _offer.OfferedBundle,
                   ItemOnTheTableId = _offer.ItemOnTheTable,
                   PlayerWordsThisConversation = playerWords
                };
@@ -1575,7 +1576,7 @@ namespace CalradiaRemembers.Chat
 
                   ActionContext actorActionContext = ReferenceEquals(actorProfile, profile)
                      ? actionContext
-                     : new ActionContext(actorProfile, emittedForGate) {OfferedItemId = _offer.OfferedItemId, ItemOnTheTableId = _offer.ItemOnTheTable, PlayerWordsThisConversation = playerWords};
+                     : new ActionContext(actorProfile, emittedForGate) {OfferedItemId = _offer.OfferedItemId, OfferedBundle = _offer.OfferedBundle, ItemOnTheTableId = _offer.ItemOnTheTable, PlayerWordsThisConversation = playerWords};
 
                   // Coin/commit actions are preprocessed: a repeat of one already resolved this conversation is
                   // dropped (the LLM re-emitting the same transfer), and a player-outgoing spend (take_gold /

@@ -251,6 +251,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("dead_kin", Severity.Light, "Maifailun via tashmetu (15/10/2026): the player's wife died in childbirth and her father asked 'Which Debana?', because a dead child was left out of his family. Mints a clanless father, daughter and wife off the map -> both women die in labor -> asserts the father's RELATIONSHIPS names the late daughter (died in childbirth) and the late wife -> removes the father.", TestDeadKin),
          new SelfTest("captive_kin", Severity.Heavy, "capture an in-party enemy lord who has a living parent -> build that parent's RELATIONSHIPS -> assert the captured child is marked as held by the player (the 'you are a liar, my child is safe' denial bug), then release", TestCaptiveKinAwareness),
          new SelfTest("give_item", Severity.Light, "pick a player item -> give_item -> assert it left the inventory", TestGiveItem),
+         new SelfTest("give_bundle", Severity.Light, "Several goods given at once, each in a chosen amount (fearente, Nexus, 29/10/2026: grain, fish and meat had to go one by one, one unit each). Arranges grain and fish in the party, hands a bundle of 3 grain and 2 fish through the REAL give_item executor, and asserts both left in exactly those amounts with ONE give_item, that a second give_item the model writes in the same turn moves nothing more, and that the outcome line names both goods. Restores the party's goods", TestGiveBundle),
          new SelfTest("captive_counter_offer", Severity.Heavy, "Maifailun (Nexus, 14/10/2026): he held Adrichea (Honor -1, a clan leader), asked her to swear fealty or share his bed, she answered 'kill me if you must', and nothing in CR could hold a counter-offer anyway. Takes a free lord of another realm captive, tops up the payer's purse, and drives the REAL counter_offer verb three ways: a fresh ActionConfirmationController queues a 300-denar ransom naming it, the real bridge settles it (player paid, payer charged, lord freed), and a term not open to her (service, regard 0) is refused and moves nothing. A fourth part (fealty actually swearing a house to a real realm) only runs under 'cr.test full', since CR records a realm change as world news; otherwise it notes why. Restores gold, regard, traits and captivity.", TestCaptiveCounterOffer),
          new SelfTest("captive_terms", Severity.Heavy, "A captive bargains for her freedom (Maifailun, 14/10/2026: Adrichea, Honor -1, answered 'kill me if you must'; Gabriel: the captive proposes terms herself, intimacy in Mature and above for the honorless). Takes a free lord of another realm captive, gives them Adrichea's Honor -1 for the test, builds the REAL context and prompt, and expects the captive to be told she offers first, with the ransom her house can pay and intimacy only when the content level, age and orientation allow. Releases the lord and restores their traits.", TestCaptiveTerms),
          new SelfTest("sell_item", Severity.Light, "Selling an item in chat (3chmidt, 13/10/2026: a sale became a gift plus a payment the wrong way, 'Give Poison Menja 9000 coins?', and a second sword left). Seeds a trade good, sells it to a lord with coin through the real bridge and expects the item gone, the player paid and the lord's purse lighter by the same sum; then a gift written in words (no bag pick) is queued for confirmation naming the real item. Puts the coin back and removes the seeded goods.", TestSellItem),
@@ -6400,6 +6401,46 @@ namespace CalradiaRemembers.Diagnostics
          int after = roster.GetItemNumber(item);
          t.Note($"item={item.Name}, {before}->{after}, to={receiver.Name}");
          t.Expect("removedOne", after == before - 1, true);
+
+         return t.Line();
+      }
+
+      private static string TestGiveBundle(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("give_bundle");
+
+         Hero receiver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(receiver == null, "no lord to receive a gift")) return t.Line();
+
+         ItemRoster roster = MobileParty.MainParty?.ItemRoster;
+         if (t.Abort(roster == null, "no player item roster")) return t.Line();
+
+         var grain = MBObjectManager.Instance?.GetObject<ItemObject>("grain");
+         var fish = MBObjectManager.Instance?.GetObject<ItemObject>("fish");
+         if (t.Skip(grain == null || fish == null, "no grain or fish item in this game")) return t.Line();
+
+         int grainBefore = roster.GetItemNumber(grain), fishBefore = roster.GetItemNumber(fish);
+         roster.AddToCounts(grain, 5);
+         roster.AddToCounts(fish, 5);
+         try
+         {
+            var bundle = new GiftBundle {Items = new List<ItemOffer> {new ItemOffer(grain.StringId, 3), new ItemOffer(fish.StringId, 2)}};
+            var ctx = new ActionContext(GetOrCreate(behavior, receiver), null) {OfferedItemId = grain.StringId, OfferedBundle = bundle};
+
+            ActionOutcome first = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "give_item"}, receiver, ctx);
+            t.Note($"to {receiver.Name}: {first?.Message}");
+            t.Expect("threeGrainLeft", roster.GetItemNumber(grain), grainBefore + 2);
+            t.Expect("twoFishLeft", roster.GetItemNumber(fish), fishBefore + 3);
+            t.Expect("theLineNamesBoth", first?.Message != null && first.Message.Contains(grain.Name.ToString()) && first.Message.Contains(fish.Name.ToString()), true);
+
+            ActionOutcome second = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "give_item"}, receiver, ctx);
+            t.Expect("aSecondGiveItemMovesNothing", second == null && roster.GetItemNumber(grain) == grainBefore + 2 && roster.GetItemNumber(fish) == fishBefore + 3, true);
+         }
+         finally
+         {
+            roster.AddToCounts(grain, grainBefore - roster.GetItemNumber(grain));
+            roster.AddToCounts(fish, fishBefore - roster.GetItemNumber(fish));
+         }
 
          return t.Line();
       }

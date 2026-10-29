@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 586 types in 63 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1408 types in 48 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 587 types in 63 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1410 types in 48 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 276 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -424,7 +424,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PortraitData` | public struct | The flat portrait binding a widget renders from: image id, texture provider name, extra args. |
 | `PortraitTextureGuard` | public static class | The single gate for every character portrait the mod shows (chat lines, the courier letter). |
 
-### CalradiaRemembers.GameState (39)
+### CalradiaRemembers.GameState (40)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -443,6 +443,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DispatchMissionVerdict` | public struct | The verdict of CourtActionResolver.TryDispatchMission: the result, the resolved Type (whenever one was parsed), and the companion-mission behaviour's own Message on DispatchMissionResult.Dispatched or DispatchMissionResu... |
 | `ExpelFromClanResult` | public enum | The outcome of CourtActionResolver.TryExpelFromClan, read by each caller to report its own message. |
 | `ExpelFromClanVerdict` | public struct | The verdict of CourtActionResolver.TryExpelFromClan: the result and, only on ExpelFromClanResult.Expelled, whether the companion had to be relieved of a governorship first (WasGovernor) and the GovernedFief they held, so... |
+| `GiftBundle` | public class | Goods chosen in the bag for one gift, each with its amount, handed over once. |
 | `GrantFiefResult` | public enum | The outcome of CourtActionResolver.TryGrantFief, read by each caller to report its own message. |
 | `GrantFiefVerdict` | public struct | The verdict of CourtActionResolver.TryGrantFief: the result and, only on GrantFiefResult.Granted, the resolved Fief so the caller can name it. |
 | `GrantStipendResult` | public enum | The outcome of CourtActionResolver.TryGrantStipend, read by each caller to report its own message. |
@@ -1790,11 +1791,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptureStake` | public enum | What the captive is to the one who hears of the capture. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 
-### CalradiaRemembers.Logic.Character (13)
+### CalradiaRemembers.Logic.Character (15)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ArchetypeWording` | public static class | Words an archetype for the station of the one who carries it. |
+| `GiftBundlePolicy` | public static class | Reads the amount typed for each good, names the bundle, and weighs how welcome it is. |
+| `GiftLine` | public class | One kind of good in a bundle: its name and how many. |
 | `GiftPageFacts` | public class | What the encyclopedia says of a character's gift tastes. |
 | `GiftTasteFacts` | public class | Who is rolled for gift tastes. |
 | `GiftTastePolicy` | public static class | Rolls gift tastes, reads an item's kind, sizes a gift's regard and words what was learned. |

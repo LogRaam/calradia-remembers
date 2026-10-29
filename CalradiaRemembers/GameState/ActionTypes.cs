@@ -33,6 +33,13 @@ namespace CalradiaRemembers.GameState
         public string OfferedItemId { get; set; }
 
         /// <summary>
+        ///   The goods the player chose in the bag this turn, each with the amount chosen (fearente, Nexus, 29/10/2026:
+        ///   several goods in different amounts in one gesture). Shared by every action of the turn, so the first
+        ///   give_item hands them all over and marks them handed. Null when nothing was chosen in the bag.
+        /// </summary>
+        public GiftBundle OfferedBundle { get; set; }
+
+        /// <summary>
         ///   StringId of the item the player last held out with the bag in THIS conversation, kept past its turn so a
         ///   sale haggled over several replies still sells that item (3chmidt, 13/10/2026). Only sell_item reads it; a
         ///   give_item stays bound to this turn's <see cref="OfferedItemId" />.
@@ -45,6 +52,16 @@ namespace CalradiaRemembers.GameState
         ///   the word was said (Maifailun, 01/10/2026: a bow turned a lady against someone nobody had named).
         /// </summary>
         public string PlayerWordsThisConversation { get; set; }
+    }
+
+    /// <summary>Goods chosen in the bag for one gift, each with its amount, handed over once.</summary>
+    public sealed class GiftBundle
+    {
+        /// <summary>Each good and the amount chosen, in the order picked.</summary>
+        public IReadOnlyList<ItemOffer> Items { get; set; } = new List<ItemOffer>();
+
+        /// <summary>Already handed over this turn: a second give_item moves nothing more.</summary>
+        public bool Handed { get; set; }
     }
 
     /// <summary>The roster item a give_item or sell_item would take, as the player's confirmation names it.</summary>

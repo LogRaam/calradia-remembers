@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-635 rules read 481 facts.
+637 rules read 482 facts.
 
 ## Facts read by more than one rule
 
@@ -57,13 +57,13 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `PartyBelongedToAsPrisoner.LeaderHero` (11) | `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `ExecutionFacts`, `HarmFacts`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `PlayerStandingFacts`, `PlayerStandingPolicy.Resolve`, `PrivateAudienceFacts`, `RegardProposal` |
 | `Settlement.IsTown` (11) | `CommonerChatContext`, `CourierHirePlacePolicy.OfferedInTheMenu`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `EdictDecreeFacts`, `FiefRewardFacts`, `ProvideGoodsPolicy.MarketKey`, `ScoutTownFacts`, `ScoutTownPolicy.MayAsk`, `SharedPastPairFacts`, `TownNeedsPolicy.MostLacking` |
 | `Clan.Settlements` (10) | `AppointmentOfferFacts`, `GrantOfferFacts`, `HeldCaptive`, `LordRecruitmentFacts`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `PowerBalanceFacts`, `RevokeOfferFacts`, `ServiceOfferPolicy.ChooseEnticement`, `SharedPastPairFacts` |
+| `EquipmentElement.Item` (10) | `CompanionCounselPolicy.Select`, `GiftBundlePolicy.Amount`, `GiftCandidate`, `GiftEquipFacts`, `GiftQuantityPolicy.Resolve`, `GiveItemPolicy.IsGiveableItem`, `ItemSaleFacts`, `PartyCounselFacts`, `ScatteredLootItem`, `WarLevyPayment.Counts` |
 | `Hero.Children` (10) | `DuelChallengeContext`, `DuelChallengePolicy.Evaluate`, `HeartFacts`, `HeartPagePolicy.Lines`, `HeartPagePolicy.RecapLine`, `RomanceBondPolicy.Read`, `SeductionFacts`, `ThirdPartyDescriptor.KnowledgeOf`, `ThirdPartyDescriptor.WhereaboutsClause`, `ThirdPartyFacts` |
 | `Hero.IsNotable` (10) | `AudienceStationFacts`, `AudienceWhoFacts`, `GiverFacts`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `NotableRecruitmentFacts`, `PlayerFameFacts`, `PlayerFamePolicy.Line`, `PlayerFamePolicy.Read` |
 | `Hero.OneToOneConversationHero` (10) | `BriefingReturnDecision.Decide`, `BriefingReturnDecision.HostIsLive`, `CommonerChatContext`, `LandfallFacts`, `NemesisBountyRewardPolicy.ComputeGold`, `NemesisBountyRewardPolicy.ComputeRelation`, `NemesisRumorLine.Compose`, `RoadAudienceFacts`, `StagedStartFacts`, `StagingHostFacts` |
 | `MobileParty.LeaderHero` (10) | `DeedRefusal`, `EscortEligibilityPolicy.Refusal`, `EscortEligibilityPolicy.ShouldWarnOfMuster`, `EscortFacts`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `RideWithMeFacts`, `SiegeNews`, `SiegeRecordText.Lifted`, `SiegeRecordText.Started` |
 | `Romantic.IsConsort` (10) | `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible`, `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Settlement.IsUnderSiege` (10) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts`, `AssemblyTravelFacts`, `AssemblyTravelOutcome.Evaluate`, `ChaseFacts`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `SettlementSafetyFacts` |
-| `EquipmentElement.Item` (9) | `CompanionCounselPolicy.Select`, `GiftCandidate`, `GiftEquipFacts`, `GiftQuantityPolicy.Resolve`, `GiveItemPolicy.IsGiveableItem`, `ItemSaleFacts`, `PartyCounselFacts`, `ScatteredLootItem`, `WarLevyPayment.Counts` |
 | `GetPosition2D.Distance` (9) | `AuthoredQuestEngine.NightPassed`, `ChaseFacts`, `CompanionPatrolPolicy.ShouldReissue`, `NewsDestinationSelector.Choose`, `PatrolLeashFacts`, `RealmTidingsRelevancePolicy.TouchesThePlayer`, `RumorAwareness.Explain`, `SharedPastPairFacts`, `TidingsEventFacts` |
 | `Hero.GetSkillValue` (9) | `CombatantFacts`, `CompanionCounselPolicy.Select`, `CompanionMissions.CanAttempt`, `CompanionMissions.LootForResult`, `ErrandFacts`, `PartyCounselFacts`, `TeachSkillPolicy.CanTeach`, `TeachSkillPolicy.CanTeachPlayer`, `TeachSkillPolicy.GrantedXp` |
 | `Hero.HomeSettlement` (9) | `AudienceStationFacts`, `AudienceWhoFacts`, `AuthoredQuestEngine.ConversationOpened`, `AuthoredQuestPrompt.ForCharacter`, `AuthoredTaleImages.ConversationIsTheStep`, `EscortCostPolicy.EscortPremium`, `HistoryKnowledgeFacts`, `LongTermHistoryPolicy.WouldKnow`, `SharedPastPairFacts` |
@@ -108,6 +108,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MapEvent.WinningSide` (5) | `BattleRecordText.Summary`, `BattleWorthFacts`, `LiberationFacts`, `ScatteredLootPolicy.SelectRecoverable`, `SkirmishFacts` |
 | `MapFaction.IsBanditFaction` (5) | `BattleFacts`, `BattleRecordText.Summary`, `BattleSideFacts`, `SkirmishFacts`, `SkirmishFoe` |
 | `MobileParty.BesiegedSettlement` (5) | `AuthoredMapTriggerPolicy.WhyNot`, `ChaseFacts`, `InterceptionPolicy.PlayerCanBeApproached`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `MapTriggerFacts` |
+| `MobileParty.ItemRoster` (5) | `CompanionCounselPolicy.Select`, `GiftBundlePolicy.Amount`, `GiftQuantityPolicy.Resolve`, `PartyCounselFacts`, `WarLevyPayment.Counts` |
 | `MobileParty.MemberRoster` (5) | `CompanionPatrolPolicy.PrefillMen`, `CouncilTroopLoanPolicy.ComputeLoan`, `CourtActionPolicy.IsPartyWeakened`, `TroopGiftFacts`, `TroopLoanFacts` |
 | `OwnerClan.Leader` (5) | `EdictDecreeFacts`, `EdictStandingFacts`, `HeroNaming`, `NotHisToSellFacts`, `RescueCaptorFacts` |
 | `Party.LeaderHero` (5) | `BattleRecordText.Summary`, `BattleWorthFacts`, `LiberationFacts`, `SkirmishFacts`, `SkirmishFoe` |
@@ -134,7 +135,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `LeaderParty.LeaderHero` (4) | `BattleRecordText.Summary`, `LiberationFacts`, `SkirmishFacts`, `SkirmishFoe` |
 | `LeaderParty.SiegeEvent` (4) | `ChaseFacts`, `InterceptionPolicy.PlayerCanBeApproached`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `MapEncounterCloseFacts` |
 | `MarriageModel.IsCoupleSuitableForMarriage` (4) | `MatchRegistrationFacts`, `PendingMatchEntry`, `QuestMenuEntry`, `ReturnFacts` |
-| `MobileParty.ItemRoster` (4) | `CompanionCounselPolicy.Select`, `GiftQuantityPolicy.Resolve`, `PartyCounselFacts`, `WarLevyPayment.Counts` |
 | `PairRegardReader.Assess` (4) | `ClanRegardCandidate`, `PairRegardPolicy.Describe`, `PairRegardPolicy.PageReason`, `PairRegardPolicy.WithoutThePair` |
 | `Party.EstimatedStrength` (4) | `InterceptionFacts`, `InterceptionPolicy.Choose`, `InterceptionPolicy.IsOutnumbered`, `InterceptionPolicy.IsRoadValid` |
 | `PartyBase.Settlement` (4) | `CourierSecretPolicy.WhoGetsTheSecret`, `RansomEnvoyFacts`, `RansomEnvoyPolicy.MaySend`, `SecretDefeaterFacts` |
@@ -546,6 +546,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `GameRelationFacts`: `Clan.Leader`, `Hero.Clan`, `Hero.GetRelationWithPlayer`
 - `GarrisonStrength.BandOf`: `GarrisonParty.Party`, `Party.NumberOfHealthyMembers`, `Party.PartySizeLimit`, `PartyBase.NumberOfHealthyMembers`, `PartyBase.PartySizeLimit`
 - `GeographyDescriber.Bearing`: `GetPosition2D.x`, `GetPosition2D.y`, `Hero.CurrentSettlement`, `MobileParty.GetPosition2D`, `Settlement.GetPosition2D`, `Vec2.Distance`, `Vec2.X`, `Vec2.Y`, `Vec2.x`, `Vec2.y`
+- `GiftBundlePolicy.Amount`: `EquipmentElement.Item`, `MobileParty.ItemRoster`
+- `GiftBundlePolicy.Welcome`: `NatureReader.WelcomeOf`
 - `GiftCandidate`: `EquipmentElement.Item`
 - `GiftEquipFacts`: `EquipmentElement.Item`, `EquipmentIndex.Body`, `EquipmentIndex.Cape`, `EquipmentIndex.Gloves`, `EquipmentIndex.Head`, `EquipmentIndex.Leg`, `Hero.BattleEquipment`, `Hero.CivilianEquipment`, `Hero.IsPlayerCompanion`, `Hero.IsPrisoner`, `Hero.PartyBelongedToAsPrisoner`, `Hero.Spouse`, `ItemObject.IsCivilian`, `MobileParty.Party`
 - `GiftEquipPolicy.WearsOnBattleSet`: `Hero.IsPrisoner`, `Hero.PartyBelongedToAsPrisoner`, `ItemObject.IsCivilian`, `MobileParty.Party`
