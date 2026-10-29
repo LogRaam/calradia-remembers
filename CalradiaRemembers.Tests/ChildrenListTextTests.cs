@@ -31,11 +31,20 @@ namespace CalradiaRemembers.Tests
          ChildrenListText.Part(new string[0], true).Should().Be("Children: none");
       }
 
-      // A child is not told they have no children: that line would be noise in a young character's prompt.
+      // A wandering companion's past lives in the backstory they told, which may speak of a son lost in a raid that the
+      // game never made: "Children: none" would make them deny their own story, so nothing is said.
       [Test]
-      public void GIVEN_a_child_with_no_children_WHEN_their_family_is_written_THEN_nothing_is_said()
+      public void GIVEN_a_wanderer_with_no_children_in_the_game_WHEN_their_family_is_written_THEN_nothing_is_said()
       {
          ChildrenListText.Part(null, false).Should().BeNull();
+      }
+
+      // The same companion wed and had a child in the campaign: the child is named, but the list is not closed over a
+      // past the game does not hold.
+      [Test]
+      public void GIVEN_a_wanderer_with_a_child_born_in_the_campaign_WHEN_their_family_is_written_THEN_the_child_is_named_and_the_list_left_open()
+      {
+         ChildrenListText.Part(new[] {"Ira (female, age 2)"}, false).Should().Be("Children: Ira (female, age 2)");
       }
    }
 }

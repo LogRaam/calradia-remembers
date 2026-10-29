@@ -16068,7 +16068,8 @@ namespace CalradiaRemembers.Diagnostics
          if (realm != null && foreigner != null)
             t.Expect("aRulerIsNamedRulerOfHisRealm", (WitnessResolver.DescribeStanding(foreigner, realm.Leader) ?? "").Contains($"ruler of {realm.Name}"), true);
 
-         t.Expect("theChildrenListIsWhole", RelationshipsBuilder.BuildFamily(parent).Contains("and no other children"), true);
+         // Closed for a lord only: a wanderer's past is the backstory they told, not the game's.
+         if (parent.IsLord) t.Expect("aLordsChildrenListIsWhole", RelationshipsBuilder.BuildFamily(parent).Contains("and no other children"), true);
 
          NpcProfile profile = HeroProfileMapper.FromHero(child);
          profile.Relationships = RelationshipsBuilder.Build(child);

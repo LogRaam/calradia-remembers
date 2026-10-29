@@ -16,18 +16,22 @@ namespace CalradiaRemembers.Logic
    public static class ChildrenListText
    {
       /// <summary>
-      ///   "Children: Ira (female, age 12), Olek (male, age 9), and no other children", "Children: none"
-      ///   for a grown character with none, or null for a child with none (a ten-year-old is not told so).
+      ///   "Children: Ira (female, age 12), Olek (male, age 9), and no other children", or "Children: none", when the
+      ///   game holds the character's whole family; otherwise the children it knows, unclosed, and nothing when none.
       /// </summary>
       /// <param name="described">Each child already described (name, sex, age or death), in the engine's order.</param>
-      /// <param name="isGrown">The character is of an age to have children.</param>
-      public static string Part(IReadOnlyList<string> described, bool isGrown)
+      /// <param name="wholeFamilyKnown">
+      ///   A grown noble: the game tracks a lord's family from birth. Not a wandering companion, whose past lives in the
+      ///   backstory they told (it may speak of children the game never made), nor a child.
+      /// </param>
+      public static string Part(IReadOnlyList<string> described, bool wholeFamilyKnown)
       {
          List<string> children = described?.Where(d => !string.IsNullOrWhiteSpace(d)).ToList() ?? new List<string>();
 
-         if (children.Count > 0) return $"Children: {string.Join(", ", children)}, and no other children";
+         if (children.Count > 0)
+            return wholeFamilyKnown ? $"Children: {string.Join(", ", children)}, and no other children" : $"Children: {string.Join(", ", children)}";
 
-         return isGrown ? "Children: none" : null;
+         return wholeFamilyKnown ? "Children: none" : null;
       }
    }
 }

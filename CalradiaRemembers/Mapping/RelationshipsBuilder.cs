@@ -149,10 +149,10 @@ namespace CalradiaRemembers.Mapping
          // a deceased first wife was addressed as "our child" by the player-character spouse).
          // Dead children too (Maifailun via tashmetu, 15/10/2026: the player's wife Debana died in childbirth and her
          // father asked "Which Debana?", because a dead child was left out of his family altogether).
-         // Said as a whole list, and "none" for a grown character with none (fearente, 29/10/2026: a brother spoke of a
-         // son "Lorgand" when he has a daughter).
+         // Said as a whole list, and "none" for a grown lord with none (fearente, 29/10/2026: a brother spoke of a son
+         // "Lorgand" when he has a daughter). Lords only: a wanderer's past is the backstory they told, not the game's.
          List<Hero> children = hero.Children?.Where(c => c != null).ToList() ?? new List<Hero>();
-         string childrenPart = ChildrenListText.Part(children.Select(c => DescribeChild(c, hero) + Partner(c)).ToList(), IsGrown(hero));
+         string childrenPart = ChildrenListText.Part(children.Select(c => DescribeChild(c, hero) + Partner(c)).ToList(), hero.IsLord && IsGrown(hero));
          if (childrenPart != null) parts.Add(childrenPart);
 
 

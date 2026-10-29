@@ -197,10 +197,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   speaker's own, head of a clan and whether it is the speaker's own, governor of a town or castle), in both prompt
   modes (`WitnessStandingText`, `WitnessResolver.WithStanding`, `WitnessEntry.Standing`). It is composed last, for
   whoever speaks, so in a group scene each voice reads the room from its own side. The family list is now closed
-  ("..., and no other children", or "Children: none" for a grown character; `ChildrenListText`), and the Compact
+  for a grown lord ("..., and no other children", or "Children: none"; `ChildrenListText`); a wandering companion's
+  list is left open, since their past is the backstory they told and may name children the game never made. The Compact
   prompt, which drops RELATIONSHIPS whole, now keeps the family part as YOUR FAMILY (`NpcProfile.Family`). Fixed on the
   way: a person with a memory lost their gear line in a group scene (the copy that adds the memory dropped it).
-  `cr.test witness_standing`. Not changed: the council table, which describes its seats on its own road.
+  A kinsman of the player asking for a private word is pointed at YOUR FAMILY in Compact, not at the RELATIONSHIPS
+  heading Compact drops. `cr.test witness_standing`. Not changed: the council's whole-table call states each seat's
+  rank (its own `StationLine`) but not the kinship between the seated; a council run voice by voice goes through the
+  chat's road and gets both.
 - **Lords no longer invent lands or wars to fill a silence** (RaveN017Mod, Nexus PM, 29/10/2026: lords and vassals
   "make up possessions they don't have or wars that don't exist"). A lord was told which towns and castles his house
   holds and which realms it fights only when there was something to list; a landless house or a realm at peace got no
