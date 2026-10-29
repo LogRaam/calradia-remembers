@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 583 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1385 types in 47 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1398 types in 48 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 276 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2076,6 +2076,24 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TraitFacts` | public class | A hero's trait levels relevant to grudge formation, rigidity, and decay: Mercy (forgiving vs tallying), Honor (broken word stings hardest), Valor (fearful grudges hide rather than confront), Calculating (forms easily, ne... |
 | `UnblessedMarriageFacts` | public class | Facts for Tier2GrudgeRules.UnblessedMarriageGrudge: a family member who opposed an unblessed marriage the player made. |
 | `WorldEventFacts` | public class | A persisted WorldEvent, as read by the engine-side scan. |
+
+### CalradiaRemembers.Logic.Initiative (13)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `InitiativeDecision` | public class | The director's answer. |
+| `InitiativeFamily` | public enum | Who is knocking: each family has its own weight, and each is guaranteed a turn a month. |
+| `InitiativeGrant` | public class | A turn the director gave. |
+| `InitiativeGround` | public enum | Why a turn went to the request it went to. |
+| `InitiativeMoment` | public class | The moment the director is asked at. |
+| `InitiativePace` | public enum | How readily the world comes to the player, as one dial over the fine settings. |
+| `InitiativeRank` | public enum | How the request ranks: the world's imposition, a matter that presses, or the rest. |
+| `InitiativeRequest` | public class | One system's wish to come to the player. |
+| `InitiativeSettings` | public class | The player's tuning (MCM "The World's Initiative"); a pace fills them all. |
+| `InitiativeVariety` | public enum | How much a family that just had its turn steps back. |
+| `InitiativeVerdict` | public enum | Why the director gave a turn, or why it gave none. |
+| `LetterCost` | public enum | What a letter arriving costs from the attention budget. |
+| `WorldInitiativePolicy` | public static class | The director's pure rule. |
 
 ### CalradiaRemembers.Logic.Interception (13)
 

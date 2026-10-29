@@ -5834,3 +5834,41 @@ Aligns with the "make it your own" principle by making customization SAFE (custo
 - **Verified deeds, never words.** The game computes and verifies outcomes (value floors, real transfers,
   real combat, real events); the LLM negotiates the story. "Quests that don't break."
 - **Open & editable.** Prompt/data files in `ModuleData` are the moddable surface; the code is the engine.
+
+## DECIDED 2026-10-28 (Gabriel), STEP 1 BUILT: the world's initiative, one director for every unasked interruption
+
+Gabriel (28/10/2026): keep the player in the game, not pulled "trop souvent vers une gestion de conversation sans que le
+joueur l'ait initie de lui-meme"; today "chaque sujet se gere lui-meme sans tenir compte de l'ensemble". An inventory
+(28/10) found about twenty unasked sources (road interception, fief audience, stance interception, four companion
+audiences, the mailbox and its bypass letters, the letter window, tales on the map, scenario tales, the war council offer,
+the prisoner envoy, the arrest, the town ambush, captive scenes) and no shared pacing beyond three hand-offs.
+
+The rule (Gabriel: "a qui le tour", coherent priorities, variety "pour ne pas qu'un systeme ecrase les autres"):
+- Every system files a request (key, family, rank, character, filed hour, letter or not); the director grants one turn at
+  a time. Families: Lords, Companions, Household, Letters, Tales, WarAndLaw, Aims.
+- Ranks: Imposed (Gabriel's four: the arrest, the war duty, the ambush, an envoy with a short deadline) passes whenever
+  the moment allows and counts; Pressing; Ordinary.
+- Never while busy (battle, mission, chat, menu) or before the settling delay; then the player's limits (at once, quiet
+  after their own conversation, gap between two turns).
+- The fair turn (Gabriel: "Il ne faut pas que les priorites empechent les autres [...] chaque categorie qui est dans la
+  file d'attente puisse etre jouee une fois par mois"): a family waiting with no turn for 30 days comes before any rank
+  and past the budget (the unhappy wife who could never say so).
+- Then the budget, then the best rank drawn by weight: family weight, age, variety (a family served in the window steps
+  back), the same character all but passed over for 72 hours. Requests expire after 10 days (impositions never).
+- MCM "The World's Initiative" (Gabriel: "combien de systemes peuvent se manifester en meme temps, le delai avant que
+  l'orchestrateur decide de lancer une intervention"): a pace dial (Rarely / Occasionally / Often / Custom) over At once,
+  Interruptions per window / Window, Time between two, Settling delay, Quiet after your own talk, Variety, Requests
+  expire, Letters count as (Half), Urgent matters wait their turn (Off), and one weight per family replacing Lords
+  approaching, Letters from NPCs and the companion cadence (read once, converted).
+
+**Step 1 BUILT 28/10/2026:** `Logic/Initiative` (WorldInitiativeModel, WorldInitiativePolicy, presets), 15 tests. Nothing
+wired, so nothing changes for the player; the MCM group and `cr.knocks` come with step 2 (inert options would mislead).
+Step 2: the engine director (queue and turns saved under an additive key; systems ask at the door and act only when
+granted, withdraw when their reason goes), the MCM group, `cr.knocks`, and the big talkers (interception, fief audience,
+companions, letters). Step 3: the rest. Step 4: lords' aims of their own as strategists (an advantage for the lord;
+between NPCs too, played offscreen and heard as news; only aims with a part for the player knock).
+
+**Wished the same day (Gabriel): a starred correspondence.** The player lights a star on a correspondent in the letter
+book ("si je suis en train d'ecrire des lettres d'amour a une NPC, peut-etre que j'aimerais avoir de ses nouvelles
+rapidement meme si c'est la guerre"): that correspondent's letters rank Pressing in the director and outweigh the others
+in the mailbox. To design with step 2's letters.
