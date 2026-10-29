@@ -12,7 +12,7 @@ using TaleWorlds.Core;
 
 #endregion
 
-namespace CalradiaRemembers.Battles
+namespace CalradiaRemembers.Mapping
 {
    /// <summary>Reads a live hero's fighting facts for <see cref="CombatProwessPolicy" />.</summary>
    public static class BattleFeatFacts
@@ -25,7 +25,7 @@ namespace CalradiaRemembers.Battles
          int bestWeapon = Best(hero, DefaultSkills.OneHanded, DefaultSkills.TwoHanded, DefaultSkills.Polearm,
             DefaultSkills.Bow, DefaultSkills.Crossbow, DefaultSkills.Throwing);
 
-         return new CombatantFacts {BestWeaponSkill = bestWeapon, Riding = Skill(hero, DefaultSkills.Riding), Athletics = Skill(hero, DefaultSkills.Athletics), Level = hero.Level, ClanTier = Mapping.StatureReader.Of(hero).ClanTier};
+         return new CombatantFacts {BestWeaponSkill = bestWeapon, Riding = Skill(hero, DefaultSkills.Riding), Athletics = Skill(hero, DefaultSkills.Athletics), Level = hero.Level, ClanTier = StatureReader.Of(hero).ClanTier};
       }
 
       private static int Best(Hero hero, params SkillObject[] skills)

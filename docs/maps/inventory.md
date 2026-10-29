@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 581 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1374 types in 47 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 582 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1378 types in 47 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 276 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -170,11 +170,10 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BastardBehavior` | public class | Tracks the player's bastards and drives their consequences each season: discovery, the mother's recurring blackmail, and (at coming of age) a prestige-gated claim. |
 | `BlackmailState` | internal class | Per-bastard blackmail clock: the season a demand was raised (-1 none), the gold it asks, and the season paid silence runs to. |
 
-### CalradiaRemembers.Battles (7)
+### CalradiaRemembers.Battles (6)
 
 | Type | Kind | What it is |
 |---|---|---|
-| `BattleFeatFacts` | public static class | Reads a live hero's fighting facts for CombatProwessPolicy. |
 | `BattleFeatJournal` | public class | Mission-scoped ledger of what the player actually did, and suffered, in this engagement. |
 | `BattleFeatReport` | public class | What one battle left behind, rendered PER RECIPIENT. A witness saw the deeds; the man a deed is ABOUT lived them, and must speak of them in his own voice, or his memory would read "I saw you best Lucon" when he IS Lucon. |
 | `BattleFeatReporter` | public static class | Builds the distilled, first-hand deed lines for the battle that just ended. |
@@ -556,11 +555,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (43)
+### CalradiaRemembers.Mapping (45)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ActionGate` | public static class | The live-game side of the one initiative gate. |
+| `BattleFeatFacts` | public static class | Reads a live hero's fighting facts for CombatProwessPolicy. |
 | `ContextualNameResolver` | public static class | Scans the player's message for hero names and produces a ready-to-inject hint block for the LLM system prompt. |
 | `CouncilSeatNoteResolver` | internal static class | Resolves one council seat's modder note from council_seat.txt and that seat's own variables. |
 | `CulturalTraditionsLoader` | public static class | Loads and caches the cultural_traditions.json file from the mod's own ModuleData folder (and, if present, ModuleData/Custom first). |
@@ -588,6 +588,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PlayerDungeons` | public static class | Where the player left each prisoner, by hero id. |
 | `PlayerFameResolver` | public static class | Builds the "what you know of their name" line for a character who does not know the player in person, or null. |
 | `PlayerPrisonBreakPatch` | public static class | Who the player is breaking out of prison right now, for the listeners of that release. |
+| `PlayerRungReader` | public static class | Where the player stands beside a character, read from the live game. |
 | `PromptProfileService` | internal static class | The prompt profile in use, and the layout each kind of character gets from it. |
 | `RealmFaceBehavior` | public class | Dresses each realm's queen in the face its faces file gives, and gives a former queen her own face back. |
 | `RealmWarFooting` | public static class | Reads a realm's war footing from the live game. |
@@ -2370,16 +2371,20 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WarPressFacts` | public class | What a king weighs when a lord of his realm presses him toward war. |
 | `WarPressPolicy` | public static class | Whether a king goes to war when a lord presses him (PRESS_FOR_WAR). |
 
-### CalradiaRemembers.Logic.Social (8)
+### CalradiaRemembers.Logic.Social (12)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `ArmsGap` | public enum | How the one speaking compares with the player at arms. |
 | `FameBand` | public enum | How far the player's name has reached one character who does not know them in person. |
 | `FameObserver` | public enum | Who is hearing of the player: how widely word reaches someone of their station. |
 | `FameRepute` | public enum | What the player is said to be, once known by reputation (the game's own traits for the player). |
 | `PlayerFameFacts` | public class | What the rule reads: the player's standing and who is hearing of it. |
 | `PlayerFamePolicy` | public static class | The rule: renown and a crown carry the name; station, realm, culture and deeds done nearby carry it further. |
 | `PlayerFameReading` | public class | How far the player's name has reached this character, and what it carries (pure). |
+| `PlayerRung` | public enum | The player's place in the world, as anyone can see it. |
+| `PlayerRungFacts` | public class | What the rung is read from. |
+| `PlayerRungPolicy` | public static class | Reads the player's rung and the gap at arms, and says them to the one speaking. |
 | `PresenceDescriber` | public static class | Renders the spatial "you are with the player like THIS" line, and gates the separate elapsed-gap note (handled by MeetingGapDescriber) so it never fires for someone who travels with the player daily. |
 | `PresenceTier` | public enum | Where an NPC stands relative to the player at this moment, from closest to farthest. |
 

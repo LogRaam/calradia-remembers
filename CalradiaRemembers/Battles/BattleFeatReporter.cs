@@ -111,7 +111,7 @@ namespace CalradiaRemembers.Battles
       {
          if (foe == null || Hero.MainHero == null) return false;
 
-         CombatFeatTier tier = CombatProwessPolicy.Rate(BattleFeatFacts.For(Hero.MainHero), BattleFeatFacts.For(foe));
+         CombatFeatTier tier = CombatProwessPolicy.Rate(Mapping.BattleFeatFacts.For(Hero.MainHero), Mapping.BattleFeatFacts.For(foe));
          if (!CombatProwessPolicy.TravelsAsGossip(tier)) return false;
 
          string name = HeroLabel.Describe(new HeroLabel.HeroNaming {Name = foe.Name?.ToString(), ClanName = foe.Clan?.Name?.ToString(), CultureName = foe.Culture?.Name?.ToString()});
@@ -158,7 +158,7 @@ namespace CalradiaRemembers.Battles
                     ?? Hero.DeadOrDisabledHeroes?.FirstOrDefault(h => h != null && h.StringId == heroId);
          if (foe == null || Hero.MainHero == null) return null;
 
-         CombatFeatTier tier = CombatProwessPolicy.Rate(BattleFeatFacts.For(Hero.MainHero), BattleFeatFacts.For(foe));
+         CombatFeatTier tier = CombatProwessPolicy.Rate(Mapping.BattleFeatFacts.For(Hero.MainHero), Mapping.BattleFeatFacts.For(foe));
          if (tier == CombatFeatTier.Unremarkable) return null;
 
          string name = HeroLabel.Describe(new HeroLabel.HeroNaming {Name = foe.Name?.ToString(), ClanName = foe.Clan?.Name?.ToString(), CultureName = foe.Culture?.Name?.ToString()});

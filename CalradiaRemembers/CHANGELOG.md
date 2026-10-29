@@ -56,6 +56,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   `HouseMeansPack`). A duel of honour is now offered only with a noble (`DuelPeerPolicy`): companions and notables, a
   peer since v1.31.9 (a player then asked to duel a companion), no longer duel, nor does the player call them out; the
   street brawl that replaces it for them is still to come, so a friendly bout with a companion is gone until then.
+- **Every character knows where the player stands beside them, in rank and at arms** (Gabriel, 28/10/2026: "Un paysan qui
+  parle au joueur niveau 1 sera plus rude que si il parle au joueur niveau 20 Clan tier 3"; avalanche24, 28/10/2026: a
+  companion "with his best stat less than 100" talked of winning a war beside a player who kills a hundred a battle).
+  Second step of the station pillar. `PlayerRungPolicy` places the player on five rungs read from the one rank type
+  (`Stature`) and the clan's oath: a nobody, a sword for hire (a mercenary, tier 1, or level 15 and up), the head of a
+  rising house (tier 2+, a fief or an oath), a great lord (a sworn vassal with a fief, or tier 4+), a sovereign. It reads
+  who fights better from the one prowess rule (`CombatProwessPolicy.Prowess`), bucketed so a skill point never moves it:
+  far below, below, even (nothing said), above, far above. The station pack carries the line for everyone, Lean too
+  (`EncounterContext.BesideThePlayer`, `PlayerRungReader`). `BattleFeatFacts` moved to `Mapping` so no new namespace cycle
+  formed. How each station treats each rung comes with the station definitions. cr.test `player_rung`.
 - **Tastes in bed: a wider list, weighed by who the character is** (Hardcore only; Gabriel, 27/10/2026: "Je trouve
   interessant d'en mettre beaucoup. Ca peut amener des scenes plus subtiles et complexes", then "les kinks pourraient
   fortement qualifier ou disqualifier certains gestes" and "les traits influencent les kinks qui eux influencent les

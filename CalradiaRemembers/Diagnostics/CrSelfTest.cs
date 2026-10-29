@@ -478,6 +478,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("stance_warning", Severity.Heavy, "stance with teeth increment 2: seed a secret scheme against the player -> force a friendly Warning-verdict lord -> assert the letter NAMES the real plotter", TestStanceWarning),
          new SelfTest("scheme_assist", Severity.Heavy, "plot + regard -> PlayerAssists -> assert the plot advanced", TestSchemeAssist),
          new SelfTest("pregnancy", Severity.Heavy, "fertile female -> TryConceive(force) -> assert pregnant", TestPregnancy),
+         new SelfTest("player_rung", Severity.Light, "Gabriel 28/10: a villager is ruder to a nobody than to the head of a tier 3 house; avalanche24 28/10: a weak companion boasted before a master of arms. Reads the player's rung from the live game and the line a real lord would be given about the player: it names the player's place in the world, and the gap at arms follows the two fighters' prowess. Changes no game state", TestPlayerRung),
          new SelfTest("conception_veto", Severity.Light, "tashmetu 28/10: a Sterile character (Traits of Calradia) conceived through CR. A veto registered through CrConception against an eligible mother -> TryConceive(force) -> assert no conception and she is not carrying; the veto is withdrawn after", TestConceptionVeto),
          new SelfTest("companion_mission", Severity.Heavy, "dispatch a companion -> assert away -> resolve -> assert home", TestCompanionMission),
          new SelfTest("bastard_discovery", Severity.Heavy, "tag a bastard -> Discover -> assert flag + a Scandal world-event", TestBastardDiscovery),
@@ -8532,6 +8533,24 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      private static string TestPlayerRung(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("player_rung");
+
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsChild);
+         if (t.Skip(lord == null, "no living lord")) return t.Line();
+
+         PlayerRung rung = PlayerRungReader.Rung();
+         string line = PlayerRungReader.LineFor(lord);
+         ArmsGap gap = PlayerRungPolicy.Gap(BattleFeatFacts.For(lord), BattleFeatFacts.For(Hero.MainHero));
+         t.Note($"rung={rung} (tier {StatureReader.Player.ClanTier}, level {Hero.MainHero.Level}), lord={lord.Name}, gap={gap}");
+         t.Expect("namesTheRung", line != null && line.StartsWith(PlayerRungPolicy.RungLine(rung)), true);
+         t.Expect("gapSaidOnlyWhenUneven", line != null && (gap == ArmsGap.Even) == (line == PlayerRungPolicy.RungLine(rung)), true);
+
+         return t.Line();
+      }
+
       private static string TestConceptionVeto(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("conception_veto");
@@ -9389,8 +9408,8 @@ namespace CalradiaRemembers.Diagnostics
          List<Hero> lords = Hero.AllAliveHeroes?.Where(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner).ToList();
          if (t.Abort(lords == null || lords.Count == 0, "no live lord to stand in as a foe")) return t.Line();
 
-         CombatantFacts player = CalradiaRemembers.Battles.BattleFeatFacts.For(Hero.MainHero);
-         CombatantFacts foe = CalradiaRemembers.Battles.BattleFeatFacts.For(lords[0]);
+         CombatantFacts player = CalradiaRemembers.Mapping.BattleFeatFacts.For(Hero.MainHero);
+         CombatantFacts foe = CalradiaRemembers.Mapping.BattleFeatFacts.For(lords[0]);
 
          // Synthetic extremes: the ruling itself must not depend on who happens to be alive in this campaign.
          var weakling = new CombatantFacts {BestWeaponSkill = 20, Riding = 0, Athletics = 0, Level = 2, ClanTier = 0};
@@ -9421,7 +9440,7 @@ namespace CalradiaRemembers.Diagnostics
          // foe was worth beating, so pick a lord the ruling actually rates (any campaign has stronger lords than
          // the player early on, but never assume it: fall back and assert only what holds).
          Hero ratedFoe = lords.FirstOrDefault(h =>
-            CombatProwessPolicy.Rate(player, CalradiaRemembers.Battles.BattleFeatFacts.For(h)) != CombatFeatTier.Unremarkable);
+            CombatProwessPolicy.Rate(player, CalradiaRemembers.Mapping.BattleFeatFacts.For(h)) != CombatFeatTier.Unremarkable);
 
          var endToEnd = new CalradiaRemembers.Battles.BattleFeatJournal();
          endToEnd.DebugRecord(ratedFoe?.StringId, lords[0].StringId, 0);
@@ -9460,9 +9479,9 @@ namespace CalradiaRemembers.Diagnostics
          // Inc 3 (circulation): only an EXPLOIT leaves the field. Drive the REAL recorder both ways and check the
          // world-event store, then retract whatever was seeded so the campaign is left untouched.
          Hero exploitFoe = lords.FirstOrDefault(h =>
-            CombatProwessPolicy.Rate(player, CalradiaRemembers.Battles.BattleFeatFacts.For(h)) == CombatFeatTier.Exploit);
+            CombatProwessPolicy.Rate(player, CalradiaRemembers.Mapping.BattleFeatFacts.For(h)) == CombatFeatTier.Exploit);
          Hero pushoverFoe = lords.FirstOrDefault(h =>
-            CombatProwessPolicy.Rate(player, CalradiaRemembers.Battles.BattleFeatFacts.For(h)) == CombatFeatTier.Unremarkable);
+            CombatProwessPolicy.Rate(player, CalradiaRemembers.Mapping.BattleFeatFacts.For(h)) == CombatFeatTier.Unremarkable);
          var today = (int) CampaignTime.Now.ToDays;
 
          try

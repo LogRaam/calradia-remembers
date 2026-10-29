@@ -729,6 +729,7 @@ namespace CalradiaRemembers.Mapping
             NpcSpouseIsPlayer = hero?.Spouse == Hero.MainHero && Hero.MainHero != null,
             // fearente (26/10/2026): the game counts a hired companion in the player's clan; identity says what they are.
             IsHiredCompanion = hero != null && hero.IsPlayerCompanion,
+            BesideThePlayer = PlayerRungReader.LineFor(hero),
             KinshipToPlayer = ResolveKinshipToPlayer(hero),
             DaysSinceJoiningPlayer = hero != null && hero.IsPlayerCompanion && profile?.JoinedPlayerCompanyDay is int joined
                ? (int) CampaignTime.Now.ToDays - joined

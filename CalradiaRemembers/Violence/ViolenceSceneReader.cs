@@ -42,8 +42,8 @@ namespace CalradiaRemembers.Violence
       /// <summary>The facts of a violent attempt: both fighters measured the same way the battle pillar measures them, plus who is watching.</summary>
       public static ViolenceFacts FactsFor(Hero target)
       {
-         CombatantFacts player = Battles.BattleFeatFacts.For(Hero.MainHero);
-         CombatantFacts foe = Battles.BattleFeatFacts.For(target);
+         CombatantFacts player = Mapping.BattleFeatFacts.For(Hero.MainHero);
+         CombatantFacts foe = Mapping.BattleFeatFacts.For(target);
 
          return new ViolenceFacts(
             CombatProwessPolicy.Prowess(player),
