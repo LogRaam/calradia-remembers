@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 580 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1370 types in 47 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 581 types in 62 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1372 types in 47 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 276 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -43,7 +43,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (53)
+### CalradiaRemembers (54)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -52,6 +52,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrActions` | public static class | The public facade a third-party mod calls to register (or unregister) one executable conversation action. |
 | `CrAimRaised` | public class | A lord was given the floor for an aim (CrAims.Raised). |
 | `CrAims` | public static class | The door through which other mods give lords aims of their own. |
+| `CrConception` | public static class | Lets another mod forbid the conceptions Calradia Remembers creates. |
 | `CrConversation` | public static class | The public conversation-lifecycle events other mods subscribe to. |
 | `CrConversationInfo` | public class | The identity of a conversation as it OPENS, delivered by CrConversation.Started. |
 | `CrConversationLog` | public class | A whole conversation as it CLOSES, delivered by CrConversation.Ended. |
@@ -935,7 +936,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (458)
+### CalradiaRemembers.Logic (460)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1016,6 +1017,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ConceptionChroniclePolicy` | public static class | Decides whether a conception involving the player is a PUBLIC heir worth chronicling, or a private matter the chronicle must stay silent about (the seed of a hidden bastard). |
 | `ConceptionResolver` | public static class | Decides, from the two participants' sex / life / age, which (if either) could conceive from a completed vaginal act. |
 | `ConceptionRole` | public enum | Which participant, if either, becomes the mother of a conception in this scene. |
+| `ConceptionVetoBook` | public class | The vetoes other mods registered against a conception, asked in the order they were registered. |
+| `ConceptionVetoVerdict` | public class | What the vetoes answered: who refused and why, and which vetoes failed while asked. |
 | `ConsoleCommandDoc` | public class | One console command, described in a player's terms. |
 | `ConsoleHelpPolicy` | public static class | How cr.help answers, given what is actually registered and what each command is documented to do. |
 | `ContentmentPacing` | public enum | How readily a companion's spirits recover from a grievance. |

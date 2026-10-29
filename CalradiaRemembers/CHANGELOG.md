@@ -62,6 +62,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   memory and the prompt name every new gesture; `character_overrides.json` lists their ids. `cr.test intimate_acts`
   completes an old profile through the real load path.
 
+### For modders
+- **A mod can forbid a conception CR would create** (tashmetu, Nexus, 28/10/2026: Traits of Calradia's Sterile
+  character is told "you have no child of your blood and know you will have none", yet CR's own conception never read
+  it). `CrConception.RegisterVeto(source, (mother, father) => reason or null)`; `PregnancyService.TryConceive` asks
+  every veto after its own gates, forced or not (`ConceptionVetoBook`, first refusal wins, a veto that throws is logged
+  and passed over, the same source replaces its veto). Documented in EXTENSION_API.md. cr.test `conception_veto`.
+
 ### Fixed
 - **Giving a ruler all you own no longer reads as joining her house** (RaveN017Mod, Nexus, 28/10/2026: "I assumed this
   would mean joining House Pethros [...] I specifically chose the second option: to give her everything and join

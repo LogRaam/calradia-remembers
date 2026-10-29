@@ -478,6 +478,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("stance_warning", Severity.Heavy, "stance with teeth increment 2: seed a secret scheme against the player -> force a friendly Warning-verdict lord -> assert the letter NAMES the real plotter", TestStanceWarning),
          new SelfTest("scheme_assist", Severity.Heavy, "plot + regard -> PlayerAssists -> assert the plot advanced", TestSchemeAssist),
          new SelfTest("pregnancy", Severity.Heavy, "fertile female -> TryConceive(force) -> assert pregnant", TestPregnancy),
+         new SelfTest("conception_veto", Severity.Light, "tashmetu 28/10: a Sterile character (Traits of Calradia) conceived through CR. A veto registered through CrConception against an eligible mother -> TryConceive(force) -> assert no conception and she is not carrying; the veto is withdrawn after", TestConceptionVeto),
          new SelfTest("companion_mission", Severity.Heavy, "dispatch a companion -> assert away -> resolve -> assert home", TestCompanionMission),
          new SelfTest("bastard_discovery", Severity.Heavy, "tag a bastard -> Discover -> assert flag + a Scandal world-event", TestBastardDiscovery),
          new SelfTest("bastard_claim", Severity.Heavy, "force a grown bastard's claim -> assert hostility + claim world-event", TestBastardClaim),
@@ -8526,6 +8527,30 @@ namespace CalradiaRemembers.Diagnostics
             string refused = PregnancyService.TryConceive(infertile, Hero.MainHero, true);
             t.Note($"ageGate={infertile.Name}(age {infertile.Age:0})");
             t.Expect("infertileRefused", refused == null, true);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestConceptionVeto(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("conception_veto");
+         const string source = "cr.test conception_veto";
+
+         Hero mother = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && PregnancyService.IsEligible(h));
+         if (t.Skip(mother == null, "no CR-eligible (fertile, not already carrying, birth-enabled) female NPC")) return t.Line();
+
+         try
+         {
+            CrConception.RegisterVeto(source, (m, f) => m == mother ? "Sterile (self-test)" : null);
+            string note = PregnancyService.TryConceive(mother, Hero.MainHero, true);
+            t.Note($"mother={mother.Name}(age {mother.Age:0})");
+            t.Expect("conceptionRefused", note == null, true);
+            t.Expect("notCarrying", PregnancyService.IsEligible(mother), true);
+         }
+         finally
+         {
+            CrConception.UnregisterVeto(source);
          }
 
          return t.Line();

@@ -290,6 +290,20 @@ the game reports the end: it is then a plain end, never an abandonment, and the 
 realm's enemy afterwards is no betrayal. Never call it when the player chose to leave. Names no Calradia Remembers
 type. (tashmetu, for Mercenary Management.)
 
+### Forbidding a conception (`CrConception.RegisterVeto`, since 2.7.22)
+
+```csharp
+CrConception.RegisterVeto("Traits of Calradia", (mother, father) =>
+   IsSterile(mother) || IsSterile(father) ? "Sterile" : null);   // father is null when unknown
+```
+
+CR creates pregnancies of its own: an intimate act carried to completion, a tale's reward, a lover's child. Before
+each, it asks every registered veto; the first that answers with a few words forbids it, and the log says who and why
+(`[PREGNANCY] no conception: <source> forbids it ...`). Return null to let it be. A veto that throws is logged and never
+forbids. Registering the same source again replaces its veto; `CrConception.UnregisterVeto(source)` withdraws it. Not
+saved: register when a game starts or loads. The engine's own daily pregnancies are not CR's and are not asked.
+(tashmetu, for Traits of Calradia's Sterile.)
+
 ### Queens with a chosen face (`ModuleData/cr_faces.json`, since 2.7.10)
 
 `{ "queens": { "<realm id>": "<BodyProperties version=... key=... />" } }`: the line the face editor copies with

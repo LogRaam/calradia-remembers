@@ -56,6 +56,13 @@ _The door through which other mods give lords aims of their own._
 - `static bool Retract(string sourceMod, string id)`
 - `static event Action<CrAimRaised> Raised`
 
+### CrConception
+
+_Lets another mod forbid the conceptions Calradia Remembers creates._
+
+- `static bool UnregisterVeto(string source)`
+- `static void RegisterVeto(string source, Func<Hero, Hero, string> veto)`
+
 ### CrConversation
 
 _The public conversation-lifecycle events other mods subscribe to._
