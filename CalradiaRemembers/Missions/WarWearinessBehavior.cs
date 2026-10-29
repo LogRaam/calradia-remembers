@@ -313,7 +313,11 @@ namespace CalradiaRemembers.Missions
             });
          }
 
-         if (toAsk != null && !_requestOpen) PresentRetirement(toAsk); // at most one request per week
+         // The world's initiative (Gabriel, 28/10/2026): kept waiting by the conductor starts no decline cooldown; asked again next week.
+         if (toAsk != null && !_requestOpen
+             && (Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"retirement:{toAsk.StringId}", Logic.Initiative.InitiativeFamily.Companions,
+                    Logic.Initiative.InitiativeRanks.RankOf(CompanionAudienceReason.Retirement), toAsk) ?? true))
+            PresentRetirement(toAsk); // at most one request per week
       }
 
       private void PresentRetirement(Hero h)

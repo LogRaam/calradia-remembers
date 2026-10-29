@@ -611,6 +611,12 @@ namespace CalradiaRemembers.Missions
          (Hero Companion, CompanionAudienceTopicScan Scan)? found = FindEligibleAudience();
          if (found == null) return false; // silence is the default: nothing worth saying was found anywhere in the roster
 
+         // The world's initiative (Gabriel, 28/10/2026): asked before the roster's clock starts; a companion kept waiting
+         // asks again at the next entry or on the road.
+         Hero who = found.Value.Companion;
+         if (!(Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"companion:{who.StringId}", Logic.Initiative.InitiativeFamily.Companions,
+                 Logic.Initiative.InitiativeRanks.RankOf(found.Value.Scan.Topic), who) ?? true)) return false;
+
          RequestAudience(found.Value.Companion, found.Value.Scan);
 
          return true;

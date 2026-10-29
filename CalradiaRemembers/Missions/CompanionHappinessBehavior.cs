@@ -352,7 +352,11 @@ namespace CalradiaRemembers.Missions
          switch (CompanionRetentionPolicy.Decide(true, true, refusals))
          {
             case RetentionStep.RequestAudience:
-               RequestAudience(h);
+               // The world's initiative (Gabriel, 28/10/2026): kept waiting by the conductor is NOT turned away by the
+               // player, so no refusal is counted and nothing sours; the companion asks again at the next pass.
+               if (Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"retention:{h.StringId}", Logic.Initiative.InitiativeFamily.Companions,
+                      Logic.Initiative.InitiativeRanks.RankOf(CompanionAudienceReason.Grievance), h) ?? true)
+                  RequestAudience(h);
 
                break;
 

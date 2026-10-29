@@ -13,6 +13,24 @@ namespace CalradiaRemembers.Logic.Initiative
       public static InitiativeFamily FamilyOf(InterceptionTrigger trigger)
          => trigger == InterceptionTrigger.StandingAim ? InitiativeFamily.Aims : InitiativeFamily.Lords;
 
+      /// <summary>
+      ///   How a companion's reason to ask for a word ranks: one close to leaving (a grievance, retirement), a plot
+      ///   uncovered, or news of an errand presses; counsel, a rumour, gratitude, affection, ambition can wait.
+      /// </summary>
+      public static InitiativeRank RankOf(NpcMemoryService.Core.Models.CompanionAudienceReason reason)
+      {
+         switch (reason)
+         {
+            case NpcMemoryService.Core.Models.CompanionAudienceReason.Grievance:
+            case NpcMemoryService.Core.Models.CompanionAudienceReason.Retirement:
+            case NpcMemoryService.Core.Models.CompanionAudienceReason.SchemeWarning:
+            case NpcMemoryService.Core.Models.CompanionAudienceReason.MissionFollowUp:
+               return InitiativeRank.Pressing;
+            default:
+               return InitiativeRank.Ordinary;
+         }
+      }
+
       /// <summary>How a lord's reason to seek the player ranks.</summary>
       public static InitiativeRank RankOf(InterceptionTrigger trigger)
       {

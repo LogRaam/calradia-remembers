@@ -36,6 +36,17 @@ namespace CalradiaRemembers.Tests.Initiative
          InitiativeRanks.RankOf(InterceptionTrigger.StandingAim).Should().Be(InitiativeRank.Ordinary);
       }
 
+      // STAKE: a companion close to leaving, or warning of a plot, is heard before one with counsel or a kindness to share.
+      [Test]
+      public void GIVEN_a_companions_reason_WHEN_ranked_THEN_leaving_and_plots_press_and_the_rest_can_wait()
+      {
+         InitiativeRanks.RankOf(NpcMemoryService.Core.Models.CompanionAudienceReason.Grievance).Should().Be(InitiativeRank.Pressing);
+         InitiativeRanks.RankOf(NpcMemoryService.Core.Models.CompanionAudienceReason.Retirement).Should().Be(InitiativeRank.Pressing);
+         InitiativeRanks.RankOf(NpcMemoryService.Core.Models.CompanionAudienceReason.SchemeWarning).Should().Be(InitiativeRank.Pressing);
+         InitiativeRanks.RankOf(NpcMemoryService.Core.Models.CompanionAudienceReason.SecretAffection).Should().Be(InitiativeRank.Ordinary);
+         InitiativeRanks.RankOf(NpcMemoryService.Core.Models.CompanionAudienceReason.Gratitude).Should().Be(InitiativeRank.Ordinary);
+      }
+
       // STAKE: a lord's own aim is weighed with the aims, so the player's "Lords' Aims" weight reaches it.
       [Test]
       public void GIVEN_a_lords_aim_WHEN_its_family_is_read_THEN_it_is_the_aims_not_the_lords()

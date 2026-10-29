@@ -21,7 +21,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
     or the aims' for a lord's own aim; the war duty imposed; a grudge, news, a nemesis or a patrol pressing; a kindness
     or an aim ordinary, `InitiativeRanks`);
   - a lord asking for a word in the town the player walks into (`here:audience:<lord>`, withdrawn when the player
-    leaves the town).
+    leaves the town);
+  - the companions: a private word on a topic (`companion:<id>`), secret affection (`affection:<id>`), an unhappy
+    companion asking to be heard (`retention:<id>`), a war-weary one asking to retire (`retirement:<id>`). A companion
+    kept waiting by the conductor is not turned away by the player: no refusal is counted, no decline cooldown starts,
+    and they ask again at the next pass. Leaving, retiring, a plot uncovered and an errand's news press; the rest can
+    wait (`InitiativeRanks.RankOf(CompanionAudienceReason)`).
 - **What matters most to a character, and a What You Know section in the encyclopedia** (Gabriel, 27/10/2026: "Et
   aussi, 'qu'est-ce qui compte le plus' pour un NPC. Ses enfants? Sa richesse? Son amoureux? etc.", then "On va le
   faire maintenant" and "il faudra penser a les indiquer dans des sections de l'encyclopedia"). Every character met is

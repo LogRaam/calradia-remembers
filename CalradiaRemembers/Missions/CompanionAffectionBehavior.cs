@@ -148,6 +148,10 @@ namespace CalradiaRemembers.Missions
                if (!CompanionSecretAffectionPolicy.ShouldConfideThisWeek(new NpcMemoryService.Core.Standing.Regard(profile.ReputationWithPlayer), MBRandom.RandomInt(100), ModSettings.RelationWarmth))
                   return;
 
+               // The world's initiative (Gabriel, 28/10/2026): asked before her cooldown starts; kept waiting, she confides another week.
+               if (!(Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"affection:{companion.StringId}", Logic.Initiative.InitiativeFamily.Companions,
+                       Logic.Initiative.InitiativeRanks.RankOf(CompanionAudienceReason.SecretAffection), companion) ?? true)) return;
+
                RequestAudience(companion);
             });
          }
