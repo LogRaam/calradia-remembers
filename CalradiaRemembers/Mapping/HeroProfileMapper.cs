@@ -288,7 +288,7 @@ namespace CalradiaRemembers.Mapping
          if (hero.IsClanLeader) return "Leads a noble clan.";
          if (hero.IsLord) return "A noble lord with land and retainers.";
          // avalanche24 (28/10/2026): a hireling read "a person of some standing" and spoke as one.
-         if (hero.CompanionOf != null && hero.CompanionOf == Clan.PlayerClan) return "A hired companion in the player's company, with no house of their own.";
+         if (hero.CompanionOf != null && hero.CompanionOf == Clan.PlayerClan && hero.Spouse != Hero.MainHero) return "A hired companion in the player's company, with no house of their own.";
          if (hero.IsWanderer) return "A wanderer, a free blade with no lord and no lands.";
          // All five notable trades by name (Windmolen, 19/10/2026): a guideline written for one trade needs the
          // model to know which trade it is speaking as.

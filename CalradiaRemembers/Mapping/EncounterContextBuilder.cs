@@ -733,7 +733,8 @@ namespace CalradiaRemembers.Mapping
             PartnerIsOwnCompanion = MarryCompanionResolver.IsEligibleCompanionMatch(hero),
             NpcSpouseIsPlayer = hero?.Spouse == Hero.MainHero && Hero.MainHero != null,
             // fearente (26/10/2026): the game counts a hired companion in the player's clan; identity says what they are.
-            IsHiredCompanion = hero != null && hero.IsPlayerCompanion,
+            // A companion the player married is a spouse, never a hireling (CR's own wedding clears CompanionOf; another mod's may not).
+            IsHiredCompanion = hero != null && hero.IsPlayerCompanion && hero.Spouse != Hero.MainHero,
             OwnStation = SocialStationReader.Who(hero),
             BesideThePlayer = PlayerRungReader.LineFor(hero),
             KinshipToPlayer = ResolveKinshipToPlayer(hero),

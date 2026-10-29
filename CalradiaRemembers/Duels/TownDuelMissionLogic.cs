@@ -201,24 +201,33 @@ namespace CalradiaRemembers.Duels
 
          StandCompanionsAside(opponent);
 
-         // Gabriel (28/10/2026): a brawl is fists. The game's own fistfight takes both fighters' weapons away and gives
-         // them back after (MissionFightHandler.StartFistFight, decompiled 1.4.8), so the player is not armed for it.
-         if (DuelCoordinator.StagedKind == DuelKind.Brawl)
-         {
-            fight.StartFistFight(opponent, OnFightEnd);
-            ModLog.Info("[DUEL] town brawl started in the town centre.");
+         // Gabriel (28/10/2026): a brawl is fists. Both are disarmed the way the game's own fistfight does it (weapon slots
+         // 0-4 cleared, MissionFightHandler.RemoveWeaponsFromAgents, decompiled 1.4.8), but not through StartFistFight:
+         // that one re-equips both agents when the fight ends, after this logic has already knocked one out and closed
+         // the scene. The town scene closes when the brawl is decided, so nothing needs giving back.
+         bool brawl = DuelCoordinator.StagedKind == DuelKind.Brawl;
+         if (brawl) Disarm(Mission.MainAgent, opponent);
+         else ArmThePlayer();
 
-            return;
-         }
-
-         ArmThePlayer();
          fight.StartCustomFight(
             new List<Agent> {Mission.MainAgent},
             new List<Agent> {opponent},
             false,
             false,
             OnFightEnd);
-         ModLog.Info("[DUEL] town duel started in the town centre.");
+         ModLog.Info(brawl ? "[DUEL] town brawl started in the town centre." : "[DUEL] town duel started in the town centre.");
+      }
+
+      /// <summary>Takes every weapon from the two brawlers (slots 0-4); fail-soft, the fight goes on as they stand.</summary>
+      private static void Disarm(params Agent[] agents)
+      {
+         foreach (Agent agent in agents)
+            try
+            {
+               if (agent == null || !agent.IsActive()) continue;
+               for (EquipmentIndex i = EquipmentIndex.WeaponItemBeginSlot; i < EquipmentIndex.NumAllWeaponSlots; i++) agent.RemoveEquippedWeapon(i);
+            }
+            catch (Exception ex) { ModLog.Info($"[DUEL] could not disarm a brawler ({ex.GetType().Name}: {ex.Message}); the brawl goes on as they stand."); }
       }
 
       /// <summary>

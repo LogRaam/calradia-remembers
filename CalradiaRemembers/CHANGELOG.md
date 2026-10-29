@@ -84,8 +84,9 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   bandit chiefs) and the notables of trade brawl with fists; a preacher fights no one. The same verb and the same road
   (`challenge_duel`, `DuelEligibilityResolver`): the character is taught "A SCORE MAY BE SETTLED WITH FISTS" (no standing,
   no steel, no satisfaction), the player answers "Raise your fists", and the fight is staged where the duel would be: in
-  town through the game's own fistfight (`MissionFightHandler.StartFistFight`, both disarmed, gear given back after),
-  in the field with town clothes and the weapon slots cleared. Nobody dies, as in a duel. A brawl moves only what the two
+  town with both fighters' weapon slots cleared as the game's own fistfight clears them (not `StartFistFight` itself: it
+  re-equips both after the fight, when CR has already knocked one out and closed the scene), in the field with town
+  clothes and the weapon slots cleared. A companion the player married is a spouse, never voiced as a hireling. Nobody dies, as in a duel. A brawl moves only what the two
   think of each other: no renown, no house influence, no wager, and it is not recorded as the realm's news. A commoner
   starts one only over a real grievance (a live grudge, or a regard at `Regard.WaryTier` or below), a notable of trade
   never does it himself, and one far outmatched at arms, or facing a lord when they are not the player's companion, keeps

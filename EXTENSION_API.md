@@ -97,6 +97,17 @@ removed. Memories injected before 2.7.9 carry no mod and are matched by their te
 you added earlier. Returns how many were removed. A memory CR's compressor has already folded into a summary is
 no longer there to remove.
 
+### Station definitions (`ModuleData/stations/<station>.txt`, since 2.7.22)
+
+Eleven files say who a character of each social station is (`[who]`) and how they treat the player at each rung of the
+player's standing (`[nobody]`, `[sellsword]`, `[risinghouse]`, `[lordoftherealm]`, `[sovereign]`): ruler, lord, noble,
+companion, wanderer, merchant, artisan, ruralnotable, headman, preacher, gangleader. They take a `cr_patch` like every
+narrative file, with one rule of their own: a line belongs to the section above it. A patch's lines are added after CR's,
+so a patch that does not open with its own `[section]` header lands inside the last section, `[sovereign]`; open your patch
+with the header of the section you mean. Repeating a header CR already has replaces that whole section, which is how you
+rewrite one. What a station may do (a duel, a brawl) is decided by the game, never by these files. `cr.station <name>` shows
+what a character is given.
+
 ### Live knowledge every reply (`CrPrompt.RegisterVariable` + `heard_now.txt`, since 2.7.9)
 
 For knowledge that changes all the time (rumors heard, forgotten, denied), do not store it in CR at all: register a

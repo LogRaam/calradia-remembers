@@ -25,7 +25,7 @@ namespace CalradiaRemembers.Mapping
             IsRuler = StatureReader.Of(hero).IsRuler,
             IsNoble = hero.IsLord,
             HeadsHouse = hero.Clan?.Leader == hero,
-            IsPlayerCompanion = hero.CompanionOf == Clan.PlayerClan && Clan.PlayerClan != null,
+            IsPlayerCompanion = hero.CompanionOf == Clan.PlayerClan && Clan.PlayerClan != null && hero.Spouse != Hero.MainHero,
             Occupation = hero.Occupation.ToString()
          });
       }
