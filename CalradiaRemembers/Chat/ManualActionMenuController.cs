@@ -189,12 +189,14 @@ namespace CalradiaRemembers.Chat
                return;
 
             case ManualActionParameterKind.ItemPick:
-               ItemPickerService.ShowItemPicker(
-                  (itemId, name, value) =>
+               // The same bag as the chat's Give (fearente, 29/10/2026): several goods, each in the amount chosen.
+               ItemPickerService.ShowGiftPicker(
+                  offers =>
                   {
-                     var context = new ActionContext(profile, null) {OfferedItemId = itemId};
+                     var context = new ActionContext(profile, null) {OfferedItemId = offers[0].ItemId, OfferedBundle = new GiftBundle {Items = offers}};
                      Inject(host, confirmation, entry, new GameAction {Type = entry.Type}, context);
-                  });
+                  },
+                  null);
 
                return;
 

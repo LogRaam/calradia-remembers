@@ -40,6 +40,14 @@ namespace CalradiaRemembers.Logic.Character
          return int.TryParse(typed.Trim(), out int n) && n >= 1 && n <= held ? n : (int?) null;
       }
 
+      /// <summary>
+      ///   True when the player sent the handover line the bag wrote, as written: only then do the amounts chosen in the
+      ///   bag decide what leaves. A line he edited ("a sack of grain" over "300 Grain") is his word instead, so the bag
+      ///   must not hand over what he no longer says.
+      /// </summary>
+      public static bool BagStillDecides(string sent, string written)
+         => !string.IsNullOrWhiteSpace(written) && string.Equals(sent?.Trim(), written.Trim(), System.StringComparison.Ordinal);
+
       /// <summary>"20 Fish, 10 Meat and Grain": each good with its count when more than one, joined as speech joins them.</summary>
       public static string Describe(IReadOnlyList<GiftLine> lines)
       {

@@ -198,7 +198,10 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   liege count toward the levy. The rest is ONE gift: one trust bump, one remembered kindness weighed on the whole value
   (so the second good no longer earns nothing for being "a second gift today"), one grudge eased; it is loved when it
   holds something they love, cold only when all of it leaves them cold (`GiftBundlePolicy`). A single good picked
-  from the bag now leaves in the amount chosen, not one unit. Gold stays its own entry. `cr.test give_bundle`.
+  from the bag now leaves in the amount chosen, not one unit. The amounts only decide while the line is sent as the bag
+  wrote it: a line edited before sending is the player's word (one good: the count he writes; several: a gift in words,
+  confirmed good by good), so nothing leaves beyond what the sent line says. The Give entry of the manual actions menu
+  opens the same bag. Gold stays its own entry. `cr.test give_bundle`.
 - **A lord who asks for food takes any food** (fearente, Nexus, 29/10/2026: asked for food, he handed over grain, fish
   and meat, and only the grain counted). "food" and "provisions" were read as grain. They now ground a new `food`
   category (`ProvideGoodsPolicy.Food`) that takes whatever the game counts as food (`ItemObject.IsFood`); "grain",

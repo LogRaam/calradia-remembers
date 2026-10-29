@@ -503,7 +503,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Type | Kind | What it is |
 |---|---|---|
-| `ItemPickerService` | public static class | Shows a scrollable list of the player's party items (excluding quest items) and invokes a callback with the chosen item's name and base value. |
+| `ItemPickerService` | public static class | Shows the player's party items (excluding quest items) so goods can be chosen by hand rather than named: the gift bag (several goods, each in a chosen amount), a bargain paid in goods, and a supply task's goods. |
 | `SupplyItemMatcher` | internal static class | Whether a party item counts toward a ProvideGoods supply category. |
 
 ### CalradiaRemembers.Jealousy (5)

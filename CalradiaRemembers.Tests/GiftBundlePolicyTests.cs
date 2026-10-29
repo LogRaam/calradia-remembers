@@ -43,6 +43,19 @@ namespace CalradiaRemembers.Tests
          GiftBundlePolicy.Amount(typed, 35).Should().BeNull();
       }
 
+      // He picked 300 grain, then rewrote the line to "a sack of grain": the character thanks him for a sack, so 300 must
+      // not leave behind his words. Only the line as the bag wrote it lets the bag's amounts decide.
+      [Test]
+      public void GIVEN_the_handover_line_edited_before_sending_WHEN_checked_THEN_the_bag_no_longer_decides()
+      {
+         const string written = "*I hand you 300 Grain (worth 3,000 denars).*";
+
+         GiftBundlePolicy.BagStillDecides(written, written).Should().BeTrue();
+         GiftBundlePolicy.BagStillDecides("  " + written + " ", written).Should().BeTrue();
+         GiftBundlePolicy.BagStillDecides("*I hand you a sack of grain.*", written).Should().BeFalse();
+         GiftBundlePolicy.BagStillDecides(written, null).Should().BeFalse();
+      }
+
       // The line put in his mouth, and in the character's memory, names every good with its count.
       [Test]
       public void GIVEN_three_goods_in_different_amounts_WHEN_named_THEN_each_is_said_with_its_count()

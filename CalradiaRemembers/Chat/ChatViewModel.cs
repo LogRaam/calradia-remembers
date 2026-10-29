@@ -2682,6 +2682,9 @@ namespace CalradiaRemembers.Chat
          if (string.IsNullOrEmpty(text)) return;
          if (!IsSendEnabled) return;
 
+         // What leaves the bag follows the line he actually sends (fearente's gift bag, 29/10/2026).
+         _offer.ReconcileWithSent(text);
+
          // The player spoke before the character's scene arrived: the greeting stands, his words open the scene.
          SetSceneOpenerAside();
 

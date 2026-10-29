@@ -6435,6 +6435,12 @@ namespace CalradiaRemembers.Diagnostics
 
             ActionOutcome second = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "give_item"}, receiver, ctx);
             t.Expect("aSecondGiveItemMovesNothing", second == null && roster.GetItemNumber(grain) == grainBefore + 2 && roster.GetItemNumber(fish) == fishBefore + 3, true);
+
+            // A line rewritten before sending is his word, not the bag's: the goods are no longer handed over by the bag.
+            var offer = new Chat.OfferController();
+            offer.HoldForDiagnostics(new GiftBundle {Items = bundle.Items}, "*I hand you 3 Grain and 2 Fish (worth 0 denars).*");
+            offer.ReconcileWithSent("*I hand you a sack of grain.*");
+            t.Expect("anEditedLineTakesTheBagsWordAway", offer.OfferedBundle == null && offer.OfferedItemId == null, true);
          }
          finally
          {

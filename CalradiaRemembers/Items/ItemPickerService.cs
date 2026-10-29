@@ -20,10 +20,8 @@ using TaleWorlds.Localization;
 namespace CalradiaRemembers.Items
 {
    /// <summary>
-   ///   Shows a scrollable list of the player's party items (excluding quest items)
-   ///   and invokes a callback with the chosen item's name and base value. Used by
-   ///   <see cref="Chat.ChatViewModel" /> to pre-fill the offer text without the player
-   ///   needing to remember the exact item name.
+   ///   Shows the player's party items (excluding quest items) so goods can be chosen by hand rather than named:
+   ///   the gift bag (several goods, each in a chosen amount), a bargain paid in goods, and a supply task's goods.
    /// </summary>
    public static class ItemPickerService
    {
@@ -162,80 +160,6 @@ namespace CalradiaRemembers.Items
          catch (Exception ex)
          {
             ModLog.Error($"[ItemPickerService] ShowSupplyPicker failed: {ex.Message}");
-         }
-      }
-
-      /// <summary>
-      ///   Opens the unified "give" picker: the player's eligible party items
-      ///   (sorted by type category then value descending) plus, when
-      ///   <paramref name="onGoldSelected" /> is supplied, a "Gold" entry pinned to the top.
-      ///   Picking an item fires <paramref name="onItemSelected" /> with (stringId, name, value);
-      ///   picking Gold fires <paramref name="onGoldSelected" /> (the caller then asks for an amount).
-      ///   With gold offered, the picker still opens even when the party carries no items.
-      ///   Quest items (Dragon Banner, etc.) are always excluded.
-      /// </summary>
-      public static void ShowItemPicker(
-         Action<string, string, int> onItemSelected, Action onGoldSelected = null)
-      {
-         if (onItemSelected == null) return;
-         try
-         {
-            if (MobileParty.MainParty?.ItemRoster == null) return;
-
-            List<(ItemObject item, int amount)> eligible = BuildEligibleItems();
-            if (eligible.Count == 0 && onGoldSelected == null)
-            {
-               MBInformationManager.AddQuickInformation(
-                  new TextObject("Your party carries no items available to offer."));
-
-               return;
-            }
-
-            eligible.Sort(CompareItems);
-            List<InquiryElement> elements = BuildInquiryElements(eligible);
-
-            // Fold gold into the same control: a "Gold" entry pinned atop the items.
-            if (onGoldSelected != null)
-            {
-               int gold = Hero.MainHero?.Gold ?? 0;
-               elements.Insert(0, new InquiryElement(
-                  GoldIdentifier, $"Gold (you carry {gold:N0} denars)", null));
-            }
-
-            MBInformationManager.ShowMultiSelectionInquiry(
-               new MultiSelectionInquiryData(
-                  "Give",
-                  "Choose gold or an item from your party to give:",
-                  elements,
-                  true, // isExitShown — Cancel = close without selecting
-                  1, 1,
-                  "Give", "Cancel",
-                  selected =>
-                  {
-                     if (selected == null || selected.Count == 0) return;
-                     var stringId = selected[0].Identifier as string;
-
-                     if (string.IsNullOrEmpty(stringId)) return;
-                     if (stringId == GoldIdentifier)
-                     {
-                        onGoldSelected?.Invoke();
-
-                        return;
-                     }
-
-                     Resolve(stringId, onItemSelected);
-                  },
-                  null),
-               false, // pauseGameActiveState: chat already pauses time
-               false); // NOT prioritized: a prioritized inquiry opened from inside a parent inquiry's closing
-                       // callback (the "What do you offer?" menu picking "Goods or gold") is swallowed by the
-                       // engine, so the picker never appeared while prisoners were held. Queuing shows it right
-                       // after the parent closes (exactly what the prisoner picker does), and a queued inquiry
-                       // still appears over the chat.
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[ItemPickerService] ShowItemPicker failed: {ex.Message}");
          }
       }
 
@@ -456,32 +380,6 @@ namespace CalradiaRemembers.Items
          }
 
          return 0;
-      }
-
-      /// <summary>
-      ///   Re-looks up the item by StringId in the current roster (roster may have
-      ///   changed since the list was built) and fires the callback with the item's
-      ///   StringId, display name, and value. Fail-soft.
-      /// </summary>
-      private static void Resolve(string stringId, Action<string, string, int> callback)
-      {
-         try
-         {
-            if (MobileParty.MainParty?.ItemRoster == null) return;
-            foreach (ItemRosterElement el in MobileParty.MainParty.ItemRoster)
-            {
-               ItemObject item = el.EquipmentElement.Item;
-
-               if (item == null || item.StringId != stringId || el.Amount <= 0) continue;
-               callback(item.StringId, item.Name.ToString(), item.Value);
-
-               return;
-            }
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[ItemPickerService] Resolve failed: {ex.Message}");
-         }
       }
 
       #endregion

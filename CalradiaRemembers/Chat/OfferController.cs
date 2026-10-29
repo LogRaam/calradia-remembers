@@ -53,6 +53,30 @@ namespace CalradiaRemembers.Chat
       }
 
       private GiftBundle _offeredBundle;
+      private string _bundleLine;
+
+      /// <summary>
+      ///   Called with the line the player sends. Edited away from what the bag wrote, the bag's amounts no longer decide:
+      ///   a single good stays bound to the line (his words give the count, as before the bag asked for one), several
+      ///   goods become a gift in words, resolved and confirmed one by one. Never more leaves than the line he sent says.
+      /// </summary>
+      public void ReconcileWithSent(string sent)
+      {
+         if (_offeredBundle == null || GiftBundlePolicy.BagStillDecides(sent, _bundleLine)) return;
+
+         bool several = _offeredBundle.Items.Count > 1;
+         _offeredBundle = null;
+         if (several) _offeredItemId = null;
+         ModLog.Info($"[OFFER] the handover line was edited before sending: {(several ? "the goods are a gift in words now" : "the amount is his words'")}.");
+      }
+
+      /// <summary>Holds a bundle and the line the bag wrote, as a pick would. For cr.test.</summary>
+      internal void HoldForDiagnostics(GiftBundle bundle, string line)
+      {
+         _offeredBundle = bundle;
+         _offeredItemId = bundle?.Items.Count > 0 ? bundle.Items[0].ItemId : null;
+         _bundleLine = line;
+      }
 
       /// <summary>The goods chosen in the bag this turn with their amounts, handed over by the first give_item; null when none.</summary>
       public GiftBundle OfferedBundle => _offeredBundle;
@@ -165,7 +189,8 @@ namespace CalradiaRemembers.Chat
                // the offer wording read as a proposal, so the NPC reacted to the OFFER and the gift needed a
                // second turn to land (player report: two reactions for one gift). Handing it over now makes the
                // NPC react ONCE, to receiving it, and the give_item action fires in the same turn.
-               host.SetInputText($"*I hand you {named} (worth {value:N0} denars).*");
+               _bundleLine = $"*I hand you {named} (worth {value:N0} denars).*";
+               host.SetInputText(_bundleLine);
                ModLog.Info($"[OFFER] player pre-filled gift: {named} ({value} denars, {offers.Count} kind(s)).");
             },
             () => PromptGoldOffer(host));
