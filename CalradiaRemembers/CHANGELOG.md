@@ -175,6 +175,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   and passed over, the same source replaces its veto). Documented in EXTENSION_API.md. cr.test `conception_veto`.
 
 ### Fixed
+- **Lords no longer invent lands or wars to fill a silence** (RaveN017Mod, Nexus PM, 29/10/2026: lords and vassals
+  "make up possessions they don't have or wars that don't exist"). A lord was told which towns and castles his house
+  holds and which realms it fights only when there was something to list; a landless house or a realm at peace got no
+  line at all, and the model filled it. Both lists are now closed: "holds X with their villages, and no other lands" or
+  "holds no town, castle or village"; "at war with Y, and with no other realm" or "at war with no realm"
+  (`HouseStandingPack`, SDK `963bd92`). A captive, cut off from news, is still told nothing about wars. Not changed:
+  the house's standing can still be dropped from a Compact prompt when the budget binds (its place in that order is
+  pinned on purpose).
 - **Giving a ruler all you own no longer reads as joining her house** (RaveN017Mod, Nexus, 28/10/2026: "I assumed this
   would mean joining House Pethros [...] I specifically chose the second option: to give her everything and join
   her"). On that road the player stays head of their own house, sworn to her realm: the game always keeps the player
