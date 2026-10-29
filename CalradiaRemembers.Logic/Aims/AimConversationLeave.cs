@@ -29,6 +29,12 @@ namespace CalradiaRemembers.Logic.Aims
 
       /// <summary>The game day.</summary>
       public int Today { get; init; }
+
+      /// <summary>
+      ///   The channel this conversation is: an ordinary one the player opened, or the audience the lord sought for his
+      ///   aim (Gabriel, 28/10/2026), whose leave is asked of the audience channel and recorded as one.
+      /// </summary>
+      public AimChannels Channel { get; init; } = AimChannels.Conversation;
    }
 
    /// <summary>Holds, per open conversation, whether the lord was given leave to raise his aim.</summary>
@@ -54,12 +60,12 @@ namespace CalradiaRemembers.Logic.Aims
             IsEnemyOfPlayer = live.IsEnemyOfPlayer,
             IsCaptivity = live.IsCaptivity,
             IsExpired = opening.Aim.ExpiresOnDay.HasValue && opening.Aim.ExpiresOnDay.Value < opening.Today,
-            ChannelOpen = (opening.Aim.Channels & AimChannels.Conversation) != 0
+            ChannelOpen = (opening.Aim.Channels & opening.Channel) != 0
          });
 
          if (verdict != AimRaiseVerdict.MayRaise) return verdict;
 
-         book.MarkRaised(opening.Aim, opening.Today, AimChannels.Conversation);
+         book.MarkRaised(opening.Aim, opening.Today, opening.Channel);
          _granted[opening.SessionId] = opening.Aim;
          return verdict;
       }

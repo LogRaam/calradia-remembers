@@ -70,7 +70,15 @@ namespace CalradiaRemembers.Logic
         ///   and now calls them in himself. Footing only: what is owed and what follows is the war_duty_terms section's.
         ///   Appended at the end of the enum (frozen ordinals).
         /// </summary>
-        WarDutySummons
+        WarDutySummons,
+
+        /// <summary>
+        ///   The lord holds an aim of his own that another mod registered through CrAims, open to the audience channel,
+        ///   and may raise it now (tashmetu, 14/10/2026: "nobody takes the first step with the player"; Gabriel,
+        ///   28/10/2026: "fait 2 et 1"). He seeks the player to put it to them. The least urgent reason of all.
+        ///   Appended at the end of the enum (frozen ordinals).
+        /// </summary>
+        StandingAim
     }
 
     /// <summary>The facts a single candidate lord's interception decision rests on — engine-gathered, pure to reason over.</summary>
@@ -123,6 +131,12 @@ namespace CalradiaRemembers.Logic
         ///   (<c>WarDutyLadder.CallsThePlayerIn</c>): summoned, or owing the levy without ever having come.
         /// </summary>
         public bool HoldsWarDutyReckoning { get; set; }
+
+        /// <summary>
+        ///   This lord holds an aim another mod registered for him (CrAims), open to the audience channel, and may raise
+        ///   it now (AimRaisePolicy: not spent, not too soon, not toward an enemy, not in captivity).
+        /// </summary>
+        public bool HoldsAimToRaise { get; set; }
 
         /// <summary>
         ///   This lord's realm is at open war with the player's (personal dislike alone is not war). A lord at war has no
@@ -304,6 +318,8 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public static bool ShouldWriteMissedMeetingLetter(AbandonReason reason, bool pursuerAlive, InterceptionTrigger trigger = InterceptionTrigger.None)
             => trigger != InterceptionTrigger.WarDutySummons
+               // A lord whose aim was missed on the road writes about it through the aim's own letter channel, paced there.
+               && trigger != InterceptionTrigger.StandingAim
                && (reason is AbandonReason.GaveUp or AbandonReason.LostTrail
                    || (reason is AbandonReason.OtherBusiness or AbandonReason.Siege && pursuerAlive));
 
@@ -367,6 +383,10 @@ namespace CalradiaRemembers.Logic
 
             if (f.HoldsSignificantAppreciation)
                 return InterceptionTrigger.AppreciationOwed;
+
+            // A matter of his own is the least urgent: anything the world has pressed on him comes first.
+            if (f.HoldsAimToRaise)
+                return InterceptionTrigger.StandingAim;
 
             return InterceptionTrigger.None;
         }

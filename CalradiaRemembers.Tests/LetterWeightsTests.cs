@@ -55,6 +55,8 @@ namespace CalradiaRemembers.Tests
             { LetterReason.TournamentVictory, LetterWeights.WeightTournamentVictory },
             { LetterReason.TournamentResult, LetterWeights.WeightTournamentResult },
             { LetterReason.BattleVictory, LetterWeights.BattleBaseWeight },
+            // A lord's own aim (CrAims, 28/10/2026): paced by the mailbox like a missed meeting.
+            { LetterReason.StandingAim, LetterWeights.WeightStandingAim },
 
             { LetterReason.ChildSupportRequest, LetterWeights.WeightGuaranteedBypassSentinel },
             { LetterReason.SpouseDivorceDemand, LetterWeights.WeightGuaranteedBypassSentinel },

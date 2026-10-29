@@ -119,6 +119,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   completes an old profile through the real load path.
 
 ### For modders
+- **CrAims: lords seek the player out, and write, about their aims** (tashmetu, 14/10/2026: "nobody takes the first step
+  with the player"; Gabriel, 28/10/2026: "fait 2 et 1"). The audience and letter channels another mod's aim already named
+  now carry it. Audience: `InterceptionTrigger.StandingAim` (appended), the least urgent reason in
+  `InterceptionPolicy.Choose`, fief-valid and road-valid, fed by `AimsBehavior.AimToRaise(hero, Audience)`; the
+  invitation names "a matter of their own", the opener sends the lord to his WHAT YOU WANT section, and the conversation
+  that follows asks the audience channel for his leave (`AimOpening.Channel`), recorded as an audience; a missed chase
+  writes no generic letter (no recent matter spent). Letter: `LetterReason.StandingAim` (appended), one mailbox candidate
+  per lord whose aim may be raised by letter (`LetterTriggerEvaluator.CollectAimLetters`, weighed like a missed meeting),
+  written from `AimLetterText.Context` (want, player's part, his manner) and marked raised when released. The twice-at-most
+  rule counts across the three channels. cr.test `aims_channels`.
 - **A mod can forbid a conception CR would create** (tashmetu, Nexus, 28/10/2026: Traits of Calradia's Sterile
   character is told "you have no child of your blood and know you will have none", yet CR's own conception never read
   it). `CrConception.RegisterVeto(source, (mother, father) => reason or null)`; `PregnancyService.TryConceive` asks

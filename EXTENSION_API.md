@@ -285,8 +285,19 @@ never toward an enemy or in captivity. He raises it as himself: an honest lord a
 purpose close, and neither states a falsehood. Without a `MissionId` he may sound the player out but promises nothing
 the game cannot carry. One aim per lord across all mods (`LordAlreadyHasAnAim`), 40 per source, want 400 characters,
 player's part 200; an aim is kept with the save. `Raised` means the lord was GIVEN THE FLOOR, not that he said it: he
-may judge the moment wrong and stay silent. Today aims surface in conversation; `Channels` may already name "letter"
-and "audience", which will carry them later without a change on your side.
+may judge the moment wrong and stay silent.
+
+Three channels, all on by default; `Channels` ("conversation", "letter", "audience") narrows them, and the twice-at-most
+rule counts across all three:
+- **conversation**: the lord may bring it up in a conversation the player opens.
+- **audience** (since 2.7.22): it is a reason for him to seek the player out, the least urgent of all (a grudge, fresh
+  news or the war duty come first), paced by the player's "lords approaching" setting: he asks for a word when the player
+  walks into the place he stands, or rides out to meet them on the road. The invitation says only that it is "a matter of
+  their own"; in the conversation that follows he may put it, even if "conversation" is not among the channels. `Raised`
+  reports `audience` when that conversation opens.
+- **letter** (since 2.7.22): he may write to the player about it, through the paced mailbox like any other letter (its
+  budget, his cooldown, the game's own rules on who may write). The letter is written from your Want, PlayerPart and his
+  manner alone. `Raised` reports `letter` when the mailbox releases it.
 
 ### Who ended a mercenary contract (`CrMercenaries.ContractEndedByEmployer`, since 2.7.19)
 

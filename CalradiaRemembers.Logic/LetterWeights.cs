@@ -61,6 +61,12 @@ namespace CalradiaRemembers.Logic
         /// <summary>An intercept that never landed, arriving as a letter instead: the fallback of a missed event.</summary>
         public const int WeightInterceptionMissed = 55;
 
+        /// <summary>
+        ///   A lord writing of an aim of his own (CrAims, Gabriel 28/10/2026): weighed like a lord who sought the player
+        ///   and missed him, a matter he chose to raise, below news that presses and above correspondence for its own sake.
+        /// </summary>
+        public const int WeightStandingAim = WeightInterceptionMissed;
+
         // ── Personal / emotional: matters to the relationship, rarely urgent to the wider game ─────────
 
         /// <summary>A lover who wrote and heard nothing back, writing again: the waiting is its own escalation.</summary>
@@ -174,6 +180,7 @@ namespace CalradiaRemembers.Logic
                 case LetterReason.GangFavor: return WeightGangFavor;
                 case LetterReason.BastardMotherNote: return WeightBastardMotherNote;
                 case LetterReason.InterceptionMissed: return WeightInterceptionMissed;
+                case LetterReason.StandingAim: return WeightStandingAim;
 
                 case LetterReason.AwaitingReply: return WeightAwaitingReply;
                 case LetterReason.RomanticCorrespondence: return WeightRomanticCorrespondence;

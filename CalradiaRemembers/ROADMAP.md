@@ -588,7 +588,10 @@ prefix, 4 EncounterContext fields, compact one line; 5 tests). Nothing reaches a
 
 **PUBLIC DOOR BUILT 20/10/2026 for 2.7.19** (Gabriel approved the shape below as proposed; `Extension/CrAims.cs`, plus
 `AimResult.ReservedSource` for a mod using CR's own source name; cr.test `aims_door`). Conversation only; letter and
-audience channels for another mod's aims still to come (the `Channels` field already takes them).
+audience channels for another mod's aims still to come (the `Channels` field already takes them). **Audience and letter
+BUILT 28/10/2026 for 2.7.22** (Gabriel: "fait 2 et 1"): `InterceptionTrigger.StandingAim` (least urgent, fief and road),
+`LetterReason.StandingAim` through the mailbox; cr.test `aims_channels`; not play-verified. Next, Gabriel's call: aims CR
+seeds itself from its own data.
 
 **The public shape (was PROPOSED; modder-api.md and save-format.md are contracts):**
 - `CrAims.Register(ExternalAim) -> AimResult` (Accepted, Updated, MissingIdentity, EmptyWant, UnknownHero,

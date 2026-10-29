@@ -103,6 +103,7 @@ namespace CalradiaRemembers.Letters
          CollectMarriageSolicitations(store, llmServices, today, pool, release);
          CollectPrisonerOffers(store, llmServices, today, pool, release);
          CollectServiceOffers(store, llmServices, today, pool, release);
+         CollectAimLetters(store, llmServices, today, pool, release);
 
          LetterBudget budget = LetterPacingRules.BudgetFor(ModSettings.LettersFromNpcs);
          IReadOnlyList<int> recent = GatherRecentReleaseDays(store, today, budget.WindowDays);
@@ -117,6 +118,56 @@ namespace CalradiaRemembers.Letters
          act();
          _lastDailyLetterDay = today;
          ModLog.Info($"[LETTER] mailbox released {chosen.Reason} from {chosen.SenderId} (pool of {pool.Count}, weight {chosen.Weight}).");
+      }
+
+      /// <summary>
+      ///   A lord writes about an aim another mod registered for him (CrAims; tashmetu, 14/10/2026: "nobody takes the
+      ///   first step with the player"; Gabriel, 28/10/2026). One candidate per lord whose aim is open to letters and may
+      ///   be raised now (AimsBehavior.AimToRaise), and who may write today (CanSendLetter, then ActionGate.Letter when
+      ///   it is queued). The mailbox's budget and weights pace it like any other letter; released, the aim is marked
+      ///   raised by letter, so he does not raise it again too soon by any channel.
+      /// </summary>
+      private void CollectAimLetters(
+         BannerlordNpcMemoryStore store, LlmServices llmServices, int today,
+         List<LetterCandidate> pool, Dictionary<LetterCandidate, Action> release)
+      {
+         Aims.AimsBehavior aims = Aims.AimsBehavior.Instance;
+         if (aims == null) return;
+
+         foreach (Logic.Aims.StandingAim standing in aims.Book.All.ToList())
+         {
+            Hero hero = Hero.FindFirst(h => h != null && h.StringId == standing.NpcId);
+            if (hero == null || !Mapping.HeroPresence.IsInTheWorld(hero)) continue;
+
+            Logic.Aims.StandingAim aim = aims.AimToRaise(hero, Logic.Aims.AimChannels.Letter);
+            if (aim == null) continue;
+
+            NpcProfile profile = store.Get(hero.StringId);
+            if (profile == null || !CanSendLetter(profile, today, DefaultCooldownDays)) continue;
+            // Asked here as well as when the letter is queued, so a lord who may not write never takes the mailbox's slot.
+            if (!Mapping.ActionGate.Allows(hero, Logic.ActionKind.Letter)) continue;
+
+            string context = Logic.Aims.AimLetterText.Context(aim, Logic.Aims.AimApproachWording.Describe(new Logic.Aims.AimApproachFacts {
+               Honor = hero.GetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Honor),
+               Calculating = hero.GetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Calculating),
+               HasVerifiedService = !string.IsNullOrWhiteSpace(aim.MissionId)
+            }));
+            if (context == null) continue;
+
+            int weight = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {
+               BaseWeight = LetterWeights.BaseWeight(LetterReason.StandingAim), SenderInterest = profile.CorrespondenceInterest,
+               SubjectInterest = GetSubjectInterest(LetterReason.StandingAim), GlobalInterest = GlobalInterest
+            });
+            var candidate = new LetterCandidate {Reason = LetterReason.StandingAim, SenderId = hero.StringId, Weight = weight, EligibleSinceDay = aim.RegisteredOnDay};
+            pool.Add(candidate);
+
+            release[candidate] = () =>
+            {
+               LetterGenerationService.QueueInitialLetter(profile, hero, LetterReason.StandingAim, context, llmServices, store, today);
+               aims.MarkRaised(aim, Logic.Aims.AimChannels.Letter);
+               ModLog.Info($"[AIMS] {hero.Name} writes of {aim.SourceMod}/{aim.Id}.");
+            };
+         }
       }
 
       /// <summary>

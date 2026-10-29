@@ -102,7 +102,8 @@ namespace CalradiaRemembers.Logic
                || trigger == InterceptionTrigger.Grudge
                || trigger == InterceptionTrigger.AppreciationOwed
                || trigger == InterceptionTrigger.NemesisBounty
-               || trigger == InterceptionTrigger.WarDutySummons;
+               || trigger == InterceptionTrigger.WarDutySummons
+               || trigger == InterceptionTrigger.StandingAim;
 
         /// <summary>The trigger <see cref="InterceptionPolicy.Choose" /> would pick for these facts, narrowed to the fief-valid subset, or None.</summary>
         public static InterceptionTrigger ChooseFiefValid(InterceptionFacts facts)

@@ -147,6 +147,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Status.IsIntimateOrDeeper` (4) | `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `RegardProposal` |
 | `TroopRoster.GetTroopRoster` (4) | `CourtActionPolicy.IsPartyWeakened`, `PrisonerCustodyPolicy.HeldByPlayer`, `TroopGiftFacts`, `TroopLoanFacts` |
 | `Vec2.Distance` (4) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CourierStuckPolicy.HasMoved`, `GeographyDescriber.Bearing` |
+| `Book.ForNpc` (3) | `AimApproachFacts`, `AimOpening`, `AimRaiseFacts` |
 | `CampaignOptions.IsLifeDeathCycleDisabled` (3) | `ExecutionFacts`, `PregnancyPolicy.MayConceive`, `PregnancyPolicy.ShouldEndStuckPregnancy` |
 | `Clan.Heroes` (3) | `CouncilTroopDelivery`, `HostageCandidateFacts`, `HostageEligibilityPolicy.IsEligible` |
 | `Current.CurrentMenuContext` (3) | `DuelStagingSupport.ReadyToOpenTheSquare`, `RoadAudienceFacts`, `SquareReadinessFacts` |
@@ -210,7 +211,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `AiBehavior.FleeToPoint` (2) | `CompanionPatrolPolicy.ShouldReissue`, `PatrolLeashFacts` |
 | `AiBehavior.PatrolAroundPoint` (2) | `CompanionPatrolPolicy.ShouldReissue`, `PatrolLeashFacts` |
 | `BestFeat.Outcome` (2) | `BattleFeatText.SubjectBestedByPlayer`, `BattleFeatText.WitnessedFeat` |
-| `Book.ForNpc` (2) | `AimApproachFacts`, `AimOpening` |
 | `Case.LiegeId` (2) | `ArrestPolicy.CouncilSeats`, `TrialVerdictPolicy.DefaultConviction` |
 | `CharacterStates.Disabled` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `CompanionHiringPriceCalculationModel.GetCompanionHiringPrice` (2) | `HireAgreementPolicy.AgreedPrice`, `HireAgreementPolicy.CanAfford` |
@@ -314,7 +314,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `AffairDiscoveryPolicy.IsDiscovered`: `Romantic.LoverIsSecret`, `Romantic.LoverKnownToPlayer`, `Romantic.LoverTrystCount`
 - `AimApproachFacts`: `Book.ForNpc`, `Hero.GetTraitLevel`
 - `AimOpening`: `Book.ForNpc`, `FactionManager.IsAtWarAgainstFaction`, `Hero.IsPrisoner`, `Hero.MapFaction`, `PersonalRegard.Invoke`
-- `AimRaiseFacts`: `FactionManager.IsAtWarAgainstFaction`, `Hero.IsPrisoner`, `Hero.MapFaction`, `PersonalRegard.Invoke`
+- `AimRaiseFacts`: `Book.ForNpc`, `FactionManager.IsAtWarAgainstFaction`, `Hero.IsPrisoner`, `Hero.MapFaction`, `PersonalRegard.Invoke`
 - `AmbushPolicy.EliteChiefTier`: `StatureReader.Player`
 - `AppearanceFacts`: `FaceColorReader.Read`, `Hero.Age`, `Hero.IsFemale`
 - `AppointmentOfferFacts`: `Clan.Leader`, `Clan.Settlements`, `Hero.Clan`, `Hero.GovernorOf`, `Hero.IsAlive`, `Hero.IsPrisoner`, `Town.Governor`

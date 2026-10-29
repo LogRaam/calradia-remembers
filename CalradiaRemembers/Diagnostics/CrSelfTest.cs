@@ -325,6 +325,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("background_hold", Severity.Light, "fkasad (Nexus, 15/10/2026): on a local server, summaries, memory compaction and letters slipped in between two replies, the server swapped its KV cache and replies timed out. With a conversation forced open through the seam: a background call routed to OpenAI-Compatible (local) waits; the same call routed to a cloud provider goes at once; with no conversation open a local call goes at once. Restores the provider dropdowns and the seam (the held wait ends within a second)", TestBackgroundHold),
          new SelfTest("war_duty_ledger", Severity.Light, "Maifailun (Nexus, 15/10/2026): a vassal who sits out the realm's war is called to account, so the mod must see his service. On a fresh ledger through the real upkeep: the realm the player is sworn to (none as a mercenary or a free lord) and its enemy kingdoms are recorded from today, so no one owes on the first day. A battle against a realm at war with his counts as service; one against bandits does not. Restores the player's own ledger", TestWarDutyLedger),
          new SelfTest("aims_conversation", Severity.Light, "CrAims (tashmetu, 14/10/2026: lords with aims of their own; 'the real risk is a lord who brings up Lakonon in every conversation'). A test aim is registered on a real lord not at war with the player; a conversation opening with him gives him leave to raise it and the encounter context carries his want; a second conversation the same day does not give it again; the leave ends with the conversation. An aim Calradia Remembers seeds for its own mechanics is not voiced by the generic section. Retracts both aims", TestAimsConversation),
+         new SelfTest("aims_channels", Severity.Light, "CrAims audience and letter channels (tashmetu 14/10: 'nobody takes the first step with the player'; Gabriel 28/10: 'fait 2 et 1'). A test aim open to audiences and letters is registered on a lord at peace with the player: he may raise it by audience and by letter; an audience he sought gives him leave in the conversation that follows, recorded as an audience, even with the conversation channel closed; after it, the letter waits (raised too recently). An aim closed to audiences is not a reason to seek the player. Retracts after", TestAimsChannels),
          new SelfTest("aims_door", Severity.Light, "The public CrAims door (tashmetu, 14/10/2026: 'nobody takes the first step with the player'; proposed in ROADMAP, approved by Gabriel 20/10/2026). Registers an aim for a lord at peace with the player through the REAL door: accepted, updated under the same id, refused for a second aim on the same lord, an unknown hero, and CR's own name; a conversation opened with him gives him leave and the context carries the want; CrAims.Raised tells the mod, with the aim's id, the lord and the channel; retracted, it is gone. Retracts and closes after", TestAimsDoor),
          new SelfTest("player_named_on_screen", Severity.Light, "Gabriel (17/10/2026): a grievance read 'over The marriage was ended by the player's own choice'; never 'the player' in the game, the character by name. Passes a stored cause saying 'the player' through the real grievance line and the real chat message line, and asserts both show the player's name, never 'the player', and that a sentence cause follows a colon. Changes nothing", TestPlayerNamedOnScreen),
          new SelfTest("chat_temperature", Severity.Light, "fkasad (Nexus, 17/10/2026) asked whether the mod tunes the temperature; the conversation value was fixed at 0.7, and Gabriel asked for a setting. Moves the Chat Temperature setting and asserts the live chat service sends the new value, and that an out-of-range value is held in range; restores the setting", TestChatTemperature),
@@ -19026,6 +19027,56 @@ namespace CalradiaRemembers.Diagnostics
       ///   strings only, never a real key. Snapshots and restores every dropdown + the custom endpoint/key fields it
       ///   touches, so a real campaign is unchanged.
       /// </summary>
+      private static string TestAimsChannels(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("aims_channels");
+
+         Aims.AimsBehavior aims = Aims.AimsBehavior.Instance;
+         if (t.Skip(aims == null, "the aims behavior is not registered")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.Age >= 18
+                                                             && aims.Book.ForNpc(h.StringId) == null && !Aims.AimsBehavior.IsEnemyOfPlayer(h));
+         if (t.Skip(lord == null, "no lord at peace with the player to hold a test aim")) return t.Line();
+
+         int today = (int) CampaignTime.Now.ToDays;
+         const string source = "cr_selftest";
+         const string session = "cr_selftest_audience";
+
+         try
+         {
+            aims.Register(new Logic.Aims.StandingAim {
+               Id = "aim", SourceMod = source, NpcId = lord.StringId, Want = "The selftest wants the ford's mill rebuilt.",
+               Channels = Logic.Aims.AimChannels.Audience | Logic.Aims.AimChannels.Letter
+            });
+
+            t.Expect("mayRaiseByAudience", aims.AimToRaise(lord, Logic.Aims.AimChannels.Audience) != null, true);
+            t.Expect("mayRaiseByLetter", aims.AimToRaise(lord, Logic.Aims.AimChannels.Letter) != null, true);
+            t.Expect("notByConversationItIsClosedTo", aims.AimToRaise(lord, Logic.Aims.AimChannels.Conversation) == null, true);
+
+            // STAKE: the lord who sought the player out may say why in the conversation that follows.
+            aims.ExpectAudience(lord);
+            t.Expect("soughtAudienceGivesLeave", aims.OnConversationStarted(new CrConversationInfo(lord.StringId, null, today, session)),
+               Logic.Aims.AimRaiseVerdict.MayRaise);
+            t.Expect("recordedAsAnAudience", aims.Book.ForNpc(lord.StringId)?.LastRaisedChannel, (Logic.Aims.AimChannels?) Logic.Aims.AimChannels.Audience);
+
+            // STAKE: tashmetu's worry, across channels: the letter does not follow on the heels of the audience.
+            t.Expect("letterWaitsAfterTheAudience", aims.AimToRaise(lord, Logic.Aims.AimChannels.Letter) == null, true);
+
+            aims.Register(new Logic.Aims.StandingAim {
+               Id = "aim", SourceMod = source, NpcId = lord.StringId, Want = "The selftest wants the ford's mill rebuilt.",
+               Channels = Logic.Aims.AimChannels.Letter
+            });
+            t.Expect("closedToAudiencesIsNoReasonToSeek", aims.AimToRaise(lord, Logic.Aims.AimChannels.Audience) == null, true);
+         }
+         finally
+         {
+            aims.Retract(source, "aim");
+            aims.OnConversationEnded(session);
+         }
+
+         return t.Line();
+      }
+
       private static string TestAimsConversation(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("aims_conversation");

@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 583 types in 62 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1384 types in 47 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1385 types in 47 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 276 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1430,7 +1430,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TradeBatchFacts` | public class | A turn's actions, and whether the player picked the item from the bag this turn. |
 | `TradeBatchPolicy` | public static class | Which actions of a turn a sale makes redundant. |
 
-### CalradiaRemembers.Logic.Aims (13)
+### CalradiaRemembers.Logic.Aims (14)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1441,6 +1441,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AimBook` | public class | The standing aims and what has been done with them. |
 | `AimChannels` | public enum | The ways an aim may reach the player. |
 | `AimConversationLeave` | public class | Holds, per open conversation, whether the lord was given leave to raise his aim. |
+| `AimLetterText` | public static class | The context a lord's aim letter is written from. |
 | `AimOpening` | public class | What the opening of a conversation needs to decide the leave. |
 | `AimRaiseFacts` | public class | The facts the raise decision reads. |
 | `AimRaisePolicy` | public static class | Pure rule: may the lord raise his aim, unbidden, through a given channel, today. |

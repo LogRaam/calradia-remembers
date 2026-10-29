@@ -44,6 +44,10 @@ namespace CalradiaRemembers.Aims
 
       private static bool _subscribed;
 
+      // Lords who sought the player for their aim (an audience granted, a meeting on the road): the next conversation
+      // with them is that audience, whose leave is asked of the audience channel (Gabriel, 28/10/2026). Process-only.
+      private readonly Dictionary<string, int> _soughtForAim = new(StringComparer.Ordinal);
+
       public AimsBehavior()
       {
          Instance = this;
@@ -132,6 +136,34 @@ namespace CalradiaRemembers.Aims
       /// <summary>Retracts one of a source's aims.</summary>
       internal bool Retract(string sourceMod, string id) => Book.Retract(sourceMod, id);
 
+      /// <summary>
+      ///   The aim another mod registered for <paramref name="hero" /> when he may raise it now through
+      ///   <paramref name="channel" /> (AimRaisePolicy: open to that channel, not spent, not too soon, not toward an
+      ///   enemy, not in captivity, not expired); null otherwise. CR's own aims (the war duty) have their own reasons.
+      /// </summary>
+      internal StandingAim AimToRaise(Hero hero, AimChannels channel)
+      {
+         StandingAim aim = hero == null ? null : Book.ForNpc(hero.StringId);
+         if (aim == null || string.Equals(aim.SourceMod, CrSource, StringComparison.OrdinalIgnoreCase)) return null;
+
+         return AimRaisePolicy.Decide(new AimRaiseFacts {
+            TimesRaised = aim.TimesRaised,
+            DaysSinceLastRaised = aim.LastRaisedDay.HasValue ? Today - aim.LastRaisedDay.Value : int.MaxValue,
+            IsEnemyOfPlayer = IsEnemyOfPlayer(hero),
+            IsCaptivity = hero.IsPrisoner || Hero.MainHero?.IsPrisoner == true,
+            IsExpired = aim.ExpiresOnDay.HasValue && aim.ExpiresOnDay.Value < Today,
+            ChannelOpen = (aim.Channels & channel) != 0
+         }) == AimRaiseVerdict.MayRaise
+            ? aim
+            : null;
+      }
+
+      /// <summary>The lord sought the player for his aim: the next conversation with him is that audience.</summary>
+      internal void ExpectAudience(Hero hero)
+      {
+         if (hero != null) _soughtForAim[hero.StringId] = Today;
+      }
+
       /// <summary>Records a raise through a channel other than a conversation (a letter released, an audience granted).</summary>
       internal void MarkRaised(StandingAim aim, AimChannels channel)
       {
@@ -171,15 +203,21 @@ namespace CalradiaRemembers.Aims
             if (aim == null) return AimRaiseVerdict.Spent;
 
             Hero hero = Hero.FindFirst(h => h != null && h.StringId == info.NpcId);
+            // The audience he sought for it (within two days), or an ordinary conversation the player opened.
+            AimChannels channel = _soughtForAim.TryGetValue(info.NpcId ?? "", out int soughtOn) && info.GameDay - soughtOn <= 2
+               ? AimChannels.Audience
+               : AimChannels.Conversation;
+            if (info.NpcId != null) _soughtForAim.Remove(info.NpcId);
             AimRaiseVerdict verdict = Leave.Open(new AimOpening {
                SessionId = info.SessionId,
                Aim = aim,
                Today = info.GameDay,
+               Channel = channel,
                Facts = new AimRaiseFacts {IsEnemyOfPlayer = IsEnemyOfPlayer(hero), IsCaptivity = hero?.IsPrisoner == true || Hero.MainHero?.IsPrisoner == true}
             }, Book);
 
-            ModLog.Info($"[AIMS] conversation with {hero?.Name}: {aim.SourceMod}/{aim.Id} {verdict}.");
-            if (verdict == AimRaiseVerdict.MayRaise) RaiseRaised(aim, AimChannels.Conversation);
+            ModLog.Info($"[AIMS] {(channel == AimChannels.Audience ? "audience" : "conversation")} with {hero?.Name}: {aim.SourceMod}/{aim.Id} {verdict}.");
+            if (verdict == AimRaiseVerdict.MayRaise) RaiseRaised(aim, channel);
 
             return verdict;
          }
@@ -193,7 +231,7 @@ namespace CalradiaRemembers.Aims
 
       internal void OnConversationEnded(string sessionId) => Leave.Close(sessionId);
 
-      private static bool IsEnemyOfPlayer(Hero hero)
+      internal static bool IsEnemyOfPlayer(Hero hero)
       {
          if (hero == null || Hero.MainHero == null) return false;
          if (hero.MapFaction != null && Hero.MainHero.MapFaction != null && FactionManager.IsAtWarAgainstFaction(hero.MapFaction, Hero.MainHero.MapFaction)) return true;

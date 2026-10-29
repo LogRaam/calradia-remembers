@@ -235,6 +235,11 @@ namespace CalradiaRemembers.Interception
                       "Point them to the bounty you would pay, but do not settle it in this exchange -- that is " +
                       "raised and taken up the ordinary way, not here.";
 
+            if (trigger == InterceptionTrigger.StandingAim)
+               return "It is YOU who sought this meeting: you have a matter of your own to put to the player, and you " +
+                      "asked them for a private word where you already stood. Open by putting it to them, in your own " +
+                      "voice and your own manner, as set out under WHAT YOU WANT below; add nothing to it.";
+
             return ComposeRecentMatterOpener(npc, RecentMatterApproach.FiefAudience);
          }
 
@@ -263,6 +268,11 @@ namespace CalradiaRemembers.Interception
          if (trigger == InterceptionTrigger.TerritorialPatrol)
             return "It is YOU who sought this meeting: you rode out to challenge the player for crossing your realm's " +
                    "lands. Open on that footing, demand their business here, wary and territorial, rather than waiting on them.";
+
+         if (trigger == InterceptionTrigger.StandingAim)
+            return "It is YOU who sought this meeting: you have a matter of your own to put to the player, and you rode " +
+                   "out to find them. Open by putting it to them, in your own voice and your own manner, as set out " +
+                   "under WHAT YOU WANT below; add nothing to it.";
 
          return ComposeRecentMatterOpener(npc, RecentMatterApproach.RoadPursuit);
       }
@@ -311,6 +321,10 @@ namespace CalradiaRemembers.Interception
                "came to nothing, and now they have come to YOU. Hold them to it now, as their liege. What they " +
                "owe and what follows is " +
                "set out below under THE PLAYER'S RECKONING BEFORE YOU; hold to it and add nothing to it.",
+            // The aim itself is stated (or held back) by the WHAT YOU WANT section; this says only who sought whom.
+            InterceptionTrigger.StandingAim =>
+               "You rode out to find the player on a matter of your own, but the chase came to nothing, and now " +
+               "they have come to YOU. If WHAT YOU WANT below leaves it to you, you may put it to them now.",
             InterceptionTrigger.NemesisBounty =>
                "You rode out to find the player and warn them of a nemesis plaguing your region, but the chase " +
                "came to nothing — and now they have come to YOU. Name him now and where he operates, urgent " +
@@ -1382,6 +1396,7 @@ namespace CalradiaRemembers.Interception
             InterceptionTrigger.AppreciationOwed => $"{lord.Name} rides toward you, wishing to speak of a kindness you showed them.",
             InterceptionTrigger.NemesisBounty => $"{lord.Name} rides toward you, wishing to speak of a nemesis plaguing their region.",
             InterceptionTrigger.WarDutySummons => $"{lord.Name}, your liege, rides toward you to hold you to the war you have sat out.",
+            InterceptionTrigger.StandingAim => $"{lord.Name} rides toward you, with a matter of their own to put to you.",
             _ => $"{lord.Name} rides toward you, having heard of your recent deeds."
          };
          try { MBInformationManager.AddQuickInformation(new TextObject(line)); }
@@ -1473,6 +1488,7 @@ namespace CalradiaRemembers.Interception
             return;
          }
 
+         if (_activePursuerTrigger == InterceptionTrigger.StandingAim) Aims.AimsBehavior.Instance?.ExpectAudience(pursuer);
          ChatSceneStager.StagePlainConversation(pursuer);
          ModLog.Info($"[INTERCEPT] {pursuer.Name} reached the player, forcing the meeting open.");
       }
@@ -1637,7 +1653,10 @@ namespace CalradiaRemembers.Interception
                         || PlayerIsSubordinateInArmy() || PlayerSharesArmyOrAttached(pursuerParty) || atSea
                         || pursuerParty.Army != null
                         // The war duty settled or set aside while he rode: he has no business with the player now.
-                        || (_activePursuerTrigger == InterceptionTrigger.WarDutySummons && !WarDutyStillStands(pursuer));
+                        || (_activePursuerTrigger == InterceptionTrigger.WarDutySummons && !WarDutyStillStands(pursuer))
+                        // His aim retracted, spent or closed to audiences while he rode: he has nothing to put to the player.
+                        || (_activePursuerTrigger == InterceptionTrigger.StandingAim
+                            && Aims.AimsBehavior.Instance?.AimToRaise(pursuer, Logic.Aims.AimChannels.Audience) == null);
 
          float distance = pursuerParty != null && main != null
             ? pursuerParty.GetPosition2D.Distance(main.GetPosition2D)
@@ -1760,6 +1779,8 @@ namespace CalradiaRemembers.Interception
             // Never for the war duty, which sends its own levy letter (the policy already says so); and never through
             // the recent-matter default below, which would spend a matter.
             if (trigger == InterceptionTrigger.WarDutySummons) return;
+            // An aim missed on the road is written about through the aim's own letter channel, paced there.
+            if (trigger == InterceptionTrigger.StandingAim) return;
 
             string context = trigger switch {
                InterceptionTrigger.TerritorialPatrol =>
@@ -1834,6 +1855,8 @@ namespace CalradiaRemembers.Interception
                HoldsSignificantAppreciation = holdsAppreciation,
                HasNemesisBountyToOffer = hasNemesisBounty,
                HoldsWarDutyReckoning = lord == summoner,
+               // An aim another mod registered for him (CrAims), open to audiences (Gabriel, 28/10/2026).
+               HoldsAimToRaise = Aims.AimsBehavior.Instance?.AimToRaise(lord, Logic.Aims.AimChannels.Audience) != null,
                RealmAtWarWithPlayer = AtWarWithPlayer(lord),
                LordOutnumbered = LordOutnumbered(p)
             };

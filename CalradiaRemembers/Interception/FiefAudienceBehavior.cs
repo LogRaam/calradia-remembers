@@ -224,7 +224,9 @@ namespace CalradiaRemembers.Interception
                HoldsLiveGrudgeAgainstPlayer = holdsGrudge,
                HoldsSignificantAppreciation = holdsAppreciation,
                HasNemesisBountyToOffer = hasNemesisBounty,
-               HoldsWarDutyReckoning = h == summoner
+               HoldsWarDutyReckoning = h == summoner,
+               // An aim another mod registered for him (CrAims), open to audiences (Gabriel, 28/10/2026).
+               HoldsAimToRaise = Aims.AimsBehavior.Instance?.AimToRaise(h, Logic.Aims.AimChannels.Audience) != null
             };
 
             InterceptionTrigger trigger = FiefAudiencePolicy.ChooseFiefValid(facts);
@@ -239,6 +241,8 @@ namespace CalradiaRemembers.Interception
                InterceptionTrigger.HeardOfDeed => InterceptionBehavior.RecentMatterTopic(h, today),
                // Named in the invitation only; the opener holds to the footing and the terms section to the amounts.
                InterceptionTrigger.WarDutySummons => "the war you have sat out",
+               // The want is his to put; the invitation names only that it is his own matter.
+               InterceptionTrigger.StandingAim => "a matter of their own",
                _ => null
             };
 
@@ -302,6 +306,7 @@ namespace CalradiaRemembers.Interception
          MainThreadDispatcher.Enqueue(() =>
          {
             InterceptionBehavior.Instance?.StashFiefAudienceReason(npc, trigger, detail);
+            if (trigger == InterceptionTrigger.StandingAim) Aims.AimsBehavior.Instance?.ExpectAudience(npc);
 
             // Stage a conversation scene with the NPC (the same VRAM-safe path the council and companion audience
             // use) rather than a bare overlay over the suspended settlement menu, where a hidden sub-panel
