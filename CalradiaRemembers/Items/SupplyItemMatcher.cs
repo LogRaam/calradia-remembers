@@ -33,6 +33,9 @@ namespace CalradiaRemembers.Items
                     return cat is "cow" or "sheep" or "hog" or "chicken" or "goose" or "pig" or "goat" or "cattle";
                 case ProvideGoodsPolicy.Grain:
                     return cat == "grain";
+                case ProvideGoodsPolicy.Food:
+                    // Whatever the game itself counts as food (fearente, 29/10/2026: fish and meat did not count).
+                    return item.IsFood;
                 default:
                     // A weapon the player forged, of the kind asked (Lordfadooboo, 01/10/2026).
                     if (CraftWeaponPolicy.KindOfKey(categoryKey) != null)
@@ -55,6 +58,7 @@ namespace CalradiaRemembers.Items
                 ProvideGoodsPolicy.Horses => "horses",
                 ProvideGoodsPolicy.Livestock => "livestock",
                 ProvideGoodsPolicy.Grain => "grain",
+                ProvideGoodsPolicy.Food => "food",
                 _ => ForgeLabel(categoryKey) ?? MarketLabel(categoryKey) ?? ItemLabel(categoryKey) ?? "goods"
             };
 

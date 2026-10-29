@@ -16,8 +16,15 @@ namespace CalradiaRemembers.Logic
         /// <summary>Canonical category key: cattle, sheep, hogs, and the like.</summary>
         public const string Livestock = "livestock";
 
-        /// <summary>Canonical category key: grain and staple food.</summary>
+        /// <summary>Canonical category key: grain, and grain alone.</summary>
         public const string Grain = "grain";
+
+        /// <summary>
+        ///   Canonical category key: any food the game counts as food (grain, fish, meat, cheese...). fearente (Nexus,
+        ///   29/10/2026): asked for food, he brought grain, fish and meat, and only the grain counted, because "food"
+        ///   meant grain.
+        /// </summary>
+        public const string Food = "food";
 
         /// <summary>TUNE: the smallest supply count a task may demand.</summary>
         public const int MinCount = 1;
@@ -61,10 +68,11 @@ namespace CalradiaRemembers.Logic
                 case "grain":
                 case "grains":
                 case "wheat":
-                case "food":
                 case "corn":
-                case "provisions":
                     return Grain;
+                case "food":
+                case "provisions":
+                    return Food;
                 default:
                     return null;
             }

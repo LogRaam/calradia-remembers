@@ -188,6 +188,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   and passed over, the same source replaces its veto). Documented in EXTENSION_API.md. cr.test `conception_veto`.
 
 ### Fixed
+- **A lord who asks for food takes any food** (fearente, Nexus, 29/10/2026: asked for food, he handed over grain, fish
+  and meat, and only the grain counted). "food" and "provisions" were read as grain. They now ground a new `food`
+  category (`ProvideGoodsPolicy.Food`) that takes whatever the game counts as food (`ItemObject.IsFood`); "grain",
+  "wheat" and "corn" still mean grain. The model is taught the new category. Food brought to a hungry place he answers
+  for feeds it, as grain did. A supply task already in a save keeps the category it was given (an old "food" task stays
+  grain). `cr.test supply_quest` checks a non-grain food answers food and not grain.
 - **A companion's backstory no longer sends him after people who are not in the world** (fearente, Nexus, 29/10/2026:
   his companion Brave believed the creditor officer of his backstory still existed and wanted to settle with him). The
   story a wanderer tells at the first meeting is kept as his own life, and nothing said its people are not in Calradia.

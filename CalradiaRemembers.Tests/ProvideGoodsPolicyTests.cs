@@ -29,8 +29,18 @@ namespace CalradiaRemembers.Tests
         [TestCase("cattle", ProvideGoodsPolicy.Livestock)]
         [TestCase("SHEEP", ProvideGoodsPolicy.Livestock)]
         [TestCase("grain", ProvideGoodsPolicy.Grain)]
-        [TestCase("food", ProvideGoodsPolicy.Grain)]
         public void GIVEN_a_known_category_word_WHEN_normalizing_THEN_it_maps_to_the_canonical_key(string raw, string expected)
+        {
+            ProvideGoodsPolicy.Normalize(raw).Should().Be(expected);
+        }
+
+        // fearente (Nexus, 29/10/2026): asked for food, he handed over grain, then fish and meat, and only the grain
+        // counted because "food" was read as grain. A lord who asks for food or provisions takes any food; one who asks
+        // for grain or wheat still means grain.
+        [TestCase("food", ProvideGoodsPolicy.Food)]
+        [TestCase("Provisions", ProvideGoodsPolicy.Food)]
+        [TestCase("wheat", ProvideGoodsPolicy.Grain)]
+        public void GIVEN_a_lord_asking_for_food_WHEN_normalizing_THEN_any_food_is_asked_and_grain_still_means_grain(string raw, string expected)
         {
             ProvideGoodsPolicy.Normalize(raw).Should().Be(expected);
         }

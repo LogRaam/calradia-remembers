@@ -23793,6 +23793,17 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Skip(grain == null || !SupplyItemMatcher.Matches(grain, ProvideGoodsPolicy.Grain), "no grain item to test the hand-over")) return t.Line();
 
+         // fearente (Nexus, 29/10/2026): asked for food, his fish and meat did not count. A food the game knows (not grain)
+         // answers "food" and still not "grain"; the word "food" grounds the food category.
+         ItemObject otherFood = MBObjectManager.Instance?.GetObjectTypeList<ItemObject>()?.FirstOrDefault(i => i != null && i.IsFood && i.ItemCategory?.StringId != "grain");
+         if (otherFood != null)
+         {
+            t.Expect("anyFoodAnswersFood", SupplyItemMatcher.Matches(otherFood, ProvideGoodsPolicy.Food) && !SupplyItemMatcher.Matches(otherFood, ProvideGoodsPolicy.Grain), true);
+            t.Expect("grainIsFoodToo", SupplyItemMatcher.Matches(grain, ProvideGoodsPolicy.Food), true);
+         }
+
+         t.Expect("theWordFoodAsksAnyFood", ProvideGoodsPolicy.Normalize("food"), ProvideGoodsPolicy.Food);
+
          NpcProfile profile = GetOrCreate(behavior, giver);
          ArrangeCleanNpc(behavior, profile, giver); // clean slate so the one-task-at-a-time gate cannot block issuance
          int day = behavior.GameStateBridge.GetCurrentGameDay();
