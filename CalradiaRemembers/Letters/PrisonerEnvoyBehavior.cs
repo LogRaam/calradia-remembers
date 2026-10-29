@@ -242,9 +242,14 @@ namespace CalradiaRemembers.Letters
          if (!StagingHostPolicy.AnEnvoyCanReachThePlayer(MobileParty.MainParty?.IsCurrentlyAtSea == true)) return;
 
          PendingEnvoy envoy = _pending;
-         _pending = null;
-
          Hero lord = Hero.FindFirst(h => h != null && h.StringId == envoy.LordId);
+
+         // The world's initiative (Gabriel, 28/10/2026): an envoy with a deadline is one of the four that always pass, yet
+         // he too waits out a battle, a chat or the moment the player settles; kept waiting, he comes the next hour.
+         if (!(Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"envoy:{envoy.LordId}", Logic.Initiative.InitiativeFamily.WarAndLaw, Logic.Initiative.InitiativeRank.Imposed, lord) ?? true))
+            return;
+
+         _pending = null;
          bool stillHeld = BuyPrisonerVerb.PlayerHeldHeroPrisoners().Any(h => h.StringId == envoy.CaptiveId);
 
          // The world moved while the envoy rode: the lord is gone or himself a prisoner (fkasad, 26/09/2026: his queen's

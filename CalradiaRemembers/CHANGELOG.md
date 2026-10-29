@@ -30,8 +30,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   - the mailbox: the letter it chose asks for its turn (`letter:<sender>:<reason>`, a letter costing what Letters Count
     As says); kept waiting, it competes again the next day. The letters that bypass the mailbox (a divorce, child
     support, a farewell, the war duty, a patrol report, a reply to the player, another mod's letter) do not ask yet.
-  Not asking yet: tales on the map, the prisoner envoy, the war council offer, the arrest, the town ambush, captive
-  scenes. Nothing feeds the Household family yet.
+  - a written tale beginning on the map (`tale:<id>`, ordinary; kept waiting, it may begin another day);
+  - a prisoner envoy riding up (`envoy:<lord>`) and the town ambush (`ambush:<assassin>`): two of Gabriel's four that
+    always pass, yet they too wait out a battle, a chat or the settling delay (the envoy comes the next hour, the blades
+    stay armed for the next visit).
+  Not asking yet: the war council offer (off by default), the arrest (off by default; its sergeants already wait for the
+  player to stand free on land), captive scenes (the player is a prisoner). Nothing feeds the Household family yet.
 - **An awaited correspondence** (Gabriel, 28/10/2026: "si je suis en train d'ecrire des lettres d'amour a une NPC,
   peut-etre que j'aimerais avoir de ses nouvelles rapidement meme si c'est la guerre"; the ribbon bookmark he chose over a
   star). `NpcProfile.LettersAwaited` (additive): that character's letters come first in the mailbox, past the diversity

@@ -590,6 +590,11 @@ namespace CalradiaRemembers.Stance
 
             if (outcome != AmbushEntryOutcome.Spring) return;
 
+            // The world's initiative (Gabriel, 28/10/2026): an ambush is one of the four that always pass, but not in the
+            // middle of a battle or a chat; kept waiting, the blades stay armed for the next visit.
+            if (!(Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"ambush:{assassin.StringId}", Logic.Initiative.InitiativeFamily.WarAndLaw, Logic.Initiative.InitiativeRank.Imposed, assassin) ?? true))
+               return;
+
             Disarm(store, assassin); // spent only when it actually springs; a miss re-rolls next visit
             Present(assassin, settlement);
          }

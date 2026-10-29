@@ -830,6 +830,11 @@ namespace CalradiaRemembers.Quests
             return;
          }
 
+         // The world's initiative (Gabriel, 28/10/2026): a tale on the map asks for its turn before it begins; kept waiting,
+         // it may begin another day.
+         if (!(Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"tale:{chosen.Quest.Id}", Logic.Initiative.InitiativeFamily.Tales, Logic.Initiative.InitiativeRank.Ordinary, chosen.Giver) ?? true))
+            return;
+
          AuthoredQuestRun run = AuthoredQuestEngine.Start(chosen.Quest, chosen.Ids, chosen.Names, today);
          ModLog.Info($"[TALE] '{chosen.Quest.Id}' begins on the map with {chosen.Giver.Name} ({string.Join(", ", chosen.Names.Select(kv => kv.Key + "=" + kv.Value))}).");
          AskOnMap(chosen.Quest, run, chosen.Giver);
