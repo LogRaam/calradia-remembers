@@ -227,6 +227,30 @@ Swear fealty and sit out the realm's war, and your ruler notices. A vassal who h
 When your character dies and an heir takes up the banner, Calradia does not forget. The lords you dealt with [color=#6fa8dc][b]inherit[/b] [/color]their standing toward your house.. the debts, the alliances, the grudges.. and speak to your heir of what came before: "[i]your father helped me at the siege of Epicrotea.. I owe your house that debt[/i]," or "[i]your mother's broken word still stings[/i]." The private history of the dead stays buried with them; your heir inherits a reputation, not a diary, and the bond with each lord begins anew from there. Your dynasty carries its name forward.
 
 [line]
+[size=4]Diplomacy and influence[/size]
+
+[b][color=#e69138]Yes, Calradia Remembers does diplomacy.. through the game's own[/color][/b]
+Players often ask whether CR can change the course of wars and alliances. It can, and the way it does is what keeps a campaign coherent from the first day to the last. CR never invents a war, a peace or an alliance in the middle of a conversation. What you say, and what the world's lords want, is carried into the [b]game's own diplomacy[/b]: a house puts the matter to its realm's [b]vote[/b] at the cost of its own [b]influence[/b], the clans weigh it with the game's own reasoning, and the [b]ruler decides[/b]. A decision the game would refuse is never offered in the first place, so no one promises you what the realm cannot deliver. The result is a war that broke out because someone argued for it, a peace that was bought, an alliance that was sought.. and the game's own AI keeps playing by its own rules all the while, with nothing scripted against it.
+
+[b][color=#e69138]What you can do with words[/color][/b]
+[list]
+[*][b]Press a lord toward war.[/b] Argue that his realm should make war on another, and if your case truly persuades him, his house puts the war to the realm's vote. Likelier, never certain. And talk travels: if word of it reaches the realm you named, its lords remember who spoke against them.[/*]
+[*][b]Sway, pledge, plot.[/b] Turn a lord against a third party, pledge to move against a shared rival (a real plot is set in motion), join someone else's plot, or betray it to its target. Every plot runs on the game's own relations between lords, so the bad blood it leaves is real.[/*]
+[*][b]Broker a peace between two other realms[/b], as a mediator, when you have the rank and the deep trust of the ruler you speak to.[/*]
+[*][b]Take a sworn oath[/b] from someone to keep a peace, which the world holds them to.[/*]
+[*][b]As a ruler[/b], hold a war council and decide war or peace yourself, or sit across the table from an enemy ruler in a [b]parley[/b]: negotiate peace, a tribute, the release of prisoners, a hostage as a guarantee, or a pact not to raise arms for a time. The pact is Calradia Remembers' own word between the two of you: break it and the other side remembers, with a grudge.[/*]
+[/list]
+
+[b][color=#e69138]What the world's lords do on their own[/color][/b]
+The nobility has politics of its own. Lords who cannot abide a rival plot against them in secret, and every plot that comes to light becomes news. And with the option [i]Lords play the realm's strategy[/i] (off by default), the world watches its own balance:
+[list]
+[*]When one realm grows far too strong, the others build a [b]counterweight[/b] against it, one step at a time and through the game's own decisions: they call an ally to arms, make peace with a weaker enemy to free their armies, seek an [b]alliance[/b] with its other enemies, then put the war itself to the vote. The game's own limits hold (two alliances at most, and both realms must want it).[/*]
+[*]A house that outgrows its rivals draws [b]plots[/b] from them, yours included once your house dominates.[/*]
+[*]A few of those strategists [b]turn to you[/b]: a lord who knows you may seek you out and ask you to beat his rival's forces, or the dominant realm's, in the field. The task he asks for is a real one, verified by what you actually do in battle.[/*]
+[/list]
+You hear of it as the realm does, through news and rumour: who urged what, never a promise of how the vote went. The game tells you that in its own time.
+
+[line]
 [size=4]Danger and intrigue[/size]
 
 [b][color=#e69138]Court intrigue.. plots between lords[/color][/b]
