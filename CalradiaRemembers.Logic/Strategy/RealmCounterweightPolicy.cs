@@ -116,7 +116,10 @@ namespace CalradiaRemembers.Logic.Strategy
       /// <summary>Fewer realms than this standing and there is no balance left to keep.</summary>
       public const int MinRealms = 3;
 
-      /// <summary>TUNE: days a realm waits after one strategist proposal before the next (proposed to Gabriel 30/10/2026: a month).</summary>
+      /// <summary>
+      ///   TUNE: days a realm waits after one strategist proposal before the next. Put to Gabriel (30/10/2026) as a month per
+      ///   house; built per realm, which is stricter (a realm's houses do not take turns).
+      /// </summary>
       public const int RealmCooldownDays = 30;
 
       /// <summary>

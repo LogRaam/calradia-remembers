@@ -235,11 +235,20 @@ namespace CalradiaRemembers.Strategy
          });
 
       /// <summary>
-      ///   Files the step: the news first (the court hears who urged it), then the game's own decision, which charges the
-      ///   house its influence and is voted on at once in a realm the player does not belong to.
+      ///   Files the step: the game's own decision, which charges the house its influence and is voted on at once in a realm
+      ///   the player does not belong to; then, once it is filed, the news of who urged it.
       /// </summary>
       internal void File(Proposal p, int today)
       {
+         // The game's decision first: if the engine refuses it, the court must not hear of a proposal that never happened.
+         try { p.Realm.AddDecision(p.Decision); }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[STRATEGY] {p.Move} by {p.House?.Name} in {p.Realm?.Name} could not be filed: {ex.GetType().Name}: {ex.Message}");
+
+            return;
+         }
+
          _lastStepDay[p.Realm.StringId] = today;
          string news = News(p);
          Tell(new StrategyNews {
@@ -250,7 +259,6 @@ namespace CalradiaRemembers.Strategy
             RealmIds = new[] {p.Realm?.StringId, p.Other?.StringId, p.Dominant?.StringId}.Where(s => s != null).Distinct().ToList()
          });
 
-         p.Realm.AddDecision(p.Decision);
          ModLog.Info($"[STRATEGY] {news} ({p.Move}, support {p.Support:0}.)");
       }
 

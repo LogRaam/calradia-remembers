@@ -2866,7 +2866,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 | `DominanceRatio` | 1.5f | TUNE: the strongest realm dominates only at this many times the strength of the next one. |
 | `DominanceShare` | 0.3f | TUNE: ... and with at least this share of all the realms' strength together. |
 | `MinRealms` | 3 | Fewer realms than this standing and there is no balance left to keep. |
-| `RealmCooldownDays` | 30 | TUNE: days a realm waits after one strategist proposal before the next (proposed to Gabriel 30/10/2026: a month). |
+| `RealmCooldownDays` | 30 | TUNE: days a realm waits after one strategist proposal before the next. |
 | `WarSupportFloor` | -PressForWarPolicy.SupportThreshold | The game's support a house must not fall below to propose a war: below its negative the house is against it (PressForWarPolicy.SupportThreshold, the same bar a lord pressed by the player answers to). |
 
 ### RealmServiceWording

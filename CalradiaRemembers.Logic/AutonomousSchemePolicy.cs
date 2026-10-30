@@ -160,6 +160,15 @@ namespace CalradiaRemembers.Logic
 
          /// <summary>The instigator's own house's military strength.</summary>
          public float OwnHouseStrength { get; init; }
+
+         /// <summary>
+         ///   The candidate's house serves the instigator's own realm, or a realm at war with it (30/10/2026): a rival is a
+         ///   house he contends with, never a stranger at the far end of Calradia.
+         /// </summary>
+         public bool RivalRealm { get; init; }
+
+         /// <summary>An autonomous plot already strikes this candidate: one house grown too strong draws one plot at a time.</summary>
+         public bool AlreadyPlottedAgainst { get; init; }
       }
 
       /// <summary>
@@ -176,13 +185,14 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>
       ///   True when a hero is a grounded target for a plot born of THREAT rather than hatred (30/10/2026): the head of
-      ///   another house, at least <see cref="OvershadowRatio" /> times as strong as the instigator's, whom the instigator
-      ///   does not count a friend, never kin and never a faction leader (a ruler is the war-decision system's to move
+      ///   another house of his own realm or of a realm at war with it, at least <see cref="OvershadowRatio" /> times as
+      ///   strong as the instigator's, not already the target of such a plot, whom the instigator does not count a friend,
+      ///   never kin and never a faction leader (a ruler is the war-decision system's to move
       ///   against). Unlike a hatred plot, the player may be the target: Gabriel (30/10/2026) agreed the lords may plot
       ///   against the player's house once it dominates.
       /// </summary>
       public static bool IsOvershadowingTarget(SchemeTargetCandidate target)
-         => target.IsHouseHead && !target.SameHouse && !target.IsKin && !target.IsFactionLeader
+         => target.IsHouseHead && target.RivalRealm && !target.AlreadyPlottedAgainst && !target.SameHouse && !target.IsKin && !target.IsFactionLeader
             && target.Relation <= OvershadowMaxRelation
             && target.HouseStrength > 0f
             && target.HouseStrength >= OvershadowRatio * System.Math.Max(target.OwnHouseStrength, 1f);

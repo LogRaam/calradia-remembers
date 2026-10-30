@@ -141,8 +141,9 @@ namespace CalradiaRemembers.Tests.Strategy
          news.Should().Be("Derthert of the dey Meroc urged Vlandia to seek an alliance with the Aserai against the Empire.");
       }
 
-      // The pace put to Gabriel on 30/10/2026 (one strategist proposal a month per realm, on top of the game's own), which
-      // his "go" let stand: without it a realm facing a dominant one would file a decision every week.
+      // The pace: put to Gabriel on 30/10/2026 as one proposal a week in all the world and a month per HOUSE; built as a
+      // month per REALM (stricter: a realm's houses do not take turns). Without it a realm facing a dominant one would file
+      // a decision every week.
       [Test]
       public void GIVEN_a_realm_proposed_recently_WHEN_it_may_act_again_THEN_only_after_a_month()
       {

@@ -629,6 +629,20 @@ weapon or coin handed to the owed ruler counts toward the levy, the WarDuty name
 several realms' rulers at once (one reckoning
 at a time), a vassal of a vassal (the duty is owed to the realm's ruler only).
 
+**CR-seeded strategist aims, increment 1 BUILT 30/10/2026 for 2.7.22, NOT play-verified.** Gabriel (29/10/2026): a
+lord's ambition is whatever makes his house or realm stronger, plotting against a rival or a realm grown too strong,
+arrangements with weaker realms against a stronger one. His answers (30/10/2026): CR may file the game's own kingdom
+decisions on its own; the lords may plot against the player's house once it dominates; start with these two; no
+encyclopedia line (rumour, warning and conversation only). Built offscreen, MCM switch off by default:
+`RealmCounterweightPolicy` + `LordStrategyBehavior` (war, peace, alliance, call to arms against a dominant realm; the
+game 1.4.8 HAS alliances), and `AutonomousSchemePolicy.IsOvershadowingTarget` (a rival house twice as strong, own realm
+or an enemy one, one such plot per target). Defaults taken while Gabriel's three questions stood open: the player's own
+realm is left out; a ruling player is not plotted against; one step a month per REALM (proposed: per house).
+Next (increment 2): the lord asks the PLAYER for help (attack the rival's army, raid, take the castle). Needs a real
+deed behind the request: an aim's `MissionId` is only a flag today; build the deed through `QuestFactory.Create` as a
+non-model issuer (the `NemesisBounty` precedent), and register the aim under its own internal source tag (aims under
+`CalradiaRemembers` are never voiced, and the war duty evicts only other sources).
+
 ## WISHED 2026-10-14 (tashmetu), ROADMAPPED: the captive PLAYER bargains for freedom
 
 The other half of the 2.7.10 `counter_offer` (a lord the player holds offers ransom, fealty, service, goodwill). Today a

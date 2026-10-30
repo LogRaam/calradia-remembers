@@ -24,7 +24,7 @@ namespace CalradiaRemembers.Tests.Strategy
                                                                        bool kin = false, bool sameHouse = false, bool ruler = false, bool head = true)
          => new() {
             Id = id, Relation = relation, IsHouseHead = head, HouseStrength = houseStrength, OwnHouseStrength = 100f, IsPlayerSide = playerSide,
-            IsKin = kin, SameHouse = sameHouse, IsFactionLeader = ruler
+            IsKin = kin, SameHouse = sameHouse, IsFactionLeader = ruler, RivalRealm = true
          };
 
       // The heart of Gabriel's words: a house that has grown far stronger than the lord's own is a reason to plot, with no
@@ -70,6 +70,26 @@ namespace CalradiaRemembers.Tests.Strategy
       public void GIVEN_the_players_house_has_grown_too_strong_WHEN_weighed_THEN_the_player_may_be_plotted_against()
       {
          AutonomousSchemePolicy.IsOvershadowingTarget(Head("player", 400f, playerSide: true)).Should().BeTrue();
+      }
+
+      // A rival is a house a lord contends with, in his own realm or across a front. Without this, every small house head
+      // in Calradia converged on the one mightiest house, often a stranger at the far end of the map he had never met.
+      [Test]
+      public void GIVEN_a_mighty_house_of_a_distant_realm_at_peace_with_his_WHEN_weighed_THEN_no_plot_is_grounded()
+      {
+         AutonomousSchemePolicy.SchemeTargetCandidate stranger = new() {Id = "far", IsHouseHead = true, HouseStrength = 900f, OwnHouseStrength = 100f, RivalRealm = false};
+
+         AutonomousSchemePolicy.IsOvershadowingTarget(stranger).Should().BeFalse();
+      }
+
+      // One plot at a time against a house grown too strong: otherwise the cap of four could be four plots at once against
+      // the same house, the player's when it dominates.
+      [Test]
+      public void GIVEN_a_mighty_house_already_plotted_against_WHEN_weighed_THEN_no_second_plot_is_grounded()
+      {
+         AutonomousSchemePolicy.SchemeTargetCandidate struck = new() {Id = "x", IsHouseHead = true, HouseStrength = 900f, OwnHouseStrength = 100f, RivalRealm = true, AlreadyPlottedAgainst = true};
+
+         AutonomousSchemePolicy.IsOvershadowingTarget(struck).Should().BeFalse();
       }
 
       // When several houses overshadow his own, the lord turns on the mightiest: that is the one tilting the balance.

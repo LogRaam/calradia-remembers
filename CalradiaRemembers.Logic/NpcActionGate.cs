@@ -101,7 +101,10 @@ namespace CalradiaRemembers.Logic
       Escort,
 
       /// <summary>An ambush's paymaster or a nemesis facing the captive player, resolved from an id stored days before.</summary>
-      CaptorScene
+      CaptorScene,
+
+      /// <summary>A house head launching a plot of his own against a house grown too strong, the player's among them (30/10/2026).</summary>
+      Plot
    }
 
    /// <summary>Why an action did not happen.</summary>

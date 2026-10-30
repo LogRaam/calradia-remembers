@@ -684,6 +684,10 @@ namespace CalradiaRemembers.WorldEvents
       {
          Clan own = instigator?.Clan;
          if (own == null || own.Leader != instigator) return null;
+         if (!Mapping.ActionGate.Allows(instigator, ActionKind.Plot)) return null;
+
+         IFaction realm = instigator.MapFaction;
+         var struck = new HashSet<string>(Instance?._schemes.Where(s => s.Autonomous).Select(s => s.TargetId) ?? Enumerable.Empty<string>());
 
          var candidates = new List<AutonomousSchemePolicy.SchemeTargetCandidate>();
          foreach (Clan house in Clan.All)
@@ -696,7 +700,9 @@ namespace CalradiaRemembers.WorldEvents
             candidates.Add(new AutonomousSchemePolicy.SchemeTargetCandidate {
                Id = head.StringId, Relation = instigator.GetRelation(head), IsKin = CourtActionResolver.IsCloseKin(instigator, head),
                IsPlayerSide = head == Hero.MainHero || house == Clan.PlayerClan, IsFactionLeader = head.MapFaction?.Leader == head,
-               IsHouseHead = true, SameHouse = house == own, HouseStrength = house.CurrentTotalStrength, OwnHouseStrength = own.CurrentTotalStrength
+               IsHouseHead = true, SameHouse = house == own, HouseStrength = house.CurrentTotalStrength, OwnHouseStrength = own.CurrentTotalStrength,
+               RivalRealm = realm != null && (head.MapFaction == realm || FactionManager.IsAtWarAgainstFaction(realm, head.MapFaction)),
+               AlreadyPlottedAgainst = struck.Contains(head.StringId)
             });
          }
 

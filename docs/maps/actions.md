@@ -26,6 +26,7 @@ the subject of news, and the verbs a model emits in conversation have their own 
 | `Hostage` | `CouncilHostageBehavior.TryStart`, `HostageCandidateResolver.IsEligible` |
 | `Letter` | `BastardBehavior.SendDemandLetter`, `BastardBehavior.SendMotherNote`, `CompanionHappinessBehavior.SendFarewell`, `CrLetters.DeliverWithId`, `LetterGenerationService.QueueInitialLetter`, `LetterTriggerEvaluator.CanSendLetter`, `LetterTriggerEvaluator.CollectAimLetters`, `PrisonerEnvoyBehavior.OnHourlyTick` |
 | `MarriageProspect` | `MarriageProspectResolver.Build`, `MarriageProspectResolver.ResolveCandidate` |
+| `Plot` | `SchemeStore.SelectOvershadowingTargetFor` |
 | `RealmTidings` | `RealmTidingsBehavior.CanRelay` |
 | `ReceiveLetter` | `CourierService.CanReceiveLetter` |
 | `RoadInterception` | `InterceptionBehavior.TryStartInterception` |
