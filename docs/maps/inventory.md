@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 590 types in 64 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1424 types in 49 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1426 types in 49 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 278 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2442,7 +2442,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SocialStationFacts` | public class | What a character's station is read from. |
 | `SocialStationPolicy` | public static class | Resolves a character's station and composes its definition for the player's rung. |
 
-### CalradiaRemembers.Logic.Strategy (12)
+### CalradiaRemembers.Logic.Strategy (14)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2453,6 +2453,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `OtherRealm` | public class | Another realm, as seen from the realm weighing its next step against the dominant one. |
 | `RealmCounterweightPolicy` | public static class | Which realm dominates, and how the others may build a counterweight. |
 | `RealmPower` | public class | One realm's might, read from the game. |
+| `StrategistAct` | public enum | What the player is asked to do to the target (Gabriel, 30/10/2026, "go pour le pillage et le siège", from the asks proposed on 29/10: beat his army, burn his villages, take his castle). |
+| `StrategistActFacts` | public class | What the target holds and how the war stands around it, to choose what to ask. |
 | `StrategistAimPolicy` | public static class | Who among the strategists turns to the player, with which deed, in which words, and until when. |
 | `StrategistAimWording` | public class | The names an aim's words are told with. |
 | `StrategistDeed` | public enum | The deed a strategist asks of the player. |

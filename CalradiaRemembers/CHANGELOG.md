@@ -23,14 +23,18 @@ All notable changes to the mod, newest first. Dates are calendar dates.
     never kin, never a ruler, and the plotter asks the action gate (`ActionKind.Plot`). An old hatred still comes
     first; the plot runs the usual scheme road.
   - The strategist turns to the player (second increment, same switch): once a week, up to three house heads who
-    know the player and do not dislike them (the warmest first) hold an aim of their own toward the player: beat the
-    head of a rival house grown too strong who rides for a realm at war with theirs, else beat the forces of the
-    realm grown too strong (`StrategistAimPolicy`, `Aims/StrategistAims`). An ordinary CrAims aim under its own
+    know the player and do not dislike them (the warmest first) hold an aim of their own toward the player, against
+    the head of a rival house grown too strong who rides for a realm at war with theirs, else against the realm grown
+    too strong (`StrategistAimPolicy`, `Aims/StrategistAims`): beat it in the field, raid one of its villages, or
+    storm one of its strongholds (Gabriel, 30/10/2026: "go pour le pillage et le siège"). A siege the lord's realm
+    already presses comes first; a merciless lord (Mercy below zero) asks for the raid; otherwise a battle while the
+    target can be met in the field (Claude's defaults). An ordinary CrAims aim under its own
     source tag (`CalradiaRemembers.Strategy`), so it is voiced in conversation and may bring the lord to the player
     through the world's initiative; its deed heads the lord's grounded quest menu (attack_lord / attack_faction), so
     the task he asks outright is the one the quest factory issues and the deed tracker verifies. Never against the
     player's own realm or house, never from a lord at war with the player; withdrawn once the deed no longer stands
-    (target fallen, peace made) or the task is given, and lapses after 40 days.
+    (target fallen, the village looted or the stronghold changed hands, peace made) or the task is given, and lapses
+    after 40 days.
   - Left out on purpose: the player's own realm (a decision filed there would raise the game's vote popup outside the
     world's initiative regulator).
   - `cr.strategy [plan|run|aims]`; `cr.test lord_strategy`, `cr.test strategist_aim`. Not play-verified.

@@ -642,8 +642,10 @@ Increment 2 BUILT 30/10/2026: the lord asks the PLAYER for help (`StrategistAimP
 attack_lord on his rival grown too strong (in a realm at war with his), else attack_faction on the dominant realm,
 under the source tag `CalradiaRemembers.Strategy` (voiced; the war duty evicts it), its deed put at the head of his
 grounded quest menu (`ViableQuestScanner.LeadingEntries`), so the asked task is the one the factory issues and the
-tracker verifies. Three aims at once, 40 days. Not done: raid, siege or scouting asks; a letter channel (a letter
-cannot issue a task); the quest is still issued without an accept step, as every chat-issued task is.
+tracker verifies. Three aims at once, 40 days. Raid and siege asks added the same day (Gabriel: "go pour le pillage
+et le siège"; raid_village / siege on the target's nearest village or stronghold, a siege already under way first,
+a merciless lord asks the raid). Not done: scouting asks; a letter channel (a letter cannot issue a task); the quest
+is still issued without an accept step, as every chat-issued task is.
 
 ## WISHED 2026-10-14 (tashmetu), ROADMAPPED: the captive PLAYER bargains for freedom
 

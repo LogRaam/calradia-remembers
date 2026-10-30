@@ -246,7 +246,7 @@ The nobility has politics of its own. Lords who cannot abide a rival plot agains
 [list]
 [*]When one realm grows far too strong, the others build a [b]counterweight[/b] against it, one step at a time and through the game's own decisions: they call an ally to arms, make peace with a weaker enemy to free their armies, seek an [b]alliance[/b] with its other enemies, then put the war itself to the vote. The game's own limits hold (two alliances at most, and both realms must want it).[/*]
 [*]A house that outgrows its rivals draws [b]plots[/b] from them, yours included once your house dominates.[/*]
-[*]A few of those strategists [b]turn to you[/b]: a lord who knows you may seek you out and ask you to beat his rival's forces, or the dominant realm's, in the field. The task he asks for is a real one, verified by what you actually do in battle.[/*]
+[*]A few of those strategists [b]turn to you[/b]: a lord who knows you may seek you out and ask you to beat his rival, or the dominant realm, in the field, to raid one of their villages, or to help storm one of their strongholds. The task he asks for is a real one, verified by what you actually do.[/*]
 [/list]
 You hear of it as the realm does, through news and rumour: who urged what, never a promise of how the vote went. The game tells you that in its own time.
 

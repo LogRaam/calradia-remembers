@@ -102,8 +102,8 @@ namespace CalradiaRemembers.Tests.Strategy
          StrategistAimPolicy.Want(w).Should().Contain("Ulmerath").And.Contain("Unqid").And.Contain("at war with your realm");
          StrategistAimPolicy.PlayerPart(w).Should().Be("The player could defeat Unqid in battle for you.");
          StrategistAimPolicy.MenuCue(w).Should().Contain("Unqid");
-         StrategistAimPolicy.TypeToken(w.Deed).Should().Be("attack_lord");
-         StrategistAimPolicy.TargetField(w.Deed).Should().Be("target_hero");
+         StrategistAimPolicy.TypeToken(w).Should().Be("attack_lord");
+         StrategistAimPolicy.TargetField(w).Should().Be("target_hero");
       }
 
       // The dominant realm's deed is the war task the game already verifies against a faction.
@@ -112,8 +112,58 @@ namespace CalradiaRemembers.Tests.Strategy
       {
          var w = new StrategistAimWording {Deed = StrategistDeed.BreakTheDominant, TargetName = "Northern Empire"};
 
-         StrategistAimPolicy.TypeToken(w.Deed).Should().Be("attack_faction");
-         StrategistAimPolicy.TargetField(w.Deed).Should().Be("target_faction");
+         StrategistAimPolicy.TypeToken(w).Should().Be("attack_faction");
+         StrategistAimPolicy.TargetField(w).Should().Be("target_faction");
+      }
+
+      // Gabriel (30/10/2026), "go pour le pillage et le siège": a raid names the village as the quest block binds it,
+      // and the lord's want says whose village it is and why.
+      [Test]
+      public void GIVEN_a_raid_on_the_rivals_village_WHEN_worded_THEN_it_is_the_raid_village_task_on_that_village()
+      {
+         var w = new StrategistAimWording {Deed = StrategistDeed.StrikeTheRival, Act = StrategistAct.Raid, TargetName = "Unqid", RivalHouse = "Ulmerath", RivalRealm = "the Aserai Sultanate", Place = "Tamnuh"};
+
+         StrategistAimPolicy.TypeToken(w).Should().Be("raid_village");
+         StrategistAimPolicy.TargetField(w).Should().Be("target_settlement");
+         StrategistAimPolicy.TargetName(w).Should().Be("Tamnuh");
+         StrategistAimPolicy.Want(w).Should().Contain("Tamnuh, a village of his house");
+      }
+
+      // A siege names the stronghold, as the quest block binds it.
+      [Test]
+      public void GIVEN_a_siege_of_the_dominant_realms_stronghold_WHEN_worded_THEN_it_is_the_siege_task_on_that_place()
+      {
+         var w = new StrategistAimWording {Deed = StrategistDeed.BreakTheDominant, Act = StrategistAct.Siege, TargetName = "Northern Empire", Place = "Epicrotea"};
+
+         StrategistAimPolicy.TypeToken(w).Should().Be("siege");
+         StrategistAimPolicy.TargetName(w).Should().Be("Epicrotea");
+         StrategistAimPolicy.PlayerPart(w).Should().Be("The player could help storm Epicrotea for you.");
+      }
+
+      // A siege his realm already presses is the help most needed now: the war is there.
+      [Test]
+      public void GIVEN_a_siege_under_way_on_the_targets_stronghold_WHEN_the_act_is_chosen_THEN_the_player_is_asked_to_help_storm_it()
+      {
+         StrategistAimPolicy.ChooseAct(new StrategistActFacts {SiegeUnderWay = true, HoldsAStronghold = true, InTheField = true, HoldsAVillage = true})
+                            .Should().Be(StrategistAct.Siege);
+      }
+
+      // Claude's default (30/10/2026): a merciless lord (Mercy below zero) would rather see the target's villages burn; any
+      // other asks for a battle while the target can be met in the field.
+      [Test]
+      public void GIVEN_the_givers_mercy_WHEN_the_act_is_chosen_THEN_only_a_merciless_lord_asks_for_a_raid_first()
+      {
+         StrategistAimPolicy.ChooseAct(new StrategistActFacts {InTheField = true, HoldsAVillage = true, HoldsAStronghold = true}).Should().Be(StrategistAct.Battle);
+         StrategistAimPolicy.ChooseAct(new StrategistActFacts {InTheField = true, HoldsAVillage = true, GiverMercy = -1}).Should().Be(StrategistAct.Raid);
+      }
+
+      // A target that cannot be met in the field still holds land: a raid, then a siege; nothing at all, nothing asked.
+      [Test]
+      public void GIVEN_a_target_not_in_the_field_WHEN_the_act_is_chosen_THEN_its_land_is_asked_for_or_nothing()
+      {
+         StrategistAimPolicy.ChooseAct(new StrategistActFacts {HoldsAVillage = true, HoldsAStronghold = true}).Should().Be(StrategistAct.Raid);
+         StrategistAimPolicy.ChooseAct(new StrategistActFacts {HoldsAStronghold = true}).Should().Be(StrategistAct.Siege);
+         StrategistAimPolicy.ChooseAct(new StrategistActFacts()).Should().BeNull();
       }
    }
 }

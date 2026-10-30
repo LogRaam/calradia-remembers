@@ -27,6 +27,41 @@ namespace CalradiaRemembers.Logic.Strategy
       BreakTheDominant
    }
 
+   /// <summary>
+   ///   What the player is asked to do to the target (Gabriel, 30/10/2026, "go pour le pillage et le siège", from the asks
+   ///   proposed on 29/10: beat his army, burn his villages, take his castle).
+   /// </summary>
+   public enum StrategistAct
+   {
+      /// <summary>Beat the target in the field: the rival lord himself (attack_lord), or the realm's forces (attack_faction).</summary>
+      Battle,
+
+      /// <summary>Raid one of the target's villages (raid_village).</summary>
+      Raid,
+
+      /// <summary>Storm one of the target's strongholds (siege).</summary>
+      Siege
+   }
+
+   /// <summary>What the target holds and how the war stands around it, to choose what to ask.</summary>
+   public sealed class StrategistActFacts
+   {
+      /// <summary>One of the target's strongholds is already besieged by the giver's realm: the war is there now.</summary>
+      public bool SiegeUnderWay { get; init; }
+
+      /// <summary>The target holds a stronghold (a town or castle) that can be stormed.</summary>
+      public bool HoldsAStronghold { get; init; }
+
+      /// <summary>The target holds a village that is not already looted.</summary>
+      public bool HoldsAVillage { get; init; }
+
+      /// <summary>The target can be met in battle: the rival leads a party, or the realm has forces in the field.</summary>
+      public bool InTheField { get; init; }
+
+      /// <summary>The giver's Mercy trait (-2..2): a merciless lord would see the target's villages burn.</summary>
+      public int GiverMercy { get; init; }
+   }
+
    /// <summary>What is known of a lord who might hold a strategist's aim toward the player.</summary>
    public sealed class StrategistGiverFacts
    {
@@ -71,8 +106,14 @@ namespace CalradiaRemembers.Logic.Strategy
    /// <summary>The names an aim's words are told with.</summary>
    public sealed class StrategistAimWording
    {
-      /// <summary>The deed.</summary>
+      /// <summary>Whom: the rival, or the dominant realm.</summary>
       public StrategistDeed Deed { get; init; }
+
+      /// <summary>What: a battle, a raid, a siege.</summary>
+      public StrategistAct Act { get; init; }
+
+      /// <summary>The village to raid or the stronghold to storm (Raid and Siege only), as the quest block must name it.</summary>
+      public string Place { get; init; }
 
       /// <summary>The target as the quest block must name it: the rival house's head, or the dominant realm.</summary>
       public string TargetName { get; init; }
@@ -129,31 +170,80 @@ namespace CalradiaRemembers.Logic.Strategy
       /// <summary>True while the deed can still be done and asked: the target stands, the war holds, and it is not the player's own.</summary>
       public static bool DeedStands(StrategistTargetFacts f) => f != null && f.Stands && f.AtWarWithGiversRealm && !f.IsPlayersOwn;
 
+      /// <summary>
+      ///   What to ask of the player: a siege already under way first (the war is there now); a merciless lord would see the
+      ///   villages burn; otherwise a battle when the target can be met in the field; a raid, then a siege, failing that.
+      ///   Null when the target offers nothing the player could do. The order and the Mercy reading are Claude's defaults
+      ///   (30/10/2026), not Gabriel's ruling.
+      /// </summary>
+      public static StrategistAct? ChooseAct(StrategistActFacts f)
+      {
+         if (f == null) return null;
+         if (f.SiegeUnderWay && f.HoldsAStronghold) return StrategistAct.Siege;
+         if (f.GiverMercy < 0 && f.HoldsAVillage) return StrategistAct.Raid;
+         if (f.InTheField) return StrategistAct.Battle;
+         if (f.HoldsAVillage) return StrategistAct.Raid;
+         if (f.HoldsAStronghold) return StrategistAct.Siege;
+
+         return null;
+      }
+
       /// <summary>The lord's want, in his own terms.</summary>
       public static string Want(StrategistAimWording w)
-         => w.Deed == StrategistDeed.StrikeTheRival
-            ? $"The house of {w.RivalHouse} has grown far stronger than your own, and its head, {w.TargetName}, rides for {w.RivalRealm}, at war with your realm. You want him brought low in the field before his house grows stronger still."
-            : $"{w.TargetName} has grown too strong for the balance of Calradia, and your realm is at war with it. You want its armies broken in the field.";
+      {
+         string why = w.Deed == StrategistDeed.StrikeTheRival
+            ? $"The house of {w.RivalHouse} has grown far stronger than your own, and its head, {w.TargetName}, rides for {w.RivalRealm}, at war with your realm."
+            : $"{w.TargetName} has grown too strong for the balance of Calradia, and your realm is at war with it.";
+         string whom = w.Deed == StrategistDeed.StrikeTheRival ? "his house" : "it";
+         string want = w.Act switch {
+            StrategistAct.Raid => $"You want {w.Place}, a village of {whom}, put to the torch, so that {whom} grows weaker.",
+            StrategistAct.Siege => $"You want {w.Place}, a stronghold of {whom}, taken by storm.",
+            _ => w.Deed == StrategistDeed.StrikeTheRival
+               ? "You want him brought low in the field before his house grows stronger still."
+               : "You want its armies broken in the field."
+         };
+
+         return why + " " + want;
+      }
 
       /// <summary>
       ///   What the player has to do with it. It names no task: the Lean prompt teaches no task-giving, so a "task you may
       ///   give" would be a promise the world does not keep there. The task itself heads his quest menu (Full prompts).
       /// </summary>
       public static string PlayerPart(StrategistAimWording w)
-         => w.Deed == StrategistDeed.StrikeTheRival
-            ? $"The player could defeat {w.TargetName} in battle for you."
-            : $"The player could defeat {w.TargetName}'s forces in battle for you.";
+         => w.Act switch {
+            StrategistAct.Raid => $"The player could raid {w.Place} for you.",
+            StrategistAct.Siege => $"The player could help storm {w.Place} for you.",
+            _ => w.Deed == StrategistDeed.StrikeTheRival
+               ? $"The player could defeat {w.TargetName} in battle for you."
+               : $"The player could defeat {w.TargetName}'s forces in battle for you."
+         };
 
       /// <summary>The quest block's type token for the deed, as the grounded menu and the quest factory know it.</summary>
-      public static string TypeToken(StrategistDeed deed) => deed == StrategistDeed.StrikeTheRival ? "attack_lord" : "attack_faction";
+      public static string TypeToken(StrategistAimWording w)
+         => w.Act switch {
+            StrategistAct.Raid => "raid_village",
+            StrategistAct.Siege => "siege",
+            _ => w.Deed == StrategistDeed.StrikeTheRival ? "attack_lord" : "attack_faction"
+         };
 
       /// <summary>The quest block's target field for the deed.</summary>
-      public static string TargetField(StrategistDeed deed) => deed == StrategistDeed.StrikeTheRival ? "target_hero" : "target_faction";
+      public static string TargetField(StrategistAimWording w)
+         => w.Act != StrategistAct.Battle ? "target_settlement" : w.Deed == StrategistDeed.StrikeTheRival ? "target_hero" : "target_faction";
+
+      /// <summary>The name the quest block must give the target: the place for a raid or a siege, the lord or realm for a battle.</summary>
+      public static string TargetName(StrategistAimWording w) => w.Act == StrategistAct.Battle ? w.TargetName : w.Place;
 
       /// <summary>The cue the grounded menu gives the deed.</summary>
       public static string MenuCue(StrategistAimWording w)
-         => w.Deed == StrategistDeed.StrikeTheRival
-            ? $"your own aim: {w.TargetName} heads a house grown too strong; see him beaten in the field"
-            : $"your own aim: {w.TargetName} has grown too strong; see its forces beaten in the field";
+      {
+         string grown = w.Deed == StrategistDeed.StrikeTheRival ? $"{w.TargetName} heads a house grown too strong" : $"{w.TargetName} has grown too strong";
+
+         return w.Act switch {
+            StrategistAct.Raid => $"your own aim: {grown}; see {w.Place} raided",
+            StrategistAct.Siege => $"your own aim: {grown}; see {w.Place} stormed",
+            _ => w.Deed == StrategistDeed.StrikeTheRival ? $"your own aim: {grown}; see him beaten in the field" : $"your own aim: {grown}; see its forces beaten in the field"
+         };
+      }
    }
 }
