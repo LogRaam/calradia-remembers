@@ -164,19 +164,32 @@ namespace CalradiaRemembers.Stance
 
          if (content == null) return false; // nothing warranted (neutral, mild, or a secret hatred biding its time)
 
-         profile.SentLetters.Add(new PendingLetter {
-            SenderId = hero.StringId,
-            SenderName = hero.Name?.ToString(),
-            Reason = reason,
-            Content = content,
-            SentOnDay = today,
-            DeliveryDay = today + DeliveryDays,
-            IsDelivered = false
-         });
-         profile.StanceLastConsequenceDay = today;
-         store.Set(profile);
+         // The world's initiative (29/10/2026): the letter asks for its turn (a threat presses, a kindness can wait); kept
+         // waiting, nothing is stamped and it is written the day its turn comes, while he can still write. The console
+         // path (ignoreCooldown) writes at once.
+         void Write()
+         {
+            int day = (int) CampaignTime.Now.ToDays; // the day its turn came, which may be later than the reckoning
+            profile.SentLetters.Add(new PendingLetter {
+               SenderId = hero.StringId,
+               SenderName = hero.Name?.ToString(),
+               Reason = reason,
+               Content = content,
+               SentOnDay = day,
+               DeliveryDay = day + DeliveryDays,
+               IsDelivered = false
+            });
+            profile.StanceLastConsequenceDay = day;
+            store.Set(profile);
 
-         ModLog.Info($"[STANCE] {reason} letter queued: {hero.Name} -> player.");
+            ModLog.Info($"[STANCE] {reason} letter queued: {hero.Name} -> player.");
+         }
+
+         if (ignoreCooldown || Initiative.WorldInitiativeBehavior.Instance == null) Write();
+         else if (!Initiative.WorldInitiativeBehavior.Instance.KnockOrWait($"stance:{hero.StringId}", Logic.Initiative.InitiativeFamily.Lords,
+                     reason == LetterReason.StanceHostility ? Logic.Initiative.InitiativeRank.Pressing : Logic.Initiative.InitiativeRank.Ordinary,
+                     hero, true, () => CanWrite(hero), Write))
+            return false;
 
          return true;
       }

@@ -54,5 +54,16 @@ namespace CalradiaRemembers.Tests.Initiative
          InitiativeRanks.FamilyOf(InterceptionTrigger.StandingAim).Should().Be(InitiativeFamily.Aims);
          InitiativeRanks.FamilyOf(InterceptionTrigger.Grudge).Should().Be(InitiativeFamily.Lords);
       }
+
+      // STAKE: Gabriel's unhappy wife (28/10/2026): what the household writes is the household's, so its weight and its
+      // fair turn in the month reach her; a lord's news stays with the letters.
+      [Test]
+      public void GIVEN_letters_from_the_household_and_from_a_lord_WHEN_sorted_THEN_the_household_has_its_own()
+      {
+         InitiativeRanks.FamilyOf(NpcMemoryService.Core.Models.LetterReason.SpouseCorrespondence).Should().Be(InitiativeFamily.Household);
+         InitiativeRanks.FamilyOf(NpcMemoryService.Core.Models.LetterReason.SpouseDivorceDemand).Should().Be(InitiativeFamily.Household);
+         InitiativeRanks.FamilyOf(NpcMemoryService.Core.Models.LetterReason.ChildSupportRequest).Should().Be(InitiativeFamily.Household);
+         InitiativeRanks.FamilyOf(NpcMemoryService.Core.Models.LetterReason.RealmTidings).Should().Be(InitiativeFamily.Letters);
+      }
    }
 }

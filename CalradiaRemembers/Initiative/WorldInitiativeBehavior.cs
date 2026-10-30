@@ -65,6 +65,20 @@ namespace CalradiaRemembers.Initiative
 
       private static double Now => CampaignTime.Now.ToHours;
 
+      /// <summary>A source that asks on a slow cadence (weekly, seasonal) and was kept waiting: it knocks again every day.</summary>
+      private sealed class Waiting
+      {
+         public InitiativeFamily Family;
+         public InitiativeRank Rank;
+         public Hero Character;
+         public bool IsLetter;
+         public Func<bool> StillHolds;
+         public Action Act;
+      }
+
+      // In memory on purpose: after a reload, the source's own next tick decides again.
+      private readonly Dictionary<string, Waiting> _waiting = new();
+
       public override void RegisterEvents()
       {
          CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, _ =>
@@ -76,6 +90,7 @@ namespace CalradiaRemembers.Initiative
          {
             if (party != null && party == TaleWorlds.CampaignSystem.Party.MobileParty.MainParty) State.Requests.RemoveAll(r => r.Key.StartsWith(HerePrefix, StringComparison.Ordinal));
          });
+         CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, KnockForTheWaiting);
          CampaignEvents.MapEventEnded.AddNonSerializedListener(this, e =>
          {
             if (e != null && (e.IsPlayerMapEvent || e.InvolvedParties.Any(p => p == TaleWorlds.CampaignSystem.Party.PartyBase.MainParty))) NoteSettled();
@@ -178,6 +193,62 @@ namespace CalradiaRemembers.Initiative
             ModLog.Error($"[INITIATIVE] {key} asked and the director failed, so it may come: {ex.GetType().Name}: {ex.Message}");
 
             return true;
+         }
+      }
+
+      /// <summary>
+      ///   For a source that decides on a slow cadence (a weekly divorce reckoning, a weekly letter): knocks now and acts
+      ///   if given the turn; otherwise it waits and knocks again every day, acting when its turn comes, until
+      ///   <paramref name="stillHolds" /> says its reason went. A request asked only once a week is live only for a day, so
+      ///   without this it would compete one day in seven and could lose for weeks (found 29/10/2026). The source stamps
+      ///   its own state inside <paramref name="act" />, so nothing is spent while it waits.
+      /// </summary>
+      internal bool KnockOrWait(string key, InitiativeFamily family, InitiativeRank rank, Hero character, bool isLetter, Func<bool> stillHolds, Action act)
+      {
+         if (string.IsNullOrWhiteSpace(key) || act == null) return false;
+
+         if (MayKnock(key, family, rank, character, isLetter))
+         {
+            _waiting.Remove(key);
+            act();
+
+            return true;
+         }
+
+         _waiting[key] = new Waiting {Family = family, Rank = rank, Character = character, IsLetter = isLetter, StillHolds = stillHolds, Act = act};
+
+         return false;
+      }
+
+      /// <summary>How many slow sources are waiting for their turn, for cr.knocks and cr.test.</summary>
+      internal int WaitingCount => _waiting.Count;
+
+      internal void KnockForTheWaiting()
+      {
+         foreach (KeyValuePair<string, Waiting> entry in _waiting.ToList())
+         {
+            try
+            {
+               Waiting w = entry.Value;
+               if (w.StillHolds != null && !w.StillHolds())
+               {
+                  _waiting.Remove(entry.Key);
+                  Withdraw(entry.Key);
+                  ModLog.Info($"[INITIATIVE] {entry.Key} no longer has a reason to come, and leaves the queue.");
+
+                  continue;
+               }
+
+               if (!MayKnock(entry.Key, w.Family, w.Rank, w.Character, w.IsLetter)) continue;
+
+               _waiting.Remove(entry.Key);
+               w.Act();
+            }
+            catch (Exception ex)
+            {
+               _waiting.Remove(entry.Key);
+               ModLog.Error($"[INITIATIVE] {entry.Key} failed when its turn came: {ex.GetType().Name}: {ex.Message}");
+            }
          }
       }
 

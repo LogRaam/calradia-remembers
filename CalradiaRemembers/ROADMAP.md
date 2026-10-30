@@ -5868,6 +5868,18 @@ granted, withdraw when their reason goes), the MCM group, `cr.knocks`, and the b
 companions, letters). Step 3: the rest. Step 4: lords' aims of their own as strategists (an advantage for the lord;
 between NPCs too, played offscreen and heard as news; only aims with a part for the player knock).
 
+**Step 3 BUILT 29/10/2026** (Gabriel: "oui pour le regulateur, go"): the household (divorce demand, a child's pension,
+a partner's jealous letter, the household's mailbox letters), stance letters, the companion's farewell, captor scenes
+(pressing), the war summons, the arrest's warrant and the trial (imposed); `KnockOrWait` for sources that reckon only
+weekly (they wait and knock daily); any request silent 14 days is dropped (`AbandonedAfterDays`). DELIBERATELY NOT
+GATED, and why: what rides on a turn already given (divorce escalation, missed interception, jealous reaction letter,
+levy after a summons, ambush arrival, bounty hunters after a refused warrant; gating the escalation in RegisterRefusal
+would also lose the grudge and the regard cut); what the player asked for (replies, courtship acceptance, patrol
+reports); `CrLetters.Deliver` (a modder contract, "never ours to hold back"). LEFT FOR GABRIEL: the war council offer
+(hard-coded off, no retry, and the director's own MapEventEnded -> NoteSettled would refuse the battle-won trigger every
+time) and the bastard's mother's note (its season latch would cost a whole season). Next: the old pace dials (lords
+approaching, letters, companions asking) read as family weights while the director is on.
+
 **Wished the same day (Gabriel): an awaited correspondence, marked by a ribbon bookmark** (Gabriel chose the ribbon over
 a star, 28/10/2026; it may be drawn with the OpenAI image model; tooltip "Awaited: their letters come before others'").
 The player puts out the ribbon on a correspondent in the letter book ("si je suis en train d'ecrire des lettres d'amour a une NPC, peut-etre que j'aimerais avoir de ses nouvelles

@@ -121,7 +121,8 @@ namespace CalradiaRemembers.Letters
          // The world's initiative (Gabriel, 28/10/2026): the letter the mailbox chose asks the conductor for its turn; kept
          // waiting, it stays a candidate and competes again tomorrow. An awaited correspondent's letter presses.
          Hero sender = Hero.FindFirst(h => h != null && h.StringId == chosen.SenderId);
-         bool turn = Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"letter:{chosen.SenderId}:{chosen.Reason}", Logic.Initiative.InitiativeFamily.Letters,
+         // What the household writes (a spouse, a lover, the mother of a child) is the household's family (29/10/2026).
+         bool turn = Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"letter:{chosen.SenderId}:{chosen.Reason}", Logic.Initiative.InitiativeRanks.FamilyOf(chosen.Reason),
                         chosen.Awaited ? Logic.Initiative.InitiativeRank.Pressing : Logic.Initiative.InitiativeRank.Ordinary, sender, isLetter: true) ?? true;
          if (!turn) return;
 
@@ -1000,6 +1001,12 @@ namespace CalradiaRemembers.Letters
                      break;
 
                   case ScheduledLetterAction.Generate:
+                     // The world's initiative (29/10/2026): a scheduled letter (a pension asked for a child) asks for its
+                     // turn; kept waiting, no attempt is spent and it asks again tomorrow.
+                     if (!(Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"scheduled:{hero?.StringId}:{scheduled.Reason}", Logic.Initiative.InitiativeRanks.FamilyOf(scheduled.Reason),
+                              Logic.Initiative.InitiativeRank.Pressing, hero, isLetter: true) ?? true))
+                        break;
+
                      scheduled.Attempts++;
                      changed = true;
                      LetterGenerationService.QueueInitialLetter(

@@ -49,14 +49,27 @@ All notable changes to the mod, newest first. Dates are calendar dates.
     and they ask again at the next pass. Leaving, retiring, a plot uncovered and an errand's news press; the rest can
     wait (`InitiativeRanks.RankOf(CompanionAudienceReason)`);
   - the mailbox: the letter it chose asks for its turn (`letter:<sender>:<reason>`, a letter costing what Letters Count
-    As says); kept waiting, it competes again the next day. The letters that bypass the mailbox (a divorce, child
-    support, a farewell, the war duty, a patrol report, a reply to the player, another mod's letter) do not ask yet.
+    As says); kept waiting, it competes again the next day. What the household writes (a spouse, a lover, the mother
+    of the player's child) asks as the household (`InitiativeRanks.FamilyOf(LetterReason)`);
   - a written tale beginning on the map (`tale:<id>`, ordinary; kept waiting, it may begin another day);
   - a prisoner envoy riding up (`envoy:<lord>`) and the town ambush (`ambush:<assassin>`): two of Gabriel's four that
     always pass, yet they too wait out a battle, a chat or the settling delay (the envoy comes the next hour, the blades
     stay armed for the next visit).
-  Not asking yet: the war council offer (off by default), the arrest (off by default; its sergeants already wait for the
-  player to stand free on land), captive scenes (the player is a prisoner). Nothing feeds the Household family yet.
+  - added 29/10/2026 (Gabriel: "oui pour le regulateur, go"), the household: a spouse's divorce demand
+    (`household:divorce:<spouse>`, pressing; no clock starts until its turn), a pension asked for a child
+    (`scheduled:<mother>:<reason>`, no attempt spent while it waits), a partner's jealous letter about her place
+    (`household:jealousy:<partner>`); a lord's stance letter, a threat pressing, a kindness ordinary
+    (`stance:<lord>`); an unhappy companion's farewell (`farewell:<id>`, pressing, dropped if they no longer want to
+    leave); a captor's scene (`captive:<captor>`, pressing, not one of the four); the liege's war summons
+    (`warduty:summons`, imposed; no reckoning or deadline opens until it has its turn), the arrest's warrant
+    (`arrest:warrant`, imposed, asked at most once an in-game hour, the sergeants shadowing meanwhile) and the trial
+    (`arrest:trial`, imposed). A source that reckons only weekly (the divorce, a stance letter, a farewell) waits in the
+    queue and knocks again every day until its turn or until its reason goes (`KnockOrWait`).
+  Deliberately not asking: what rides on a turn already given (the divorce escalation, the missed interception, the
+  jealous reaction letter, the levy after a summons, the ambush's arrival, the bounty hunters after a refused warrant);
+  what the player asked for (a reply, the courtship acceptance, a patrol report); another mod's letter (`CrLetters`, a
+  modder's contract); the war council offer (off, and a battle's end would always find the player "settling", with no
+  second chance); a bastard's mother's note (its season latch would lose a whole season: Gabriel's call).
   A request whose system has stopped asking for 14 days is dropped whatever its rank (`AbandonedAfterDays`): nothing
   withdrew a spent ambush or a departed envoy, and the world's impositions never expire, so they stayed in the save.
 - **An awaited correspondence** (Gabriel, 28/10/2026: "si je suis en train d'ecrire des lettres d'amour a une NPC,

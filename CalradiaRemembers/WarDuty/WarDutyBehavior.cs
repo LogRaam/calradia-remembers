@@ -195,11 +195,22 @@ namespace CalradiaRemembers.WarDuty
          }
 
          WarDutyStanding standing = WarDutyPolicy.Decide(Ledger.Facts(today, Live()));
-         if (standing != WarDutyStanding.Owes) return standing;
+         if (standing != WarDutyStanding.Owes)
+         {
+            Initiative.WorldInitiativeBehavior.Instance?.Withdraw(SummonsKey);
+
+            return standing;
+         }
 
          Kingdom kingdom = SwornKingdom();
          Hero ruler = kingdom?.Leader;
          if (ruler == null || ruler == Hero.MainHero || !Mapping.HeroPresence.IsInTheWorld(ruler)) return WarDutyStanding.NotAVassal;
+
+         // The world's initiative (29/10/2026): the liege's summons is one of Gabriel's four that always pass, yet it too
+         // waits out a battle, a chat or the settling delay; no reckoning opens (no deadline runs) until it has its turn.
+         if (!(Initiative.WorldInitiativeBehavior.Instance?.MayKnock(SummonsKey, Logic.Initiative.InitiativeFamily.WarAndLaw,
+                  Logic.Initiative.InitiativeRank.Imposed, ruler, isLetter: true) ?? true))
+            return standing;
 
          Open(ruler, kingdom, today);
 
@@ -315,6 +326,8 @@ namespace CalradiaRemembers.WarDuty
             ModLog.Error($"[WAR DUTY] conversation check failed: {ex.GetType().Name}: {ex.Message}");
          }
       }
+
+      private const string SummonsKey = "warduty:summons";
 
       private static void Close() => AimsBehavior.Instance?.Retract(AimsBehavior.CrSource, AimId);
 

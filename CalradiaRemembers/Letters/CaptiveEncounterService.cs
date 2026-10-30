@@ -241,6 +241,12 @@ namespace CalradiaRemembers.Letters
 
             if (!RollFires(daysInCaptivity, captorProfile, "lord")) return;
 
+            // The world's initiative (29/10/2026): a captor's scene presses (not one of Gabriel's four that always pass);
+            // kept waiting, no cooldown is spent and tomorrow rolls again.
+            if (!(Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"captive:{captor.StringId}", Logic.Initiative.InitiativeFamily.WarAndLaw,
+                     Logic.Initiative.InitiativeRank.Pressing, captor) ?? true))
+               return;
+
             // Companion-victim scene (Phase 3 auto-fire): with companions held alongside, the captor may work on
             // one of THEM before the player, instead of on the player. Pure gate in CompanionScenePolicy; the
             // Phase 3 consequence (grief, revenge, chronicle) then lands when that scene closes.
@@ -273,6 +279,10 @@ namespace CalradiaRemembers.Letters
          NpcProfile banditProfile = BuildBanditCaptor(captorParty, banditFace?.IsFemale);
 
          if (!RollFires(daysInCaptivity, banditProfile, "bandit")) return;
+
+         if (!(Initiative.WorldInitiativeBehavior.Instance?.MayKnock("captive:bandit", Logic.Initiative.InitiativeFamily.WarAndLaw,
+                  Logic.Initiative.InitiativeRank.Pressing) ?? true))
+            return;
 
          _lastEncounterDay = today;
          CaptiveSceneIntent banditIntent = SelectBanditIntent(playerIsFemale, banditProfile);

@@ -414,7 +414,22 @@ namespace CalradiaRemembers.Marriage
 
          SpouseDivorceDemandFacts facts = BuildFacts(spouse);
 
-         if (SpouseDivorceDemandPolicy.ShouldDemand(facts)) Begin(spouse, Today);
+         if (!SpouseDivorceDemandPolicy.ShouldDemand(facts)) return;
+
+         // The world's initiative (29/10/2026): the demand is the household's and presses; kept waiting, no clock starts
+         // and she asks again each day, until her reason goes (reconciled, no longer wed, already demanding).
+         if (Initiative.WorldInitiativeBehavior.Instance == null)
+         {
+            Begin(spouse, Today);
+
+            return;
+         }
+
+         Initiative.WorldInitiativeBehavior.Instance.KnockOrWait($"household:divorce:{spouse.StringId}", Logic.Initiative.InitiativeFamily.Household,
+            Logic.Initiative.InitiativeRank.Pressing, spouse, true,
+            () => Hero.MainHero?.Spouse == spouse && !spouse.IsDead && !IsDemanding(spouse.StringId) && !IsEstranging(spouse.StringId)
+                  && SpouseDivorceDemandPolicy.ShouldDemand(BuildFacts(spouse)),
+            () => Begin(spouse, Today));
       }
 
       /// <summary>Bumps and returns spouseId's running refusal count (starts at 1 on their first refusal).</summary>

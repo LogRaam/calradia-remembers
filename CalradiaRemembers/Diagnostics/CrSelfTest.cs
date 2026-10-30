@@ -19295,6 +19295,22 @@ namespace CalradiaRemembers.Diagnostics
             live.Grants.Clear();
             t.Expect("hasItsTurnWhenFree", director.MayKnock(key, InitiativeFamily.Lords, InitiativeRank.Pressing), true);
             t.Expect("turnRecorded", live.Grants.Any(g => g.Key == key), true);
+
+            // STAKE (29/10/2026): a weekly source (a wife's divorce demand) kept waiting must not lose its chance until next
+            // week: it waits and acts the day its turn comes; and it leaves the queue when its reason goes.
+            const string household = "household:cr_selftest";
+            var acted = 0;
+            var stillHolds = true;
+            t.Expect("theHouseholdWaitsRightAfterATurn", director.KnockOrWait(household, InitiativeFamily.Household, InitiativeRank.Pressing, null, true, () => stillHolds, () => acted++), false);
+            t.Expect("andNothingHappenedYet", acted, 0);
+            live.Grants.Clear();
+            director.KnockForTheWaiting();
+            t.Expect("itActsWhenItsTurnComes", acted, 1);
+            live.Grants.Add(new InitiativeGrant {Key = "cr_selftest_before", Family = InitiativeFamily.Letters, GrantedAtHour = now - 0.5});
+            director.KnockOrWait(household, InitiativeFamily.Household, InitiativeRank.Pressing, null, true, () => stillHolds, () => acted++);
+            stillHolds = false;
+            director.KnockForTheWaiting();
+            t.Expect("aReasonGoneLeavesTheQueue", live.Requests.Any(r => r.Key == household) || acted != 1, false);
          }
          finally
          {

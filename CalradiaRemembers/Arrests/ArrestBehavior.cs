@@ -353,6 +353,7 @@ namespace CalradiaRemembers.Arrests
             if (Case.Stage != ArrestStage.WarrantOut)
             {
                DespawnSergeants();
+               Initiative.WorldInitiativeBehavior.Instance?.Withdraw(WarrantKey);
 
                return;
             }
@@ -369,6 +370,10 @@ namespace CalradiaRemembers.Arrests
          }
       }
 
+      private const string WarrantKey = "arrest:warrant";
+      private const string TrialKey = "arrest:trial";
+      private double _lastWarrantKnockHour = double.MinValue;
+
       /// <summary>The sergeants reach the player: the warrant is read, once they stand free on dry land.</summary>
       private void OnTick(float dt)
       {
@@ -382,6 +387,15 @@ namespace CalradiaRemembers.Arrests
             if (sergeants.GetPosition2D.Distance(main.GetPosition2D) > ArrivalRange) return;
             if (!InterceptionBehavior.PlayerIsFreeOnMap() || main.IsCurrentlyAtSea) return;
             if (main.Army != null && main.Army.LeaderParty != main) return; // never force a scene on an army subordinate
+
+            // The world's initiative (29/10/2026): the arrest is one of Gabriel's four that always pass, yet it waits out a
+            // battle, a chat or the settling delay. Asked once an in-game hour at most (this runs every frame); kept
+            // waiting, the sergeants keep shadowing the player.
+            double hour = CampaignTime.Now.ToHours;
+            if (hour - _lastWarrantKnockHour < 1) return;
+            _lastWarrantKnockHour = hour;
+            if (!(Initiative.WorldInitiativeBehavior.Instance?.MayKnock(WarrantKey, Logic.Initiative.InitiativeFamily.WarAndLaw, Logic.Initiative.InitiativeRank.Imposed, Liege()) ?? true))
+               return;
 
             DespawnSergeants();
             ReadTheWarrant();
@@ -631,6 +645,10 @@ namespace CalradiaRemembers.Arrests
 
             return;
          }
+
+         // The world's initiative (29/10/2026): the trial is part of the arrest, imposed; it waits out the settling delay.
+         if (!(Initiative.WorldInitiativeBehavior.Instance?.MayKnock(TrialKey, Logic.Initiative.InitiativeFamily.WarAndLaw, Logic.Initiative.InitiativeRank.Imposed, Liege()) ?? true))
+            return;
 
          Case.TrialOpened = true;
          string result = CouncilConversationStager.StageCouncil(CouncilScope.Trial);

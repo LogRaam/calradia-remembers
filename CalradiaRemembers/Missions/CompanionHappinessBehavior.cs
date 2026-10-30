@@ -361,7 +361,15 @@ namespace CalradiaRemembers.Missions
                break;
 
             case RetentionStep.SendFarewell:
-               SendFarewell(h);
+               // The world's initiative (29/10/2026): the farewell asks for its turn like the audience before it; kept
+               // waiting, nothing is stamped and it is sent the day its turn comes, unless the companion no longer wants
+               // to leave.
+               if (Initiative.WorldInitiativeBehavior.Instance == null) SendFarewell(h);
+               else
+                  Initiative.WorldInitiativeBehavior.Instance.KnockOrWait($"farewell:{h.StringId}", Logic.Initiative.InitiativeFamily.Companions,
+                     Logic.Initiative.InitiativeRank.Pressing, h, true, () => !h.IsDead && h.CompanionOf == Clan.PlayerClan && !_farewellDay.ContainsKey(h.StringId)
+                           && CompanionHappiness.WantsToLeave(CompanionHappinessService.Get(h)),
+                     () => SendFarewell(h));
 
                break;
          }

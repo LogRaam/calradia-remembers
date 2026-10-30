@@ -31,6 +31,28 @@ namespace CalradiaRemembers.Logic.Initiative
          }
       }
 
+      /// <summary>
+      ///   The family a letter belongs to: what the player's own household writes (a spouse, a lover, the mother of their
+      ///   child, a divorce, a pension for a child) is the household's; every other letter the letters'. The household had
+      ///   no source at all, so its weight in the MCM and its month's fair turn did nothing (found 29/10/2026).
+      /// </summary>
+      public static InitiativeFamily FamilyOf(NpcMemoryService.Core.Models.LetterReason reason)
+      {
+         switch (reason)
+         {
+            case NpcMemoryService.Core.Models.LetterReason.SpouseCorrespondence:
+            case NpcMemoryService.Core.Models.LetterReason.RomanticCorrespondence:
+            case NpcMemoryService.Core.Models.LetterReason.BirthAnnouncement:
+            case NpcMemoryService.Core.Models.LetterReason.ChildSupportRequest:
+            case NpcMemoryService.Core.Models.LetterReason.SpouseDivorceDemand:
+            case NpcMemoryService.Core.Models.LetterReason.SpouseDivorceEscalation:
+            case NpcMemoryService.Core.Models.LetterReason.BastardMotherNote:
+               return InitiativeFamily.Household;
+            default:
+               return InitiativeFamily.Letters;
+         }
+      }
+
       /// <summary>How a lord's reason to seek the player ranks.</summary>
       public static InitiativeRank RankOf(InterceptionTrigger trigger)
       {
