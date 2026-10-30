@@ -152,7 +152,8 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `NpcMemoryService.Core.Captivity` | 4 | 2 |
 | `CalradiaRemembers.Map` | 4 | 1 |
 | `CalradiaRemembers.Logic.Grudges` | 3 | 25 |
-| `CalradiaRemembers.Logic.Companions` | 3 | 12 |
+| `CalradiaRemembers.Logic.Companions` | 3 | 13 |
+| `CalradiaRemembers.Logic.Initiative` | 3 | 13 |
 | `CalradiaRemembers.Logic.Romance` | 3 | 12 |
 | `CalradiaRemembers.Logic.Captivity` | 3 | 11 |
 | `CalradiaRemembers.Logic.Trauma` | 3 | 11 |
@@ -163,7 +164,6 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic.Character` | 3 | 5 |
 | `CalradiaRemembers.Edicts` | 3 | 4 |
 | `NpcMemoryService.Core.Compression` | 3 | 3 |
-| `CalradiaRemembers.Logic.Initiative` | 2 | 13 |
 | `CalradiaRemembers.Initiative` | 2 | 11 |
 | `NpcMemoryService.Core.Parsing` | 2 | 9 |
 | `CalradiaRemembers.Logic.Items` | 2 | 8 |
@@ -910,7 +910,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### CalradiaRemembers.Logic.Companions
 
 - uses: `CalradiaRemembers.Logic`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Standing`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Missions`, `CalradiaRemembers.Stance`, `CalradiaRemembers.WorldEvents`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic.Initiative`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Missions`, `CalradiaRemembers.Stance`, `CalradiaRemembers.WorldEvents`
 
 ### CalradiaRemembers.Logic.Companions.MissionResult
 
@@ -964,7 +964,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### CalradiaRemembers.Logic.Initiative
 
-- uses: `CalradiaRemembers.Logic`, `NpcMemoryService.Core.Models`
+- uses: `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Companions`, `NpcMemoryService.Core.Models`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Arrests`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Initiative`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Missions`, `CalradiaRemembers.Quests`, `CalradiaRemembers.Stance`, `CalradiaRemembers.WarDuty`
 
 ### CalradiaRemembers.Logic.Interception

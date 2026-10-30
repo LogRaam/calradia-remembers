@@ -156,7 +156,8 @@ namespace CalradiaRemembers.Interception
          // instead of once per day -- a settlement entry is this feature's equivalent of the daily tick. A liege
          // calling in his summoned vassal is not left to the roll: the vassal walked into his town.
          if (best.Trigger != InterceptionTrigger.WarDutySummons
-             && MBRandom.RandomInt(100) >= InterceptionPacingRules.DailyChancePercent(ModSettings.LordsApproaching)) return false;
+             && MBRandom.RandomInt(100) >= Logic.Initiative.InitiativeDials.ChancePercent(
+                InterceptionPacingRules.DailyChancePercent(ModSettings.LordsApproaching), !ModSettings.WorldInitiativeOff)) return false;
 
          Hero npc = Hero.FindFirst(h => h != null && h.StringId == best.HeroId);
          if (npc == null) return false;

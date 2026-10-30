@@ -105,7 +105,8 @@ namespace CalradiaRemembers.Letters
          CollectServiceOffers(store, llmServices, today, pool, release);
          CollectAimLetters(store, llmServices, today, pool, release);
 
-         LetterBudget budget = LetterPacingRules.BudgetFor(ModSettings.LettersFromNpcs);
+         // While the world's initiative paces, its turns are the budget; the window and the variety stay (29/10/2026).
+         LetterBudget budget = Logic.Initiative.InitiativeDials.Budget(LetterPacingRules.BudgetFor(ModSettings.LettersFromNpcs), !ModSettings.WorldInitiativeOff);
          IReadOnlyList<int> recent = GatherRecentReleaseDays(store, today, budget.WindowDays);
 
          // The ribbon bookmark: a correspondent the player awaits writes first (priority only).

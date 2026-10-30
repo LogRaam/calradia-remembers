@@ -183,9 +183,9 @@ namespace CalradiaRemembers.Foundation
          new(new[] {"Forgiving", "Balanced", "Exacting"}, 1); // default: Balanced
 
       [SettingPropertyDropdown("{=CR_MCM_CompanionAudiencePacing}Companions Asking For A Word", RequireRestart = false, Order = 2,
-         HintText = "{=CR_MCM_CompanionAudiencePacing_Hint}How often a travelling companion asks for a private word when they have something worth raising: on " +
-                    "entering a settlement AND, new, while on the road. Never switches it off entirely. Occasionally is the " +
-                    "shipped feel.")]
+         HintText = "{=CR_MCM_CompanionAudiencePacing_Hint}How often a travelling companion asks for a private word, in a settlement or on " +
+                    "the road. Never switches it off. Occasionally is the shipped feel. With The World's Initiative on, it sets " +
+                    "how much of its turns companions get.")]
       [SettingPropertyGroup("{=CR_MCM_Group_Companions}Companions", GroupOrder = 6)]
       public Dropdown<string> CompanionAudiencePacing { get; set; } =
          new(new[] {"Never", "Rarely", "Occasionally", "Often"}, 2); // default: Occasionally (today's settlement feel, plus a road chance)
@@ -556,7 +556,7 @@ namespace CalradiaRemembers.Foundation
 
       [SettingPropertyDropdown("{=CR_MCM_InterceptionPacing}Lords Approaching You", RequireRestart = false, Order = 2,
          HintText = "{=CR_MCM_InterceptionPacing_Hint}How often a lord rides out to have a word with you on the road. Never switches it off " +
-                    "entirely. Occasionally is the shipped feel.")]
+                    "entirely. Occasionally is the shipped feel. With The World's Initiative on, it sets how much of its turns lords get.")]
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public Dropdown<string> InterceptionPacing { get; set; } =
          new(new[] {"Never", "Rarely", "Occasionally", "Often"}, 2); // default: Occasionally (today's behaviour)
@@ -594,8 +594,8 @@ namespace CalradiaRemembers.Foundation
       public int NpcCrossTalkRounds { get; set; } = 2;
 
       [SettingPropertyDropdown("{=CR_MCM_LetterPacing}Letters from NPCs", RequireRestart = false, Order = 6,
-         HintText = "{=CR_MCM_LetterPacing_Hint}How many unprompted letters NPCs send you. Fewer keeps only what matters; the mod also learns " +
-                    "from which letters you answer versus dismiss. Applies immediately.")]
+         HintText = "{=CR_MCM_LetterPacing_Hint}How many unprompted letters NPCs send you. Fewer keeps only what matters. With The World's " +
+                    "Initiative on, it sets how much of its turns letters get. Applies immediately.")]
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public Dropdown<string> LetterPacing { get; set; } =
          new(new[] {"Rarely", "Occasionally", "Often"}, 1); // default: Occasionally

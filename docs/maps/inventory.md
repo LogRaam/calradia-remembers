@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 587 types in 63 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1411 types in 48 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1412 types in 48 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 278 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2095,11 +2095,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `UnblessedMarriageFacts` | public class | Facts for Tier2GrudgeRules.UnblessedMarriageGrudge: a family member who opposed an unblessed marriage the player made. |
 | `WorldEventFacts` | public class | A persisted WorldEvent, as read by the engine-side scan. |
 
-### CalradiaRemembers.Logic.Initiative (14)
+### CalradiaRemembers.Logic.Initiative (15)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `InitiativeDecision` | public class | The director's answer. |
+| `InitiativeDials` | public static class | Reads the older pace dials as family weights, and steps their own rates aside while the director paces. |
 | `InitiativeFamily` | public enum | Who is knocking: each family has its own weight, and each is guaranteed a turn a month. |
 | `InitiativeGrant` | public class | A turn the director gave. |
 | `InitiativeGround` | public enum | Why a turn went to the request it went to. |

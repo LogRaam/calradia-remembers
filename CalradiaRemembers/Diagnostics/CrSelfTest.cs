@@ -331,6 +331,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("war_duty_ledger", Severity.Light, "Maifailun (Nexus, 15/10/2026): a vassal who sits out the realm's war is called to account, so the mod must see his service. On a fresh ledger through the real upkeep: the realm the player is sworn to (none as a mercenary or a free lord) and its enemy kingdoms are recorded from today, so no one owes on the first day. A battle against a realm at war with his counts as service; one against bandits does not. Restores the player's own ledger", TestWarDutyLedger),
          new SelfTest("aims_conversation", Severity.Light, "CrAims (tashmetu, 14/10/2026: lords with aims of their own; 'the real risk is a lord who brings up Lakonon in every conversation'). A test aim is registered on a real lord not at war with the player; a conversation opening with him gives him leave to raise it and the encounter context carries his want; a second conversation the same day does not give it again; the leave ends with the conversation. An aim Calradia Remembers seeds for its own mechanics is not voiced by the generic section. Retracts both aims", TestAimsConversation),
          new SelfTest("initiative_director", Severity.Light, "Gabriel 28/10: one conductor decides whose turn it is to come to the player unasked; its queue and its turns are kept in the save. Writes a copy of the live state with a request and a turn, reads it back through the save's own serializer, and expects the same keys, families, ranks and hours (the init-only fields filled under this runtime). Then asks the rule on that copy at a calm moment and expects a turn given. Touches no live state", TestInitiativeDirector),
+         new SelfTest("initiative_dials", Severity.Light, "The older pace dials under the world's initiative (29/10/2026; before, their own rates applied first and the director paced the rest, so the two multiplied). Flips the REAL MCM dropdowns: with the director pacing, the lords' daily roll steps aside (100%) and Lords Approaching You reads as the lords' weight; Never stops them (weight 0, no roll); with the director Off, the shipped roll is back. Restores the player's choices", TestInitiativeDials),
          new SelfTest("initiative_turns", Severity.Light, "Gabriel 28/10: lords and the rest ask the conductor before they come to the player unasked. Through the REAL MayKnock: a lord asking right after another turn waits (too soon), his request is kept, no turn is recorded for him; asked again at a free moment he has it. Skipped when the pace is Off (each system paces itself). The live queue and turns are put back as they were", TestInitiativeTurns),
          new SelfTest("aims_channels", Severity.Light, "CrAims audience and letter channels (tashmetu 14/10: 'nobody takes the first step with the player'; Gabriel 28/10: 'fait 2 et 1'). A test aim open to audiences and letters is registered on a lord at peace with the player: he may raise it by audience and by letter; an audience he sought gives him leave in the conversation that follows, recorded as an audience, even with the conversation channel closed; after it, the letter waits (raised too recently). An aim closed to audiences is not a reason to seek the player. Retracts after", TestAimsChannels),
          new SelfTest("aims_door", Severity.Light, "The public CrAims door (tashmetu, 14/10/2026: 'nobody takes the first step with the player'; proposed in ROADMAP, approved by Gabriel 20/10/2026). Registers an aim for a lord at peace with the player through the REAL door: accepted, updated under the same id, refused for a second aim on the same lord, an unknown hero, and CR's own name; a conversation opened with him gives him leave and the context carries the want; CrAims.Raised tells the mod, with the aim's id, the lord and the channel; retracted, it is gone. Retracts and closes after", TestAimsDoor),
@@ -19258,6 +19259,40 @@ namespace CalradiaRemembers.Diagnostics
          InitiativeDecision d = WorldInitiativePolicy.Decide(back?.Requests, back?.Grants, new InitiativeSettings(),
             new InitiativeMoment {NowHour = now, KeptSinceHour = now - 48}, 0.5);
          t.Expect("calmMomentGivesTheTurn", d.Verdict, InitiativeVerdict.Granted);
+
+         return t.Line();
+      }
+
+      private static string TestInitiativeDials(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("initiative_dials");
+         var pace = CrSettings.Instance?.WorldInitiativePace;
+         var lords = CrSettings.Instance?.InterceptionPacing;
+         if (t.Skip(pace == null || lords == null, "the MCM is not ready")) return t.Line();
+
+         int priorPace = pace.SelectedIndex, priorLords = lords.SelectedIndex;
+         int Index(MCM.Common.Dropdown<string> d, string value) => d.ToList().IndexOf(value);
+         try
+         {
+            pace.SelectedIndex = Index(pace, "Occasionally");
+            lords.SelectedIndex = Index(lords, "Rarely");
+            t.Expect("whilePacedTheLordsRollStepsAside", Interception.InterceptionBehavior.DailyInterceptChancePercent, 100);
+            t.Expect("andRarelyIsHalfTheirWeight", ModSettings.WorldInitiative.FamilyWeights[InitiativeFamily.Lords], ModSettings.InitiativeWeightLords / 2);
+
+            lords.SelectedIndex = Index(lords, "Never");
+            t.Expect("neverStopsTheirTurns", ModSettings.WorldInitiative.FamilyWeights[InitiativeFamily.Lords], 0);
+            t.Expect("andTheirRoll", Interception.InterceptionBehavior.DailyInterceptChancePercent, 0);
+
+            pace.SelectedIndex = Index(pace, "Off");
+            lords.SelectedIndex = Index(lords, "Occasionally");
+            t.Expect("offBringsBackTheShippedRoll", Interception.InterceptionBehavior.DailyInterceptChancePercent,
+               Logic.InterceptionPacingRules.DailyChancePercent(Logic.InterceptionPacing.Occasionally));
+         }
+         finally
+         {
+            pace.SelectedIndex = priorPace;
+            lords.SelectedIndex = priorLords;
+         }
 
          return t.Line();
       }

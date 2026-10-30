@@ -359,7 +359,12 @@ namespace CalradiaRemembers.Missions
       private int CooldownDaysRemaining()
          => _lastAskedDay == NeverAsked
             ? 0
-            : Math.Max(0, CompanionAudiencePacingRules.CooldownDays(ModSettings.CompanionAudienceCadence) - (Today - _lastAskedDay));
+            : Math.Max(0, CompanionCooldownDays - (Today - _lastAskedDay));
+
+      // While the world's initiative paces, the companions' turns are its to give: the cooldown across them all and the
+      // road roll step aside, and the dial is a weight on their family (29/10/2026).
+      private static int CompanionCooldownDays
+         => Logic.Initiative.InitiativeDials.KindCooldownDays(CompanionAudiencePacingRules.CooldownDays(ModSettings.CompanionAudienceCadence), !ModSettings.WorldInitiativeOff);
 
       /// <summary>
       ///   Who asks next, and on what: each traveller's strongest matter, then the strongest of those, except that
@@ -439,7 +444,7 @@ namespace CalradiaRemembers.Missions
          });
       }
 
-      private bool InCooldown() => _lastAskedDay != NeverAsked && Today - _lastAskedDay < CompanionAudiencePacingRules.CooldownDays(ModSettings.CompanionAudienceCadence);
+      private bool InCooldown() => _lastAskedDay != NeverAsked && Today - _lastAskedDay < CompanionCooldownDays;
 
       private void ClearPending()
       {
@@ -550,7 +555,8 @@ namespace CalradiaRemembers.Missions
          try
          {
             if (CompanionAudiencePacingRules.IsOff(ModSettings.CompanionAudienceCadence)) return; // the road is the player's own
-            if (MBRandom.RandomInt(100) >= CompanionAudiencePacingRules.DailyChancePercent(ModSettings.CompanionAudienceCadence)) return;
+            if (MBRandom.RandomInt(100) >= Logic.Initiative.InitiativeDials.ChancePercent(
+                   CompanionAudiencePacingRules.DailyChancePercent(ModSettings.CompanionAudienceCadence), !ModSettings.WorldInitiativeOff)) return;
             if (!RoadIsSafeForPrivateWord()) return;
 
             TryOfferAudience();

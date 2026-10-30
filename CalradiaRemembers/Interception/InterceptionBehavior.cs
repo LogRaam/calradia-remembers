@@ -85,7 +85,9 @@ namespace CalradiaRemembers.Interception
       // default resolves to exactly the shipped numbers, so nothing moves for a player who never touches it.
       private static int CooldownDays => InterceptionPacingRules.CooldownDays(ModSettings.LordsApproaching);
 
-      private static int DailyInterceptChancePercent => InterceptionPacingRules.DailyChancePercent(ModSettings.LordsApproaching);
+      // While the world's initiative paces, the dial is a weight on the lords' turns and this roll steps aside (29/10/2026).
+      internal static int DailyInterceptChancePercent
+         => Logic.Initiative.InitiativeDials.ChancePercent(InterceptionPacingRules.DailyChancePercent(ModSettings.LordsApproaching), !ModSettings.WorldInitiativeOff);
 
       private const float InterceptRange = 40f; // a lord this close can plausibly ride out
 

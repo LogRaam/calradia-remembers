@@ -52,7 +52,7 @@
     <string id="CR_MCM_ContentmentPacing" text="Contentment Pacing" />
     <string id="CR_MCM_ContentmentPacing_Hint" text="How fast companions get over a grievance: Forgiving, Balanced (default), or Exacting. In every setting, a companion left merely idle NEVER leaves you." />
     <string id="CR_MCM_CompanionAudiencePacing" text="Companions Asking For A Word" />
-    <string id="CR_MCM_CompanionAudiencePacing_Hint" text="How often a travelling companion asks for a private word when they have something worth raising: on entering a settlement AND, new, while on the road. Never switches it off entirely. Occasionally is the shipped feel." />
+    <string id="CR_MCM_CompanionAudiencePacing_Hint" text="How often a travelling companion asks for a private word, in a settlement or on the road. Never switches it off. Occasionally is the shipped feel. With The World's Initiative on, it sets how much of its turns companions get." />
     <string id="CR_MCM_CustomApiKey" text="API Key (optional)" />
     <string id="CR_MCM_CustomApiKey_Hint" text="Leave blank for keyless local servers like LM Studio or Ollama. Fill it in only if your server requires one. Applies immediately." />
     <string id="CR_MCM_Group_OpenAICompatible" text="OpenAI-Compatible" />
@@ -152,7 +152,7 @@
     <string id="CR_MCM_CharactersSetTheScene" text="Characters Set The Scene" />
     <string id="CR_MCM_CharactersSetTheScene_Hint" text="On (default): when you start a conversation, the character opens it, what they were doing and their first words, while you may already type. One more model call per conversation. Off: the short greeting alone." />
     <string id="CR_MCM_InterceptionPacing" text="Lords Approaching You" />
-    <string id="CR_MCM_InterceptionPacing_Hint" text="How often a lord rides out to have a word with you on the road. Never switches it off entirely. Occasionally is the shipped feel." />
+    <string id="CR_MCM_InterceptionPacing_Hint" text="How often a lord rides out to have a word with you on the road. Never switches it off entirely. Occasionally is the shipped feel. With The World's Initiative on, it sets how much of its turns lords get." />
     <string id="CR_MCM_AuthoredQuests" text="Authored Quests (experimental)" />
     <string id="CR_MCM_AuthoredQuests_Hint" text="Experimental, off by default. On: characters may ask your help with a written tale (a quest in several stages, like the wolf of the wood). Off: no new tale is offered; one under way goes on (cr.story_abandon sets it aside)." />
     <string id="CR_MCM_LordsHoldTheirCourse" text="Lords Hold Their Course" />
@@ -162,7 +162,7 @@
     <string id="CR_MCM_NpcCrossTalkRounds" text="NPC Cross-Talk" />
     <string id="CR_MCM_NpcCrossTalkRounds_Hint" text="How many times NPCs may talk amongst themselves (one reacting to another) before the turn comes back to you, in a scene with witnesses. 2 is the default; 0 turns it off so only the NPC you spoke to replies. Applies on your next message." />
     <string id="CR_MCM_LetterPacing" text="Letters from NPCs" />
-    <string id="CR_MCM_LetterPacing_Hint" text="How many unprompted letters NPCs send you. Fewer keeps only what matters; the mod also learns from which letters you answer versus dismiss. Applies immediately." />
+    <string id="CR_MCM_LetterPacing_Hint" text="How many unprompted letters NPCs send you. Fewer keeps only what matters. With The World's Initiative on, it sets how much of its turns letters get. Applies immediately." />
     <string id="CR_MCM_InvulnerableCouriers" text="Invulnerable Couriers" />
     <string id="CR_MCM_InvulnerableCouriers_Hint" text="Off: couriers can be intercepted by bandits or by the sender's enemies. A lost letter is sent again, and what it said travels with its captors to whoever beats them. On: no interception." />
     <string id="CR_MCM_AllowCaptorExecutions" text="Allow Captor Executions" />

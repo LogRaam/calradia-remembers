@@ -384,10 +384,11 @@ namespace CalradiaRemembers.Foundation
                },
                UrgentMattersWait = s.InitiativeUrgentWait,
                FamilyWeights = new System.Collections.Generic.Dictionary<Logic.Initiative.InitiativeFamily, int> {
-                  [Logic.Initiative.InitiativeFamily.Lords] = InitiativeWeightLords,
-                  [Logic.Initiative.InitiativeFamily.Companions] = InitiativeWeightCompanions,
+                  // The older dials are the player's word too: read as weights on their family (InitiativeDials, 29/10/2026).
+                  [Logic.Initiative.InitiativeFamily.Lords] = Logic.Initiative.InitiativeDials.Combined(InitiativeWeightLords, Logic.Initiative.InitiativeDials.WeightPercent(LordsApproaching)),
+                  [Logic.Initiative.InitiativeFamily.Companions] = Logic.Initiative.InitiativeDials.Combined(InitiativeWeightCompanions, Logic.Initiative.InitiativeDials.WeightPercent(CompanionAudienceCadence)),
                   [Logic.Initiative.InitiativeFamily.Household] = InitiativeWeightHousehold,
-                  [Logic.Initiative.InitiativeFamily.Letters] = InitiativeWeightLetters,
+                  [Logic.Initiative.InitiativeFamily.Letters] = Logic.Initiative.InitiativeDials.Combined(InitiativeWeightLetters, Logic.Initiative.InitiativeDials.WeightPercent(LettersFromNpcs)),
                   [Logic.Initiative.InitiativeFamily.Tales] = InitiativeWeightTales,
                   [Logic.Initiative.InitiativeFamily.WarAndLaw] = InitiativeWeightWarAndLaw,
                   [Logic.Initiative.InitiativeFamily.Aims] = InitiativeWeightAims

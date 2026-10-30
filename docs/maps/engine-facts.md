@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-638 rules read 482 facts.
+638 rules read 483 facts.
 
 ## Facts read by more than one rule
 
@@ -632,7 +632,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `LetterCandidateFreshness.PremiseStillHolds`: `Hero.MapFaction`
 - `LetterDeliveryPolicy.ShouldHoldDeliveryAtSea`: `MobileParty.IsCurrentlyAtSea`
 - `LetterFontPolicy.PreferPlainFont`: `LanguageIdProvider.Invoke`
-- `LetterMailboxPolicy.SelectNext`: `ModSettings.LettersFromNpcs`
+- `LetterMailboxPolicy.SelectNext`: `ModSettings.LettersFromNpcs`, `ModSettings.WorldInitiativeOff`
 - `LetterPacingRules.BudgetFor`: `ModSettings.LettersFromNpcs`
 - `LetterRegardFacts`: `ModSettings.RelationWarmth`
 - `LetterRegardPolicy.ParseTone`: `DayMoodReader.Draw`

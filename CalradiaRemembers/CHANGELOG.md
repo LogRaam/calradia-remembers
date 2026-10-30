@@ -70,6 +70,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   what the player asked for (a reply, the courtship acceptance, a patrol report); another mod's letter (`CrLetters`, a
   modder's contract); the war council offer (off, and a battle's end would always find the player "settling", with no
   second chance); a bastard's mother's note (its season latch would lose a whole season: Gabriel's call).
+  The older pace dials, while the conductor paces (29/10/2026): Lords Approaching You, Letters from NPCs and Companions
+  Asking For A Word are now weights on their kind's turns (Never stops it, Rarely halves it, Often adds half, times the
+  conductor's own slider; `InitiativeDials`), and their own rates step aside: the lords' daily roll, the mailbox's cap
+  per window and the companions' shared cooldown. Before, both applied, so the world came FAR less often than either
+  setting said: expect more of it at the same settings. Kept: a lord's own cooldown, a correspondent's, the mailbox's
+  variety. With the conductor Off, every dial works exactly as before. Hints updated. cr.test `initiative_dials`.
   A request whose system has stopped asking for 14 days is dropped whatever its rank (`AbandonedAfterDays`): nothing
   withdrew a spent ambush or a departed envoy, and the world's impositions never expire, so they stayed in the save.
 - **An awaited correspondence** (Gabriel, 28/10/2026: "si je suis en train d'ecrire des lettres d'amour a une NPC,
