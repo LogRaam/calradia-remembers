@@ -221,7 +221,8 @@ namespace CalradiaRemembers.Initiative
          double keepHours = (Math.Max(s.FairTurnDays, s.WindowDays) + 1) * 24.0;
          double now = Now;
          State.Grants.RemoveAll(g => now - g.GrantedAtHour > keepHours);
-         State.Requests.RemoveAll(r => r.Rank != InitiativeRank.Imposed && now - r.FiledAtHour > s.ExpireDays * 24.0);
+         State.Requests.RemoveAll(r => r.Rank != InitiativeRank.Imposed && now - r.FiledAtHour > s.ExpireDays * 24.0
+                                       || now - (r.LastAskedAtHour > 0 ? r.LastAskedAtHour : r.FiledAtHour) > WorldInitiativePolicy.AbandonedAfterDays * 24.0);
       }
    }
 }

@@ -166,6 +166,19 @@ namespace CalradiaRemembers.Tests.Initiative
          d.Granted.Should().BeSameAs(summons);
       }
 
+      // STAKE: an imposition whose reason went (a spent ambush, an envoy who left) and that stopped asking must not sit in
+      // the save forever; a weekly asker, between two asks, must not be dropped.
+      [Test]
+      public void GIVEN_an_imposition_that_stopped_asking_WHEN_decided_THEN_it_is_dropped_but_a_weekly_asker_is_not()
+      {
+         InitiativeRequest gone = Req("ambush", InitiativeFamily.WarAndLaw, InitiativeRank.Imposed, filedDaysAgo: 20, askedHoursAgo: 15 * Day);
+         InitiativeRequest weekly = Req("divorce", InitiativeFamily.Household, InitiativeRank.Pressing, filedDaysAgo: 8, askedHoursAgo: 7 * Day);
+
+         InitiativeDecision d = Decide(new[] {gone, weekly}, settings: new InitiativeSettings {ExpireDays = 30});
+
+         d.Expired.Should().ContainSingle().Which.Should().BeSameAs(gone);
+      }
+
       // STAKE: a letter closes with a click and waits in the book: by default it costs half a turn.
       [Test]
       public void GIVEN_a_letter_WHEN_its_cost_is_weighed_THEN_it_costs_what_the_player_set()

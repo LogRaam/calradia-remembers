@@ -57,6 +57,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
     stay armed for the next visit).
   Not asking yet: the war council offer (off by default), the arrest (off by default; its sergeants already wait for the
   player to stand free on land), captive scenes (the player is a prisoner). Nothing feeds the Household family yet.
+  A request whose system has stopped asking for 14 days is dropped whatever its rank (`AbandonedAfterDays`): nothing
+  withdrew a spent ambush or a departed envoy, and the world's impositions never expire, so they stayed in the save.
 - **An awaited correspondence** (Gabriel, 28/10/2026: "si je suis en train d'ecrire des lettres d'amour a une NPC,
   peut-etre que j'aimerais avoir de ses nouvelles rapidement meme si c'est la guerre"; the ribbon bookmark he chose over a
   star). `NpcProfile.LettersAwaited` (additive): that character's letters come first in the mailbox, past the diversity

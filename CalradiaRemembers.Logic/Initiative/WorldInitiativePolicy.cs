@@ -23,6 +23,14 @@ namespace CalradiaRemembers.Logic.Initiative
       /// <summary>TUNE: a request gains this much weight per day it waits, up to <see cref="AgingCapDays" />.</summary>
       public const double AgingPerDay = 0.15;
 
+      /// <summary>
+      ///   Days after which a request whose system has stopped asking is gone, whatever its rank. Nothing withdrew a spent
+      ///   ambush or a departed envoy, and the world's impositions never expire, so they stayed in the save for good
+      ///   (found 29/10/2026). Longer than a weekly asker's gap, so a source that asks once a week is never dropped
+      ///   between two asks; independent of the player's own expiry setting, which may be one day.
+      /// </summary>
+      public const int AbandonedAfterDays = 14;
+
       /// <summary>TUNE: days of waiting past which a request gains no more weight.</summary>
       public const int AgingCapDays = 20;
 
@@ -71,7 +79,8 @@ namespace CalradiaRemembers.Logic.Initiative
          double now = moment.NowHour;
 
          List<InitiativeRequest> all = (requests ?? new List<InitiativeRequest>()).Where(r => r != null).ToList();
-         List<InitiativeRequest> expired = all.Where(r => r.Rank != InitiativeRank.Imposed && now - r.FiledAtHour > settings.ExpireDays * 24.0).ToList();
+         List<InitiativeRequest> expired = all.Where(r => r.Rank != InitiativeRank.Imposed && now - r.FiledAtHour > settings.ExpireDays * 24.0
+                                                          || now - AskedAt(r) > AbandonedAfterDays * 24.0).ToList();
          // A family weighed at 0 is off; the world's impositions are never switched off here (each has its own option).
          // Only what is asking at the door now: a request whose system stopped asking never blocks one that is.
          List<InitiativeRequest> live = all.Except(expired)
