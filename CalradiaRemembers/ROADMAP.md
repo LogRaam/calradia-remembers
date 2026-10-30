@@ -638,10 +638,12 @@ encyclopedia line (rumour, warning and conversation only). Built offscreen, MCM 
 game 1.4.8 HAS alliances), and `AutonomousSchemePolicy.IsOvershadowingTarget` (a rival house twice as strong, own realm
 or an enemy one, one such plot per target). Defaults taken while Gabriel's three questions stood open: the player's own
 realm is left out; a ruling player is not plotted against; one step a month per REALM (proposed: per house).
-Next (increment 2): the lord asks the PLAYER for help (attack the rival's army, raid, take the castle). Needs a real
-deed behind the request: an aim's `MissionId` is only a flag today; build the deed through `QuestFactory.Create` as a
-non-model issuer (the `NemesisBounty` precedent), and register the aim under its own internal source tag (aims under
-`CalradiaRemembers` are never voiced, and the war duty evicts only other sources).
+Increment 2 BUILT 30/10/2026: the lord asks the PLAYER for help (`StrategistAimPolicy`, `Aims/StrategistAims`):
+attack_lord on his rival grown too strong (in a realm at war with his), else attack_faction on the dominant realm,
+under the source tag `CalradiaRemembers.Strategy` (voiced; the war duty evicts it), its deed put at the head of his
+grounded quest menu (`ViableQuestScanner.LeadingEntries`), so the asked task is the one the factory issues and the
+tracker verifies. Three aims at once, 40 days. Not done: raid, siege or scouting asks; a letter channel (a letter
+cannot issue a task); the quest is still issued without an accept step, as every chat-issued task is.
 
 ## WISHED 2026-10-14 (tashmetu), ROADMAPPED: the captive PLAYER bargains for freedom
 

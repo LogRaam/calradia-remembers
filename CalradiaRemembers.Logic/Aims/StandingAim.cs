@@ -55,7 +55,9 @@ namespace CalradiaRemembers.Logic.Aims
 
       /// <summary>
       ///   Optional MissionBoard mission id: when set, the service the lord asks for is a real, verified deed, so he may
-      ///   ask for it outright (gating before declaration). Empty means he may only sound the player out.
+      ///   ask for it outright (gating before declaration). Empty means he may only sound the player out. Calradia
+      ///   Remembers' own strategist aims (30/10/2026) set it to their grounded quest menu task instead
+      ///   ("quest:attack_lord:&lt;hero&gt;", "quest:attack_faction:&lt;realm&gt;"), equally real and verified.
       /// </summary>
       public string MissionId { get; set; }
 

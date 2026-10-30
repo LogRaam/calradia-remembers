@@ -65,6 +65,9 @@ namespace CalradiaRemembers.Strategy
       /// </summary>
       public static Func<Clan, Kingdom, string> WarRefusal = (_, _) => "the war rules are not supplied";
 
+      /// <summary>The strategists' aims toward the player, renewed once a week (Aims.StrategistAims), supplied at startup.</summary>
+      public static Action<int> SeedAims = _ => { };
+
       /// <summary>Where the news is told (the world's event store), supplied at startup.</summary>
       public static Action<StrategyNews> Tell = _ => { };
 
@@ -96,7 +99,10 @@ namespace CalradiaRemembers.Strategy
       {
          CampaignEvents.WeeklyTickEvent.AddNonSerializedListener(this, () => SafeRun.Step("LordStrategy.Weekly", () =>
          {
-            if (ModSettings.EnableLordStrategy) Weekly(Today);
+            if (!ModSettings.EnableLordStrategy) return;
+
+            Weekly(Today);
+            SeedAims(Today);
          }));
       }
 

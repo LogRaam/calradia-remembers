@@ -24,6 +24,17 @@ namespace CalradiaRemembers
          LordStrategyBehavior b = LordStrategyBehavior.Instance;
          if (b == null || Campaign.Current == null) return "cr.strategy: no campaign loaded.";
 
+         if (args.Count > 0 && args[0].ToLowerInvariant() == "aims")
+         {
+            Aims.StrategistAims.Weekly(LordStrategyBehavior.Today);
+            List<Logic.Aims.StandingAim> held = Aims.AimsBehavior.Instance?.Book.All.Where(a => a.SourceMod == Aims.StrategistAims.Source).ToList() ?? new List<Logic.Aims.StandingAim>();
+            var lines = new StringBuilder($"cr.strategy aims: {held.Count} standing (at most {Logic.Strategy.StrategistAimPolicy.MaxStandingAims}).\n");
+            foreach (Logic.Aims.StandingAim a in held)
+               lines.AppendLine($"- {Hero.FindFirst(h => h.StringId == a.NpcId)?.Name}: {a.MissionId}, raised {a.TimesRaised}x, until day {a.ExpiresOnDay}. {a.Want}");
+
+            return lines.ToString();
+         }
+
          if (args.Count > 0 && args[0].ToLowerInvariant() == "run")
          {
             LordStrategyBehavior.Proposal filed = b.Weekly(LordStrategyBehavior.Today);

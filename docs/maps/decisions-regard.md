@@ -101,7 +101,7 @@ narrow is rarely a decision anybody made.
 
 ## What this table does not show yet, and why
 
-11 rules can be swept here. Against that, the code declares **95 regard-named thresholds**
+11 rules can be swept here. Against that, the code declares **96 regard-named thresholds**
 (constants whose name carries regard, relation or reputation). The difference is the gap: those thresholds are
 compared INLINE, at the place that wants the answer, so there is no function to call and nothing to sweep.
 
@@ -200,6 +200,7 @@ cannot. Each one moved into a rule adds a column here.
 - `StanceGatePolicy.DelegatedRiskRelationBypass = 30`
 - `StanceGatePolicy.RecruitRespectRelationBypass = 80`
 - `StanceGatePolicy.RespectRelationBypass = 30`
+- `StrategistAimPolicy.MinRelationWithPlayer = NpcMemoryService.Core.Standing.VanillaRelation.NeutralTier`
 - `Tier2GrudgeRules.DeliveredPrisonerLowRegardBonus = 10`
 - `Tier2GrudgeRules.DeliveredPrisonerLowRegardThreshold = VanillaRelation.EnemyTier`
 - `ViolenceConsequencePolicy.AssaultRelationHit = -50`

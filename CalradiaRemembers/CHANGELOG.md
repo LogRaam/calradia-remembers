@@ -22,10 +22,18 @@ All notable changes to the mod, newest first. Dates are calendar dates.
     house dominates. Only a house of his own realm or of a realm at war with it, one such plot per target at a time,
     never kin, never a ruler, and the plotter asks the action gate (`ActionKind.Plot`). An old hatred still comes
     first; the plot runs the usual scheme road.
+  - The strategist turns to the player (second increment, same switch): once a week, up to three house heads who
+    know the player and do not dislike them (the warmest first) hold an aim of their own toward the player: beat the
+    head of a rival house grown too strong who rides for a realm at war with theirs, else beat the forces of the
+    realm grown too strong (`StrategistAimPolicy`, `Aims/StrategistAims`). An ordinary CrAims aim under its own
+    source tag (`CalradiaRemembers.Strategy`), so it is voiced in conversation and may bring the lord to the player
+    through the world's initiative; its deed heads the lord's grounded quest menu (attack_lord / attack_faction), so
+    the task he asks outright is the one the quest factory issues and the deed tracker verifies. Never against the
+    player's own realm or house, never from a lord at war with the player; withdrawn once the deed no longer stands
+    (target fallen, peace made) or the task is given, and lapses after 40 days.
   - Left out on purpose: the player's own realm (a decision filed there would raise the game's vote popup outside the
-    world's initiative regulator), and the lords asking the player for help (needs a real verifiable deed behind the
-    request, next increment).
-  - `cr.strategy [plan|run]`; `cr.test lord_strategy`. Not play-verified.
+    world's initiative regulator).
+  - `cr.strategy [plan|run|aims]`; `cr.test lord_strategy`, `cr.test strategist_aim`. Not play-verified.
 - **Reply Length, in the MCM** (RaveN017Mod, Nexus PM, 29/10/2026: replies too long, "like a novel", next to the short
   replies he was used to; he asked for a minimum and maximum word count). Content group, Reply Length: Full (the length
   the mod has always taught, 3 to 7 sentences, longer for a story; the default, so nothing changes untouched),

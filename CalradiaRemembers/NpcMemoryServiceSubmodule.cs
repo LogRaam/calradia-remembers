@@ -265,6 +265,8 @@ namespace CalradiaRemembers
          // Lords who play the realm's strategy (Gabriel, 30/10/2026): a counterweight against a realm grown too strong.
          campaignStarter.AddBehavior(new Strategy.LordStrategyBehavior());
          Strategy.LordStrategyBehavior.IsPresent = Mapping.HeroPresence.IsInTheWorld;
+         Strategy.LordStrategyBehavior.SeedAims = Aims.StrategistAims.Weekly;
+         Quests.ViableQuestScanner.LeadingEntries = Aims.StrategistAims.MenuEntriesFor;
          Strategy.LordStrategyBehavior.WarRefusal = (house, realm) => Logic.PressForWarPolicy.WhyNot(Verbs.PressForWarVerb.Facts(house, realm));
          Strategy.LordStrategyBehavior.Tell = n => WorldEvents.WorldEventStore.Instance?.Record(new WorldEvents.WorldEvent {
             Type = n.TowardWar ? WorldEvents.WorldEventType.WarLooming : WorldEvents.WorldEventType.Other, Day = n.Day, Magnitude = 30,

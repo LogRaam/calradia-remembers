@@ -36,6 +36,12 @@ namespace CalradiaRemembers.Quests
 
       private static readonly Dictionary<string, (int Day, string Menu)> Cache = new();
 
+      /// <summary>
+      ///   Entries that head a giver's menu before anything scanned: his strategist aim's deed (Aims.StrategistAims,
+      ///   30/10/2026), supplied at startup so the quest menu never knows the aims.
+      /// </summary>
+      internal static Func<Hero, IEnumerable<QuestMenuEntry>> LeadingEntries = _ => Enumerable.Empty<QuestMenuEntry>();
+
       /// <summary>The grounded menu for this giver, or "" when nothing is viable (or the giver is null).</summary>
       public static string BuildMenu(Hero giver, int gameDay)
       {
@@ -60,6 +66,10 @@ namespace CalradiaRemembers.Quests
       private static List<QuestMenuEntry> ScanEntries(Hero giver)
       {
          var entries = new List<QuestMenuEntry>();
+
+         // 0. The giver's own strategist aim (30/10/2026): the deed he means to ask the player for, first on his menu,
+         // so the task he asks outright is the one the factory issues and the tracker verifies.
+         entries.AddRange(LeadingEntries(giver) ?? Enumerable.Empty<QuestMenuEntry>());
          Settlement anchor = QuestFactory.NearestTownTo(giver);
 
          // 1. A real, still-infested lair near the giver's ground: the flagship verifiable deed.

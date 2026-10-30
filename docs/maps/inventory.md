@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 589 types in 64 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1419 types in 49 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 590 types in 64 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1424 types in 49 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 278 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -103,12 +103,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RomanceBondWatchBehavior` | internal class | Reads the bonds with the player at session start and every hour, for CrRomance.StatusChanged. |
 | `SingleCallProbeRunner` | internal static class | The runner behind cr.single_call_probe: sends each scenario as one composer+extractor call and reports. |
 
-### CalradiaRemembers.Aims (2)
+### CalradiaRemembers.Aims (3)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `AimForContext` | internal class | What the encounter context is told of a lord's aim. |
 | `AimsBehavior` | public class | Keeps the standing aims and the per-conversation leave to raise them. |
+| `StrategistAims` | internal static class | The strategists' aims toward the player: seeded weekly, pruned when their deed no longer stands, offered as a real task. |
 
 ### CalradiaRemembers.Appearance (7)
 
@@ -2441,7 +2442,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SocialStationFacts` | public class | What a character's station is read from. |
 | `SocialStationPolicy` | public static class | Resolves a character's station and composes its definition for the player's rung. |
 
-### CalradiaRemembers.Logic.Strategy (7)
+### CalradiaRemembers.Logic.Strategy (12)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2452,6 +2453,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `OtherRealm` | public class | Another realm, as seen from the realm weighing its next step against the dominant one. |
 | `RealmCounterweightPolicy` | public static class | Which realm dominates, and how the others may build a counterweight. |
 | `RealmPower` | public class | One realm's might, read from the game. |
+| `StrategistAimPolicy` | public static class | Who among the strategists turns to the player, with which deed, in which words, and until when. |
+| `StrategistAimWording` | public class | The names an aim's words are told with. |
+| `StrategistDeed` | public enum | The deed a strategist asks of the player. |
+| `StrategistGiverFacts` | public class | What is known of a lord who might hold a strategist's aim toward the player. |
+| `StrategistTargetFacts` | public class | Whether the deed an aim asks for can still be done, read from the world. |
 
 ### CalradiaRemembers.Logic.Styles (3)
 
