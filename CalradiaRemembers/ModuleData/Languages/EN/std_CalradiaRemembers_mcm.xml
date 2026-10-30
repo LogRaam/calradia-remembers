@@ -102,6 +102,8 @@
     <string id="CR_MCM_ShowSecretMemories_Hint" text="Lists in a character's Memories panel the secrets other mods give them (an affair, a hidden fondness), marked secret. Off by default, so you learn them in play rather than by reading the panel." />
     <string id="CR_MCM_EnableNpcEdicts" text="Edicts of the world's lords" />
     <string id="CR_MCM_EnableNpcEdicts_Hint" text="Off (default). On: the world's lords decree edicts on their own towns, and rulers on their realms, to answer a sore need (hunger, unrest, lawlessness), told as realm news. Your own edicts work either way." />
+    <string id="CR_MCM_EnableLordStrategy" text="Lords play the realm's strategy" />
+    <string id="CR_MCM_EnableLordStrategy_Hint" text="Off (default). On: when one realm grows far too strong, lords of the other realms put war, peace, alliances and calls to arms against it to their realm's vote, and plot against houses grown too strong, yours included." />
     <string id="CR_MCM_EnablePostDuelConversation" text="Post-duel conversation" />
     <string id="CR_MCM_EnablePostDuelConversation_Hint" text="On (default): after a duel the conversation reopens and resumes what led to it. The loser concedes (a beaten character of honour may grant a favour you ask); the victor says what they now expect. Off: only the duel's consequences apply." />
     <string id="CR_MCM_Group_Duels" text="Duels" />

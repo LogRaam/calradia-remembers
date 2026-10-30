@@ -101,7 +101,7 @@ narrow is rarely a decision anybody made.
 
 ## What this table does not show yet, and why
 
-11 rules can be swept here. Against that, the code declares **94 regard-named thresholds**
+11 rules can be swept here. Against that, the code declares **95 regard-named thresholds**
 (constants whose name carries regard, relation or reputation). The difference is the gap: those thresholds are
 compared INLINE, at the place that wants the answer, so there is no function to call and nothing to sweep.
 
@@ -117,6 +117,7 @@ cannot. Each one moved into a rule adds a column here.
 - `AssemblyRsvpPolicy.HeedRegardFloor = -20`
 - `AssemblyRsvpPolicy.ParleyRegardFloor = -60`
 - `AssemblyRsvpPolicy.WorthTravelRegard = 10`
+- `AutonomousSchemePolicy.OvershadowMaxRelation = NpcMemoryService.Core.Standing.VanillaRelation.NeutralTier`
 - `BastardMotherPolicy.ColdRelation = -10`
 - `BastardMotherPolicy.FondRelation = 10`
 - `BrawlPolicy.GrievanceRegard = NpcMemoryService.Core.Standing.Regard.WaryTier`

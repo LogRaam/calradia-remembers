@@ -262,6 +262,16 @@ namespace CalradiaRemembers
          // LIVE-only source, mirroring ExecutedKinGrudgeBehavior). Console: cr.grudge_sway_test.
          campaignStarter.AddBehavior(new SwayExposureBehavior());
          campaignStarter.AddBehavior(new Verbs.PressForWarBehavior());
+         // Lords who play the realm's strategy (Gabriel, 30/10/2026): a counterweight against a realm grown too strong.
+         campaignStarter.AddBehavior(new Strategy.LordStrategyBehavior());
+         Strategy.LordStrategyBehavior.IsPresent = Mapping.HeroPresence.IsInTheWorld;
+         Strategy.LordStrategyBehavior.WarRefusal = (house, realm) => Logic.PressForWarPolicy.WhyNot(Verbs.PressForWarVerb.Facts(house, realm));
+         Strategy.LordStrategyBehavior.Tell = n => WorldEvents.WorldEventStore.Instance?.Record(new WorldEvents.WorldEvent {
+            Type = n.TowardWar ? WorldEvents.WorldEventType.WarLooming : WorldEvents.WorldEventType.Other, Day = n.Day, Magnitude = 30,
+            InvolvesPlayer = false, Summary = n.Summary,
+            ActorIds = n.ProposerId != null ? new System.Collections.Generic.List<string> {n.ProposerId} : new System.Collections.Generic.List<string>(),
+            FactionIds = n.RealmIds
+         });
          // Edicts (Gabriel, 21/10/2026): a ruler's lasting, bounded decision on a town or a realm, applied through the game's models.
          campaignStarter.AddBehavior(new Edicts.EdictBehavior());
          Edicts.EdictBehavior.IsPresent = Mapping.HeroPresence.IsInTheWorld;

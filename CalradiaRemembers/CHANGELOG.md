@@ -5,6 +5,24 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ## v2.7.22.. open
 
 ### New
+- **Lords play their realm's strategy** (Gabriel, 29-30/10/2026: a lord's ambition is "tout ce qui renforcit son Clan ou
+  sa faction militairement", plotting against a rival or a realm grown too strong, arrangements with weaker realms
+  against a stronger one). MCM, Relationships, "Lords play the realm's strategy", OFF by default for this first build.
+  - A realm grown too strong (at least 1.5 times the next and 30% of all the realms' might, `RealmCounterweightPolicy`):
+    once a week, one other realm takes one step of a counterweight against it, through the game's own kingdom
+    decisions (the house that backs it most by the game's own support files it and pays its influence; the clans vote
+    and the ruler decides). At war with it: call an ally to arms, make peace with a weaker enemy, seek an alliance with
+    its other enemies. At peace with it: allies first, then peace on the other fronts, then the war put to the vote.
+    At most one step a month per realm. The court hears who urged it, never the outcome (`LordStrategyBehavior`).
+  - The game (1.4.8) has real alliances and calls to arms (`StartAllianceDecision`, `ProposeCallToWarAgreementDecision`);
+    the strategists use them, within the game's own limits (two alliances at most, both sides must want it).
+  - A house grown too strong: a house head whose house another outgrows twice over, and who does not count its head a
+    friend, may plot against him (`AutonomousSchemePolicy.IsOvershadowingTarget`), the player too when the player's
+    house dominates. Never kin, never a ruler. An old hatred still comes first; the plot runs the usual scheme road.
+  - Left out on purpose: the player's own realm (a decision filed there would raise the game's vote popup outside the
+    world's initiative regulator), and the lords asking the player for help (needs a real verifiable deed behind the
+    request, next increment).
+  - `cr.strategy [plan|run]`; `cr.test lord_strategy`. Not play-verified.
 - **Reply Length, in the MCM** (RaveN017Mod, Nexus PM, 29/10/2026: replies too long, "like a novel", next to the short
   replies he was used to; he asked for a minimum and maximum word count). Content group, Reply Length: Full (the length
   the mod has always taught, 3 to 7 sentences, longer for a story; the default, so nothing changes untouched),

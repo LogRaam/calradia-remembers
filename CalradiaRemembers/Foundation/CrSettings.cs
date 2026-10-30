@@ -353,6 +353,15 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Relationships}Relationships", GroupOrder = 8)]
       public bool EnableNpcEdicts { get; set; } = false;
 
+      // Gabriel (29-30/10/2026): a lord's ambition is whatever makes his house or realm stronger, plotting against a rival or
+      // a realm grown too strong, arrangements with weaker realms against it. OFF by default for the first build, as edicts.
+      [SettingPropertyBool("{=CR_MCM_EnableLordStrategy}Lords play the realm's strategy", RequireRestart = false, Order = 11,
+         HintText = "{=CR_MCM_EnableLordStrategy_Hint}Off (default). On: when one realm grows far too strong, lords of the other realms put war, " +
+                    "peace, alliances and calls to arms against it to their realm's vote, and plot against houses grown too strong, " +
+                    "yours included.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Relationships}Relationships", GroupOrder = 8)]
+      public bool EnableLordStrategy { get; set; } = false;
+
       [SettingPropertyBool("{=CR_MCM_EnablePostDuelConversation}Post-duel conversation", RequireRestart = false, Order = 0,
          HintText = "{=CR_MCM_EnablePostDuelConversation_Hint}On (default): after a duel the conversation reopens and resumes what led to it. The loser concedes (a " +
                     "beaten character of honour may grant a favour you ask); the victor says what they now expect. Off: only " +

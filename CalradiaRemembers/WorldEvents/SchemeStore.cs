@@ -612,7 +612,15 @@ namespace CalradiaRemembers.WorldEvents
 
          foreach (Hero instigator in EligibleInstigators(today))
          {
+            // An old hatred first; failing one, with the strategists on (Gabriel, 30/10/2026), a house grown too strong.
             string targetId = SelectAutonomousTargetFor(instigator);
+            bool overshadowed = false;
+            if (targetId == null && ModSettings.EnableLordStrategy)
+            {
+               targetId = SelectOvershadowingTargetFor(instigator);
+               overshadowed = targetId != null;
+            }
+
             if (targetId == null) continue;
             if (HasActiveBetween(instigator.StringId, targetId)) continue;
 
@@ -628,6 +636,7 @@ namespace CalradiaRemembers.WorldEvents
 
             ForcePlot(instigator, target, kind, true); // the shared launch path; marks the plot autonomous
             _autonomousCooldown[instigator.StringId] = today;
+            if (overshadowed) ModLog.Info($"[SCHEME] {instigator.Name}'s plot springs from {target.Clan?.Name}'s might, not from hatred.");
 
             return; // one new autonomous plot per weekly pass
          }
@@ -666,6 +675,34 @@ namespace CalradiaRemembers.WorldEvents
       ///   already-disliked, no-faction-leader selection pledge_against relies on
       ///   (<see cref="AutonomousSchemePolicy.SelectAutonomousTarget" />), and never the player or the player's clan.
       /// </summary>
+      /// <summary>
+      ///   The head of a house grown too strong that this house head would plot against (30/10/2026), or null:
+      ///   <see cref="AutonomousSchemePolicy.SelectOvershadowingTarget" /> over the heads of the realms' houses and the
+      ///   player's own (Gabriel, 30/10/2026: the player's house too, once it dominates). Only a house head weighs it.
+      /// </summary>
+      internal static string SelectOvershadowingTargetFor(Hero instigator)
+      {
+         Clan own = instigator?.Clan;
+         if (own == null || own.Leader != instigator) return null;
+
+         var candidates = new List<AutonomousSchemePolicy.SchemeTargetCandidate>();
+         foreach (Clan house in Clan.All)
+         {
+            Hero head = house?.Leader;
+            if (house == null || house.IsEliminated || house.IsBanditFaction || head == null || head == instigator) continue;
+            if (house.Kingdom == null && house != Clan.PlayerClan) continue;
+            if (!Mapping.HeroPresence.IsInTheWorld(head)) continue;
+
+            candidates.Add(new AutonomousSchemePolicy.SchemeTargetCandidate {
+               Id = head.StringId, Relation = instigator.GetRelation(head), IsKin = CourtActionResolver.IsCloseKin(instigator, head),
+               IsPlayerSide = head == Hero.MainHero || house == Clan.PlayerClan, IsFactionLeader = head.MapFaction?.Leader == head,
+               IsHouseHead = true, SameHouse = house == own, HouseStrength = house.CurrentTotalStrength, OwnHouseStrength = own.CurrentTotalStrength
+            });
+         }
+
+         return AutonomousSchemePolicy.SelectOvershadowingTarget(candidates);
+      }
+
       private string SelectAutonomousTargetFor(Hero instigator)
       {
          var candidates = new List<AutonomousSchemePolicy.SchemeTargetCandidate>();

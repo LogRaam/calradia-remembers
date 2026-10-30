@@ -160,6 +160,9 @@ namespace CalradiaRemembers.Foundation
       /// <summary>Edicts by the world's lords (Gabriel, 21/10/2026: "les PNJ peuvent aussi"): off by default for the first build.</summary>
       public static bool EnableNpcEdicts => CrSettings.Instance?.EnableNpcEdicts ?? false;
 
+      /// <summary>Lords play the realm's strategy against a realm grown too strong, and plot against houses grown too strong (30/10/2026). Off by default.</summary>
+      public static bool EnableLordStrategy => CrSettings.Instance?.EnableLordStrategy ?? false;
+
       /// <summary>Days of war a sworn vassal may go without serving (clamped by WarDutyPolicy.Window).</summary>
       public static int WarDutyWindowDays => Logic.WarDuty.WarDutyPolicy.Window(CrSettings.Instance?.WarDutyWindowDays ?? Logic.WarDuty.WarDutyPolicy.DefaultWindowDays);
 

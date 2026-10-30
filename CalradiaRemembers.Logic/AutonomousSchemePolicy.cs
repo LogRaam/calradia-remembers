@@ -146,7 +146,53 @@ namespace CalradiaRemembers.Logic
          public bool IsPlayerSide { get; init; }
          public bool IsFactionLeader { get; init; }
 
+         /// <summary>
+         ///   The candidate heads their house (30/10/2026): a house grown too strong is struck through its head, the one
+         ///   whose standing carries it.
+         /// </summary>
+         public bool IsHouseHead { get; init; }
+
+         /// <summary>The candidate is of the instigator's own house: a house never plots against itself.</summary>
+         public bool SameHouse { get; init; }
+
+         /// <summary>The candidate's house's military strength (the game's own measure).</summary>
+         public float HouseStrength { get; init; }
+
+         /// <summary>The instigator's own house's military strength.</summary>
+         public float OwnHouseStrength { get; init; }
       }
+
+      /// <summary>
+      ///   Tuning (30/10/2026): a house overshadows another once it is this many times stronger. Gabriel (29/10/2026) named
+      ///   plotting "contre un rival ou une faction qui devient trop puissante" as a lord's ambition.
+      /// </summary>
+      public const float OvershadowRatio = 2f;
+
+      /// <summary>
+      ///   The most a strategist may like the head of a house and still plot to cut it down: anyone he regards above
+      ///   neutral is a friend here, never a target, whatever his house's might.
+      /// </summary>
+      public const int OvershadowMaxRelation = NpcMemoryService.Core.Standing.VanillaRelation.NeutralTier;
+
+      /// <summary>
+      ///   True when a hero is a grounded target for a plot born of THREAT rather than hatred (30/10/2026): the head of
+      ///   another house, at least <see cref="OvershadowRatio" /> times as strong as the instigator's, whom the instigator
+      ///   does not count a friend, never kin and never a faction leader (a ruler is the war-decision system's to move
+      ///   against). Unlike a hatred plot, the player may be the target: Gabriel (30/10/2026) agreed the lords may plot
+      ///   against the player's house once it dominates.
+      /// </summary>
+      public static bool IsOvershadowingTarget(SchemeTargetCandidate target)
+         => target.IsHouseHead && !target.SameHouse && !target.IsKin && !target.IsFactionLeader
+            && target.Relation <= OvershadowMaxRelation
+            && target.HouseStrength > 0f
+            && target.HouseStrength >= OvershadowRatio * System.Math.Max(target.OwnHouseStrength, 1f);
+
+      /// <summary>
+      ///   The head of the mightiest house that overshadows the instigator's (<see cref="IsOvershadowingTarget" />), or null.
+      ///   Asked only when no hatred plot applies: an old enmity comes first.
+      /// </summary>
+      public static string SelectOvershadowingTarget(IEnumerable<SchemeTargetCandidate> candidates)
+         => candidates?.Where(IsOvershadowingTarget).OrderByDescending(c => c.HouseStrength).Select(c => c.Id).FirstOrDefault();
 
       /// <summary>
       ///   Picks the most plausible autonomous-plot target from a pool of living lords: only among those the

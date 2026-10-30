@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (107)
+## Keys (108)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -72,6 +72,7 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_Jealousy_v1` | `JealousyBehavior` | constant `LegacySaveKey` passed to `Load`, which reaches SyncData (fact) |
 | `CalradiaRemembers_Jealousy_v2bytes` | `JealousyBehavior` | constant `SaveKey` passed to `Save`, which reaches SyncData (fact) |
 | `CalradiaRemembers_LetterPacing_v1bytes` | `LetterTriggerEvaluator` | constant `LetterPacingSaveKey` passed to SyncData (fact) |
+| `CalradiaRemembers_LordStrategy_v1bytes` | `LordStrategyBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_MarriageAppliedSwings_v1` | `MarriageApprovalBehavior` | constant `AppliedSwingsSaveKey` passed to `Save`, which reaches SyncData (fact) |
 | `CalradiaRemembers_MarriageApprovals_v1` | `MarriageApprovalBehavior` | constant `LegacySaveKey` passed to `Load`, which reaches SyncData (fact) |
 | `CalradiaRemembers_MarriageApprovals_v2bytes` | `MarriageApprovalBehavior` | constant `SaveKey` passed to `Save`, which reaches SyncData (fact) |
