@@ -165,7 +165,9 @@ namespace CalradiaRemembers.Stance
             else if (l.Reason == LetterReason.StanceFavor)
                favorsSent++;
 
-         string content = LetterFor(verdict, variant, StanceFavorLetterText.For(hero.StringId, favorsSent), out LetterReason reason);
+         // A friendly letter waits for a deeper bond than the Favor rung itself (Gabriel, 30/10/2026): null writes none.
+         string friendly = StanceConsequencePolicy.WarrantsFriendlyLetter(StanceService.ToStance(profile)) ? StanceFavorLetterText.For(hero.StringId, favorsSent) : null;
+         string content = LetterFor(verdict, variant, friendly, out LetterReason reason);
 
          if (content == null) return false; // nothing warranted (neutral, mild, or a secret hatred biding its time)
 

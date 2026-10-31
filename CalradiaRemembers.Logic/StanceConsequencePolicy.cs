@@ -64,6 +64,14 @@ namespace CalradiaRemembers.Logic
         private const int WarmWelcomeTrustFloor = -40; // M-S1: deep distrust undercuts a warm welcome
 
         /// <summary>
+        ///   TUNE: the regard a lord's unbidden friendly LETTER needs, above the Favor rung's own floor (Gabriel, 30/10/2026:
+        ///   "les lettres d'amities devraient demander plus de regards pour diminuer le nombre", after tashmetu's players
+        ///   received a crowd of them). The conversation still reads the Favor rung at its own floor; only the letter waits
+        ///   for a deeper bond.
+        /// </summary>
+        public const int FriendlyLetterAffection = NpcMemoryService.Core.Standing.Regard.DeepBondTier;
+
+        /// <summary>
         ///   The single consequence this posture warrants, or <see cref="StanceConsequence.None" />. Traits are
         ///   the authored −2..+2 scale (honour, valour, mercy, calculating) and decide WHO dares WHAT.
         /// </summary>
@@ -91,6 +99,12 @@ namespace CalradiaRemembers.Logic
 
             return StanceConsequence.None;
         }
+
+        /// <summary>
+        ///   True when a friendly verdict (Favor, or a Warning with no real plot to name) is warm enough to be written as an
+        ///   unbidden letter. A Warning that names a real plotter is not asked: a friend's tip-off is not the crowd.
+        /// </summary>
+        public static bool WarrantsFriendlyLetter(NpcStance stance) => stance != null && stance.Affection >= FriendlyLetterAffection;
 
         private static StanceConsequence ResolveHostile(NpcStance stance, int affection,
             int honor, int valor, int mercy, int calculating)

@@ -175,5 +175,19 @@ namespace CalradiaRemembers.Tests
             StanceConsequencePolicy.Resolve(atFloor, new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = 0, Valor = 0, Mercy = 0, Calculating = 0}).Should().Be(StanceConsequence.None);
             StanceConsequencePolicy.Resolve(aboveFloor, new CalradiaRemembers.Logic.Appreciations.TraitFacts {Honor = 0, Valor = 0, Mercy = 0, Calculating = 0}).Should().Be(StanceConsequence.WarmWelcome);
         }
+
+        // Gabriel (30/10/2026): "les lettres d'amities devraient demander plus de regards pour diminuer le nombre". A lord
+        // whose esteem earns the Favor rung in conversation does not yet write unbidden; only a deep bond does. If this
+        // slips, the crowd of friendly letters tashmetu's players received comes back.
+        [Test]
+        public void GIVEN_a_favor_rung_below_a_deep_bond_WHEN_a_friendly_letter_is_weighed_THEN_none_is_written_until_the_bond_deepens()
+        {
+            var favor = new NpcStance { Affection = 50, Respect = 40 };
+            var deep = new NpcStance { Affection = StanceConsequencePolicy.FriendlyLetterAffection, Respect = 40 };
+
+            StanceConsequencePolicy.Resolve(favor, new CalradiaRemembers.Logic.Appreciations.TraitFacts()).Should().Be(StanceConsequence.Favor);
+            StanceConsequencePolicy.WarrantsFriendlyLetter(favor).Should().BeFalse();
+            StanceConsequencePolicy.WarrantsFriendlyLetter(deep).Should().BeTrue();
+        }
     }
 }

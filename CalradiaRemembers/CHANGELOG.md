@@ -255,8 +255,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   StanceFavor letter (StanceConsequenceBehavior, a regard hardened into friendship) was one fixed text for everyone.
   `StanceFavorLetterText`: six fixed texts (Gabriel: "textes fixes, pas de delais ni de couts"), rotated by how many
   such letters the lord already sent and started at a stable point read from his id, so lords writing the same week
-  rarely match and one lord never repeats himself back to back. None names a deed (NPCs never lie). The volume itself
-  is left to the letter box (ROADMAP, 30/10/2026).
+  rarely match and one lord never repeats himself back to back. None names a deed (NPCs never lie). And fewer of them: the letter now waits for a deep
+  bond (`StanceConsequencePolicy.FriendlyLetterAffection` = `Regard.DeepBondTier`, 60; the Favor rung itself is 40,
+  Gabriel: "les lettres d'amities devraient demander plus de regards pour diminuer le nombre"). The conversation still
+  reads the Favor rung at 40; a Warning naming a real plotter is still written. The rest of the volume is left to the
+  letter box (ROADMAP, 30/10/2026).
 - **Give several goods at once, each in the amount you choose** (fearente, Nexus, 29/10/2026: he gave 60 grain, then
   fish and meat one by one, and had to add an out-of-character note to say how much). The Give bag now takes several
   goods; for each one held more than once, a box asks how many (it opens filled with all of it, so Enter gives the whole
