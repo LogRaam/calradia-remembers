@@ -66,7 +66,7 @@ count is what to read: a namespace of many unrelated parts is a folder of things
 | `CalradiaRemembers.Logic.Providers` | 13 | 2 | 5 | loose |
 | `NpcMemoryService.Core.Services` | 9 | 2 | 3 | medium |
 | `CalradiaRemembers.Appearance` | 7 | 2 | 2 | medium |
-| `CalradiaRemembers.Portraits` | 8 | 2 | 2 | medium |
+| `CalradiaRemembers.Portraits` | 8 | 2 | 1 | medium |
 | `NpcMemoryService.Core.Knowledge` | 64 | 2 | 1 | loose |
 | `NpcMemoryService.Core.Extension` | 8 | 2 | 0 | tight |
 | `NpcMemoryService.Core.Mood` | 9 | 2 | 0 | tight |

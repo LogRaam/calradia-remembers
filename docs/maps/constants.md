@@ -1288,8 +1288,8 @@ to share a word; sometimes it is one concept that should have one home. Either w
 | Constant | Value | What it is |
 |---|---|---|
 | `FadeSeconds` | 0.12f | How long a full fade takes, in seconds: quick enough to feel like the cursor's own. |
-| `HoveredStrength` | 0.22f | The glow under the cursor: faint, so the painted tile still reads through it. |
-| `PressedStrength` | 0.34f | The glow while held down, a clear answer to the press. |
+| `HoveredStrength` | 0.55f | The halo under the cursor, soft enough to sit beside the painted art. |
+| `PressedStrength` | 0.85f | The glow while held down, a clear answer to the press. |
 
 ### CaptiveActionOutcomePolicy
 

@@ -707,7 +707,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `ChatPortraitResolver` | internal static class | Finds a player-dropped chat portrait for a hero, by StringId then by normalized name. |
 | `CrButtonArtWidget` | public class | Shows {ArtStem}_normal/_hover/_pressed/_disabled.png by the state of the parent button. |
-| `CrHoverGlowWidget` | public class | Place as a child of a ButtonWidget: fades in over the button when it is hovered or held. |
+| `CrHoverGlowWidget` | public class | Place as a child of a fixed-size ButtonWidget: fades in around the button when it is hovered or held. |
 | `CrRuntimeImageWidget` | public class | A widget that renders a runtime image loaded from ImagePath (bindable string). |
 | `LiveSprites` | internal static class | Sprites made at run time, shown by any CrRuntimeImageWidget whose path names them. |
 | `PortraitSpikeManager` | public static class | Show/hide lifecycle for the portrait-spike test overlay. |

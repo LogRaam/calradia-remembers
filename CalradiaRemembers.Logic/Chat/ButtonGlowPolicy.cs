@@ -1,7 +1,9 @@
 // Code written by Gabriel Mailhot, 31/10/2026.
 // The glow a chat button shows under the cursor. Gabriel (31/10/2026): "ce serait bien d'ajouter le hover effect sur les
 // boutons". Dark Leather's tool buttons are transparent hotspots over painted tiles, so nothing told the player they
-// could be clicked. A disabled button stays dark, or the glow would promise a click that does nothing.
+// could be clicked. A flat wash over the tile dulled the art and showed its rectangle (Gabriel's screenshot, same day), so
+// the glow is a halo around the button with its art untouched. A disabled button stays dark, or the glow would promise a
+// click that does nothing.
 
 #region
 
@@ -27,11 +29,11 @@ namespace CalradiaRemembers.Logic.Chat
     /// <summary>How strongly a chat button glows, and how the glow fades there.</summary>
     public static class ButtonGlowPolicy
     {
-        /// <summary>The glow under the cursor: faint, so the painted tile still reads through it. Tuning.</summary>
-        public const float HoveredStrength = 0.22f;
+        /// <summary>The halo under the cursor, soft enough to sit beside the painted art. Tuning.</summary>
+        public const float HoveredStrength = 0.55f;
 
         /// <summary>The glow while held down, a clear answer to the press. Tuning.</summary>
-        public const float PressedStrength = 0.34f;
+        public const float PressedStrength = 0.85f;
 
         /// <summary>How long a full fade takes, in seconds: quick enough to feel like the cursor's own. Tuning.</summary>
         public const float FadeSeconds = 0.12f;

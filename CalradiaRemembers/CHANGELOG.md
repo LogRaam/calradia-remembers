@@ -34,9 +34,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ### Changed
 - **The chat's buttons answer the cursor** (Gabriel, 31/10/2026: "ce serait bien d'ajouter le hover effect sur les
   boutons"). Dark Leather's tool buttons were transparent hotspots over painted tiles, and the small buttons of both
-  skins carried no brush, so nothing showed they could be clicked. A faint gold glow now fades in under the cursor and
-  deepens on a press, never on a disabled button (ButtonGlowPolicy, CrHoverGlowWidget). ButtonGlowPolicyTests fails on a
-  future button in either skin with neither a brush nor a glow.
+  skins carried no brush, so nothing showed they could be clicked. A gold halo now fades in around the button, its art
+  untouched, and deepens on a press, never on a disabled button (ButtonGlowPolicy, CrHoverGlowWidget, cr_hover_glow.png,
+  a nine-patch). A flat wash dulled the painted tiles, and in a button sized by its text it lit half the screen
+  (Gabriel's screenshots), so those text links change colour instead (CR.Link.* brushes). ButtonGlowPolicyTests fails on
+  a future button in either skin with no way to answer, and on a glow inside a button sized by its text.
 - **World's Initiative hints** (MCM): letters no longer named as taking turns. "Letters Count As" stays: a lord's stance
   letter, a companion's farewell and a divorce demand still ask for one, and its hint now says so. A silenced stance letter
   asks for no turn.

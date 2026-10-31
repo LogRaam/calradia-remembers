@@ -243,4 +243,44 @@
     </Styles>
   </Brush>
 
+  <!--
+    Text links in the chat (Gabriel, 31/10/2026: the chat's buttons should answer the cursor). These buttons take the size
+    of their text, so a glow stretched inside one fills the screen; the text itself answers instead.
+  -->
+  <Brush Name="CR.Link.Grey.12" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="12" FontColor="#8A8072FF" />
+      <Style Name="Hovered" FontSize="12" FontColor="#FFF0C8FF" />
+      <Style Name="Pressed" FontSize="12" FontColor="#B08A48FF" />
+      <Style Name="Disabled" FontSize="12" FontColor="#8A8072FF" />
+    </Styles>
+  </Brush>
+  <Brush Name="CR.Link.Grey.14" TextHorizontalAlignment="Left">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="14" FontColor="#8A8072FF" />
+      <Style Name="Hovered" FontSize="14" FontColor="#FFF0C8FF" />
+      <Style Name="Pressed" FontSize="14" FontColor="#B08A48FF" />
+      <Style Name="Disabled" FontSize="14" FontColor="#8A8072FF" />
+    </Styles>
+  </Brush>
+  <Brush Name="CR.Link.Ink.15" Font="FiraSansExtraCondensed-Regular" TextHorizontalAlignment="Left" TextVerticalAlignment="Top">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="15" FontColor="#7A1F1FFF" TextGlowRadius="0" TextBlur="0" TextShadowOffset="0" TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+      <Style Name="Hovered" FontSize="15" FontColor="#C2401FFF" TextGlowRadius="0" TextBlur="0" TextShadowOffset="0" TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+      <Style Name="Pressed" FontSize="15" FontColor="#C2401FFF" TextGlowRadius="0" TextBlur="0" TextShadowOffset="0" TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+      <Style Name="Disabled" FontSize="15" FontColor="#7A1F1FFF" TextGlowRadius="0" TextBlur="0" TextShadowOffset="0" TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+    </Styles>
+  </Brush>
+  <Brush Name="CR.Link.Ink.17" Font="FiraSansExtraCondensed-Regular" TextHorizontalAlignment="Left" TextVerticalAlignment="Top">
+    <Layers />
+    <Styles>
+      <Style Name="Default" FontSize="17" FontColor="#6B5A45FF" TextGlowRadius="0" TextBlur="0" TextShadowOffset="0" TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+      <Style Name="Hovered" FontSize="17" FontColor="#2A1A0EFF" TextGlowRadius="0" TextBlur="0" TextShadowOffset="0" TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+      <Style Name="Pressed" FontSize="17" FontColor="#2A1A0EFF" TextGlowRadius="0" TextBlur="0" TextShadowOffset="0" TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+      <Style Name="Disabled" FontSize="17" FontColor="#6B5A45FF" TextGlowRadius="0" TextBlur="0" TextShadowOffset="0" TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
+    </Styles>
+  </Brush>
 </Brushes>

@@ -9707,6 +9707,7 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect($"the installed {prefab} carries the glow", System.IO.File.Exists(path) && System.IO.File.ReadAllText(path).Contains("<CrHoverGlowWidget"), true);
          }
 
+         t.Expect("the halo picture is installed", System.IO.File.Exists(System.IO.Path.Combine(CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", "cr_hover_glow.png")), true);
          t.Note("the glow itself is seen in the game: hover a tool button in each chat skin.");
 
          return t.Line();

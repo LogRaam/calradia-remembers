@@ -78,10 +78,29 @@ namespace CalradiaRemembers.Tests.Chat
                 .Where(b => b.Attribute("Brush") == null)
                 .Where(b => !NeverGlows.Contains(NameOf(b)))
                 .Where(b => !b.Elements("Children").Elements("CrHoverGlowWidget").Any())
+                .Where(b => !b.Elements("Children").Elements("TextWidget").Any(t => ((string?) t.Attribute("Brush") ?? "").StartsWith("CR.Link.", StringComparison.Ordinal)))
                 .Select(NameOf)
                 .ToList();
 
             silent.Should().BeEmpty("these buttons give no sign under the cursor");
+        }
+
+        // STAKE: Gabriel's screenshot, 31/10/2026: a button sized by its text gave the glow nothing to stretch to, and hovering
+        // "Model: Roleplay" lit half the screen. Such a button answers by its text instead.
+        [TestCase("CalradiaRemembersChat.xml")]
+        [TestCase("CalradiaRemembersChat_Manuscript.xml")]
+        public void GIVEN_a_button_sized_by_its_text_WHEN_it_is_read_THEN_no_glow_can_flood_the_screen(string prefab)
+        {
+            Assume.That(SourceTree.IsReachable, SourceTree.MissingAnchor);
+            XDocument doc = XDocument.Load(Path.Combine(SourceTree.ModRepo!, "CalradiaRemembers", "GUI", "Prefabs", prefab));
+
+            List<string> flooding = doc.Descendants("ButtonWidget")
+                .Where(b => (string?) b.Attribute("WidthSizePolicy") == "CoverChildren" || (string?) b.Attribute("HeightSizePolicy") == "CoverChildren")
+                .Where(b => b.Elements("Children").Elements("CrHoverGlowWidget").Any())
+                .Select(NameOf)
+                .ToList();
+
+            flooding.Should().BeEmpty();
         }
 
         private static string NameOf(XElement button)
