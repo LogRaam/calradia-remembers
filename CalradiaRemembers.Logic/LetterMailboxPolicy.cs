@@ -1,7 +1,9 @@
 // Code written by Gabriel Mailhot, 01/08/2026.
 // The mailbox scheduler itself: the gate that stands between "an NPC has a reason to write" and "a letter
-// actually reaches a 100h player who may have dozens of correspondents at once." Without this, every
-// eligible letter lands the moment it is written, and the player's mailbox becomes noise instead of news.
+// actually reaches a 100h player who may have dozens of correspondents at once." Until 31/10/2026 it released one letter
+// a day under a budget. The letter box changed that (Gabriel, 30/10/2026: "plus besoin de reduire la frequence ou le nombre
+// de lettres, c'est le joueur qui classe, elimine, abonne et desabonne"; 31/10: step 4 "sans reglage pour le moment"): a
+// letter now costs nothing until opened and waits unopened, so every letter ready today is sent, one per sender.
 
 #region
 
@@ -15,10 +17,8 @@ using NpcMemoryService.Core.Models;
 namespace CalradiaRemembers.Logic
 {
     /// <summary>
-    ///   Chooses which single unprompted letter, if any, reaches the player right now: a budgeted,
-    ///   weight-ordered, anti-starvation, occasionally-diverse pick over a set of candidates the caller has
-    ///   already decided are eligible to send. Pure over its inputs; the caller owns eligibility, the RNG
-    ///   roll, and actually delivering the winner.
+    ///   Which of today's ready letters are sent: every one, at most one per sender (a sender's own wait between letters
+    ///   then holds the rest), the weightiest of each sender's first. Pure over its inputs.
     /// </summary>
     public static class LetterMailboxPolicy
     {
@@ -33,8 +33,7 @@ namespace CalradiaRemembers.Logic
         ///   mailbox budget at all: these are mechanical or solicited (a divorce deadline, a child's upkeep,
         ///   a companion's final goodbye, a reply to a letter the player themselves sent), and the player
         ///   must never miss one because a livelier subject happened to win the day's budget slot. The
-        ///   caller is expected to filter these out before building the candidate list passed to
-        ///   <see cref="SelectNext" />; they are never special-cased inside it.
+        ///   correspondence-interest dampers never cool these either (a thrown or acknowledged one teaches nothing).
         /// </summary>
         public static bool BypassesBudget(LetterReason reason)
         {
@@ -54,20 +53,6 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
-        ///   True when an already-sent letter should count against the rolling-window budget: it must be a
-        ///   reason that competes for the mailbox at all (<see cref="BypassesBudget" /> is false for it), and
-        ///   it must have actually reached the player rather than being lost to a waylaid courier. A lost
-        ///   letter consumed no attention, so counting it would shrink the player's real budget for a courier
-        ///   mishap that was never their correspondent's fault; a bypass reason was never competing for the
-        ///   budget in the first place, so it must not silently eat into it either. Pure so the derivation in
-        ///   the mod's <c>GatherRecentReleaseDays</c> stays a one-line call over persisted data.
-        /// </summary>
-        public static bool CountsTowardBudget(LetterReason reason, bool isLost)
-        {
-            return !isLost && !BypassesBudget(reason);
-        }
-
-        /// <summary>
         ///   The candidate's weight as it stands today: its base <see cref="LetterCandidate.Weight" /> plus
         ///   a slow anti-starvation climb for every day it has waited past <see cref="LetterCandidate.EligibleSinceDay" />,
         ///   capped at <see cref="AgingCapDays" /> days so a candidate that has been overtaken again and
@@ -80,60 +65,21 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
-        ///   Picks the single candidate that should be released today, or <c>null</c> if none should be.
-        ///   First enforces the budget (no pick if the window's quota is already spent), then orders every
-        ///   candidate by <see cref="EffectiveWeight" /> (highest first, oldest-eligible first on a tie,
-        ///   then sender id for a fully deterministic order), then usually returns the top candidate, but
-        ///   occasionally (per <paramref name="diversityRoll" /> against <see cref="LetterBudget.DiversityChancePercent" />)
-        ///   returns the best of the strictly-lower-weight candidates instead, so the mailbox does not
-        ///   always surface the single loudest subject and nothing else.
+        ///   The letters sent today: one per sender, the one of highest <see cref="EffectiveWeight" /> (oldest eligible, then
+        ///   reason, on a tie), listed with the awaited correspondents (the ribbon) first, then by weight. Deterministic.
         /// </summary>
-        /// <param name="candidates">
-        ///   Eligible letters to choose among. Must already exclude every <see cref="BypassesBudget" />
-        ///   reason; this method does not filter them out itself.
-        /// </param>
-        /// <param name="recentReleaseDays">The game days on which a letter was already released within recent memory.</param>
-        /// <param name="today">The current game day.</param>
-        /// <param name="budget">The pacing budget in force (see <see cref="LetterPacingRules" />).</param>
-        /// <param name="diversityRoll">
-        ///   A 0-99 value the caller supplies (typically from MBRandom); kept out of this method so the
-        ///   policy itself stays pure and deterministic given its inputs.
-        /// </param>
-        public static LetterCandidate SelectNext(
-            IReadOnlyList<LetterCandidate> candidates,
-            IReadOnlyList<int> recentReleaseDays,
-            int today,
-            LetterBudget budget,
-            int diversityRoll)
+        public static IReadOnlyList<LetterCandidate> ReleasedToday(IEnumerable<LetterCandidate> candidates, int today)
         {
-            int releasedInWindow = recentReleaseDays == null
-                ? 0
-                : recentReleaseDays.Count(day => today - day < budget.WindowDays);
+            if (candidates == null) return new List<LetterCandidate>();
 
-            if (releasedInWindow >= budget.MaxPerWindow) return null;
-
-            if (candidates == null || candidates.Count == 0) return null;
-
-            List<LetterCandidate> ordered = candidates
-                .OrderByDescending(c => EffectiveWeight(c, today))
-                .ThenBy(c => c.EligibleSinceDay)
+            return candidates
+                .Where(c => c != null)
+                .GroupBy(c => c.SenderId ?? "", StringComparer.Ordinal)
+                .Select(g => g.OrderByDescending(c => EffectiveWeight(c, today)).ThenBy(c => c.EligibleSinceDay).ThenBy(c => (int)c.Reason).First())
+                .OrderByDescending(c => c.Awaited)
+                .ThenByDescending(c => EffectiveWeight(c, today))
                 .ThenBy(c => c.SenderId, StringComparer.Ordinal)
                 .ToList();
-
-            // An awaited correspondence (the ribbon bookmark, Gabriel 28/10/2026) comes first, past the diversity roll.
-            LetterCandidate awaited = ordered.FirstOrDefault(c => c.Awaited);
-            if (awaited != null) return awaited;
-
-            LetterCandidate top = ordered[0];
-            int topWeight = EffectiveWeight(top, today);
-
-            if (diversityRoll < budget.DiversityChancePercent)
-            {
-                LetterCandidate diversityPick = ordered.FirstOrDefault(c => EffectiveWeight(c, today) < topWeight);
-                if (diversityPick != null) return diversityPick;
-            }
-
-            return top;
         }
     }
 }

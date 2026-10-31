@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-653 rules read 489 facts.
+651 rules read 487 facts.
 
 ## Facts read by more than one rule
 
@@ -268,7 +268,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.AllowOpenRouterProviderFallbacks` (2) | `ProviderPinFailurePolicy.Explain`, `ProviderPinFailurePolicy.RoutingJson` |
 | `ModSettings.EnableWarDuty` (2) | `LevyTroopFacts`, `TermsFacts` |
 | `ModSettings.LeanPrompt` (2) | `ConversationCompressionPolicy.ThresholdFor`, `TranscriptFold` |
-| `ModSettings.LettersFromNpcs` (2) | `LetterMailboxPolicy.SelectNext`, `LetterPacingRules.BudgetFor` |
 | `ModSettings.MarriageRegardThreshold` (2) | `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion` |
 | `ModSettings.NsfwReasoningEffort` (2) | `OnOffReasoningPolicy.ForModel`, `RoleSettings` |
 | `ModSettings.ReasoningEffort` (2) | `OnOffReasoningPolicy.ForModel`, `RoleSettings` |
@@ -639,8 +638,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `LetterCandidateFreshness.PremiseStillHolds`: `Hero.MapFaction`
 - `LetterDeliveryPolicy.ShouldHoldDeliveryAtSea`: `MobileParty.IsCurrentlyAtSea`
 - `LetterFontPolicy.PreferPlainFont`: `LanguageIdProvider.Invoke`
-- `LetterMailboxPolicy.SelectNext`: `ModSettings.LettersFromNpcs`, `ModSettings.WorldInitiativeOff`
-- `LetterPacingRules.BudgetFor`: `ModSettings.LettersFromNpcs`
 - `LetterRegardFacts`: `ModSettings.RelationWarmth`
 - `LetterRegardPolicy.ParseTone`: `DayMoodReader.Draw`
 - `LetterRegardPolicy.StripToneLine`: `DayMoodReader.Draw`

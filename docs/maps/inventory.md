@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 599 types in 64 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1430 types in 49 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1427 types in 49 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 278 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -965,7 +965,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (462)
+### CalradiaRemembers.Logic (459)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1162,12 +1162,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `KinkParser` | public static class | Parses author-written kink names (case-insensitive) to Kink values. |
 | `KnowledgeTier` | public enum | How confidently an NPC could say where a third party is, from their social tie alone. |
 | `LandfallFacts` | public class | What decides whether a conversation waiting for landfall may be received now. |
-| `LetterBudget` | public class | The budget the mailbox scheduler (LetterMailboxPolicy) enforces: how many unprompted letters may land per rolling window, and how often a lower-weight candidate is let through anyway so the mailbox does not become a mono... |
 | `LetterCandidate` | public class | One candidate letter waiting to compete for the mailbox budget. |
 | `LetterLeakConsequencePolicy` | public static class | The grudge magnitude and renown cost a fired letter-leak (Inc 2) applies. |
-| `LetterMailboxPolicy` | public static class | Chooses which single unprompted letter, if any, reaches the player right now: a budgeted, weight-ordered, anti-starvation, occasionally-diverse pick over a set of candidates the caller has already decided are eligible to... |
-| `LetterPacing` | public enum | How much unprompted NPC correspondence reaches the player. |
-| `LetterPacingRules` | public static class | Turns the player's chosen pacing into the budget that actually governs the mailbox. |
+| `LetterMailboxPolicy` | public static class | Which of today's ready letters are sent: every one, at most one per sender (a sender's own wait between letters then holds the rest), the weightiest of each sender's first. |
 | `LetterWeights` | public static class | Turns a letter's LetterReason into the base weight the mailbox scheduler (LetterMailboxPolicy) competes on. |
 | `LlmCompatibilityMode` | public enum | How the host wants chat-completion sampling parameters shaped for the target model. |
 | `LlmParameterPolicy` | public static class | Resolves the chat-completion parameter wire shape for a target model. |

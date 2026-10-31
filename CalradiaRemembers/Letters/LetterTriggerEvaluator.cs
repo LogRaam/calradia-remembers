@@ -61,10 +61,6 @@ namespace CalradiaRemembers.Letters
       // We cap how many letters queue up from a single event.
       private const int MaxLettersPerEvent = 2;
 
-      // B2: no longer gates anything (the budget scheduler owns that job now); kept purely so a log line can
-      // still report how long it has been since the mailbox last actually released something.
-      private int _lastDailyLetterDay = -1;
-
       // B1: persisted per-subject and global correspondence-interest dampers (see CorrespondenceInterestPolicy).
       // Keyed by (int)LetterReason; values are dampers <= 0, moved only through the clamped accessors below.
       // B2: now READ by the mailbox scheduler (LetterWeights.WeightWithInterest) to weight every candidate.
@@ -105,10 +101,6 @@ namespace CalradiaRemembers.Letters
          CollectServiceOffers(store, llmServices, today, pool, release);
          CollectAimLetters(store, llmServices, today, pool, release);
 
-         // While the world's initiative paces, its turns are the budget; the window and the variety stay (29/10/2026).
-         LetterBudget budget = Logic.Initiative.InitiativeDials.Budget(LetterPacingRules.BudgetFor(ModSettings.LettersFromNpcs), !ModSettings.WorldInitiativeOff);
-         IReadOnlyList<int> recent = GatherRecentReleaseDays(store, today, budget.WindowDays);
-
          // The letter box (Gabriel, 30/10/2026): a subject the player threw away from this sender is not written at all.
          int pooled = pool.Count;
          pool = LetterBoxPolicy.Unsilenced(pool, id => store.Get(id)?.SilencedLetterSubjects);
@@ -118,24 +110,20 @@ namespace CalradiaRemembers.Letters
          // The ribbon bookmark: a correspondent the player awaits writes first (priority only).
          foreach (LetterCandidate c in pool) c.Awaited = store.Get(c.SenderId)?.LettersAwaited == true;
 
-         LetterCandidate chosen = LetterMailboxPolicy.SelectNext(pool, recent, today, budget, MBRandom.RandomInt(100));
+         // The letter box, step 4 (Gabriel, 31/10/2026, "sans reglage pour le moment"): no budget and no turn asked of the
+         // world's initiative. A letter costs nothing until opened and waits unopened, so every ready letter is sent today,
+         // one per sender; each sender's own wait between letters (CanSendLetter) is what spaces a correspondence.
+         IReadOnlyList<LetterCandidate> released = LetterMailboxPolicy.ReleasedToday(pool, today);
+         foreach (LetterCandidate c in released)
+         {
+            if (!release.TryGetValue(c, out Action act)) continue;
+
+            act();
+            ModLog.Info($"[LETTER] mailbox released {c.Reason} from {c.SenderId} (weight {c.Weight}).");
+         }
 
          if (ModSettings.VerboseLogging)
-            ModLog.Info($"[LETTER] mailbox tick: pool={pool.Count}, budget={budget.MaxPerWindow}/{budget.WindowDays}d, released={(chosen != null ? chosen.Reason.ToString() : "none")}.");
-
-         if (chosen == null || !release.TryGetValue(chosen, out Action act)) return;
-
-         // The world's initiative (Gabriel, 28/10/2026): the letter the mailbox chose asks the conductor for its turn; kept
-         // waiting, it stays a candidate and competes again tomorrow. An awaited correspondent's letter presses.
-         Hero sender = Hero.FindFirst(h => h != null && h.StringId == chosen.SenderId);
-         // What the household writes (a spouse, a lover, the mother of a child) is the household's family (29/10/2026).
-         bool turn = Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"letter:{chosen.SenderId}:{chosen.Reason}", Logic.Initiative.InitiativeRanks.FamilyOf(chosen.Reason),
-                        chosen.Awaited ? Logic.Initiative.InitiativeRank.Pressing : Logic.Initiative.InitiativeRank.Ordinary, sender, isLetter: true) ?? true;
-         if (!turn) return;
-
-         act();
-         _lastDailyLetterDay = today;
-         ModLog.Info($"[LETTER] mailbox released {chosen.Reason} from {chosen.SenderId} (pool of {pool.Count}, weight {chosen.Weight}).");
+            ModLog.Info($"[LETTER] mailbox tick: {released.Count} of {pool.Count} ready letter(s) sent.");
       }
 
       /// <summary>
@@ -186,36 +174,6 @@ namespace CalradiaRemembers.Letters
                ModLog.Info($"[AIMS] {hero.Name} writes of {aim.SourceMod}/{aim.Id}.");
             };
          }
-      }
-
-      /// <summary>
-      ///   B2: the mailbox budget's window membership, derived purely from persisted
-      ///   <see cref="NpcProfile.SentLetters" />: every letter that actually competed for (and won) a
-      ///   budget slot recently, across EVERY correspondent. Deliberately reload-proof: the old in-memory
-      ///   global cooldown could let one extra letter through after a reload; this cannot, since it is
-      ///   recomputed from the save every tick. <see cref="LetterMailboxPolicy.CountsTowardBudget" /> excludes
-      ///   both a lost courier's letter and any guaranteed-bypass reason, so neither shrinks the window.
-      /// </summary>
-      private static IReadOnlyList<int> GatherRecentReleaseDays(BannerlordNpcMemoryStore store, int today, int windowDays)
-      {
-         var days = new List<int>();
-
-         foreach (string id in store.ListIds())
-         {
-            NpcProfile profile = store.Get(id);
-
-            if (profile?.SentLetters == null) continue;
-
-            foreach (PendingLetter l in profile.SentLetters)
-            {
-               if (!LetterMailboxPolicy.CountsTowardBudget(l.Reason, l.IsLost)) continue;
-               if (today - l.SentOnDay >= windowDays) continue;
-
-               days.Add(l.SentOnDay);
-            }
-         }
-
-         return days;
       }
 
       // ── B2: candidate collectors (populate the pool; mutate nothing until release() fires) ──────────────
@@ -1009,12 +967,8 @@ namespace CalradiaRemembers.Letters
                      break;
 
                   case ScheduledLetterAction.Generate:
-                     // The world's initiative (29/10/2026): a scheduled letter (a pension asked for a child) asks for its
-                     // turn; kept waiting, no attempt is spent and it asks again tomorrow.
-                     if (!(Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"scheduled:{hero?.StringId}:{scheduled.Reason}", Logic.Initiative.InitiativeRanks.FamilyOf(scheduled.Reason),
-                              Logic.Initiative.InitiativeRank.Pressing, hero, isLetter: true) ?? true))
-                        break;
-
+                     // A letter waits unopened in the box and interrupts no one: it asks the world's initiative for no turn
+                     // since the letter box (31/10/2026).
                      scheduled.Attempts++;
                      changed = true;
                      LetterGenerationService.QueueInitialLetter(

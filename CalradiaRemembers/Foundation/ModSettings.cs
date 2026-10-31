@@ -391,7 +391,6 @@ namespace CalradiaRemembers.Foundation
                   [Logic.Initiative.InitiativeFamily.Lords] = Logic.Initiative.InitiativeDials.Combined(InitiativeWeightLords, Logic.Initiative.InitiativeDials.WeightPercent(LordsApproaching)),
                   [Logic.Initiative.InitiativeFamily.Companions] = Logic.Initiative.InitiativeDials.Combined(InitiativeWeightCompanions, Logic.Initiative.InitiativeDials.WeightPercent(CompanionAudienceCadence)),
                   [Logic.Initiative.InitiativeFamily.Household] = InitiativeWeightHousehold,
-                  [Logic.Initiative.InitiativeFamily.Letters] = Logic.Initiative.InitiativeDials.Combined(InitiativeWeightLetters, Logic.Initiative.InitiativeDials.WeightPercent(LettersFromNpcs)),
                   [Logic.Initiative.InitiativeFamily.Tales] = InitiativeWeightTales,
                   [Logic.Initiative.InitiativeFamily.WarAndLaw] = InitiativeWeightWarAndLaw,
                   [Logic.Initiative.InitiativeFamily.Aims] = InitiativeWeightAims
@@ -431,7 +430,6 @@ namespace CalradiaRemembers.Foundation
       public static int InitiativeWeightHousehold => CrSettings.Instance?.InitiativeWeightHousehold ?? 100;
 
       /// <summary>The world's initiative: the letters' weight in the draw, as the player set it (100 without MCM).</summary>
-      public static int InitiativeWeightLetters => CrSettings.Instance?.InitiativeWeightLetters ?? 100;
 
       /// <summary>The world's initiative: the tales' weight in the draw, as the player set it (100 without MCM).</summary>
       public static int InitiativeWeightTales => CrSettings.Instance?.InitiativeWeightTales ?? 100;
@@ -454,26 +452,6 @@ namespace CalradiaRemembers.Foundation
                case "Rarely": return InterceptionPacing.Rarely;
                case "Often": return InterceptionPacing.Often;
                default: return InterceptionPacing.Occasionally;
-            }
-         }
-      }
-
-      /// <summary>
-      ///   How many unprompted letters NPCs send the player. Read live from the MCM menu; Occasionally (the
-      ///   shipped feel) when MCM has not loaded, so nothing changes for a player who never touches it. B1:
-      ///   plumbing only for now, nothing yet reads this to steer the mailbox (see LetterPacingRules.BudgetFor).
-      /// </summary>
-      public static LetterPacing LettersFromNpcs
-      {
-         get
-         {
-            string v = CrSettings.Instance?.LetterPacing?.SelectedValue;
-
-            switch (v)
-            {
-               case "Rarely": return LetterPacing.Rarely;
-               case "Often": return LetterPacing.Often;
-               default: return LetterPacing.Occasionally;
             }
          }
       }

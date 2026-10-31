@@ -1,9 +1,9 @@
 // Code written by Gabriel Mailhot, 01/08/2026.
-// This policy decides the base priority weight of a letter's subject before the mailbox scheduler ever sees
-// budget or aging: it feeds LetterMailboxPolicy.SelectNext (via LetterCandidate.Weight) and, transitively,
-// every choice about which unprompted letter reaches a 100h player who has dozens of correspondents at once.
-// If the tiers are wrong here, the scheduler is sorting on noise: intrigue could lose to a birthday note, or
-// an unmapped LetterReason could silently score zero and vanish to the bottom of every mailbox forever.
+// This policy decides the base priority weight of a letter's subject. Since the letter box removed the mailbox budget
+// (31/10/2026) it decides which of ONE sender's ready letters goes first (LetterMailboxPolicy.ReleasedToday, via
+// LetterCandidate.Weight); before, it decided which single letter of the day reached the player at all. If the tiers
+// are wrong here, a lord with both an intrigue and a birthday note to send sends the note, or an unmapped LetterReason
+// scores zero and is never his first choice.
 
 #region
 

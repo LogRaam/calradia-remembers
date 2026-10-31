@@ -32,8 +32,8 @@ namespace CalradiaRemembers.Tests.Initiative
       public void GIVEN_the_old_dials_WHEN_read_as_weights_THEN_rarely_halves_often_adds_half_and_the_default_keeps()
       {
          InitiativeDials.Combined(100, InitiativeDials.WeightPercent(InterceptionPacing.Rarely)).Should().Be(50);
-         InitiativeDials.Combined(100, InitiativeDials.WeightPercent(LetterPacing.Often)).Should().Be(150);
-         InitiativeDials.Combined(120, InitiativeDials.WeightPercent(LetterPacing.Occasionally)).Should().Be(120);
+         InitiativeDials.Combined(100, InitiativeDials.WeightPercent(InterceptionPacing.Often)).Should().Be(150);
+         InitiativeDials.Combined(120, InitiativeDials.WeightPercent(InterceptionPacing.Occasionally)).Should().Be(120);
       }
 
       // The director paces now: the old daily roll must not thin the world a second time, but an off dial stays off.
@@ -42,6 +42,7 @@ namespace CalradiaRemembers.Tests.Initiative
       {
          InitiativeDials.ChancePercent(25, true).Should().Be(100);
          InitiativeDials.ChancePercent(0, true).Should().Be(0);
+         InitiativeDials.KindCooldownDays(14, true).Should().Be(0);
       }
 
       // Off means every system paces itself exactly as before.
@@ -50,21 +51,6 @@ namespace CalradiaRemembers.Tests.Initiative
       {
          InitiativeDials.ChancePercent(25, false).Should().Be(25);
          InitiativeDials.KindCooldownDays(14, false).Should().Be(14);
-         var own = new LetterBudget {MaxPerWindow = 2, WindowDays = 7, DiversityChancePercent = 25};
-         InitiativeDials.Budget(own, false).Should().BeSameAs(own);
-      }
-
-      // While the director paces, the mailbox's cap steps aside but its window and variety stay: no letter storm of one
-      // subject, no correspondent writing twice running.
-      [Test]
-      public void GIVEN_the_director_pacing_WHEN_the_mailbox_budget_is_read_THEN_only_the_cap_steps_aside()
-      {
-         LetterBudget paced = InitiativeDials.Budget(new LetterBudget {MaxPerWindow = 2, WindowDays = 7, DiversityChancePercent = 25}, true);
-
-         paced.MaxPerWindow.Should().BeGreaterThan(100);
-         paced.WindowDays.Should().Be(7);
-         paced.DiversityChancePercent.Should().Be(25);
-         InitiativeDials.KindCooldownDays(14, true).Should().Be(0);
       }
    }
 }

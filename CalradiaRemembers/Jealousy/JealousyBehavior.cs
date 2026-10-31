@@ -730,14 +730,6 @@ namespace CalradiaRemembers.Jealousy
          return (worst, ReferenceEquals(worst, senior), worstNeglect);
       }
 
-      /// <summary>
-      ///   The world's initiative (29/10/2026): a partner's letter about her place is the household's. Kept waiting, the
-      ///   letter is not written this time; her wound has already landed and she may write at the next competition.
-      /// </summary>
-      private static bool CompetitionLetterHasItsTurn(Hero partner)
-         => Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"household:jealousy:{partner.StringId}", Logic.Initiative.InitiativeFamily.Household,
-               Logic.Initiative.InitiativeRank.Ordinary, partner, isLetter: true) ?? true;
-
       private void FireCompetition(Hero partner, bool isSenior, int neglect, int today)
       {
          var behavior = NpcMemoryCampaignBehavior.Instance;
@@ -761,7 +753,7 @@ namespace CalradiaRemembers.Jealousy
                "I am the first of this house, and you left me to wither while you doted on another. I withdraw what I gave you."));
             behavior.Store.Set(profile);
             ModLog.Info($"[JEALOUSY] {partner.Name} (senior, {partner.Culture?.Name}) estranges over sustained neglect ({neglect}d).");
-            if (CompetitionLetterHasItsTurn(partner)) QueueCompetitionLetter(profile, partner, culture, true, behavior, today);
+            QueueCompetitionLetter(profile, partner, culture, true, behavior, today);
 
             return;
          }
@@ -775,7 +767,7 @@ namespace CalradiaRemembers.Jealousy
          ModLog.Info($"[JEALOUSY] {partner.Name} ({partner.Culture?.Name}, {(culture.EquityExpectation ? "equity" : "rank")}) competes for attention (neglect {neglect}d).");
 
          if (MBRandom.RandomFloat < CompetitionLetterChance && !IsWithPlayer(partner))
-            if (CompetitionLetterHasItsTurn(partner)) QueueCompetitionLetter(profile, partner, culture, false, behavior, today);
+            QueueCompetitionLetter(profile, partner, culture, false, behavior, today);
       }
 
       private void FireDuePending(int today)

@@ -1,5 +1,6 @@
 // Code written by Gabriel Mailhot, 29/10/2026.
-// The older pace dials (Lords Approaching You, Letters from NPCs, Companions Asking For A Word) under the world's
+// The older pace dials (Lords Approaching You, Companions Asking For A Word; Letters from NPCs until 31/10/2026, when the
+// letter box made letters wait unopened and stop asking for a turn) under the world's
 // initiative. Before it, each set its own rate (a daily chance, a mailbox budget, a cooldown across the companions); with
 // the director on, those rates still applied FIRST and the director paced what was left, so the two multiplied and the
 // world came far less often than either said (found 29/10/2026). Gabriel (28/10/2026) wanted one conductor and the old
@@ -28,13 +29,6 @@ namespace CalradiaRemembers.Logic.Initiative
          _ => 100
       };
 
-      /// <summary>The same for Letters from NPCs (which has no Never: letters are turned down, never off).</summary>
-      public static int WeightPercent(LetterPacing pacing) => pacing switch {
-         LetterPacing.Rarely => 50,
-         LetterPacing.Often => 150,
-         _ => 100
-      };
-
       /// <summary>A family's weight from the director's own slider and the old dial: both are the player's word.</summary>
       public static int Combined(int familyWeightPercent, int dialPercent)
          => familyWeightPercent <= 0 || dialPercent <= 0 ? 0 : familyWeightPercent * dialPercent / 100;
@@ -48,14 +42,5 @@ namespace CalradiaRemembers.Logic.Initiative
 
       /// <summary>A cooldown that limits a whole kind (all companions at once): its own while the director is off, none while it paces.</summary>
       public static int KindCooldownDays(int ownDays, bool directorPaces) => directorPaces ? 0 : ownDays;
-
-      /// <summary>
-      ///   The mailbox's budget: its own while the director is off; while it paces, the cap per window steps aside, and the
-      ///   window and the variety stay.
-      /// </summary>
-      public static LetterBudget Budget(LetterBudget own, bool directorPaces)
-         => !directorPaces || own == null
-            ? own
-            : new LetterBudget {MaxPerWindow = int.MaxValue / 2, WindowDays = own.WindowDays, DiversityChancePercent = own.DiversityChancePercent};
    }
 }

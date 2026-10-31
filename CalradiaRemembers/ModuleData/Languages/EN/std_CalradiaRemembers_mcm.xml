@@ -163,8 +163,6 @@
     <string id="CR_MCM_AskCompanionsAtStart_Hint" text="Off (default): a conversation opens with whoever is truly there; bring a companion, a lord riding with you or a prisoner in with the Invite button. On: as before 2.7.5, each conversation first asks which companions come along." />
     <string id="CR_MCM_NpcCrossTalkRounds" text="NPC Cross-Talk" />
     <string id="CR_MCM_NpcCrossTalkRounds_Hint" text="How many times NPCs may talk amongst themselves (one reacting to another) before the turn comes back to you, in a scene with witnesses. 2 is the default; 0 turns it off so only the NPC you spoke to replies. Applies on your next message." />
-    <string id="CR_MCM_LetterPacing" text="Letters from NPCs" />
-    <string id="CR_MCM_LetterPacing_Hint" text="How many unprompted letters NPCs send you. Fewer keeps only what matters. With The World's Initiative on, it sets how much of its turns letters get. Applies immediately." />
     <string id="CR_MCM_InvulnerableCouriers" text="Invulnerable Couriers" />
     <string id="CR_MCM_InvulnerableCouriers_Hint" text="Off: couriers can be intercepted by bandits or by the sender's enemies. A lost letter is sent again, and what it said travels with its captors to whoever beats them. On: no interception." />
     <string id="CR_MCM_AllowCaptorExecutions" text="Allow Captor Executions" />
@@ -224,8 +222,6 @@
     <string id="CR_MCM_InitiativeWeightCompanions_Hint" text="How much your companions asking for a word weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits." />
     <string id="CR_MCM_InitiativeWeightHousehold" text="Weight: Household (%)" />
     <string id="CR_MCM_InitiativeWeightHousehold_Hint" text="How much your spouse and kin weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits." />
-    <string id="CR_MCM_InitiativeWeightLetters" text="Weight: Letters (%)" />
-    <string id="CR_MCM_InitiativeWeightLetters_Hint" text="How much letters arriving weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits." />
     <string id="CR_MCM_InitiativeWeightTales" text="Weight: Tales (%)" />
     <string id="CR_MCM_InitiativeWeightTales_Hint" text="How much written tales offered on the map weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits." />
     <string id="CR_MCM_InitiativeWeightWarAndLaw" text="Weight: War and Law (%)" />

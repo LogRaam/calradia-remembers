@@ -602,13 +602,6 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public int NpcCrossTalkRounds { get; set; } = 2;
 
-      [SettingPropertyDropdown("{=CR_MCM_LetterPacing}Letters from NPCs", RequireRestart = false, Order = 6,
-         HintText = "{=CR_MCM_LetterPacing_Hint}How many unprompted letters NPCs send you. Fewer keeps only what matters. With The World's " +
-                    "Initiative on, it sets how much of its turns letters get. Applies immediately.")]
-      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
-      public Dropdown<string> LetterPacing { get; set; } =
-         new(new[] {"Rarely", "Occasionally", "Often"}, 1); // default: Occasionally
-
       // Player report (2026-08-05): letters get lost too often (almost every time) when the sender is far. The
       // per-band waylay roll compounds over a long trip. A distance-independent cap now blunts that; this toggle
       // is the total opt-out for a player who never wants a letter intercepted at all. Off = today's behaviour.
@@ -796,11 +789,6 @@ namespace CalradiaRemembers.Foundation
          HintText = "{=CR_MCM_InitiativeWeightHousehold_Hint}How much your spouse and kin weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits.")]
       [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
       public int InitiativeWeightHousehold { get; set; } = 100;
-
-      [SettingPropertyInteger("{=CR_MCM_InitiativeWeightLetters}Weight: Letters (%)", 0, 200, "0 '%'", RequireRestart = false, Order = 15,
-         HintText = "{=CR_MCM_InitiativeWeightLetters_Hint}How much letters arriving weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits.")]
-      [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
-      public int InitiativeWeightLetters { get; set; } = 100;
 
       [SettingPropertyInteger("{=CR_MCM_InitiativeWeightTales}Weight: Tales (%)", 0, 200, "0 '%'", RequireRestart = false, Order = 16,
          HintText = "{=CR_MCM_InitiativeWeightTales_Hint}How much written tales offered on the map weigh when the turn is drawn. 0 turns them off; 100 is even. Each still gets a turn a month when it waits.")]

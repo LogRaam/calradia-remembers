@@ -14660,8 +14660,6 @@ namespace CalradiaRemembers.Diagnostics
                "the world's initiative reads the companions' weight in the draw exactly as set"),
             ["InitiativeWeightHousehold"] = ("InitiativeWeightHousehold", SettingShape.Honours,
                "the world's initiative reads the household's weight in the draw exactly as set"),
-            ["InitiativeWeightLetters"] = ("InitiativeWeightLetters", SettingShape.Honours,
-               "the world's initiative reads the letters' weight in the draw exactly as set"),
             ["InitiativeWeightTales"] = ("InitiativeWeightTales", SettingShape.Honours,
                "the world's initiative reads the tales' weight in the draw exactly as set"),
             ["InitiativeWeightWarAndLaw"] = ("InitiativeWeightWarAndLaw", SettingShape.Honours,
@@ -22838,15 +22836,10 @@ namespace CalradiaRemembers.Diagnostics
             var flavor = new LetterCandidate {Reason = LetterReason.TournamentVictory, SenderId = "b", Weight = LetterWeights.BaseWeight(LetterReason.TournamentVictory), EligibleSinceDay = today};
             var pool = new List<LetterCandidate> {flavor, intrigue};
 
-            LetterBudget openBudget = LetterPacingRules.BudgetFor(LetterPacing.Occasionally);
-            LetterCandidate chosen = LetterMailboxPolicy.SelectNext(pool, new List<int>(), today, openBudget, 99); // 99 disables the diversity roll
-            t.Expect("theSchedulerPrefersTheImportantLetter", chosen?.Reason, LetterReason.Blackmail);
-
-            // ── Budget throttle: a spent window releases nothing, however loud the pool ──
-            var spentWindow = new List<int>();
-            for (var i = 0; i < openBudget.MaxPerWindow; i++) spentWindow.Add(today);
-            LetterCandidate throttled = LetterMailboxPolicy.SelectNext(pool, spentWindow, today, openBudget, 99);
-            t.Expect("aFullBudgetWindowReleasesNothing", throttled, null);
+            // The letter box (31/10/2026): no budget; every ready letter goes, one per sender, the important first in the list.
+            IReadOnlyList<LetterCandidate> released = LetterMailboxPolicy.ReleasedToday(pool, today);
+            t.Expect("everyReadyLetterIsSent", released.Count, 2);
+            t.Expect("theImportantLetterIsListedFirst", released.FirstOrDefault()?.Reason, LetterReason.Blackmail);
 
             // ── Staleness: an old event candidate is quietly retired rather than force-delivered ──
             t.Expect("a40DayOldCandidateIsStale", LetterCandidateFreshness.IsStale(LetterReason.BattleVictory, today - 40, today), true);

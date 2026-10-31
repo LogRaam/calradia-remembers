@@ -45,6 +45,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
     `LetterEnvelopePolicy` (Logic) keeps the four places that read "no text" as "not ready" or "dead" from losing an
     envelope (delivery, the session-start cleanup, a courier past its deadline, a scheduled letter). Every letter an NPC
     starts is an envelope (none is sent without a model to write it). Letters written before keep their text.
+  - Step 4 (Gabriel, 31/10/2026, "sans reglage pour le moment"): no more mailbox budget. Every letter ready today is
+    sent, one per sender (the weightiest of his), since a letter costs nothing until opened; each sender's own wait
+    between letters (15 days, 10 for a love letter, 30 for a marriage offer) is what spaces a correspondence. Letters
+    no longer ask the world's initiative for a turn (the mailbox, a partner's jealous letter, a scheduled letter): one
+    waiting in a box interrupts no one. The liege's war summons still waits for its turn, since it opens a reckoning
+    with a deadline. Removed from the MCM: "Letters from NPCs" (Rarely / Occasionally / Often) and the initiative's
+    "Weight: Letters". `LetterPacing`, `LetterBudget` and `LetterMailboxPolicy.SelectNext` are gone;
+    `LetterMailboxPolicy.ReleasedToday` replaces the last. The correspondence-interest dampers (saved) still order one
+    sender's letters.
   - For modders: `CrLetters.GetStatus` answers `in_box` for a letter that reached the player unopened (it said
     `delivered`); throwing another mod's letter raises `CrLetters.SetAside`.
 - **Lords play their realm's strategy** (Gabriel, 29-30/10/2026: a lord's ambition is "tout ce qui renforcit son Clan ou
