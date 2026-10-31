@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 590 types in 64 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1426 types in 49 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1427 types in 49 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 278 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -956,7 +956,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (461)
+### CalradiaRemembers.Logic (462)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1383,6 +1383,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StanceConsequence` | public enum | The one consequence an NPC's posture warrants this evaluation, or None. |
 | `StanceConsequencePolicy` | public static class | Reads an NpcStance (plus the NPC's traits) into the one consequence it warrants. |
 | `StanceDescriptor` | public static class | Reads an NpcStance into prompt-ready posture lines, one per axis that matters. |
+| `StanceFavorLetterText` | public static class | The fixed texts of a lord's unbidden friendly letter, and which one a given lord sends next. |
 | `StanceGate` | public static class | Moves the Trust/Respect/Fear axes under the "words nudge, deeds prove" rule. |
 | `StanceGatePolicy` | public static class | Pure threshold policy for Fear-driven coercion (Stance mechanical behaviour-gating, increment 1). |
 | `StanceShift` | public class | One exchange's spoken nudges to the moveable axes (Affection is not moved here — it is the existing reputation, moved by change_relation). |

@@ -250,6 +250,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   and passed over, the same source replaces its veto). Documented in EXTENSION_API.md. cr.test `conception_veto`.
 
 ### Fixed
+- **A lord's friendly letter is no longer the same words from every lord** (tashmetu, Nexus 30/10/2026, for two players
+  with Bellum Civile's collection: "a crowd of lords writing [...] as if it made them lifelong friends"). The unbidden
+  StanceFavor letter (StanceConsequenceBehavior, a regard hardened into friendship) was one fixed text for everyone.
+  `StanceFavorLetterText`: six fixed texts (Gabriel: "textes fixes, pas de delais ni de couts"), rotated by how many
+  such letters the lord already sent and started at a stable point read from his id, so lords writing the same week
+  rarely match and one lord never repeats himself back to back. None names a deed (NPCs never lie). The volume itself
+  is left to the letter box (ROADMAP, 30/10/2026).
 - **Give several goods at once, each in the amount you choose** (fearente, Nexus, 29/10/2026: he gave 60 grain, then
   fish and meat one by one, and had to add an out-of-character note to say how much). The Give bag now takes several
   goods; for each one held more than once, a box asks how many (it opens filled with all of it, so Enter gives the whole

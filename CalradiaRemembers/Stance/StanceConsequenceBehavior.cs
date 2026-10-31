@@ -155,12 +155,17 @@ namespace CalradiaRemembers.Stance
 
          // M-S3 (regard audit): rotate the letter template by how many stance-hostility letters this NPC has
          // already sent, so a lasting enmity does not mail the player the SAME threat word for word every cycle.
+         // The friendly letter rotates the same way, and starts where this lord's own sequence starts (tashmetu, 30/10/2026:
+         // a crowd of lords all sending the one same text).
          var variant = 0;
+         var favorsSent = 0;
          foreach (PendingLetter l in profile.SentLetters)
             if (l.Reason == LetterReason.StanceHostility)
                variant++;
+            else if (l.Reason == LetterReason.StanceFavor)
+               favorsSent++;
 
-         string content = LetterFor(verdict, variant, out LetterReason reason);
+         string content = LetterFor(verdict, variant, StanceFavorLetterText.For(hero.StringId, favorsSent), out LetterReason reason);
 
          if (content == null) return false; // nothing warranted (neutral, mild, or a secret hatred biding its time)
 
@@ -217,7 +222,7 @@ namespace CalradiaRemembers.Stance
       };
 
       /// <summary>The letter content for a verdict, and its reason; null when no letter is warranted.</summary>
-      private static string LetterFor(StanceConsequence verdict, int variant, out LetterReason reason)
+      private static string LetterFor(StanceConsequence verdict, int variant, string friendlyLetter, out LetterReason reason)
       {
          switch (verdict)
          {
@@ -243,12 +248,12 @@ namespace CalradiaRemembers.Stance
                   ? $"Hear me, for I would not have you taken unawares: I have learned that {schemer.Name} means you harm, " +
                     "and moves quietly against you even now. Watch yourself, friend, and reckon with it before it ripens " +
                     "into a blow you cannot parry."
-                  : GenericFriendlyLetter();
+                  : friendlyLetter;
 
             case StanceConsequence.Favor:
                reason = LetterReason.StanceFavor;
 
-               return GenericFriendlyLetter();
+               return friendlyLetter;
 
             default: // None / ColdShoulder / WarmWelcome (conversational) and Plot / Assassinate (secret) — no letter
                reason = default;
@@ -261,12 +266,6 @@ namespace CalradiaRemembers.Stance
       // checked no age at all: the one initiative gate now stands in front of it.
       private static bool CanWrite(Hero hero)
          => Mapping.ActionGate.Allows(hero, Logic.ActionKind.StanceConsequence) && hero.Clan != Clan.PlayerClan;
-
-      /// <summary>The generic warm letter shared by Favor and a Warning with nothing real to name.</summary>
-      private static string GenericFriendlyLetter()
-         => "I count you a friend, and I am not shy to say so. Should you ever have need of me, a sword, a coin, " +
-            "a word in the right ear, you have only to ask. And were anything to move against you that reached " +
-            "my ear, you would hear of it from me first.";
 
       private static int TraitLevel(Hero hero, TraitObject trait)
       {
