@@ -2666,6 +2666,9 @@ namespace CalradiaRemembers.Chat
 
       public void ExecuteSendMessage()
       {
+         // A killing attempt holds the chat from its window to the end of its scene (zhenja1, 31/10/2026).
+         if (_killAttempt != null) return;
+
          // While a consequential action awaits confirmation, this input is the Y/n answer, not an LLM turn.
          // An empty input (the player just pressed Enter) is the default Yes, so intercept BEFORE the empty guard.
          if (_confirmation.IsAwaiting)

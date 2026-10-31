@@ -112,6 +112,9 @@ namespace CalradiaRemembers.Chat
       ///   reads THIS, not the chosen skin, so a captive scene forced to Classic is judged as Classic.
       /// </summary>
       public static string ActiveSkin = ClassicSkin;
+
+      /// <summary>Whether the open window carries the killing attempt's overlay: both chat skins do, the council's does not.</summary>
+      public static bool ActiveSkinHostsKillRoll => ActiveSkin == ClassicSkin || ActiveSkin == ManuscriptSkin;
       private const double VramTickSeconds = 10.0;
 
       private static GauntletLayer _activeLayer;

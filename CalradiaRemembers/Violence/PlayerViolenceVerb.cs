@@ -15,6 +15,7 @@
 #region
 
 using System;
+using CalradiaRemembers.Chat;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic.Violence;
@@ -72,7 +73,7 @@ namespace CalradiaRemembers.Violence
             // model, has the last word: ask, and only then strike. The inquiry is asynchronous while Execute must
             // answer now, so the deed resolves in the callback and reports itself; this turn only says the blade is
             // raised. Anything recoverable (a purse, a beating) proceeds without interrupting the scene.
-            if (ViolencePolicy.RequiresConfirmation(_act)) return AskBeforeKilling(target, ctx);
+            if (ViolencePolicy.RequiresConfirmation(_act)) return OfferKill(target, ctx);
 
             ViolenceFacts facts = ViolenceSceneReader.FactsFor(target);
             int chance = ViolencePolicy.SuccessChance(_act, facts);
@@ -100,40 +101,74 @@ namespace CalradiaRemembers.Violence
       }
 
       /// <summary>
-      ///   Puts the killing to the PLAYER before it happens. Nothing is resolved here: no roll, no death, no crime.
-      ///   On "Yes" the deed runs exactly as any other act would, and reports itself through a notification, since
-      ///   the chat line for this turn has already been returned by then. On "No" nothing whatsoever occurred, which
-      ///   is the point: an LLM that over-read a threat can no longer cost a life.
+      ///   Puts the killing to the PLAYER before it happens, with its chance (zhenja1, 31/10/2026: he confirmed a
+      ///   killing twice, the roll failed twice, and nothing had said there was a roll). Nothing is resolved here: no
+      ///   roll, no death, no crime. In a chat that can hold it, the chat's own window asks, plays the roll and has the
+      ///   scene told (ChatViewModel.KillAttempt); elsewhere the game's popup asks and the outcome shows as a notice.
+      ///   Saying no means nothing whatsoever occurred, which is the point: an LLM that over-read a threat can no
+      ///   longer cost a life.
       /// </summary>
-      private ActionOutcome AskBeforeKilling(Hero target, VerbContext ctx)
+      private ActionOutcome OfferKill(Hero target, VerbContext ctx)
       {
          string name = target.Name?.ToString() ?? "them";
 
+         // The game itself may hold this life (a task under way that needs them alive). Said now, before any
+         // window: a "you kill him" that the game then quietly refuses is exactly the report.
+         if (!target.CanDie(KillCharacterAction.KillCharacterActionDetail.Murdered))
+         {
+            ModLog.Info($"[VIOLENCE] kill_npc on {name}: the game will not let them die now (CanHeroDie); refused before asking.");
+
+            return ActionOutcome.Refused($"({name} cannot be killed now: the game holds them for a task under way.)");
+         }
+
+         // The chance is measured once, here, and the roll is made against these same facts, so the number the
+         // player read is the number that decides.
+         ViolenceFacts facts = ViolenceSceneReader.FactsFor(target);
+         int chance = ViolencePolicy.SuccessChance(ViolentAct.Kill, facts);
+
+         if (ChatManager.ActiveViewModel?.OfferKillAttempt(target, facts, chance, roll => ResolveKill(target, ctx, facts, roll)) == true)
+            return new ActionOutcome($"Your blade is raised against {name}, and the moment waits on your word.", false);
+
          InformationManager.ShowInquiry(new InquiryData(
             "Take a life?",
-            $"You are about to kill {name}. This cannot be undone, and the realm will answer for it.",
+            $"You are about to kill {name}. Your chance: {chance} in 100. {KillAttemptPolicy.ChanceReasons(facts)} This cannot be undone, and the realm will answer for it.",
             true, true,
             "Kill", "Stay your hand",
-            () => ResolveConfirmedKill(target, ctx), () => DeclineKill(name)), true);
+            () => ResolveConfirmedKill(target, ctx, facts), () => DeclineKill(name)), true);
 
          return new ActionOutcome($"Your blade is raised against {name}, and the moment waits on your word.", false);
       }
 
-      // The player said yes: from here it is an ordinary act of violence, odds and consequences included.
-      private void ResolveConfirmedKill(Hero target, VerbContext ctx)
+      // The popup's yes: roll, apply, and announce the outcome, since the chat line for this turn is already gone.
+      private void ResolveConfirmedKill(Hero target, VerbContext ctx, ViolenceFacts facts)
+      {
+         KillAttemptResult result = ResolveKill(target, ctx, facts, MBRandom.RandomInt(100));
+         if (!string.IsNullOrEmpty(result?.Message)) InformationManager.DisplayMessage(new InformationMessage(result.Message));
+      }
+
+      /// <summary>
+      ///   The player struck: the roll against the facts the chance was read from, the deed, its consequences. Null
+      ///   when nothing could happen (the target already gone, the setting turned off meanwhile, an error).
+      /// </summary>
+      private KillAttemptResult ResolveKill(Hero target, VerbContext ctx, ViolenceFacts facts, int roll)
       {
          try
          {
-            if (target == null || !target.IsAlive) return;
+            if (target == null || !target.IsAlive) return null;
 
-            // Re-read the toggle even now: the player could have changed it while the prompt sat open.
-            if (!ViolencePolicy.IsPermitted(ViolentAct.Kill, ModSettings.AllowKillingCharacters)) return;
+            // Re-read the toggle even now: the player could have changed it while the window sat open.
+            if (!ViolencePolicy.IsPermitted(ViolentAct.Kill, ModSettings.AllowKillingCharacters)) return null;
 
-            ViolenceFacts facts = ViolenceSceneReader.FactsFor(target);
-            int roll = MBRandom.RandomInt(100);
             ViolenceVerdict verdict = ViolencePolicy.Resolve(ViolentAct.Kill, facts, ModSettings.AllowKillingCharacters, roll);
 
-            ModLog.Info($"[VIOLENCE] kill_npc CONFIRMED on {target.Name}: exposure={facts.Exposure}, roll={roll} -> {verdict}.");
+            // The game may still refuse the death (a task that began while the window was open): then nothing landed.
+            if (verdict == ViolenceVerdict.Succeeded && !target.CanDie(KillCharacterAction.KillCharacterActionDetail.Murdered))
+            {
+               ModLog.Info($"[VIOLENCE] kill_npc on {target.Name}: the roll came off but the game will not let them die now; counted as failed.");
+               verdict = ViolenceVerdict.Failed;
+            }
+
+            ModLog.Info($"[VIOLENCE] kill_npc CONFIRMED on {target.Name}: exposure={facts.Exposure}, chance={ViolencePolicy.SuccessChance(ViolentAct.Kill, facts)}%, roll={roll} -> {verdict}.");
 
             ActionOutcome outcome = verdict == ViolenceVerdict.Succeeded
                ? Succeeded(target, ctx)
@@ -141,12 +176,17 @@ namespace CalradiaRemembers.Violence
 
             ViolenceConsequenceService.Apply(target, ViolentAct.Kill, verdict, facts.Exposure);
 
-            // The chat line for this turn is already gone, so the result has to announce itself.
-            if (!string.IsNullOrEmpty(outcome?.Message)) InformationManager.DisplayMessage(new InformationMessage(outcome.Message));
+            bool killed = verdict == ViolenceVerdict.Succeeded && target.IsDead;
+            if (verdict == ViolenceVerdict.Succeeded && !killed)
+               ModLog.Error($"[VIOLENCE] kill_npc on {target.Name}: the game applied the murder but they are not dead (state {target.HeroState}).");
+
+            return new KillAttemptResult {Verdict = verdict, Killed = killed, Message = outcome?.Message};
          }
          catch (Exception ex)
          {
             ModLog.Error($"[VIOLENCE] confirmed kill failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
          }
       }
 

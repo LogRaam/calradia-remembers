@@ -4,6 +4,28 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.8.1.. open
 
+### Changed
+- **A killing attempt is played in front of you** (zhenja1, Nexus, 31/10/2026: he confirmed a killing twice, of the bandit
+  who held him and later of the same man in a tavern, and the man lived both times; Gabriel: the window names the chance,
+  "a bit like Baldur's Gate's dice, but only the number changing quickly until it stops on the score", then the model
+  writes the scene). The attempt was always a roll (ViolencePolicy: 5 to 95, a town or castle counts as guarded), but the
+  "Take a life?" popup named no odds and a failure showed only in the message feed while the character talked on.
+  Now, in a chat: the chat's own window (CalradiaRemembersKillRoll block in both chat skins, ChatViewModel.KillAttempt)
+  names the chance and why (KillAttemptPolicy.ChanceReasons), Strike rolls against the facts the chance was read from,
+  the deed is applied at once, the number rolls and lands on the roll (shown 1 to 100, a kill at most the chance), then
+  the model tells the scene (KillAttemptPolicy.NarratorTask: the outcome overrides what was said before; a failure stops
+  before the character answers) and it goes into the conversation as narration. After a kill only Leave remains, also
+  with witnesses present (default, Gabriel did not rule on that case); a captive who kills the captor escapes as the
+  scene closes (ResolvePlayerEscapeAttempt forced); after a failure the character answers it in one more turn, a captive
+  scene included. Elsewhere (the council) the game's popup asks, now with the chance. The send box is held while the
+  window is open.
+- **A life the game holds is refused before the window** (found tracing zhenja1's report: KillCharacterAction.ApplyInternal
+  returns silently when Hero.CanDie is false, e.g. a notable who gave a task under way, while CR still said "You kill
+  X"). Asked before the window, again at the strike, and a murder that leaves the character alive is logged.
+- Tests: KillAttemptPolicyTests (12); cr.test kill_roll (a real chat ViewModel, no harm, no model call); cr.kill_roll
+  [chance] [roll] plays the window in the open chat with nobody harmed. Not play-verified.
+
+
 ## v2.8.0.. 2026-10-31
 
 ### New

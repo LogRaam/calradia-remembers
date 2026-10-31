@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 599 types in 64 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1429 types in 49 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1435 types in 49 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 278 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -97,7 +97,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
-| `ModCheats` | public static class, partial over 69 files | Exposes diagnostic commands to the Bannerlord cheat console. |
+| `ModCheats` | public static class, partial over 70 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
 | `ProseInterpretTestRunner` | internal static class | The runner behind cr.prose_interpret_test. |
 | `RomanceBondWatchBehavior` | internal class | Reads the bonds with the player at session start and every hour, for CrRomance.StatusChanged. |
@@ -211,7 +211,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatScreen` | internal class | A minimal screen that carries the pre-built chat layer and takes focus when pushed. |
 | `ChatScrollablePanel` | public class | Custom ScrollablePanel that supports a deferred "scroll to bottom" request. |
 | `ChatSpeaker` | internal class | One participant of a chat exchange: the main NPC or a present witness, with the hero, stored profile and display colour used to route the turn and render the line. |
-| `ChatViewModel` | public class, partial over 10 files | (no summary) |
+| `ChatViewModel` | public class, partial over 11 files | (no summary) |
 | `CompanionAudiencePayload` | public class | The companion-audience specifics. |
 | `ComposeScrollablePanel` | public class | A plain ScrollablePanel for the composer's multi-line input. |
 | `ConversationMood` | public static class | How far the player has moved each character's mood in the current conversation. |
@@ -2531,10 +2531,16 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `VideoClock` | public static class | The frame a video shows at a moment. |
 | `VideoMoment` | public struct | Which frame shows Seconds into a video, and whether a played-once video is over. |
 
-### CalradiaRemembers.Logic.Violence (8)
+### CalradiaRemembers.Logic.Violence (14)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `KillAftermath` | public enum | What follows a killing attempt once the scene has been told. |
+| `KillAftermathFacts` | public class | The facts that decide what follows a killing attempt. |
+| `KillAttemptPolicy` | public static class | Shows a killing attempt's roll faithfully and decides what follows it. |
+| `KillAttemptResult` | public class | How a killing attempt ended, once the game rolled and the deed was done. |
+| `KillNarrationFacts` | public class | The facts the narrator is given to tell a killing attempt. |
+| `KillRollFrame` | public class | One step of the rolling number: the value shown and how long it stays before the next. |
 | `ViolenceConsequence` | public class | What one act of violence costs the player: with the law, with the victim, with their kin, and with the player's own name. |
 | `ViolenceConsequencePolicy` | public static class | Prices an act of violence: what the law, the victim, their kin, and the player's name make of it. |
 | `ViolenceExposure` | public enum | How exposed the victim is, which is what makes the same act easy in a hut and desperate in a hall. |

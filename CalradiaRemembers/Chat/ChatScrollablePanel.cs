@@ -92,6 +92,9 @@ namespace CalradiaRemembers.Chat
             // unless the input changed and the throttle interval has elapsed.
             ChatManager.ActiveViewModel?.PumpComposePreview();
 
+            // The killing attempt's rolling number moves on this same per-frame tick.
+            ChatManager.ActiveViewModel?.TickKillRoll(dt);
+
             UpdateMoreHint();
 
             if (_scrollToBottomFramesRemaining <= 0)
