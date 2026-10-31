@@ -153,9 +153,8 @@ namespace CalradiaRemembers.Letters
       }
 
       /// <summary>
-      ///   Fire-and-forget entry point for an NPC-initiated letter.
-      ///   Generates content asynchronously, then adds the letter to
-      ///   <paramref name="profile" /> and persists via <paramref name="store" />.
+      ///   Entry point for an NPC-initiated letter: seals an envelope on <paramref name="profile" /> (its text is written
+      ///   when the player first opens it) and persists via <paramref name="store" />.
       /// </summary>
       public static void QueueInitialLetter(
          NpcProfile profile,
@@ -187,12 +186,14 @@ namespace CalradiaRemembers.Letters
             return;
          }
 
-         _ = GenerateInitialAsync(profile, giverHero, reason, triggerContext, llmServices, store, today, offerTargetId, offerAmount)
-            .ContinueWith(t =>
-            {
-               if (t.Exception != null)
-                  ModLog.Error($"[LETTER] generation failed for {profile.Name}: {t.Exception.GetBaseException().Message}");
-            }, TaskScheduler.Default);
+         // The letter box (Gabriel, 31/10/2026: "on peut juste garder la boite et enlever l'ancien mode"): every letter an
+         // NPC starts travels as an envelope, written when the player first opens it. No model, no letter: one that could
+         // never be opened is not sent.
+         if (llmServices?.ChatService == null) return;
+
+         // Gabriel (28/09/2026): a greater lord does not write in their own hand to one far below them.
+         string writtenBy = CorrespondenceRank.WrittenByFor(giverHero, profile, reason);
+         SealEnvelope(profile, giverHero, reason, triggerContext, store, today, writtenBy, offerTargetId, offerAmount);
       }
 
       /// <summary>
@@ -426,84 +427,6 @@ namespace CalradiaRemembers.Letters
          float days = TravelDaysTo(giver);
 
          return days < 0f ? 3 : Math.Max(1, Math.Min(12, (int) days));
-      }
-
-      private static async Task GenerateInitialAsync(
-         NpcProfile profile,
-         Hero giverHero,
-         LetterReason reason,
-         string triggerContext,
-         LlmServices llmServices,
-         BannerlordNpcMemoryStore store,
-         int today,
-         string offerTargetId = null,
-         int offerAmount = 0)
-      {
-         if (llmServices?.ChatService == null) return;
-
-         // Gabriel (28/09/2026): a greater lord does not write in their own hand to one far below them. Read here,
-         // on the game thread, before the first await.
-         string writtenBy = CorrespondenceRank.WrittenByFor(giverHero, profile, reason);
-
-         // The letter box (Gabriel, 31/10/2026, "oui go pour etape 3"): the letter travels as an envelope and its text is
-         // written when the player first opens it, so a letter thrown away or never opened costs no model call.
-         if (ModSettings.LettersKeptInBox)
-         {
-            SealEnvelope(profile, giverHero, reason, triggerContext, store, today, writtenBy, offerTargetId, offerAmount);
-
-            return;
-         }
-
-         // Add a placeholder immediately so CanSendLetter sees a letter in-transit while the
-         // LLM call is in flight, preventing duplicate letters from consecutive daily ticks.
-         var placeholder = new PendingLetter {
-            WrittenBy = writtenBy,
-            SenderId = profile.Id,
-            SenderName = profile.Name,
-            Reason = reason,
-            Content = null,
-            SentOnDay = today,
-            DispatchDay = int.MaxValue, // sentinel: never dispatched until LLM fills it in
-            DeliveryDay = today + 1,    // marks as in-transit for CanSendLetter during async window
-            IsDelivered = false,
-            // Offer letters (PrisonerOffer) carry the trade's terms so the read window's Accept can settle
-            // exactly what the letter named, and validate the captive is still held before offering the button.
-            OfferTargetId = offerTargetId,
-            OfferAmount = offerAmount
-         };
-         profile.SentLetters.Add(placeholder);
-         store.Set(profile);
-
-         string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
-         string message = LetterPromptBuilder.BuildInitialLetterMessage(
-            profile, reason, triggerContext, playerName, WhereaboutsFor(profile), PlayerSituationFor(profile), writtenBy,
-            Mapping.DayMoodReader.Draw(giverHero).Mood);
-
-         string content = await CallLlmForLetterAsync(llmServices, profile, message);
-
-         // 3.1: we are now on a thread-pool continuation. Marshal every SentLetters/store mutation onto the main
-         // thread so it never races the daily/courier ticks that enumerate these same lists.
-         if (string.IsNullOrWhiteSpace(content))
-         {
-            // LLM failed: remove placeholder so the next evaluation can retry.
-            LetterMutationQueue.Post(() =>
-            {
-               profile.SentLetters.Remove(placeholder);
-               store.Set(profile);
-            });
-
-            return;
-         }
-
-         int deliveryDays = ComputeDeliveryDays(giverHero);
-         LetterMutationQueue.Post(() =>
-         {
-            placeholder.Content = content;
-            placeholder.DispatchDay = today;               // courier departs as soon as letter is written
-            placeholder.DeliveryDay = today + deliveryDays; // fallback if courier not yet spawned on load
-            store.Set(profile);
-            ModLog.Info($"[LETTER] queued from {profile.Name} ({reason}), courier dispatches day {today}.");
-         });
       }
 
       /// <summary>

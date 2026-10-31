@@ -609,15 +609,6 @@ namespace CalradiaRemembers.Foundation
       public Dropdown<string> LetterPacing { get; set; } =
          new(new[] {"Rarely", "Occasionally", "Often"}, 1); // default: Occasionally
 
-      // The letter box (Gabriel, 30/10/2026): every letter waits in the box, with the courier's sound; the old immediate
-      // opening stays a choice.
-      [SettingPropertyDropdown("{=CR_MCM_LetterArrival}When a letter arrives", RequireRestart = false, Order = 6,
-         HintText = "{=CR_MCM_LetterArrival_Hint}In the letter box: it waits, unopened, under the letter icon on the map bar, and the courier's " +
-                    "sound plays. Open it at once: the letter window opens as soon as it arrives, as before the box.")]
-      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
-      public Dropdown<string> LetterArrival { get; set; } =
-         new(new[] {"In the letter box", "Open it at once"}, 0); // default: the box
-
       // Player report (2026-08-05): letters get lost too often (almost every time) when the sender is far. The
       // per-band waylay roll compounds over a long trip. A distance-independent cap now blunts that; this toggle
       // is the total opt-out for a player who never wants a letter intercepted at all. Off = today's behaviour.

@@ -8700,7 +8700,6 @@ namespace CalradiaRemembers.Diagnostics
       private static string TestLetterBox(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("letter_box");
-         if (t.Skip(!ModSettings.LettersKeptInBox, "the MCM has letters opening at once (Content, When a letter arrives); set In the letter box to run this")) return t.Line();
          if (t.Skip(LetterWindowManager.IsOpen, "a letter window is open; close it first")) return t.Line();
 
          NpcProfile profile = null;

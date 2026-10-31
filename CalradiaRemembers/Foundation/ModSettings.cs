@@ -459,12 +459,6 @@ namespace CalradiaRemembers.Foundation
       }
 
       /// <summary>
-      ///   Letters wait in the letter box on arrival (the default, Gabriel 30/10/2026: "tout dans la boite avec le son"),
-      ///   rather than opening at once as before the box. Read live; the box when MCM has not loaded.
-      /// </summary>
-      public static bool LettersKeptInBox => CrSettings.Instance?.LetterArrival?.SelectedIndex != 1;
-
-      /// <summary>
       ///   How many unprompted letters NPCs send the player. Read live from the MCM menu; Occasionally (the
       ///   shipped feel) when MCM has not loaded, so nothing changes for a player who never touches it. B1:
       ///   plumbing only for now, nothing yet reads this to steer the mailbox (see LetterPacingRules.BudgetFor).

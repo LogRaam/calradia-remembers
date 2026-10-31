@@ -28,47 +28,24 @@ namespace CalradiaRemembers.Letters
     public static class LetterPopupManager
     {
         /// <summary>
-        ///   Presents the letter. Safe to call from the daily/courier tick (main thread). Returns true when the
-        ///   letter was actually shown (and marked received); false when it was DEFERRED because a window is
-        ///   already open, in which case nothing is marked and the caller must leave the letter (and its courier)
-        ///   to retry next tick.
+        ///   Receives the letter into the letter box. Safe to call from the daily/courier tick (main thread). Returns
+        ///   true when it was received; false only without a letter or its sender (callers keep the letter then).
         /// </summary>
         public static bool Show(PendingLetter letter, NpcProfile senderProfile)
         {
             if (letter == null || senderProfile == null) return false;
 
-            // The letter box (Gabriel, 30/10/2026): a subject the player threw away from this sender arrives unseen, and
-            // every other letter waits in the box rather than opening a window. Neither ever defers: nothing is in the way.
+            // The letter box (Gabriel, 30/10/2026; the only way since 31/10: "on peut juste garder la boite et enlever l'ancien
+            // mode"): every letter waits in the box, and a subject the player threw away from this sender arrives unseen.
+            // Neither ever defers: no window is in the way.
             bool silenced = LetterBox.IsSilenced(senderProfile, letter.Reason);
             bool unwritten = Logic.Letters.LetterEnvelopePolicy.IsUnwritten(letter); // an envelope waits to be opened
-            if (silenced || unwritten || ModSettings.LettersKeptInBox)
-            {
-                int arrival = (int)CampaignTime.Now.ToDays;
-                if (!unwritten) StoryLog.WriteLetterReceived(letter.SenderName, letter.Content ?? "(The letter is blank.)", arrival);
-                MarkReceived(letter, senderProfile, arrival);
+            int arrival = (int)CampaignTime.Now.ToDays;
+            if (!unwritten) StoryLog.WriteLetterReceived(letter.SenderName, letter.Content ?? "(The letter is blank.)", arrival);
+            MarkReceived(letter, senderProfile, arrival);
 
-                if (silenced) LetterBox.SetAsideSilenced(letter, senderProfile);
-                else LetterBox.Receive(letter, senderProfile);
-
-                return true;
-            }
-
-            // C1: never mark a letter received while a window is already open. OpenRead would SILENTLY refuse, and
-            // the letter, now flagged IsDelivered, would be filtered out (!IsDelivered) forever and lost, quest
-            // and all. Defer instead: mark nothing, keep it candidate, and tell the caller it was not shown.
-            if (LetterWindowManager.IsOpen)
-            {
-                ModLog.Info($"[LETTER] deferred (a letter window is already open): {letter.SenderName}'s letter waits for the next tick.");
-
-                return false;
-            }
-
-            int today = (int)CampaignTime.Now.ToDays;
-            string content = letter.Content ?? "(The letter is blank.)";
-            StoryLog.WriteLetterReceived(letter.SenderName, content, today);
-
-            MarkReceived(letter, senderProfile, today);
-            LetterWindowManager.OpenRead(letter, senderProfile);
+            if (silenced) LetterBox.SetAsideSilenced(letter, senderProfile);
+            else LetterBox.Receive(letter, senderProfile);
 
             return true;
         }

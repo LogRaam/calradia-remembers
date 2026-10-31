@@ -8,8 +8,9 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 - **The letter box** (Gabriel, 30/10/2026, after tashmetu relayed two players buried in letters: "toutes les lettres sont
   envoyees et vont dans la boite aux lettres [...] c'est le joueur qui classe, elimine, abonne et desabonne les
   conversations par lettres"). A letter that arrives no longer opens a window: it waits in the letter box, a notice names
-  its sender (and says when it looks urgent), and every letter due that day arrives, not one a day. MCM, Content, "When a
-  letter arrives": In the letter box (default) or Open it at once (as before). The sender's side of the arrival is
+  its sender (and says when it looks urgent), and every letter due that day arrives, not one a day. It is the only way
+  now (Gabriel, 31/10/2026: "on peut juste garder la boite et enlever l'ancien mode"): a letter never opens by itself,
+  and the short-lived MCM choice "When a letter arrives" is gone. The sender's side of the arrival is
   unchanged (`MarkReceived` at arrival: his memory of writing, a child's pension quest; an unopened letter is an
   unanswered one, he cannot know it was not read). `LetterBox` (mod) and `LetterBoxPolicy` (Logic):
   - Throwing a letter away silences its SUBJECT from that sender ("le joueur ne veut plus entendre parler de ce sujet de
@@ -42,8 +43,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
     captors carry real words and the letter sent again carries the same ones. Opening breaks the seal ("You break the
     seal of X's letter."); the letter opens a few seconds later, or stays in the box if the model did not answer.
     `LetterEnvelopePolicy` (Logic) keeps the four places that read "no text" as "not ready" or "dead" from losing an
-    envelope (delivery, the session-start cleanup, a courier past its deadline, a scheduled letter). Applies with "In the
-    letter box"; "Open it at once" still writes at sending. Letters written before keep their text.
+    envelope (delivery, the session-start cleanup, a courier past its deadline, a scheduled letter). Every letter an NPC
+    starts is an envelope (none is sent without a model to write it). Letters written before keep their text.
   - For modders: `CrLetters.GetStatus` answers `in_box` for a letter that reached the player unopened (it said
     `delivered`); throwing another mod's letter raises `CrLetters.SetAside`.
 - **Lords play their realm's strategy** (Gabriel, 29-30/10/2026: a lord's ambition is "tout ce qui renforcit son Clan ou
