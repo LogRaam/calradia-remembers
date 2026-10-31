@@ -97,7 +97,7 @@ removed. Memories injected before 2.7.9 carry no mod and are matched by their te
 you added earlier. Returns how many were removed. A memory CR's compressor has already folded into a summary is
 no longer there to remove.
 
-### Station definitions (`ModuleData/stations/<station>.txt`, since 2.7.22)
+### Station definitions (`ModuleData/stations/<station>.txt`, since 2.8.0)
 
 Eleven files say who a character of each social station is (`[who]`) and how they treat the player at each rung of the
 player's standing (`[nobody]`, `[sellsword]`, `[risinghouse]`, `[lordoftherealm]`, `[sovereign]`): ruler, lord, noble,
@@ -290,12 +290,12 @@ may judge the moment wrong and stay silent.
 Three channels, all on by default; `Channels` ("conversation", "letter", "audience") narrows them, and the twice-at-most
 rule counts across all three:
 - **conversation**: the lord may bring it up in a conversation the player opens.
-- **audience** (since 2.7.22): it is a reason for him to seek the player out, the least urgent of all (a grudge, fresh
+- **audience** (since 2.8.0): it is a reason for him to seek the player out, the least urgent of all (a grudge, fresh
   news or the war duty come first), paced by the player's "lords approaching" setting: he asks for a word when the player
   walks into the place he stands, or rides out to meet them on the road. The invitation says only that it is "a matter of
   their own"; in the conversation that follows he may put it, even if "conversation" is not among the channels. `Raised`
   reports `audience` when that conversation opens.
-- **letter** (since 2.7.22): he may write to the player about it, through the paced mailbox like any other letter (its
+- **letter** (since 2.8.0): he may write to the player about it, through the paced mailbox like any other letter (its
   budget, his cooldown, the game's own rules on who may write). The letter is written from your Want, PlayerPart and his
   manner alone. `Raised` reports `letter` when the mailbox releases it.
 
@@ -312,7 +312,7 @@ the game reports the end: it is then a plain end, never an abandonment, and the 
 realm's enemy afterwards is no betrayal. Never call it when the player chose to leave. Names no Calradia Remembers
 type. (tashmetu, for Mercenary Management.)
 
-### Forbidding a conception (`CrConception.RegisterVeto`, since 2.7.22)
+### Forbidding a conception (`CrConception.RegisterVeto`, since 2.8.0)
 
 ```csharp
 CrConception.RegisterVeto("Traits of Calradia", (mother, father) =>

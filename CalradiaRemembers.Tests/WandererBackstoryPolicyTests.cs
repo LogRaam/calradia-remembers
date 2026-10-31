@@ -58,7 +58,7 @@ namespace CalradiaRemembers.Tests
          kept.IndexOf("hanged").Should().BeLessThan(kept.IndexOf(WandererBackstoryPolicy.PastOnly));
       }
 
-      // STAKE: a companion met before 2.7.22 kept the story without the closing, and Brave's case is exactly such a save.
+      // STAKE: a companion met before 2.8.0 kept the story without the closing, and Brave's case is exactly such a save.
       // Framing it again must add the closing once and never touch any other memory.
       [Test]
       public void GIVEN_a_story_kept_before_the_closing_existed_WHEN_framed_THEN_it_gains_the_closing_once()

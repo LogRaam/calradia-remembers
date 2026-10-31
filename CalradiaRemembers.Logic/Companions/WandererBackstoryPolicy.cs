@@ -56,7 +56,7 @@ namespace CalradiaRemembers.Logic.Companions
       }
 
       /// <summary>
-      ///   The kept story closed by <see cref="PastOnly" />, once. A story kept before 2.7.22 has no closing; it is given
+      ///   The kept story closed by <see cref="PastOnly" />, once. A story kept before 2.8.0 has no closing; it is given
       ///   one when profiles are refreshed. Anything that is not the kept story comes back as it was.
       /// </summary>
       public static string Framed(string summary)

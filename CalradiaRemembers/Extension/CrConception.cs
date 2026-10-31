@@ -24,7 +24,7 @@ namespace CalradiaRemembers
       ///   pregnancy it calls <paramref name="veto" /> with the mother and the father (null when the father is unknown);
       ///   return a few words saying why (e.g. "Sterile") to forbid it, or null to let it be. A veto that throws is logged
       ///   and never forbids. Registering the same source again replaces its veto. Not saved: register again when a game
-      ///   is loaded. Since 2.7.22.
+      ///   is loaded. Since 2.8.0.
       /// </summary>
       public static void RegisterVeto(string source, Func<Hero, Hero, string> veto)
       {

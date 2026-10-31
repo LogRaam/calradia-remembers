@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.7.22.. open
+## v2.8.0.. open
 
 ### New
 - **Lords play their realm's strategy** (Gabriel, 29-30/10/2026: a lord's ambition is "tout ce qui renforcit son Clan ou

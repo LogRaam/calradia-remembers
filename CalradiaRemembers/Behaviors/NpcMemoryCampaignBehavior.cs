@@ -352,7 +352,7 @@ namespace CalradiaRemembers.Behaviors
             HeroProfileMapper.RefreshPersonality(profile, hero);
             profile.Relationships = RelationshipsBuilder.Build(hero);
             profile.Family = RelationshipsBuilder.BuildFamily(hero);
-            // A wanderer's story kept before 2.7.22 gains its closing: its people belong to the past (fearente, 29/10/2026).
+            // A wanderer's story kept before 2.8.0 gains its closing: its people belong to the past (fearente, 29/10/2026).
             for (var i = 0; i < profile.Events.Count; i++)
             {
                string framed = Logic.Companions.WandererBackstoryPolicy.Framed(profile.Events[i].summary);
