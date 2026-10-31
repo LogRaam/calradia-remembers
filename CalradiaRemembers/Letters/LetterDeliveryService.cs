@@ -101,7 +101,9 @@ namespace CalradiaRemembers.Letters
 
                 ModLog.Info($"[LETTER] delivering: {profile.Name} → player (reason={due.Reason}).");
                 LetterPopupManager.Show(due, profile);
-                return; // one popup per daily tick
+
+                // One window per daily tick; the letter box has no window to wait for, so every due letter arrives.
+                if (!ModSettings.LettersKeptInBox) return;
             }
         }
     }

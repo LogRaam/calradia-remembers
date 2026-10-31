@@ -5,6 +5,26 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ## v2.8.0.. open
 
 ### New
+- **The letter box** (Gabriel, 30/10/2026, after tashmetu relayed two players buried in letters: "toutes les lettres sont
+  envoyees et vont dans la boite aux lettres [...] c'est le joueur qui classe, elimine, abonne et desabonne les
+  conversations par lettres"). A letter that arrives no longer opens a window: it waits in the letter box, a notice names
+  its sender (and says when it looks urgent), and every letter due that day arrives, not one a day. MCM, Content, "When a
+  letter arrives": In the letter box (default) or Open it at once (as before). The sender's side of the arrival is
+  unchanged (`MarkReceived` at arrival: his memory of writing, a child's pension quest; an unopened letter is an
+  unanswered one, he cannot know it was not read). `LetterBox` (mod) and `LetterBoxPolicy` (Logic):
+  - Throwing a letter away silences its SUBJECT from that sender ("le joueur ne veut plus entendre parler de ce sujet de
+    la part de cet expediteur"): letters of one conversation share a subject (a divorce demand and its escalation, a love
+    letter and "you did not answer me"); a later letter on a silenced subject arrives unseen. It silences the letter, not
+    the person: what the character does in the world is unchanged. A reply to the player's own letter and another mod's
+    letter are never silenced (the mod hears `SetAside`). A war summons or levy, a divorce and a child's support may be
+    thrown but silence nothing: the game still holds the player to them (Claude's default, put to Gabriel).
+  - Urgent mark: war summons and levy, prisoner offer, divorce, blackmail, jealous threat, child support.
+  - The box is ordered by arrival; a letter still in the box, or thrown away, is not in the letter book until read.
+  - Saved state: `PendingLetter.InBox`, `ThrownAway`, `NpcProfile.SilencedLetterSubjects` (SDK 24dce1e), additive: every
+    letter delivered before the box counts as read.
+  - The courier's sound (Gabriel's choice, a letter through a house letterbox) plays once per tick.
+  - For modders: `CrLetters.GetStatus` answers `in_box` for a letter that reached the player unopened (it said
+    `delivered`); throwing another mod's letter raises `CrLetters.SetAside`.
 - **Lords play their realm's strategy** (Gabriel, 29-30/10/2026: a lord's ambition is "tout ce qui renforcit son Clan ou
   sa faction militairement", plotting against a rival or a realm grown too strong, arrangements with weaker realms
   against a stronger one). MCM, Relationships, "Lords play the realm's strategy", OFF by default for this first build.

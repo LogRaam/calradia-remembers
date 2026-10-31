@@ -104,7 +104,7 @@ namespace CalradiaRemembers
 
          return ModLetterStatusPolicy.Of(l == null ? null : new ModLetterFacts
          {
-            IsDelivered = l.IsDelivered, IsLost = l.IsLost, HasReply = !string.IsNullOrWhiteSpace(l.PlayerReply), SetAside = l.SetAside
+            IsDelivered = l.IsDelivered, IsLost = l.IsLost, HasReply = !string.IsNullOrWhiteSpace(l.PlayerReply), SetAside = l.SetAside, InBox = l.InBox
          });
       }
 

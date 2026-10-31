@@ -37,6 +37,21 @@ namespace CalradiaRemembers.Letters
         {
             if (letter == null || senderProfile == null) return false;
 
+            // The letter box (Gabriel, 30/10/2026): a subject the player threw away from this sender arrives unseen, and
+            // every other letter waits in the box rather than opening a window. Neither ever defers: nothing is in the way.
+            bool silenced = LetterBox.IsSilenced(senderProfile, letter.Reason);
+            if (silenced || ModSettings.LettersKeptInBox)
+            {
+                int arrival = (int)CampaignTime.Now.ToDays;
+                StoryLog.WriteLetterReceived(letter.SenderName, letter.Content ?? "(The letter is blank.)", arrival);
+                MarkReceived(letter, senderProfile, arrival);
+
+                if (silenced) LetterBox.SetAsideSilenced(letter, senderProfile);
+                else LetterBox.Receive(letter, senderProfile);
+
+                return true;
+            }
+
             // C1: never mark a letter received while a window is already open. OpenRead would SILENTLY refuse, and
             // the letter, now flagged IsDelivered, would be filtered out (!IsDelivered) forever and lost, quest
             // and all. Defer instead: mark nothing, keep it candidate, and tell the caller it was not shown.

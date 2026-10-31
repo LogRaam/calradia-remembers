@@ -345,7 +345,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 #### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Letters`
 
 - `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Letters` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
-- `CalradiaRemembers.Letters` uses `CalradiaRemembers.Behaviors` in 9 files: `Letters/CourierSecretBehavior.cs`, `Letters/CourierService.cs`, `Letters/LetterGenerationService.cs`, and 6 more
+- `CalradiaRemembers.Letters` uses `CalradiaRemembers.Behaviors` in 10 files: `Letters/CourierSecretBehavior.cs`, `Letters/CourierService.cs`, `Letters/LetterBox.cs`, and 7 more
 
 #### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Mapping`
 

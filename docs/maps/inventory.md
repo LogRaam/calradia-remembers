@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 590 types in 64 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1427 types in 49 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 592 types in 64 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1429 types in 49 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 278 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -97,7 +97,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
-| `ModCheats` | public static class, partial over 68 files | Exposes diagnostic commands to the Bannerlord cheat console. |
+| `ModCheats` | public static class, partial over 69 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
 | `ProseInterpretTestRunner` | internal static class | The runner behind cr.prose_interpret_test. |
 | `RomanceBondWatchBehavior` | internal class | Reads the bonds with the player at session start and every hour, for CrRomance.StatusChanged. |
@@ -517,10 +517,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `JealousyCultureLoader` | public static class | Loads and caches jealousy_cultures.json from the mod's ModuleData folder, keyed by culture display name ("Khuzait", "Battania", …) to match Mapping.CulturalTraditionsLoader and stay interoperable with conversion mods. |
 | `JealousyCultureProfile` | public class | The on-disk shape of a culture's stance on romantic exclusivity, deserialized from jealousy_cultures.json. |
 
-### CalradiaRemembers.Letters (27)
+### CalradiaRemembers.Letters (29)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `BoxedLetter` | public class | One letter waiting in the box, with its sender's profile (the same instances the store holds). |
 | `CaptiveEncounterService` | public static class | Sprint 17 — Captive Encounter System. |
 | `CarriedSecret` | public class | An intercepted letter, and where it is now. |
 | `CorrespondenceRank` | public static class | The rule of rank, read from the live game. |
@@ -532,6 +533,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterArchiveEntryViewModel` | public class | One letter in the thread: its dated attribution header, its body, and which side wrote it. |
 | `LetterArchiveManager` | public static class | Show/hide lifecycle for the letter-archive thread window. |
 | `LetterArchiveViewModel` | public class | View model for the per-contact letter archive (thread) window. |
+| `LetterBox` | public static class | The player's letter box: what waits in it, a letter arriving, opened, or thrown away. |
 | `LetterDeliveryService` | public static class | Runs on every daily tick, scans all NPC profiles for letters whose PendingLetter.DeliveryDay has passed, and shows one popup per tick via LetterPopupManager. |
 | `LetterFontResolver` | internal static class | Reads the active game language and picks the decorative (Galahad) or plain (Cyrillic-safe) brush name for the parchment letter view, per LetterFontPolicy. |
 | `LetterGenerationService` | public static class | Generates letter content via the LLM and queues a PendingLetter on the sending NPC's profile. |
@@ -2162,7 +2164,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ScatteredLootLedger` | public class | Save-serializable carrier for every item currently scattered among bandit bands, awaiting recovery. |
 | `ScatteredLootPolicy` | public static class | Pure rules for recovering scattered captivity loot from defeated bandit bands. |
 
-### CalradiaRemembers.Logic.Letters (38)
+### CalradiaRemembers.Logic.Letters (40)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2178,6 +2180,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ILetterIntentionWorld` | public interface | The live-world signals the per-reason staleness decision needs, keyed by the letter's sender id. |
 | `LetterAgeDescriber` | public static class | Renders how long ago a received letter was written, for the read window's heading. |
 | `LetterArchivePolicy` | public static class | Archive-membership rules for a contact's letter correspondence (retention is unbounded by design). |
+| `LetterBoxEntry` | public class | One letter waiting in the box, as the box needs to place and mark it. |
+| `LetterBoxPolicy` | public static class | Subjects, urgency, silencing and order for the letter box. |
 | `LetterCadence` | public static class | The timing rules for NPC-initiated correspondence: whether an NPC may send another letter right now, and how long since they last had reason to (a proxy for the last meeting). |
 | `LetterCandidateFreshness` | public static class | How long a queued LetterCandidateIntent stays worth delivering before it is quietly retired instead. |
 | `LetterComposerState` | public class | The view-agnostic state of the courier window for one open session: its mode and the courier fee, and from those the widget visibility and the send eligibility. |

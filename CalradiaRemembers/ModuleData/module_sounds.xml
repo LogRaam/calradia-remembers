@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<base xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" type="module_sound">
+  <module_sounds>
+    <!-- Calradia Remembers' own sounds; the files sit in the module's ModuleSounds folder. The letter box's courier
+         sound: a letter through a house letterbox, chosen by Gabriel on 30/10/2026 (Pixabay, freesound_community
+         101145). Played by LetterBox.PlayArrivalSound. -->
+    <module_sound name="cr_letter_arrival" is_2d="true" sound_category="ui" path="cr_letter_arrival.ogg" />
+  </module_sounds>
+</base>

@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-650 rules read 488 facts.
+651 rules read 489 facts.
 
 ## Facts read by more than one rule
 
@@ -631,6 +631,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `LeaveHouseWording.GiveHerAllStanding`: `Hero.IsFemale`
 - `LeaveHouseWording.GiveHerAllTeaching`: `Hero.IsFemale`
 - `LeaveHouseWording.InquiryTitle`: `Hero.IsFemale`
+- `LetterBoxPolicy.IsUrgent`: `Letter.Reason`
 - `LetterCandidate`: `Hero.Spouse`
 - `LetterCandidateFreshness.PremiseStillHolds`: `Hero.MapFaction`
 - `LetterDeliveryPolicy.ShouldHoldDeliveryAtSea`: `MobileParty.IsCurrentlyAtSea`

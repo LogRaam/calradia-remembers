@@ -59,5 +59,21 @@ namespace CalradiaRemembers.Tests
             LetterArchivePolicy.HasCorrespondence(new List<PendingLetter> { Incoming(10, delivered: false) }, null)
                 .Should().BeFalse();
         }
-    }
+
+        // STAKE: Gabriel (30/10/2026), "une lettre lue est enlevee de la boite aux lettres". A letter still waiting in the
+        // box, or thrown away unread, is not readable in the letter book, or the box's count and the book would disagree
+        // about what the player has read.
+        [Test]
+        public void GIVEN_a_letter_waiting_in_the_box_or_thrown_away_WHEN_the_book_is_built_THEN_it_is_not_in_it()
+        {
+            PendingLetter waiting = Incoming(3);
+            waiting.InBox = true;
+            PendingLetter thrown = Incoming(4);
+            thrown.ThrownAway = true;
+
+            LetterArchivePolicy.IsArchived(waiting).Should().BeFalse();
+            LetterArchivePolicy.IsArchived(thrown).Should().BeFalse();
+            LetterArchivePolicy.IsArchived(Incoming(5)).Should().BeTrue();
+        }
+}
 }

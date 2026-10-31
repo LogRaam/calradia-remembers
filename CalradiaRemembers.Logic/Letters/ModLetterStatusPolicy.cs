@@ -21,6 +21,9 @@ namespace CalradiaRemembers.Logic.Letters
 
         /// <summary>The player read it and set it aside without replying.</summary>
         public bool SetAside { get; init; }
+
+        /// <summary>It reached the player and waits, unopened, in the letter box (since 2.8.0).</summary>
+        public bool InBox { get; init; }
     }
 
     /// <summary>The status words CrLetters.GetStatus answers with.</summary>
@@ -35,7 +38,13 @@ namespace CalradiaRemembers.Logic.Letters
         /// <summary>Its courier was lost; it has not reached the player.</summary>
         public const string Lost = "lost";
 
-        /// <summary>The player has it, and has neither answered nor set it aside.</summary>
+        /// <summary>
+        ///   It reached the player and waits unopened in the letter box (since 2.8.0, the letter box): what tashmetu asked to
+        ///   tell from "read" (20/10/2026). A letter thrown away unread reads <see cref="SetAsideStatus" />.
+        /// </summary>
+        public const string InTheBox = "in_box";
+
+        /// <summary>The player has read it, and has neither answered nor set it aside.</summary>
         public const string Delivered = "delivered";
 
         /// <summary>The player read it and set it aside without replying.</summary>
@@ -50,6 +59,7 @@ namespace CalradiaRemembers.Logic.Letters
             if (f == null) return Unknown;
             if (f.HasReply) return Answered;
             if (f.SetAside) return SetAsideStatus;
+            if (f.IsDelivered && f.InBox) return InTheBox;
             if (f.IsDelivered) return Delivered;
 
             return f.IsLost ? Lost : OnTheRoad;

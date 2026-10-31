@@ -256,12 +256,14 @@ string id = CrLetters.DeliverWithId(lord, body, "MyMod");
 CrLetters.Replied  += (letterId, sender, reply) => { if (letterId == id) { /* the player's own words */ } };
 CrLetters.SetAside += (letterId, sender)        => { if (letterId == id) { /* read, not answered */ } };
 
-string status = CrLetters.GetStatus(id);  // "on_the_road", "lost", "delivered", "set_aside", "answered", "unknown"
+string status = CrLetters.GetStatus(id);  // "on_the_road", "lost", "in_box", "delivered", "set_aside", "answered", "unknown"
 string reply  = CrLetters.GetReply(id);   // the reply's text, or null
 ```
 
 Both events are raised for every mod's letters: compare the id. `SetAside` is raised once, when the player
-acknowledges the letter without replying; a letter still `delivered` has not been dealt with yet. `lost` means its
+acknowledges the letter without replying, or throws it away unread from the letter box; a letter still `delivered` has
+been read but not dealt with yet. Since 2.8.0 a letter that reached the player but waits unopened in the letter box is
+`in_box` (it was `delivered` before the box). `lost` means its
 courier was lost and CR sends it again. All of these name no Calradia Remembers type, so a mod that keeps CR optional
 can use them (see the regard sources below). Letters delivered before 2.7.19 have no id.
 

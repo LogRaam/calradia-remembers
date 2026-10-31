@@ -165,6 +165,8 @@
     <string id="CR_MCM_NpcCrossTalkRounds_Hint" text="How many times NPCs may talk amongst themselves (one reacting to another) before the turn comes back to you, in a scene with witnesses. 2 is the default; 0 turns it off so only the NPC you spoke to replies. Applies on your next message." />
     <string id="CR_MCM_LetterPacing" text="Letters from NPCs" />
     <string id="CR_MCM_LetterPacing_Hint" text="How many unprompted letters NPCs send you. Fewer keeps only what matters. With The World's Initiative on, it sets how much of its turns letters get. Applies immediately." />
+    <string id="CR_MCM_LetterArrival" text="When a letter arrives" />
+    <string id="CR_MCM_LetterArrival_Hint" text="In the letter box: it waits, unopened, under the letter icon on the map bar, and the courier's sound plays. Open it at once: the letter window opens as soon as it arrives, as before the box." />
     <string id="CR_MCM_InvulnerableCouriers" text="Invulnerable Couriers" />
     <string id="CR_MCM_InvulnerableCouriers_Hint" text="Off: couriers can be intercepted by bandits or by the sender's enemies. A lost letter is sent again, and what it said travels with its captors to whoever beats them. On: no interception." />
     <string id="CR_MCM_AllowCaptorExecutions" text="Allow Captor Executions" />

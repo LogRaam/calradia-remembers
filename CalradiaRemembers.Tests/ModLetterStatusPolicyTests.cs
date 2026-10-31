@@ -59,5 +59,13 @@ namespace CalradiaRemembers.Tests
       {
          ModLetterStatusPolicy.Of(null).Should().Be(ModLetterStatusPolicy.Unknown);
       }
-   }
+
+      // STAKE: tashmetu asked to tell "read" from "not read yet" (20/10/2026); since the letter box (2.8.0), a letter that
+      // reached the player but waits unopened says so, rather than "delivered" as though it had been read.
+      [Test]
+      public void GIVEN_a_letter_waiting_unopened_in_the_letter_box_WHEN_asked_THEN_it_is_in_the_box()
+      {
+         ModLetterStatusPolicy.Of(new ModLetterFacts {IsDelivered = true, InBox = true}).Should().Be(ModLetterStatusPolicy.InTheBox);
+      }
+}
 }

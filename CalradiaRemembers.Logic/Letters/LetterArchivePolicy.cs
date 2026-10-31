@@ -20,9 +20,14 @@ namespace CalradiaRemembers.Logic.Letters
     /// <summary>Archive-membership rules for a contact's letter correspondence (retention is unbounded by design).</summary>
     public static class LetterArchivePolicy
     {
-        /// <summary>An NPC-&gt;player letter counts as archived correspondence: delivered, not lost, with a body.</summary>
+        /// <summary>
+        ///   An NPC-&gt;player letter counts as archived correspondence: delivered, not lost, with a body, and READ: a letter
+        ///   still waiting in the letter box, or thrown away unread, is not in the book (Gabriel, 30/10/2026: "une lettre lue
+        ///   est enlevee de la boite aux lettres"; a letter readable in the book while still counted in the box would let
+        ///   the count drift).
+        /// </summary>
         public static bool IsArchived(PendingLetter letter)
-            => letter != null && letter.IsDelivered && !letter.IsLost && !string.IsNullOrWhiteSpace(letter.Content);
+            => letter != null && letter.IsDelivered && !letter.IsLost && !letter.InBox && !letter.ThrownAway && !string.IsNullOrWhiteSpace(letter.Content);
 
         /// <summary>A player-&gt;NPC letter counts as archived correspondence: delivered, not lost, with a body.</summary>
         public static bool IsArchived(PlayerLetter letter)
