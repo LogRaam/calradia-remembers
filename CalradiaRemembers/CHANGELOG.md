@@ -11,7 +11,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   into its shadows..."). The game now writes a short title ("Scout Sargot from inside (Dnin)") and a first line "What to
   do:" for every kind of task: where to go, whom to see, what counts (being declared on does not count for a war to
   declare, a bought weapon does not count for one to forge, a letter is delivered through "I bear a message for you"),
-  whether the reward waits with the giver or is settled on the spot, and the deadline as the game shows dates (the
+  whether the reward waits with the giver or is settled on the spot, and the deadline as the game shows dates, the day itself included (the
   engine's own countdown is hidden for these tasks). The giver's words stay underneath, as theirs. Each line follows
   the deed's real check, traced in the code the same day. The title is read live, so tasks already under way get it;
   their "What to do" line is added once at session launch, silently. `QuestJournalText` (Logic),

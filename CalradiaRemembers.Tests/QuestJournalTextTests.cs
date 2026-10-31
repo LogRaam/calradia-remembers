@@ -92,14 +92,14 @@ namespace CalradiaRemembers.Tests
       }
 
       // The deadline is enforced but the engine's own countdown is hidden for these tasks, so the line is the only place
-      // the player sees it.
+      // the player sees it; the deadline day itself still counts, so "before" would steal a day.
       [Test]
       public void GIVEN_a_task_with_a_deadline_WHEN_shown_THEN_the_deadline_is_in_the_steps()
       {
          var facts = ScoutSargot();
          facts.DeadlineText = "Summer 12, 1085";
 
-         QuestJournalText.WhatToDo(facts).Should().EndWith("Do it before Summer 12, 1085.");
+         QuestJournalText.WhatToDo(facts).Should().EndWith("Do it by Summer 12, 1085.");
       }
 
       // The giver's words stay, as theirs: the flavour is kept, never mistaken for the instructions.
@@ -122,9 +122,16 @@ namespace CalradiaRemembers.Tests
                RequiredCount = 10, GoodsLabel = "grain", RequiredItemValue = 2000, RequiredGold = 750, AdvanceGold = 3000, CultureName = "Vlandian"
             };
 
-            QuestJournalText.Title(facts).Should().NotBeNullOrWhiteSpace($"{type} needs a title");
+            if (type != QuestType.External) QuestJournalText.Title(facts).Should().NotBeNullOrWhiteSpace($"{type} needs a title");
             QuestJournalText.WhatToDo(facts).Should().StartWith(QuestJournalText.WhatToDoPrefix, $"{type} needs steps");
          }
+      }
+
+      // A task from another mod keeps that mod's own words as its title: a generic one would erase the only name it has.
+      [Test]
+      public void GIVEN_a_task_from_another_mod_WHEN_titled_THEN_its_own_words_stay_the_title()
+      {
+         QuestJournalText.Title(new QuestJournalFacts {Type = QuestType.External, GiverName = "Dnin"}).Should().BeNull();
       }
 
       // A fact the steps need is missing (an old save, a target never bound): no line rather than a line with a hole in

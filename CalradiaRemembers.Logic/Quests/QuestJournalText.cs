@@ -87,7 +87,8 @@ namespace CalradiaRemembers.Logic.Quests
             string steps = Steps(f);
             if (steps == null) return null;
 
-            string deadline = string.IsNullOrWhiteSpace(f.DeadlineText) ? "" : $" Do it before {f.DeadlineText}.";
+            // The deadline day itself still counts (QuestService expires the day after), so "by", never "before".
+            string deadline = string.IsNullOrWhiteSpace(f.DeadlineText) ? "" : $" Do it by {f.DeadlineText}.";
 
             return WhatToDoPrefix + steps + deadline;
         }
@@ -125,7 +126,7 @@ namespace CalradiaRemembers.Logic.Quests
                 case QuestType.DeliverItems: return "Pay in goods";
                 case QuestType.DeliverPrisoner: return h != null ? $"Hand over {h}" : r != null ? $"Hand over a lord of {r}" : null;
                 case QuestType.DeclareWar: return r == null ? null : $"Declare war on {r}";
-                case QuestType.External: return "Carry out a task";
+                case QuestType.External: return null; // the other mod's own words are the only name such a task has
                 case QuestType.ProvideGoods: return f.RequiredCount <= 0 ? null : $"Bring {f.RequiredCount} {Goods(f)}";
                 case QuestType.EarnRegard: return h == null ? null : $"Win the good graces of {h}";
                 case QuestType.PleadCase: return h == null ? null : $"Plead the case before {h}";

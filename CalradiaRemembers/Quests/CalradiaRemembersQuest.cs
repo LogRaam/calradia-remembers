@@ -103,7 +103,7 @@ namespace CalradiaRemembers.Quests
          get
          {
             InformalQuest live = ResolveLiveQuest();
-            string plain = live == null ? null : QuestJournalText.Title(FactsOf(live, QuestGiver));
+            string plain = live == null ? null : QuestJournalText.Title(FactsOf(live, QuestGiver, forTitle: true));
 
             return new TextObject(plain ?? Mapping.ShownText.Of(live?.Description ?? _questKey));
          }
@@ -111,22 +111,41 @@ namespace CalradiaRemembers.Quests
 
       /// <summary>
       ///   Gives a journal opened before the plain steps existed its "What to do" line, once (session launch). Silent:
-      ///   no "quest updated" notice for a line the player did nothing to earn.
+      ///   no "quest updated" notice for a line the player did nothing to earn. A deed already done gets none: the line
+      ///   would land under "Done: ... return to X" and send the player to do it again. True when the entry now holds it.
       /// </summary>
-      internal void EnsurePlainSteps()
+      internal bool EnsurePlainSteps()
       {
-         if (JournalEntries.Any(j => j?.LogText?.ToString().StartsWith(QuestJournalText.WhatToDoPrefix) == true)) return;
+         if (HasPlainSteps) return true;
 
          InformalQuest live = ResolveLiveQuest();
-         string plain = live == null ? null : WhatToDoFor(live, QuestGiver);
-         if (plain == null) return;
+         if (live == null || !live.IsOutstanding) return false;
+
+         string plain = WhatToDoFor(live, QuestGiver);
+         if (plain == null) return false;
 
          AddLog(new TextObject(plain), hideInformation: true);
          ModLog.Info($"[QUEST-JOURNAL] plain steps added to '{_questKey}'.");
+
+         return true;
+      }
+
+      /// <summary>Whether this entry already holds its "What to do" line.</summary>
+      internal bool HasPlainSteps => JournalEntries.Any(j => j?.LogText?.ToString().StartsWith(QuestJournalText.WhatToDoPrefix) == true);
+
+      /// <summary>Whether this entry SHOULD hold the line: its task resolves, is still to do, and has the facts for it.</summary>
+      internal bool OwesPlainSteps
+      {
+         get
+         {
+            InformalQuest live = ResolveLiveQuest();
+
+            return live != null && live.IsOutstanding && WhatToDoFor(live, QuestGiver) != null;
+         }
       }
 
       /// <summary>The facts the plain title and steps are written from, read off the live task.</summary>
-      internal static QuestJournalFacts FactsOf(InformalQuest quest, Hero giver) => new() {
+      internal static QuestJournalFacts FactsOf(InformalQuest quest, Hero giver, bool forTitle = false) => new() {
          Type = quest.Type,
          GiverName = giver?.Name?.ToString(),
          TargetSettlement = quest.TargetSettlement,
@@ -139,7 +158,7 @@ namespace CalradiaRemembers.Quests
          RequiredGold = quest.RequiredGold,
          AdvanceGold = quest.AdvanceGold,
          CultureName = quest.RequiredCultureName,
-         DeadlineText = quest.DeadlineDay.HasValue ? CampaignTime.Days(quest.DeadlineDay.Value).ToString() : null,
+         DeadlineText = !forTitle && quest.DeadlineDay.HasValue ? CampaignTime.Days(quest.DeadlineDay.Value).ToString() : null,
          ExternalSourceMod = quest.ExternalSourceMod
       };
 
