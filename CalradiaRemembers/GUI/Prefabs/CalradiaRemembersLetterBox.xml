@@ -61,7 +61,7 @@
                                                   StackLayout.LayoutMethod="VerticalTopToBottom">
                               <ItemTemplate>
                                 <ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginTop="6" MarginBottom="6"
-                                           StackLayout.LayoutMethod="VerticalTopToBottom">
+                                           MarginRight="18" StackLayout.LayoutMethod="VerticalTopToBottom">
                                   <Children>
 
                                     <ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
@@ -148,7 +148,7 @@
                                                   StackLayout.LayoutMethod="VerticalTopToBottom">
                               <ItemTemplate>
                                 <ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginTop="4" MarginBottom="4"
-                                           StackLayout.LayoutMethod="HorizontalLeftToRight">
+                                           MarginRight="18" StackLayout.LayoutMethod="HorizontalLeftToRight">
                                   <Children>
                                     <CrRuntimeImageWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="56" SuggestedHeight="46"
                                                           VerticalAlignment="Center" ImagePath="@SilencedImagePath" IsDisabled="true" />
@@ -160,10 +160,10 @@
                                       <Children>
                                         <ListPanel WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" StackLayout.LayoutMethod="HorizontalLeftToRight">
                                           <Children>
-                                            <CrRuntimeImageWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="26" SuggestedHeight="28"
+                                            <CrRuntimeImageWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="22" SuggestedHeight="23"
                                                                   VerticalAlignment="Center" ImagePath="@UndoImagePath" />
-                                            <TextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" MarginLeft="8"
-                                                        Brush="@BodyBrush" Brush.FontSize="17" Brush.FontColor="#3A240CFF" Text="@UndoText" />
+                                            <TextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" MarginLeft="6"
+                                                        Brush="@BodyBrush" Brush.FontSize="13" Brush.FontColor="#3A240CFF" Text="@UndoText" />
                                           </Children>
                                         </ListPanel>
                                       </Children>
