@@ -5930,3 +5930,31 @@ list. Not in the first version: writing the text only on first opening (breaks c
 of what he wrote). To check before building: whether MapNavigationItemVM already shows a count or alert; how a module
 registers its own sound (module_sounds.xml, SoundEvent).
 The courier sound is CHOSEN (Gabriel, 30/10/2026): a letter dropping through a house letterbox, freesound_community-letter-from-a-house-letterbox-101145.mp3 (Pixabay, 0.84 s; his Downloads/Music), to ship as ModuleSounds/cr_letter_arrival.ogg (leading silence trimmed, 0.55 s, vorbis 44.1 kHz). Lyria 3 Clip (OpenRouter, 0.04 USD a clip) was tried first: it composes 25-30 s of music whatever the prompt, no sound effects. Engine 1.4.8 (TaleWorlds.Engine.SoundEvent): PlaySound2D(string), GetEventIdFromString, CreateEventFromExternalFile; the module route (a module_sound entry in ModuleData/module_sounds.xml, the file under ModuleSounds/) is loaded natively and is unproven here until a cr.test plays it.
+
+**The letter box, final design (Gabriel, 30/10/2026; SUPERSEDES the Courier section by family, the mailbox lottery and
+"default = immediate opening" above). Ships in 2.8.0 (the open version, renamed from 2.7.22 the same day).**
+Gabriel: "toutes les lettres sont envoyees et vont dans la boite aux lettres [...] plus besoin de reduire la frequence ou
+le nombre de lettres, c'est le joueur qui classe, elimine, abonne et desabonne les conversations par lettres."
+- Every letter that passes its own rules (its trigger, the per-sender wait) is sent; the mailbox budget, the weights, the
+  aging and the diversity roll go (once the box exists). Letters leave the world's initiative: a letter waiting in a box
+  interrupts no one; the director keeps only what comes to the player in person.
+- Everything goes into the box, with the courier sound; nothing opens by itself (Gabriel: "tout dans la boite avec le
+  son"). The old immediate opening stays an MCM choice.
+- The box lists letters by order of arrival. Icons: urgent (war summons and levy, prisoner offer, divorce and its
+  escalation, blackmail, jealous threat, child support), ribbon (an awaited correspondent), none for the rest. A letter
+  read leaves the box for the letter book. Letters never age.
+- Throwing a letter away = "the player no longer wants to hear of this subject from this sender": the pair sender +
+  subject (the family of the reason: divorce demand and escalation are one subject, a love letter and "you did not
+  answer me" another) is silenced. It silences the LETTER, not the person: the jealous husband stays jealous, his duel
+  or ambush still comes; the sender cannot know (NPCs never lie), no regard lost. Urgent letters may be thrown too
+  (Gabriel: "oui"), with a warning that what they announce is unchanged (a thrown war summons keeps its deadline).
+  Undo: on each correspondent's page of the letter book, beside the ribbon, the silenced subjects with "accept their
+  letters on this again".
+- The text is written only when the letter is first opened (Gabriel: "oui"): the envelope (sender, subject, day) travels;
+  a letter thrown unread costs nothing. To rework: the courier secret (write the text when the letter is intercepted)
+  and the sender's memory of what he wrote (filed at opening, or from the subject until then).
+- Kept: the sender's arrival rules (MarkReceived at arrival; an unread letter is an unanswered one), IsRead additive
+  (old saves: every delivered letter read), the per-sender wait (an MCM setting), CrLetters.RegisterVeto for other mods.
+- Order of work: (1) StanceFavor letters rotate several fixed texts (Gabriel: "textes fixes, pas de delais ni de couts";
+  the identical "I count you a friend" from every lord in 2.7.21); (2) the box: icon, count, sound, silencing (Opus);
+  (3) writing at opening; (4) the budget and the draw removed.
