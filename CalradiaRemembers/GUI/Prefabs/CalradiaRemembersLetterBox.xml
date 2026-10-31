@@ -181,7 +181,21 @@
                   </Children>
                 </ChatScrollablePanel>
 
-                <Standard.VerticalScrollbar Id="BoxScrollbar" HeightSizePolicy="StretchToParent" HorizontalAlignment="Right" MarginRight="0" />
+                <!-- A bare scrollbar: Standard.VerticalScrollbar keeps its dark bed and stoppers when the engine's AutoHide
+                     hides the bar, which left a dark column down the parchment (Gabriel, 31/10/2026: "on la cache"). Here
+                     the hidden bar is all there is, so a list that fits shows nothing. -->
+                <Widget Id="BoxScrollbar" WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" SuggestedWidth="22" HorizontalAlignment="Right">
+                  <Children>
+                    <ScrollbarWidget Id="Scrollbar" WidthSizePolicy="Fixed" HeightSizePolicy="StretchToParent" SuggestedWidth="22"
+                                     HorizontalAlignment="Left" VerticalAlignment="Bottom" Brush="Scrollbar.Vertical" AlignmentAxis="Vertical"
+                                     Handle="ScrollbarHandle" MaxValue="100" MinValue="0" UpdateChildrenStates="true">
+                      <Children>
+                        <ImageWidget Id="ScrollbarHandle" WidthSizePolicy="Fixed" SuggestedWidth="20" HorizontalAlignment="Center" VerticalAlignment="Top"
+                                     Brush="Scrollbar.Vertical.Handle" MinHeight="50" />
+                      </Children>
+                    </ScrollbarWidget>
+                  </Children>
+                </Widget>
 
               </Children>
             </Widget>
