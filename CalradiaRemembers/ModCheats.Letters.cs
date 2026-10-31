@@ -274,7 +274,7 @@ namespace CalradiaRemembers
          if (hero == null) return "No NPC found. Pass a name fragment or start a conversation first.";
 
          NpcProfile profile = GetOrCreateProfile(behavior, hero);
-         LetterPopupManager.Show(BuildTestLetter(hero, behavior.GameStateBridge.GetCurrentGameDay()), profile);
+         DeliverTestLetter(BuildTestLetter(hero, behavior.GameStateBridge.GetCurrentGameDay()), profile);
 
          return $"Delivered a test letter from {hero.Name} to the parchment window (read mode).";
       }
@@ -308,7 +308,7 @@ namespace CalradiaRemembers
          NpcProfile profile = GetOrCreateProfile(behavior, hero);
          PendingLetter letter = BuildTestLetter(hero, behavior.GameStateBridge.GetCurrentGameDay());
          letter.Content = BuildLongBody(hero, paragraphs);
-         LetterPopupManager.Show(letter, profile);
+         DeliverTestLetter(letter, profile);
 
          return $"Delivered a {paragraphs}-paragraph letter from {hero.Name}. Scroll it (raise UI Scale first to engage the fit zoom).";
       }
@@ -404,7 +404,7 @@ namespace CalradiaRemembers
          NpcProfile profile = GetOrCreateProfile(behavior, hero);
          PendingLetter letter = BuildTestLetter(hero, behavior.GameStateBridge.GetCurrentGameDay());
          letter.Content = body.ToString();
-         LetterPopupManager.Show(letter, profile);
+         DeliverTestLetter(letter, profile);
 
          return $"Delivered a letter with {blocks} of {GlyphBlocks.Length} glyph block(s) from {hero.Name}. " +
                 "Scroll it. If it crashes, halve the count to find the script that does it.";
@@ -488,7 +488,7 @@ namespace CalradiaRemembers
          }
 
          behavior.Store.Set(profile);
-         LetterPopupManager.Show(BuildTestLetter(hero, today), profile);
+         DeliverTestLetter(BuildTestLetter(hero, today), profile);
 
          return $"Seeded {exchanges} exchange(s) with {hero.Name} and opened the book. Scroll the LEFT page. " +
                 "Undo with: cr.letter_history clear";
@@ -767,7 +767,7 @@ namespace CalradiaRemembers
                DeliveryDay = today,
                IsDelivered = true
             };
-            LetterPopupManager.Show(serviceLetter, profile);
+            DeliverTestLetter(serviceLetter, profile);
 
             return $"Opened a ServiceOffer letter from {named.Name} (Accept warms the bond, light hook).";
          }
@@ -792,12 +792,22 @@ namespace CalradiaRemembers
             DeliveryDay = today,
             IsDelivered = true
          };
-         LetterPopupManager.Show(offer, buyerProfile);
+         DeliverTestLetter(offer, buyerProfile);
 
          return $"Opened a PrisonerOffer from {buyer.Name} to buy {captive.Name} for {amount} denars (Accept settles the ransom).";
       }
 
       /// <summary>A synthetic delivered letter for the cr.letter_* test commands.</summary>
+      /// <summary>
+      ///   A test letter arrives as a real one does: held in its sender's letters, which is where the letter box looks
+      ///   (Gabriel's test, 31/10/2026: the arrival notice and no letter in the box, the letter being held nowhere).
+      /// </summary>
+      private static void DeliverTestLetter(PendingLetter letter, NpcProfile sender)
+      {
+         if (sender.SentLetters != null && !sender.SentLetters.Contains(letter)) sender.SentLetters.Add(letter);
+         LetterPopupManager.Show(letter, sender);
+      }
+
       private static PendingLetter BuildTestLetter(Hero hero, int today) => new() {
          SenderId = hero.StringId,
          SenderName = hero.Name?.ToString(),

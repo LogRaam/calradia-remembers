@@ -21,7 +21,7 @@ namespace CalradiaRemembers
       [CommandLineFunctionality.CommandLineArgumentFunction("letter_sound", "cr")]
       public static string PlayLetterSound(List<string> args)
       {
-         LetterBox.ResetForSession();
+         LetterBox.ForgetSoundSpacing(); // never ResetForSession: it would drop an envelope being written
          bool played = LetterBox.PlayArrivalSound();
 
          return played

@@ -313,6 +313,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   and passed over, the same source replaces its veto). Documented in EXTENSION_API.md. cr.test `conception_veto`.
 
 ### Fixed
+- **The letter box, Gabriel's first play test (31/10/2026)**: `cr.letter_sound` made no sound, and a test letter
+  announced its arrival but never showed in the box nor on the badge. The courier's sound: the module sound did not
+  resolve, and the file road used `event:/ui/default`, which took the file and played nothing; it now uses
+  `event:/Extra/voiceover`, the engine's own event for a sound read from a file (vanilla plays its notification voice
+  lines through it on the map), keeps the event alive while it plays, and logs the module sound's id. The test letters
+  (`cr.letter_read`, `letter_long`, `letter_glyphs`, `letter_offer` and their kin) were never held in their sender's
+  letters, where the box looks; they are now (`DeliverTestLetter`). `cr.letter_sound` no longer resets the box's session
+  (it could drop an envelope being written). `cr.test letter_box` removes its own letters, so the box is empty after it.
 - **A lord's friendly letter is no longer the same words from every lord** (tashmetu, Nexus 30/10/2026, for two players
   with Bellum Civile's collection: "a crowd of lords writing [...] as if it made them lifelong friends"). The unbidden
   StanceFavor letter (StanceConsequenceBehavior, a regard hardened into friendship) was one fixed text for everyone.

@@ -58,6 +58,16 @@ namespace CalradiaRemembers.Letters
 
       private static int _lastSoundTick = int.MinValue;
 
+      // The file road's event, held so it is not collected mid-play, and released before the next one.
+      private static SoundEvent _arrivalEvent;
+
+      /// <summary>
+      ///   The engine's own programmer event for a sound read from a file: vanilla plays its notification voice lines through
+      ///   it with no scene, on the campaign map (SandBoxGauntletGameNotification). "event:/ui/default" took the file and
+      ///   played nothing (Gabriel's test, 31/10/2026).
+      /// </summary>
+      private const string ExternalFileEvent = "event:/Extra/voiceover";
+
       /// <summary>Raised when what waits in the box changes (a letter arrived, opened, thrown): the box and the map bar refresh.</summary>
       public static event Action Changed;
 
@@ -300,9 +310,10 @@ namespace CalradiaRemembers.Letters
 
          try
          {
-            if (SoundEvent.PlaySound2D(ArrivalSoundName))
+            int id = SoundEvent.GetEventIdFromString(ArrivalSoundName);
+            if (id >= 0 && SoundEvent.PlaySound2D(id))
             {
-               ModLog.Info("[SOUND] letter arrival: module sound played.");
+               ModLog.Info($"[SOUND] letter arrival: module sound played (id {id}).");
 
                return true;
             }
@@ -315,9 +326,10 @@ namespace CalradiaRemembers.Letters
                return false;
             }
 
-            SoundEvent ev = SoundEvent.CreateEventFromExternalFile("event:/ui/default", path, null, false, false);
-            bool played = ev != null && ev.IsValid && ev.Play();
-            ModLog.Info($"[SOUND] letter arrival: module sound did not play; external file {(played ? "played" : "did not play")}.");
+            try { _arrivalEvent?.Release(); } catch { /* an event the engine already let go */ }
+            _arrivalEvent = SoundEvent.CreateEventFromExternalFile(ExternalFileEvent, path, null, false, false);
+            bool played = _arrivalEvent != null && _arrivalEvent.IsValid && _arrivalEvent.Play();
+            ModLog.Info($"[SOUND] letter arrival: module sound did not play (id {id}); external file through {ExternalFileEvent} {(played ? "played" : "did not play")}.");
 
             return played;
          }
@@ -328,6 +340,9 @@ namespace CalradiaRemembers.Letters
             return false;
          }
       }
+
+      /// <summary>Lets the next arrival sound play at once (cr.letter_sound), touching nothing else.</summary>
+      internal static void ForgetSoundSpacing() => _lastSoundTick = int.MinValue;
 
       /// <summary>For a session start: forget the sound's spacing.</summary>
       internal static void ResetForSession()
