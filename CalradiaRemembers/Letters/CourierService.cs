@@ -732,7 +732,7 @@ namespace CalradiaRemembers.Letters
 
                // Past the deadline: stop chasing. A blank placeholder (LLM never filled it) is dropped so the
                // correspondent is not muted forever; a real letter has its courier released to the date fallback.
-               if (string.IsNullOrWhiteSpace(letter.Content)) letter.IsLost = true;
+               if (LetterEnvelopePolicy.DroppedAtCourierDeadline(letter)) letter.IsLost = true;
                Disband(FindCourier(letter.CourierPartyId));
                letter.CourierPartyId = null;
                changed = true;
@@ -1259,8 +1259,28 @@ namespace CalradiaRemembers.Letters
          MBInformationManager.AddQuickInformation(new TextObject(
             $"A courier from {reply.SenderName} {HowLost(loss)}. " + (resent ? $"{reply.SenderName} sends the letter again." : "Their letter is lost.")));
 
-         // Courier Inc 4a: what it said now travels with whoever took it.
-         if (CourierSecretPolicy.BecomesSecret(loss, reply.Content))
+         // Courier Inc 4a: what it said now travels with whoever took it. An envelope is written now, by the hand that wrote
+         // it the day it was sent, so its captors carry real words (and the letter sent again carries the same ones).
+         if (LetterEnvelopePolicy.IsUnwritten(reply) && loss != CourierLoss.Lost)
+         {
+            PendingLetter carried = reply;
+            NpcProfile writer = profile;
+            System.Threading.Tasks.Task<string> writing = LetterGenerationService.WriteEnvelopeAsync(carried, writer);
+            writing.ContinueWith(t => LetterMutationQueue.Post(() =>
+            {
+               string text = t.Status == System.Threading.Tasks.TaskStatus.RanToCompletion ? t.Result : null;
+               if (string.IsNullOrWhiteSpace(text)) return;
+               if (string.IsNullOrWhiteSpace(carried.Content)) carried.Content = text;
+               store.Set(writer);
+               if (CourierSecretPolicy.BecomesSecret(loss, carried.Content))
+                  CourierSecretBehavior.Instance?.Capture(new CarriedSecret {
+                     SenderId = writer.Id, SenderName = carried.SenderName ?? writer.Name,
+                     RecipientId = Hero.MainHero?.StringId, RecipientName = Hero.MainHero?.Name?.ToString(),
+                     Content = carried.Content, FromPlayer = false
+                  }, destroyer, loss);
+            }));
+         }
+         else if (CourierSecretPolicy.BecomesSecret(loss, reply.Content))
             CourierSecretBehavior.Instance?.Capture(new CarriedSecret {
                SenderId = profile.Id, SenderName = reply.SenderName ?? profile.Name,
                RecipientId = Hero.MainHero?.StringId, RecipientName = Hero.MainHero?.Name?.ToString(),

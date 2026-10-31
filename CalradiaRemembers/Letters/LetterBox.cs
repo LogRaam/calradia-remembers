@@ -9,8 +9,10 @@
 #region
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
@@ -161,19 +163,75 @@ namespace CalradiaRemembers.Letters
          ModLog.Info($"[LETTERBOX] {sender.Name}'s letter ({letter.Reason}) set aside unseen: the player silenced '{LetterBoxPolicy.SubjectOf(letter.Reason)}' from them.");
       }
 
-      /// <summary>Opens a waiting letter in the reading window; it leaves the box. False when the window is busy or it no longer waits.</summary>
+      // The envelope being written now (one at a time), and the texts that came back, applied on the game thread.
+      private static BoxedLetter _writing;
+      private static readonly ConcurrentQueue<KeyValuePair<BoxedLetter, string>> Written = new();
+
+      /// <summary>True while an envelope's text is being written for the player who opened it.</summary>
+      public static bool IsWriting => _writing != null;
+
+      /// <summary>
+      ///   Opens a waiting letter in the reading window; it leaves the box. An envelope is written first (the letter box,
+      ///   step 3, Gabriel 31/10/2026): the seal breaks now and the letter opens once its text comes back (Tick). False when
+      ///   the window is busy, another envelope is being written, or the letter no longer waits.
+      /// </summary>
       public static bool Open(BoxedLetter boxed)
       {
          if (boxed?.Letter == null || boxed.Sender == null || !boxed.Letter.InBox) return false;
-         if (LetterWindowManager.IsOpen) return false;
+         if (LetterWindowManager.IsOpen || _writing != null) return false;
 
+         if (LetterEnvelopePolicy.IsUnwritten(boxed.Letter))
+         {
+            _writing = boxed;
+            MBInformationManager.AddQuickInformation(new TextObject($"You break the seal of {boxed.Sender.Name}'s letter."));
+            ModLog.Info($"[LETTERBOX] writing {boxed.Sender.Name}'s envelope ({boxed.Letter.Reason}) as of day {boxed.Letter.SentOnDay}.");
+            LetterGenerationService.WriteEnvelopeAsync(boxed.Letter, boxed.Sender)
+               .ContinueWith(t => Written.Enqueue(new KeyValuePair<BoxedLetter, string>(boxed, t.Status == TaskStatus.RanToCompletion ? t.Result : null)));
+
+            return true;
+         }
+
+         Show(boxed);
+
+         return true;
+      }
+
+      /// <summary>
+      ///   Called from the application tick: an envelope's text that came back is put in the letter, its sender's memory gets
+      ///   its substance, and the letter opens. When the model did not answer, the letter stays in the box to try again.
+      /// </summary>
+      public static void Tick()
+      {
+         if (!Written.TryPeek(out KeyValuePair<BoxedLetter, string> done)) return;
+         if (LetterWindowManager.IsOpen || UI.CrPanelHost.AnyPanelOwnsScreen) return; // another panel first; it waits
+
+         Written.TryDequeue(out done);
+         _writing = null;
+         BoxedLetter boxed = done.Key;
+         string text = done.Value;
+
+         if (string.IsNullOrWhiteSpace(text))
+         {
+            MBInformationManager.AddQuickInformation(new TextObject($"{boxed.Sender?.Name}'s letter could not be read just now. It waits in the box."));
+            ModLog.Info($"[LETTERBOX] {boxed.Sender?.Name}'s envelope was not written (the model did not answer); it stays in the box.");
+            RaiseChanged();
+
+            return;
+         }
+
+         if (string.IsNullOrWhiteSpace(boxed.Letter.Content)) boxed.Letter.Content = text;
+         StoryLog.WriteLetterReceived(boxed.Letter.SenderName, boxed.Letter.Content, (int)CampaignTime.Now.ToDays);
+         LetterMemoryFinalizer.EnrichFromText(boxed.Sender, boxed.Letter, NpcMemoryCampaignBehavior.Instance);
+         if (boxed.Letter.InBox) Show(boxed);
+      }
+
+      private static void Show(BoxedLetter boxed)
+      {
          boxed.Letter.InBox = false;
          Store?.Set(boxed.Sender);
          ModLog.Info($"[LETTERBOX] opened {boxed.Sender.Name}'s letter ({boxed.Letter.Reason}).");
          RaiseChanged();
          LetterWindowManager.OpenRead(boxed.Letter, boxed.Sender);
-
-         return true;
       }
 
       /// <summary>
@@ -257,6 +315,8 @@ namespace CalradiaRemembers.Letters
       internal static void ResetForSession()
       {
          _lastSoundTick = int.MinValue;
+         _writing = null;
+         while (Written.TryDequeue(out _)) { }
          _dirty = true;
       }
 

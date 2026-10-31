@@ -40,7 +40,7 @@ namespace CalradiaRemembers.Letters
         ///   <see cref="LetterPopupManager.MarkReceived" />). The caller persists <paramref name="profile" />
         ///   again afterward if it goes on to mutate it further (matches the existing MarkReceived flow).
         /// </summary>
-        public static void RecordLetterMemory(
+        public static NotableEvent RecordLetterMemory(
             NpcProfile profile,
             LetterReason reason,
             string content,
@@ -49,7 +49,7 @@ namespace CalradiaRemembers.Letters
             NpcMemoryCampaignBehavior behavior,
             string writtenBy = null)
         {
-            if (profile == null || behavior?.Store == null) return;
+            if (profile == null || behavior?.Store == null) return null;
 
             // Gabriel (28/09/2026): a letter the lord had written in their name is still theirs to remember.
             string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
@@ -62,10 +62,12 @@ namespace CalradiaRemembers.Letters
             behavior.Store.Set(profile);
             ModLog.Info($"[LETTER MEMORY] base event recorded for {profile.Name}: \"{baseSummary}\"");
 
-            if (!LetterMemoryPolicy.ShouldRemember(reason)) return;
-            if (string.IsNullOrWhiteSpace(content) || behavior.LlmServices?.HousekeepingClient == null) return;
+            if (!LetterMemoryPolicy.ShouldRemember(reason)) return baseEvent;
+            if (string.IsNullOrWhiteSpace(content) || behavior.LlmServices?.HousekeepingClient == null) return baseEvent;
 
             _ = GenerateAndApplyAsync(behavior, profile.Id, baseEvent, content, npcIsSender, playerName, writtenBy);
+
+            return baseEvent;
         }
 
         /// <summary>
@@ -78,7 +80,28 @@ namespace CalradiaRemembers.Letters
             if (profile == null || letter == null || letter.SenderRemembers) return;
 
             letter.SenderRemembers = true;
-            RecordLetterMemory(profile, letter.Reason, letter.Content, true, today, behavior, letter.WrittenBy);
+            NotableEvent filed = RecordLetterMemory(profile, letter.Reason, letter.Content, true, today, behavior, letter.WrittenBy);
+            // An envelope has no text yet: its memory is enriched once the text is written (EnrichFromText).
+            if (letter.WrittenOnOpening && string.IsNullOrWhiteSpace(letter.Content)) letter.MemoryEventId = filed?.Id;
+        }
+
+        /// <summary>
+        ///   An envelope's text has just been written (the letter box, step 3, Gabriel 31/10/2026): the sender's memory of
+        ///   writing it, filed at sending from its occasion alone, now gets the letter's substance, once.
+        /// </summary>
+        public static void EnrichFromText(NpcProfile profile, PendingLetter letter, NpcMemoryCampaignBehavior behavior)
+        {
+            if (profile == null || letter == null || string.IsNullOrEmpty(letter.MemoryEventId) || string.IsNullOrWhiteSpace(letter.Content)) return;
+
+            string id = letter.MemoryEventId;
+            letter.MemoryEventId = null;
+            if (!LetterMemoryPolicy.ShouldRemember(letter.Reason) || behavior?.LlmServices?.HousekeepingClient == null) return;
+
+            NotableEvent anchor = profile.Events.Find(e => e.Id == id);
+            if (anchor == null) return;
+
+            string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
+            _ = GenerateAndApplyAsync(behavior, profile.Id, anchor, letter.Content, true, playerName, letter.WrittenBy);
         }
 
         #region private

@@ -69,7 +69,7 @@ namespace CalradiaRemembers.Letters
                 // "(The letter is blank.)". A letter with no body is not ready, so it is not due.
                 var candidates = profile.SentLetters
                     .Where(l => !l.IsDelivered && !l.IsLost
-                             && !string.IsNullOrWhiteSpace(l.Content)
+                             && LetterEnvelopePolicy.IsReadyToDeliver(l) // an envelope is ready unwritten
                              && string.IsNullOrEmpty(l.CourierPartyId)
                              && l.DeliveryDay <= today
                              && !LetterDeliveryPolicy.ShouldDeferDelivery(l.Reason, near))

@@ -3658,7 +3658,7 @@ namespace CalradiaRemembers.Mapping
       ///   Fail-soft: a hero the engine cannot find, or a bridge that is not up, yields the empty context the
       ///   letter used to send, never an exception on a background generation.
       /// </summary>
-      public static EncounterContext StandingContextFor(NpcProfile profile)
+      public static EncounterContext StandingContextFor(NpcProfile profile, int? historyKnownThrough = null)
       {
          try
          {
@@ -3676,7 +3676,9 @@ namespace CalradiaRemembers.Mapping
                // Letters take the same Task.Run path as a conversation, so a third-party variable provider must
                // be resolved here, on this thread, exactly as in Build (tashmetu, 21/09/2026).
                // A letter is built in full (its LeanLevel is left at the default), so its variables are too.
-               ExternalPromptVariables = ResolveExternalPromptVariables(hero, profile, LeanPromptLevel.Full)
+               ExternalPromptVariables = ResolveExternalPromptVariables(hero, profile, LeanPromptLevel.Full),
+               // An envelope written when opened knows only what its sender knew the day he sent it (31/10/2026).
+               HistoryKnownThrough = historyKnownThrough
             };
          }
          catch (Exception ex)

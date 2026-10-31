@@ -988,7 +988,8 @@ namespace CalradiaRemembers.Letters
                foreach (PendingLetter l in profile.SentLetters)
                {
                   if (l.Reason != scheduled.Reason) continue;
-                  if (!string.IsNullOrEmpty(l.Content)) { if (l.SentOnDay >= scheduled.SendDay) fulfilled = true; }
+                  // An envelope is a letter sent, though unwritten until opened (31/10/2026).
+                  if (LetterEnvelopePolicy.CountsAsSent(l)) { if (l.SentOnDay >= scheduled.SendDay) fulfilled = true; }
                   else if (!l.IsLost) inFlight = true;
                }
 

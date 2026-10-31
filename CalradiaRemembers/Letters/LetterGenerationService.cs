@@ -287,7 +287,9 @@ namespace CalradiaRemembers.Letters
       private static async Task<string> CallLlmForLetterAsync(
          LlmServices llmServices,
          NpcProfile profile,
-         string generationMessage)
+         string generationMessage,
+         int? asOfDay = null,
+         int? historyKnownThrough = null)
       {
          try
          {
@@ -304,11 +306,12 @@ namespace CalradiaRemembers.Letters
             // riding in a lord's retinue by a lord he had merely beaten in a tournament. The standing is the
             // one fact a letter cannot do without, and it is read on THIS thread with the rest of the
             // snapshot, because the bridge reads live campaign state.
-            EncounterContext standing = EncounterContextBuilder.StandingContextFor(profile);
+            EncounterContext standing = EncounterContextBuilder.StandingContextFor(profile, historyKnownThrough);
 
             var emptySession = new ChatSession();
             var world = new WorldState {
-               CurrentDay = (int) CampaignTime.Now.ToDays,
+               // An envelope is written as of the day it was sent, not the day it is opened (31/10/2026).
+               CurrentDay = asOfDay ?? (int) CampaignTime.Now.ToDays,
                Season = "",
                ActiveConflicts = ""
             };
@@ -442,6 +445,15 @@ namespace CalradiaRemembers.Letters
          // on the game thread, before the first await.
          string writtenBy = CorrespondenceRank.WrittenByFor(giverHero, profile, reason);
 
+         // The letter box (Gabriel, 31/10/2026, "oui go pour etape 3"): the letter travels as an envelope and its text is
+         // written when the player first opens it, so a letter thrown away or never opened costs no model call.
+         if (ModSettings.LettersKeptInBox)
+         {
+            SealEnvelope(profile, giverHero, reason, triggerContext, store, today, writtenBy, offerTargetId, offerAmount);
+
+            return;
+         }
+
          // Add a placeholder immediately so CanSendLetter sees a letter in-transit while the
          // LLM call is in flight, preventing duplicate letters from consecutive daily ticks.
          var placeholder = new PendingLetter {
@@ -492,6 +504,52 @@ namespace CalradiaRemembers.Letters
             store.Set(profile);
             ModLog.Info($"[LETTER] queued from {profile.Name} ({reason}), courier dispatches day {today}.");
          });
+      }
+
+      /// <summary>
+      ///   Sends an envelope: everything the text will be written from is composed NOW, on the day it is sent (the occasion,
+      ///   where the sender and the player are, the sender's mood), with the sender's memories counted so the text never
+      ///   knows what came after. The sender remembers writing it from today, as every letter's sender does since 26/09.
+      /// </summary>
+      private static void SealEnvelope(NpcProfile profile, Hero giverHero, LetterReason reason, string triggerContext,
+         BannerlordNpcMemoryStore store, int today, string writtenBy, string offerTargetId, int offerAmount)
+      {
+         string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
+         var envelope = new PendingLetter {
+            WrittenBy = writtenBy,
+            SenderId = profile.Id,
+            SenderName = profile.Name,
+            Reason = reason,
+            Content = null,
+            WrittenOnOpening = true,
+            EnvelopeMessage = LetterPromptBuilder.BuildInitialLetterMessage(
+               profile, reason, triggerContext, playerName, WhereaboutsFor(profile), PlayerSituationFor(profile), writtenBy,
+               Mapping.DayMoodReader.Draw(giverHero).Mood),
+            EnvelopeKnownThrough = profile.Events?.Count,
+            SentOnDay = today,
+            DispatchDay = today,
+            DeliveryDay = today + ComputeDeliveryDays(giverHero),
+            IsDelivered = false,
+            OfferTargetId = offerTargetId,
+            OfferAmount = offerAmount
+         };
+         profile.SentLetters.Add(envelope);
+         LetterMemoryFinalizer.RememberSending(profile, envelope, today, NpcMemoryCampaignBehavior.Instance);
+         store.Set(profile);
+         ModLog.Info($"[LETTER] envelope sealed by {profile.Name} ({reason}); its text is written when opened.");
+      }
+
+      /// <summary>
+      ///   Writes an envelope's text, as of the day it was sent and from what its sender knew then. Starts on the game thread
+      ///   (the prompt is read there); the text comes back off it, or null when the model did not answer.
+      /// </summary>
+      public static Task<string> WriteEnvelopeAsync(PendingLetter letter, NpcProfile profile)
+      {
+         LlmServices llm = NpcMemoryCampaignBehavior.Instance?.LlmServices;
+         if (letter == null || profile == null || llm?.ChatService == null || string.IsNullOrWhiteSpace(letter.EnvelopeMessage))
+            return Task.FromResult<string>(null);
+
+         return CallLlmForLetterAsync(llm, profile, letter.EnvelopeMessage, letter.SentOnDay, letter.EnvelopeKnownThrough);
       }
 
       private static async Task GeneratePlayerLetterReplyAsync(

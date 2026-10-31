@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 599 types in 64 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1429 types in 49 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1430 types in 49 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 278 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2171,7 +2171,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ScatteredLootLedger` | public class | Save-serializable carrier for every item currently scattered among bandit bands, awaiting recovery. |
 | `ScatteredLootPolicy` | public static class | Pure rules for recovering scattered captivity loot from defeated bandit bands. |
 
-### CalradiaRemembers.Logic.Letters (40)
+### CalradiaRemembers.Logic.Letters (41)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2195,6 +2195,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterDeliveryPolicy` | public static class | Pure gate deciding whether a letter should be delivered now, or held back because its sender is currently near the player. |
 | `LetterDirection` | public enum | Which side of the correspondence a thread entry sits on. |
 | `LetterDistancePolicy` | public static class | The distance (in courier travel days) at which a spouse or consort may write to lament the player's absence, as a graduated CHANCE: none while near, rising between NearDays and FarDays, and capped at MaxChancePercent so... |
+| `LetterEnvelopePolicy` | public static class | What a letter without text is: an envelope waiting to be opened, or a placeholder. |
 | `LetterFontPolicy` | public static class | Decides whether the parchment letter view should swap its decorative Latin font (Galahad) for a plain, glyph-complete one. |
 | `LetterIntentionPolicy` | public static class | Pure per-reason decision: does the intention that motivated this letter still hold at delivery time? |
 | `LetterLeakPolicy` | public static class | The substance bar an intercepted letter must clear to be anyone's secret. |

@@ -388,7 +388,7 @@ namespace CalradiaRemembers.Behaviors
             var orphans = new List<PendingLetter>();
             foreach (PendingLetter letter in profile.SentLetters)
             {
-               if (!string.IsNullOrWhiteSpace(letter.Content) || letter.DispatchDay != int.MaxValue || letter.IsDelivered) continue;
+               if (!Logic.Letters.LetterEnvelopePolicy.IsOrphanedPlaceholder(letter)) continue;
 
                orphans.Add(letter);
                ModLog.Info($"[LETTER] removing orphaned placeholder from {profile.Name} (LLM never responded last session).");

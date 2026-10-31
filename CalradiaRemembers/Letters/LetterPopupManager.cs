@@ -40,10 +40,11 @@ namespace CalradiaRemembers.Letters
             // The letter box (Gabriel, 30/10/2026): a subject the player threw away from this sender arrives unseen, and
             // every other letter waits in the box rather than opening a window. Neither ever defers: nothing is in the way.
             bool silenced = LetterBox.IsSilenced(senderProfile, letter.Reason);
-            if (silenced || ModSettings.LettersKeptInBox)
+            bool unwritten = Logic.Letters.LetterEnvelopePolicy.IsUnwritten(letter); // an envelope waits to be opened
+            if (silenced || unwritten || ModSettings.LettersKeptInBox)
             {
                 int arrival = (int)CampaignTime.Now.ToDays;
-                StoryLog.WriteLetterReceived(letter.SenderName, letter.Content ?? "(The letter is blank.)", arrival);
+                if (!unwritten) StoryLog.WriteLetterReceived(letter.SenderName, letter.Content ?? "(The letter is blank.)", arrival);
                 MarkReceived(letter, senderProfile, arrival);
 
                 if (silenced) LetterBox.SetAsideSilenced(letter, senderProfile);

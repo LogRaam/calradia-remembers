@@ -63,7 +63,8 @@ namespace CalradiaRemembers.Letters
       /// <summary>Called from the application tick: brings the box back once a letter opened from it has closed.</summary>
       public static void Tick()
       {
-         if (!_returnToBox || LetterWindowManager.IsOpen || CrPanelHost.AnyPanelOwnsScreen) return;
+         LetterBox.Tick(); // an envelope written for the player opens here
+         if (!_returnToBox || LetterBox.IsWriting || LetterWindowManager.IsOpen || CrPanelHost.AnyPanelOwnsScreen) return;
 
          _returnToBox = false;
          ModLog.Info("[LETTERBOX] the letter is closed; the box opens again.");

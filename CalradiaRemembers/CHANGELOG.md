@@ -31,6 +31,18 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   - A silenced subject is not written at all: it leaves the mailbox's daily pool (it no longer takes a wanted letter's
     place) and `QueueInitialLetter` refuses it before any model call; the arrival check stays as the backstop.
   - A patrol's report is never silenced either (the player decides on it whether the men come home).
+  - Step 3 (Gabriel, 31/10/2026: "oui go pour etape 3"): a letter now travels as an ENVELOPE and its text is written
+    when the player first opens it, so a letter thrown away or never opened costs no model call. Everything it is written
+    from is composed the day it is sent (the occasion, where the sender and the player were, the sender's mood) and the
+    text is written as of that day, from the memories its sender held then (`EnvelopeMessage`, `EnvelopeKnownThrough`, the
+    prompt's day = `SentOnDay`); only the regard and standing are read at opening. The sender remembers writing it from
+    the day it is sent (raphareish's rule), and that memory gets the letter's substance once the text exists
+    (`LetterMemoryFinalizer.EnrichFromText`). A courier taken by bandits or enemies writes the envelope then, so its
+    captors carry real words and the letter sent again carries the same ones. Opening breaks the seal ("You break the
+    seal of X's letter."); the letter opens a few seconds later, or stays in the box if the model did not answer.
+    `LetterEnvelopePolicy` (Logic) keeps the four places that read "no text" as "not ready" or "dead" from losing an
+    envelope (delivery, the session-start cleanup, a courier past its deadline, a scheduled letter). Applies with "In the
+    letter box"; "Open it at once" still writes at sending. Letters written before keep their text.
   - For modders: `CrLetters.GetStatus` answers `in_box` for a letter that reached the player unopened (it said
     `delivered`); throwing another mod's letter raises `CrLetters.SetAside`.
 - **Lords play their realm's strategy** (Gabriel, 29-30/10/2026: a lord's ambition is "tout ce qui renforcit son Clan ou
