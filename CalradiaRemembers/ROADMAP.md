@@ -5979,3 +5979,11 @@ Step 3, writing the text at first opening, NOT built: its consequences were neve
   seconds, or more with a slow model).
 - Gain: a letter thrown or never opened costs nothing. Without step 3, step 4 (removing the mailbox budget) would
   multiply what players pay, every letter being written at sending: step 4 waits for step 3.
+
+**Step 3 BUILT (31/10/2026, Gabriel: "oui go pour etape 3"), not play-verified:** SDK 1a68a9c, mod 1996246 + 2fb4c9d.
+Envelopes in box mode; written as of SentOnDay, cut at EnvelopeKnownThrough; the sender's memory filed at sending and
+enriched once written; a taken courier writes it then; LetterEnvelopePolicy guards the four "no text" readers; results
+wait for the campaign map and are dropped across sessions. Known gaps: regard, standing and other mods' variables are
+read at opening; a broken API key now fills the box with letters that cannot be opened (before, they were never sent);
+the memory cut is an index, so a memory compaction between sending and opening shifts it. Step 4 (removing the budget)
+NOT built and has no go: "Open it at once" still writes every letter at sending, so that mode must keep a budget.
