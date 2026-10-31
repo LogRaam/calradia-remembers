@@ -35,7 +35,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
     when the player first opens it, so a letter thrown away or never opened costs no model call. Everything it is written
     from is composed the day it is sent (the occasion, where the sender and the player were, the sender's mood) and the
     text is written as of that day, from the memories its sender held then (`EnvelopeMessage`, `EnvelopeKnownThrough`, the
-    prompt's day = `SentOnDay`); only the regard and standing are read at opening. The sender remembers writing it from
+    prompt's day = `SentOnDay`). Read at opening, not at sending: the regard, the standing, and other mods' prompt
+    variables (`StandingContextFor` resolves them then), so a bridge's realm facts can still be of the opening day. The sender remembers writing it from
     the day it is sent (raphareish's rule), and that memory gets the letter's substance once the text exists
     (`LetterMemoryFinalizer.EnrichFromText`). A courier taken by bandits or enemies writes the envelope then, so its
     captors carry real words and the letter sent again carries the same ones. Opening breaks the seal ("You break the

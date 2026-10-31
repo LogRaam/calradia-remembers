@@ -167,6 +167,10 @@ namespace CalradiaRemembers.Letters
       private static BoxedLetter _writing;
       private static readonly ConcurrentQueue<KeyValuePair<BoxedLetter, string>> Written = new();
 
+      // A text written for a campaign the player has since left must never land in the next one (31/10/2026).
+      private static int _session;
+      private static int _writingSession;
+
       /// <summary>True while an envelope's text is being written for the player who opened it.</summary>
       public static bool IsWriting => _writing != null;
 
@@ -183,6 +187,7 @@ namespace CalradiaRemembers.Letters
          if (LetterEnvelopePolicy.IsUnwritten(boxed.Letter))
          {
             _writing = boxed;
+            _writingSession = _session;
             MBInformationManager.AddQuickInformation(new TextObject($"You break the seal of {boxed.Sender.Name}'s letter."));
             ModLog.Info($"[LETTERBOX] writing {boxed.Sender.Name}'s envelope ({boxed.Letter.Reason}) as of day {boxed.Letter.SentOnDay}.");
             LetterGenerationService.WriteEnvelopeAsync(boxed.Letter, boxed.Sender)
@@ -203,7 +208,16 @@ namespace CalradiaRemembers.Letters
       public static void Tick()
       {
          if (!Written.TryPeek(out KeyValuePair<BoxedLetter, string> done)) return;
-         if (LetterWindowManager.IsOpen || UI.CrPanelHost.AnyPanelOwnsScreen) return; // another panel first; it waits
+         if (_writing == null || _writingSession != _session)
+         {
+            Written.TryDequeue(out _); // written for a campaign since left
+
+            return;
+         }
+
+         // Only on the campaign map: the application tick also runs inside a conversation or a battle (a mission), where a
+         // pushed letter window has no place. Another panel first, too; the letter waits.
+         if (!OnTheMap() || LetterWindowManager.IsOpen || UI.CrPanelHost.AnyPanelOwnsScreen) return;
 
          Written.TryDequeue(out done);
          _writing = null;
@@ -221,12 +235,16 @@ namespace CalradiaRemembers.Letters
 
          if (string.IsNullOrWhiteSpace(boxed.Letter.Content)) boxed.Letter.Content = text;
          StoryLog.WriteLetterReceived(boxed.Letter.SenderName, boxed.Letter.Content, (int)CampaignTime.Now.ToDays);
-         LetterMemoryFinalizer.EnrichFromText(boxed.Sender, boxed.Letter, NpcMemoryCampaignBehavior.Instance);
          if (boxed.Letter.InBox) Show(boxed);
       }
 
+      /// <summary>True when the campaign map is the active screen (not a mission, not a menu over it).</summary>
+      internal static bool OnTheMap() => Game.Current?.GameStateManager?.ActiveState is TaleWorlds.CampaignSystem.GameState.MapState;
+
       private static void Show(BoxedLetter boxed)
       {
+         // A letter written earlier (a courier taken on the road) gets its sender's memory enriched now, once.
+         LetterMemoryFinalizer.EnrichFromText(boxed.Sender, boxed.Letter, NpcMemoryCampaignBehavior.Instance);
          boxed.Letter.InBox = false;
          Store?.Set(boxed.Sender);
          ModLog.Info($"[LETTERBOX] opened {boxed.Sender.Name}'s letter ({boxed.Letter.Reason}).");
@@ -316,6 +334,7 @@ namespace CalradiaRemembers.Letters
       {
          _lastSoundTick = int.MinValue;
          _writing = null;
+         _session++;
          while (Written.TryDequeue(out _)) { }
          _dirty = true;
       }

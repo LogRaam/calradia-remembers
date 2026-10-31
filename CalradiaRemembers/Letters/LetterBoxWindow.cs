@@ -40,6 +40,15 @@ namespace CalradiaRemembers.Letters
       {
          if (Host.IsOpen || LetterWindowManager.IsOpen) return;
 
+         // A letter is being opened: the box would only hide it. It opens with the letter's return instead.
+         if (LetterBox.IsWriting)
+         {
+            TaleWorlds.Library.InformationManager.DisplayMessage(new TaleWorlds.Library.InformationMessage("A letter is being opened; the box follows it."));
+            _returnToBox = true;
+
+            return;
+         }
+
          _returnToBox = false;
          Host.Open();
       }
@@ -54,17 +63,23 @@ namespace CalradiaRemembers.Letters
       /// <summary>Reads one waiting letter: the box closes, the letter opens, and the box returns after.</summary>
       internal static void Read(BoxedLetter boxed)
       {
-         Close();
-         if (!LetterBox.Open(boxed)) return;
+         if (LetterBox.IsWriting)
+         {
+            TaleWorlds.Library.InformationManager.DisplayMessage(new TaleWorlds.Library.InformationMessage("Another letter is being opened; one at a time."));
 
+            return;
+         }
+
+         Close();
          _returnToBox = true;
+         if (!LetterBox.Open(boxed)) ModLog.Info("[LETTERBOX] the letter could not be opened now; the box returns.");
       }
 
       /// <summary>Called from the application tick: brings the box back once a letter opened from it has closed.</summary>
       public static void Tick()
       {
          LetterBox.Tick(); // an envelope written for the player opens here
-         if (!_returnToBox || LetterBox.IsWriting || LetterWindowManager.IsOpen || CrPanelHost.AnyPanelOwnsScreen) return;
+         if (!_returnToBox || LetterBox.IsWriting || !LetterBox.OnTheMap() || LetterWindowManager.IsOpen || CrPanelHost.AnyPanelOwnsScreen) return;
 
          _returnToBox = false;
          ModLog.Info("[LETTERBOX] the letter is closed; the box opens again.");
