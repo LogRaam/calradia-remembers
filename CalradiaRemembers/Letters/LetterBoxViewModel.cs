@@ -32,6 +32,12 @@ namespace CalradiaRemembers.Letters
 
       [DataSourceProperty] public string CloseButtonText => "Close";
 
+      /// <summary>Gabriel's painted panel (31/10/2026): the parchment, its frame, banner, seal and border.</summary>
+      [DataSourceProperty] public string PanelImagePath => Image("cr_mailbox_panel.jpg");
+
+      /// <summary>One of the letter box's pictures, in the module's GUI/Images.</summary>
+      internal static string Image(string file) => System.IO.Path.Combine(CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", file);
+
       [DataSourceProperty] public string EmptyText => "No letter waits. When a courier brings one, you will hear it, and it will wait here.";
 
       [DataSourceProperty] public string SilencedTitle => "Subjects you asked not to hear of again";
@@ -135,7 +141,13 @@ namespace CalradiaRemembers.Letters
 
       [DataSourceProperty] public string UrgentText => "URGENT";
 
-      [DataSourceProperty] public string RibbonImagePath => System.IO.Path.Combine(CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", "cr_ribbon.png");
+      [DataSourceProperty] public string RibbonImagePath => LetterBoxViewModel.Image("cr_ribbon.png");
+
+      [DataSourceProperty] public string EnvelopeImagePath => LetterBoxViewModel.Image("cr_mailbox_envelope.png");
+
+      [DataSourceProperty] public string OpenImagePath => LetterBoxViewModel.Image("cr_mailbox_open.png");
+
+      [DataSourceProperty] public string ThrowImagePath => LetterBoxViewModel.Image("cr_mailbox_throw.png");
 
       [DataSourceProperty] public string OpenText => "Open";
 
@@ -185,6 +197,10 @@ namespace CalradiaRemembers.Letters
       [DataSourceProperty] public string Line => $"{_sender?.Name}: {LetterBoxPolicy.SubjectLabel(_subject)}";
 
       [DataSourceProperty] public string UndoText => "Accept again";
+
+      [DataSourceProperty] public string SilencedImagePath => LetterBoxViewModel.Image("cr_mailbox_silenced.png");
+
+      [DataSourceProperty] public string UndoImagePath => LetterBoxViewModel.Image("cr_mailbox_accept_again.png");
 
       public void ExecuteUndo()
       {
