@@ -126,6 +126,28 @@ namespace CalradiaRemembers.Tests.Violence
             task.Should().NotContain("THE CONVERSATION SO FAR");
         }
 
+        // STAKE: the narrator writes of the character in the third person; told nothing, it guesses, and a woman
+        // killed in a scene written as "him" breaks the moment the player was promised.
+        [Test]
+        public void GIVEN_a_woman_and_her_house_WHEN_the_narrator_is_briefed_THEN_it_is_told_who_she_is_and_her_pronouns()
+        {
+            string task = KillAttemptPolicy.NarratorTask(new KillNarrationFacts {
+                VictimName = "Rhagaea", VictimLabel = "Rhagaea of the Pethros (Imperial)", VictimIsFemale = true
+            });
+
+            task.Should().Contain("Rhagaea of the Pethros (Imperial)").And.Contain("a woman (she, her)");
+        }
+
+        // STAKE: the character's note speaks to them as "you"; the player's name, not a pasted "you lunge", must say
+        // who tried, and a guarded failure must say who stopped it, so the answer fits what happened.
+        [Test]
+        public void GIVEN_a_guarded_failure_WHEN_the_character_is_told_THEN_it_names_the_player_and_who_stopped_it()
+        {
+            string hint = KillAttemptPolicy.ReactionHint(new KillNarrationFacts {PlayerName = "Zhen", Exposure = ViolenceExposure.Guarded});
+
+            hint.Should().Be("Zhen has just tried to kill you and failed, and those at your side stopped it. You are alive. Answer it now, as yourself.");
+        }
+
         // STAKE: the narrator reads only the last lines; a long conversation must not flood the call.
         [Test]
         public void GIVEN_a_long_conversation_WHEN_the_narrator_is_briefed_THEN_only_the_last_lines_are_read()

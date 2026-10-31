@@ -3722,6 +3722,7 @@ namespace CalradiaRemembers.Chat
          ChatVisualOffsetX = off
             ? slide
             : isCouncil ? 0f : -30f;
+         OnPropertyChanged(nameof(IsKillRollShown)); // the killing window steps aside with the chat
 
          // The portrait dossier is anchored to the right of the screen (not inside the sliding window), so it
          // would sit ON TOP of whatever screen just took focus (report: it overlapped the encyclopedia). Close

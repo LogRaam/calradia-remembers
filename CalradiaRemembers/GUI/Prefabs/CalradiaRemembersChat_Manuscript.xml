@@ -1265,7 +1265,7 @@
         <Widget Id="KillRollOverlay"
                 WidthSizePolicy="StretchToParent"
                 HeightSizePolicy="StretchToParent"
-                IsVisible="@IsKillRollVisible">
+                IsVisible="@IsKillRollShown">
           <Children>
             <ButtonWidget Id="KillRollGround"
                           WidthSizePolicy="StretchToParent"

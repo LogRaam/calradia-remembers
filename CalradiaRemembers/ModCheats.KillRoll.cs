@@ -37,7 +37,7 @@ namespace CalradiaRemembers
 
          if (!offered) return "This chat cannot hold the killing window now (another attempt open, the conversation over, a council, or not a character's conversation).";
 
-         return $"The killing window is open: chance {chance}, the roll will land on {shown} ({(killed ? "a kill" : "a failure")}). Nobody is harmed, but the scene and what follows are real: "
+         return $"The killing window is open: chance {chance}, the roll will land on {shown} ({(killed ? "a kill" : "a failure")}). Nobody is harmed, but the scene and what follows are real and stay in this character's conversation: "
                 + (killed ? "the conversation will end." : "the character will answer it.");
       }
    }

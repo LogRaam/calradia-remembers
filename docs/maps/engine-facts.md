@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-658 rules read 491 facts.
+659 rules read 492 facts.
 
 ## Facts read by more than one rule
 
@@ -118,6 +118,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `OwnerClan.Leader` (5) | `EdictDecreeFacts`, `EdictStandingFacts`, `HeroNaming`, `NotHisToSellFacts`, `RescueCaptorFacts` |
 | `Party.LeaderHero` (5) | `BattleRecordText.Summary`, `BattleWorthFacts`, `LiberationFacts`, `SkirmishFacts`, `SkirmishFoe` |
 | `PartyBelongedTo.Army` (5) | `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate`, `ReturnFacts` |
+| `Result.Killed` (5) | `KillAftermathFacts`, `KillAttemptPolicy.FallbackNarration`, `KillAttemptPolicy.NarratorTask`, `KillAttemptPolicy.ReactionHint`, `KillNarrationFacts` |
 | `Romantic.IsCompatibleWith` (5) | `CaptiveOfferFacts`, `JealousyTriggerPolicy.IsPlausibleCourtship`, `LoverCandidateFacts`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Romantic.Status` (5) | `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Settlement.IsCastle` (5) | `CommonerChatContext`, `CourierHirePlacePolicy.OfferedInTheMenu`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts` |
@@ -131,6 +132,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `EndCaptivityDetail.ReleasedByChoice` (4) | `CustodyReleaseFacts`, `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
 | `Event.Day` (4) | `PastCandidateFacts`, `PastOnMentionPolicy.Block`, `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
 | `Event.Summary` (4) | `PastCandidateFacts`, `PastOnMentionPolicy.Block`, `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
+| `Facts.Exposure` (4) | `KillAttemptPolicy.FallbackNarration`, `KillAttemptPolicy.NarratorTask`, `KillAttemptPolicy.ReactionHint`, `KillNarrationFacts` |
 | `GatePosition.ToVec2` (4) | `CompanionPatrolPolicy.ShouldReissue`, `CourierGateFacts`, `EscortCostPolicy.EscortPremium`, `PatrolLeashFacts` |
 | `GetPosition2D.DistanceSquared` (4) | `AuthoredMapTriggerPolicy.WhyNot`, `CaptureFacts`, `MapTriggerFacts`, `PrisonerMemoryText.Taken` |
 | `Hero.IsFactionLeader` (4) | `ManualActionAvailability.Describe`, `ManualActionFacts`, `ParleyEntryFacts`, `PeaceMediationPolicy.CanMediate` |
@@ -147,9 +149,9 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Profile.ReputationWithPlayer` (4) | `DelegatedRiskFacts`, `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion`, `PeaceMediationPolicy.Evaluate` |
 | `Provider.SelectedValue` (4) | `ProviderRolePolicy.ParseKind`, `ProviderRolePolicy.ResolveRoleKind`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `Requires.Village` (4) | `AuthoredCulturePolicy.Describe`, `AuthoredCulturePolicy.Matches`, `TaleVillagePolicy.Pick`, `TaleVillagePolicy.WhyNoneQuiet` |
-| `Result.Killed` (4) | `KillAftermathFacts`, `KillAttemptPolicy.FallbackNarration`, `KillAttemptPolicy.NarratorTask`, `KillNarrationFacts` |
 | `SocialStationReader.StationOf` (4) | `BrawlInitiativeFacts`, `BrawlPolicy.KindFor`, `DuelChallengeContext`, `DuelChallengePolicy.Evaluate` |
 | `Status.IsIntimateOrDeeper` (4) | `ManualActionAvailability.Describe`, `ManualActionAvailability.GetAvailable`, `ManualActionFacts`, `RegardProposal` |
+| `Target.IsFemale` (4) | `KillAttemptPolicy.FallbackNarration`, `KillAttemptPolicy.NarratorTask`, `KillAttemptPolicy.ReactionHint`, `KillNarrationFacts` |
 | `TroopRoster.GetTroopRoster` (4) | `CourtActionPolicy.IsPartyWeakened`, `PrisonerCustodyPolicy.HeldByPlayer`, `TroopGiftFacts`, `TroopLoanFacts` |
 | `Vec2.Distance` (4) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CourierStuckPolicy.HasMoved`, `GeographyDescriber.Bearing` |
 | `AgeModel.HeroComesOfAge` (3) | `CaptiveOfferFacts`, `ChildrenListText.Part`, `SharedPastPairFacts` |
@@ -163,7 +165,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `EndCaptivityDetail.ReleasedAfterPeace` (3) | `EnvoyReleaseFacts`, `PrisonerMemoryText.Released`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
 | `EndCaptivityDetail.ReleasedByCompensation` (3) | `EnvoyReleaseFacts`, `PrisonerMemoryText.Released`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
 | `Event.KnownOnlyToThoseInvolved` (3) | `PastCandidateFacts`, `PastOnMentionPolicy.Block`, `RumorDiscretion.TagFor` |
-| `Facts.Exposure` (3) | `KillAttemptPolicy.FallbackNarration`, `KillAttemptPolicy.NarratorTask`, `KillNarrationFacts` |
 | `Father.IsDead` (3) | `MattersMostFacts`, `MattersMostPolicy.Resolve`, `MattersMostPolicy.StillKnown` |
 | `GameStateBridge.GetCurrentGameDay` (3) | `ConversationResumeIdentity`, `JealousyTriggerPolicy.IsPlausibleCourtship`, `PendingSummaryJob` |
 | `Hero.BattleEquipment` (3) | `GiftEquipFacts`, `PlayerDressPolicy.Classify`, `ScatteredLootItem` |
@@ -625,10 +626,11 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `KeepPeaceBreachPolicy.ShouldBreach`: `Hero.MapFaction`
 - `KillAftermathFacts`: `Result.Killed`
 - `KillAttemptPolicy.ChanceReasons`: `ViolenceSceneReader.FactsFor`
-- `KillAttemptPolicy.FallbackNarration`: `Facts.Exposure`, `Result.Killed`
-- `KillAttemptPolicy.NarratorTask`: `Facts.Exposure`, `Result.Killed`
+- `KillAttemptPolicy.FallbackNarration`: `Facts.Exposure`, `Result.Killed`, `Target.IsFemale`
+- `KillAttemptPolicy.NarratorTask`: `Facts.Exposure`, `Result.Killed`, `Target.IsFemale`
+- `KillAttemptPolicy.ReactionHint`: `Facts.Exposure`, `Result.Killed`, `Target.IsFemale`
 - `KillAttemptResult`: `Events.Add`, `Hero.Gold`, `Hero.IsDead`, `Hero.Name`, `ModSettings.AllowKillingCharacters`, `Store.Set`
-- `KillNarrationFacts`: `Facts.Exposure`, `Result.Killed`
+- `KillNarrationFacts`: `Facts.Exposure`, `Result.Killed`, `Target.IsFemale`
 - `KinDeathFacts`: `Hero.IsFemale`
 - `KingdomPowerFacts`: `Clan.Influence`, `RulingClan.Influence`
 - `LandfallFacts`: `Hero.OneToOneConversationHero`, `MobileParty.IsCurrentlyAtSea`, `PlayerEncounter.InsideSettlement`

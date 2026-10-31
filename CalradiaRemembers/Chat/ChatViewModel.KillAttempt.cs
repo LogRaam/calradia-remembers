@@ -57,7 +57,10 @@ namespace CalradiaRemembers.Chat
       private bool _isKillRollVisible, _isKillRollConfirming, _isKillRollLanded, _isKillRollSucceeded, _killRollCanStrike;
       private string _killRollTitle = "", _killRollChanceText = "", _killRollReasons = "", _killRollShownText = "";
 
-      [DataSourceProperty] public bool IsKillRollVisible { get => _isKillRollVisible; set { if (_isKillRollVisible == value) return; _isKillRollVisible = value; OnPropertyChangedWithValue(value); } }
+      [DataSourceProperty] public bool IsKillRollVisible { get => _isKillRollVisible; set { if (_isKillRollVisible == value) return; _isKillRollVisible = value; OnPropertyChangedWithValue(value); OnPropertyChanged(nameof(IsKillRollShown)); } }
+
+      /// <summary>What the overlay binds: open, and the chat not slid aside for a screen above it (the pause menu, the encyclopedia).</summary>
+      [DataSourceProperty] public bool IsKillRollShown => _isKillRollVisible && ChatVisualOffsetX < 100f;
 
       /// <summary>The window asks before anything happens: Strike or Stay your hand.</summary>
       [DataSourceProperty] public bool IsKillRollConfirming { get => _isKillRollConfirming; set { if (_isKillRollConfirming == value) return; _isKillRollConfirming = value; OnPropertyChangedWithValue(value); } }
@@ -242,6 +245,10 @@ namespace CalradiaRemembers.Chat
          => new KillNarrationFacts {
             PlayerName = Hero.MainHero?.Name?.ToString(),
             VictimName = attempt.Target?.Name?.ToString(),
+            VictimLabel = attempt.Target == null ? null : HeroLabel.Describe(new HeroLabel.HeroNaming {
+               Name = attempt.Target.Name?.ToString(), ClanName = attempt.Target.Clan?.Name?.ToString(), CultureName = attempt.Target.Culture?.Name?.ToString()
+            }),
+            VictimIsFemale = attempt.Target?.IsFemale == true,
             Killed = attempt.Result.Killed,
             Exposure = attempt.Facts?.Exposure ?? ViolenceExposure.Alone,
             PlayerIsCaptive = attempt.PlayerIsCaptive,
@@ -272,7 +279,13 @@ namespace CalradiaRemembers.Chat
          catch (Exception ex) { ModLog.Error($"[VIOLENCE] the attempt's scene failed: {ex.GetType().Name}: {ex.Message}"); }
 
          await MainThreadDispatcher.SwitchToMainThread();
-         if (!ReferenceEquals(ChatManager.ActiveViewModel, this) || !ReferenceEquals(_killAttempt, attempt)) return; // closed meanwhile
+         if (!ReferenceEquals(ChatManager.ActiveViewModel, this) || !ReferenceEquals(_killAttempt, attempt))
+         {
+            // The chat closed during the roll: the deed stands, so at least say how it ended.
+            if (!string.IsNullOrEmpty(attempt.Result?.Message)) InformationManager.DisplayMessage(new InformationMessage(attempt.Result.Message));
+
+            return;
+         }
 
          attempt.Narration = narration ?? KillAttemptPolicy.FallbackNarration(facts);
          if (attempt.OverlayClosed) FinishKillAttempt(attempt);
@@ -282,7 +295,10 @@ namespace CalradiaRemembers.Chat
       private void FinishKillAttempt(KillAttemptState attempt)
       {
          if (attempt.Placeholder != null) _messages.Remove(attempt.Placeholder);
-         AppendNarration(attempt.Narration);
+         // Under the test seam the scene is shown but never recorded: no transcript, story log or extension line
+         // may say that a living lord was killed by a diagnostic.
+         if (KillNarrationOffline) _messages.Add(new ChatMessageViewModel(attempt.Narration, SceneNarrationColor));
+         else AppendNarration(attempt.Narration);
          _killAttempt = null;
 
          KillAftermath next = KillAttemptPolicy.Decide(new KillAftermathFacts {Killed = attempt.Result.Killed, PlayerIsCaptive = attempt.PlayerIsCaptive});
@@ -305,8 +321,7 @@ namespace CalradiaRemembers.Chat
 
                return;
             default:
-               string hint = $"{Hero.MainHero?.Name} has just tried to kill you, and failed: {attempt.Narration} You are alive. React to it now, as yourself.";
-               if (!BeginKillAttemptReaction(hint)) IsSendEnabled = !_conversationEnded;
+               if (!BeginKillAttemptReaction(KillAttemptPolicy.ReactionHint(NarrationFactsFor(attempt)))) IsSendEnabled = !_conversationEnded;
 
                return;
          }

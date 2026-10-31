@@ -73,8 +73,14 @@ namespace CalradiaRemembers.Logic.Violence
         /// <summary>The player character's name.</summary>
         public string PlayerName { get; init; }
 
-        /// <summary>The character the player tried to kill.</summary>
+        /// <summary>The character the player tried to kill, as the scene names them.</summary>
         public string VictimName { get; init; }
+
+        /// <summary>The same character with house and people (HeroLabel), so the narrator knows exactly who; blank uses the name.</summary>
+        public string VictimLabel { get; init; }
+
+        /// <summary>The character is a woman: the narrator, writing of them in the third person, must not guess.</summary>
+        public bool VictimIsFemale { get; init; }
 
         /// <summary>The attempt came off and the character is dead.</summary>
         public bool Killed { get; init; }
@@ -189,7 +195,8 @@ namespace CalradiaRemembers.Logic.Violence
                 b.AppendLine();
             }
 
-            b.Append($"WHAT HAPPENS NOW: you, {player}, try to kill {victim}");
+            string who = string.IsNullOrWhiteSpace(facts.VictimLabel) ? victim : facts.VictimLabel;
+            b.Append($"WHAT HAPPENS NOW: you, {player}, try to kill {who}, {(facts.VictimIsFemale ? "a woman (she, her)" : "a man (he, him)")}");
             b.Append(facts.PlayerIsCaptive ? ", though you are their prisoner. " : ". ");
             b.Append(facts.Exposure == ViolenceExposure.Guarded ? "Guards or their own men are close at hand. "
                 : facts.Exposure == ViolenceExposure.Onlookers ? "Others are there and see it. "
@@ -210,6 +217,21 @@ namespace CalradiaRemembers.Logic.Violence
             }
 
             return b.ToString();
+        }
+
+        /// <summary>
+        ///   What the character is told before answering a failed attempt: plain facts in their own second person.
+        ///   The scene itself is already in the conversation, so it is not repeated here, where its "you" would mean
+        ///   the player inside a note whose "you" is the character.
+        /// </summary>
+        public static string ReactionHint(KillNarrationFacts facts)
+        {
+            string player = string.IsNullOrWhiteSpace(facts?.PlayerName) ? "The person before you" : facts.PlayerName;
+            string how = facts?.Exposure == ViolenceExposure.Guarded ? ", and those at your side stopped it"
+                : facts?.Exposure == ViolenceExposure.Onlookers ? ", in front of others"
+                : "";
+
+            return $"{player} has just tried to kill you and failed{how}. You are alive. Answer it now, as yourself.";
         }
 
         /// <summary>The line shown when no narration could be written: the plain outcome, so the scene still says what happened.</summary>
