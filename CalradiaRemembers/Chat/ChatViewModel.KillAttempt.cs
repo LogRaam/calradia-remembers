@@ -84,6 +84,23 @@ namespace CalradiaRemembers.Chat
 
       [DataSourceProperty] public string KillRollShownText { get => _killRollShownText; set { if (_killRollShownText == value) return; _killRollShownText = value; OnPropertyChangedWithValue(value); } }
 
+      // The painted window is large art, so it is named (and loaded) only when a window first opens, never for a chat that has none.
+      private bool _killRollArtWanted;
+
+      private string KillRollArt(string file) => _killRollArtWanted ? System.IO.Path.Combine(CalradiaRemembers.Paths.ModulePaths.Root, "GUI", "Images", file) : "";
+
+      /// <summary>The painted panel, Gabriel's art.</summary>
+      [DataSourceProperty] public string KillRollPanelPath => KillRollArt("cr_killroll_panel.png");
+
+      /// <summary>The plaque the chance is written on.</summary>
+      [DataSourceProperty] public string KillRollPlaquePath => KillRollArt("cr_killroll_chance_plaque.png");
+
+      /// <summary>The Strike button's pictures, up to their state suffix (CrButtonArtWidget).</summary>
+      [DataSourceProperty] public string KillRollStrikeArt => KillRollArt("cr_killroll_strike");
+
+      /// <summary>The Stay your hand button's pictures, up to their state suffix.</summary>
+      [DataSourceProperty] public string KillRollStayArt => KillRollArt("cr_killroll_stay");
+
       /// <summary>True while a killing attempt is open in this chat, from the window to the end of its scene.</summary>
       public bool IsKillAttemptOpen => _killAttempt != null;
 
@@ -115,6 +132,15 @@ namespace CalradiaRemembers.Chat
             Target = target, Facts = facts, Chance = chance, Strike = strike,
             PlayerIsCaptive = IsCaptiveEncounter && Hero.MainHero?.IsPrisoner == true
          };
+         if (!_killRollArtWanted)
+         {
+            _killRollArtWanted = true;
+            OnPropertyChanged(nameof(KillRollPanelPath));
+            OnPropertyChanged(nameof(KillRollPlaquePath));
+            OnPropertyChanged(nameof(KillRollStrikeArt));
+            OnPropertyChanged(nameof(KillRollStayArt));
+         }
+
          KillRollTitle = $"Take the life of {target.Name}?";
          KillRollChanceText = $"Chance: {chance} in 100";
          KillRollReasons = KillAttemptPolicy.ChanceReasons(facts) + " This cannot be undone, and the realm will answer for it.";

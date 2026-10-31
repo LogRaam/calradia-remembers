@@ -18,7 +18,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   with witnesses present (default, Gabriel did not rule on that case); a captive who kills the captor escapes as the
   scene closes (ResolvePlayerEscapeAttempt forced); after a failure the character answers it in one more turn, a captive
   scene included. Elsewhere (the council) the game's popup asks, now with the chance. The send box is held while the
-  window is open.
+  window is open. The window is Gabriel's painted panel (GUI/Images/cr_killroll_*.png: panel, chance plaque, Strike and
+  Stay your hand in four states each, shown by the new CrButtonArtWidget); its art loads only when a window first opens.
 - **A life the game holds is refused before the window** (found tracing zhenja1's report: KillCharacterAction.ApplyInternal
   returns silently when Hero.CanDie is false, e.g. a notable who gave a task under way, while CR still said "You kill
   X"). Asked before the window, again at the strike, and a murder that leaves the character alive is logged.

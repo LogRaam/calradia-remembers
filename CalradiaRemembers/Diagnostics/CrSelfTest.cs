@@ -9644,6 +9644,9 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("the chat holds the killing window", offered && vm.IsKillRollVisible && vm.IsKillRollConfirming, true);
          t.Expect("the window names the measured chance", vm.KillRollChanceText.Contains($"{chance} in 100"), true);
          t.Expect("the window says where the chance comes from", !string.IsNullOrWhiteSpace(vm.KillRollReasons), true);
+         // The painted art ships beside the prefab; a missing picture would leave a see-through window with only its text.
+         string[] art = new[] {vm.KillRollPanelPath, vm.KillRollPlaquePath}.Concat(new[] {vm.KillRollStrikeArt, vm.KillRollStayArt}.SelectMany(stem => new[] {"normal", "hover", "pressed", "disabled"}.Select(state => $"{stem}_{state}.png"))).ToArray();
+         t.Expect("every picture of the painted window is installed", art.Count(System.IO.File.Exists), art.Length);
          vm.ExecuteKillRollStay();
          t.Expect("staying the hand closes the window and leaves nothing open", !vm.IsKillRollVisible && !vm.IsKillAttemptOpen, true);
          t.Expect("and nothing was struck", struck, 0);

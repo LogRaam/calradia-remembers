@@ -1732,95 +1732,97 @@
             <Widget Id="KillRollPanel"
                     WidthSizePolicy="Fixed"
                     HeightSizePolicy="Fixed"
-                    SuggestedWidth="480"
-                    SuggestedHeight="540"
+                    SuggestedWidth="640"
+                    SuggestedHeight="706"
                     HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Sprite="BlankWhiteSquare_9"
-                    Color="#1a1612FA">
+                    VerticalAlignment="Center">
               <Children>
-                <Widget WidthSizePolicy="StretchToParent"
-                        HeightSizePolicy="StretchToParent"
-                        Sprite="frame_9"
-                        ExtendLeft="8" ExtendTop="8" ExtendRight="8" ExtendBottom="8"
-                        AlphaFactor="0.5"
-                        IsDisabled="true" />
+                <!-- Gabriel's painted panel (31/10/2026), RGBA PNGs, so CorrectRedBlue is false. Positions are the art's own. -->
+                <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                      ImagePath="@KillRollPanelPath" CorrectRedBlue="false" IsDisabled="true" />
 
                 <TextWidget Id="KillRollTitle"
                             WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="64"
-                            VerticalAlignment="Top" MarginTop="26" MarginLeft="30" MarginRight="30"
-                            Brush="CR.Letter.Body" Brush.FontSize="26" Brush.FontColor="#E8D8B8FF"
+                            VerticalAlignment="Top" MarginTop="214" MarginLeft="90" MarginRight="50"
+                            Brush="CR.Letter.Body" Brush.FontSize="30" Brush.FontColor="#5A1A10FF"
                             Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Center"
                             Text="@KillRollTitle" />
 
-                <TextWidget Id="KillRollChance"
-                            WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="34"
-                            VerticalAlignment="Top" MarginTop="96"
-                            Brush="CR.Letter.Body" Brush.FontSize="24" Brush.FontColor="#D4AF37FF"
-                            Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Center"
-                            Text="@KillRollChanceText" />
+                <CrRuntimeImageWidget Id="KillRollPlaque"
+                                      WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="423" SuggestedHeight="73"
+                                      VerticalAlignment="Top" MarginTop="307" MarginLeft="104"
+                                      ImagePath="@KillRollPlaquePath" CorrectRedBlue="false" IsDisabled="true">
+                  <Children>
+                    <TextWidget Id="KillRollChance"
+                                WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                Brush="CR.Letter.Body" Brush.FontSize="26" Brush.FontColor="#E8C268FF"
+                                Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Center"
+                                Text="@KillRollChanceText" />
+                  </Children>
+                </CrRuntimeImageWidget>
 
                 <TextWidget Id="KillRollReasons"
-                            WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="72"
-                            VerticalAlignment="Top" MarginTop="134" MarginLeft="40" MarginRight="40"
-                            Brush="CR.Letter.Body" Brush.FontSize="16" Brush.FontColor="#C8B898FF"
+                            WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="66"
+                            VerticalAlignment="Top" MarginTop="384" MarginLeft="100" MarginRight="62"
+                            Brush="CR.Letter.Body" Brush.FontSize="17" Brush.FontColor="#33231AFF"
                             Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Top"
                             Text="@KillRollReasons" />
 
                 <TextWidget Id="KillRollNumber"
-                            WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="150"
-                            VerticalAlignment="Top" MarginTop="214"
+                            WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="116"
+                            VerticalAlignment="Top" MarginTop="436" MarginLeft="72" MarginRight="34"
                             IsHidden="@IsKillRollConfirming"
-                            Brush="CR.Letter.Body" Brush.FontSize="120" Brush.FontColor="#F0E0C0FF"
+                            Brush="CR.Letter.Body" Brush.FontSize="100" Brush.FontColor="#33231AFF"
                             Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Center"
                             Text="@KillRollShownText" />
 
                 <TextWidget Id="KillRollSuccess"
-                            WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="60"
-                            VerticalAlignment="Top" MarginTop="380"
+                            WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="76"
+                            VerticalAlignment="Top" MarginTop="552" MarginLeft="72" MarginRight="34"
                             IsVisible="@IsKillRollSucceeded"
-                            Brush="CR.Letter.Body" Brush.FontSize="44" Brush.FontColor="#8FD16AFF"
+                            Brush="CR.Letter.Body" Brush.FontSize="46" Brush.FontColor="#2F5D1FFF"
                             Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Center"
                             Text="SUCCESS" />
 
                 <TextWidget Id="KillRollFailure"
-                            WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="60"
-                            VerticalAlignment="Top" MarginTop="380"
+                            WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="76"
+                            VerticalAlignment="Top" MarginTop="552" MarginLeft="72" MarginRight="34"
                             IsVisible="@IsKillRollFailed"
-                            Brush="CR.Letter.Body" Brush.FontSize="44" Brush.FontColor="#D0473FFF"
+                            Brush="CR.Letter.Body" Brush.FontSize="46" Brush.FontColor="#8E1C14FF"
                             Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Center"
                             Text="FAILURE" />
 
-                <ListPanel Id="KillRollButtons"
-                           WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
-                           HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="36"
-                           StackLayout.LayoutMethod="HorizontalLeftToRight"
-                           IsVisible="@IsKillRollConfirming">
+                <Widget Id="KillRollButtons"
+                        WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                        IsVisible="@IsKillRollConfirming">
                   <Children>
                     <ButtonWidget Id="KillRollStrike"
-                                  WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="180" SuggestedHeight="52"
-                                  MarginRight="24"
+                                  WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="249" SuggestedHeight="97"
+                                  VerticalAlignment="Top" MarginTop="540" MarginLeft="78"
                                   DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
-                                  Brush="ButtonBrush1"
                                   IsEnabled="@KillRollCanStrike"
                                   Command.Click="ExecuteKillRollStrike">
                       <Children>
-                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                    Brush="Popup.Button.Text" Brush.FontSize="20" Text="Strike" />
+                        <CrButtonArtWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" ArtStem="@KillRollStrikeArt" />
+                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" MarginLeft="84" MarginRight="23"
+                                    Brush="CR.Letter.Body" Brush.FontSize="22" Brush.FontColor="#33231AFF"
+                                    Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Center" Text="Strike" />
                       </Children>
                     </ButtonWidget>
                     <ButtonWidget Id="KillRollStay"
-                                  WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="180" SuggestedHeight="52"
+                                  WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="265" SuggestedHeight="97"
+                                  VerticalAlignment="Top" MarginTop="540" MarginLeft="324"
                                   DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
-                                  Brush="ButtonBrush1"
                                   Command.Click="ExecuteKillRollStay">
                       <Children>
-                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                    Brush="Popup.Button.Text" Brush.FontSize="20" Text="Stay your hand" />
+                        <CrButtonArtWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" ArtStem="@KillRollStayArt" />
+                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" MarginLeft="84" MarginRight="23"
+                                    Brush="CR.Letter.Body" Brush.FontSize="22" Brush.FontColor="#33231AFF"
+                                    Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Center" Text="Stay your hand" />
                       </Children>
                     </ButtonWidget>
                   </Children>
-                </ListPanel>
+                </Widget>
               </Children>
             </Widget>
           </Children>

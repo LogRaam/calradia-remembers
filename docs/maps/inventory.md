@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 599 types in 64 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 600 types in 64 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1435 types in 49 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 278 types in 17 namespaces, 9 without a summary
 
@@ -701,11 +701,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `ModulePaths` | public static class | The module's own folder, as the engine found it. |
 
-### CalradiaRemembers.Portraits (6)
+### CalradiaRemembers.Portraits (7)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ChatPortraitResolver` | internal static class | Finds a player-dropped chat portrait for a hero, by StringId then by normalized name. |
+| `CrButtonArtWidget` | public class | Shows {ArtStem}_normal/_hover/_pressed/_disabled.png by the state of the parent button. |
 | `CrRuntimeImageWidget` | public class | A widget that renders a runtime image loaded from ImagePath (bindable string). |
 | `LiveSprites` | internal static class | Sprites made at run time, shown by any CrRuntimeImageWidget whose path names them. |
 | `PortraitSpikeManager` | public static class | Show/hide lifecycle for the portrait-spike test overlay. |
