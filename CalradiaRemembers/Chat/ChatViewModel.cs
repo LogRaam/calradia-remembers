@@ -651,9 +651,13 @@ namespace CalradiaRemembers.Chat
       [DataSourceProperty]
       public float SceneImageHeight { get; private set; }
 
-      /// <summary>Shown while a picture is set, and hidden while the leather dossier page is open over the same ground.</summary>
+      /// <summary>
+      ///   Shown while a picture is set, hidden while the leather dossier page is open over the same ground, and hidden
+      ///   while the chat has yielded: sliding right with the book only carries the margin into the middle of the screen,
+      ///   over the pause menu (Gabriel's screenshot, 31/10/2026).
+      /// </summary>
       [DataSourceProperty]
-      public bool IsSceneImageVisible => _sceneImageShown && !_isManuscriptLeftPageOpen;
+      public bool IsSceneImageVisible => _sceneImageShown && !_isManuscriptLeftPageOpen && !IsChatSlidAside;
 
       // Gabriel (11/10/2026): during a conversation the picture is small, in the top-left corner, so it never hides the
       // character spoken to; only a scene with nobody in it (a tale's exploration) shows it large beside the chat.
@@ -3708,6 +3712,8 @@ namespace CalradiaRemembers.Chat
       ///   arbiter when a game screen opens over the chat, so the chat gets out of its way without being torn
       ///   down or hidden (the layer keeps ticking, so LLM turns and the arbiter keep running).
       /// </summary>
+      private bool IsChatSlidAside => ChatVisualOffsetX >= 100f;
+
       public void SetVisualOffscreen(bool off)
       {
          // The narrow 1:1 chat window is anchored to the right, so +800 slides it fully off. The COUNCIL window
@@ -3723,6 +3729,10 @@ namespace CalradiaRemembers.Chat
             ? slide
             : isCouncil ? 0f : -30f;
          OnPropertyChanged(nameof(IsKillRollShown)); // the killing window steps aside with the chat
+         OnPropertyChanged(nameof(IsSceneImageVisible));
+         OnPropertyChanged(nameof(IsSceneImageLarge));
+         OnPropertyChanged(nameof(IsSceneImageCompact));
+         OnPropertyChanged(nameof(IsVideoControlsVisible));
 
          // The portrait dossier is anchored to the right of the screen (not inside the sliding window), so it
          // would sit ON TOP of whatever screen just took focus (report: it overlapped the encyclopedia). Close

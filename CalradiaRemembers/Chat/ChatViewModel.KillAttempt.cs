@@ -60,7 +60,7 @@ namespace CalradiaRemembers.Chat
       [DataSourceProperty] public bool IsKillRollVisible { get => _isKillRollVisible; set { if (_isKillRollVisible == value) return; _isKillRollVisible = value; OnPropertyChangedWithValue(value); OnPropertyChanged(nameof(IsKillRollShown)); } }
 
       /// <summary>What the overlay binds: open, and the chat not slid aside for a screen above it (the pause menu, the encyclopedia).</summary>
-      [DataSourceProperty] public bool IsKillRollShown => _isKillRollVisible && ChatVisualOffsetX < 100f;
+      [DataSourceProperty] public bool IsKillRollShown => _isKillRollVisible && !IsChatSlidAside;
 
       /// <summary>The window asks before anything happens: Strike or Stay your hand.</summary>
       [DataSourceProperty] public bool IsKillRollConfirming { get => _isKillRollConfirming; set { if (_isKillRollConfirming == value) return; _isKillRollConfirming = value; OnPropertyChangedWithValue(value); } }

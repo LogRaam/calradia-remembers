@@ -10,8 +10,6 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   margin to the middle of the screen. It now hides while the chat has yielded (IsSceneImageVisible) and comes back with it.
 - **The killing window's ground is dark brown**, not white: the tint set on the ground button itself never drew; a plain
   tinted child does (Gabriel's screenshot, 31/10/2026).
-
-### Fixed
 - **A letter rider catches you on the move** (kurushimi00, Nexus, 31/10/2026: riders "all requiring me to keep my party
   immobile to let them actually deliver the letters"; Gabriel: "il faudrait qu'un cavalier courrier puisse rattrapper le
   joueur en mouvement [...] lorsque le cavalier est assez pres de lui sans avoir a le toucher forcement"). A rider was steered

@@ -1270,9 +1270,13 @@
             <ButtonWidget Id="KillRollGround"
                           WidthSizePolicy="StretchToParent"
                           HeightSizePolicy="StretchToParent"
-                          Sprite="BlankWhiteSquare_9"
-                          Color="#000000A0"
-                          DoNotPassEventsToChildren="true" />
+                          DoNotPassEventsToChildren="true">
+              <Children>
+                <!-- A sprite set on the button itself drew white, untinted (Gabriel's screenshot, 31/10/2026). -->
+                <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                        Sprite="BlankWhiteSquare_9" Color="#24160CF2" IsDisabled="true" />
+              </Children>
+            </ButtonWidget>
 
             <Widget Id="KillRollPanel"
                     WidthSizePolicy="Fixed"
