@@ -653,8 +653,44 @@ MUST = [
     ("sdk",   b"IntimateActNames"),
     ("sdk",   b"LessFondActs"),
     ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
+    # 2.8.0
+    ("logic", b"LetterBoxPolicy"),
+    ("logic", b"LetterEnvelopePolicy"),
+    ("logic", b"ReleasedToday"),
+    ("logic", b"QuestJournalText"),
+    ("logic", b"StanceFavorLetterText"),
+    ("logic", b"CastPanelPolicy"),
+    ("logic", b"WorldInitiativePolicy"),
+    ("logic", b"MattersMostPolicy"),
+    ("logic", b"GiftTastePolicy"),
+    ("logic", b"NaturePolicy"),
+    ("logic", b"ParleyEntryPolicy"),
+    ("logic", b"PlayerRungPolicy"),
+    ("logic", b"SocialStationPolicy"),
+    ("logic", b"BrawlPolicy"),
+    ("logic", b"RealmCounterweightPolicy"),
+    ("logic", b"StrategistAimPolicy"),
+    ("logic", b"GiftBundlePolicy"),
+    ("logic", b"WitnessStandingText"),
+    ("logic", b"ChildrenListText"),
+    ("logic", b"LeaveHouseWording"),
+    ("logic", b"ConceptionVetoBook"),
+    ("mod",   b"LetterBoxWindow"),
+    ("mod",   b"LetterBoxNavigationItemVM"),
+    ("mod",   b"EnsurePlainSteps"),
+    ("mod",   b"DeliverTestLetter"),
+    ("mod",   b"CrConception"),
+    ("mod",   "event:/Extra/voiceover".encode("utf-16-le")),
+    ("mod",   "letter_box".encode("utf-16-le")),
+    ("mod",   "quest_journal_plain".encode("utf-16-le")),
+    ("sdk",   b"ReplyLengthPolicy"),
+    ("sdk",   b"SilencedLetterSubjects"),
+    ("sdk",   b"EnvelopeKnownThrough"),
 ]
 MUST_NOT = [
+    ("logic", b"LetterPacing"),   # 2.8.0: the letter box replaced the mailbox budget
+    ("logic", b"LetterBudget"),   # 2.8.0: same
+    ("mod",   "event:/ui/default".encode("utf-16-le")),   # 2.8.0: the courier's sound road that played nothing
     ("mod",   b"RunAllSelfTests"),   # 2.7.21: cr.testall is gone, cr.test all runs the sweep
     ("mod",   "cr.chat_reset".encode("utf-16-le")),   # 2.7.21: the command never existed; the notices say cr.reset
     ("mod",   b"HeroPagePersonalRelationPatch"),   # 2.7.18: renamed HeroPageRegardYouPatch (the file name sets the row order)
@@ -737,7 +773,12 @@ for path, needle in [("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf
                      ("CalradiaRemembers/ModuleData/Languages/EN/language_data.xml", "std_CalradiaRemembers_mcm.xml"),
                      ("CalradiaRemembers/ModuleData/Languages/EN/std_CalradiaRemembers_mcm.xml", "CR_MCM_"),
                      ("CalradiaRemembers/ModuleData/Languages/README.txt", "language"),
-                     ("CalradiaRemembers/ModuleData/Custom/README.txt", "behavior_guidelines_merchant.txt")]:
+                     ("CalradiaRemembers/ModuleData/Custom/README.txt", "behavior_guidelines_merchant.txt"),
+                     # 2.8.0
+                     ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersLetterBox.xml", "cr_mailbox"),
+                     ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersLetterBox.xml", "ScrollbarWidget"),
+                     ("CalradiaRemembers/ModuleData/module_sounds.xml", "cr_letter_arrival"),
+                     ("CalradiaRemembers/ModuleData/stations/gangleader.txt", "[who]")]:
     found = path in names and needle in zn.read(path).decode("utf-8", "ignore")
     ok &= found
     print("  %-70s %s" % (path[18:], "YES" if found else "*** MISSING ***"))

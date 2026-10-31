@@ -1,4 +1,4 @@
-Released in v2.7.21
+Released in v2.8.0
 
 The modder API as it SHIPPED, the baseline for the vanished-member guard (see docs/maps/README.md). Recorded on
 purpose at each release cut with Tools/Update-Maps.ps1 -RecordReleasedApi; never by a plain regeneration.
@@ -60,6 +60,13 @@ _The door through which other mods give lords aims of their own._
 - `static AimResult Register(ExternalAim aim)`
 - `static bool Retract(string sourceMod, string id)`
 - `static event Action<CrAimRaised> Raised`
+
+### CrConception
+
+_Lets another mod forbid the conceptions Calradia Remembers creates._
+
+- `static bool UnregisterVeto(string source)`
+- `static void RegisterVeto(string source, Func<Hero, Hero, string> veto)`
 
 ### CrConversation
 

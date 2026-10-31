@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.8.0.. open
+## v2.8.0.. 2026-10-31
 
 ### New
 - **Tasks say plainly what to do** (avalanche24, Nexus, 31/10/2026, with a screenshot: "What do I need to do here
