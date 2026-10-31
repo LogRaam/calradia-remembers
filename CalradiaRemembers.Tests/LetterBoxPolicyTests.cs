@@ -9,6 +9,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Letters;
 using FluentAssertions;
 using NpcMemoryService.Core.Models;
@@ -107,6 +108,23 @@ namespace CalradiaRemembers.Tests
             LetterBoxPolicy.BadgeText(0).Should().BeEmpty();
             LetterBoxPolicy.BadgeText(7).Should().Be("7");
             LetterBoxPolicy.BadgeText(250).Should().Be("99");
+        }
+
+        // STAKE: a silenced letter must not take the mailbox's daily place from a letter the player wants, nor spend a model
+        // call only to arrive unseen. The other sender's news and this sender's other subjects stay in.
+        [Test]
+        public void GIVEN_a_silenced_subject_in_the_mailbox_pool_WHEN_the_pool_is_filtered_THEN_only_that_senders_subject_leaves()
+        {
+            var pool = new[] {
+                new LetterCandidate {SenderId = "husband", Reason = LetterReason.JealousThreat},
+                new LetterCandidate {SenderId = "husband", Reason = LetterReason.RealmTidings},
+                new LetterCandidate {SenderId = "cousin", Reason = LetterReason.JealousThreat}
+            };
+            var silenced = new Dictionary<string, List<string>> {["husband"] = LetterBoxPolicy.AfterThrow(null, LetterReason.JealousThreat)};
+
+            List<LetterCandidate> kept = LetterBoxPolicy.Unsilenced(pool, id => silenced.TryGetValue(id, out List<string> l) ? l : null);
+
+            kept.Select(c => c.SenderId + ":" + c.Reason).Should().Equal("husband:RealmTidings", "cousin:JealousThreat");
         }
     }
 }

@@ -28,6 +28,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
     the letters by order of arrival, the URGENT mark and the ribbon, Open (the letter window; the box comes back when it
     closes) and Throw away (an urgent letter asks twice: "Throwing this letter away changes nothing of what it
     announces"); below, the subjects silenced, each with "Accept again".
+  - A silenced subject is not written at all: it leaves the mailbox's daily pool (it no longer takes a wanted letter's
+    place) and `QueueInitialLetter` refuses it before any model call; the arrival check stays as the backstop.
   - A patrol's report is never silenced either (the player decides on it whether the men come home).
   - For modders: `CrLetters.GetStatus` answers `in_box` for a letter that reached the player unopened (it said
     `delivered`); throwing another mod's letter raises `CrLetters.SetAside`.

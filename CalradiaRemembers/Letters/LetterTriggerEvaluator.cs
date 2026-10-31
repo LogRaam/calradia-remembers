@@ -109,6 +109,12 @@ namespace CalradiaRemembers.Letters
          LetterBudget budget = Logic.Initiative.InitiativeDials.Budget(LetterPacingRules.BudgetFor(ModSettings.LettersFromNpcs), !ModSettings.WorldInitiativeOff);
          IReadOnlyList<int> recent = GatherRecentReleaseDays(store, today, budget.WindowDays);
 
+         // The letter box (Gabriel, 30/10/2026): a subject the player threw away from this sender is not written at all.
+         int pooled = pool.Count;
+         pool = LetterBoxPolicy.Unsilenced(pool, id => store.Get(id)?.SilencedLetterSubjects);
+         if (pool.Count < pooled && ModSettings.VerboseLogging)
+            ModLog.Info($"[LETTERBOX] {pooled - pool.Count} candidate(s) left out: their subject is silenced from their sender.");
+
          // The ribbon bookmark: a correspondent the player awaits writes first (priority only).
          foreach (LetterCandidate c in pool) c.Awaited = store.Get(c.SenderId)?.LettersAwaited == true;
 

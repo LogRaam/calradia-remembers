@@ -493,7 +493,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("brawl_initiative", Severity.Light, "avalanche24 28/10: a companion hired hours before called him out for being told to follow orders; Gabriel 28/10: nobles duel, a companion only brawls. Asks the real resolver (the gate the prompt and the bridge both ask): a lord fights with steel, a companion with fists; a companion with no grudge and a plain regard may not call the player out; soured to -30 she may, unless the player is far the better fighter and she is not reckless. Restores her regard; arms nothing", TestBrawlInitiative),
          new SelfTest("station_definitions", Severity.Light, "Gabriel 28/10: one definition per social status, adjusting to the player's rung; avalanche24 28/10: companions and a landowner spoke above their station. Reads every station definition as the game loaded it (ModuleData/stations, Custom and patches applied): each says who the character is and meets each of the five rungs. Then finds a living companion, notable or lord and expects the prompt's station lines for them to be the definition's. Changes no game state", TestStationDefinitions),
          new SelfTest("player_rung", Severity.Light, "Gabriel 28/10: a villager is ruder to a nobody than to the head of a tier 3 house; avalanche24 28/10: a weak companion boasted before a master of arms. Reads the player's rung from the live game and the line a real lord would be given about the player: it names the player's place in the world, and the gap at arms follows the two fighters' prowess. Changes no game state", TestPlayerRung),
-         new SelfTest("letter_box", Severity.Light, "Gabriel 30/10: every letter waits in the letter box; a thrown letter silences that subject from that sender. With the MCM on In the letter box: a [SELFTEST] RealmTidings letter from a real correspondent goes through the real arrival (LetterPopupManager.Show) -> it waits InBox, the box count, the map bar badge and the box window all rise by one, it is not in the letter book; thrown -> it leaves the box and 'news' is silenced for that sender; a second such letter arrives unseen (ThrownAway, never InBox); a WarSummons thrown silences nothing. Removes its letters and restores the sender's silenced subjects", TestLetterBox),
+         new SelfTest("letter_box", Severity.Light, "Gabriel 30/10: every letter waits in the letter box; a thrown letter silences that subject from that sender. With the MCM on In the letter box: a [SELFTEST] RealmTidings letter from a real correspondent goes through the real arrival (LetterPopupManager.Show) -> it waits InBox, the box count, the map bar badge and the box window all rise by one, it is not in the letter book; thrown -> it leaves the box and 'news' is silenced for that sender; a second such letter arrives unseen (ThrownAway, never InBox), is never written by QueueInitialLetter and leaves the mailbox pool; a WarSummons thrown silences nothing. Removes its letters and restores the sender's silenced subjects", TestLetterBox),
          new SelfTest("conception_veto", Severity.Light, "tashmetu 28/10: a Sterile character (Traits of Calradia) conceived through CR. A veto registered through CrConception against an eligible mother -> TryConceive(force) -> assert no conception and she is not carrying; the veto is withdrawn after", TestConceptionVeto),
          new SelfTest("companion_mission", Severity.Heavy, "dispatch a companion -> assert away -> resolve -> assert home", TestCompanionMission),
          new SelfTest("bastard_discovery", Severity.Heavy, "tag a bastard -> Discover -> assert flag + a Scandal world-event", TestBastardDiscovery),
@@ -8744,6 +8744,16 @@ namespace CalradiaRemembers.Diagnostics
             thrownNews = true;
             t.Expect("thrownLeavesTheBox", first.InBox, false);
             t.Expect("newsSilencedFromThisSender", LetterBox.IsSilenced(profile, LetterReason.RealmTidings), true);
+
+            // Never written at all: no placeholder, so no model call (only tried once the silence is in place, so a failure
+            // here can never spend a real call).
+            if (LetterBox.IsSilenced(profile, LetterReason.RealmTidings))
+            {
+               int lettersBefore = profile.SentLetters.Count;
+               LetterGenerationService.QueueInitialLetter(profile, Hero.FindFirst(x => x.StringId == profile.Id), LetterReason.RealmTidings, "[SELFTEST]", behavior.LlmServices, behavior.Store, today);
+               t.Expect("aSilencedSubjectIsNeverWritten", profile.SentLetters.Count, lettersBefore);
+               t.Expect("aSilencedCandidateLeavesThePool", LetterBoxPolicy.Unsilenced(new[] {new LetterCandidate {SenderId = profile.Id, Reason = LetterReason.RealmTidings}}, id => behavior.Store.Get(id)?.SilencedLetterSubjects).Count, 0);
+            }
 
             PendingLetter second = Make(LetterReason.RealmTidings);
             made.Add(second);

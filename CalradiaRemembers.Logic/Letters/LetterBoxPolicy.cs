@@ -108,6 +108,16 @@ namespace CalradiaRemembers.Logic.Letters
             return silencedSubjects.Contains(subject);
         }
 
+        /// <summary>
+        ///   The mailbox's candidates without those the player silenced: a silenced letter must not take the day's place from
+        ///   a letter the player wants, nor be written at all (it would only arrive unseen). <paramref name="silencedFor" />
+        ///   gives a sender's silenced subjects.
+        /// </summary>
+        public static List<LetterCandidate> Unsilenced(IEnumerable<LetterCandidate> pool, System.Func<string, IEnumerable<string>> silencedFor)
+            => pool == null
+                ? new List<LetterCandidate>()
+                : pool.Where(c => c != null && !IsSilenced(silencedFor?.Invoke(c.SenderId), c.Reason)).ToList();
+
         /// <summary>The sender's silenced subjects once this letter is thrown (unchanged when the throw silences nothing).</summary>
         public static List<string> AfterThrow(IEnumerable<string> silencedSubjects, LetterReason reason)
         {

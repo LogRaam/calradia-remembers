@@ -178,6 +178,15 @@ namespace CalradiaRemembers.Letters
             return;
          }
 
+         // The letter box (Gabriel, 30/10/2026): a subject the player threw away from this sender is not written, so it
+         // costs no model call; the arrival check stays as the backstop for letters written without this door.
+         if (LetterBox.IsSilenced(profile, reason))
+         {
+            ModLog.Info($"[LETTERBOX] not written: {profile?.Name} would write about '{LetterBoxPolicy.SubjectOf(reason)}', which the player silenced.");
+
+            return;
+         }
+
          _ = GenerateInitialAsync(profile, giverHero, reason, triggerContext, llmServices, store, today, offerTargetId, offerAmount)
             .ContinueWith(t =>
             {
