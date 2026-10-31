@@ -323,6 +323,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   (it could drop an envelope being written). `cr.test letter_box` removes its own letters, so the box is empty after it.
   The box's "No letter waits" line was laid over the list at a fixed height, so with no letter and a silenced subject
   the two overlapped (Gabriel's screenshot); it is now the list's first row, and the subjects' heading sits left.
+  Open now sits at the row's left and Throw away at its far right, kept apart so a throw is never a slip (Gabriel).
 - **A lord's friendly letter is no longer the same words from every lord** (tashmetu, Nexus 30/10/2026, for two players
   with Bellum Civile's collection: "a crowd of lords writing [...] as if it made them lifelong friends"). The unbidden
   StanceFavor letter (StanceConsequenceBehavior, a regard hardened into friendship) was one fixed text for everyone.
