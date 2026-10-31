@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-661 rules read 496 facts.
+662 rules read 499 facts.
 
 ## Facts read by more than one rule
 
@@ -396,6 +396,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `BriefingReturnDecision.Decide`: `Hero.OneToOneConversationHero`
 - `BriefingReturnDecision.HostIsLive`: `Hero.OneToOneConversationHero`
 - `BrigandageFacts`: `PartyBase.MobileParty`
+- `ButtonGlowFacts`: `ParentWidget.IsDisabled`, `ParentWidget.IsHovered`, `ParentWidget.IsPressed`
 - `CaptiveActionOutcomePolicy.Succeeds`: `Hero.HitPoints`, `Hero.MaxHitPoints`
 - `CaptiveActionOutcomePolicy.SuccessChance`: `Hero.HitPoints`, `Hero.MaxHitPoints`
 - `CaptiveEncounterPolicy.BanditCollectiveParticipantCap`: `MemberRoster.TotalManCount`, `PartyBelongedToAsPrisoner.MobileParty`

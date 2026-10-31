@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 600 types in 64 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1437 types in 49 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 601 types in 64 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1439 types in 49 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 278 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -701,12 +701,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `ModulePaths` | public static class | The module's own folder, as the engine found it. |
 
-### CalradiaRemembers.Portraits (7)
+### CalradiaRemembers.Portraits (8)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ChatPortraitResolver` | internal static class | Finds a player-dropped chat portrait for a hero, by StringId then by normalized name. |
 | `CrButtonArtWidget` | public class | Shows {ArtStem}_normal/_hover/_pressed/_disabled.png by the state of the parent button. |
+| `CrHoverGlowWidget` | public class | Place as a child of a ButtonWidget: fades in over the button when it is hovered or held. |
 | `CrRuntimeImageWidget` | public class | A widget that renders a runtime image loaded from ImagePath (bindable string). |
 | `LiveSprites` | internal static class | Sprites made at run time, shown by any CrRuntimeImageWidget whose path names them. |
 | `PortraitSpikeManager` | public static class | Show/hide lifecycle for the portrait-spike test overlay. |
@@ -1827,13 +1828,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NaturePolicy` | public static class | Rolls and words a character's fear and superstition. |
 | `NatureRoll` | public class | A character's fear and superstition, as rolled. |
 
-### CalradiaRemembers.Logic.Chat (24)
+### CalradiaRemembers.Logic.Chat (26)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ActionReader` | public enum | Who reads a reply's actions. |
 | `ActionReaderPolicy` | public static class | Decides who reads a reply's actions: the junction between Standard and Enhanced. |
 | `ActionReadingFacts` | public class | The facts of a turn that decide who reads its actions. |
+| `ButtonGlowFacts` | public class | What the button under the glow is doing. |
+| `ButtonGlowPolicy` | public static class | How strongly a chat button glows, and how the glow fades there. |
 | `ChatCompositionModePolicy` | public static class | Maps the "Chat Composition" MCM dropdown value to ChatCompositionMode. |
 | `ChatEscapeAction` | public enum | What the chat should do with one press of Escape. |
 | `ChatEscapeFacts` | public class | The state an Escape press is judged on. |

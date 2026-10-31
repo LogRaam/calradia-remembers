@@ -71,6 +71,7 @@
                               HorizontalAlignment="Right" VerticalAlignment="Bottom" MarginRight="76" MarginBottom="8"
                               IsVisible="@IsVideoControlsVisible" DoNotPassEventsToChildren="true" Command.Click="ExecuteVideoPlay">
                   <Children>
+                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                     <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
                                           ImagePath="@VideoPlayIconPath" CorrectRedBlue="false" IsDisabled="true" />
                   </Children>
@@ -79,6 +80,7 @@
                               HorizontalAlignment="Right" VerticalAlignment="Bottom" MarginRight="42" MarginBottom="8"
                               IsVisible="@IsVideoControlsVisible" DoNotPassEventsToChildren="true" Command.Click="ExecuteVideoStop">
                   <Children>
+                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                     <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
                                           ImagePath="@VideoStopIconPath" CorrectRedBlue="false" IsDisabled="true" />
                   </Children>
@@ -87,6 +89,7 @@
                               HorizontalAlignment="Right" VerticalAlignment="Bottom" MarginRight="8" MarginBottom="8"
                               IsVisible="@IsVideoControlsVisible" DoNotPassEventsToChildren="true" Command.Click="ExecuteVideoLoop">
                   <Children>
+                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                     <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
                                           ImagePath="@VideoLoopIconPath" CorrectRedBlue="false" IsDisabled="true" />
                   </Children>
@@ -123,6 +126,7 @@
                               HorizontalAlignment="Right" VerticalAlignment="Bottom" MarginRight="76" MarginBottom="8"
                               IsVisible="@IsVideoControlsVisible" DoNotPassEventsToChildren="true" Command.Click="ExecuteVideoPlay">
                   <Children>
+                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                     <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
                                           ImagePath="@VideoPlayIconPath" CorrectRedBlue="false" IsDisabled="true" />
                   </Children>
@@ -131,6 +135,7 @@
                               HorizontalAlignment="Right" VerticalAlignment="Bottom" MarginRight="42" MarginBottom="8"
                               IsVisible="@IsVideoControlsVisible" DoNotPassEventsToChildren="true" Command.Click="ExecuteVideoStop">
                   <Children>
+                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                     <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
                                           ImagePath="@VideoStopIconPath" CorrectRedBlue="false" IsDisabled="true" />
                   </Children>
@@ -139,6 +144,7 @@
                               HorizontalAlignment="Right" VerticalAlignment="Bottom" MarginRight="8" MarginBottom="8"
                               IsVisible="@IsVideoControlsVisible" DoNotPassEventsToChildren="true" Command.Click="ExecuteVideoLoop">
                   <Children>
+                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                     <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
                                           ImagePath="@VideoLoopIconPath" CorrectRedBlue="false" IsDisabled="true" />
                   </Children>
@@ -372,8 +378,7 @@
                               DoNotPassEventsToChildren="true"
                               Command.Click="ExecuteOpenEncyclopedia">
                   <Children>
-                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#00000000" IsDisabled="true" />
+                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                   </Children>
                 </ButtonWidget>
 
@@ -429,6 +434,7 @@
                               DoNotPassEventsToChildren="true"
                               Command.Click="ExecuteToggleParticipants">
                   <Children>
+                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                     <TextWidget Id="WitnessesTextWidget"
                                 WidthSizePolicy="StretchToParent"
                                 HeightSizePolicy="StretchToParent"
@@ -481,6 +487,7 @@
                       <Children>
                         <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
                                 Sprite="BlankWhiteSquare_9" Color="#0d0a08C8" IsDisabled="true" />
+                        <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                         <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
                                     HorizontalAlignment="Center" VerticalAlignment="Center"
                                     Brush="Default" Brush.FontSize="15" Brush.FontColor="#c8a878FF"
@@ -503,6 +510,7 @@
                       <Children>
                         <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
                                 Sprite="BlankWhiteSquare_9" Color="#0d0a08C8" IsDisabled="true" />
+                        <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                         <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
                                     HorizontalAlignment="Center" VerticalAlignment="Center"
                                     Brush="Default" Brush.FontSize="15" Brush.FontColor="#c8a878FF"
@@ -744,8 +752,7 @@
                               DoNotPassEventsToChildren="true"
                               Command.Click="ExecuteOpenStylePicker">
                   <Children>
-                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
+                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                   </Children>
                 </ButtonWidget>
                 <ButtonWidget Id="StylePickerButton"
@@ -772,8 +779,7 @@
                               DoNotPassEventsToChildren="true"
                               Command.Click="ExecuteOfferItem">
                   <Children>
-                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
+                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                   </Children>
                 </ButtonWidget>
                 <ButtonWidget Id="OfferGoldButton"
@@ -785,8 +791,7 @@
                               DoNotPassEventsToChildren="true"
                               Command.Click="ExecuteOfferGold">
                   <Children>
-                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
+                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                   </Children>
                 </ButtonWidget>
 
@@ -801,8 +806,7 @@
                               DoNotPassEventsToChildren="true"
                               Command.Click="ExecuteOpenActionMenu">
                   <Children>
-                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
+                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                   </Children>
                 </ButtonWidget>
 
@@ -816,8 +820,7 @@
                               DoNotPassEventsToChildren="true"
                               Command.Click="ExecuteShowHelp">
                   <Children>
-                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
+                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                   </Children>
                 </ButtonWidget>
 
@@ -831,6 +834,7 @@
                               DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
                               Command.Click="ExecuteToggleModelMode">
                   <Children>
+                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                     <TextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
                                 HorizontalAlignment="Left" VerticalAlignment="Center"
                                 Brush="Default" Brush.FontSize="12" Brush.FontColor="#8a8072FF"
@@ -848,8 +852,7 @@
                               DoNotPassEventsToChildren="true"
                               Command.Click="ExecuteOpenGameMenu">
                   <Children>
-                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
+                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                   </Children>
                 </ButtonWidget>
 
@@ -878,8 +881,7 @@
                                   DoNotPassEventsToChildren="true"
                                   Command.Click="ExecuteOpenCompose">
                       <Children>
-                        <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                                Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
+                        <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                       </Children>
                     </ButtonWidget>
 
@@ -961,8 +963,7 @@
                               DoNotPassEventsToChildren="true"
                               Command.Click="ExecuteToggleMemoryPanel">
                   <Children>
-                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
+                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                   </Children>
                 </ButtonWidget>
                 <ButtonWidget Id="CloseButton"
@@ -973,8 +974,7 @@
                               DoNotPassEventsToChildren="true"
                               Command.Click="ExecuteClose">
                   <Children>
-                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
+                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                   </Children>
                 </ButtonWidget>
 
@@ -1030,6 +1030,7 @@
                                           DoNotPassEventsToChildren="true"
                                           Command.Click="ExecuteAddress">
                               <Children>
+                                <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                                 <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="24"
                                             VerticalAlignment="Top" MarginLeft="8" MarginTop="2"
                                             Brush="Default" Brush.FontSize="16" Brush.FontColor="#e0d0b0FF"
@@ -1252,8 +1253,7 @@
                           DoNotPassEventsToChildren="true"
                           UpdateChildrenStates="true" Command.Click="ExecuteToggleMemoryPanel">
               <Children>
-                <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                        Sprite="BlankWhiteSquare_9" Color="#FFFFFF00" IsDisabled="true" />
+                <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
               </Children>
             </ButtonWidget>
           </Children>

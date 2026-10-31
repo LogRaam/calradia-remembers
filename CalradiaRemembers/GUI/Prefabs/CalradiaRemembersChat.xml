@@ -85,6 +85,7 @@
                           DoNotPassEventsToChildren="true"
                           Command.Click="ExecuteToggleParticipants">
               <Children>
+                <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                 <TextWidget Id="WitnessesTextWidget"
                             WidthSizePolicy="StretchToParent"
                             HeightSizePolicy="StretchToParent"
@@ -131,6 +132,7 @@
                           UpdateChildrenStates="true"
                           Command.Click="ExecuteOpenStylePicker">
               <Children>
+                <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                 <!-- quill.jpg (Gabriel switched the asset from PNG to JPG): a JPG needs the runtime factory's
                      JPG-calibrated R/B swap, so CorrectRedBlue is left at its default (true) rather than the "false"
                      the old PNG used, or the icon would render with red and blue inverted. Color pinned white so no
@@ -497,6 +499,7 @@
                       UpdateChildrenStates="true"
                       Command.Click="ExecuteOfferItem">
           <Children>
+            <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
             <Widget Id="OfferItemIcon"
                     WidthSizePolicy="Fixed"
                     HeightSizePolicy="Fixed"
@@ -579,6 +582,7 @@
                       UpdateChildrenStates="true"
                       Command.Click="ExecuteToggleModelMode">
           <Children>
+            <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
             <TextWidget WidthSizePolicy="CoverChildren"
                         HeightSizePolicy="CoverChildren"
                         HorizontalAlignment="Left"
@@ -606,6 +610,7 @@
                       UpdateChildrenStates="true"
                       Command.Click="ExecuteOpenGameMenu">
           <Children>
+            <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
             <TextWidget WidthSizePolicy="CoverChildren"
                         HeightSizePolicy="CoverChildren"
                         HorizontalAlignment="Left"
@@ -921,6 +926,7 @@
                                       DoNotPassEventsToChildren="true"
                                       Command.Click="ExecuteAddress">
                           <Children>
+                            <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                             <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="24"
                                         VerticalAlignment="Top" MarginLeft="8" MarginTop="2"
                                         Brush="Default" Brush.FontSize="16" Brush.FontColor="#e0d0b0FF"
@@ -1176,6 +1182,7 @@
                                           DoNotPassEventsToChildren="true"
                                           Command.Click="ExecuteActivate">
                               <Children>
+                                <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                                 <TextWidget Id="ActionHeadingText"
                                             WidthSizePolicy="StretchToParent"
                                             HeightSizePolicy="CoverChildren"
@@ -1217,6 +1224,7 @@
                                               DoNotPassEventsToChildren="true"
                                               Command.Click="ExecuteActivate">
                                   <Children>
+                                    <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
                                     <TextWidget Id="ActionAskText"
                                                 WidthSizePolicy="CoverChildren"
                                                 HeightSizePolicy="CoverChildren"
@@ -1302,7 +1310,11 @@
                       PositionXOffset="35"
                       PositionYOffset="-26"
                       DoNotPassEventsToChildren="true"
-                      Command.Click="ExecuteCloseActionsPanel" />
+                      Command.Click="ExecuteCloseActionsPanel">
+          <Children>
+            <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
+          </Children>
+        </ButtonWidget>
       </Children>
     </Widget>
 
@@ -1482,11 +1494,7 @@
                       UpdateChildrenStates="true"
                       Command.Click="ExecuteToggleMemoryPanel">
           <Children>
-            <Widget WidthSizePolicy="StretchToParent"
-                    HeightSizePolicy="StretchToParent"
-                    Sprite="BlankWhiteSquare_9"
-                    Color="#FFFFFF00"
-                    IsDisabled="true" />
+            <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#FFD27AFF" />
           </Children>
         </ButtonWidget>
 
