@@ -3,7 +3,9 @@
 #region
 
 using System;
+using System.Linq;
 using CalradiaRemembers.Behaviors;
+using CalradiaRemembers.Logic.Quests;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
@@ -56,7 +58,10 @@ namespace CalradiaRemembers.Quests
          _giverId = giver.StringId;
          _questKey = BuildQuestKey(giver, quest);
 
-         AddLog(BuildDescriptionText(quest));
+         // The plain steps first, written by the game; the giver's own words under them (avalanche24, 31/10/2026).
+         string plain = WhatToDoFor(quest, giver);
+         if (plain != null) AddLog(new TextObject(plain));
+         AddLog(BuildDescriptionText(quest, giver));
          // A factual bearing the LLM's own description may not carry, so the player is pointed to the region of
          // a lair that stays hidden until scouted (the map marker sits on the anchor town, not the hidden lair).
          if (!string.IsNullOrWhiteSpace(quest.DirectionHint))
@@ -89,7 +94,65 @@ namespace CalradiaRemembers.Quests
       /// </summary>
       public string QuestKey => _questKey;
 
-      public override TextObject Title => new(Mapping.ShownText.Of(ResolveLiveQuest()?.Description ?? _questKey));
+      /// <summary>
+      ///   A short title written by the game ("Scout Sargot from inside (Dnin)"), read live so quests already under way
+      ///   get it too; the giver's words only when a fact the title needs is missing (avalanche24, 31/10/2026).
+      /// </summary>
+      public override TextObject Title
+      {
+         get
+         {
+            InformalQuest live = ResolveLiveQuest();
+            string plain = live == null ? null : QuestJournalText.Title(FactsOf(live, QuestGiver));
+
+            return new TextObject(plain ?? Mapping.ShownText.Of(live?.Description ?? _questKey));
+         }
+      }
+
+      /// <summary>
+      ///   Gives a journal opened before the plain steps existed its "What to do" line, once (session launch). Silent:
+      ///   no "quest updated" notice for a line the player did nothing to earn.
+      /// </summary>
+      internal void EnsurePlainSteps()
+      {
+         if (JournalEntries.Any(j => j?.LogText?.ToString().StartsWith(QuestJournalText.WhatToDoPrefix) == true)) return;
+
+         InformalQuest live = ResolveLiveQuest();
+         string plain = live == null ? null : WhatToDoFor(live, QuestGiver);
+         if (plain == null) return;
+
+         AddLog(new TextObject(plain), hideInformation: true);
+         ModLog.Info($"[QUEST-JOURNAL] plain steps added to '{_questKey}'.");
+      }
+
+      /// <summary>The facts the plain title and steps are written from, read off the live task.</summary>
+      internal static QuestJournalFacts FactsOf(InformalQuest quest, Hero giver) => new() {
+         Type = quest.Type,
+         GiverName = giver?.Name?.ToString(),
+         TargetSettlement = quest.TargetSettlement,
+         TargetHeroName = quest.TargetHeroName,
+         TargetFactionName = quest.TargetFactionName,
+         DirectionHint = quest.DirectionHint,
+         RequiredCount = quest.RequiredItemCount,
+         GoodsLabel = string.IsNullOrWhiteSpace(quest.RequiredItemCategory) ? null : Items.SupplyItemMatcher.Label(quest.RequiredItemCategory),
+         RequiredItemValue = quest.RequiredItemValue,
+         RequiredGold = quest.RequiredGold,
+         AdvanceGold = quest.AdvanceGold,
+         CultureName = quest.RequiredCultureName,
+         DeadlineText = quest.DeadlineDay.HasValue ? CampaignTime.Days(quest.DeadlineDay.Value).ToString() : null,
+         ExternalSourceMod = quest.ExternalSourceMod
+      };
+
+      private static string WhatToDoFor(InformalQuest quest, Hero giver)
+      {
+         try { return QuestJournalText.WhatToDo(FactsOf(quest, giver)); }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[QUEST-JOURNAL] plain steps failed for {quest?.Type}: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
 
       /// <summary>
       ///   Closes the mirror as cancelled (war ended, giver died, etc.) — no penalty,
@@ -219,7 +282,9 @@ namespace CalradiaRemembers.Quests
          return match;
       }
 
-      private static TextObject BuildDescriptionText(InformalQuest quest) => new(Mapping.ShownText.Of(quest.Description));
+      private static TextObject BuildDescriptionText(InformalQuest quest, Hero giver)
+         => new(QuestJournalText.GiverWords(giver?.Name?.ToString(), Mapping.ShownText.Of(quest.Description))
+                ?? Mapping.ShownText.Of(quest.Description));
 
       private static string BuildQuestKey(Hero giver, InformalQuest quest)
          => BuildQuestId(giver, quest);

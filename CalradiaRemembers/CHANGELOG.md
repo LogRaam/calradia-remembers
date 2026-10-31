@@ -5,6 +5,18 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ## v2.8.0.. open
 
 ### New
+- **Tasks say plainly what to do** (avalanche24, Nexus, 31/10/2026, with a screenshot: "What do I need to do here
+  exactly?"; Gabriel: "Il faudrait que les quetes soient decrites simplement pour les joueurs"). A task's journal entry
+  showed only the giver's words, as its title and its only line ("Sargot's gang leader hoards what he learns. You'll slip
+  into its shadows..."). The game now writes a short title ("Scout Sargot from inside (Dnin)") and a first line "What to
+  do:" for every kind of task: where to go, whom to see, what counts (being declared on does not count for a war to
+  declare, a bought weapon does not count for one to forge, a letter is delivered through "I bear a message for you"),
+  whether the reward waits with the giver or is settled on the spot, and the deadline as the game shows dates (the
+  engine's own countdown is hidden for these tasks). The giver's words stay underneath, as theirs. Each line follows
+  the deed's real check, traced in the code the same day. The title is read live, so tasks already under way get it;
+  their "What to do" line is added once at session launch, silently. `QuestJournalText` (Logic),
+  `CalradiaRemembersQuest.FactsOf`/`EnsurePlainSteps`; tests QuestJournalTextTests; `cr.test quest_journal_plain`.
+  Not done: `QuestService.Describe` (chat lines, memories) still prints a raw goods key for a market or tale good.
 - **The letter box** (Gabriel, 30/10/2026, after tashmetu relayed two players buried in letters: "toutes les lettres sont
   envoyees et vont dans la boite aux lettres [...] c'est le joueur qui classe, elimine, abonne et desabonne les
   conversations par lettres"). A letter that arrives no longer opens a window: it waits in the letter box, a notice names

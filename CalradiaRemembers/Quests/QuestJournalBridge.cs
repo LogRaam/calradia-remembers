@@ -123,6 +123,10 @@ namespace CalradiaRemembers.Quests
                // Log the ambiguous keeps (there is a detail) so a "why didn't it close" repro stays diagnosable.
                if (detail != null) ModLog.Info($"[QUEST-JOURNAL] Keeping mirror '{q.StringId}' at session launch: {detail}.");
 
+               // A task opened before the plain steps existed gets them once (avalanche24, 31/10/2026).
+               try { q.EnsurePlainSteps(); }
+               catch (Exception ex) { ModLog.Error($"[QUEST-JOURNAL] EnsurePlainSteps failed for '{q.StringId}': {ex.Message}"); }
+
                continue;
             }
 

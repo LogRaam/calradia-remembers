@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 599 types in 64 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1427 types in 49 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1429 types in 49 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 278 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2330,7 +2330,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SceneContentKind` | public enum | The kind of scene that is opening. |
 | `ServiceRole` | public enum | A model ROLE the player can route to its own provider. |
 
-### CalradiaRemembers.Logic.Quests (12)
+### CalradiaRemembers.Logic.Quests (14)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2338,6 +2338,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MirrorReconcileDecision` | public enum | What to do with one quest-journal mirror at session launch. |
 | `QuestFailureLeniency` | public class | How a failed or abandoned quest is charged: whether it grudges, remembers a broken word, spends trust, and by how much regard. |
 | `QuestFailureLeniencyPolicy` | public static class | Decides the leniency of a quest failure by kind: hard-to-find bandit deeds are forgiven, all else keeps full consequence. |
+| `QuestJournalFacts` | public class | What a task's plain journal text is written from. |
+| `QuestJournalText` | public static class | A task's plain title and "What to do" line, written by the game. |
 | `QuestKillCreditPolicy` | public static class | Decides whether a hero's death satisfies a kill-target quest, given who struck the blow. |
 | `QuestMenuComposer` | public static class | Formats the grounded quest menu into compact prompt lines. |
 | `QuestMenuEntry` | public class | One task a giver can truly offer right now: its type token, its REAL target, and a short cue. |

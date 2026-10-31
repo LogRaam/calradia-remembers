@@ -493,6 +493,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("brawl_initiative", Severity.Light, "avalanche24 28/10: a companion hired hours before called him out for being told to follow orders; Gabriel 28/10: nobles duel, a companion only brawls. Asks the real resolver (the gate the prompt and the bridge both ask): a lord fights with steel, a companion with fists; a companion with no grudge and a plain regard may not call the player out; soured to -30 she may, unless the player is far the better fighter and she is not reckless. Restores her regard; arms nothing", TestBrawlInitiative),
          new SelfTest("station_definitions", Severity.Light, "Gabriel 28/10: one definition per social status, adjusting to the player's rung; avalanche24 28/10: companions and a landowner spoke above their station. Reads every station definition as the game loaded it (ModuleData/stations, Custom and patches applied): each says who the character is and meets each of the five rungs. Then finds a living companion, notable or lord and expects the prompt's station lines for them to be the definition's. Changes no game state", TestStationDefinitions),
          new SelfTest("player_rung", Severity.Light, "Gabriel 28/10: a villager is ruder to a nobody than to the head of a tier 3 house; avalanche24 28/10: a weak companion boasted before a master of arms. Reads the player's rung from the live game and the line a real lord would be given about the player: it names the player's place in the world, and the gap at arms follows the two fighters' prowess. Changes no game state", TestPlayerRung),
+         new SelfTest("quest_journal_plain", Severity.Light, "avalanche24 31/10: a task's journal showed only the giver's words, as title and only line, and the player asked what to do. A scout_town task built against a real enemy town (or any town) and a real lord is read through the real mapping (CalradiaRemembersQuest.FactsOf: supply label, deadline as the game shows dates): the title names the deed and the giver, the What to do line names the town, the gang leader and the chat, and the deadline. A forge task keyed forged:two_handed_sword reads 'two-handed sword'. Every open CR journal entry gets its What to do line (what session launch does). Creates no task", TestQuestJournalPlain),
          new SelfTest("letter_box", Severity.Light, "Gabriel 30/10: every letter waits in the letter box; a thrown letter silences that subject from that sender. With the MCM on In the letter box: a [SELFTEST] RealmTidings letter from a real correspondent goes through the real arrival (LetterPopupManager.Show) -> it waits InBox, the box count, the map bar badge and the box window all rise by one, it is not in the letter book; thrown -> it leaves the box and 'news' is silenced for that sender; a second such letter arrives unseen (ThrownAway, never InBox), is never written by QueueInitialLetter and leaves the mailbox pool; a WarSummons thrown silences nothing; a TournamentVictory sent through QueueInitialLetter travels as an unwritten envelope (no model call), its sender remembers writing it, it waits in the box, and thrown away it is never written. Removes its letters and restores the sender's silenced subjects", TestLetterBox),
          new SelfTest("conception_veto", Severity.Light, "tashmetu 28/10: a Sterile character (Traits of Calradia) conceived through CR. A veto registered through CrConception against an eligible mother -> TryConceive(force) -> assert no conception and she is not carrying; the veto is withdrawn after", TestConceptionVeto),
          new SelfTest("companion_mission", Severity.Heavy, "dispatch a companion -> assert away -> resolve -> assert home", TestCompanionMission),
@@ -8697,6 +8698,42 @@ namespace CalradiaRemembers.Diagnostics
       ///   count rises, the book does not show it, a throw silences its subject from that sender, and the next letter on that
       ///   subject arrives unseen. The test letters carry SenderRemembers so no memory is filed; all are removed after.
       /// </summary>
+      private static string TestQuestJournalPlain(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("quest_journal_plain");
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h.MapFaction != null);
+         if (t.Skip(giver == null, "no lord in the world")) return t.Line();
+
+         TaleWorlds.CampaignSystem.Settlements.Settlement town =
+            TaleWorlds.CampaignSystem.Settlements.Settlement.All.FirstOrDefault(s => s.IsTown && s.MapFaction != null && s.MapFaction.IsAtWarWith(giver.MapFaction))
+            ?? TaleWorlds.CampaignSystem.Settlements.Settlement.All.FirstOrDefault(s => s.IsTown);
+         if (t.Skip(town == null, "no town in the world")) return t.Line();
+
+         int today = (int) CampaignTime.Now.ToDays;
+         var scout = new InformalQuest {Type = QuestType.ScoutTown, TargetSettlement = town.Name.ToString(), IssuedOnDay = today, DeadlineDay = today + 20};
+         Logic.Quests.QuestJournalFacts facts = Quests.CalradiaRemembersQuest.FactsOf(scout, giver);
+         string title = Logic.Quests.QuestJournalText.Title(facts) ?? "";
+         string steps = Logic.Quests.QuestJournalText.WhatToDo(facts) ?? "";
+
+         t.Expect("theTitleNamesTheTownAndTheGiver", title.Contains(town.Name.ToString()) && title.Contains(giver.Name.ToString()), true);
+         t.Expect("theStepsNameTheGangLeaderAndTheChat", steps.Contains("gang leader") && steps.Contains("Calradia Remembers chat"), true);
+         t.Expect("theDeadlineIsAGameDate", steps.Contains("Do it before " + CampaignTime.Days(today + 20)), true);
+
+         var forge = new InformalQuest {Type = QuestType.CraftWeapon, RequiredItemCategory = CraftWeaponPolicy.KeyPrefix + "two_handed_sword", RequiredItemCount = 1, IssuedOnDay = today};
+         t.Expect("aForgeTaskNamesTheWeapon", Logic.Quests.QuestJournalText.Title(Quests.CalradiaRemembersQuest.FactsOf(forge, giver)), $"Forge a two-handed sword ({giver.Name})");
+
+         int open = 0, plain = 0;
+         foreach (Quests.CalradiaRemembersQuest q in Campaign.Current.QuestManager.Quests.OfType<Quests.CalradiaRemembersQuest>().Where(q => q.IsOngoing).ToList())
+         {
+            open++;
+            q.EnsurePlainSteps();
+            if (q.JournalEntries.Any(j => j?.LogText?.ToString().StartsWith(Logic.Quests.QuestJournalText.WhatToDoPrefix) == true)) plain++;
+         }
+         t.Expect("everyOpenEntryHasItsSteps", plain, open);
+
+         return t.Line();
+      }
+
       private static string TestLetterBox(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("letter_box");
