@@ -1,6 +1,6 @@
 // Code written by Gabriel Mailhot, 20/07/2026.
 // Courier robustness batch (ROADMAP 2026-07-20): the ONE gate deciding whether a rider can be on the road to
-// the player at all. Three world states block it, and every blocked case resolves the same safe way: the letter
+// the player at all. Three world states and the player's own word block it, and every blocked case resolves the same safe way: the letter
 // stays on (or reverts to) date-based delivery, so nothing is ever lost, only the visible ride is skipped.
 // Used at BOTH sites: refusing to spawn a new reply courier, and reclaiming one already in flight.
 
@@ -19,7 +19,10 @@ namespace CalradiaRemembers.Logic
         PlayerIsPrisoner,
 
         /// <summary>No overland route reaches the player (an island, a shore across the water).</summary>
-        NoLandRoute
+        NoLandRoute,
+
+        /// <summary>The player wants no rider for this letter: riders off in the MCM, or a letter that would arrive unseen.</summary>
+        NotWanted
     }
 
     /// <summary>Single source of truth for the reply-courier road gate.</summary>
@@ -44,6 +47,9 @@ namespace CalradiaRemembers.Logic
 
            /// <summary>A rider could actually get there overland.</summary>
            public bool LandRouteExists { get; set; }
+
+           /// <summary>The player asked for no rider (kurushimi00, 31/10/2026). Outranks everything: it is the true reason.</summary>
+           public bool NoRiderWanted { get; set; }
         }
 
         /// <summary>
@@ -54,6 +60,7 @@ namespace CalradiaRemembers.Logic
         public static ReplyCourierBlock Decide(CourierGateFacts facts)
         {
            if (facts == null) return ReplyCourierBlock.None;
+           if (facts.NoRiderWanted) return ReplyCourierBlock.NotWanted;
 
            bool playerAtSea = facts.PlayerAtSea;
            bool playerIsPrisoner = facts.PlayerIsPrisoner;

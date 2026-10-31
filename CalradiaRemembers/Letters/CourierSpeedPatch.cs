@@ -16,6 +16,7 @@ using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Localization;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Diagnostics;
+using CalradiaRemembers.Logic.Letters;
 
 #endregion
 
@@ -88,9 +89,11 @@ namespace CalradiaRemembers.Letters
          if (mobileParty == null) return;
          if (!CourierService.IsCourier(mobileParty.StringId)) return;
 
+         // A rider bound for the player outrides them, or a fast party never gets its letters (kurushimi00, 31/10/2026).
+         float floor = CourierService.IsReplyRider(mobileParty.StringId) ? ReplyRiderPolicy.PaceFor(CourierService.PlayerPace, CourierSpeedFloor) : CourierSpeedFloor;
          float currentSpeed = __result.ResultNumber;
-         if (currentSpeed < CourierSpeedFloor)
-            __result.Add(CourierSpeedFloor - currentSpeed, new TextObject("Courier fast-track"));
+         if (currentSpeed < floor)
+            __result.Add(floor - currentSpeed, new TextObject("Courier fast-track"));
       }
    }
 }

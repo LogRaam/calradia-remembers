@@ -611,6 +611,18 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool InvulnerableCouriers { get; set; } = false;
 
+      // kurushimi00 (Nexus, 31/10/2026): "In 30 seconds of gameplay [...] I got flooded with 6 more letter carriers [...] Please
+      // do add an option to disable that mechanic altogether." The letter box took the weight of many letters, not the map's.
+      [SettingPropertyBool("{=CR_MCM_LetterRidersOnMap}Letter Riders on the Map", RequireRestart = false, Order = 12,
+         HintText = "{=CR_MCM_LetterRidersOnMap_Hint}On: a rider carries each letter to you across the map. Off: no rider comes; a letter reaches your box on its date instead and cannot be intercepted on the way. Riders already out turn back within a day. Your own letters still ride.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
+      public bool LetterRidersOnMap { get; set; } = true;
+
+      [SettingPropertyBool("{=CR_MCM_UnaskedLetters}Unasked Letters", RequireRestart = false, Order = 13,
+         HintText = "{=CR_MCM_UnaskedLetters_Hint}Off: characters stop writing of their own accord. Still come: replies to your letters, war summons and levies, divorce, child support, blackmail, threats, marriage after a courtship, patrol reports, farewells, other mods' letters.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
+      public bool UnaskedLetters { get; set; } = true;
+
       // "Intercepted letters can leak" (Order 12) is gone since 26/09/2026: Gabriel ruled that an intercepted letter
       // with substance ALWAYS becomes a secret carried in the world (CourierSecretBehavior); the one switch left is
       // Invulnerable Couriers above.
@@ -718,7 +730,7 @@ namespace CalradiaRemembers.Foundation
       // and the player tunes it ("combien de systemes peuvent se manifester en meme temps, le delai avant que l'orchestrateur
       // decide de lancer une intervention"). Off leaves every system to pace itself as before.
       [SettingPropertyDropdown("{=CR_MCM_WorldInitiativePace}How Often the World Comes to You", RequireRestart = false, Order = 1,
-         HintText = "{=CR_MCM_WorldInitiativePace_Hint}One conductor decides whose turn it is to come to you unasked (lords, companions, letters...). Off: each paces itself, as before. Custom uses the settings below.")]
+         HintText = "{=CR_MCM_WorldInitiativePace_Hint}One conductor decides whose turn it is to come to you unasked (lords, companions, tales...). Off: each paces itself, as before. Custom uses the settings below.")]
       [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
       public Dropdown<string> WorldInitiativePace { get; set; } =
          new(new[] {"Off", "Rarely", "Occasionally", "Often", "Custom"}, 2); // default: Occasionally
@@ -729,7 +741,7 @@ namespace CalradiaRemembers.Foundation
       public int InitiativeAtOnce { get; set; } = 1;
 
       [SettingPropertyInteger("{=CR_MCM_InitiativePerWindow}Interruptions per Window (Custom)", 1, 10, "0", RequireRestart = false, Order = 3,
-         HintText = "{=CR_MCM_InitiativePerWindow_Hint}How many times the world may come to you within the window below. A letter counts as set further down. Custom only.")]
+         HintText = "{=CR_MCM_InitiativePerWindow_Hint}How many times the world may come to you within the window below. A letter that asks for a turn counts as set further down. Custom only.")]
       [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
       public int InitiativePerWindow { get; set; } = 3;
 
@@ -765,7 +777,7 @@ namespace CalradiaRemembers.Foundation
       public int InitiativeExpireDays { get; set; } = 10;
 
       [SettingPropertyDropdown("{=CR_MCM_InitiativeLettersCountAs}Letters Count As", RequireRestart = false, Order = 10,
-         HintText = "{=CR_MCM_InitiativeLettersCountAs_Hint}What a letter arriving costs from the count above: it closes with a click and waits in the book.")]
+         HintText = "{=CR_MCM_InitiativeLettersCountAs_Hint}Most letters ask for no turn. This is what the few that do cost from the count above: a lord's friendship or threat, a companion's farewell, a divorce demand.")]
       [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
       public Dropdown<string> InitiativeLettersCountAs { get; set; } =
          new(new[] {"A Full Interruption", "Half", "Nothing"}, 1); // default: Half

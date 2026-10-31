@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 600 types in 64 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1435 types in 49 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1437 types in 49 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 278 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 24000+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 24500+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 8500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -30,13 +30,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 1500+ | Mod | `Chat/ChatManager.cs` |
 | 1500+ | Mod | `GameState/CourtActionResolver.cs` |
 | 1500+ | Mod | `Interception/InterceptionBehavior.cs` |
+| 1500+ | Mod | `Letters/CourierService.cs` |
 | 1500+ | Mod | `WorldEvents/WorldEventFeeders.cs` |
 | 1000+ | Sdk | `Actions/GameActionCatalog.cs` |
 | 1000+ | Logic | `Assemblies/ResolutionCatalog.cs` |
 | 1000+ | Mod | `Chat/ChatViewModel.Council.cs` |
 | 1000+ | Mod | `Chat/ChatViewModel.Helpers.cs` |
 | 1000+ | Mod | `Diagnostics/RoleplayBench.cs` |
-| 1000+ | Mod | `Letters/CourierService.cs` |
 | 1000+ | Mod | `Letters/LetterTriggerEvaluator.cs` |
 | 1000+ | Sdk | `Parsing/SectionResponseParser.cs` |
 | 1000+ | Mod | `Services/LlmServices.cs` |
@@ -2169,7 +2169,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ScatteredLootLedger` | public class | Save-serializable carrier for every item currently scattered among bandit bands, awaiting recovery. |
 | `ScatteredLootPolicy` | public static class | Pure rules for recovering scattered captivity loot from defeated bandit bands. |
 
-### CalradiaRemembers.Logic.Letters (41)
+### CalradiaRemembers.Logic.Letters (43)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2210,6 +2210,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterWindowMode` | public enum | What the courier window is doing right now. |
 | `ModLetterFacts` | public class | What a mod's letter has become, as far as the player's side of it goes. |
 | `ModLetterStatusPolicy` | public static class | The status words CrLetters.GetStatus answers with. |
+| `ReplyRiderPolicy` | public static class | When a rider bound for the player is steered again, and the pace that lets it catch them. |
+| `RiderChaseFacts` | public class | What a rider's chase is read from, in map units. |
 | `SecretDefeaterFacts` | public class | Who answers for the troop that defeated a secret's carrier. |
 | `SecretHandoff` | public class | Where a secret went, and to whom. |
 | `SecretHandoffKind` | public enum | How a carried secret changes hands. |

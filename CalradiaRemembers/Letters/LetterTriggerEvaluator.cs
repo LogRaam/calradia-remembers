@@ -96,7 +96,8 @@ namespace CalradiaRemembers.Letters
          CollectRomanticCorrespondence(store, llmServices, today, pool, release);
          CollectAwaitingReplies(store, llmServices, today, pool, release);
          CollectSpouseCorrespondence(store, llmServices, today, pool, release);
-         CollectMarriageSolicitations(store, llmServices, today, pool, release);
+         // A parent's proposal is unasked, though it shares its reason with the courtship trial's answer, which is not.
+         if (ModSettings.UnaskedLetters) CollectMarriageSolicitations(store, llmServices, today, pool, release);
          CollectPrisonerOffers(store, llmServices, today, pool, release);
          CollectServiceOffers(store, llmServices, today, pool, release);
          CollectAimLetters(store, llmServices, today, pool, release);
@@ -104,6 +105,7 @@ namespace CalradiaRemembers.Letters
          // The letter box (Gabriel, 30/10/2026): a subject the player threw away from this sender is not written at all.
          int pooled = pool.Count;
          pool = LetterBoxPolicy.Unsilenced(pool, id => store.Get(id)?.SilencedLetterSubjects);
+         if (!ModSettings.UnaskedLetters) pool = pool.Where(c => !LetterBoxPolicy.IsUnasked(c.Reason)).ToList();
          if (pool.Count < pooled && ModSettings.VerboseLogging)
             ModLog.Info($"[LETTERBOX] {pooled - pool.Count} candidate(s) left out: their subject is silenced from their sender.");
 

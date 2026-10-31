@@ -376,7 +376,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("tale_local_band", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's last band was always looters, the weakest troop in the game. A \"local\" band is made of the bandits of the nearest hideout. Reads them for a few villages across the map and checks each finds real bandits; the log names them.", TestTaleLocalBand),
          new SelfTest("scene_surroundings_read", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's scene should read differently to an Aserai in a forest at night and a Battanian at noon. Reads the ground under the player, the season, the hour and the player's people from the live game, as the scene's narrator gets them, and checks the narrator's block is written from them.", TestSceneSurroundingsRead),
          new SelfTest("scene_opener", Severity.Light, "Lordfadooboo (Nexus, 21/10/2026): a conversation opened cold; Gabriel (22/10/2026): the character sets the scene by default, as captive scenes do. Reads the LIVE opening facts (LlmDialogFlow.SceneFacts) and asserts a conversation opened by the greeting gets a scene while one opened any other way (an interception, a tale meeting) does not, nor one put back from earlier today, nor one carrying the game's own dialogue, nor any with the MCM switch off (set off for a moment, restored). Then, with a model available and nothing on screen, opens a REAL conversation with a lord, starts the scene on a test greeting and plays the player speaking first: the scene is set aside, the greeting stays on screen and is the line remembered, and the call is aborted. Closes the conversation", TestSceneOpener),
-         new SelfTest("scene_image_shown", Severity.Light, "Gabriel (08/10/2026): a tale's stage may carry a picture, opening by itself beside the chat when its scene opens. Writes a small picture to a temporary file, opens a scene with it through the real door (its narration refused before any model call), checks the left panel shows that very file, then closes the scene and deletes the file.", TestSceneImageShown),
+         new SelfTest("scene_image_shown", Severity.Light, "Gabriel (08/10/2026): a tale's stage may carry a picture, opening by itself beside the chat when its scene opens. Writes a small picture to a temporary file, opens a scene with it through the real door (its narration refused before any model call), checks the left panel shows that very file and, in Dark Leather, that it steps aside when the chat yields to the pause menu, then closes the scene and deletes the file.", TestSceneImageShown),
          new SelfTest("intimate_acts", Severity.Light, "Gabriel (26/10/2026): 'chaque NPC avait des preferences pour certains gestes sexuels, et meme parfois des gestes qu'il n'aime pas', and 'un geste impose que le NPC n'aime pas devrait reduire le personal regard'. At Hardcore, with a lord arranged as the player's lover (regard 60, intimate; put back after) who loves oral given and dislikes anal received: the turn's reader is taught both from the real EncounterContextBuilder seam; the disliked gesture only asked for costs nothing and is learned; performed, it costs 4 personal regard and leaves a memory; performed again the same day, nothing more; the loved gesture found warms them by 1; one they are less fond of costs nothing; the Heart section names a taste only once it is learned; a profile rolled before the list widened (27/10/2026: 'd'en mettre beaucoup') is completed through the real load path, keeping what she loved and what the player learned. Skips below Hardcore", TestIntimateActs),
          new SelfTest("gift_tastes", Severity.Light, "Gabriel (27/10/2026): 'un NPC pourrait [...] preferer certains cadeaux [...] Une Dame pourrait aimer les fourrures'. With a lord already met, arranged to love furs (put back after): a fur handed over through the real give_item path (the bag-picked way) is read as furs from the item's own category, earns twice the regard its value would, is remembered as a gift after their own heart, and the player now knows the taste, which their What You Know section names. Characters met before 2.8.0 are rolled their tastes on the next reading. Picks a lord with no grudge against you; what stays behind in the save: the fur's remembered kindness and the small trust a gift builds with that lord", TestGiftTastes),
          new SelfTest("matters_most", Severity.Light, "Gabriel (27/10/2026): 'qu'est-ce qui compte le plus pour un NPC. Ses enfants? Sa richesse? Son amoureux?', and 'il faudra penser a les indiquer dans des sections de l'encyclopedia'. With a married lord (put back after): read through the real load path, what matters most to him is chosen and true of him; his page says nothing of it until he says it himself; the reserved discovery from his reply marks it learned without a free-text discovery beside it, and his What You Know section names it; an anchor whose ground is gone (a spouse he does not have) is moved at the next reading", TestMattersMost),
@@ -547,6 +547,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("kin_identity", Severity.Light, "DepaHN (Nexus, 26/10/2026): children, grandchildren, siblings and relatives felt cold, told they were family only while they shared no memory with the player. Through the REAL EncounterContextBuilder: a kinsman of the player (a child, a sibling, a parent, else any kin in the player's house) is named by his bond, and a lord of another house who is no blood of the player is named nothing. Read-only", TestKinIdentity),
          new SelfTest("companion_identity", Severity.Light, "fearente (Nexus, 26/10/2026): a companion hired a week before spoke of a childhood shared with the player, and the story the game had the wanderer tell at the first meeting was never remembered. Borrows one of the player's companions: drives the REAL hire listener (CompanionHireBehavior.OnHired) and asserts the REAL EncounterContextBuilder says hired companion, joined today; drives the REAL story keeper twice with the same line and asserts ONE OwnLife memory that keeps it, closed by the line saying the story's people belong to the past (fearente, 29/10/2026: Brave sought the creditor of his backstory), and that the REAL prompt carries that line. Restores the profile's memories and hire day", TestCompanionIdentity),
          new SelfTest("supply_quest", Severity.Heavy, "personal supply quest (ProvideGoods) END-TO-END: a bad-category proposal is REFUSED by the pipeline (nothing grounded), then a grain proposal is ISSUED through QuestService.ApplyResponse and grounds a real category+count; give the player grain -> real SettleSupplyQuest hands over EXACTLY the required count, CLOSES the quest (Completed), and pays the reward. Restores the roster. Then (froggyluv, 26/10/2026) the same grain handed over in WORDS through the REAL give_item action: short of the count it is refused and nothing leaves; with the count it settles the task (Completed). Restores the roster", TestSupplyQuest),
+         new SelfTest("letter_riders", Severity.Heavy, "kurushimi00 (31/10/2026): a rider bound for the player delivers when close enough, on the campaign tick, without touching and with no hour passing; a far one stays on the road, known to the speed patch; riders off means none spawns and the letter keeps its date; unasked letters off stops a tournament note, not a war summons. Cleans up its letters and riders", TestLetterRiders),
          new SelfTest("courier_waylay", Severity.Heavy, "waylaid-letter resend: a waylaid letter keeps its typed text, and the Resend path re-queues a FRESH non-lost letter carrying the SAME content, so a waylaid letter never has to be retyped. Cleans up its test letters + courier (no popup)", TestCourierWaylayResend),
          new SelfTest("prisoner_trade", Severity.Heavy, "prisoner trade: take a real lord captive into the player's party -> real buy_prisoner via the bridge (an NPC lord buys him) -> assert the player was PAID (price clamped around the ransom anchor) and the captive left the player's custody -> cleanup frees him", TestPrisonerTrade),
          new SelfTest("prisoner_ransom_home", Severity.Heavy, "fkasad (26/09/2026): a captive ransomed by his own count was put in his own side's cells and the game reported him escaped. Takes a real lord captive, has HIS OWN clan leader buy him through the real bridge -> asserts the player was paid the clamped price, was told why it fell short of the 999999 named (tashmetu), and the captive is FREE (ransomed home), not a prisoner of his own house. Restores both purses and frees him whatever happened.", TestPrisonerRansomHome),
@@ -4248,6 +4249,98 @@ namespace CalradiaRemembers.Diagnostics
             if (fresh != null) behavior.Store.Set(fresh);
             MobileParty cp = string.IsNullOrEmpty(courierId) ? null : MobileParty.All.FirstOrDefault(p => p.StringId == courierId && p.IsActive);
             if (cp != null) TravelingParty.Destroy(cp);
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   kurushimi00 (Nexus, 31/10/2026): riders delivered only to a player who stood still, and nothing could turn them off.
+      ///   A real reply rider set down close to the player gives its letter on the campaign tick, without touching and with no
+      ///   hour passing; one further out stays on the road, known as a rider the speed patch must let outride the player. With
+      ///   riders off none spawns, and with unasked letters off a tournament note is silenced while a war summons is not.
+      /// </summary>
+      private static string TestLetterRiders(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("letter_riders");
+         Hero sender = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.PartyBelongedTo != MobileParty.MainParty);
+         MobileParty player = MobileParty.MainParty;
+
+         if (t.Skip(sender == null, "no live lord to stand as a sender")) return t.Line();
+         if (t.Skip(player == null || player.IsCurrentlyAtSea || Hero.MainHero.IsPrisoner, "the player must be free and ashore")) return t.Line();
+         if (t.Skip(TaleWorlds.CampaignSystem.Encounters.PlayerEncounter.Current != null, "an encounter is under way")) return t.Line();
+         if (t.Skip(!ModSettings.LetterRidersOnMap || !ModSettings.UnaskedLetters, "needs Letter Riders on the Map and Unasked Letters on")) return t.Line();
+
+         const string tag = "[SELFTEST] letter rider";
+         NpcProfile profile = GetOrCreate(behavior, sender);
+         var today = (int) CampaignTime.Now.ToDays;
+         PendingLetter NewLetter(string which)
+         {
+            // SenderRemembers: the arrival files no memory on a real character.
+            var letter = new PendingLetter {SenderId = profile.Id, SenderName = profile.Name, Reason = LetterReason.RealmTidings, Content = tag + which, SentOnDay = today, DeliveryDay = today + 8, SenderRemembers = true};
+            profile.SentLetters.Add(letter);
+
+            return letter;
+         }
+         PendingLetter Stored(string which) => behavior.Store.Get(profile.Id)?.SentLetters.FirstOrDefault(l => l.Content == tag + which);
+
+         CrSettings settings = CrSettings.Instance;
+
+         try
+         {
+            TaleWorlds.Library.Vec2 here = player.GetPosition2D;
+            PendingLetter near = NewLetter(" near");
+            if (t.Skip(!CourierService.TrySpawnReplyCourier(near, sender, here + new TaleWorlds.Library.Vec2(1f, 0f)), "no rider could be set down beside the player")) return t.Line();
+            behavior.Store.Set(profile);
+
+            MobileParty rider = MobileParty.All.FirstOrDefault(p => p.StringId == near.CourierPartyId);
+            t.Expect("aRiderBoundForThePlayer", CourierService.IsReplyRider(near.CourierPartyId), true);
+            if (t.Skip(rider == null || rider.GetPosition2D.Distance(here) >= 2f, "the map set the rider too far from the player")) return t.Line();
+
+            CourierService.TickReplyRiders(behavior.Store);
+            t.Note($"sender={sender.Name}, rider={rider?.StringId}");
+            t.Expect("deliveredWithoutTouchingOrWaitingAnHour", Stored(" near")?.IsDelivered, true);
+            t.Expect("itWaitsInTheBox", Stored(" near")?.InBox, true);
+            t.Expect("theRiderIsGone", rider is {IsActive: true}, false);
+
+            PendingLetter far = NewLetter(" far");
+            if (!CourierService.TrySpawnReplyCourier(far, sender, here + new TaleWorlds.Library.Vec2(25f, 0f))) t.Note("no far rider: no ground at that spot");
+            else
+            {
+               behavior.Store.Set(profile);
+               CourierService.TickReplyRiders(behavior.Store);
+               t.Expect("aFarRiderStaysOnTheRoad", Stored(" far")?.IsDelivered, false);
+               t.Expect("aFarRiderKeepsRiding", CourierService.IsReplyRider(far.CourierPartyId), true);
+            }
+
+            if (t.Skip(settings == null, "MCM is absent: the two switches cannot be thrown")) return t.Line();
+
+            settings.LetterRidersOnMap = false;
+            PendingLetter unridden = NewLetter(" unridden");
+            t.Expect("noRiderWhenTurnedOff", CourierService.TrySpawnReplyCourier(unridden, sender), false);
+            t.Expect("theLetterKeepsItsDate", string.IsNullOrEmpty(unridden.CourierPartyId) && !unridden.IsLost, true);
+            settings.LetterRidersOnMap = true;
+
+            settings.UnaskedLetters = false;
+            t.Expect("aTournamentNoteIsStopped", LetterBox.IsSilenced(profile, LetterReason.TournamentVictory), true);
+            t.Expect("aWarSummonsStillComes", LetterBox.IsSilenced(profile, LetterReason.WarSummons), false);
+            settings.UnaskedLetters = true;
+         }
+         finally
+         {
+            if (settings != null)
+            {
+               settings.LetterRidersOnMap = true;
+               settings.UnaskedLetters = true;
+            }
+
+            // Letters first, so a rider's removal matches no letter and fires no loss.
+            NpcProfile fresh = behavior.Store.Get(profile.Id) ?? profile;
+            List<string> riders = fresh.SentLetters.Where(l => l.Content?.StartsWith(tag) == true && !string.IsNullOrEmpty(l.CourierPartyId)).Select(l => l.CourierPartyId).ToList();
+            fresh.SentLetters.RemoveAll(l => l.Content?.StartsWith(tag) == true);
+            behavior.Store.Set(fresh);
+            foreach (MobileParty leftover in MobileParty.All.Where(p => riders.Contains(p.StringId) && p.IsActive).ToList()) TravelingParty.Destroy(leftover);
+            LetterBox.Invalidate();
          }
 
          return t.Line();
@@ -12686,6 +12779,14 @@ namespace CalradiaRemembers.Diagnostics
             bool inPanel = vm?.ShowPanelCustomPortrait == true && vm.PanelPortraitPath == path;
             t.Note(inMargin ? "shown in the margin (Dark Leather)" : inPanel ? "shown in the left panel (Classic)" : "not shown");
             t.Expect("thatVeryPictureIsShown", inMargin || inPanel, true);
+            if (inMargin)
+            {
+               // Slid right with the book, the margin picture would land over the pause menu (Gabriel, 31/10/2026).
+               vm.SetVisualOffscreen(true);
+               t.Expect("thePictureStepsAsideWithTheChat", vm.IsSceneImageVisible, false);
+               vm.SetVisualOffscreen(false);
+               t.Expect("andComesBackWithIt", vm.IsSceneImageVisible, true);
+            }
          }
          finally
          {

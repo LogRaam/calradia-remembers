@@ -138,8 +138,9 @@ namespace CalradiaRemembers.Letters
          _dirty = false;
       }
 
-      /// <summary>True when the player asked not to receive this kind of letter from this sender.</summary>
-      public static bool IsSilenced(NpcProfile sender, LetterReason reason) => LetterBoxPolicy.IsSilenced(sender?.SilencedLetterSubjects, reason);
+      /// <summary>True when the player asked not to receive this kind of letter from this sender, or any letter unasked.</summary>
+      public static bool IsSilenced(NpcProfile sender, LetterReason reason)
+         => LetterBoxPolicy.IsStopped(sender?.SilencedLetterSubjects, reason, ModSettings.UnaskedLetters);
 
       /// <summary>
       ///   A letter that has just reached the player (the sender's side already marked by the caller): it waits in the box,

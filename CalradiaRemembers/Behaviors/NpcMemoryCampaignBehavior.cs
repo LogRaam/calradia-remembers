@@ -129,6 +129,10 @@ namespace CalradiaRemembers.Behaviors
          // the player is inside a settlement (menu or location mission), so a duel armed in a town conversation
          // never staged until the player left to the map (player report 2026-08-26). OnApplicationTick is
          // pause-independent and fires everywhere, like the ChatSceneStager pump.
+         // Riders bound for the player chase and deliver here (kurushimi00, 31/10/2026): the hourly pass only ever reached a
+         // player standing still. Cheap when no rider rides.
+         CampaignEvents.TickEvent.AddNonSerializedListener(
+            this, _ => { if (CourierService.HasReplyRiders) SafeRun.Step("Tick.CourierService.TickReplyRiders", () => CourierService.TickReplyRiders(Store)); });
          // Courier audit 3.1: drain the letter-mutation queue on the main thread. The LLM letter generators
          // resume on the thread pool and only ENQUEUE their SentLetters/store mutations; this applies them
          // here, in the single-threaded world the daily/courier ticks enumerate.

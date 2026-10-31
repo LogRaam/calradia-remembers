@@ -165,6 +165,10 @@
     <string id="CR_MCM_NpcCrossTalkRounds_Hint" text="How many times NPCs may talk amongst themselves (one reacting to another) before the turn comes back to you, in a scene with witnesses. 2 is the default; 0 turns it off so only the NPC you spoke to replies. Applies on your next message." />
     <string id="CR_MCM_InvulnerableCouriers" text="Invulnerable Couriers" />
     <string id="CR_MCM_InvulnerableCouriers_Hint" text="Off: couriers can be intercepted by bandits or by the sender's enemies. A lost letter is sent again, and what it said travels with its captors to whoever beats them. On: no interception." />
+    <string id="CR_MCM_LetterRidersOnMap" text="Letter Riders on the Map" />
+    <string id="CR_MCM_LetterRidersOnMap_Hint" text="On: a rider carries each letter to you across the map. Off: no rider comes; a letter reaches your box on its date instead and cannot be intercepted on the way. Riders already out turn back within a day. Your own letters still ride." />
+    <string id="CR_MCM_UnaskedLetters" text="Unasked Letters" />
+    <string id="CR_MCM_UnaskedLetters_Hint" text="Off: characters stop writing of their own accord. Still come: replies to your letters, war summons and levies, divorce, child support, blackmail, threats, marriage after a courtship, patrol reports, farewells, other mods' letters." />
     <string id="CR_MCM_AllowCaptorExecutions" text="Allow Captor Executions" />
     <string id="CR_MCM_AllowCaptorExecutions_Hint" text="Let a captor's scene end your character, at their own deliberate choice, deep in a Hardcore captive scene. Off by default. Irreversible: game over, or your heir succeeds you." />
     <string id="CR_MCM_AllowFiefAndMarriageQuestRewards" text="Allow Fief And Marriage Quest Rewards" />
@@ -194,12 +198,12 @@
     <string id="CR_MCM_WitnessDensity" text="Witness Density" />
     <string id="CR_MCM_WitnessDensity_Hint" text="How many ambient bystanders a conversation gathers. Sparse thins the room fast; Normal keeps a genuine middle ground; Bustling (default) is today's full room, unchanged. Never touches companions you bring yourself. Applies on your next conversation." />
     <string id="CR_MCM_WorldInitiativePace" text="How Often the World Comes to You" />
-    <string id="CR_MCM_WorldInitiativePace_Hint" text="One conductor decides whose turn it is to come to you unasked (lords, companions, letters...). Off: each paces itself, as before. Custom uses the settings below." />
+    <string id="CR_MCM_WorldInitiativePace_Hint" text="One conductor decides whose turn it is to come to you unasked (lords, companions, tales...). Off: each paces itself, as before. Custom uses the settings below." />
     <string id="CR_MCM_Group_WorldInitiative" text="The World's Initiative" />
     <string id="CR_MCM_InitiativeAtOnce" text="At Once (Custom)" />
     <string id="CR_MCM_InitiativeAtOnce_Hint" text="How many of them may be at you at the same time, e.g. a lord riding after you and a word asked in town. Custom only." />
     <string id="CR_MCM_InitiativePerWindow" text="Interruptions per Window (Custom)" />
-    <string id="CR_MCM_InitiativePerWindow_Hint" text="How many times the world may come to you within the window below. A letter counts as set further down. Custom only." />
+    <string id="CR_MCM_InitiativePerWindow_Hint" text="How many times the world may come to you within the window below. A letter that asks for a turn counts as set further down. Custom only." />
     <string id="CR_MCM_InitiativeWindowDays" text="Window (days, Custom)" />
     <string id="CR_MCM_InitiativeWindowDays_Hint" text="The span, in game days, the interruptions above are counted over. Custom only." />
     <string id="CR_MCM_InitiativeGapHours" text="Time Between Two (hours, Custom)" />
@@ -213,7 +217,7 @@
     <string id="CR_MCM_InitiativeExpireDays" text="Requests Expire After (days)" />
     <string id="CR_MCM_InitiativeExpireDays_Hint" text="A wish to come to you that waited this many game days is dropped, like stale news. The world's urgent matters never expire." />
     <string id="CR_MCM_InitiativeLettersCountAs" text="Letters Count As" />
-    <string id="CR_MCM_InitiativeLettersCountAs_Hint" text="What a letter arriving costs from the count above: it closes with a click and waits in the book." />
+    <string id="CR_MCM_InitiativeLettersCountAs_Hint" text="Most letters ask for no turn. This is what the few that do cost from the count above: a lord's friendship or threat, a companion's farewell, a divorce demand." />
     <string id="CR_MCM_InitiativeUrgentWait" text="Urgent Matters Wait Their Turn" />
     <string id="CR_MCM_InitiativeUrgentWait_Hint" text="Off (default): an arrest, your liege's war summons, an ambush or an envoy with a short deadline comes whenever the moment allows. On: they wait their turn like the rest." />
     <string id="CR_MCM_InitiativeWeightLords" text="Weight: Lords (%)" />

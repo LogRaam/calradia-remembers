@@ -103,7 +103,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Interception` | 23 | 9 |
 | `CalradiaRemembers.Encyclopedia` | 21 | 0 |
 | `CalradiaRemembers.Duels` | 20 | 6 |
-| `CalradiaRemembers.Stance` | 18 | 11 |
+| `CalradiaRemembers.Stance` | 19 | 11 |
 | `CalradiaRemembers.Violence` | 18 | 3 |
 | `CalradiaRemembers.Jealousy` | 16 | 8 |
 | `CalradiaRemembers.Dialogue` | 16 | 2 |
@@ -157,8 +157,8 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic.Romance` | 3 | 12 |
 | `CalradiaRemembers.Logic.Captivity` | 3 | 11 |
 | `CalradiaRemembers.Logic.Trauma` | 3 | 11 |
+| `CalradiaRemembers.Logic.Letters` | 3 | 8 |
 | `CalradiaRemembers.Portraits` | 3 | 8 |
-| `CalradiaRemembers.Logic.Letters` | 3 | 7 |
 | `CalradiaRemembers.Appearance` | 3 | 6 |
 | `CalradiaRemembers.Logic.AuthoredQuests` | 3 | 5 |
 | `CalradiaRemembers.Logic.Character` | 3 | 5 |
@@ -982,7 +982,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### CalradiaRemembers.Logic.Letters
 
 - uses: `CalradiaRemembers.Logic`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Standing`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic.Marriage`, `CalradiaRemembers.Map`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic.Marriage`, `CalradiaRemembers.Map`, `CalradiaRemembers.Stance`
 
 ### CalradiaRemembers.Logic.Marriage
 
@@ -1181,7 +1181,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### CalradiaRemembers.Stance
 
-- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Duels`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Initiative`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Appreciations`, `CalradiaRemembers.Logic.Companions`, `CalradiaRemembers.Logic.Initiative`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Storage`, `CalradiaRemembers.Travel`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Services`, `NpcMemoryService.Core.Standing`
+- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Duels`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Initiative`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Appreciations`, `CalradiaRemembers.Logic.Companions`, `CalradiaRemembers.Logic.Initiative`, `CalradiaRemembers.Logic.Letters`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Storage`, `CalradiaRemembers.Travel`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Services`, `NpcMemoryService.Core.Standing`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Commitments`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Duels`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Quests`, `CalradiaRemembers.Verbs`, `CalradiaRemembers.WorldEvents`
 
 ### CalradiaRemembers.Standing

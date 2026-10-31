@@ -15,6 +15,7 @@ using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.ComponentInterfaces;
+using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -40,7 +41,8 @@ namespace CalradiaRemembers.Letters
    ///   - Around a save, the registry takes the courier off the map and <see cref="RestoreCourier" /> puts it back
    ///   where it stood (the recipe the registry generalised from the couriers, 26/09/2026).
    ///   The NPC -> player reply direction mirrors this: <see cref="TrySpawnReplyCourier" /> spawns,
-   ///   <see cref="CheckReplyCourierArrival" /> (hourly) delivers, and <see cref="TickReplyCouriers" />
+   ///   <see cref="TickReplyRiders" /> (every campaign tick) chases and delivers, <see cref="CheckReplyCourierArrival" />
+   ///   (hourly) is its backstop, and <see cref="TickReplyCouriers" />
    ///   (daily, courier audit 2.1) is the safety net that releases an orphaned reply courier so its
    ///   letter never hangs undelivered forever.
    /// </summary>
@@ -97,6 +99,25 @@ namespace CalradiaRemembers.Letters
       // are never saved (they go invisible after a load), so there is nothing to persist; the durable truth is the
       // per-correspondent flag on the profile, which both spawn directions re-read to re-escort every later leg.
       private static readonly HashSet<string> EscortedCourierIds = new();
+
+      // The riders bound for the player, with the point each was last sent to: read on every campaign tick, so a store scan
+      // is out of the question. Runtime-only like ActiveCourierIds; a rider leaves when it is no longer a live courier.
+      private static readonly Dictionary<string, ReplyRider> ReplyRiders = new();
+
+      private sealed class ReplyRider
+      {
+         public MobileParty Party;
+         public Vec2 Target;
+      }
+
+      /// <summary>The player's speed as last read, which a rider bound for them has to beat.</summary>
+      internal static float PlayerPace { get; private set; }
+
+      /// <summary>True while a rider bound for the player is on the road.</summary>
+      public static bool HasReplyRiders => ReplyRiders.Count > 0;
+
+      /// <summary>True when <paramref name="partyId" /> is a rider bound for the player. Allocation-free, for the speed patch.</summary>
+      public static bool IsReplyRider(string partyId) => !string.IsNullOrEmpty(partyId) && ReplyRiders.ContainsKey(partyId);
 
       /// <summary>The couriers' role in <see cref="TransientPartyRegistry" />.</summary>
       internal const string CourierRole = "letters.courier";
@@ -391,6 +412,52 @@ namespace CalradiaRemembers.Letters
       }
 
       /// <summary>
+      ///   Every campaign tick: keeps each rider bound for the player riding at them, and hands the letter over as soon as
+      ///   the rider is close enough, without touching (kurushimi00, 31/10/2026; Gabriel: "sans avoir a le toucher forcement").
+      ///   The hourly pass could only see a player who stood still. The engine's EncounterManager runs after this event, so a
+      ///   rider the player clicks gives its letter on the way in instead of opening an encounter with a party that has no
+      ///   conversation. Not while the player is held or at sea (the daily pass reclaims the rider), nor during an encounter,
+      ///   which never loses a party from under it.
+      /// </summary>
+      public static void TickReplyRiders(BannerlordNpcMemoryStore store)
+      {
+         if (store == null) return;
+
+         MobileParty playerParty = MobileParty.MainParty;
+         if (playerParty == null || playerParty.IsCurrentlyAtSea || Hero.MainHero.IsPrisoner) return;
+         if (PlayerEncounter.Current != null) return;
+
+         PlayerPace = playerParty.Speed;
+         Vec2 player = playerParty.GetPosition2D;
+
+         foreach (KeyValuePair<string, ReplyRider> entry in ReplyRiders.ToList())
+         {
+            MobileParty rider = entry.Value.Party;
+            if (!IsCourier(entry.Key) || rider is not {IsActive: true})
+            {
+               ReplyRiders.Remove(entry.Key);
+
+               continue;
+            }
+
+            if (rider.MapEvent != null) continue; // a band has caught it: the fight settles the letter
+
+            float distance = rider.GetPosition2D.Distance(player);
+            if (distance < ArrivalDistance)
+            {
+               // Off this list whatever comes of it: a rider with no letter to give waits for the hourly pass, not every tick.
+               ReplyRiders.Remove(entry.Key);
+               CheckReplyCourierArrival(rider, store);
+
+               continue;
+            }
+
+            if (ReplyRiderPolicy.ShouldRefreshTarget(new RiderChaseFacts {DistanceToPlayer = distance, TargetDrift = entry.Value.Target.Distance(player)}))
+               DirectReplyCourierToPlayer(rider, playerParty);
+         }
+      }
+
+      /// <summary>
       ///   After a save: the courier the registry took off the map as <paramref name="oldId" /> is sent again from
       ///   <paramref name="at" />, where it stood, for the letter still stamped with that id. Returns the new courier
       ///   (already tracked by its spawn), or null when there is nothing left to carry or it cannot be spawned.
@@ -544,6 +611,7 @@ namespace CalradiaRemembers.Letters
       public static void RebuildActiveCourierSet(BannerlordNpcMemoryStore store)
       {
          ActiveCourierIds.Clear();
+         ReplyRiders.Clear();
          EscortedCourierIds.Clear(); // couriers were never saved; the durable escort truth is NpcProfile.EscortedChannel.
          RolledBandits.Clear(); // 4.6: a static keyed by courier id, never purged, leaked slowly across campaigns in one process.
          LastMovements.Clear(); // same lesson: runtime cache keyed by courier id, reset with the set it shadows.
@@ -702,7 +770,7 @@ namespace CalradiaRemembers.Letters
                MobileParty playerParty = MobileParty.MainParty;
                if (courier is {IsActive: true} && playerParty != null)
                {
-                  ReplyCourierBlock block = ReplyCourierGatePolicy.Decide(new ReplyCourierGatePolicy.CourierGateFacts {PlayerAtSea = playerParty.IsCurrentlyAtSea, PlayerIsPrisoner = Hero.MainHero.IsPrisoner, LandRouteExists = LandPathExists(courier.GetPosition2D, playerParty.GetPosition2D)});
+                  ReplyCourierBlock block = ReplyCourierGatePolicy.Decide(new ReplyCourierGatePolicy.CourierGateFacts {PlayerAtSea = playerParty.IsCurrentlyAtSea, PlayerIsPrisoner = Hero.MainHero.IsPrisoner, LandRouteExists = LandPathExists(courier.GetPosition2D, playerParty.GetPosition2D), NoRiderWanted = NoRiderWanted(letter, profile)});
                   if (block != ReplyCourierBlock.None)
                   {
                      Disband(courier);
@@ -841,7 +909,7 @@ namespace CalradiaRemembers.Letters
             // party), or no overland route (an island: the courier would spawn only to starve on the shore).
             // Every blocked case is safe: the letter keeps its date-based fallback.
             Vec2 spawnPos = spawnOverride ?? GetSenderPosition(sender);
-            ReplyCourierBlock block = ReplyCourierGatePolicy.Decide(new ReplyCourierGatePolicy.CourierGateFacts {PlayerAtSea = playerParty.IsCurrentlyAtSea, PlayerIsPrisoner = Hero.MainHero.IsPrisoner, LandRouteExists = LandPathExists(spawnPos, playerParty.GetPosition2D)});
+            ReplyCourierBlock block = ReplyCourierGatePolicy.Decide(new ReplyCourierGatePolicy.CourierGateFacts {PlayerAtSea = playerParty.IsCurrentlyAtSea, PlayerIsPrisoner = Hero.MainHero.IsPrisoner, LandRouteExists = LandPathExists(spawnPos, playerParty.GetPosition2D), NoRiderWanted = NoRiderWanted(letter, CurrentStore?.Get(sender.StringId))});
             if (block != ReplyCourierBlock.None)
             {
                ModLog.Info($"[COURIER-REPLY] {DescribeReplyBlock(block, sender.Name.ToString())}, letter stays on date-based delivery.");
@@ -862,6 +930,7 @@ namespace CalradiaRemembers.Letters
             courier.IgnoreByOtherPartiesTill(CampaignTime.DaysFromNow(3f)); // ignored until a band is rolled to chase it
             letter.CourierPartyId = courier.StringId;
             ActiveCourierIds.Add(courier.StringId);
+            ReplyRiders[courier.StringId] = new ReplyRider {Party = courier, Target = playerParty.GetPosition2D};
             if (escorted) EscortedCourierIds.Add(courier.StringId); // never rolled against in ScanForWaylayers
             TrackCourier(courier);
 
@@ -1074,7 +1143,18 @@ namespace CalradiaRemembers.Letters
       }
 
       private static void DirectReplyCourierToPlayer(MobileParty courier, MobileParty playerParty)
-         => TravelingParty.DirectToMovingPoint(courier, playerParty.GetPosition2D);
+      {
+         Vec2 target = playerParty.GetPosition2D;
+         TravelingParty.DirectToMovingPoint(courier, target);
+         if (ReplyRiders.TryGetValue(courier.StringId, out ReplyRider rider)) rider.Target = target;
+      }
+
+      /// <summary>
+      ///   True when no rider should carry this letter: the player turned riders off (kurushimi00, 31/10/2026), or it would
+      ///   only arrive unseen. The letter keeps its date-based delivery either way.
+      /// </summary>
+      private static bool NoRiderWanted(PendingLetter letter, NpcProfile profile)
+         => !ModSettings.LetterRidersOnMap || LetterBox.IsSilenced(profile, letter.Reason);
 
       private static void Disband(MobileParty courier)
       {
@@ -1112,6 +1192,7 @@ namespace CalradiaRemembers.Letters
          {
             case ReplyCourierBlock.PlayerAtSea: return $"player at sea, no rider from {senderName}";
             case ReplyCourierBlock.PlayerIsPrisoner: return $"player is a prisoner, no rider from {senderName}";
+            case ReplyCourierBlock.NotWanted: return $"the player wants no rider from {senderName}";
             default: return $"no land route from {senderName} to the player";
          }
       }

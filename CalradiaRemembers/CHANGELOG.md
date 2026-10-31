@@ -4,7 +4,38 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.8.1.. open
 
+### Fixed
+- **A tale's picture no longer lands on the pause menu** (Gabriel's screenshot, 31/10/2026). In Dark Leather the picture
+  sits in the margin left of the book and slid with it when the chat yielded, and 800 to the right only carries the
+  margin to the middle of the screen. It now hides while the chat has yielded (IsSceneImageVisible) and comes back with it.
+- **The killing window's ground is dark brown**, not white: the tint set on the ground button itself never drew; a plain
+  tinted child does (Gabriel's screenshot, 31/10/2026).
+
+### Fixed
+- **A letter rider catches you on the move** (kurushimi00, Nexus, 31/10/2026: riders "all requiring me to keep my party
+  immobile to let them actually deliver the letters"; Gabriel: "il faudrait qu'un cavalier courrier puisse rattrapper le
+  joueur en mouvement [...] lorsque le cavalier est assez pres de lui sans avoir a le toucher forcement"). A rider was steered
+  once a game hour to where the player then stood and its arrival read on that hour, so nobody moving faster than 2 units an
+  hour ever received one (true since the riders were added in June); the 2.8.0 volume made it plain. Now
+  CourierService.TickReplyRiders runs on every campaign tick: the letter is handed over at the same 2 units, the rider turns
+  when the player has moved (ReplyRiderPolicy), and it rides 1 unit an hour faster than a player who outruns 6.5. The tick
+  comes before the engine's encounters, so clicking a rider should give the letter on the way in instead of its "not allowed
+  to talk" line and the encounter menu (not play-verified). The hourly pass stays as the backstop.
+
+### New
+- **Two letter settings in the MCM** (kurushimi00: "an MCM setting to turn letters completely off"; Gabriel: yes, duty
+  letters kept). The 2.8.0 letter box took the weight of many letters in the box, not on the map. "Letter Riders on the Map"
+  off: no rider, the letter reaches the box on its date, riders out are reclaimed by the daily pass (ReplyCourierBlock.NotWanted,
+  which also spares a ride to a letter that would arrive unseen). "Unasked Letters" off: characters stop writing of their
+  own accord (LetterBoxPolicy.IsUnasked, read by LetterBox.IsSilenced, so nothing is written and what is on the road is set
+  aside unseen). Replies, war summons and levies, divorce, child support, blackmail, jealous threats, patrol reports,
+  farewells, other mods' letters and a courtship's marriage letter still come; a parent's proposal stops (Claude's default).
+- Tests: ReplyRiderPolicyTests, ReplyCourierGatePolicyTests, LetterBoxPolicyTests; cr.test letter_riders. Not play-verified.
+
 ### Changed
+- **World's Initiative hints** (MCM): letters no longer named as taking turns. "Letters Count As" stays: a lord's stance
+  letter, a companion's farewell and a divorce demand still ask for one, and its hint now says so. A silenced stance letter
+  asks for no turn.
 - **A killing attempt is played in front of you** (zhenja1, Nexus, 31/10/2026: he confirmed a killing twice, of the bandit
   who held him and later of the same man in a tavern, and the man lived both times; Gabriel: the window names the chance,
   "a bit like Baldur's Gate's dice, but only the number changing quickly until it stops on the score", then the model

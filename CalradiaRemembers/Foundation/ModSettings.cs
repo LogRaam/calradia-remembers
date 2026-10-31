@@ -74,6 +74,12 @@ namespace CalradiaRemembers.Foundation
       /// </summary>
       public static bool InvulnerableCouriers => CrSettings.Instance?.InvulnerableCouriers ?? false;
 
+      /// <summary>Riders carry letters to the player across the map; off, letters reach the box by their date (on without MCM).</summary>
+      public static bool LetterRidersOnMap => CrSettings.Instance?.LetterRidersOnMap ?? true;
+
+      /// <summary>Characters write to the player of their own accord; off, only the letters that matter still come (on without MCM).</summary>
+      public static bool UnaskedLetters => CrSettings.Instance?.UnaskedLetters ?? true;
+
       /// <summary>Intercepted-letter-leak Inc 1: when ON, a bandit-waylaid substantive letter may leak to a hostile hand. OFF by default (today's behaviour).</summary>
 
       /// <summary>

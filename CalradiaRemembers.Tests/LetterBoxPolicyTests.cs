@@ -34,6 +34,52 @@ namespace CalradiaRemembers.Tests
             LetterBoxPolicy.IsSilenced(silenced, LetterReason.RealmTidings).Should().BeFalse();
         }
 
+        // STAKE: "Unasked Letters" off (kurushimi00, 31/10/2026) must never hide what the game then holds the player to: a
+        // summons or levy with its deadline, a divorce, a pension, blackmail. A reply is what the player asked for, a farewell
+        // is how a companion leaves, a patrol's report is where the player decides, a courtship trial answers by a proposal.
+        [TestCase(LetterReason.WarSummons)]
+        [TestCase(LetterReason.WarLevyDemand)]
+        [TestCase(LetterReason.SpouseDivorceDemand)]
+        [TestCase(LetterReason.SpouseDivorceEscalation)]
+        [TestCase(LetterReason.ChildSupportRequest)]
+        [TestCase(LetterReason.CompanionFarewell)]
+        [TestCase(LetterReason.PlayerLetterReply)]
+        [TestCase(LetterReason.PatrolReport)]
+        [TestCase(LetterReason.FromAnotherMod)]
+        [TestCase(LetterReason.Blackmail)]
+        [TestCase(LetterReason.JealousThreat)]
+        [TestCase(LetterReason.MarriageProposal)]
+        public void GIVEN_unasked_letters_turned_off_WHEN_a_letter_that_matters_comes_THEN_it_still_arrives(LetterReason reason)
+        {
+            LetterBoxPolicy.IsUnasked(reason).Should().BeFalse();
+        }
+
+        // STAKE: the flood itself. Congratulations, love letters, news and offers are what the switch is for; one left out
+        // of it keeps the riders coming for a player who said stop.
+        [TestCase(LetterReason.TournamentVictory)]
+        [TestCase(LetterReason.BattleVictory)]
+        [TestCase(LetterReason.RomanticCorrespondence)]
+        [TestCase(LetterReason.SpouseCorrespondence)]
+        [TestCase(LetterReason.RealmTidings)]
+        [TestCase(LetterReason.StanceFavor)]
+        [TestCase(LetterReason.PrisonerOffer)]
+        [TestCase(LetterReason.ServiceOffer)]
+        public void GIVEN_unasked_letters_turned_off_WHEN_a_character_would_write_of_their_own_accord_THEN_it_is_stopped(LetterReason reason)
+        {
+            LetterBoxPolicy.IsUnasked(reason).Should().BeTrue();
+        }
+
+        // STAKE: one door for the two ways a player says no. A subject thrown away stays silenced with the setting on, and the
+        // setting off stops an unasked letter from a sender nothing was ever thrown from, but never a summons.
+        [Test]
+        public void GIVEN_the_players_two_ways_of_saying_no_WHEN_a_letter_comes_THEN_either_stops_it_and_neither_stops_a_duty()
+        {
+            LetterBoxPolicy.IsStopped(new[] {"news"}, LetterReason.RealmTidings, unaskedLettersOn: true).Should().BeTrue();
+            LetterBoxPolicy.IsStopped(null, LetterReason.RealmTidings, unaskedLettersOn: true).Should().BeFalse();
+            LetterBoxPolicy.IsStopped(null, LetterReason.RealmTidings, unaskedLettersOn: false).Should().BeTrue();
+            LetterBoxPolicy.IsStopped(null, LetterReason.WarSummons, unaskedLettersOn: false).Should().BeFalse();
+        }
+
         // STAKE: one conversation is one subject. A thrown divorce demand cannot leave its escalation to arrive, nor a
         // thrown love letter its "you did not answer me".
         [Test]

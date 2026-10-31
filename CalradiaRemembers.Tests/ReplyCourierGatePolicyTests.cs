@@ -52,6 +52,15 @@ namespace CalradiaRemembers.Tests
                 .Should().Be(ReplyCourierBlock.NoLandRoute);
         }
 
+        // STAKE: kurushimi00 (Nexus, 31/10/2026): "add an option to disable that mechanic altogether". With riders off, none
+        // rides even on an open road, and the letter still arrives by its date, as in every blocked case.
+        [Test]
+        public void GIVEN_a_player_who_wants_no_riders_WHEN_gated_on_an_open_road_THEN_no_rider_rides()
+        {
+            ReplyCourierGatePolicy.Decide(new ReplyCourierGatePolicy.CourierGateFacts {LandRouteExists = true, NoRiderWanted = true})
+                .Should().Be(ReplyCourierBlock.NotWanted);
+        }
+
         // Precedence: AT SEA must outrank the road answer, because a land-path query against a player floating
         // on water is meaningless; reporting NoLandRoute there would tell the log (and the player) a false
         // story about the map. Captivity likewise outranks the road: the player's state forbids the ride

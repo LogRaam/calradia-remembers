@@ -171,6 +171,9 @@ namespace CalradiaRemembers.Stance
 
          if (content == null) return false; // nothing warranted (neutral, mild, or a secret hatred biding its time)
 
+         // A letter that would only arrive unseen asks for no turn of the world's initiative. The console path still writes it.
+         if (!ignoreCooldown && Logic.Letters.LetterBoxPolicy.IsStopped(profile.SilencedLetterSubjects, reason, ModSettings.UnaskedLetters)) return false;
+
          // The world's initiative (29/10/2026): the letter asks for its turn (a threat presses, a kindness can wait); kept
          // waiting, nothing is stamped and it is written the day its turn comes, while he can still write. The console
          // path (ignoreCooldown) writes at once.
