@@ -619,7 +619,7 @@ namespace CalradiaRemembers.Foundation
       public bool LetterRidersOnMap { get; set; } = true;
 
       [SettingPropertyBool("{=CR_MCM_UnaskedLetters}Unasked Letters", RequireRestart = false, Order = 13,
-         HintText = "{=CR_MCM_UnaskedLetters_Hint}Off: characters stop writing of their own accord. Still come: replies to your letters, war summons and levies, divorce, child support, blackmail, threats, marriage after a courtship, patrol reports, farewells, other mods' letters.")]
+         HintText = "{=CR_MCM_UnaskedLetters_Hint}Off: characters stop writing of their own accord. Still come: replies to your letters, war summons and levies, divorce, news of your children and their support, blackmail, threats, a courtship's answer, patrol reports, farewells, other mods' letters.")]
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool UnaskedLetters { get; set; } = true;
 

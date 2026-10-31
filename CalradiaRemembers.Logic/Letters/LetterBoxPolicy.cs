@@ -100,11 +100,14 @@ namespace CalradiaRemembers.Logic.Letters
         ///   31/10/2026: "an MCM setting to turn letters completely off"; Gabriel: yes, with the duty letters kept). What stays
         ///   is what a player would be punished for not reading, or asked for themselves: every letter the mailbox always
         ///   guaranteed (<see cref="LetterMailboxPolicy.BypassesBudget" />), blackmail and a jealous threat (a consequence
-        ///   follows them), and a marriage proposal, because a passed courtship trial answers by that letter. A parent's
-        ///   proposal shares its reason and is stopped where it is collected. Claude's default, 31/10/2026.
+        ///   follows them), the news of a child (a birth, a mother's note: without it the blackmail and the pension that follow
+        ///   would be about a child the player was never told of), and a marriage proposal, because a passed courtship trial
+        ///   answers by that letter. A parent's proposal shares its reason and is stopped where it is collected. Claude's
+        ///   default, 31/10/2026.
         /// </summary>
         public static bool IsUnasked(LetterReason reason) => !LetterMailboxPolicy.BypassesBudget(reason)
-            && reason is not (LetterReason.Blackmail or LetterReason.JealousThreat or LetterReason.MarriageProposal);
+            && reason is not (LetterReason.Blackmail or LetterReason.JealousThreat or LetterReason.MarriageProposal
+                or LetterReason.BirthAnnouncement or LetterReason.BastardMotherNote);
 
         /// <summary>True when throwing this letter silences its subject from its sender.</summary>
         public static bool ThrowSilences(LetterReason reason) => SubjectOf(reason) != null && !IsNeverSilenced(reason);

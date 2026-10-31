@@ -4311,6 +4311,10 @@ namespace CalradiaRemembers.Diagnostics
                CourierService.TickReplyRiders(behavior.Store);
                t.Expect("aFarRiderStaysOnTheRoad", Stored(" far")?.IsDelivered, false);
                t.Expect("aFarRiderKeepsRiding", CourierService.IsReplyRider(far.CourierPartyId), true);
+
+               // Riders go off the map around a save and come back as new parties: the one that returns still chases.
+               Travel.TransientPartyRegistry.Instance?.DebugSaveCycle();
+               t.Expect("aRiderBackFromASaveStillChases", CourierService.IsReplyRider(Stored(" far")?.CourierPartyId), true);
             }
 
             if (t.Skip(settings == null, "MCM is absent: the two switches cannot be thrown")) return t.Line();

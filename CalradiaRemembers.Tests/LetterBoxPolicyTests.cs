@@ -36,7 +36,8 @@ namespace CalradiaRemembers.Tests
 
         // STAKE: "Unasked Letters" off (kurushimi00, 31/10/2026) must never hide what the game then holds the player to: a
         // summons or levy with its deadline, a divorce, a pension, blackmail. A reply is what the player asked for, a farewell
-        // is how a companion leaves, a patrol's report is where the player decides, a courtship trial answers by a proposal.
+        // is how a companion leaves, a patrol's report is where the player decides, a courtship trial answers by a proposal,
+        // and a blackmail over a child must not be the first the player hears of that child.
         [TestCase(LetterReason.WarSummons)]
         [TestCase(LetterReason.WarLevyDemand)]
         [TestCase(LetterReason.SpouseDivorceDemand)]
@@ -49,6 +50,8 @@ namespace CalradiaRemembers.Tests
         [TestCase(LetterReason.Blackmail)]
         [TestCase(LetterReason.JealousThreat)]
         [TestCase(LetterReason.MarriageProposal)]
+        [TestCase(LetterReason.BirthAnnouncement)]
+        [TestCase(LetterReason.BastardMotherNote)]
         public void GIVEN_unasked_letters_turned_off_WHEN_a_letter_that_matters_comes_THEN_it_still_arrives(LetterReason reason)
         {
             LetterBoxPolicy.IsUnasked(reason).Should().BeFalse();

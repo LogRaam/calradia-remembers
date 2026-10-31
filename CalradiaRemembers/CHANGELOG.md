@@ -26,8 +26,9 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   off: no rider, the letter reaches the box on its date, riders out are reclaimed by the daily pass (ReplyCourierBlock.NotWanted,
   which also spares a ride to a letter that would arrive unseen). "Unasked Letters" off: characters stop writing of their
   own accord (LetterBoxPolicy.IsUnasked, read by LetterBox.IsSilenced, so nothing is written and what is on the road is set
-  aside unseen). Replies, war summons and levies, divorce, child support, blackmail, jealous threats, patrol reports,
-  farewells, other mods' letters and a courtship's marriage letter still come; a parent's proposal stops (Claude's default).
+  aside unseen). Replies, war summons and levies, divorce, news of a child and child support, blackmail, jealous threats,
+  patrol reports, farewells, other mods' letters and a courtship's marriage letter still come; a parent's proposal stops
+  (Claude's default).
 - Tests: ReplyRiderPolicyTests, ReplyCourierGatePolicyTests, LetterBoxPolicyTests; cr.test letter_riders. Not play-verified.
 
 ### Changed
