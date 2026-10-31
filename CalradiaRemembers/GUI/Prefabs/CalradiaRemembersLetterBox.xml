@@ -98,27 +98,28 @@
                                           </Children>
                                         </ListPanel>
 
-                                        <!-- Open, then a rule, then Throw away at the far end (Gabriel's mock-up, 31/10/2026). -->
-                                        <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="62" SuggestedHeight="56"
+                                        <!-- Open, then a rule, then Throw away at the far end (Gabriel's mock-up, 31/10/2026); both the same width, their
+                                             labels small and centred under the icon (Gabriel's screenshot, same day). -->
+                                        <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="86" SuggestedHeight="56"
                                                       VerticalAlignment="Center" MarginLeft="6" DoNotPassEventsToChildren="true" Command.Click="ExecuteOpen">
                                           <Children>
                                             <CrRuntimeImageWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="34" SuggestedHeight="34"
                                                                   HorizontalAlignment="Center" VerticalAlignment="Top" ImagePath="@OpenImagePath" />
                                             <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="20" VerticalAlignment="Bottom"
-                                                        Brush="@BodyBrush" Brush.FontSize="15" Brush.FontColor="#3A240CFF" Text="@OpenText" />
+                                                        Brush="@BodyBrush" Brush.FontSize="13" Brush.FontColor="#3A240CFF" Brush.TextHorizontalAlignment="Center" Text="@OpenText" />
                                           </Children>
                                         </ButtonWidget>
 
                                         <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="1" SuggestedHeight="46" VerticalAlignment="Center"
                                                 MarginLeft="10" MarginRight="10" Sprite="BlankWhiteSquare_9" Color="#6A5028A0" IsDisabled="true" />
 
-                                        <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="96" SuggestedHeight="56"
+                                        <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="86" SuggestedHeight="56"
                                                       VerticalAlignment="Center" DoNotPassEventsToChildren="true" Command.Click="ExecuteThrow">
                                           <Children>
                                             <CrRuntimeImageWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="32" SuggestedHeight="32"
                                                                   HorizontalAlignment="Center" VerticalAlignment="Top" ImagePath="@ThrowImagePath" />
                                             <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="20" VerticalAlignment="Bottom"
-                                                        Brush="@BodyBrush" Brush.FontSize="15" Brush.FontColor="#3A240CFF" Text="@ThrowText" />
+                                                        Brush="@BodyBrush" Brush.FontSize="13" Brush.FontColor="#3A240CFF" Brush.TextHorizontalAlignment="Center" Text="@ThrowText" />
                                           </Children>
                                         </ButtonWidget>
 
