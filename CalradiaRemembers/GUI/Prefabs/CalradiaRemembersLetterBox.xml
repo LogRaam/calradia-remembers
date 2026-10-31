@@ -99,14 +99,15 @@
                                         </ListPanel>
 
                                         <!-- Open, then a rule, then Throw away at the far end (Gabriel's mock-up, 31/10/2026); both the same width, their
-                                             labels small and centred under the icon (Gabriel's screenshot, same day). -->
+                                             labels small and centred under the icon (Gabriel's screenshot, same day). The labels name their brush: a
+                                             brush bound with @ replaces the Brush.* sizes and alignment written here (Open came out large and left). -->
                                         <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="86" SuggestedHeight="56"
                                                       VerticalAlignment="Center" MarginLeft="6" DoNotPassEventsToChildren="true" Command.Click="ExecuteOpen">
                                           <Children>
                                             <CrRuntimeImageWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="34" SuggestedHeight="34"
                                                                   HorizontalAlignment="Center" VerticalAlignment="Top" ImagePath="@OpenImagePath" />
                                             <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="20" VerticalAlignment="Bottom"
-                                                        Brush="@BodyBrush" Brush.FontSize="13" Brush.FontColor="#3A240CFF" Brush.TextHorizontalAlignment="Center" Text="@OpenText" />
+                                                        Brush="CR.Letter.Body" Brush.FontSize="13" Brush.FontColor="#3A240CFF" Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Center" Text="@OpenText" />
                                           </Children>
                                         </ButtonWidget>
 
@@ -119,7 +120,7 @@
                                             <CrRuntimeImageWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="32" SuggestedHeight="32"
                                                                   HorizontalAlignment="Center" VerticalAlignment="Top" ImagePath="@ThrowImagePath" />
                                             <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="20" VerticalAlignment="Bottom"
-                                                        Brush="@BodyBrush" Brush.FontSize="13" Brush.FontColor="#3A240CFF" Brush.TextHorizontalAlignment="Center" Text="@ThrowText" />
+                                                        Brush="CR.Letter.Body" Brush.FontSize="13" Brush.FontColor="#3A240CFF" Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Center" Text="@ThrowText" />
                                           </Children>
                                         </ButtonWidget>
 
@@ -163,7 +164,7 @@
                                             <CrRuntimeImageWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="22" SuggestedHeight="23"
                                                                   VerticalAlignment="Center" ImagePath="@UndoImagePath" />
                                             <TextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="StretchToParent" MarginLeft="6"
-                                                        Brush="@BodyBrush" Brush.FontSize="13" Brush.FontColor="#3A240CFF" Text="@UndoText" />
+                                                        Brush="CR.Letter.Body" Brush.FontSize="13" Brush.FontColor="#3A240CFF" Brush.TextVerticalAlignment="Center" Text="@UndoText" />
                                           </Children>
                                         </ListPanel>
                                       </Children>
