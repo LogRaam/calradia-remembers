@@ -5958,3 +5958,24 @@ le nombre de lettres, c'est le joueur qui classe, elimine, abonne et desabonne l
 - Order of work: (1) StanceFavor letters rotate several fixed texts (Gabriel: "textes fixes, pas de delais ni de couts";
   the identical "I count you a friend" from every lord in 2.7.21); (2) the box: icon, count, sound, silencing (Opus);
   (3) writing at opening; (4) the budget and the draw removed.
+
+**The letter box, progress (night of 30-31/10/2026).** BUILT, not play-verified: friendly letters rotate six fixed texts
+(62de59c) and wait for a deep bond (fe9ecac); part 1, arrival into the box, throw = silence (SDK 24dce1e, f2c80fb);
+part 2, the map bar icon with its badge and the box window (88afc1e); a silenced subject never written nor pooled
+(f371ec8). Defaults taken, put to Gabriel: a war summons or levy, a divorce, a child's support and a patrol's report
+silence nothing when thrown (a jealous threat and blackmail do, his own example); a thrown letter leaves no trace in the
+letter book; the badge has one look (urgency shows in the tooltip, the notice and the row's URGENT, not on the icon).
+
+Step 3, writing the text at first opening, NOT built: its consequences were never put to Gabriel in prose.
+- Anachronism: a letter written when opened would know what happened after its sender wrote it. Remedy: write it with
+  the world as it stood on its sending day (the prompt's date and the sender's memories cut at SentOnDay), which the
+  prompt cannot fully do (the realm's live state is read today).
+- The courier's proximity rule (a longing letter never reaches the player while its sender rides beside them) is moot
+  for the arrival, but the text would be written in the sender's presence: the prompt must say it was written days ago.
+- The sender's memory of what he wrote moved to SENDING on 26/09 (raphareish: a sender denied a lost letter). Written at
+  opening, the memory can only be the subject until then ("I wrote to her of the war"), then the text once opened.
+- Courier secrets need the text when a courier is taken: write it at interception instead.
+- Delivery refuses a blank letter (CheckDeliveries); the window needs a waiting state while the model writes (a few
+  seconds, or more with a slow model).
+- Gain: a letter thrown or never opened costs nothing. Without step 3, step 4 (removing the mailbox budget) would
+  multiply what players pay, every letter being written at sending: step 4 waits for step 3.
