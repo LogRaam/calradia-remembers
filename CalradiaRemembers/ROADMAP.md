@@ -5987,3 +5987,9 @@ wait for the campaign map and are dropped across sessions. Known gaps: regard, s
 read at opening; a broken API key now fills the box with letters that cannot be opened (before, they were never sent);
 the memory cut is an index, so a memory compaction between sending and opening shifts it. Step 4 (removing the budget)
 NOT built and has no go: "Open it at once" still writes every letter at sending, so that mode must keep a budget.
+
+**Steps 3-4 done (31/10/2026):** the old immediate opening removed (7824213, Gabriel: "on peut juste garder la boite et
+enlever l'ancien mode"); step 4 built (c843c71, "sans reglage pour le moment"): no mailbox budget, every ready letter
+sent one per sender, letters ask the world's initiative no turn (the war summons still does), MCM "Letters from NPCs"
+and "Weight: Letters" removed. Watch in play: how full the box gets. A per-sender wait in the MCM was offered and
+declined for now.
