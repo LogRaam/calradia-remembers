@@ -1,0 +1,192 @@
+<Prefab>
+  <!-- The letter box (Gabriel, 30/10/2026): the letters waiting, by order of arrival, each with its urgent mark, the
+       ribbon when the correspondent is awaited, Open and Throw away; below, the subjects silenced, each with Accept
+       again. LetterBoxViewModel. Hosted by CrPanelHost (a pushed state), so a full-screen backdrop covers the map. -->
+  <Constants>
+    <Constant Name="Box.Width" Value="860" />
+  </Constants>
+
+  <Window Id="CalradiaRemembersLetterBoxWindow">
+    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent">
+      <Children>
+
+        <!-- Backdrop: the map is suspended under a pushed state; a dark leather tone stands in for it. -->
+        <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                Sprite="BlankWhiteSquare_9" Color="#1C140DFF" AlphaFactor="0.92" />
+
+        <Widget Id="BoxPanel"
+                WidthSizePolicy="Fixed"
+                HeightSizePolicy="StretchToParent"
+                SuggestedWidth="!Box.Width"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                MarginTop="70"
+                MarginBottom="70"
+                Sprite="BlankWhiteSquare_9"
+                Color="#E2D6B4FF">
+          <Children>
+
+            <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                    Sprite="paper_texture_tile" Color="#C8B488FF" AlphaFactor="0.30" IsDisabled="true" />
+
+            <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                    Sprite="frame_9" ExtendLeft="10" ExtendTop="10" ExtendRight="10" ExtendBottom="10"
+                    AlphaFactor="0.65" IsDisabled="true" />
+
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="48"
+                        VerticalAlignment="Top" MarginTop="22" MarginLeft="40" MarginRight="40"
+                        Brush="@HeadingBrush" Brush.FontSize="30" Text="@Title" IsDisabled="true" />
+
+            <Widget WidthSizePolicy="Fixed" SuggestedWidth="720" HeightSizePolicy="Fixed" SuggestedHeight="2"
+                    HorizontalAlignment="Center" VerticalAlignment="Top" PositionYOffset="78"
+                    Sprite="BlankWhiteSquare_9" Color="#6A5028FF" AlphaFactor="0.7" IsDisabled="true" />
+
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="60"
+                        HorizontalAlignment="Center" VerticalAlignment="Top" MarginTop="120"
+                        MarginLeft="60" MarginRight="60"
+                        IsVisible="@IsEmpty" Brush="@HeadingBrush" Brush.FontSize="20" Text="@EmptyText" IsDisabled="true" />
+
+            <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" VerticalAlignment="Top"
+                    MarginTop="98" MarginBottom="88" MarginLeft="44" MarginRight="30">
+              <Children>
+
+                <ChatScrollablePanel Id="BoxScrollPanel"
+                                     WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                     MarginRight="28" AutoHideScrollBars="true"
+                                     ClipRect="BoxClipRect" InnerPanel="BoxClipRect\BoxList"
+                                     VerticalScrollbar="..\BoxScrollbar\Scrollbar">
+                  <Children>
+                    <Widget Id="BoxClipRect" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" ClipContents="true">
+                      <Children>
+
+                        <ListPanel Id="BoxList" WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                   VerticalAlignment="Top" StackLayout.LayoutMethod="VerticalTopToBottom">
+                          <Children>
+
+                            <!-- The waiting letters -->
+                            <NavigatableListPanel DataSource="{Letters}" WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                                  StackLayout.LayoutMethod="VerticalTopToBottom">
+                              <ItemTemplate>
+                                <ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginTop="8" MarginBottom="8"
+                                           MarginRight="20" StackLayout.LayoutMethod="VerticalTopToBottom">
+                                  <Children>
+
+                                    <ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                               StackLayout.LayoutMethod="HorizontalLeftToRight">
+                                      <Children>
+
+                                        <!-- The ribbon, when this correspondent is awaited (a slot kept either way so names line up). -->
+                                        <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="24" SuggestedHeight="55" VerticalAlignment="Center">
+                                          <Children>
+                                            <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                                                  ImagePath="@RibbonImagePath" CorrectRedBlue="false" IsDisabled="true" IsVisible="@IsAwaited" />
+                                          </Children>
+                                        </Widget>
+
+                                        <ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" VerticalAlignment="Center"
+                                                   MarginLeft="12" StackLayout.LayoutMethod="VerticalTopToBottom">
+                                          <Children>
+                                            <ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" StackLayout.LayoutMethod="HorizontalLeftToRight">
+                                              <Children>
+                                                <TextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="Fixed" SuggestedHeight="28"
+                                                            Brush="@HeadingBrush" Brush.FontSize="22" Brush.FontColor="#4A2E0EFF"
+                                                            Brush.TextHorizontalAlignment="Left" Text="@SenderName" IsDisabled="true" />
+                                                <TextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="Fixed" SuggestedHeight="28" MarginLeft="14"
+                                                            IsVisible="@IsUrgent" Brush="@HeadingBrush" Brush.FontSize="17" Brush.FontColor="#9A1C14FF"
+                                                            Text="@UrgentText" IsDisabled="true" />
+                                              </Children>
+                                            </ListPanel>
+                                            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="24"
+                                                        Brush="@BodyBrush" Brush.FontSize="18" Brush.FontColor="#5C4626FF"
+                                                        Brush.TextHorizontalAlignment="Left" Text="@Line" IsDisabled="true" />
+                                          </Children>
+                                        </ListPanel>
+
+                                        <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="130" SuggestedHeight="40"
+                                                      VerticalAlignment="Center" MarginLeft="10" DoNotPassEventsToChildren="true"
+                                                      Brush="ButtonBrush1" UpdateChildrenStates="true" Command.Click="ExecuteOpen">
+                                          <Children>
+                                            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                                        Brush="Popup.Button.Text" Brush.FontSize="18" Text="@OpenText" />
+                                          </Children>
+                                        </ButtonWidget>
+
+                                        <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="150" SuggestedHeight="40"
+                                                      VerticalAlignment="Center" MarginLeft="10" DoNotPassEventsToChildren="true"
+                                                      Brush="ButtonBrush1" UpdateChildrenStates="true" Command.Click="ExecuteThrow">
+                                          <Children>
+                                            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                                        Brush="Popup.Button.Text" Brush.FontSize="18" Text="@ThrowText" />
+                                          </Children>
+                                        </ButtonWidget>
+
+                                      </Children>
+                                    </ListPanel>
+
+                                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="24" MarginLeft="36"
+                                                IsVisible="@ShowThrowWarning" Brush="@BodyBrush" Brush.FontSize="17" Brush.FontColor="#9A1C14FF"
+                                                Brush.TextHorizontalAlignment="Left" Text="@ThrowWarning" IsDisabled="true" />
+
+                                    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="1" MarginTop="8"
+                                            Sprite="BlankWhiteSquare_9" Color="#6A502840" IsDisabled="true" />
+                                  </Children>
+                                </ListPanel>
+                              </ItemTemplate>
+                            </NavigatableListPanel>
+
+                            <!-- The silenced subjects -->
+                            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="34" MarginTop="26"
+                                        IsVisible="@HasSilenced" Brush="@HeadingBrush" Brush.FontSize="21"
+                                        Brush.TextHorizontalAlignment="Left" Text="@SilencedTitle" IsDisabled="true" />
+
+                            <NavigatableListPanel DataSource="{Silenced}" WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                                  StackLayout.LayoutMethod="VerticalTopToBottom">
+                              <ItemTemplate>
+                                <ListPanel WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" MarginTop="4" MarginBottom="4"
+                                           MarginRight="20" StackLayout.LayoutMethod="HorizontalLeftToRight">
+                                  <Children>
+                                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="36" VerticalAlignment="Center"
+                                                MarginLeft="36" Brush="@BodyBrush" Brush.FontSize="18" Brush.FontColor="#5C4626FF"
+                                                Brush.TextHorizontalAlignment="Left" Text="@Line" IsDisabled="true" />
+                                    <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="170" SuggestedHeight="36"
+                                                  VerticalAlignment="Center" DoNotPassEventsToChildren="true"
+                                                  Brush="ButtonBrush1" UpdateChildrenStates="true" Command.Click="ExecuteUndo">
+                                      <Children>
+                                        <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                                    Brush="Popup.Button.Text" Brush.FontSize="17" Text="@UndoText" />
+                                      </Children>
+                                    </ButtonWidget>
+                                  </Children>
+                                </ListPanel>
+                              </ItemTemplate>
+                            </NavigatableListPanel>
+
+                          </Children>
+                        </ListPanel>
+
+                      </Children>
+                    </Widget>
+                  </Children>
+                </ChatScrollablePanel>
+
+                <Standard.VerticalScrollbar Id="BoxScrollbar" HeightSizePolicy="StretchToParent" HorizontalAlignment="Right" MarginRight="0" />
+
+              </Children>
+            </Widget>
+
+            <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="230" SuggestedHeight="44"
+                          HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="22"
+                          DoNotPassEventsToChildren="true" Brush="ButtonBrush1" UpdateChildrenStates="true" Command.Click="ExecuteClose">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Brush="Popup.Button.Text" Brush.FontSize="20" Text="@CloseButtonText" />
+              </Children>
+            </ButtonWidget>
+
+          </Children>
+        </Widget>
+
+      </Children>
+    </Widget>
+  </Window>
+</Prefab>

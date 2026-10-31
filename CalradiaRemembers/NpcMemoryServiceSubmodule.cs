@@ -82,6 +82,7 @@ namespace CalradiaRemembers
          Chat.ChatManager.TickEscapeClose(); // an Escape close, once the key is up, outside the chat's widget update (philip0105)
          Interception.AudienceInquiry.Tick(dt); // an invitation away while its "Who is this?" encyclopedia page is read (Lordfadooboo)
          Map.MapNavigationCouncilItemPatch.Tick(); // reports ONCE if another mod removed our council bar button
+         Letters.LetterBoxWindow.Tick(); // brings the letter box back once a letter opened from it has closed
       }
 
       /// <summary>

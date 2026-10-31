@@ -92,7 +92,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers` | 95 | 11 |
 | `CalradiaRemembers.Chat` | 69 | 25 |
 | `CalradiaRemembers.Mapping` | 62 | 40 |
-| `CalradiaRemembers.Letters` | 42 | 11 |
+| `CalradiaRemembers.Letters` | 42 | 12 |
 | `CalradiaRemembers.GameState` | 41 | 20 |
 | `CalradiaRemembers.Quests` | 34 | 10 |
 | `CalradiaRemembers.Verbs` | 28 | 7 |
@@ -135,6 +135,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Companions` | 7 | 4 |
 | `NpcMemoryService.Core.Models` | 6 | 73 |
 | `NpcMemoryService.Core.Services` | 6 | 22 |
+| `CalradiaRemembers.Map` | 6 | 1 |
 | `CalradiaRemembers.Appreciations` | 5 | 13 |
 | `CalradiaRemembers.Logic.Diagnostics` | 5 | 6 |
 | `CalradiaRemembers.Styles` | 5 | 5 |
@@ -150,7 +151,6 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Items` | 4 | 4 |
 | `CalradiaRemembers.Logic.Actions` | 4 | 4 |
 | `NpcMemoryService.Core.Captivity` | 4 | 2 |
-| `CalradiaRemembers.Map` | 4 | 1 |
 | `CalradiaRemembers.Logic.Grudges` | 3 | 25 |
 | `CalradiaRemembers.Logic.Companions` | 3 | 13 |
 | `CalradiaRemembers.Logic.Initiative` | 3 | 13 |
@@ -158,8 +158,8 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic.Captivity` | 3 | 11 |
 | `CalradiaRemembers.Logic.Trauma` | 3 | 11 |
 | `CalradiaRemembers.Portraits` | 3 | 8 |
+| `CalradiaRemembers.Logic.Letters` | 3 | 7 |
 | `CalradiaRemembers.Appearance` | 3 | 6 |
-| `CalradiaRemembers.Logic.Letters` | 3 | 6 |
 | `CalradiaRemembers.Logic.AuthoredQuests` | 3 | 5 |
 | `CalradiaRemembers.Logic.Character` | 3 | 5 |
 | `CalradiaRemembers.Edicts` | 3 | 4 |
@@ -345,7 +345,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 #### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Letters`
 
 - `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Letters` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
-- `CalradiaRemembers.Letters` uses `CalradiaRemembers.Behaviors` in 10 files: `Letters/CourierSecretBehavior.cs`, `Letters/CourierService.cs`, `Letters/LetterBox.cs`, and 7 more
+- `CalradiaRemembers.Letters` uses `CalradiaRemembers.Behaviors` in 11 files: `Letters/CourierSecretBehavior.cs`, `Letters/CourierService.cs`, `Letters/LetterBox.cs`, and 8 more
 
 #### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Mapping`
 
@@ -837,7 +837,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### CalradiaRemembers.Letters
 
 - uses: `CalradiaRemembers.Aims`, `CalradiaRemembers.Arrests`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.GUI`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Initiative`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Aims`, `CalradiaRemembers.Logic.Appreciations`, `CalradiaRemembers.Logic.Captivity`, `CalradiaRemembers.Logic.Companions`, `CalradiaRemembers.Logic.Diagnostics`, `CalradiaRemembers.Logic.Grudges`, `CalradiaRemembers.Logic.Initiative`, `CalradiaRemembers.Logic.Letters`, `CalradiaRemembers.Logic.Prisoners`, `CalradiaRemembers.Logic.Providers`, `CalradiaRemembers.Logic.Romance`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Missions`, `CalradiaRemembers.Nemesis`, `CalradiaRemembers.Paths`, `CalradiaRemembers.Portraits`, `CalradiaRemembers.Quests`, `CalradiaRemembers.Services`, `CalradiaRemembers.Social`, `CalradiaRemembers.Stance`, `CalradiaRemembers.Storage`, `CalradiaRemembers.Travel`, `CalradiaRemembers.UI`, `CalradiaRemembers.Verbs`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.LlmClient`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Prompts`, `NpcMemoryService.Core.Services`, `NpcMemoryService.Core.Standing`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Missions`, `CalradiaRemembers.WarDuty`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Map`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Missions`, `CalradiaRemembers.WarDuty`
 
 ### CalradiaRemembers.Logic
 
@@ -982,7 +982,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### CalradiaRemembers.Logic.Letters
 
 - uses: `CalradiaRemembers.Logic`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Standing`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic.Marriage`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic.Marriage`, `CalradiaRemembers.Map`
 
 ### CalradiaRemembers.Logic.Marriage
 
@@ -1101,7 +1101,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### CalradiaRemembers.Map
 
-- uses: `CalradiaRemembers.Chat`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Paths`, `CalradiaRemembers.Portraits`
+- uses: `CalradiaRemembers.Chat`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic.Letters`, `CalradiaRemembers.Paths`, `CalradiaRemembers.Portraits`
 - used by: `CalradiaRemembers`
 
 ### CalradiaRemembers.Mapping

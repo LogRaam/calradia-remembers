@@ -21,6 +21,8 @@
   <Brush Name="CR.MapBar.Left.Button.Backgrounds" OverrideBrush="MapBar.Left.Button.Backgrounds">
     <Layers>
       <BrushLayer Name="cr_council" Sprite="CR\council_icon" />
+      <!-- The letter box beside it (30/10/2026), its sprite filled by LetterBoxBarIconSprite from cr_letterbox_button.png. -->
+      <BrushLayer Name="cr_letterbox" Sprite="CR\letterbox_icon" />
     </Layers>
   </Brush>
 

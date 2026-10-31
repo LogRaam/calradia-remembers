@@ -23,6 +23,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   - Saved state: `PendingLetter.InBox`, `ThrownAway`, `NpcProfile.SilencedLetterSubjects` (SDK 24dce1e), additive: every
     letter delivered before the box counts as read.
   - The courier's sound (Gabriel's choice, a letter through a house letterbox) plays once per tick.
+  - The map bar: a letter icon beside the council's (our own image, a sealed envelope in the council button's frame),
+    its badge counting the letters waiting; the tooltip says when one looks urgent. A click opens the letter box window:
+    the letters by order of arrival, the URGENT mark and the ribbon, Open (the letter window; the box comes back when it
+    closes) and Throw away (an urgent letter asks twice: "Throwing this letter away changes nothing of what it
+    announces"); below, the subjects silenced, each with "Accept again".
+  - A patrol's report is never silenced either (the player decides on it whether the men come home).
   - For modders: `CrLetters.GetStatus` answers `in_box` for a letter that reached the player unopened (it said
     `delivered`); throwing another mod's letter raises `CrLetters.SetAside`.
 - **Lords play their realm's strategy** (Gabriel, 29-30/10/2026: a lord's ambition is "tout ce qui renforcit son Clan ou

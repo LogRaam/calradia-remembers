@@ -44,7 +44,8 @@ namespace CalradiaRemembers.Tests
         }
 
         // STAKE: a war summons may be thrown (Gabriel: "oui"), but its subject is not silenced: the next summons still
-        // carries a deadline the game holds the player to. Claude's default, put to Gabriel.
+        // carries a deadline the game holds the player to; likewise a divorce (always told) and a patrol's report (on it the
+        // player decides whether the men come home). Claude's default, put to Gabriel.
         [Test]
         public void GIVEN_a_war_summons_or_a_divorce_thrown_WHEN_the_next_one_comes_THEN_it_is_not_silenced()
         {
@@ -54,6 +55,7 @@ namespace CalradiaRemembers.Tests
             silenced.Should().BeEmpty();
             LetterBoxPolicy.IsSilenced(new[] {LetterBoxPolicy.SubjectOf(LetterReason.WarSummons)}, LetterReason.WarSummons).Should().BeFalse();
             LetterBoxPolicy.AfterThrow(null, LetterReason.SpouseDivorceDemand).Should().BeEmpty();
+            LetterBoxPolicy.AfterThrow(null, LetterReason.PatrolReport).Should().BeEmpty();
         }
 
         // STAKE: a reply to the player's own letter was asked for, and another mod's letter is that mod's to pace: neither

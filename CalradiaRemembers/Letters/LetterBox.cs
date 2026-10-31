@@ -92,6 +92,40 @@ namespace CalradiaRemembers.Letters
       /// <summary>True when an urgent letter waits.</summary>
       public static bool UrgentWaits() => Waiting().Any(b => b.Urgent);
 
+      // The map bar asks every frame; the box is read again only after it changed.
+      private static bool _dirty = true;
+      private static int _cachedCount;
+      private static bool _cachedUrgent;
+
+      /// <summary>The count, read again only after the box changed (the map bar's badge asks every frame).</summary>
+      public static int WaitingCountCached()
+      {
+         Recount();
+
+         return _cachedCount;
+      }
+
+      /// <summary>Whether an urgent letter waits, with the same cache.</summary>
+      public static bool UrgentWaitsCached()
+      {
+         Recount();
+
+         return _cachedUrgent;
+      }
+
+      /// <summary>Marks the box as changed without telling the listeners (a test that removed its own letters).</summary>
+      public static void Invalidate() => _dirty = true;
+
+      private static void Recount()
+      {
+         if (!_dirty) return;
+
+         IReadOnlyList<BoxedLetter> waiting = Waiting();
+         _cachedCount = waiting.Count;
+         _cachedUrgent = waiting.Any(b => b.Urgent);
+         _dirty = false;
+      }
+
       /// <summary>True when the player asked not to receive this kind of letter from this sender.</summary>
       public static bool IsSilenced(NpcProfile sender, LetterReason reason) => LetterBoxPolicy.IsSilenced(sender?.SilencedLetterSubjects, reason);
 
@@ -220,10 +254,15 @@ namespace CalradiaRemembers.Letters
       }
 
       /// <summary>For a session start: forget the sound's spacing.</summary>
-      internal static void ResetForSession() => _lastSoundTick = int.MinValue;
+      internal static void ResetForSession()
+      {
+         _lastSoundTick = int.MinValue;
+         _dirty = true;
+      }
 
       private static void RaiseChanged()
       {
+         _dirty = true;
          try { Changed?.Invoke(); }
          catch (Exception ex) { ModLog.Error($"[LETTERBOX] a box listener failed: {ex.GetType().Name}: {ex.Message}"); }
       }

@@ -58,7 +58,9 @@ namespace CalradiaRemembers.Logic.Letters
             LetterReason.MarriageProposal => "marriage",
             LetterReason.RealmTidings or LetterReason.LeakedCorrespondence => "news",
             LetterReason.StanceFavor => "friendship",
-            LetterReason.StanceHostility => "hostility",
+            LetterReason.StanceHostility or LetterReason.InterceptionMissed => "hostility",
+            LetterReason.CompanionFarewell => "farewell",
+            LetterReason.PatrolReport => "patrol",
             LetterReason.JealousThreat => "jealousy",
             LetterReason.WarSummons or LetterReason.WarLevyDemand => "war_duty",
             LetterReason.PrisonerOffer or LetterReason.ServiceOffer => "offers",
@@ -67,6 +69,9 @@ namespace CalradiaRemembers.Logic.Letters
             LetterReason.ReinforcementRequest or LetterReason.PoliticalAlliance or LetterReason.StandingAim or LetterReason.QuestUpdate => "requests",
             _ => reason.ToString()
         };
+
+        /// <summary>The subject as the player reads it in the box ("war_duty" reads "war duty").</summary>
+        public static string SubjectLabel(string subject) => string.IsNullOrEmpty(subject) ? "" : subject.Replace('_', ' ');
 
         /// <summary>
         ///   The letters that carry a deadline or a consequence the player must not miss: they wear the urgent mark. A war
@@ -80,13 +85,15 @@ namespace CalradiaRemembers.Logic.Letters
         /// <summary>
         ///   The letters a throw never silences, urgent or not: what the game holds the player to, or must always tell. A war
         ///   summons or levy (the next one still carries a deadline), a divorce under way ("the player must always be told",
-        ///   LetterDeliveryPolicy.IsGuaranteedDelivery), a child's support (it opens the pension's quest). Throwing one
+        ///   LetterDeliveryPolicy.IsGuaranteedDelivery), a child's support (it opens the pension's quest), a patrol's report
+        ///   (on it the player decides whether the men come home, Gabriel 16/10/2026). Throwing one
         ///   discards that letter only (Claude's default, 30/10/2026, put to Gabriel). A jealous threat or blackmail is
         ///   urgent but CAN be silenced: Gabriel's own example is the jealous husband whose letter, thrown, means the player
         ///   no longer wants to hear of it; what he does in the world is unchanged.
         /// </summary>
         public static bool IsNeverSilenced(LetterReason reason) => reason is LetterReason.WarSummons or LetterReason.WarLevyDemand
-            or LetterReason.SpouseDivorceDemand or LetterReason.SpouseDivorceEscalation or LetterReason.ChildSupportRequest;
+            or LetterReason.SpouseDivorceDemand or LetterReason.SpouseDivorceEscalation or LetterReason.ChildSupportRequest
+            or LetterReason.PatrolReport;
 
         /// <summary>True when throwing this letter silences its subject from its sender.</summary>
         public static bool ThrowSilences(LetterReason reason) => SubjectOf(reason) != null && !IsNeverSilenced(reason);

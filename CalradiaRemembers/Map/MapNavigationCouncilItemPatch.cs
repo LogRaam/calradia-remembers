@@ -43,6 +43,18 @@ namespace CalradiaRemembers.Map
 
             CouncilBarIconSprite.EnsureRegistered(); // the glyph's runtime sprite, rebuilt if a language change dropped it
 
+            // The letter box beside it (Gabriel, 30/10/2026: a letter icon on the map with the count of letters waiting).
+            if (!__instance.NavigationItems.Any(i => i?.ItemId == LetterBoxNavigationItemVM.ItemIdValue))
+            {
+               int councilIndex = -1;
+               for (int i = 0; i < __instance.NavigationItems.Count; i++)
+                  if (__instance.NavigationItems[i]?.ItemId == "cr_council") { councilIndex = i; break; }
+
+               if (councilIndex >= 0) __instance.NavigationItems.Insert(councilIndex + 1, new LetterBoxNavigationItemVM());
+               else __instance.NavigationItems.Add(new LetterBoxNavigationItemVM());
+               LetterBoxBarIconSprite.EnsureRegistered();
+            }
+
             // Hold the bar so Tick can look again in a moment (see the field's own doc): "added" is not the
             // same claim as "still there", and until now the log only ever made the first one.
             _watched = new WeakReference(__instance);

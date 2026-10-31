@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 592 types in 64 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 599 types in 64 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1429 types in 49 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 278 types in 17 namespaces, 9 without a summary
 
@@ -517,7 +517,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `JealousyCultureLoader` | public static class | Loads and caches jealousy_cultures.json from the mod's ModuleData folder, keyed by culture display name ("Khuzait", "Battania", …) to match Mapping.CulturalTraditionsLoader and stay interoperable with conversion mods. |
 | `JealousyCultureProfile` | public class | The on-disk shape of a culture's stance on romantic exclusivity, deserialized from jealousy_cultures.json. |
 
-### CalradiaRemembers.Letters (29)
+### CalradiaRemembers.Letters (33)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -534,6 +534,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterArchiveManager` | public static class | Show/hide lifecycle for the letter-archive thread window. |
 | `LetterArchiveViewModel` | public class | View model for the per-contact letter archive (thread) window. |
 | `LetterBox` | public static class | The player's letter box: what waits in it, a letter arriving, opened, or thrown away. |
+| `LetterBoxRowViewModel` | public class | One waiting letter in the box. |
+| `LetterBoxViewModel` | public class | View model for the letter box window. |
+| `LetterBoxWindow` | public static class | Show/hide lifecycle for the letter box window. |
 | `LetterDeliveryService` | public static class | Runs on every daily tick, scans all NPC profiles for letters whose PendingLetter.DeliveryDay has passed, and shows one popup per tick via LetterPopupManager. |
 | `LetterFontResolver` | internal static class | Reads the active game language and picks the decorative (Galahad) or plain (Cyrillic-safe) brush name for the parchment letter view, per LetterFontPolicy. |
 | `LetterGenerationService` | public static class | Generates letter content via the LLM and queues a PendingLetter on the sending NPC's profile. |
@@ -548,6 +551,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ModLetterNotices` | internal static class | What the player did with a letter another mod delivered. |
 | `PlayerLetterService` | public static class | Creates and queues letters from the player to NPCs, runs the daily delivery check, and marks delivered letters as read after the NPC's first response. |
 | `PrisonerEnvoyBehavior` | public class | Sends and announces envoys come to treat for a captive the player holds. |
+| `SilencedSubjectRowViewModel` | public class | One subject the player silenced from one correspondent. |
 | `TaverneLetterBehavior` | public class | Registers a courier-hire option in the Tavern Keeper's service menu. |
 | `VanillaCaptivityPatch` | public static class | Suppresses the two vanilla events that cut a bandit captivity short before a Calradia Remembers captive scene gets a chance to fire: the captor's ransom offer ("he proposes to free you in return for N gold") — cancelled... |
 
@@ -559,13 +563,16 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CharacterOverrideLoader` | public static class | Loads and caches character_overrides.json (an array of per-NPC entries) into a CharacterOverrideSet. |
 | `SettingProfileLoader` | public static class | Reads ModuleData/setting.json (the world's name/adjective + which cultures read as patriarchal) and applies it to PromptLore. |
 
-### CalradiaRemembers.Map (4)
+### CalradiaRemembers.Map (7)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `CouncilBarIconSprite` | internal static class | Registers the council button picture as the "CR\council_icon" sprite the MapBar.Left.Button.Backgrounds override layer points at (idempotent). |
 | `CouncilNavigationElement` | internal class | A bar navigation element whose "open" convenes a council; its permission mirrors CouncilEntry.CanConveneNow. |
 | `CouncilNavigationItemVM` | internal class | A genuine nav-bar item that convenes a council. |
+| `LetterBoxBarIconSprite` | internal static class | Registers the letter box button picture as the "CR\letterbox_icon" sprite (idempotent). |
+| `LetterBoxNavigationElement` | internal class | A bar navigation element whose "open" opens the letter box; its alert is "a letter waits". |
+| `LetterBoxNavigationItemVM` | internal class | A genuine nav-bar item that opens the letter box, its badge counting the letters waiting. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
 ### CalradiaRemembers.Mapping (46)

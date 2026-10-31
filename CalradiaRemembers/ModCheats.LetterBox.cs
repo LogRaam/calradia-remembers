@@ -29,7 +29,7 @@ namespace CalradiaRemembers
             : "The courier's sound did not play. The [SOUND] line in CalradiaRemembers.log says why.";
       }
 
-      /// <summary>cr.letterbox [open N|throw N]: lists the letters waiting in the box, or opens or throws the Nth.</summary>
+      /// <summary>cr.letterbox [show|open N|throw N]: lists the letters waiting in the box, or opens or throws the Nth.</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("letterbox", "cr")]
       public static string LetterBoxCommand(List<string> args)
       {
@@ -37,6 +37,13 @@ namespace CalradiaRemembers
 
          IReadOnlyList<BoxedLetter> waiting = LetterBox.Waiting();
          string verb = args != null && args.Count > 0 ? args[0].ToLowerInvariant() : "list";
+
+         if (verb == "show")
+         {
+            LetterBoxWindow.Open();
+
+            return LetterBoxWindow.IsOpen ? "The letter box is open." : "The letter box could not open (a letter window is open?).";
+         }
 
          if ((verb == "open" || verb == "throw") && args.Count > 1 && int.TryParse(args[1], out int n))
          {

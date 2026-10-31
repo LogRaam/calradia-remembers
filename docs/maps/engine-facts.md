@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-651 rules read 489 facts.
+653 rules read 489 facts.
 
 ## Facts read by more than one rule
 
@@ -175,6 +175,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Kingdom.Culture` (3) | `MercenaryDeparturePolicy.IsAidOfKin`, `MercenaryDeparturePolicy.RegardShift`, `UnionFacts` |
 | `Kingdom.Name` (3) | `EdictCatalog.InfluenceCost`, `EdictCatalog.Term`, `EdictConfirmationFacts` |
 | `LeaderHero.Clan` (3) | `PlayerStandingFacts`, `PlayerStandingPolicy.Resolve`, `PrisonerRecruitmentPolicy.Evaluate` |
+| `Letter.Reason` (3) | `LetterBoxPolicy.IsUrgent`, `LetterBoxPolicy.SubjectLabel`, `LetterBoxPolicy.SubjectOf` |
 | `MarketData.GetPriceFactor` (3) | `MarketReading`, `ProvideGoodsPolicy.MarketKey`, `TownNeedsPolicy.MostLacking` |
 | `MemberRoster.GetTroopRoster` (3) | `AuthoredBandMakeupFacts`, `CompanionCounselPolicy.Select`, `PartyCounselFacts` |
 | `MobileParty.Morale` (3) | `CompanionCounselPolicy.Select`, `PartyCounselFacts`, `PartyMoraleMood.DriverFor` |
@@ -632,6 +633,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `LeaveHouseWording.GiveHerAllTeaching`: `Hero.IsFemale`
 - `LeaveHouseWording.InquiryTitle`: `Hero.IsFemale`
 - `LetterBoxPolicy.IsUrgent`: `Letter.Reason`
+- `LetterBoxPolicy.SubjectLabel`: `Letter.Reason`
+- `LetterBoxPolicy.SubjectOf`: `Letter.Reason`
 - `LetterCandidate`: `Hero.Spouse`
 - `LetterCandidateFreshness.PremiseStillHolds`: `Hero.MapFaction`
 - `LetterDeliveryPolicy.ShouldHoldDeliveryAtSea`: `MobileParty.IsCurrentlyAtSea`

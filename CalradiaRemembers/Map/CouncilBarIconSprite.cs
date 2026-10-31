@@ -43,21 +43,27 @@ namespace CalradiaRemembers.Map
       ///   map-bar patch re-runs it on each map open (which also covers a SpriteData rebuilt on a language
       ///   change, an event that would silently drop the injection).
       /// </summary>
-      public static void EnsureRegistered()
+      public static void EnsureRegistered() => EnsureLayer("cr_council", SpriteName, IconPath, ref _successLogged);
+
+      /// <summary>
+      ///   The same work for any bar button of ours (the letter box's too, 30/10/2026): the sprite built from the file and
+      ///   injected under its name, and the layer named after the item's id created on the live brush when missing.
+      /// </summary>
+      internal static void EnsureLayer(string layerName, string spriteName, string iconPath, ref bool successLogged)
       {
          try
          {
-            Sprite sprite = RuntimePortraitFactory.GetOrCreateCached(IconPath, correctRedBlue: false);
+            Sprite sprite = RuntimePortraitFactory.GetOrCreateCached(iconPath, correctRedBlue: false);
 
             if (sprite == null)
             {
-               ModLog.Error($"[COUNCIL BAR] council button sprite could not be built from {IconPath}.");
+               ModLog.Error($"[COUNCIL BAR] {layerName} button sprite could not be built from {iconPath}.");
 
                return;
             }
 
-            if (UIResourceManager.SpriteData != null && !UIResourceManager.SpriteData.SpriteExists(SpriteName))
-               UIResourceManager.SpriteData.Sprites[SpriteName] = sprite;
+            if (UIResourceManager.SpriteData != null && !UIResourceManager.SpriteData.SpriteExists(spriteName))
+               UIResourceManager.SpriteData.Sprites[spriteName] = sprite;
 
             Brush brush = UIResourceManager.BrushFactory?.GetBrush("MapBar.Left.Button.Backgrounds");
 
@@ -68,7 +74,7 @@ namespace CalradiaRemembers.Map
                return;
             }
 
-            BrushLayer layer = brush.GetLayer("cr_council");
+            BrushLayer layer = brush.GetLayer(layerName);
 
             // OUR LAYER CAN BE WIPED BY A BRUSH DECLARED THE BLUNT WAY, and the asymmetry is the point.
             //
@@ -92,21 +98,21 @@ namespace CalradiaRemembers.Map
             // the ordinary case, where the override did its work, and it takes nothing from the other mod.
             if (layer == null)
             {
-               layer = new BrushLayer {Name = "cr_council"};
+               layer = new BrushLayer {Name = layerName};
                brush.AddLayer(layer);
-               ModLog.Compat("[COUNCIL BAR] another mod replaced the map bar brush, so the cr_council layer was "
+               ModLog.Compat($"[COUNCIL BAR] another mod replaced the map bar brush, so the {layerName} layer was "
                            + "rebuilt at runtime. The button keeps its icon and theirs is untouched.");
             }
 
             if (layer.Sprite != sprite) layer.Sprite = sprite;
 
-            if (!_successLogged)
+            if (!successLogged)
             {
-               _successLogged = true;
-               ModLog.Info("[COUNCIL BAR] council button sprite registered on the MapBar.Left.Button.Backgrounds layer.");
+               successLogged = true;
+               ModLog.Info($"[COUNCIL BAR] {layerName} button sprite registered on the MapBar.Left.Button.Backgrounds layer.");
             }
          }
-         catch (Exception ex) { ModLog.Error($"[COUNCIL BAR] council button sprite registration failed: {ex.GetType().Name}: {ex.Message}"); }
+         catch (Exception ex) { ModLog.Error($"[COUNCIL BAR] {layerName} button sprite registration failed: {ex.GetType().Name}: {ex.Message}"); }
       }
    }
 }
