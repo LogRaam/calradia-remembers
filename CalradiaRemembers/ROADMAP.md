@@ -5904,3 +5904,28 @@ The player puts out the ribbon on a correspondent in the letter book ("si je sui
 rapidement meme si c'est la guerre"): that correspondent's letters rank Pressing in the director, and that is all it does
 (Gabriel: "ne fait que donner la priorite pour l'orchestrateur"); they still count in the budget. Saved on the profile.
 To build with step 2's letters.
+
+**Designed 30/10/2026 (Gabriel, after tashmetu's two players: too many letters, too repetitive): the letter box and a
+Courier section in the MCM.** Order agreed: (1) make "Rarely" a real cap again (PROVEN bug: with the World's Initiative
+director on, InitiativeDials.Budget lifts the letter budget and the dial is only a draw weight, so about six letters a
+week pass; Household letters, romance and spouse included, never follow the dial); (2) a Courier section in the MCM by
+FAMILY of letters, not by the 33 LetterReasons (congratulations, realm news, marriage offers, romance, spouse and
+family, politics and favours, threats and schemes), each with an on/off and a frequency that is a real ceiling; a
+global "the same person at most once every N days" (the hidden 15-day LetterCadence wait); a ribbon filter ("only
+awaited correspondents write unasked"); obligations never switch off (replies to the player, war summons and levy,
+patrol report, companion farewell, divorce, child support, bastard's mother, other mods' letters); (3) the letter box.
+Open for (2): may threats be switched off; three steps or a letters-per-season slider.
+
+The letter box (Gabriel's rulings, 30/10/2026): a letter icon on the map bar (built like the council's,
+Map/CouncilNavigationItemVM) with the count of unread letters; a click opens a "Box" page of the letter book listing the
+unread letters (seal, sender, day, the kind of letter, no excerpt): pressing ones first, then the ribbon's, then newest.
+Letters STAY and never age out ("les lettres restent et ne vieillissent pas"). An icon throws a letter away unread.
+A distinct courier sound on arrival, like a notification (a medieval instrument or a pigeon's coo). Our own image for
+the icon. DEFAULT stays immediate opening ("le defaut est ouverture immediate"); the box is the MCM choice "on arrival:
+open it / keep it in the box". Agreed: the sender counts from ARRIVAL, not reading (MarkReceived unchanged; an unread
+letter is an unanswered one, the sender cannot know it was not read); IsRead is an additive field, old saves read every
+delivered letter as read; pressing letters (war summons and levy, prisoner offer, divorce and its escalation,
+blackmail, jealous threat, child support) are flagged by an alert colour, a game notice and their deadline, top of the
+list. Not in the first version: writing the text only on first opening (breaks courier secrets and the sender's memory
+of what he wrote). To check before building: whether MapNavigationItemVM already shows a count or alert; how a module
+registers its own sound (module_sounds.xml, SoundEvent).
