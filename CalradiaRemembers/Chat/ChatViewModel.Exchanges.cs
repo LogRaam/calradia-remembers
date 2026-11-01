@@ -2340,6 +2340,7 @@ namespace CalradiaRemembers.Chat
                Narration = string.IsNullOrWhiteSpace(narrated.Text) ? null : narrated.Text,
                NarrationBeforeDialogue = response.NarrationBeforeDialogue,
                Memory = response.Memory,
+               DiscussedMemories = response.DiscussedMemories,
                NewEventData = dropEvent ? null : response.NewEventData,
                Reputation = response.Reputation,
                StanceShift = response.StanceShift,
