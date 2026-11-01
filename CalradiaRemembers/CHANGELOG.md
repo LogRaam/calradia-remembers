@@ -35,6 +35,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   asking again inside 30 days takes nothing beyond that share. A sworn debt is paid in full. A sale stops at three times
   an item's market value and a ransom at the most a captive fetches, not at 10,000. When less is paid than was named, the
   notice says why. `GiftCeilingPolicy`, `PriceReference`, `cr.test coin_matches_words`. Not play-verified.
+- **A character's offer is a sum the game set** (Gabriel, 01/11/2026). Each turn a character sees the sums it may name, each
+  with a token: what it would give, and a low, fair and highest price for a captive or an item held out. It writes the
+  token, and the mod fills it once in the whole reply, so the line you read, the memory it keeps and the payment are the
+  same figure. A sum you named first it may repeat in figures, and a figure written without a token still meets the
+  ceilings. `MoneyTokens`, `MoneyTokenPolicy`. Not play-verified.
 
 ### Fixed
 - **Fixed letters now reach you in your language** (RaveN017Mod, Nexus PM, 29/10/2026: threats from lords "appear in

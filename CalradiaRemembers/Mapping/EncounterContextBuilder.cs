@@ -163,6 +163,24 @@ namespace CalradiaRemembers.Mapping
       }
 
       // The item the player picked from the bag, by id, or null.
+      /// <summary>TUNE: captives named in the sums taught, as the buy_prisoner teaching lists them: a turn's tail pays for each.</summary>
+      private const int TokenCaptives = 3;
+
+      /// <summary>
+      ///   The sums this character may name this turn (Gabriel, 01/11/2026). Reads the same ceiling and the same anchors the
+      ///   actions pay by, so a token is a sum the game keeps.
+      /// </summary>
+      private static IReadOnlyDictionary<string, int> MoneyTokensFor(Hero hero, NpcProfile profile, int offeredItemValue)
+      {
+         IReadOnlyList<PricedCaptive> Priced(IEnumerable<Hero> captives) => captives.Take(TokenCaptives)
+            .Select(c => new PricedCaptive {Name = c.Name?.ToString(), RansomAnchor = CourtActionResolver.RansomAnchor(c)}).ToList();
+
+         return MoneyTokenPolicy.Table(new MoneyTokenFacts {
+            Gift = BannerlordGameStateBridge.GiftCeilingFor(hero, profile), Purse = hero.Gold, ItemValue = offeredItemValue,
+            ToBuy = Priced(Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners()), ToSell = Priced(CourtActionResolver.HeldPrisonersOf(hero))
+         });
+      }
+
       private static TaleWorlds.Core.ItemObject OfferedItem(string itemId)
       {
          if (string.IsNullOrWhiteSpace(itemId)) return null;
@@ -191,6 +209,8 @@ namespace CalradiaRemembers.Mapping
          int? historyKnownThrough = null,
          int? questsKnownThrough = null,
          IReadOnlyCollection<string> memoriesDiscussedAtOpening = null,
+         // True on the live chat, the one road that fills tokens in the raw reply (NpcChatService).
+         bool offerMoneyTokens = false,
          bool isCollectiveCaptiveScene = false,
          bool isCaptorScene = false,
          bool companionActingOnCaptive = false,
@@ -501,6 +521,7 @@ namespace CalradiaRemembers.Mapping
             GiftCeiling = hero == null ? null : BannerlordGameStateBridge.GiftCeilingFor(hero, profile),
             PriceReference = PriceReferenceReader.Full,
             PriceReferenceCompact = PriceReferenceReader.Compact,
+            MoneyTokens = offerMoneyTokens && hero != null ? MoneyTokensFor(hero, profile, OfferedItem(offeredItemId)?.Value ?? 0) : null,
             IsFinalSceneBeat = isFinalSceneBeat,
             SceneStage = sceneStage,
             AggressorKind = aggressorKind,

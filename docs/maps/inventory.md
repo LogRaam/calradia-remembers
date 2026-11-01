@@ -7,8 +7,8 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 608 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1461 types in 50 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 281 types in 17 namespaces, 9 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1464 types in 50 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 282 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -2190,7 +2190,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RecentMatterWording` | public static class | Words the clause naming the matter a character raises. |
 | `RecentMatterWordingFacts` | public class | What the matter's clause is written from. |
 
-### CalradiaRemembers.Logic.Items (15)
+### CalradiaRemembers.Logic.Items (18)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2206,6 +2206,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ItemSaleFacts` | public class | What a sale is settled on. |
 | `ItemSalePolicy` | public static class | Settles a sale. |
 | `ItemSaleRefusal` | public enum | Why a sale does not go through. |
+| `MoneyTokenFacts` | public class | What this turn's sums are computed from. |
+| `MoneyTokenPolicy` | public static class | The sums a character may name this turn. |
+| `PricedCaptive` | public class | A captive up for trade, by the name the prompt lists them under. |
 | `ScatteredLootItem` | public class | One item taken from the player on a fled bandit escape, scattered among that culture's bands until recovered. |
 | `ScatteredLootLedger` | public class | Save-serializable carrier for every item currently scattered among bandit bands, awaiting recovery. |
 | `ScatteredLootPolicy` | public static class | Pure rules for recovering scattered captivity loot from defeated bandit bands. |
@@ -2951,7 +2954,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SelfEsteemBand` | public enum | How a character regards himself lately. |
 | `SelfEsteemLine` | public static class | Composes the character's self-regard for the prompt. |
 
-### NpcMemoryService.Core.Parsing (10)
+### NpcMemoryService.Core.Parsing (11)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2961,6 +2964,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EventSubjectNormalizer` | public static class | Makes a stored [EVENT] summary name the player rather than call them "the player". |
 | `IResponseParser` | public interface | Parses a raw LLM response string into a structured ParsedResponse. |
 | `MetaReasoningGuard` | public static class | Detects un-tagged meta-reasoning: a text that OPENS with the model analyzing its task or the situation ("Looking at the context", "The user wants", "The player might be") instead of producing the content it was asked for... |
+| `MoneyTokens` | public static class | Fills the sums a model wrote as tokens. |
 | `SectionResponseParser` | public class | Regex-based parser for the canonical bracketed-section LLM response format. |
 | `SpeakerScriptGuard` | public static class | Cuts turns a reply wrote for OTHER people out of it. |
 | `SpeakerScriptVerdict` | public class | What a reply had to have removed from it, if anything. |
