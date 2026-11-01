@@ -69,6 +69,8 @@ namespace CalradiaRemembers.Logic.Letters
             LetterReason.PoliticalAlliance or LetterReason.StandingAim or LetterReason.QuestUpdate => "requests",
             // A call for help has its own subject: throwing one must not silence the tasks the same person writes about.
             LetterReason.ReinforcementRequest => "pleas",
+            // Its own subject too: a player who threw the plea silenced the asking, not what followed from it.
+            LetterReason.AbandonedReproach => "reproaches",
             _ => reason.ToString()
         };
 

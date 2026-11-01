@@ -236,8 +236,9 @@ namespace CalradiaRemembers.HelpPleas
          int today = Today;
          var quest = new InformalQuest {
             Type = QuestType.ProvideGoods,
-            Description = $"Bring {plea.Amount} loads of food to {sender.Name}, as you promised.",
+            Description = $"Bring {plea.Amount} loads of food to {sender.Name} for {plea.PlaceName}, as you promised.",
             RequiredItemCategory = ProvideGoodsPolicy.Food,
+            TargetSettlement = plea.PlaceName,
             RequiredItemCount = plea.Amount,
             IssuedOnDay = today,
             DeadlineDay = today + HelpPleaPolicy.DaysToBringFood,
@@ -261,7 +262,10 @@ namespace CalradiaRemembers.HelpPleas
             {
                // Not asking whether the siege still stands: a player who just broke it is at the walls, with no siege left.
                Settlement place = FindPlace(plea.PlaceId);
-               if (place != null && IsAt(place)) Close(plea, FindHero(plea.SenderId), true, false);
+               if (place == null || !IsAt(place)) continue;
+
+               Strengthen(place);
+               Close(plea, FindHero(plea.SenderId), true, false);
             }
          }
          catch (Exception ex) { ModLog.Error($"[HELP PLEA] hourly tick failed: {ex.GetType().Name}: {ex.Message}"); }
@@ -273,6 +277,7 @@ namespace CalradiaRemembers.HelpPleas
          {
             int today = Today;
             Upkeep(today);
+            SendReproaches(today);
             Ledger.Prune(today);
 
             foreach (Sighting s in Sightings(today)) TryOpen(s, today);
@@ -311,6 +316,30 @@ namespace CalradiaRemembers.HelpPleas
          }
       }
 
+      /// <summary>Sends each last letter whose writer is free to write, and lets go of those whose moment has passed. Internal for cr.test all.</summary>
+      internal void SendReproaches(int today)
+      {
+         NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
+         foreach (HelpReproach reproach in Ledger.Reproaches.ToList())
+         {
+            Hero writer = FindHero(reproach.SenderId);
+            if (writer == null || writer.IsDead || today - reproach.OnDay > HelpPleaPolicy.DaysAReproachWaits)
+            {
+               Ledger.Reproaches.Remove(reproach);
+               continue;
+            }
+
+            if (!ActionGate.Allows(writer, ActionKind.Letter)) continue; // a prisoner writes when he is free
+
+            Ledger.Reproaches.Remove(reproach);
+            ModLog.Info($"[HELP PLEA] {writer.Name}'s last letter: {reproach.Context}");
+            NpcProfile profile = behavior?.Store?.Get(writer.StringId);
+            if (DebugSuppressLetters || profile == null || behavior.LlmServices == null) continue;
+
+            LetterGenerationService.QueueInitialLetter(profile, writer, LetterReason.AbandonedReproach, reproach.Context, behavior.LlmServices, behavior.Store, today);
+         }
+      }
+
       // Judges the plea, leaves its mark on the writer and takes it off the ledger. A null sender closes it with no consequence.
       private void Close(HelpPlea plea, Hero sender, bool helpCame, bool disaster)
       {
@@ -327,6 +356,8 @@ namespace CalradiaRemembers.HelpPleas
          });
 
          if (sender != null) Leave(plea, sender, verdict, disaster);
+         if (HelpPleaPolicy.LeavesAReproach(verdict, disaster))
+            Ledger.Reproaches.Add(new HelpReproach {SenderId = plea.SenderId, Context = HelpPleaWording.ReproachContext(verdict, plea.PlaceName), OnDay = Today});
          CloseJournal(plea, verdict);
          ModLog.Info($"[HELP PLEA] {plea.Id} closed: {verdict.Feeling} (regard {verdict.RegardDelta:+#;-#;0}, disaster {disaster}).");
       }
@@ -441,7 +472,29 @@ namespace CalradiaRemembers.HelpPleas
 
          string place = mapEvent.MapEventSettlement?.StringId;
          HelpPlea plea = Ledger.Open.FirstOrDefault(p => p.Ask == HelpAsk.Relief && p.ReceivedOnDay.HasValue && p.PlaceId == place);
-         if (plea != null) Close(plea, FindHero(plea.SenderId), true, false);
+         if (plea == null) return;
+
+         Strengthen(mapEvent.MapEventSettlement);
+         Close(plea, FindHero(plea.SenderId), true, false);
+      }
+
+      /// <summary>
+      ///   The help is felt at the place (Gabriel, 01/11/2026). Only while the siege stands: a place the player has already
+      ///   freed needs no more. The stores grow in any case; no man is added in the middle of a battle, because the militia's
+      ///   roster belongs to the engine's map event then, and a place with no militia party keeps what it has: the setter
+      ///   would spawn one under the besiegers' walls.
+      /// </summary>
+      internal static void Strengthen(Settlement place)
+      {
+         if (place?.Town == null || !place.IsUnderSiege) return;
+
+         Town town = place.Town;
+         town.FoodStocks = TownFoodPolicy.StocksAfterRelief(town.FoodStocks, HelpPleaPolicy.ReliefFood, town.FoodStocksUpperLimit());
+         bool freshMen = place.MilitiaPartyComponent != null && place.Party?.MapEvent == null && place.MilitiaPartyComponent.MobileParty?.MapEvent == null;
+         if (freshMen) place.Militia += HelpPleaPolicy.ReliefMilitia;
+
+         MBInformationManager.AddQuickInformation(new TextObject(HelpPleaWording.ReliefNotice(place.Name.ToString(), freshMen)));
+         ModLog.Info($"[HELP PLEA] {place.Name} strengthened: food now {town.FoodStocks:0}, militia now {place.Militia:0} (men added: {freshMen}).");
       }
 
       private void OnSettlementOwnerChanged(Settlement settlement, bool openToClaim, Hero newOwner, Hero oldOwner, Hero capturer,

@@ -972,7 +972,7 @@ namespace CalradiaRemembers.GameState
             // Grain asked for while a place he answers for goes hungry feeds that place, not his cellar (fkasad,
             // 01/10/2026), and the place remembers who brought it.
             // Relief raises the town's food stocks, not a grain count, so any food feeds it.
-            Settlement fed = categoryKey is ProvideGoodsPolicy.Grain or ProvideGoodsPolicy.Food ? WorldEvents.FoodTradeMemoryBehavior.DeliverRelief(giverHero, quest.RequiredItemCount) : null;
+            Settlement fed = categoryKey is ProvideGoodsPolicy.Grain or ProvideGoodsPolicy.Food ? WorldEvents.FoodTradeMemoryBehavior.DeliverRelief(giverHero, quest.RequiredItemCount, quest.TargetSettlement) : null;
             string forWhom = fed != null ? $" for the hungry of {fed.Name}" : market != null ? $" for the market of {market.Name}" : "";
 
             quest.SatisfiedOnDay = day;

@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 607 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1455 types in 50 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1456 types in 50 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 281 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2126,7 +2126,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `UnblessedMarriageFacts` | public class | Facts for Tier2GrudgeRules.UnblessedMarriageGrudge: a family member who opposed an unblessed marriage the player made. |
 | `WorldEventFacts` | public class | A persisted WorldEvent, as read by the engine-side scan. |
 
-### CalradiaRemembers.Logic.HelpPleas (14)
+### CalradiaRemembers.Logic.HelpPleas (15)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2142,6 +2142,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HelpPleaLedger` | public class | Every plea open, and what keeps the next one from coming too soon. |
 | `HelpPleaPolicy` | public static class | Who may ask the player for help, for what, and what the answer is worth. |
 | `HelpPleaWording` | public static class | The words of a plea. |
+| `HelpReproach` | public class | A last letter waiting for its writer to be free to send it: a fallen lord is often a prisoner. |
 | `HelpVerdict` | public class | What a closed plea did to the writer's regard and memory. |
 | `HelpWriterFacts` | public class | How a would-be writer stands to the player. |
 

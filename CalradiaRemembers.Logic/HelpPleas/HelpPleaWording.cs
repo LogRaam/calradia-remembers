@@ -30,6 +30,18 @@ namespace CalradiaRemembers.Logic.HelpPleas
          }
       }
 
+      /// <summary>What the abandoned writer is told to write about.</summary>
+      public static string ReproachContext(HelpVerdict verdict, string place)
+      {
+         string answer = verdict?.Feeling == HelpFeeling.Betrayed ? "They promised to come and never did." : "They never answered.";
+
+         return $"When {place} was under siege you asked the player to ride to it. {answer} {place} has fallen.";
+      }
+
+      /// <summary>What the player reads when their arrival strengthens the place.</summary>
+      public static string ReliefNotice(string place, bool freshMen)
+         => freshMen ? $"Your arrival gives {place} heart: men come to the walls, and your train brings food." : $"Your train brings food into {place}.";
+
       /// <summary>The button that says yes.</summary>
       public static string AcceptButton(HelpAsk ask, int amount)
       {

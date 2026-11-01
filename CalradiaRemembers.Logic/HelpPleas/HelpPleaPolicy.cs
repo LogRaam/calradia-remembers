@@ -249,6 +249,18 @@ namespace CalradiaRemembers.Logic.HelpPleas
       /// <summary>A fortified place with this many days of food or fewer is starving.</summary>
       public const int StarvingFoodStocks = 5;
 
+      /// <summary>
+      ///   The men who take heart and join the walls when the player reaches a besieged place (Gabriel, 01/11/2026: "Si le
+      ///   joueur aide, ça devrait donner un boost au demandeur"). The game's own gift of health to a settlement is 20 militia.
+      /// </summary>
+      public const int ReliefMilitia = 30;
+
+      /// <summary>The food the player's train brings into a besieged place on arrival.</summary>
+      public const int ReliefFood = 20;
+
+      /// <summary>The days a reproach waits for its writer to be free to send it, before the moment has passed.</summary>
+      public const int DaysAReproachWaits = 30;
+
       /// <summary>The regard kin must keep to ask at all: a kinsman who has soured on the player does not write.</summary>
       public const int KinFloor = Regard.CoolTier;
 
@@ -328,6 +340,13 @@ namespace CalradiaRemembers.Logic.HelpPleas
                return HelpIncapacity.None;
          }
       }
+
+      /// <summary>
+      ///   True when the writer has one last letter to send: the worst happened, and the player had left them to it (Gabriel,
+      ///   01/11/2026). A refusal said openly earns none: the player gave their answer, and it was heard.
+      /// </summary>
+      public static bool LeavesAReproach(HelpVerdict verdict, bool disaster)
+         => disaster && verdict?.Feeling is HelpFeeling.Abandoned or HelpFeeling.Betrayed;
 
       /// <summary>
       ///   Judges a plea as it closes. The deed is what counts, not the letter: help that came is thanked whatever was

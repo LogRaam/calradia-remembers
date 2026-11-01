@@ -212,6 +212,30 @@ namespace CalradiaRemembers.Tests.HelpPleas
          betrayed.RegardDelta.Should().BeLessThan(silent.RegardDelta);
       }
 
+      [TestCase(HelpFeeling.Abandoned)]
+      [TestCase(HelpFeeling.Betrayed)]
+      public void GIVEN_the_place_fell_after_the_players_silence_WHEN_it_closes_THEN_a_last_letter_comes(HelpFeeling feeling)
+      {
+         // STAKE: Gabriel, 01/11/2026: a fall the player never hears about is a number nobody notices; the harm must be felt.
+         HelpPleaPolicy.LeavesAReproach(new HelpVerdict {Feeling = feeling}, true).Should().BeTrue();
+      }
+
+      [Test]
+      public void GIVEN_no_fall_WHEN_the_plea_closes_THEN_no_reproach_comes()
+      {
+         // STAKE: the place held; a bitter letter over nothing would be a nag, and the grievance already keeps the memory.
+         HelpPleaPolicy.LeavesAReproach(new HelpVerdict {Feeling = HelpFeeling.Abandoned}, false).Should().BeFalse();
+      }
+
+      [TestCase(HelpFeeling.Disappointed)]
+      [TestCase(HelpFeeling.TooLate)]
+      [TestCase(HelpFeeling.Nothing)]
+      public void GIVEN_a_player_who_answered_tried_or_could_not_WHEN_the_place_fell_THEN_no_reproach_comes(HelpFeeling feeling)
+      {
+         // STAKE: the reproach is for silence and broken promises; the design gives an honest no a small disappointment only.
+         HelpPleaPolicy.LeavesAReproach(new HelpVerdict {Feeling = feeling}, true).Should().BeFalse();
+      }
+
       [Test]
       public void GIVEN_a_promise_WHEN_the_player_was_taken_prisoner_THEN_the_word_is_not_broken()
       {
@@ -263,6 +287,26 @@ namespace CalradiaRemembers.Tests.HelpPleas
          read.PleadedCrises.Should().ContainKey("siege:x:3");
          read.LastPleaDay["a"].Should().Be(10);
          read.NextId.Should().Be(2);
+      }
+
+      [Test]
+      public void GIVEN_a_last_letter_waiting_WHEN_saved_and_read_THEN_it_still_waits()
+      {
+         // STAKE: a fallen lord is often a prisoner for weeks; a save and reload must not lose the letter he owes.
+         var ledger = new HelpPleaLedger();
+         ledger.Reproaches.Add(new HelpReproach {SenderId = "a", Context = "c", OnDay = 7});
+
+         HelpPleaLedger.Deserialize(ledger.Serialize()).Reproaches.Should().ContainSingle(r => r.SenderId == "a" && r.OnDay == 7);
+      }
+
+      [Test]
+      public void GIVEN_a_broken_promise_WHEN_the_last_letter_is_composed_THEN_it_says_so()
+      {
+         // STAKE: the writer is told only what the game proved, so the letter cannot accuse the player of the wrong thing.
+         string context = HelpPleaWording.ReproachContext(new HelpVerdict {Feeling = HelpFeeling.Betrayed}, "Pravend");
+
+         context.Should().Contain("promised").And.Contain("Pravend has fallen");
+         HelpPleaWording.ReproachContext(new HelpVerdict {Feeling = HelpFeeling.Abandoned}, "Pravend").Should().Contain("never answered");
       }
 
       [TestCase(null)]

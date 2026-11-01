@@ -24,7 +24,7 @@ the subject of news, and the verbs a model emits in conversation have their own 
 | `FiefAudience` | `FiefAudienceBehavior.EligibleHeroes` |
 | `HeldScene` | `ChatSceneStager.ReceiveOneAwaitingLandfall` |
 | `Hostage` | `CouncilHostageBehavior.TryStart`, `HostageCandidateResolver.IsEligible` |
-| `Letter` | `BastardBehavior.SendDemandLetter`, `BastardBehavior.SendMotherNote`, `CompanionHappinessBehavior.SendFarewell`, `CrLetters.DeliverWithId`, `HelpPleaBehavior.BestWriter`, `LetterGenerationService.QueueInitialLetter`, `LetterTriggerEvaluator.CanSendLetter`, `LetterTriggerEvaluator.CollectAimLetters`, `PrisonerEnvoyBehavior.OnHourlyTick` |
+| `Letter` | `BastardBehavior.SendDemandLetter`, `BastardBehavior.SendMotherNote`, `CompanionHappinessBehavior.SendFarewell`, `CrLetters.DeliverWithId`, `HelpPleaBehavior.BestWriter`, `HelpPleaBehavior.SendReproaches`, `LetterGenerationService.QueueInitialLetter`, `LetterTriggerEvaluator.CanSendLetter`, `LetterTriggerEvaluator.CollectAimLetters`, `PrisonerEnvoyBehavior.OnHourlyTick` |
 | `MarriageProspect` | `MarriageProspectResolver.Build`, `MarriageProspectResolver.ResolveCandidate` |
 | `Plot` | `SchemeStore.SelectOvershadowingTargetFor` |
 | `RealmTidings` | `RealmTidingsBehavior.CanRelay` |

@@ -94,9 +94,11 @@ namespace CalradiaRemembers.WorldEvents
       ///   stores (up to the granary's ceiling) and the place remembers who brought it. Returns the place fed, or
       ///   null when nothing he answers for is hungry and the grain is simply his.
       /// </summary>
-      internal static Settlement DeliverRelief(Hero giver, int units)
+      internal static Settlement DeliverRelief(Hero giver, int units, string namedPlace = null)
       {
-         Settlement place = ReliefDestinationOf(giver);
+         // A call for help names its place, and its writer need not be the one who holds it (only a clan's head has seats).
+         Settlement named = string.IsNullOrEmpty(namedPlace) ? null : Settlement.FindFirst(s => s.Town != null && s.Name.ToString() == namedPlace);
+         Settlement place = named ?? ReliefDestinationOf(giver);
          if (place?.Town == null || units <= 0) return null;
 
          Town town = place.Town;

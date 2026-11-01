@@ -60,6 +60,19 @@ namespace CalradiaRemembers.Logic.HelpPleas
       public float DistanceWhenPromised { get; set; }
    }
 
+   /// <summary>A last letter waiting for its writer to be free to send it: a fallen lord is often a prisoner.</summary>
+   public sealed class HelpReproach
+   {
+      /// <summary>The hero who will write.</summary>
+      public string SenderId { get; set; }
+
+      /// <summary>What they are told to write about.</summary>
+      public string Context { get; set; }
+
+      /// <summary>The day the place fell.</summary>
+      public int OnDay { get; set; }
+   }
+
    /// <summary>Every plea open, and what keeps the next one from coming too soon.</summary>
    public sealed class HelpPleaLedger
    {
@@ -71,6 +84,9 @@ namespace CalradiaRemembers.Logic.HelpPleas
 
       /// <summary>The crises that have had their plea, with the day, so one crisis asks once.</summary>
       public Dictionary<string, int> PleadedCrises { get; set; } = new Dictionary<string, int>(StringComparer.Ordinal);
+
+      /// <summary>The last letters not yet sent.</summary>
+      public List<HelpReproach> Reproaches { get; set; } = new List<HelpReproach>();
 
       /// <summary>The next number for an id.</summary>
       public int NextId { get; set; } = 1;
@@ -116,6 +132,7 @@ namespace CalradiaRemembers.Logic.HelpPleas
          {
             HelpPleaLedger ledger = JsonConvert.DeserializeObject<HelpPleaLedger>(json) ?? new HelpPleaLedger();
             ledger.Open = ledger.Open ?? new List<HelpPlea>();
+            ledger.Reproaches = ledger.Reproaches ?? new List<HelpReproach>();
             ledger.LastPleaDay = new Dictionary<string, int>(ledger.LastPleaDay ?? new Dictionary<string, int>(), StringComparer.Ordinal);
             ledger.PleadedCrises = new Dictionary<string, int>(ledger.PleadedCrises ?? new Dictionary<string, int>(), StringComparer.Ordinal);
 

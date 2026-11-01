@@ -28,6 +28,9 @@ namespace CalradiaRemembers.Logic
         /// <summary>An ally calling for military aid mid-war: time-sensitive, ignoring it has consequences.</summary>
         public const int WeightReinforcementRequest = 85;
 
+        /// <summary>The last word of someone the player abandoned in a crisis: it asks nothing, but it must be read.</summary>
+        public const int WeightAbandonedReproach = 85;
+
         /// <summary>A jealous confrontation or threat: high emotional stakes, often the opening of a conflict.</summary>
         public const int WeightJealousThreat = 85;
 
@@ -181,6 +184,7 @@ namespace CalradiaRemembers.Logic
                 case LetterReason.BastardMotherNote: return WeightBastardMotherNote;
                 case LetterReason.InterceptionMissed: return WeightInterceptionMissed;
                 case LetterReason.StandingAim: return WeightStandingAim;
+                case LetterReason.AbandonedReproach: return WeightAbandonedReproach;
 
                 case LetterReason.AwaitingReply: return WeightAwaitingReply;
                 case LetterReason.RomanticCorrespondence: return WeightRomanticCorrespondence;

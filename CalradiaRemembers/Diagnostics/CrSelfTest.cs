@@ -9812,7 +9812,7 @@ namespace CalradiaRemembers.Diagnostics
          HelpPleas.HelpPleaBehavior pleas = HelpPleas.HelpPleaBehavior.Instance;
          if (t.Skip(behavior?.Store == null || pleas == null || Hero.MainHero == null, "no campaign")) return t.Line();
 
-         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h.Clan != Clan.PlayerClan && Mapping.HeroPresence.IsInTheWorld(h)
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsPrisoner && !h.IsChild && h.Clan != Clan.PlayerClan && Mapping.HeroPresence.IsInTheWorld(h)
                                                              && behavior.Store.Get(h.StringId) != null && !h.MapFaction.IsAtWarWith(Hero.MainHero.MapFaction));
          if (t.Skip(lord == null, "no lord met yet who is not at war with you")) return t.Line();
 
@@ -9885,6 +9885,29 @@ namespace CalradiaRemembers.Diagnostics
             pleas.Upkeep(today);
             t.Expect("theSiegeOverClosesTheEntry", profile.ActiveQuests.Any(q => q.ExternalId == relief.Id && q.Status == QuestStatus.Active), false);
             t.Expect("aPlayerOnTheRoadWhoCameTooLateIsNotBlamed", profile.ReputationWithPlayer, promised);
+
+            pleas.Ledger.Reproaches.Add(new Logic.HelpPleas.HelpReproach {SenderId = lord.StringId, Context = "test", OnDay = today});
+            pleas.SendReproaches(today);
+            t.Expect("aFreeWriterSendsTheLastLetter", pleas.Ledger.Reproaches.Count, 0);
+            pleas.Ledger.Reproaches.Add(new Logic.HelpPleas.HelpReproach {SenderId = lord.StringId, Context = "test", OnDay = today - Logic.HelpPleas.HelpPleaPolicy.DaysAReproachWaits - 1});
+            pleas.SendReproaches(today);
+            t.Expect("onlyWhileTheMomentLasts", pleas.Ledger.Reproaches.Count, 0);
+
+            Settlement besieged = Settlement.All.FirstOrDefault(s => s.IsFortification && s.IsUnderSiege && s.Town != null);
+            if (besieged == null) t.Note("no siege in the world: the strengthening was not driven");
+            else
+            {
+               float foodBefore = besieged.Town.FoodStocks;
+               float militiaBefore = besieged.Militia;
+               HelpPleas.HelpPleaBehavior.Strengthen(besieged);
+               t.Expect("theHelpIsFeltAtTheWalls", besieged.Town.FoodStocks >= foodBefore && besieged.Militia >= militiaBefore, true);
+               besieged.Town.FoodStocks = foodBefore;
+               besieged.Militia = militiaBefore;
+            }
+
+            float quietFood = quiet.Town?.FoodStocks ?? 0f;
+            HelpPleas.HelpPleaBehavior.Strengthen(quiet);
+            t.Expect("aPlaceNotUnderSiegeGetsNothing", quiet.Town?.FoodStocks ?? 0f, quietFood);
          }
          finally
          {
