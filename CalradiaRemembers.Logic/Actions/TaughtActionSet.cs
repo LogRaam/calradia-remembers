@@ -98,6 +98,9 @@ namespace CalradiaRemembers.Logic.Actions
       // ── captive-scene captor verbs ──
       public bool CaptorAllowsPersuasionRelease;
       public bool CaptorMayExecutePlayer;
+      public bool CaptorOffersRansom;
+      public bool CaptorOffersParole;
+      public bool CaptorOffersExchange;
 
       // ── schemes ──
       /// <summary>SchemeAgentTargetName is set: scheme_assist is taught.</summary>
@@ -284,6 +287,9 @@ namespace CalradiaRemembers.Logic.Actions
          // Captive-scene captor verbs (also resolved on dedicated paths; kept for completeness).
          if (facts.CaptorAllowsPersuasionRelease) set.Add("release_player");
          if (facts.CaptorMayExecutePlayer) set.Add("execute_player");
+         if (facts.CaptorOffersRansom) set.Add("ransom_player");
+         if (facts.CaptorOffersParole) set.Add("parole_player");
+         if (facts.CaptorOffersExchange) set.Add("exchange_for_player");
 
          // Schemes.
          if (facts.SchemeAgentActive) set.Add("scheme_assist");

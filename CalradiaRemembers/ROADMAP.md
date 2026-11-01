@@ -356,7 +356,7 @@ what exists:
   empowers a character with a goal (a Sturgia near collapse finds a claimant sworn to retake it). The `CrAims` door
   (aims for a lord) and authored history are the nearest pieces.
 
-## WISHED 2026-10-26 (Gabriel, on Windmolen's report), ROADMAPPED, NOT DESIGNED: captivity scenes other than abuse
+## BUILT 2026-11-01 (2.8.2), not play-verified, see the CHANGELOG (Gabriel, on Windmolen's report): captivity scenes other than abuse
 
 Windmolen (Nexus, 26/10/2026): "My captor always seems to want to play some perverse game with me, trying to break my
 will [...] The NPC's never seem to be capable of just doing it! Give in, or just execute you or let you free or ransom

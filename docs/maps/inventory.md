@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 608 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1466 types in 50 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 610 types in 65 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1473 types in 50 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 282 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -425,7 +425,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PortraitData` | public struct | The flat portrait binding a widget renders from: image id, texture provider name, extra args. |
 | `PortraitTextureGuard` | public static class | The single gate for every character portrait the mod shows (chat lines, the courier letter). |
 
-### CalradiaRemembers.GameState (40)
+### CalradiaRemembers.GameState (41)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -442,6 +442,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CourtActionResolver` | public static class | Reads the live game state into the eligibility/amount facts for the "RP with teeth" court actions (give_influence, lend_troops, sway_opinion, release_prisoner, and their 04/07/2026 reciprocals give_troops/spend_influence... |
 | `DispatchMissionResult` | public enum | The outcome of CourtActionResolver.TryDispatchMission, read by each caller to report its own message. |
 | `DispatchMissionVerdict` | public struct | The verdict of CourtActionResolver.TryDispatchMission: the result, the resolved Type (whenever one was parsed), and the companion-mission behaviour's own Message on DispatchMissionResult.Dispatched or DispatchMissionResu... |
+| `ExchangeService` | public static class | Says what may change hands with a character, moves it, and writes it down. |
 | `ExpelFromClanResult` | public enum | The outcome of CourtActionResolver.TryExpelFromClan, read by each caller to report its own message. |
 | `ExpelFromClanVerdict` | public struct | The verdict of CourtActionResolver.TryExpelFromClan: the result and, only on ExpelFromClanResult.Expelled, whether the companion had to be relieved of a governorship first (WasGovernor) and the GovernedFief they held, so... |
 | `GiftBundle` | public class | Goods chosen in the bag for one gift, each with its amount, handed over once. |
@@ -726,7 +727,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PortraitSpikeViewModel` | public class | View model for the portrait-spike test overlay: a runtime sprite plus a status line. |
 | `RuntimePortraitFactory` | internal static class | Builds a GauntletUI Sprite from an image file on disk. |
 
-### CalradiaRemembers.Quests (14)
+### CalradiaRemembers.Quests (15)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -734,6 +735,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredStoryQuest` | public class | The journal mirror of an authored quest. |
 | `CalradiaRemembersQuest` | public class | A thin QuestBase wrapper around an InformalQuest that makes it visible in Bannerlord's native quest journal. |
 | `CalradiaRemembersQuestTypeDefiner` | public class | Registers the CR quest types with Bannerlord's save system. |
+| `CaptorTermsBehavior` | public class | A captor's terms made real, and the player's oath held to. |
 | `LetterErrand` | public class | Pairs a letter quest with the giver who issued it, for the delivery flow. |
 | `LlmFeedbackNotes` | internal static class | In-memory, per-hero pending feedback about a block the host refused last turn. |
 | `NativeQuestMemoryBehavior` | public class | Writes the giver's memory of the game's own quests. |
@@ -979,7 +981,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (464)
+### CalradiaRemembers.Logic (466)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1101,6 +1103,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EnvoyTurnFacts` | public class | What the turn that produced a deal said: the facts a gift and a plain acceptance are read from. |
 | `EscapedTargetPolicy` | public static class | The rules for a capture or delivery task whose target escaped. |
 | `EscortCostPolicy` | public static class | Pure pricing for the per-correspondent armed-escort premium (a distance-scaled one-off fee). |
+| `ExchangeKind` | public enum | What kind of exchange is being settled. |
+| `ExchangeRecord` | public class | One exchange as the log reads it. |
 | `ExternalEventRules` | public static class | The normalisation + quota rules every externally-fed world event passes through. |
 | `ExternalMissionRules` | public static class | The normalisation rules every externally-registered player mission passes through. |
 | `EyeColorBands` | public static class | The words for Bannerlord's eye-colour gradient, banded from the slider offset. |
@@ -1800,7 +1804,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SkirmishMemoryText` | public static class | Pure: the folded "small fights" memory a companion keeps of the skirmishes shared with the player. |
 | `TalliedFoe` | public class | One foe a hero put out of the fight, with the campaign's verdict on them afterwards. |
 
-### CalradiaRemembers.Logic.Captivity (22)
+### CalradiaRemembers.Logic.Captivity (27)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1820,10 +1824,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptiveSceneDirector` | public class | The "director" of a captive scene: a small state machine that owns the dramatic structure so the model never has to (and never loops a beat). |
 | `CaptiveTerm` | public enum | A term a captive may put on the table for her freedom. |
 | `CaptivityRansomPolicy` | public static class | Whether the game's own ransom offer reaches the player. |
+| `CaptorAudienceFacts` | public class | Who holds the player, and how things stand between them. |
+| `CaptorAudiencePolicy` | public static class | When a captor sends for the player, and what he wants of the talk. |
+| `CaptorParole` | public class | One oath: not to attack this realm until this day. |
+| `CaptorParoleLedger` | public class | Every oath of parole still binding the player. |
 | `CaptureFacts` | public class | What is known of the capture. |
 | `CaptureMemoryText` | public static class | The captor's memory of the capture. |
 | `CaptureNorm` | public static class | The framing of a lord taken captive by the player. |
 | `CaptureStake` | public enum | What the captive is to the one who hears of the capture. |
+| `ParoleFightFacts` | public class | A fight the player took part in, against an oath of parole. |
 | `RansomOfferFacts` | public class | Who holds the player when the game is about to offer a ransom. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 

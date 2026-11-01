@@ -218,6 +218,14 @@ namespace CalradiaRemembers.Chat
                return "[The bound captive is shoved to their knees before you in the bandit camp. No lord, no law reaches them here. You mean to make them understand exactly how helpless they are. Begin in your own voice — all menace.]";
             case CaptiveSceneIntent.Revenge:
                return "[Your men throw the bound captive down before you. This one — or their kind — has cost your band men and blood, and now they will answer for it. Begin in your own voice, with the score you mean to settle.]";
+            case CaptiveSceneIntent.Courtesy:
+               return "[You have had your prisoner brought to you, without chains, as befits their rank. Food and a seat are set out. You mean to know them better. Open in your own voice.]";
+            case CaptiveSceneIntent.Bargain:
+               return "[You have sent for your prisoner. You have a matter of business to put to them. Open in your own voice, and come to the point.]";
+            case CaptiveSceneIntent.Parole:
+               return "[You have sent for your prisoner. You are weighing whether their word could serve you better than a lock. Open in your own voice.]";
+            case CaptiveSceneIntent.TornFriend:
+               return "[You have come to see your prisoner, alone, because you could not stay away. You know them, and you wish it were otherwise. Open in your own voice.]";
             case CaptiveSceneIntent.Reckoning:
                return "[Your hired men have finally delivered the captured prisoner to you, bound and helpless. YOU are the one who paid to have them taken out of play. Open in your own voice: confront them face to face, let them realize who ordered this and why, reproach them for what they did to bring it on, and make plain they are yours to deal with now — their fate decided at your leisure, not tonight.]";
             default:

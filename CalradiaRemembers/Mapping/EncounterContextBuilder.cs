@@ -163,24 +163,6 @@ namespace CalradiaRemembers.Mapping
       }
 
       // The item the player picked from the bag, by id, or null.
-      /// <summary>TUNE: captives named in the sums taught, as the buy_prisoner teaching lists them: a turn's tail pays for each.</summary>
-      private const int TokenCaptives = 3;
-
-      /// <summary>
-      ///   The sums this character may name this turn (Gabriel, 01/11/2026). Reads the same ceiling and the same anchors the
-      ///   actions pay by, so a token is a sum the game keeps.
-      /// </summary>
-      private static IReadOnlyDictionary<string, int> MoneyTokensFor(Hero hero, NpcProfile profile, int offeredItemValue)
-      {
-         IReadOnlyList<PricedCaptive> Priced(IEnumerable<Hero> captives) => captives.Take(TokenCaptives)
-            .Select(c => new PricedCaptive {Name = c.Name?.ToString(), RansomAnchor = CourtActionResolver.RansomAnchor(c)}).ToList();
-
-         return MoneyTokenPolicy.Table(new MoneyTokenFacts {
-            Gift = BannerlordGameStateBridge.GiftCeilingFor(hero, profile), Purse = hero.Gold, ItemValue = offeredItemValue,
-            ToBuy = Priced(Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners()), ToSell = Priced(CourtActionResolver.HeldPrisonersOf(hero))
-         });
-      }
-
       private static TaleWorlds.Core.ItemObject OfferedItem(string itemId)
       {
          if (string.IsNullOrWhiteSpace(itemId)) return null;
@@ -500,6 +482,10 @@ namespace CalradiaRemembers.Mapping
             NativeQuestNote = ResolveNativeQuestNote(hero),
             NemesisRecaptureNote = ResolveNemesisRecaptureNote(hero, playerStatus),
             CaptiveIntent = captiveIntent,
+            CaptorRansomPrice = ResolveCaptorOffers(hero, playerStatus, captiveIntent) ? Quests.CaptorTermsBehavior.RansomThePlayerCanPay() : 0,
+            CaptorParoleDays = ResolveCaptorOffers(hero, playerStatus, captiveIntent) && CaptorAudiencePolicy.OffersParole(captiveIntent) ? CaptorAudiencePolicy.ParoleDays : 0,
+            CaptorParoleRealm = hero?.MapFaction?.Name?.ToString(),
+            CaptorExchangeCaptive = ResolveCaptorOffers(hero, playerStatus, captiveIntent) ? Labelled(Quests.CaptorTermsBehavior.ExchangeableCaptive(hero)) : null,
             CaptiveSceneAtSea = ResolveCaptiveSceneAtSea(hero, playerStatus),
             CaptiveSceneFocus = captiveSceneFocus,
             CaptiveSceneStyle = captiveSceneStyle,
@@ -518,10 +504,10 @@ namespace CalradiaRemembers.Mapping
             ItemOnOfferMost = OfferedItem(offeredItemId) is { } onOffer ? ItemSalePolicy.MostFor(onOffer.Value) : null,
             // RaveN017Mod (01/11/2026): what the character holds and would give, before they name a sum.
             Purse = hero?.Gold,
-            GiftCeiling = hero == null ? null : BannerlordGameStateBridge.GiftCeilingFor(hero, profile),
+            GiftCeiling = hero == null ? null : ExchangeService.GiftCeilingFor(hero, profile),
             PriceReference = PriceReferenceReader.Full,
             PriceReferenceCompact = PriceReferenceReader.Compact,
-            MoneyTokens = offerMoneyTokens && hero != null ? MoneyTokensFor(hero, profile, OfferedItem(offeredItemId)?.Value ?? 0) : null,
+            MoneyTokens = offerMoneyTokens && hero != null ? ExchangeService.MoneyTokensFor(hero, profile, OfferedItem(offeredItemId)?.Value ?? 0) : null,
             IsFinalSceneBeat = isFinalSceneBeat,
             SceneStage = sceneStage,
             AggressorKind = aggressorKind,
@@ -1061,7 +1047,7 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>The magnitude of the heaviest LIVE grudge this hero holds against the player, or 0 when none.</summary>
-      private static int HeaviestGrudgeAgainstPlayer(Hero hero)
+      internal static int HeaviestGrudgeAgainstPlayer(Hero hero)
       {
          IReadOnlyList<Grudge> grudges = GrudgeBehavior.Instance?.GrudgesFor(hero?.StringId);
 
@@ -2466,6 +2452,10 @@ namespace CalradiaRemembers.Mapping
             : LeaveHouseObstacle.None;
 
       /// <summary>What <paramref name="hero" /> is to the player by blood (DepaHN, 27/10/2026), read off the game's family links.</summary>
+      // A captor's terms are on offer only in a talk, and never from one the release gate refuses.
+      private static bool ResolveCaptorOffers(Hero hero, PlayerStatusVsNpc playerStatus, CaptiveSceneIntent intent)
+         => CaptiveSceneIntentRules.IsAudience(intent) && !ResolveCaptorReleaseVerdict(hero, playerStatus).RefusesAll;
+
       internal static string ResolveKinshipToPlayer(Hero hero)
       {
          Hero me = Hero.MainHero;

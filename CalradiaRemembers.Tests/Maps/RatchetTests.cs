@@ -286,6 +286,44 @@ namespace CalradiaRemembers.Tests.Maps
             Assert.Warn($"{BareIsAliveReadsOn30September - bare} bare IsAlive read(s) moved onto a door: lower the baseline to {bare}.");
       }
 
+      // ONE DOOR FOR AN EXCHANGE (Gabriel, 01/11/2026: "centraliser tout ce qui est transactions"). Gold moved in 38 places and
+      // goods in many more, each with its own rules, which is how the same bug reached tashmetu, 3chmidt and RaveN017Mod. The
+      // reworked roads go through GameState/ExchangeService; the rest is a backlog being moved over in steps. A new direct
+      // move is how the next one starts: pay through the door, or raise the baseline and say why.
+      private const int DirectGoldMovesOn1November = 35;
+      private const int DirectGoodsMovesOn1November = 9;
+
+      private static int DirectMoves(string pattern)
+         => SourceTree.Production
+                      .Where(f => !f.RelativePath.EndsWith("ExchangeService.cs", StringComparison.Ordinal)
+                                  && !("/" + f.RelativePath).Contains("/Diagnostics/")
+                                  && !System.IO.Path.GetFileName(f.RelativePath).StartsWith("ModCheats", StringComparison.Ordinal))
+                      .Sum(f => System.Text.RegularExpressions.Regex.Matches(f.Root.ToFullString(), pattern).Count);
+
+      [Test]
+      public void GIVEN_coin_moved_outside_the_exchange_door_WHEN_counted_THEN_there_are_no_more_than_the_baseline()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
+
+         int direct = DirectMoves(@"GiveGoldAction\.Apply|ChangeHeroGold\(");
+
+         direct.Should().BeLessThanOrEqualTo(DirectGoldMovesOn1November,
+            "coin moves outside GameState/ExchangeService, with rules of its own and nothing written down: pay through the door.");
+         if (direct < DirectGoldMovesOn1November) Assert.Warn($"{DirectGoldMovesOn1November - direct} move(s) came through the door: lower the baseline to {direct}.");
+      }
+
+      [Test]
+      public void GIVEN_goods_moved_outside_the_exchange_door_WHEN_counted_THEN_there_are_no_more_than_the_baseline()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
+
+         int direct = DirectMoves(@"ItemRoster\.AddToCounts");
+
+         direct.Should().BeLessThanOrEqualTo(DirectGoodsMovesOn1November,
+            "goods move outside GameState/ExchangeService: an exchange with a character goes through the door. Loot and travel do not count as one, and stay in this baseline.");
+         if (direct < DirectGoodsMovesOn1November) Assert.Warn($"{DirectGoodsMovesOn1November - direct} move(s) came through the door: lower the baseline to {direct}.");
+      }
+
       // REGARD CHANGES IN ONE PLACE (29/09/2026). CrNpcMemory.RegardChanged tells other mods of every change of a
       // character's regard for the player, and it can only do that because every change goes through
       // ProfileMutator.ApplyReputationDelta. On the day the event was built, six places wrote the value directly

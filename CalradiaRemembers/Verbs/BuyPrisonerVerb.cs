@@ -178,7 +178,7 @@ namespace CalradiaRemembers.Verbs
                 // changes hands into the buyer's custody (a real +1 to a real roster, never a phantom deletion).
                 // If the transfer still throws, the payment is refunded and the sale refused, never a silent
                 // half-trade (gold paid, no captive moved, player told nothing).
-                if (payment > 0) GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, payment);
+                ExchangeService.Pay(ExchangeKind.CaptiveSale, npcHero, Hero.MainHero, payment);
                 try
                 {
                     if (goesHome)
@@ -196,7 +196,7 @@ namespace CalradiaRemembers.Verbs
                 }
                 catch (Exception transferEx)
                 {
-                    if (payment > 0) GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, payment); // refund the failed purchase
+                    ExchangeService.Pay(ExchangeKind.CaptiveSaleRefund, Hero.MainHero, npcHero, payment); // refund the failed purchase
                     ModLog.Error($"[ACTION] buy_prisoner transfer failed, payment refunded: {transferEx.GetType().Name}: {transferEx.Message}");
 
                     return ActionOutcome.Refused($"({captive.Name} could not be handed over, so nothing changed hands; {npcHero.Name}'s payment is returned.)");

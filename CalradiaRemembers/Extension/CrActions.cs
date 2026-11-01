@@ -33,7 +33,7 @@ namespace CalradiaRemembers
       // (it only guards against a real catalog entry, and these are not catalog entries).
       private static readonly string[] ReservedNames = {
          "end_conversation", "witness_leaves", "request_privacy", "retire", "challenge_duel",
-         "release_player", "deliver_prisoner"
+         "release_player", "ransom_player", "parole_player", "exchange_for_player", "deliver_prisoner"
       };
 
       /// <summary>

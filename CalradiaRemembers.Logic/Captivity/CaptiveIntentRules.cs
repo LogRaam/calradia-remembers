@@ -24,6 +24,10 @@ namespace CalradiaRemembers.Logic.Captivity
             CaptiveSceneIntent.Training       => "trained and conditioned",
             CaptiveSceneIntent.Reward         => "rewarded",
             CaptiveSceneIntent.Reckoning      => "confronted as my prisoner",
+            CaptiveSceneIntent.Courtesy       => "received as a guest of rank, though my prisoner",
+            CaptiveSceneIntent.Bargain        => "talked terms with",
+            CaptiveSceneIntent.Parole         => "weighed the word of",
+            CaptiveSceneIntent.TornFriend     => "faced, torn, as my prisoner",
             _                                 => "kept as my prisoner"
         };
 

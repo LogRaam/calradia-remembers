@@ -640,6 +640,9 @@ namespace CalradiaRemembers.Chat
                PlayerHoldsLordPrisoners = !string.IsNullOrWhiteSpace(context.HeldLordPrisoners),
                CaptorAllowsPersuasionRelease = context.CaptorAllowsPersuasionRelease,
                CaptorMayExecutePlayer = context.CaptorMayExecutePlayer,
+               CaptorOffersRansom = context.CaptorRansomPrice > 0,
+               CaptorOffersParole = context.CaptorParoleDays > 0,
+               CaptorOffersExchange = !string.IsNullOrEmpty(context.CaptorExchangeCaptive),
                SchemeAgentActive = !string.IsNullOrWhiteSpace(context.SchemeAgentTargetName),
                SchemeTargetsThisNpc = context.SchemeTargetsThisNpc,
                SpouseDivorceDemandActive = !string.IsNullOrWhiteSpace(context.SpouseDivorceDemandNote),
@@ -1132,6 +1135,28 @@ namespace CalradiaRemembers.Chat
             if (IsCaptiveEncounter && DialogueHeuristics.HasAction(response, "release_player"))
             {
                ResolveCaptorRelease(placeholder, speaker, profile, npcLine, response);
+
+               return;
+            }
+
+            // A captor's terms: each is a release that costs the player something real, re-validated where it is granted.
+            if (IsCaptiveEncounter && DialogueHeuristics.HasAction(response, "ransom_player"))
+            {
+               ResolveCaptorRelease(placeholder, speaker, profile, npcLine, response, Quests.CaptorTermsBehavior.GrantRansom);
+
+               return;
+            }
+
+            if (IsCaptiveEncounter && DialogueHeuristics.HasAction(response, "parole_player"))
+            {
+               ResolveCaptorRelease(placeholder, speaker, profile, npcLine, response, Quests.CaptorTermsBehavior.GrantParole);
+
+               return;
+            }
+
+            if (IsCaptiveEncounter && DialogueHeuristics.HasAction(response, "exchange_for_player"))
+            {
+               ResolveCaptorRelease(placeholder, speaker, profile, npcLine, response, Quests.CaptorTermsBehavior.GrantExchange);
 
                return;
             }

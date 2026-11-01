@@ -1031,7 +1031,8 @@ namespace CalradiaRemembers.Chat
          ChatSpeaker speaker,
          NpcProfile profile,
          string npcLine,
-         ParsedResponse response)
+         ParsedResponse response,
+         Func<Hero, bool> term = null)
       {
          bool narrationFirst = response?.NarrationBeforeDialogue == true && !string.IsNullOrWhiteSpace(response.Narration);
          if (narrationFirst)
@@ -1042,7 +1043,9 @@ namespace CalradiaRemembers.Chat
          if (!narrationFirst && !string.IsNullOrWhiteSpace(response?.Narration))
             AppendNarration(response.Narration);
 
-         bool freed = NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.CommitCaptorRelease(speaker.Hero) ?? false;
+         bool freed = term != null
+            ? term(speaker.Hero)
+            : NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.CommitCaptorRelease(speaker.Hero) ?? false;
          ModLog.Info($"[RELEASE] captor {speaker.Name} release {(freed ? "committed — player freed at scene close" : "refused by the gate")}.");
 
          _conversationEnded = true;

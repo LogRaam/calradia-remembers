@@ -2404,10 +2404,7 @@ namespace CalradiaRemembers.Chat
          // Same non-sexual guard as ActivateCaptiveEncounterMode: a Reckoning/Extortion/Intimidation/
          // Revenge scene resumed via "Please continue" must not inject a sexual scene focus (bugfix
          // 01/07/2026, the opener path already guarded this, the resume path did not).
-         bool nonSexual = _captiveEncounterIntent is CaptiveSceneIntent.Reckoning
-            or CaptiveSceneIntent.Extortion
-            or CaptiveSceneIntent.Intimidation
-            or CaptiveSceneIntent.Revenge;
+         bool nonSexual = !CaptiveSceneIntentRules.IsSexual(_captiveEncounterIntent);
          // The resumed beat draws its own writing lens too (T1), so a scene that resumes after a lost escape
          // is not told through whatever lens the last window happened to leave on the field.
          _captiveSceneStyle = CaptiveSceneText.PickStyleRegister(ref _lastCaptiveStyleIndex);

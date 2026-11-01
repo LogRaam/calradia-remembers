@@ -1795,7 +1795,7 @@ namespace CalradiaRemembers.GameState
             if (preview.Terms.Contains(CaptiveTerm.Ransom) && preview.Ransom > 0)
             {
                Hero payer = npcHero.Clan?.Leader ?? npcHero;
-               GiveGoldAction.ApplyBetweenCharacters(payer, Hero.MainHero, preview.Ransom);
+               ExchangeService.Pay(ExchangeKind.Ransom, payer, Hero.MainHero, preview.Ransom);
                ransomApplied = preview.Ransom;
                done.Add($"{preview.Ransom} denars ransomed from {payer.Name}{(preview.RansomClampedToPurse ? " (all they had)" : preview.RansomClampedToWorth ? " (the most they fetch)" : "")}");
             }
@@ -1904,18 +1904,6 @@ namespace CalradiaRemembers.GameState
          }
       }
 
-      /// <summary>
-      ///   What this character would give the player now with nothing in return, read by the give_gold action and told to
-      ///   the model before it names a sum, so the two agree (RaveN017Mod, Gabriel, 01/11/2026).
-      /// </summary>
-      internal static int GiftCeilingFor(Hero giver, NpcProfile profile) => GiftCeilingPolicy.Ceiling(GiftFactsFor(giver, profile));
-
-      private static GiftFacts GiftFactsFor(Hero giver, NpcProfile profile) => new() {
-         Purse = giver?.Gold ?? 0, Regard = profile?.ReputationWithPlayer ?? 0,
-         GivenInWindow = GiftCeilingPolicy.GivenStill(profile?.GiftWindowStartDay, profile?.GiftedInWindow ?? 0, (int) CampaignTime.Now.ToDays),
-         OwedByOath = CalradiaRemembers.Commitments.CommitmentBehavior.Instance?.OwedBy(giver?.StringId) ?? 0
-      };
-
       private static ActionOutcome ExecuteGiveGold(GameAction action, Hero npcHero, ActionContext context)
       {
          if (!TryGetInt(action.Parameters, "amount", out int amount))
@@ -1936,7 +1924,7 @@ namespace CalradiaRemembers.GameState
          // so what they would part with bounds it (GiftCeilingPolicy): a hallucinated figure or a player's persuasion moves
          // no more than that.
          NpcProfile profile = context?.Profile ?? NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId);
-         GiftFacts gift = GiftFactsFor(npcHero, profile);
+         GiftFacts gift = ExchangeService.GiftFactsFor(npcHero, profile);
          int payable = GiftCeilingPolicy.Ceiling(gift);
          if (npcHero.Gold < 1)
          {
@@ -1957,8 +1945,8 @@ namespace CalradiaRemembers.GameState
          int asked = amount;
          bool purseHolds = payable >= npcHero.Gold;
          amount = ClampInt(amount, 1, payable);
-         GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, amount);
-         RecordGift(profile, gift, amount);
+         ExchangeService.Pay(ExchangeKind.Gift, npcHero, Hero.MainHero, amount);
+         ExchangeService.RecordGift(profile, gift, amount);
          // R7-light (swear_oath): this is ALSO the pay_gold oath's own verification hook, whichever channel
          // the gold actually moved through (this 1:1 action, or the council's own give_gold resolution).
          CalradiaRemembers.Commitments.CommitmentBehavior.Instance?.OnGoldGivenToPlayer(npcHero.StringId, amount);
@@ -1970,16 +1958,6 @@ namespace CalradiaRemembers.GameState
 
          return new ActionOutcome($"{npcHero.Name} gives you {amount} denars{reduced} (purse: {Hero.MainHero.Gold}).", true,
             appliedGoldAmount: amount);
-      }
-
-      /// <summary>Counts what was freely given against the window. What paid a sworn debt was owed, not given.</summary>
-      private static void RecordGift(NpcProfile profile, GiftFacts gift, int amount)
-      {
-         int free = amount - Math.Min(amount, Math.Max(0, gift.OwedByOath));
-         if (profile == null || free <= 0) return;
-
-         if (gift.GivenInWindow == 0) profile.GiftWindowStartDay = (int) CampaignTime.Now.ToDays;
-         profile.GiftedInWindow = gift.GivenInWindow + free;
       }
 
       /// <summary>
@@ -2088,11 +2066,11 @@ namespace CalradiaRemembers.GameState
                   return ActionOutcome.Refused($"({npcHero.Name} has no coin to pay for it, so nothing was sold.)");
             }
 
-            MobileParty.MainParty.ItemRoster.AddToCounts(found.EquipmentElement, -1);
-            try { GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, deal.Price); }
+            ExchangeService.TakeFromPlayer(ExchangeKind.ItemSale, found.EquipmentElement, 1, npcHero);
+            try { ExchangeService.Pay(ExchangeKind.ItemSale, npcHero, Hero.MainHero, deal.Price); }
             catch
             {
-               MobileParty.MainParty.ItemRoster.AddToCounts(found.EquipmentElement, 1);
+               ExchangeService.ReturnToPlayer(found.EquipmentElement, 1);
                throw;
             }
 
@@ -2180,7 +2158,7 @@ namespace CalradiaRemembers.GameState
             int count = GiftQuantityPolicy.Resolve(requestedCount, found.Amount);
             if (count <= 0) return ActionOutcome.Refused("(You don't seem to have any of that left to give.)");
 
-            MobileParty.MainParty.ItemRoster.AddToCounts(found.EquipmentElement, -count);
+            ExchangeService.TakeFromPlayer(ExchangeKind.ItemGift, found.EquipmentElement, count, npcHero);
             var actualName = found.EquipmentElement.Item.Name.ToString();
             int unitValue = found.EquipmentElement.Item.Value;
             int totalValue = unitValue * count;

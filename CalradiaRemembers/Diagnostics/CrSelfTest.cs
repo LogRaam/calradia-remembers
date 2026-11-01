@@ -218,6 +218,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("secret_propagation", Severity.Light, "Mystery-lover (phase 3b-2): record a live lord (forced to neutral regard so he is not the player's confidant) as KNOWING the secret, then drive the REAL propagation (DebugSpreadOnce, bypassing only the daily chance) and assert the secret reaches one of his friends who then knows it too, never the player. Forgets both ledger entries and restores the teller's regard afterwards", TestSecretPropagation),
          new SelfTest("pay_for_silence", Severity.Light, "Mystery-lover (phase 3b-3): mark a companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL bridge dispatch of pay_for_silence with a price and assert the gold moves player->lord, the hush is stamped as recently paid (easing the leverage prompt), and a memory is kept. Restores both purses, the flag, the ledger, and trims the memory afterwards", TestPayForSilence),
          new SelfTest("player_violence", Severity.Light, "Player violence (player request, Inc 2): drives the REAL bridge dispatch of kill_npc against a live lord and asserts THE guarantee, that with the MCM lethal toggle off (its default) the attempt is refused and the victim is still alive. Also checks the scene reader measures both fighters and that robbery is never barred by the lethal toggle. Mutates nothing while the toggle is off", TestPlayerViolence),
+         new SelfTest("captor_terms", Severity.Light, "Windmolen (Nexus, 26/10/2026): captors should be able to free or ransom the player; Gabriel: other scenarios than abuse, with an oath the game holds the player to. Reads the engine's ransom field, refuses a ransom when the player is not a prisoner with no gold moved, then drives the REAL oath on a lord already met, with no release: kept, it raises his regard and leaves a memory; broken, it lowers it and leaves a memory. Restores the lord and the ledger, and leaves no grudge", TestCaptorTerms),
          new SelfTest("help_plea", Severity.Light, "DepaHN (Nexus, 27/10/2026): friends, kin and allies should write when they need help, and Gabriel (01/11/2026): the game holds the player to what follows, thrown letter or not. Drives the REAL behavior on a lord already met, with no letter written: a letter still on the road costs nothing when the plea closes; on arrival the plea waits for an answer with a deadline; Send moves the true sum and closes it; a refusal lowers regard; a promise opens a journal entry and a siege already over closes it with no blame. Restores gold, regard and the ledger, and leaves no grievance or kindness", TestHelpPlea),
          new SelfTest("npc_dossier", Severity.Light, "Gabriel (31/10/2026): the NPC panel should hold everything the player has learned that the encyclopedia shows. The model knows truths the player has not learned, so the panel must keep them hidden. Opens a REAL chat ViewModel's dossier on a lord already met (no model call): a fear not yet learned stays out of it, the discovery of that fear marks it learned, the open panel shows it at once, and its grievances and kindnesses match the reader the encyclopedia uses. Restores the lord's fear", TestNpcDossier),
          new SelfTest("hover_glow", Severity.Light, "Gabriel (31/10/2026): the chat's buttons should answer the cursor; Dark Leather's tool buttons were transparent hotspots over painted tiles. Checks the glow widget can be built by the engine and that both installed chat skins carry it. Mutates nothing; the rule itself is pinned by ButtonGlowPolicyTests", TestHoverGlow),
@@ -8964,7 +8965,7 @@ namespace CalradiaRemembers.Diagnostics
             profile.GiftedInWindow = 0;
             profile.GiftWindowStartDay = null;
 
-            int ceiling = BannerlordGameStateBridge.GiftCeilingFor(hero, profile);
+            int ceiling = ExchangeService.GiftCeilingFor(hero, profile);
             t.Expect("aStrangerGivesAShareOfTheirPurse", ceiling, 1000);
 
             EncounterContext ctx = EncounterContextBuilder.Build(hero, profile, behavior.GameStateBridge, null);
@@ -8986,7 +8987,7 @@ namespace CalradiaRemembers.Diagnostics
             profile.GiftWindowStartDay = null;
             hero.ChangeHeroGold(100000 - hero.Gold);
             EncounterContext live = EncounterContextBuilder.Build(hero, profile, behavior.GameStateBridge, null, offerMoneyTokens: true);
-            t.Expect("theGiftTokenIsTheCeiling", live.MoneyTokens?["gift"], BannerlordGameStateBridge.GiftCeilingFor(hero, profile));
+            t.Expect("theGiftTokenIsTheCeiling", live.MoneyTokens?["gift"], ExchangeService.GiftCeilingFor(hero, profile));
             string raw = "[DIALOGUE]Take {gift} denars.[/DIALOGUE]\n[EVENT]\ntype: other\nsummary: I offered {gift} denars.\n[/EVENT]\n[ACTION]\ntype: give_gold\namount: {gift}\n[/ACTION]";
             ParsedResponse read = new NpcMemoryService.Core.Parsing.SectionResponseParser().Parse(NpcMemoryService.Core.Parsing.MoneyTokens.Fill(raw, live.MoneyTokens));
             string sum = live.MoneyTokens["gift"].ToString();
@@ -8995,6 +8996,11 @@ namespace CalradiaRemembers.Diagnostics
             before = Hero.MainHero.Gold;
             behavior.GameStateBridge.ExecuteAction(read.Actions[0], hero, new ActionContext(profile, null));
             t.Expect("thePlayerReceivesTheSum", (Hero.MainHero.Gold - before).ToString(), sum);
+
+            // The door moves nothing for no sum: a refused price must not become a payment of a coin.
+            before = Hero.MainHero.Gold;
+            ExchangeService.Pay(ExchangeKind.ItemSale, hero, Hero.MainHero, 0);
+            t.Expect("noSumMovesNothing", Hero.MainHero.Gold - before, 0);
          }
          finally
          {
@@ -9866,6 +9872,56 @@ namespace CalradiaRemembers.Diagnostics
             subjectProfile.Romantic.Status = prevStatus;
             behavior.Store.Set(subjectProfile);
             gossip.ForgetKnows(holder, subject.StringId);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestCaptorTerms(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("captor_terms");
+         Quests.CaptorTermsBehavior terms = Quests.CaptorTermsBehavior.Instance;
+         if (t.Skip(behavior?.Store == null || terms == null || Hero.MainHero == null, "no campaign")) return t.Line();
+         if (t.Skip(Hero.MainHero.IsPrisoner, "you are a prisoner: the test would free you")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h.Clan != Clan.PlayerClan && Mapping.HeroPresence.IsInTheWorld(h)
+                                                             && behavior.Store.Get(h.StringId) != null);
+         if (t.Skip(lord == null, "no lord met yet (talk to one first)")) return t.Line();
+
+         t.Note($"{lord.Name}");
+         int gold = Hero.MainHero.Gold;
+         t.Expect("noCaptivityNoPrice", Quests.CaptorTermsBehavior.RansomThePlayerCanPay(), 0);
+         t.Expect("aRansomWithoutACaptivityIsRefused", Quests.CaptorTermsBehavior.GrantRansom(lord), false);
+         t.Expect("andNoGoldMoved", Hero.MainHero.Gold, gold);
+
+         NpcProfile profile = behavior.Store.Get(lord.StringId);
+         int regard = profile.ReputationWithPlayer;
+         int events = profile.Events.Count;
+         int today = (int) CampaignTime.Now.ToDays;
+         Logic.Captivity.CaptorParoleLedger before = terms.Ledger;
+         terms.Ledger = new Logic.Captivity.CaptorParoleLedger();
+         Quests.CaptorTermsBehavior.DebugSuppressGrudge = true;
+         try
+         {
+            Logic.Captivity.CaptorParole kept = terms.Ledger.Add(lord.StringId, lord.MapFaction?.StringId, "the realm", today);
+            terms.Close(kept, false, today);
+            t.Expect("anOathKeptRaisesRegard", profile.ReputationWithPlayer > regard, true);
+            t.Expect("andIsOver", terms.Ledger.Oaths.Count, 0);
+            t.Expect("andIsRemembered", profile.Events.Count, events + 1);
+
+            int warm = profile.ReputationWithPlayer;
+            Logic.Captivity.CaptorParole broken = terms.Ledger.Add(lord.StringId, lord.MapFaction?.StringId, "the realm", today);
+            terms.Close(broken, true, today);
+            t.Expect("anOathBrokenLowersRegard", profile.ReputationWithPlayer < warm, true);
+            t.Expect("andIsRememberedAsABetrayal", profile.Events.Last().type, NotableEventType.Betrayal);
+         }
+         finally
+         {
+            Quests.CaptorTermsBehavior.DebugSuppressGrudge = false;
+            terms.Ledger = before;
+            profile.ReputationWithPlayer = regard;
+            while (profile.Events.Count > events) profile.Events.RemoveAt(profile.Events.Count - 1);
+            behavior.Store.Set(profile);
          }
 
          return t.Line();

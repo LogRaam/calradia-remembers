@@ -77,6 +77,9 @@ namespace CalradiaRemembers.Foundation
       /// <summary>Riders carry letters to the player across the map; off, letters reach the box by their date (on without MCM).</summary>
       public static bool LetterRidersOnMap => CrSettings.Instance?.LetterRidersOnMap ?? true;
 
+      /// <summary>A lord who holds the player may send for them to talk, at every content level (on without MCM).</summary>
+      public static bool CaptorConversations => CrSettings.Instance?.CaptorConversations ?? true;
+
       /// <summary>Characters write to the player of their own accord; off, only the letters that matter still come (on without MCM).</summary>
       public static bool UnaskedLetters => CrSettings.Instance?.UnaskedLetters ?? true;
 

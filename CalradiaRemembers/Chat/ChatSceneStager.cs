@@ -254,8 +254,8 @@ namespace CalradiaRemembers.Chat
             Profile = captorProfile,
             PortraitCharacter = portraitCharacter,
             // A captor with a field party attaches the scene to it; a captor with none (or a bandit) attaches to
-            // whichever party is actually holding the player prisoner.
-            AttachParty = captor?.PartyBelongedTo?.Party ?? Hero.MainHero?.PartyBelongedToAsPrisoner?.MobileParty?.Party,
+            // whichever party is actually holding the player prisoner, or to the place holding them in its dungeon.
+            AttachParty = captor?.PartyBelongedTo?.Party ?? Hero.MainHero?.PartyBelongedToAsPrisoner?.MobileParty?.Party ?? captor?.CurrentSettlement?.Party,
             Captive = new CaptiveScenePayload {
                Witnesses = witnesses,
                IsCollective = isCollective,

@@ -623,6 +623,11 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool UnaskedLetters { get; set; } = true;
 
+      [SettingPropertyBool("{=CR_MCM_CaptorConversations}Captor Conversations", RequireRestart = false, Order = 14,
+         HintText = "{=CR_MCM_CaptorConversations_Hint}A lord who holds you may send for you to talk: courtesy, a ransom, an oath, an exchange. At most one a week, at every content level. Off: no such scene.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
+      public bool CaptorConversations { get; set; } = true;
+
       // "Intercepted letters can leak" (Order 12) is gone since 26/09/2026: Gabriel ruled that an intercepted letter
       // with substance ALWAYS becomes a secret carried in the world (CourierSecretBehavior); the one switch left is
       // Invulnerable Couriers above.

@@ -15,6 +15,7 @@ using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.Roster;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -146,6 +147,8 @@ namespace CalradiaRemembers.Letters
       // In-memory state (reset each session — acceptable for v1)
       private static int _captiveSinceDay = -1;
       private static int _lastEncounterDay = -1;
+      private static int _audienceSinceDay = -1;
+      private static int _lastAudienceDay = -1;
 
       /// <summary>
       ///   Called from the daily tick. Checks all captive encounter conditions
@@ -155,6 +158,7 @@ namespace CalradiaRemembers.Letters
       {
          if (store == null || llmServices == null) return;
          if (!llmServices.IsAvailable) return;
+         if (TryCaptorAudience(store)) return;
          if (ModSettings.AdultContentLevel != AdultContentLevel.Hardcore) return;
 
          var player = Hero.MainHero;
@@ -575,6 +579,93 @@ namespace CalradiaRemembers.Letters
          ShowEncounterPopup(captor, captorProfile, witnesses, collective, intent, null, victim, coerced);
       }
 
+      /// <summary>
+      ///   A lord's talk with his prisoner (Windmolen, 26/10/2026; Gabriel: "il faudra d'autres scenarios que de la
+      ///   maltraitance"), at every content level. Runs ahead of the old scenes; true when it opened one.
+      /// </summary>
+      private static bool TryCaptorAudience(BannerlordNpcMemoryStore store)
+      {
+         Hero player = Hero.MainHero;
+         if (player is not {IsPrisoner: true})
+         {
+            _audienceSinceDay = -1;
+            _lastAudienceDay = -1;
+
+            return false;
+         }
+
+         if (!ModSettings.CaptorConversations || Arrests.ArrestBehavior.Instance?.HoldsPlayer == true) return false;
+
+         var today = (int) CampaignTime.Now.ToDays;
+         if (_audienceSinceDay < 0) _audienceSinceDay = today;
+         int? sinceLast = _lastAudienceDay < 0 ? (int?) null : today - _lastAudienceDay;
+         if (!CaptorAudiencePolicy.IsDue(today - _audienceSinceDay, sinceLast)) return false;
+
+         Hero captor = LordHolding(player);
+         if (captor == null) return false;
+
+         NpcProfile profile = store.Get(captor.StringId);
+         if (profile == null)
+         {
+            profile = HeroProfileMapper.FromHero(captor);
+            store.Set(profile);
+         }
+
+         CaptorAudienceFacts facts = AudienceFacts(captor, profile);
+         // A week's wait follows whatever the draw says: an indifferent captor is not asked again tomorrow.
+         _lastAudienceDay = today;
+         if (ModSettings.AdultContentLevel == AdultContentLevel.Hardcore && RollPercent(100) >= CaptorAudiencePolicy.HardcoreShare(facts)) return false;
+
+         CaptiveSceneIntent? intent = CaptorAudiencePolicy.Select(facts, RollPercent);
+         if (intent == null)
+         {
+            ModLog.Info($"[CAPTIVE] {captor.Name} does not send for the player this week.");
+
+            return false;
+         }
+
+         if (!(Initiative.WorldInitiativeBehavior.Instance?.MayKnock($"captive:{captor.StringId}", Logic.Initiative.InitiativeFamily.WarAndLaw,
+                  Logic.Initiative.InitiativeRank.Pressing, captor) ?? true))
+         {
+            _lastAudienceDay = -1;
+
+            return false;
+         }
+
+         ModLog.Info($"[CAPTIVE] audience: captor={captor.Name}, intent={intent}.");
+         ShowEncounterPopup(captor, profile, new List<WitnessEntry>(), false, intent.Value);
+
+         return true;
+      }
+
+      // The lord who can send for the player: the leader of the party holding them, or the master of the place whose dungeon
+      // they are in, if he is there. Never a band, a nemesis or an ambush: those have their own scenes and their own end.
+      private static Hero LordHolding(Hero player)
+      {
+         PartyBase held = player.PartyBelongedToAsPrisoner;
+         MobileParty party = held?.MobileParty;
+         if (party != null && (party.IsBandit || Stance.AmbushCaptivityBehavior.Instance?.IsAmbushCaptor(party) == true
+                                              || Nemesis.NemesisBehavior.Instance?.NemesisCaptorFor(party) != null))
+            return null;
+
+         Hero lord = party != null ? party.LeaderHero : held?.Settlement?.Owner;
+         if (party == null && lord?.CurrentSettlement != held?.Settlement) return null;
+
+         return lord is {IsHumanPlayerCharacter: false} && ActionGate.Allows(lord, Logic.ActionKind.CaptorScene) ? lord : null;
+      }
+
+      private static CaptorAudienceFacts AudienceFacts(Hero captor, NpcProfile profile)
+         => new CaptorAudienceFacts {
+            Mercy = captor.GetTraitLevel(DefaultTraits.Mercy),
+            Honor = captor.GetTraitLevel(DefaultTraits.Honor),
+            Calculating = captor.GetTraitLevel(DefaultTraits.Calculating),
+            Regard = profile.ReputationWithPlayer,
+            HeaviestGrudge = EncounterContextBuilder.HeaviestGrudgeAgainstPlayer(captor),
+            IsKin = EncounterContextBuilder.ResolveKinshipToPlayer(captor) != null,
+            PlayerClanTier = Clan.PlayerClan?.Tier ?? 0,
+            CanPayTheRansom = Quests.CaptorTermsBehavior.RansomThePlayerCanPay() > 0
+         };
+
       /// <summary>The player's clan companions currently held prisoner in <paramref name="captorParty" /> (captured alongside them).</summary>
       private static List<Hero> HeldCompanionsOf(MobileParty captorParty)
       {
@@ -683,9 +774,11 @@ namespace CalradiaRemembers.Letters
                ? $"{captorName} has {victimCompanion.Name} dragged before you, and puts the choice in your hands."
                : $"{captorName} has {victimCompanion.Name} dragged before you, to be worked on while you are made to watch.";
          else
-            flavor = isCollective
-               ? "You are brought before your captors. You have no choice but to comply."
-               : $"You are brought before {captorName}. Alone. You have no choice but to comply.";
+            flavor = CaptiveSceneIntentRules.IsAudience(intent)
+               ? $"{captorName} has sent for you."
+               : isCollective
+                  ? "You are brought before your captors. You have no choice but to comply."
+                  : $"You are brought before {captorName}. Alone. You have no choice but to comply.";
 
          InformationManager.ShowInquiry(new InquiryData(
             $"{captorName} summons you",
