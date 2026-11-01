@@ -225,6 +225,8 @@ namespace CalradiaRemembers.Chat
          Narration = prose.Narration,
          NarrationBeforeDialogue = prose.NarrationBeforeDialogue,
          Memory = prose.Memory,
+         // The writer's: only its prompt carries the memory codes (kurushimi00, 01/11/2026).
+         DiscussedMemories = prose.DiscussedMemories,
          NewEventData = interpreted?.NewEventData,
          Reputation = prose.Reputation,
          StanceShift = prose.StanceShift,

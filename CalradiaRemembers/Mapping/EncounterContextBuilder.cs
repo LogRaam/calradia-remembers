@@ -190,6 +190,7 @@ namespace CalradiaRemembers.Mapping
          // character the player has never met held no memories when the conversation opened.
          int? historyKnownThrough = null,
          int? questsKnownThrough = null,
+         IReadOnlyCollection<string> memoriesDiscussedAtOpening = null,
          bool isCollectiveCaptiveScene = false,
          bool isCaptorScene = false,
          bool companionActingOnCaptive = false,
@@ -441,6 +442,7 @@ namespace CalradiaRemembers.Mapping
             IsWitnessExchangeTurn = isWitnessExchangeTurn,
             IsConversationOpening = isConversationOpening,
             HistoryKnownThrough = historyKnownThrough,
+            MemoriesDiscussedAtOpening = memoriesDiscussedAtOpening,
             QuestsKnownThrough = questsKnownThrough,
             IsLastWitnessExchange = isLastWitnessExchange,
             // IsRoundTableTurn is the one council flag the chat prompt path still carries: it is armed ONLY by the

@@ -8,7 +8,7 @@ sentence beside each type is the first sentence of its own doc comment; `(no sum
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 603 types in 64 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1441 types in 49 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 280 types in 17 namespaces, 9 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 281 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -18,7 +18,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | Lines | Layer | File |
 |---|---|---|
 | 24500+ | Mod | `Diagnostics/CrSelfTest.cs` |
-| 8500+ | Sdk | `Prompts/PromptBuilder.cs` |
+| 9000+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
 | 4000+ | Mod | `Chat/ChatViewModel.cs` |
@@ -2807,10 +2807,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ProviderRouting` | public static class | Parses the player's provider pin into the slug list OpenRouter's provider.order expects. |
 | `ReasoningTraceStripper` | public static class | Removes inline chain-of-thought traces (<think>...</think> and the common thinking/reasoning variants) from a model reply, keeping only the prose meant for the player. |
 
-### NpcMemoryService.Core.Memory (1)
+### NpcMemoryService.Core.Memory (2)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `MemoryRecall` | public static class | Which memories carry a short code, and which of them a character has already discussed with the player. |
 | `SharedRecall` | public class | What a character may be shown to REMEMBER in front of others: their own memories, minus anything held in confidence, folded to a bounded recall. |
 
 ### NpcMemoryService.Core.Models (83)

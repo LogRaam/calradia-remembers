@@ -132,9 +132,9 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `NpcMemoryService.Core.Prompts` | 8 | 19 |
 | `CalradiaRemembers.Commoners` | 8 | 2 |
 | `CalradiaRemembers.Memory` | 8 | 2 |
+| `NpcMemoryService.Core.Services` | 7 | 22 |
 | `CalradiaRemembers.Companions` | 7 | 4 |
 | `NpcMemoryService.Core.Models` | 6 | 73 |
-| `NpcMemoryService.Core.Services` | 6 | 22 |
 | `CalradiaRemembers.Map` | 6 | 1 |
 | `CalradiaRemembers.Appreciations` | 5 | 13 |
 | `CalradiaRemembers.Logic.Diagnostics` | 5 | 6 |
@@ -195,9 +195,9 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic.Bastards` | 1 | 5 |
 | `CalradiaRemembers.Logic.War` | 1 | 5 |
 | `CalradiaRemembers.Logic.RealmTidings` | 1 | 4 |
+| `NpcMemoryService.Core.Memory` | 1 | 4 |
 | `CalradiaRemembers.Logic.Dynasty` | 1 | 3 |
 | `CalradiaRemembers.Logic.WorldAlmanac` | 1 | 3 |
-| `NpcMemoryService.Core.Memory` | 1 | 3 |
 | `CalradiaRemembers.Logic.AuthoredHistory` | 1 | 2 |
 | `CalradiaRemembers.Logic.Interception` | 1 | 2 |
 | `CalradiaRemembers.Logic.Narrative` | 1 | 2 |
@@ -559,7 +559,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 #### `NpcMemoryService.Core.Memory` and `NpcMemoryService.Core.Models`
 
-- `NpcMemoryService.Core.Memory` uses `NpcMemoryService.Core.Models` in 1 file(s): `Memory/SharedRecall.cs`
+- `NpcMemoryService.Core.Memory` uses `NpcMemoryService.Core.Models` in 2 file(s): `Memory/MemoryRecall.cs`, `Memory/SharedRecall.cs`
 - `NpcMemoryService.Core.Models` uses `NpcMemoryService.Core.Memory` in 1 file(s): `Models/WitnessEntry.cs`
 
 #### `NpcMemoryService.Core.Models` and `NpcMemoryService.Core.Prompts`
@@ -1307,7 +1307,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### NpcMemoryService.Core.Memory
 
 - uses: `NpcMemoryService.Core.Models`
-- used by: `CalradiaRemembers.Chat`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Prompts`
+- used by: `CalradiaRemembers.Chat`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Prompts`, `NpcMemoryService.Core.Services`
 
 ### NpcMemoryService.Core.Models
 
@@ -1331,7 +1331,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### NpcMemoryService.Core.Services
 
-- uses: `NpcMemoryService.Core.LlmClient`, `NpcMemoryService.Core.LlmClient.OpenRouter`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Parsing`, `NpcMemoryService.Core.Prompts`, `NpcMemoryService.Core.Standing`
+- uses: `NpcMemoryService.Core.LlmClient`, `NpcMemoryService.Core.LlmClient.OpenRouter`, `NpcMemoryService.Core.Memory`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Parsing`, `NpcMemoryService.Core.Prompts`, `NpcMemoryService.Core.Standing`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Chronicle`, `CalradiaRemembers.Commitments`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Quests`, `CalradiaRemembers.Rescue`, `CalradiaRemembers.Services`, `CalradiaRemembers.Stance`, `CalradiaRemembers.Standing`, `CalradiaRemembers.Violence`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.Captivity`, `NpcMemoryService.Core.Compression`, `NpcMemoryService.Core.Models`
 
 ### NpcMemoryService.Core.Standing

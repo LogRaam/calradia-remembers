@@ -407,6 +407,27 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>
+      ///   What this speaker had already discussed with the player when the conversation opened, captured once with the
+      ///   memory codes given out (kurushimi00, 01/11/2026). A tag written during the talk waits for the next one: the
+      ///   prompt's lines stay as they were, for the cache and so the character is not told to drop what it is saying.
+      ///   Lazy per speaker, as the history cut is.
+      /// </summary>
+      private readonly Dictionary<string, IReadOnlyCollection<string>> _memoriesDiscussedAtOpening = new();
+
+      internal IReadOnlyCollection<string> MemoriesDiscussedAtOpening(NpcProfile profile)
+      {
+         if (profile?.Id == null) return null;
+
+         if (_memoriesDiscussedAtOpening.TryGetValue(profile.Id, out IReadOnlyCollection<string> known)) return known;
+
+         NpcMemoryService.Core.Memory.MemoryRecall.AssignShortUids(profile);
+         known = NpcMemoryService.Core.Memory.MemoryRecall.DiscussedSoFar(profile);
+         _memoriesDiscussedAtOpening[profile.Id] = known;
+
+         return known;
+      }
+
+      /// <summary>
       ///   The twin of <see cref="_historyKnownThrough" />, for quests. A task agreed thirty seconds ago is in
       ///   ActiveQuests by the next turn, and was rendered as an OUTSTANDING errand the character could ask
       ///   after: "after accepting a quest and talking about the deal that was just made, NPCs behave like it

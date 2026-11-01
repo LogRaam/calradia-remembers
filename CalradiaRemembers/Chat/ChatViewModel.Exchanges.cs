@@ -541,6 +541,7 @@ namespace CalradiaRemembers.Chat
          Narration = source.Narration,
          NarrationBeforeDialogue = source.NarrationBeforeDialogue,
          Memory = source.Memory,
+         DiscussedMemories = source.DiscussedMemories,
          NewEventData = null,
          Reputation = source.Reputation,
          StanceShift = source.StanceShift,
@@ -849,6 +850,7 @@ namespace CalradiaRemembers.Chat
                // the first turn, so every later turn cuts at the same place.
                historyKnownThrough: HistoryKnownThrough(profile),
                questsKnownThrough: QuestsKnownThrough(profile),
+               memoriesDiscussedAtOpening: MemoriesDiscussedAtOpening(profile),
                // The only council flag the chat prompt path still carries: the cr.council_test spike's whole-table
                // framing (RoundTableController.CouncilTurnsForced), so that single call yields the anchor's reply
                // plus a [WITNESS_REACTION] per present member. The REAL council (2026-08-22, Council Increment 4)
@@ -1318,6 +1320,9 @@ namespace CalradiaRemembers.Chat
                applyReputation: false, // C2: [REPUTATION] is disabled in the mod; never apply a block the model emitted unprompted.
                intimacyPermitted: behavior.GameStateBridge.PermitsIntimacyWith(_npcHero, profile),
                playerName: playerName);
+
+            if (responseForMutator.DiscussedMemories.Count > 0)
+               ModLog.Info($"[MEMORY] {profile.Name} spoke of {string.Join(", ", responseForMutator.DiscussedMemories)}.");
 
             NotableEvent turnEvent = profile.Events.Count > eventsBeforeApply
                ? profile.Events[profile.Events.Count - 1]

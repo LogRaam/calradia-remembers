@@ -549,6 +549,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("kin_identity", Severity.Light, "DepaHN (Nexus, 26/10/2026): children, grandchildren, siblings and relatives felt cold, told they were family only while they shared no memory with the player. Through the REAL EncounterContextBuilder: a kinsman of the player (a child, a sibling, a parent, else any kin in the player's house) is named by his bond, and a lord of another house who is no blood of the player is named nothing. Read-only", TestKinIdentity),
          new SelfTest("companion_identity", Severity.Light, "fearente (Nexus, 26/10/2026): a companion hired a week before spoke of a childhood shared with the player, and the story the game had the wanderer tell at the first meeting was never remembered. Borrows one of the player's companions: drives the REAL hire listener (CompanionHireBehavior.OnHired) and asserts the REAL EncounterContextBuilder says hired companion, joined today; drives the REAL story keeper twice with the same line and asserts ONE OwnLife memory that keeps it, closed by the line saying the story's people belong to the past (fearente, 29/10/2026: Brave sought the creditor of his backstory), and that the REAL prompt carries that line. Restores the profile's memories and hire day", TestCompanionIdentity),
          new SelfTest("supply_quest", Severity.Heavy, "personal supply quest (ProvideGoods) END-TO-END: a bad-category proposal is REFUSED by the pipeline (nothing grounded), then a grain proposal is ISSUED through QuestService.ApplyResponse and grounds a real category+count; give the player grain -> real SettleSupplyQuest hands over EXACTLY the required count, CLOSES the quest (Completed), and pays the reward. Restores the roster. Then (froggyluv, 26/10/2026) the same grain handed over in WORDS through the REAL give_item action: short of the count it is refused and nothing leaves; with the count it settles the task (Completed). Restores the roster", TestSupplyQuest),
+         new SelfTest("memory_discussed", Severity.Heavy, "kurushimi00 (01/11/2026): a character recites the same memory at every meeting. The real parser, splice and mutator mark a memory the reply tagged, the talk's prompt does not change, the next conversation reads it as already discussed. No model call. Removes its memories", TestMemoryDiscussed),
          new SelfTest("fixed_letter_translation", Severity.Heavy, "RaveN017Mod (29/10/2026): a fixed English letter is translated for a player reading another language and for no one else; the translation lands in the letter; a failed call or a lost number leaves the English. Uses a stand-in model, no real call. Cleans up its setting", TestFixedLetterTranslation),
          new SelfTest("letter_riders", Severity.Heavy, "kurushimi00 (31/10/2026): a rider bound for the player delivers when close enough, on the campaign tick, without touching and with no hour passing; a far one stays on the road, known to the speed patch; riders off means none spawns and the letter keeps its date; unasked letters off stops a tournament note, not a war summons. Cleans up its letters and riders", TestLetterRiders),
          new SelfTest("courier_waylay", Severity.Heavy, "waylaid-letter resend: a waylaid letter keeps its typed text, and the Resend path re-queues a FRESH non-lost letter carrying the SAME content, so a waylaid letter never has to be retyped. Cleans up its test letters + courier (no popup)", TestCourierWaylayResend),
@@ -8936,6 +8937,55 @@ namespace CalradiaRemembers.Diagnostics
             if (thrownCongratulations) behavior.LetterEvaluator?.NudgeSubject(LetterReason.TournamentVictory, -CorrespondenceInterestPolicy.OnAcknowledge().SubjectDelta);
             LetterBox.Invalidate();
             behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestMemoryDiscussed(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("memory_discussed");
+         const string tagged = "CRSELFTEST: we cleared the Hollowmere road together.";
+         const string quiet = "CRSELFTEST: we shared a fire at the Hollowmere ford.";
+
+         string id = behavior.Store.ListIds().FirstOrDefault();
+         NpcProfile profile = id != null ? behavior.Store.Get(id) : null;
+         Hero hero = profile?.Id == null ? null : Hero.FindFirst(h => h != null && h.StringId == profile.Id);
+         if (t.Skip(hero == null, "no NPC profile with a live hero yet (chat with someone once, then re-run)")) return t.Line();
+         if (t.Skip(behavior.LlmServices?.ChatService?.PromptBuilder == null, "the prompt builder is not up")) return t.Line();
+
+         IPromptBuilder builder = behavior.LlmServices.ChatService.PromptBuilder;
+         int today = behavior.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
+         string Prompt(ChatViewModel vm) => builder.BuildSystemPrompt(profile, new WorldState {CurrentDay = today},
+            EncounterContextBuilder.Build(hero, profile, behavior.GameStateBridge, null, memoriesDiscussedAtOpening: vm.MemoriesDiscussedAtOpening(profile)));
+
+         try
+         {
+            profile.Events.Add(new NotableEvent(today, NotableEventType.Other, tagged));
+            profile.Events.Add(new NotableEvent(today, NotableEventType.Other, quiet));
+            var talk = new ChatViewModel();
+            string opening = Prompt(talk);
+            NotableEvent memory = profile.Events.First(e => e.summary == tagged);
+            NotableEvent other = profile.Events.First(e => e.summary == quiet);
+            t.Expect("theMemoryCarriesACode", opening.Contains($" {memory.ShortUid}: {tagged}"), true);
+            t.Expect("theTagIsTaught", opening.Contains("[DISCUSSED]"), true);
+
+            // The Enhanced road: the interpreter's reading replaces the deeds, the tag stays the writer's.
+            ParsedResponse written = new NpcMemoryService.Core.Parsing.SectionResponseParser().Parse($"[DIALOGUE]Aye, that road.[/DIALOGUE]\n[DISCUSSED]\nmemories: {memory.ShortUid}\n[/DISCUSSED]");
+            ParsedResponse spliced = ActionInterpreterComposer.WithInterpretedTags(written, new ParsedResponse {Dialogue = ""});
+            ProfileMutator.Apply(profile, spliced, today, romanticContentEnabled: false);
+            t.Expect("theTaggedMemoryIsMarked", memory.DiscussedDay, today);
+            t.Expect("theOtherIsNot", other.DiscussedDay, null);
+
+            t.Expect("theTalksCachedLinesDoNotMove", NpcMemoryService.Core.Prompts.PromptCacheSplit.StablePrefixOf(Prompt(talk)) == NpcMemoryService.Core.Prompts.PromptCacheSplit.StablePrefixOf(opening), true);
+
+            string next = Prompt(new ChatViewModel());
+            t.Expect("theNextConversationReadsItAsDiscussed", next.Contains("[already discussed with"), true);
+            t.Expect("theMemoryItselfIsStillThere", next.Contains(tagged), true);
+         }
+         finally
+         {
+            profile.Events.RemoveAll(e => e?.summary == tagged || e?.summary == quiet);
          }
 
          return t.Line();

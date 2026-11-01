@@ -11,6 +11,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   it; it now says memories colour how a character speaks and are not a list to go through. Prose craft gains a proportion
   rule, full and compact. A small gift or courtesy no longer counts as a memory, for the writer or the interpreter, and a
   memory is written plainly instead of saying "why it mattered". Not play-verified.
+- **A character now knows what it has already said to you** (kurushimi00, same report: "the same character, in every
+  meeting almost, will marvel that I 'cleared the road of bandits'"; Gabriel's design, 01/11/2026). Each memory gets a short
+  code when a conversation opens. A reply that speaks of a memory says so with a `[DISCUSSED]` tag, in Standard and
+  Enhanced alike, and from your next conversation that memory reads "already discussed with you", settled unless you
+  raise it or something new gives it a reason. The memory itself stays, in every other prompt too. A tag the model
+  forgets leaves things as they were. `MemoryRecall`, `cr.test memory_discussed`. Not play-verified.
 
 ### Fixed
 - **Fixed letters now reach you in your language** (RaveN017Mod, Nexus PM, 29/10/2026: threats from lords "appear in
