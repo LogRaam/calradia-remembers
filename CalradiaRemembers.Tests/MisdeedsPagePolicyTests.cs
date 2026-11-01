@@ -106,6 +106,46 @@ namespace CalradiaRemembers.Tests
                            .Should().Be("You forsook your oath to Vlandia, in summer 1092.");
       }
 
+      // STAKE: Gabriel's "go": a raid is a misdeed either way, but a soldier's raid in a war under way must not read like an attack
+      // on a village at peace, and a hostile act opens its war the same day, so a war of no days is no war.
+      [Test]
+      public void GIVEN_how_long_the_war_had_run_WHEN_a_raid_is_recorded_THEN_only_a_war_under_way_softens_it()
+      {
+         MisdeedsPagePolicy.RaidKind(30).Should().Be(MisdeedKind.RaidedInWar);
+         MisdeedsPagePolicy.RaidKind(MisdeedsPagePolicy.DaysOfAWarUnderWay).Should().Be(MisdeedKind.RaidedInWar);
+         MisdeedsPagePolicy.RaidKind(0).Should().Be(MisdeedKind.RaidedAtPeace);
+         MisdeedsPagePolicy.RaidKind(null).Should().Be(MisdeedKind.RaidedAtPeace);
+      }
+
+      // STAKE: the place is the victim, named as a place, with no he or she.
+      [TestCase(MisdeedKind.RaidedInWar, "You raided Rovalt in a war against its realm, in summer 1092.")]
+      [TestCase(MisdeedKind.RaidedAtPeace, "You fell on Rovalt when it was at peace with you, in summer 1092.")]
+      [TestCase(MisdeedKind.Devastated, "You devastated Rovalt after taking it, in summer 1092.")]
+      [TestCase(MisdeedKind.Pillaged, "You gave Rovalt to your men to pillage after taking it, in summer 1092.")]
+      public void GIVEN_a_raid_or_a_sack_WHEN_its_line_is_written_THEN_it_names_the_place(MisdeedKind kind, string expected)
+      {
+         MisdeedsPagePolicy.Line(new MisdeedFacts {VictimId = "rovalt", Kind = kind, Days = new[] {200}}, "Rovalt", false, When).Should().Be(expected);
+      }
+
+      // STAKE: a village raided season after season is told as one deed that kept happening, not as a list.
+      [Test]
+      public void GIVEN_a_village_raided_twice_WHEN_the_page_is_read_THEN_one_line_counts_them()
+      {
+         IReadOnlyList<MisdeedFacts> deeds = MisdeedsPagePolicy.Of(new[] {Deed("rovalt", MisdeedKind.RaidedInWar, 100), Deed("rovalt", MisdeedKind.RaidedInWar, 200)}, AdultContentLevel.Off);
+
+         deeds.Should().ContainSingle();
+         MisdeedsPagePolicy.Line(deeds[0], "Rovalt", false, When).Should().Be("You raided Rovalt in a war against its realm, twice, the first in spring 1091, the last in summer 1092.");
+      }
+
+      // STAKE: the ledger stores kinds by name: the new ones must come back from a save, and an older version skips them unharmed.
+      [Test]
+      public void GIVEN_raids_in_the_ledger_WHEN_saved_and_read_THEN_they_come_back()
+      {
+         List<MisdeedRecord> back = MisdeedsPagePolicy.Read(MisdeedsPagePolicy.Write(new[] {Deed("rovalt", MisdeedKind.Devastated, 200)}));
+
+         back.Should().ContainSingle(r => r.VictimId == "rovalt" && r.Kind == MisdeedKind.Devastated && r.Day == 200);
+      }
+
       // STAKE: a husband wronged reads "wife", never "husband" twice.
       [Test]
       public void GIVEN_a_wronged_husband_WHEN_the_line_is_written_THEN_it_speaks_of_his_wife()

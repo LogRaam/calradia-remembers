@@ -388,7 +388,7 @@ the player). A design has to answer:
 - **The record.** A `MisdeedKind.Extorted` written to `MisdeedLedgerBehavior` at the verb, so the page tells it ("You
   extorted 2,000 denars from Lucon, twice, ..."), at every adult level.
 
-## WISHED 2026-10-23 (Gabriel), ROADMAPPED, NOT DESIGNED: villages raided and towns devastated, as misdeeds
+## BUILT 2026-11-01 (2.8.2), not play-verified, see the CHANGELOG (Gabriel, 23/10/2026): villages raided and towns devastated, as misdeeds. Left out: Show Mercy as a kindness, which has no home yet
 
 Same request as above. The player raiding a village, burning it, or choosing Devastate (or Pillage) after taking a
 town is a misdeed by most measures, and nothing keeps it: the game logs `VillageStateChangedLogEntry` and

@@ -4,7 +4,7 @@
 // misdeeds", "adultere est un misdeed"). The words and the gate are MisdeedsPagePolicy's; each kind of deed is read from
 // ONE source so it is never told twice: the Trauma ledger (captive scenes, beatings, robberies), the game's death log
 // (murders and executions, kept forever, after a battle too), the tasks the player let lapse or gave up, the misdeeds
-// ledger (adultery, a captive handed to his enemies, a realm forsaken, a man of no house murdered), and for saves older
+// ledger (adultery, a captive handed to his enemies, a realm forsaken, a man of no house murdered, raids and sacks), and for saves older
 // than that ledger the grudges of a captive handed over and of a spouse taken. Shared by the page and cr.test all
 // heart_intimacy and misdeeds_page, so the tests read exactly what the player reads.
 
@@ -21,6 +21,7 @@ using CalradiaRemembers.Logic.Trauma;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.LogEntries;
+using TaleWorlds.CampaignSystem.Settlements;
 
 #endregion
 
@@ -109,7 +110,7 @@ namespace CalradiaRemembers.Mapping
                        .ToList();
       }
 
-      // A hero, alive or dead, or a realm.
+      // A hero, alive or dead, a realm, or a place.
       private static (string Name, bool Female) Victim(string id)
       {
          Hero h = Hero.Find(id) ?? Hero.FindFirst(x => x.StringId == id);
@@ -117,7 +118,7 @@ namespace CalradiaRemembers.Mapping
 
          Kingdom k = Kingdom.All.FirstOrDefault(x => x.StringId == id);
 
-         return (k?.Name?.ToString(), false);
+         return (k?.Name?.ToString() ?? Settlement.Find(id)?.Name?.ToString(), false);
       }
    }
 }

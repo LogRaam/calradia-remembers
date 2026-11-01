@@ -8,7 +8,7 @@
 // So the section tells what the player did of their own will, each kind from ONE source so a deed is never told twice:
 // the Trauma ledger for the captive scenes, beatings and robberies (the same records each victim's Trauma section reads),
 // the game's own death log for murders and executions, the quests the player let lapse or gave up, and the misdeeds ledger
-// for adultery, a captive handed to his enemies, and a realm forsaken. Never what a captor did, nor what a captor forced
+// for adultery, a captive handed to his enemies, a realm forsaken, and villages raided and places sacked. Never what a captor did, nor what a captor forced
 // the player's hands to do. The captive scenes stay Hardcore only, as the Trauma section; the rest shows at every level.
 // Sober: who, what, how many times, the first and the last.
 
@@ -69,13 +69,25 @@ namespace CalradiaRemembers.Logic.Trauma
       StoleSpouse,
 
       /// <summary>Forsook the oath sworn to a realm; the victim is the realm.</summary>
-      ForsookRealm
+      ForsookRealm,
+
+      /// <summary>Raided a village in a war already under way; the victim is the village.</summary>
+      RaidedInWar,
+
+      /// <summary>Fell on a village with no war before it, the raid being the war's first act; the victim is the village.</summary>
+      RaidedAtPeace,
+
+      /// <summary>Devastated a place after taking it; the victim is the place.</summary>
+      Devastated,
+
+      /// <summary>Gave a place to the troops to pillage after taking it; the victim is the place.</summary>
+      Pillaged
    }
 
    /// <summary>One deed of the player, as a source gives it.</summary>
    public sealed class MisdeedRecord
    {
-      /// <summary>The hero (or, for a realm forsaken, the kingdom) the deed was done to.</summary>
+      /// <summary>The hero the deed was done to, or the kingdom for a realm forsaken, or the place for a raid or a sack.</summary>
       public string VictimId { get; init; }
 
       /// <summary>What the player did.</summary>
@@ -102,6 +114,9 @@ namespace CalradiaRemembers.Logic.Trauma
    public static class MisdeedsPagePolicy
    {
       private static readonly string[] Numbers = {"", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"};
+
+      /// <summary>The days a war must have run for a raid to be an act of that war: a hostile act opens the war the same day.</summary>
+      public const int DaysOfAWarUnderWay = 1;
 
       /// <summary>Only on the player's own page (a character's page has its Trauma section).</summary>
       public static bool Shows(bool isThePlayersPage) => isThePlayersPage;
@@ -160,6 +175,13 @@ namespace CalradiaRemembers.Logic.Trauma
       }
 
       /// <summary>
+      ///   A raid as the page tells it (Gabriel, 01/11/2026, "go" on Claude's proposal): a misdeed either way, the softer line
+      ///   for a village of a war under way. <paramref name="daysAtWar" /> is how long the war had run, null with no war.
+      /// </summary>
+      public static MisdeedKind RaidKind(int? daysAtWar)
+         => daysAtWar >= DaysOfAWarUnderWay ? MisdeedKind.RaidedInWar : MisdeedKind.RaidedAtPeace;
+
+      /// <summary>
       ///   The deeds shown at <paramref name="level" />, one entry per victim and kind, the oldest first; a deed two sources
       ///   both hold (same victim, kind and day) is told once.
       /// </summary>
@@ -195,6 +217,10 @@ namespace CalradiaRemembers.Logic.Trauma
             MisdeedKind.LayWithSpouseOf => $"You lay with {victimName}'s {(victimIsFemale ? "husband" : "wife")}",
             MisdeedKind.StoleSpouse => $"You took {victimName}'s {(victimIsFemale ? "husband" : "wife")} from {(victimIsFemale ? "her" : "him")}",
             MisdeedKind.ForsookRealm => $"You forsook your oath to {victimName}",
+            MisdeedKind.RaidedInWar => $"You raided {victimName} in a war against its realm",
+            MisdeedKind.RaidedAtPeace => $"You fell on {victimName} when it was at peace with you",
+            MisdeedKind.Devastated => $"You devastated {victimName} after taking it",
+            MisdeedKind.Pillaged => $"You gave {victimName} to your men to pillage after taking it",
             _ => $"You tormented {victimName} {prisoner}"
          };
          IReadOnlyList<int> days = deed?.Days ?? Array.Empty<int>();
