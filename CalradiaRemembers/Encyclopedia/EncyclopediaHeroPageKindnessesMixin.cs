@@ -17,9 +17,6 @@ using System.Reflection;
 using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.ViewModels;
 using CalradiaRemembers.Foundation;
-using CalradiaRemembers.Grudges;
-using CalradiaRemembers.Logic.Appreciations;
-using CalradiaRemembers.Logic.Grudges;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ViewModelCollection.Encyclopedia.Pages;
 using TaleWorlds.Library;
@@ -112,26 +109,7 @@ namespace CalradiaRemembers.Encyclopedia
                     return;
                 }
 
-                Appreciations.AppreciationBehavior behavior = Appreciations.AppreciationBehavior.Instance;
-                if (behavior == null)
-                {
-                    Clear();
-
-                    return;
-                }
-
-                var today = (int) CampaignTime.Now.ToDays;
-                IReadOnlyList<Appreciation> known = behavior.KnownAppreciationsFor(hero.StringId, today);
-
-                int activeGrudgeMagnitude = ResolveDominantLiveGrudgeMagnitude(hero, today);
-                CalradiaRemembers.Logic.Appreciations.TraitFacts traits = Appreciations.AppreciationBridge.BuildTraitFacts(hero);
-
-                var lines = new List<string>();
-                foreach (Appreciation appreciation in known)
-                {
-                    string line = BuildLine(appreciation, today, traits, activeGrudgeMagnitude);
-                    if (!string.IsNullOrEmpty(line)) lines.Add(line);
-                }
+                IReadOnlyList<string> lines = Mapping.DossierReader.KindnessLines(hero);
 
                 if (lines.Count == 0)
                 {
@@ -157,43 +135,6 @@ namespace CalradiaRemembers.Encyclopedia
             CalradiaKindnessesItems = "";
             HasKindnesses = false;
         }
-
-        /// <summary>
-        ///   One appreciation, rendered through the same pure <see cref="AppreciationNarrator.DisplayLine" />
-        ///   the tests cover, with the effective magnitude first TARNISHED by the holder's own dominant live
-        ///   grudge — a soured kindness shows dimmer (or, fully tarnished, not at all: DisplayLine returns
-        ///   null at magnitude 0). Tolerant of a missing target hero (a stale StringId after a save) —
-        ///   falls back to "them" via <see cref="AppreciationNarrator.DisplayLine" /> rather than skip the
-        ///   line outright.
-        /// </summary>
-        private static string BuildLine(Appreciation appreciation, int today, CalradiaRemembers.Logic.Appreciations.TraitFacts traits, int activeGrudgeMagnitude)
-        {
-            bool targetIsPlayer = appreciation.TargetId == Hero.MainHero?.StringId;
-            string targetName = targetIsPlayer ? null : ResolveName(appreciation.TargetId);
-
-            int effective = AppreciationPolicy.EffectiveMagnitude(appreciation, today, traits);
-            int tarnished = AppreciationPolicy.TarnishedMagnitude(effective, activeGrudgeMagnitude);
-
-            return AppreciationNarrator.DisplayLine(appreciation, targetIsPlayer, targetName, tarnished);
-        }
-
-        /// <summary>The holder's dominant live grudge's TODAY's effective magnitude (0 when none) — the same lookup the prompt's ResolveAppreciationNote uses, kept independent here so this mixin stays a pure read of the two engine stores.</summary>
-        private static int ResolveDominantLiveGrudgeMagnitude(Hero hero, int today)
-        {
-            IReadOnlyList<Grudge> live = GrudgeBehavior.Instance?.LiveGrudgesFor(hero, today);
-            if (live == null || live.Count == 0) return 0;
-
-            CalradiaRemembers.Logic.Grudges.TraitFacts grudgeTraits = GrudgeBridge.BuildTraitFacts(hero);
-
-            return GrudgePolicy.EffectiveMagnitude(live[0], today, grudgeTraits);
-        }
-
-        private static string ResolveName(string heroId) => FindHero(heroId)?.Name?.ToString();
-
-        private static Hero FindHero(string id)
-            => string.IsNullOrEmpty(id)
-                ? null
-                : Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == id);
 
         #endregion
     }

@@ -218,6 +218,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("secret_propagation", Severity.Light, "Mystery-lover (phase 3b-2): record a live lord (forced to neutral regard so he is not the player's confidant) as KNOWING the secret, then drive the REAL propagation (DebugSpreadOnce, bypassing only the daily chance) and assert the secret reaches one of his friends who then knows it too, never the player. Forgets both ledger entries and restores the teller's regard afterwards", TestSecretPropagation),
          new SelfTest("pay_for_silence", Severity.Light, "Mystery-lover (phase 3b-3): mark a companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL bridge dispatch of pay_for_silence with a price and assert the gold moves player->lord, the hush is stamped as recently paid (easing the leverage prompt), and a memory is kept. Restores both purses, the flag, the ledger, and trims the memory afterwards", TestPayForSilence),
          new SelfTest("player_violence", Severity.Light, "Player violence (player request, Inc 2): drives the REAL bridge dispatch of kill_npc against a live lord and asserts THE guarantee, that with the MCM lethal toggle off (its default) the attempt is refused and the victim is still alive. Also checks the scene reader measures both fighters and that robbery is never barred by the lethal toggle. Mutates nothing while the toggle is off", TestPlayerViolence),
+         new SelfTest("npc_dossier", Severity.Light, "Gabriel (31/10/2026): the NPC panel should hold everything the player has learned that the encyclopedia shows. The model knows truths the player has not learned, so the panel must keep them hidden. Opens a REAL chat ViewModel's dossier on a lord already met (no model call): a fear not yet learned stays out of it, the discovery of that fear marks it learned, the open panel shows it at once, and its grievances and kindnesses match the reader the encyclopedia uses. Restores the lord's fear", TestNpcDossier),
          new SelfTest("hover_glow", Severity.Light, "Gabriel (31/10/2026): the chat's buttons should answer the cursor; Dark Leather's tool buttons were transparent hotspots over painted tiles. Checks the glow widget can be built by the engine and that both installed chat skins carry it. Mutates nothing; the rule itself is pinned by ButtonGlowPolicyTests", TestHoverGlow),
          new SelfTest("kill_roll", Severity.Light, "zhenja1 (Nexus, 31/10/2026): he confirmed a killing twice and the man lived, because the roll failed and nothing on screen said there was a roll. Gabriel: the window names the chance, a number rolls to the score, the model tells the scene, then the end of the conversation or the character's answer. Builds a REAL chat ViewModel on a live lord and drives its killing window through the strike seam (nobody is harmed, no model call): the window names the measured chance and holds the chat, staying your hand leaves nothing open, a strike is made with the forced roll, the number lands on that roll and shows the verdict, then a failure hands the turn back for the character's answer and a kill leaves only Leave", TestKillRoll),
          new SelfTest("battle_feat", Severity.Light, "Battle-memory enrichment (Gabriel 2026-09-06, Inc 1): reads LIVE hero fighting facts through the real BattleFeatFacts bridge and asserts they yield a real prowess score; then pins the exploit ruling on synthetic extremes (besting a champion is an Exploit and travels as gossip, stomping a weakling is Unremarkable and never travels); then drives the REAL mission journal through its debug seam and asserts it keeps the felled hero (deduplicated), who downed the player, and the troop tally apart; and asserts a bested lord is never called killed (the truth rule). Mutates nothing", TestBattleFeat),
@@ -9690,6 +9691,53 @@ namespace CalradiaRemembers.Diagnostics
             subjectProfile.Romantic.Status = prevStatus;
             behavior.Store.Set(subjectProfile);
             gossip.ForgetKnows(holder, subject.StringId);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestNpcDossier(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("npc_dossier");
+         if (t.Skip(behavior?.Store == null || Hero.MainHero == null, "no campaign")) return t.Line();
+
+         // A lord already known to the store, so nothing is left behind in it.
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(h) && behavior.Store.Get(h.StringId) != null);
+         if (t.Skip(lord == null, "no lord met yet (talk to one first)")) return t.Line();
+
+         NpcProfile profile = behavior.Store.Get(lord.StringId);
+         Fear fearBefore = profile.Fear;
+         bool knownBefore = profile.FearKnown;
+         var chat = new ChatViewModel();
+         try
+         {
+            t.Note($"{lord.Name}");
+            profile.Fear = Fear.Fire;
+            profile.FearKnown = false;
+            string secret = Logic.Character.NaturePolicy.PageLines(new Logic.Character.NaturePageFacts {Fear = Fear.Fire, FearKnown = true, IsFemale = lord.IsFemale})[0];
+
+            chat.OpenCouncilDossier(lord.StringId);
+            t.Expect("aFearNotYetLearnedStaysHidden", chat.PanelInfoDiscoveries.Contains(secret), false);
+
+            ProfileMutator.Apply(profile, new ParsedResponse {
+               Dialogue = "", Discovery = new DiscoveredTrait {Key = NatureDiscovery.FearKey, Description = "He said so."}
+            }, (int) CampaignTime.Now.ToDays);
+            t.Expect("hisWordsMarkItLearned", profile.FearKnown, true);
+
+            chat.RefreshOpenDossier();
+            t.Expect("theOpenPanelShowsItAtOnce", chat.PanelInfoDiscoveries.Contains(secret), true);
+            t.Expect("underItsHeading", chat.ShowPanelDiscoveries, true);
+            t.Expect("thePanelAndThePageReadTheSameGrievances", chat.PanelGrievances, Mapping.ShownText.Of(Logic.Chat.NpcDossierText.Bullets(Mapping.DossierReader.GrievanceLines(lord))));
+            t.Expect("thePanelAndThePageReadTheSameKindnesses", chat.PanelKindnesses, Mapping.ShownText.Of(Logic.Chat.NpcDossierText.Bullets(Mapping.DossierReader.KindnessLines(lord))));
+            if (!Logic.Trauma.TraumaPagePolicy.Shows(ModSettings.AdultContentLevel, false))
+               t.Expect("traumaWaitsForHardcore", chat.ShowPanelTrauma, false);
+         }
+         finally
+         {
+            profile.Fear = fearBefore;
+            profile.FearKnown = knownBefore;
+            chat.CloseCouncilDossier();
+            chat.ReleaseCouncilPortraits();
          }
 
          return t.Line();

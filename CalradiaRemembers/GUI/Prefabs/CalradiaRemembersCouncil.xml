@@ -505,12 +505,57 @@
 
                             <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
                                         MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
+                                        Brush.TextHorizontalAlignment="Left" Text="Heart"
+                                        IsVisible="@ShowPanelHeart" IsDisabled="true" />
+                            <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                            MarginTop="2" Brush="Encyclopedia.Stat.ValueText" Brush.FontSize="15"
+                                            Brush.TextHorizontalAlignment="Left"
+                                            Text="@PanelHeart" IsVisible="@ShowPanelHeart" IsDisabled="true" />
+
+                            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
+                                        MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
+                                        Brush.TextHorizontalAlignment="Left" Text="Kindnesses"
+                                        IsVisible="@ShowPanelKindnesses" IsDisabled="true" />
+                            <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                            MarginTop="2" Brush="Encyclopedia.Stat.ValueText" Brush.FontSize="15"
+                                            Brush.TextHorizontalAlignment="Left"
+                                            Text="@PanelKindnesses" IsVisible="@ShowPanelKindnesses" IsDisabled="true" />
+
+                            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
+                                        MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
                                         Brush.TextHorizontalAlignment="Left" Text="Grievances"
                                         IsVisible="@ShowPanelGrievances" IsDisabled="true" />
                             <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
                                             MarginTop="2" Brush="Encyclopedia.Stat.ValueText" Brush.FontSize="15"
                                             Brush.TextHorizontalAlignment="Left"
                                             Text="@PanelGrievances" IsVisible="@ShowPanelGrievances" IsDisabled="true" />
+
+                            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
+                                        MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
+                                        Brush.TextHorizontalAlignment="Left" Text="Standing accords"
+                                        IsVisible="@ShowPanelAccords" IsDisabled="true" />
+                            <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                            MarginTop="2" Brush="Encyclopedia.Stat.ValueText" Brush.FontSize="15"
+                                            Brush.TextHorizontalAlignment="Left"
+                                            Text="@PanelAccords" IsVisible="@ShowPanelAccords" IsDisabled="true" />
+
+                            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
+                                        MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
+                                        Brush.TextHorizontalAlignment="Left" Text="@PanelNemesisLabel"
+                                        IsVisible="@ShowPanelNemesis" IsDisabled="true" />
+                            <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                            MarginTop="2" Brush="Encyclopedia.Stat.ValueText" Brush.FontSize="15"
+                                            Brush.TextHorizontalAlignment="Left"
+                                            Text="@PanelNemesis" IsVisible="@ShowPanelNemesis" IsDisabled="true" />
+
+                            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
+                                        MarginTop="14" Brush="Encyclopedia.Stat.DefinitionText" Brush.FontSize="18"
+                                        Brush.TextHorizontalAlignment="Left" Text="Trauma"
+                                        IsVisible="@ShowPanelTrauma" IsDisabled="true" />
+                            <RichTextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                            MarginTop="2" Brush="Encyclopedia.Stat.ValueText" Brush.FontSize="15"
+                                            Brush.TextHorizontalAlignment="Left"
+                                            Text="@PanelTrauma" IsVisible="@ShowPanelTrauma" IsDisabled="true" />
 
                           </Children>
                         </ListPanel>

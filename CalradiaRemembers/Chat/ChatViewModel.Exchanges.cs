@@ -1888,6 +1888,7 @@ namespace CalradiaRemembers.Chat
                (text, positive) => AppendSystemMessage(text, positive));
 
             behavior.Store.Set(profile);
+            RefreshOpenDossier();
 
             // Mark any delivered player letters read now that the NPC has responded.
             PlayerLetterService.MarkLettersRead(profile, behavior.Store);

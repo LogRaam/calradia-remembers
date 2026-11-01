@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-662 rules read 499 facts.
+663 rules read 500 facts.
 
 ## Facts read by more than one rule
 
@@ -228,6 +228,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ConversationManager.IsConversationInProgress` (2) | `DuelStagingSupport.ReadyToOpenTheSquare`, `SquareReadinessFacts` |
 | `DialogFlow.Profile` (2) | `PendingSummaryJob`, `SpeakerProfileSelector.Select` |
 | `DiplomacyModel.GetInfluenceCostOfProposingWar` (2) | `PressForWarFacts`, `PressForWarPolicy.WhyNot` |
+| `DossierReader.WhyTowardThePlayer` (2) | `ClanRegardCandidate`, `NpcDossierText.RegardLine` |
 | `EndCaptivityDetail.Death` (2) | `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
 | `Event.Magnitude` (2) | `PastCandidateFacts`, `PastOnMentionPolicy.Block` |
 | `Event.Type` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
@@ -420,7 +421,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `ChatFocusArbitrationPolicy.ReasonFor`: `ScreenManager.TopScreen`
 - `ChildrenListText.Part`: `AgeModel.HeroComesOfAge`, `Hero.Age`, `Hero.Father`, `Hero.IsAlive`, `Hero.IsFemale`, `Hero.IsLord`, `Hero.IsPrisoner`, `Hero.Mother`, `Hero.Name`, `Hero.Spouse`
 - `ClaimantBackerFacts`: `Clan.Influence`, `Clan.Kingdom`, `Hero.Clan`, `Hero.GetRelation`, `Hero.IsAlive`, `Hero.IsLord`, `Hero.IsPrisoner`
-- `ClanRegardCandidate`: `CharacterRelationManager.GetHeroRelation`, `Clan.Leader`, `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`, `PairRegardReader.Assess`
+- `ClanRegardCandidate`: `CharacterRelationManager.GetHeroRelation`, `Clan.Leader`, `DossierReader.WhyTowardThePlayer`, `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`, `PairRegardReader.Assess`
 - `ClanStandingSeedFacts`: `ModSettings.ClanStandingWarmsFirstMeetings`
 - `CoercionFacts`: `Hero.GetTraitLevel`
 - `CoerciveSceneEventPolicy.ShouldDropRomanticEvent`: `NewEventData.Type`
@@ -709,6 +710,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `NotHisToSellFacts`: `Hero.Clan`, `Hero.PartyBelongedToAsPrisoner`, `OwnerClan.Leader`, `PartyBase.LeaderHero`
 - `NotableRecruitmentFacts`: `Hero.Clan`, `Hero.CurrentSettlement`, `Hero.IsAlive`, `Hero.IsChild`, `Hero.IsLord`, `Hero.IsNotable`, `Hero.IsPlayerCompanion`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Power`
 - `NpcActionGate.Check`: `Hero.Age`, `Hero.IsAlive`, `Hero.IsChild`, `Hero.IsPrisoner`
+- `NpcDossierText.RegardLine`: `DossierReader.WhyTowardThePlayer`
 - `OathOfferFacts`: `Clan.Kingdom`, `Clan.Leader`, `Hero.Clan`, `Hero.Gold`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Kingdom.Leader`, `PartyBelongedTo.LeaderHero`
 - `ObserverStakeFacts`: `Hero.Clan`
 - `OfferConfirmationFacts`: `Hero.IsFemale`

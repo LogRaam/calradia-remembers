@@ -21,6 +21,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   to talk" line and the encounter menu (not play-verified). The hourly pass stays as the backstop.
 
 ### New
+- **The NPC panel holds what the player has learned** (Gabriel, 31/10/2026: "Dans le panneau du NPC, on pourrait ajouter
+  tout ce que le joueur a appris sur ce NPC et qui a ete ajoute a l'Encyclopedia"). In both chat skins and at the council:
+  the reason beside Personal regard, Bearing, What You Know folded into What you have learned, Heart, Kindnesses, Standing
+  accords, the Nemesis dossier and, at Hardcore, Trauma. What a reply teaches shows at once in the open panel
+  (RefreshOpenDossier). The model holds truths the player has not learned, so every section goes through the gated reader
+  of its encyclopedia row; Grievances, Kindnesses and Standing accords moved into Mapping.DossierReader, which the page and
+  the chat now share. Left on the page: friends, enemies and houses, Misdeeds, Contentment. cr.test npc_dossier.
 - **Two letter settings in the MCM** (kurushimi00: "an MCM setting to turn letters completely off"; Gabriel: yes, duty
   letters kept). The 2.8.0 letter box took the weight of many letters in the box, not on the map. "Letter Riders on the Map"
   off: no rider, the letter reaches the box on its date, riders out are reclaimed by the daily pass (ReplyCourierBlock.NotWanted,

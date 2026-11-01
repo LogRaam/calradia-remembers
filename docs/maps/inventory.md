@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 601 types in 64 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1439 types in 49 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 603 types in 64 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1440 types in 49 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 278 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -211,7 +211,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatScreen` | internal class | A minimal screen that carries the pre-built chat layer and takes focus when pushed. |
 | `ChatScrollablePanel` | public class | Custom ScrollablePanel that supports a deferred "scroll to bottom" request. |
 | `ChatSpeaker` | internal class | One participant of a chat exchange: the main NPC or a present witness, with the hero, stored profile and display colour used to route the turn and render the line. |
-| `ChatViewModel` | public class, partial over 11 files | (no summary) |
+| `ChatViewModel` | public class, partial over 12 files | (no summary) |
 | `CompanionAudiencePayload` | public class | The companion-audience specifics. |
 | `ComposeScrollablePanel` | public class | A plain ScrollablePanel for the composer's multi-line input. |
 | `ConversationMood` | public static class | How far the player has moved each character's mood in the current conversation. |
@@ -575,7 +575,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterBoxNavigationItemVM` | internal class | A genuine nav-bar item that opens the letter box, its badge counting the letters waiting. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (46)
+### CalradiaRemembers.Mapping (48)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -586,6 +586,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CulturalTraditionsLoader` | public static class | Loads and caches the cultural_traditions.json file from the mod's own ModuleData folder (and, if present, ModuleData/Custom first). |
 | `DayMoodReader` | public static class | Draws a character's mood of the day from the live game. |
 | `DeedRegardApplier` | internal static class | Charges or rewards a deed of the player in personal regard, on the victim and their close kin. |
+| `DossierReader` | internal static class | Reads what the player has learned of a hero, for the encyclopedia and the chat's dossier. |
+| `DossierSections` | internal class | The sections of a hero's dossier, as shown. |
 | `EdictNoteResolver` | public static class | The "edicts where you live" lines for a character, or null. |
 | `EncounterContextBuilder` | public static class | Constructs an EncounterContext for a given NPC, using the game state bridge for live data and the stored profile for historical data (last-meeting computation). |
 | `ExecutionDetail` | internal static class | Reads the game's kill detail as an execution or not. |
@@ -1828,7 +1830,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NaturePolicy` | public static class | Rolls and words a character's fear and superstition. |
 | `NatureRoll` | public class | A character's fear and superstition, as rolled. |
 
-### CalradiaRemembers.Logic.Chat (26)
+### CalradiaRemembers.Logic.Chat (27)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1854,6 +1856,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryPanelFacts` | public class | What decides whether one memory is listed. |
 | `MemoryPanelPolicy` | public static class | Decides how a memory appears in the Memories panel. |
 | `MemoryPanelShow` | public enum | How one memory appears in the chat's Memories panel. |
+| `NpcDossierText` | public static class | Formats the lines of the NPC dossier. |
 | `OverlayNeighbour` | public class | One layer beside the chat, as the arbiter needs to see it. |
 | `SceneOpenerFacts` | public class | What a conversation's opening knows when it decides whether the character sets the scene. |
 | `SceneOpenerOutcome` | public enum | How the character's scene-setting turn ended. |

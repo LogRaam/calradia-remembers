@@ -204,23 +204,9 @@ namespace CalradiaRemembers.Encyclopedia
 
          var rows = new List<RegardPersonRowVM>();
          foreach ((Hero h, int regard) in contempt.OrderBy(x => x.Regard).Concat(dear.OrderByDescending(x => x.Regard)).Take(MaxReasons))
-            rows.Add(new RegardPersonRowVM(h, $"{Capitalised(RegardBands.Describe(regard))} ({regard:+#;-#;0})", WhyTowardThePlayer(h, regard), regard >= Regard.WarmTier));
+            rows.Add(new RegardPersonRowVM(h, $"{Capitalised(RegardBands.Describe(regard))} ({regard:+#;-#;0})", DossierReader.WhyTowardThePlayer(h, regard), regard >= Regard.WarmTier));
 
          Show(rows, "Why:");
-      }
-
-      // The strongest grudge or kindness toward the player that the player knows of, the one that agrees with the regard
-      // first (a grudge for a low regard, a kindness for a high one). Also the reason on the "Personal regard" row.
-      internal static string WhyTowardThePlayer(Hero h, int regard)
-      {
-         int today = (int) CampaignTime.Now.ToDays;
-         string main = Hero.MainHero?.StringId;
-         var grudge = GrudgeBehavior.Instance?.KnownGrudgesFor(h.StringId, today).FirstOrDefault(g => g.TargetId == main);
-         var kindness = AppreciationBehavior.Instance?.KnownAppreciationsFor(h.StringId, today).FirstOrDefault(a => a.TargetId == main);
-         string g = grudge == null ? null : ShownText.Of(grudge.CauseSummary);
-         string k = kindness == null ? null : ShownText.Of(kindness.CauseSummary);
-
-         return regard < Regard.NeutralTier ? g ?? k : k ?? g;
       }
 
       // The other houses, by their lord as this house's lord sees them (design 5.4; Gabriel's answer to Q1: listed by
@@ -247,7 +233,7 @@ namespace CalradiaRemembers.Encyclopedia
                if (v == PairRegardVerdict.Neither) continue;
                houses.Add(new ClanRegardCandidate {
                   Name = c.Name?.ToString(), Id = c.StringId, Derived = v, AtWar = atWar,
-                  DerivedReason = WhyTowardThePlayer(other, p.ReputationWithPlayer) ?? $"{RegardBands.Describe(p.ReputationWithPlayer)} ({p.ReputationWithPlayer:+#;-#;0})"
+                  DerivedReason = DossierReader.WhyTowardThePlayer(other, p.ReputationWithPlayer) ?? $"{RegardBands.Describe(p.ReputationWithPlayer)} ({p.ReputationWithPlayer:+#;-#;0})"
                });
                continue;
             }

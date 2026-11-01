@@ -13,9 +13,7 @@ using System.Linq;
 using System.Reflection;
 using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.ViewModels;
-using CalradiaRemembers.Assemblies;
 using CalradiaRemembers.Foundation;
-using CalradiaRemembers.Logic.Assemblies;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ViewModelCollection.Encyclopedia.Pages;
 using TaleWorlds.Library;
@@ -107,36 +105,7 @@ namespace CalradiaRemembers.Encyclopedia
                     return;
                 }
 
-                Hero player = Hero.MainHero;
-                var lines = new List<string>();
-
-                CouncilTribute tribute = CouncilTributeBehavior.Instance?.Get(hero.StringId);
-                if (tribute != null)
-                    lines.Add(CouncilAccordPanelText.TributeOwed(new CouncilAccordPanelText.TributeLine {AmountPerDay = tribute.AmountPerDay, DaysRemaining = tribute.DaysRemaining, MissedDays = tribute.MissedDays}));
-
-                CouncilStipend stipend = CouncilStipendBehavior.Instance?.Get(hero.StringId);
-                if (stipend != null)
-                    lines.Add(CouncilAccordPanelText.StipendReceived(stipend.AmountPerDay, stipend.DaysRemaining));
-
-                CouncilPact pact = CouncilPactBehavior.Instance?.Get(player?.MapFaction, hero.MapFaction);
-                if (pact != null)
-                    lines.Add(CouncilAccordPanelText.Pact(pact.DaysRemaining));
-
-                CouncilHostage held = CouncilHostageBehavior.Instance?.GetByHostage(hero.StringId);
-                if (held != null)
-                    lines.Add(CouncilAccordPanelText.HeldAsHostage(held.DaysRemaining));
-
-                CouncilHostage pledged = CouncilHostageBehavior.Instance?.GetByPledger(hero.StringId);
-                if (pledged != null)
-                    lines.Add(CouncilAccordPanelText.HostageGiven(ResolveName(pledged.HostageId), pledged.DaysRemaining));
-
-                CouncilWard asProtege = CouncilWardBehavior.Instance?.GetAsProtege(hero.StringId);
-                if (asProtege != null)
-                    lines.Add(CouncilAccordPanelText.WardAsProtege(ResolveName(asProtege.MentorId)));
-
-                CouncilWard asMentor = CouncilWardBehavior.Instance?.GetAsMentor(hero.StringId);
-                if (asMentor != null)
-                    lines.Add(CouncilAccordPanelText.WardAsMentor(ResolveName(asMentor.ProtegeId)));
+                IReadOnlyList<string> lines = Mapping.DossierReader.AccordLines(hero);
 
                 if (lines.Count == 0)
                 {
@@ -162,13 +131,6 @@ namespace CalradiaRemembers.Encyclopedia
             CalradiaStandingAccordsItems = "";
             HasStandingAccords = false;
         }
-
-        private static string ResolveName(string heroId) => FindHero(heroId)?.Name?.ToString();
-
-        private static Hero FindHero(string id)
-            => string.IsNullOrEmpty(id)
-                ? null
-                : Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == id);
 
         #endregion
     }

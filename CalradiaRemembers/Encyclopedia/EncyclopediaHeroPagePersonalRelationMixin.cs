@@ -110,7 +110,7 @@ namespace CalradiaRemembers.Encyclopedia
 
             // The dominant known reason beside the band (NPC_REGARD.md Q2, 17/10/2026: proposed, taken as the default when
             // Gabriel said "continu"): "bitter grudge (-80): you executed his brother".
-            string why = profile == null ? null : EncyclopediaHeroPageRegardMixin.WhyTowardThePlayer(hero, profile.ReputationWithPlayer);
+            string why = profile == null ? null : Mapping.DossierReader.WhyTowardThePlayer(hero, profile.ReputationWithPlayer);
             CalradiaPersonalRelation = profile == null
                 ? "unknown"
                 : $"{RegardBands.Describe(profile.ReputationWithPlayer)} ({profile.ReputationWithPlayer:+#;-#;0})" + (why == null ? "" : ": " + why);

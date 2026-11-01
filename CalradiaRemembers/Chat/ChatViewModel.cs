@@ -3604,14 +3604,10 @@ namespace CalradiaRemembers.Chat
          OnPropertyChanged(nameof(PanelBearing));
          OnPropertyChanged(nameof(ShowPanelCharacter));
          OnPropertyChanged(nameof(ShowPanelAppearance));
-         OnPropertyChanged(nameof(ShowPanelDiscoveries));
-         OnPropertyChanged(nameof(ShowPanelGrievances));
-         OnPropertyChanged(nameof(PanelInfoFacts));
          OnPropertyChanged(nameof(PanelBackground));
          OnPropertyChanged(nameof(PanelCharacter));
          OnPropertyChanged(nameof(PanelAppearance));
-         OnPropertyChanged(nameof(PanelInfoDiscoveries));
-         OnPropertyChanged(nameof(PanelGrievances));
+         NotifyLearnedSections();
       }
 
       /// <summary>
@@ -3839,46 +3835,6 @@ namespace CalradiaRemembers.Chat
          if (hero.IsPreacher) return "Preacher";
 
          return hero.Occupation.ToString();
-      }
-
-      /// <summary>
-      ///   The grievances the player has EARNED knowledge of against this NPC, one bullet per line, rendered
-      ///   through the same pure narrator the encyclopedia's Grievances section uses. Empty when none are known.
-      /// </summary>
-      private static string ResolveKnownGrievances(Hero hero)
-      {
-         try
-         {
-            var behavior = GrudgeBehavior.Instance;
-
-            if (behavior == null) return "";
-
-            var today = (int) CampaignTime.Now.ToDays;
-            var lines = new List<string>();
-            foreach (Grudge grudge in behavior.KnownGrudgesFor(hero.StringId, today))
-            {
-               bool targetIsPlayer = grudge.TargetId == Hero.MainHero?.StringId;
-               string targetName = targetIsPlayer
-                  ? null
-                  : Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == grudge.TargetId)?.Name?.ToString();
-
-               TraitFacts traits = GrudgeBridge.BuildTraitFacts(hero);
-               int mag = GrudgePolicy.EffectiveMagnitude(grudge, today, traits);
-               GrudgeResolutionKind kind =
-                  GrudgePolicy.ResolutionKindFor(grudge.Source, grudge.Rigidity);
-
-               string line = GrudgeNarrator.DisplayLine(grudge, targetIsPlayer, targetName, mag, kind);
-               if (!string.IsNullOrEmpty(line)) lines.Add("• " + line);
-            }
-
-            return string.Join("\n", lines);
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[PORTRAIT] grievances resolve failed: {ex.GetType().Name}: {ex.Message}");
-
-            return "";
-         }
       }
 
       /// <summary>Runs a possibly-throwing read (engine text lookups) and returns "" on any failure.</summary>
@@ -4201,14 +4157,11 @@ namespace CalradiaRemembers.Chat
          PanelBearing = "";
          ShowPanelCharacter = false;
          ShowPanelAppearance = false;
-         ShowPanelDiscoveries = false;
-         ShowPanelGrievances = false;
-         PanelInfoFacts = "";
          PanelBackground = "";
          PanelCharacter = "";
          PanelAppearance = "";
-         PanelInfoDiscoveries = "";
-         PanelGrievances = "";
+         ClearLearnedSections();
+         _panelHeroId = "";
 
          string key = msg.PortraitKey;
 
@@ -4226,15 +4179,7 @@ namespace CalradiaRemembers.Chat
 
          NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId);
 
-         // Inline facts, one "Label: value" per line (no table alignment, per the design note).
-         int regard = profile?.ReputationWithPlayer ?? 0;
-         var facts = new StringBuilder();
-         facts.Append("Culture: ").Append(hero.Culture?.Name?.ToString() ?? "Unknown").Append('\n');
-         facts.Append("Age: ").Append((int) hero.Age).Append('\n');
-         facts.Append("Role: ").Append(DescribeOccupation(hero)).Append('\n');
-         facts.Append("Relation: ").Append(hero.GetRelationWithPlayer().ToString("+#;-#;0")).Append('\n');
-         facts.Append("Personal regard: ").Append($"{ThirdPartyDescriptor.DescribeRelation(regard)} ({regard:+#;-#;0})");
-         PanelInfoFacts = facts.ToString();
+         _panelHeroId = hero.StringId;
 
          // How they seem today (THE PERCEIVED IMAGE): self-esteem and the mood of the day, masks and all.
          PanelBearing = Standing.PerceivedImageService.For(hero, profile) ?? "";
@@ -4255,15 +4200,7 @@ namespace CalradiaRemembers.Chat
          PanelAppearance = SafeRead(() => AppearanceProseBehavior.Instance?.Get(hero.StringId));
          ShowPanelAppearance = !string.IsNullOrWhiteSpace(PanelAppearance);
 
-         if (profile?.DiscoveredTraits != null && profile.DiscoveredTraits.Count > 0)
-         {
-            PanelInfoDiscoveries = Mapping.ShownText.Of(string.Join("\n",
-               profile.DiscoveredTraits.Select(t => "• " + t.Description)));
-            ShowPanelDiscoveries = PanelInfoDiscoveries.Length > 0;
-         }
-
-         PanelGrievances = Mapping.ShownText.Of(ResolveKnownGrievances(hero));
-         ShowPanelGrievances = !string.IsNullOrEmpty(PanelGrievances);
+         ResolveLearnedSections(hero, profile);
 
          ShowPanelInfo = true;
       }

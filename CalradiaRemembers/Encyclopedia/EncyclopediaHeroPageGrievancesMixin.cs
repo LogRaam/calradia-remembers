@@ -14,8 +14,6 @@ using System.Reflection;
 using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.ViewModels;
 using CalradiaRemembers.Foundation;
-using CalradiaRemembers.Grudges;
-using CalradiaRemembers.Logic.Grudges;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ViewModelCollection.Encyclopedia.Pages;
 using TaleWorlds.Library;
@@ -108,23 +106,7 @@ namespace CalradiaRemembers.Encyclopedia
                     return;
                 }
 
-                GrudgeBehavior behavior = GrudgeBehavior.Instance;
-                if (behavior == null)
-                {
-                    Clear();
-
-                    return;
-                }
-
-                var today = (int) CampaignTime.Now.ToDays;
-                IReadOnlyList<Grudge> known = behavior.KnownGrudgesFor(hero.StringId, today);
-
-                var lines = new List<string>();
-                foreach (Grudge grudge in known)
-                {
-                    string line = BuildLine(grudge, today);
-                    if (!string.IsNullOrEmpty(line)) lines.Add(line);
-                }
+                IReadOnlyList<string> lines = Mapping.DossierReader.GrievanceLines(hero);
 
                 if (lines.Count == 0)
                 {
@@ -150,30 +132,6 @@ namespace CalradiaRemembers.Encyclopedia
             CalradiaGrievancesItems = "";
             HasGrievances = false;
         }
-
-        /// <summary>
-        ///   One grudge, rendered through the same pure <see cref="GrudgeNarrator.DisplayLine" /> the tests
-        ///   cover. Tolerant of a missing target/holder hero (a stale StringId after a save) — falls back
-        ///   to "them" via <see cref="GrudgeNarrator.DisplayLine" /> rather than skip the line outright.
-        /// </summary>
-        private static string BuildLine(Grudge grudge, int today)
-        {
-            bool targetIsPlayer = grudge.TargetId == Hero.MainHero?.StringId;
-            string targetName = targetIsPlayer ? null : ResolveName(grudge.TargetId);
-
-            TraitFacts traits = GrudgeBridge.BuildTraitFacts(FindHero(grudge.HolderId));
-            int effectiveMagnitude = GrudgePolicy.EffectiveMagnitude(grudge, today, traits);
-            GrudgeResolutionKind kind = GrudgePolicy.ResolutionKindFor(grudge.Source, grudge.Rigidity);
-
-            return GrudgeNarrator.DisplayLine(grudge, targetIsPlayer, targetName, effectiveMagnitude, kind);
-        }
-
-        private static string ResolveName(string heroId) => FindHero(heroId)?.Name?.ToString();
-
-        private static Hero FindHero(string id)
-            => string.IsNullOrEmpty(id)
-                ? null
-                : Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == id);
 
         #endregion
     }
