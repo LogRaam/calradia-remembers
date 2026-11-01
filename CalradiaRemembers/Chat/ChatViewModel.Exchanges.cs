@@ -1147,7 +1147,7 @@ namespace CalradiaRemembers.Chat
                return;
             }
 
-            if (IsCaptiveEncounter && CaptorAudiencePolicy.OffersParole(_captiveEncounterIntent) && DialogueHeuristics.HasAction(response, "parole_player"))
+            if (IsCaptiveEncounter && Logic.Captivity.CaptorAudiencePolicy.OffersParole(_captiveEncounterIntent) && DialogueHeuristics.HasAction(response, "parole_player"))
             {
                ResolveCaptorRelease(placeholder, speaker, profile, npcLine, response, Quests.CaptorTermsBehavior.GrantParole);
 
