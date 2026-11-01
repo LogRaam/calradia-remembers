@@ -81,7 +81,13 @@ namespace CalradiaRemembers.Logic.Trauma
       Devastated,
 
       /// <summary>Gave a place to the troops to pillage after taking it; the victim is the place.</summary>
-      Pillaged
+      Pillaged,
+
+      /// <summary>Took coin from someone with a threat they paid to stop.</summary>
+      Extorted,
+
+      /// <summary>Took coin to spare someone's lands, then raided them.</summary>
+      BrokeExtortionBargain
    }
 
    /// <summary>One deed of the player, as a source gives it.</summary>
@@ -221,6 +227,8 @@ namespace CalradiaRemembers.Logic.Trauma
             MisdeedKind.RaidedAtPeace => $"You fell on {victimName} when it was at peace with you",
             MisdeedKind.Devastated => $"You devastated {victimName} after taking it",
             MisdeedKind.Pillaged => $"You gave {victimName} to your men to pillage after taking it",
+            MisdeedKind.Extorted => $"You extorted {victimName}",
+            MisdeedKind.BrokeExtortionBargain => $"You took {victimName}'s coin to spare {his} lands, then raided them",
             _ => $"You tormented {victimName} {prisoner}"
          };
          IReadOnlyList<int> days = deed?.Days ?? Array.Empty<int>();

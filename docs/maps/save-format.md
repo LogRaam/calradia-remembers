@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (112)
+## Keys (113)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -117,6 +117,7 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `cr_captor_parole` | `CaptorTermsBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `cr_chronicle_lastSeason` | `SeasonalChronicleBehavior` | literal at the SyncData call (fact) |
 | `cr_chronicle_lastSeen` | `SeasonalChronicleBehavior` | literal at the SyncData call (fact) |
+| `cr_extortions` | `ExtortionBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `cr_help_pleas` | `HelpPleaBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `cr_legends` | `LegendBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `cr_raid_restraint` | `RaidRestraintBehavior` | constant `SaveKey` passed to SyncData (fact) |

@@ -374,7 +374,10 @@ never taught a ransom though the host already computes `CaptorAllowsRansomReleas
 - **Who draws which.** The captor's traits, his regard and grudge, the player's rank and house, the content level
   (these are not Hardcore-only).
 
-## WISHED 2026-10-23 (Gabriel), ROADMAPPED, NOT DESIGNED: extortion by the player, a misdeed with no deed yet
+## BUILT 2026-11-01 (2.8.2), not play-verified, see the CHANGELOG (Gabriel's "go"): extortion by the player, on a hold the game verifies
+
+Traced 01/11/2026: a threat of violence is already `rob_npc`, and the player never holds a third party's letter (a recovered courier letter is their own), so the lever on courier secrets below does not exist. Levers built: a known hidden affair, and lands in reach of a stronger host. Left for a design of its own: `expose_secret`, a named scandal the spouse learns, which is what makes a threat of exposure more than a bluff.
+
 
 Gabriel (23/10/2026), for the Misdeeds section of the player's page (`4679f2a`): "on pourrait aussi ajouter des
 trahisons, extortions, et tout autres gestes qui pourraient etres classes comme misdeeds". Extortion cannot be listed

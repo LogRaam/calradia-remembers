@@ -156,6 +156,12 @@ namespace CalradiaRemembers.Logic.Grudges
         ///   A friend or kinsman who called for help (DepaHN, Nexus, 27/10/2026) and was left without an answer, or was
         ///   promised help that never came. Appended last to preserve the ordinals above in old saves.
         /// </summary>
-        AbandonedPlea = 24
+        AbandonedPlea = 24,
+
+        /// <summary>
+        ///   "You bled me with a threat": the player extorted this character, or tried, or took their coin to spare their
+        ///   lands and raided them anyway (Gabriel, 23/10/2026; ExtortionPolicy). Appended last to preserve the ordinals above.
+        /// </summary>
+        Extorted = 25
     }
 }

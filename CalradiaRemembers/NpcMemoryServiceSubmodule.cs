@@ -187,6 +187,7 @@ namespace CalradiaRemembers
          // rumors, NPC awareness, and the player's chronicle. Feeders register separately.
          campaignStarter.AddBehavior(new WorldEventStore());
          campaignStarter.AddBehavior(new LegendBehavior());
+         campaignStarter.AddBehavior(new Violence.ExtortionBehavior());
          // The campaign's authored history (docs/design/AUTHORED_HISTORY.md, Gabriel 17/10/2026): writes into the store's
          // long-term tier at session launch, so it is registered after it. Console: cr.history_file / cr.history_reload.
          campaignStarter.AddBehavior(new AuthoredHistoryBehavior());

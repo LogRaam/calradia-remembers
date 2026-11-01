@@ -218,6 +218,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("secret_propagation", Severity.Light, "Mystery-lover (phase 3b-2): record a live lord (forced to neutral regard so he is not the player's confidant) as KNOWING the secret, then drive the REAL propagation (DebugSpreadOnce, bypassing only the daily chance) and assert the secret reaches one of his friends who then knows it too, never the player. Forgets both ledger entries and restores the teller's regard afterwards", TestSecretPropagation),
          new SelfTest("pay_for_silence", Severity.Light, "Mystery-lover (phase 3b-3): mark a companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL bridge dispatch of pay_for_silence with a price and assert the gold moves player->lord, the hush is stamped as recently paid (easing the leverage prompt), and a memory is kept. Restores both purses, the flag, the ledger, and trims the memory afterwards", TestPayForSilence),
          new SelfTest("player_violence", Severity.Light, "Player violence (player request, Inc 2): drives the REAL bridge dispatch of kill_npc against a live lord and asserts THE guarantee, that with the MCM lethal toggle off (its default) the attempt is refused and the victim is still alive. Also checks the scene reader measures both fighters and that robbery is never barred by the lethal toggle. Mutates nothing while the toggle is off", TestPlayerViolence),
+         new SelfTest("extortion", Severity.Light, "Gabriel (23/10/2026): extortion on the Misdeeds page; his go 01/11/2026 on a hold the game verifies. On a lord given a hidden affair the player knows of: the verb is taught with the day's answer; a yes moves at most a fifth of the purse, writes the page and a grudge, and closes that lord for a month; a no moves no coin and writes no page; a raid on lands sold a bargain breaks it once, in the real listener. No threat of exposure can be carried out yet. Restores gold, regard, grudges, the page and the ledger", TestExtortion),
          new SelfTest("legends", Severity.Light, "DepaHN (Nexus, 27/10/2026): an extraordinary deed becomes a legend characters retell by their connection to it. On a legend entered by hand (no battle can be staged here, so the reading of a real MapEvent is NOT driven): the one it honours and a witness carry it at once, each in their own way; a stranger carries nothing on the day and the fixed deed after a month; the context a character is built from holds it. Restores the ledger, and raises no news", TestLegends),
          new SelfTest("raid_restraint", Severity.Light, "DepaHN (Nexus, 27/10/2026): a close friend was the first to burn his villages; Gabriel: a friend may hold back, by chance. Checks the game scores targets through our model (a mod that replaced it would silently end the feature), then on a lord and an enemy village: a failed draw leaves its score, a lord who drew to spare scores it at zero, a broken restraint gives the score back, and a lord who may write tells the player once per war with a letter dropped on the road once he breaks. Restores the ledger, sends no letter", TestRaidRestraint),
          new SelfTest("captor_terms", Severity.Light, "Windmolen (Nexus, 26/10/2026): captors should be able to free or ransom the player; Gabriel: other scenarios than abuse, with an oath the game holds the player to. Refuses a ransom, an oath and an exchange when the player is not a prisoner, with no gold moved and nothing sworn, then drives the REAL oath on a lord already met, with no release: kept, it raises his regard and leaves a memory; broken, it lowers it and leaves a memory. Restores the lord and the ledger, and leaves no grudge", TestCaptorTerms),
@@ -9874,6 +9875,94 @@ namespace CalradiaRemembers.Diagnostics
             subjectProfile.Romantic.Status = prevStatus;
             behavior.Store.Set(subjectProfile);
             gossip.ForgetKnows(holder, subject.StringId);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestExtortion(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("extortion");
+         Violence.ExtortionBehavior extortion = Violence.ExtortionBehavior.Instance;
+         if (t.Skip(extortion == null || Hero.MainHero == null || behavior.Store == null, "no campaign")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && !h.IsPrisoner && h.Clan != null && h.Clan != Clan.PlayerClan && h.Clan.Villages.Count > 0);
+         Hero lover = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != lord);
+         if (t.Skip(lord == null || lover == null || Hero.MainHero.IsPrisoner, "no lord with villages, or the player is a prisoner")) return t.Line();
+
+         NpcProfile profile = behavior.Store.Get(lord.StringId) ?? HeroProfileMapper.FromHero(lord);
+         behavior.Store.Set(profile);
+         RomanticProfile romantic = profile.Romantic;
+         int regard = profile.ReputationWithPlayer;
+         int events = profile.Events.Count;
+         int lordGold = lord.Gold;
+         int playerGold = Hero.MainHero.Gold;
+         int ownGrudges = GrudgeBehavior.Instance?.GrudgesFor(lord.StringId).Count ?? 0;
+         Logic.Extortion.ExtortionLedger kept = extortion.Ledger;
+         var verbCtx = new VerbContext(lord, profile, behavior.GameStateBridge, null, null);
+         try
+         {
+            extortion.Ledger = new Logic.Extortion.ExtortionLedger();
+            profile.Romantic = new RomanticProfile {TakenLoverId = lover.StringId, LoverIsSecret = true, LoverKnownToPlayer = true};
+            if (lord.Gold < 5000) GiveGoldAction.ApplyBetweenCharacters(null, lord, 5000 - lord.Gold, true);
+            int purse = lord.Gold;
+            int most = Logic.Extortion.ExtortionPolicy.MostTaken(purse);
+            int gold = Hero.MainHero.Gold;
+
+            extortion.ForcedRoll = 0;
+            string yes = VerbRegistry.Instance.ComposeTeachings(verbCtx, new[] {"extort"}) ?? "";
+            t.Note(yes);
+            // STAKE: the hold is named to the model, so it has nothing to invent.
+            t.Expect("theHoldIsNamed", yes.Contains($"hidden affair with {lover.Name}"), true);
+            // STAKE: the answer is told before they speak: the words and the coin cannot disagree.
+            t.Expect("theAnswerIsToldBeforeTheySpeak", yes.Contains("you give in"), true);
+            t.Expect("theCeilingIsToldInDenars", yes.Contains($"{most} denars"), true);
+
+            ActionOutcome paid = VerbRegistry.Instance.Execute(new GameAction {Type = "extort", Parameters = new Dictionary<string, string> {{"amount", "999999"}}}, verbCtx);
+            t.Note(paid?.Message);
+            // STAKE: the model's figure never moves more than the share of the purse.
+            t.Expect("theCoinIsHeldToTheCeiling", Hero.MainHero.Gold - gold, most);
+            t.Expect("thePageTellsIt", Mapping.MisdeedLedgerBehavior.All().Any(r => r.VictimId == lord.StringId && r.Kind == Logic.Trauma.MisdeedKind.Extorted), true);
+            t.Expect("theyKeepAGrudge", GrudgeBehavior.Instance?.GrudgesFor(lord.StringId).Any(g => g.Source == GrudgeSource.Extorted) == true, true);
+            t.Expect("theirRegardFell", behavior.Store.Get(lord.StringId).ReputationWithPlayer < regard, true);
+            // STAKE: no milking a purse day after day.
+            t.Expect("theyAreClosedForAMonth", VerbRegistry.Instance.ComposeTeachings(verbCtx, new[] {"extort"}) ?? "", "");
+
+            extortion.Ledger = new Logic.Extortion.ExtortionLedger();
+            extortion.ForcedRoll = 99;
+            string no = VerbRegistry.Instance.ComposeTeachings(verbCtx, new[] {"extort"}) ?? "";
+            t.Expect("aRefusalIsToldToo", no.Contains("you refuse"), true);
+            gold = Hero.MainHero.Gold;
+            ActionOutcome refused = VerbRegistry.Instance.Execute(new GameAction {Type = "extort"}, verbCtx);
+            t.Note(refused?.Message);
+            t.Expect("aRefusalMovesNoCoin", Hero.MainHero.Gold, gold);
+            // STAKE: a refusal spends the attempt: no re-rolling the same lord.
+            t.Expect("aRefusalIsAnAttempt", extortion.Ledger.TimesPressed(lord.StringId), 1);
+
+            extortion.Ledger = new Logic.Extortion.ExtortionLedger();
+            extortion.Ledger.Attempts.Add(new Logic.Extortion.ExtortionRecord {
+               VictimId = lord.StringId, ClanId = lord.Clan.StringId, Lever = Logic.Extortion.ExtortionLever.Lands, Day = (int) CampaignTime.Now.ToDays, Amount = 500
+            });
+            extortion.OnVillageStateChanged(lord.Clan.Villages[0], Village.VillageStates.Normal, Village.VillageStates.BeingRaided, MobileParty.MainParty);
+            // STAKE: Gabriel's go on the kept word: without this the promise that earned the coin is worth nothing.
+            t.Expect("aRaidBreaksTheBargain", extortion.Ledger.Attempts[0].BargainBroken, true);
+            t.Expect("thePageSaysWhatBroke", Mapping.MisdeedLedgerBehavior.All().Any(r => r.VictimId == lord.StringId && r.Kind == Logic.Trauma.MisdeedKind.BrokeExtortionBargain), true);
+         }
+         finally
+         {
+            extortion.ForcedRoll = null;
+            extortion.Ledger = kept;
+            profile.Romantic = romantic;
+            profile.ReputationWithPlayer = regard;
+            while (profile.Events.Count > events) profile.Events.RemoveAt(profile.Events.Count - 1);
+            behavior.Store.Set(profile);
+            foreach (Grudge grudge in (GrudgeBehavior.Instance?.GrudgesFor(lord.StringId) ?? new List<Grudge>()).Skip(ownGrudges).ToList()) GrudgeBehavior.Instance.RemoveGrudge(grudge);
+            Mapping.MisdeedLedgerBehavior.Forget(lord.StringId, Logic.Trauma.MisdeedKind.Extorted);
+            Mapping.MisdeedLedgerBehavior.Forget(lord.StringId, Logic.Trauma.MisdeedKind.BrokeExtortionBargain);
+            int backToThePlayer = playerGold - Hero.MainHero.Gold;
+            if (backToThePlayer != 0) GiveGoldAction.ApplyBetweenCharacters(null, Hero.MainHero, backToThePlayer, true);
+            int backToTheLord = lordGold - lord.Gold;
+            if (backToTheLord != 0) GiveGoldAction.ApplyBetweenCharacters(null, lord, backToTheLord, true);
          }
 
          return t.Line();

@@ -207,7 +207,8 @@ namespace CalradiaRemembers.Logic.Actions
          "pledge_against",
          "press_for_war",
          "enact_edict",
-         "pay_bounty"
+         "pay_bounty",
+         "extort"
       };
 
       /// <summary>

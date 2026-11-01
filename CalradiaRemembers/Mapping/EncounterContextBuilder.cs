@@ -127,6 +127,9 @@ namespace CalradiaRemembers.Mapping
       /// <summary>pay_bounty (froggyluv and Gabriel, 23/10/2026): a lord of a realm with a price on the player's head takes it off for gold.</summary>
       private static readonly string[] LawVerbs = {"pay_bounty"};
 
+      /// <summary>extort (Gabriel, 23/10/2026): only to someone the player has a hold over that the game can verify.</summary>
+      private static readonly string[] ExtortionVerbs = {"extort"};
+
       /// <summary>
       ///   CR's own verbs taught by another path, so they belong in no list here: pay_for_silence inline in the held-secret
       ///   section (its TeachingText is null), rob_npc, assault_npc and kill_npc by their catalogue line, in both compositions.
@@ -136,7 +139,7 @@ namespace CalradiaRemembers.Mapping
       /// <summary>Every verb name a teaching list here composes, for the coverage guard (cr.test every_verb_taught).</summary>
       internal static IEnumerable<string> VerbsInTeachingLists
          => CourtVerbsBeforePledge.Concat(ReciprocalCourtVerbs).Concat(CourtVerbsAfterPledge).Concat(TaskVerbs).Concat(PrisonerTradeVerbs)
-                                  .Concat(DivorceVerbs).Concat(HouseVerbs).Concat(GrudgeVerbs).Concat(ConfessionVerbs).Concat(LawVerbs);
+                                  .Concat(DivorceVerbs).Concat(HouseVerbs).Concat(GrudgeVerbs).Concat(ConfessionVerbs).Concat(LawVerbs).Concat(ExtortionVerbs);
 
       // Prisoner trade (08/07/2026): the NPC may BUY a captive the player holds, or SELL one his clan holds.
       private static readonly string[] PrisonerTradeVerbs = {"buy_prisoner", "sell_prisoner", "exchange_prisoners"};
@@ -1830,6 +1833,9 @@ namespace CalradiaRemembers.Mapping
 
          // pay_bounty, only from a lord of a realm with a price on the player's head.
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, LawVerbs));
+
+         // extort, only while the player has a real hold over this character.
+         sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, ExtortionVerbs));
 
          // Another mod's actions (CrActions.Register): each one's TeachingText while its IsEligible holds. They had
          // no place in the name lists above, so until 05/10/2026 they were taught nothing but their catalog entry

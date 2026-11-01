@@ -247,7 +247,7 @@ namespace CalradiaRemembers.Tests
       {
          var ledger = new[] {Deed("ira", MisdeedKind.Unfaithful, 100), Deed("vlandia", MisdeedKind.ForsookRealm, 200)};
 
-         List<MisdeedRecord> back = MisdeedsPagePolicy.Read(MisdeedsPagePolicy.Write(ledger) + "\nlucon|Extorted|300\nbroken");
+         List<MisdeedRecord> back = MisdeedsPagePolicy.Read(MisdeedsPagePolicy.Write(ledger) + "\nlucon|SoldACrown|300\nbroken");
 
          back.Should().HaveCount(2);
          back[1].VictimId.Should().Be("vlandia");

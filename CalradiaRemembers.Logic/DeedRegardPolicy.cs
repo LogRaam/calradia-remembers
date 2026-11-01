@@ -98,7 +98,13 @@ namespace CalradiaRemembers.Logic
       ImposedDislikedGesture,
 
       /// <summary>In bed, found for the first time a gesture the character particularly loves.</summary>
-      FoundLovedGesture
+      FoundLovedGesture,
+
+      /// <summary>Bled the character with a threat, or tried (sized by ExtortionPolicy).</summary>
+      Extorted,
+
+      /// <summary>Took the character's coin to spare their lands, then raided them.</summary>
+      ExtortionBargainBroken
    }
 
    /// <summary>The regard a deed costs or earns.</summary>
@@ -168,6 +174,12 @@ namespace CalradiaRemembers.Logic
       /// <summary>Opinion turned against them, found out.</summary>
       public const int SwayExposedVictim = -20;
 
+      /// <summary>Bled with a threat. No kin: a secret paid for is hidden from them, and that is what the coin bought.</summary>
+      public const int ExtortedVictim = -25;
+
+      /// <summary>Their coin taken to spare their lands, and the lands raided.</summary>
+      public const int ExtortionBargainBrokenVictim = -30;
+
       /// <summary>A pact broken, to the leader of the realm it bound.</summary>
       public const int PactBrokenVictim = -20;
 
@@ -228,6 +240,8 @@ namespace CalradiaRemembers.Logic
          PlayerDeed.BitterRivalry => new DeedRegard {Victim = BitterRivalryVictim},
          PlayerDeed.ImposedDislikedGesture => new DeedRegard {Victim = ImposedDislikedGestureVictim},
          PlayerDeed.FoundLovedGesture => new DeedRegard {Victim = FoundLovedGestureVictim},
+         PlayerDeed.Extorted => new DeedRegard {Victim = ExtortedVictim},
+         PlayerDeed.ExtortionBargainBroken => new DeedRegard {Victim = ExtortionBargainBrokenVictim},
          _ => new DeedRegard()
       };
 

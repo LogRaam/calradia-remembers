@@ -91,6 +91,9 @@ namespace CalradiaRemembers.Mapping
          return (int) mine.GetStanceWith(faction).WarStartDate.ElapsedDaysUntilNow;
       }
 
+      /// <summary>Self-test support: takes back the deeds a test wrote on this victim.</summary>
+      internal static void Forget(string victimId, MisdeedKind kind) => _ledger.RemoveAll(r => r.VictimId == victimId && r.Kind == kind);
+
       /// <summary>Every record, oldest first as written.</summary>
       public static IReadOnlyList<MisdeedRecord> All() => _ledger.ToList();
    }

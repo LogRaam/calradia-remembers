@@ -24,7 +24,10 @@ namespace CalradiaRemembers.Logic
       ItemSale,
 
       /// <summary>The player hands an item to a character.</summary>
-      ItemGift
+      ItemGift,
+
+      /// <summary>A character pays the player under a threat.</summary>
+      Extortion
    }
 
    /// <summary>One exchange as the log reads it.</summary>

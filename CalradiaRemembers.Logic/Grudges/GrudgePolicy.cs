@@ -316,6 +316,8 @@ namespace CalradiaRemembers.Logic.Grudges
                 case GrudgeSource.PactBroken:         return soft ? GrudgeResolutionKind.Amends : GrudgeResolutionKind.Deed;
                 // AbandonedPlea (DepaHN, 27/10/2026): a word or a duty failed, the same family as the two above.
                 case GrudgeSource.AbandonedPlea:      return soft ? GrudgeResolutionKind.Amends : GrudgeResolutionKind.Deed;
+                // Extorted (Gabriel, 23/10/2026): a wrong done on purpose: fresh it can be talked down, hardened only a deed mends it.
+                case GrudgeSource.Extorted:           return soft ? GrudgeResolutionKind.Amends : GrudgeResolutionKind.Deed;
                 default:                              return GrudgeResolutionKind.Amends;
             }
         }

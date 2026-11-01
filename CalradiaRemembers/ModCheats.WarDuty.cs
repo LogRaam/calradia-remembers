@@ -31,6 +31,30 @@ namespace CalradiaRemembers
          return $"cr.help_pleas (today day {HelpPleas.HelpPleaBehavior.Today}, unasked letters {(ModSettings.UnaskedLetters ? "ON" : "OFF")}):\n{open}\n  writers who have asked: {behavior.Ledger.LastPleaDay.Count}";
       }
 
+      /// <summary>cr.extortions [name]: every attempt of the campaign, or the hold over the named character today.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("extortions", "cr")]
+      public static string ExtortionsStatus(List<string> args)
+      {
+         Violence.ExtortionBehavior behavior = Violence.ExtortionBehavior.Instance;
+         if (behavior == null) return "cr.extortions: no campaign loaded.";
+
+         string name = string.Join(" ", args ?? new List<string>());
+         if (!string.IsNullOrWhiteSpace(name))
+         {
+            Hero hero = Hero.AllAliveHeroes.FirstOrDefault(h => h.Name?.ToString().IndexOf(name, System.StringComparison.OrdinalIgnoreCase) >= 0);
+            if (hero == null) return $"cr.extortions: nobody named {name}.";
+
+            Violence.ExtortionHold hold = behavior.HoldOver(hero);
+            return hold == null
+               ? $"cr.extortions: no hold over {hero.Name} today."
+               : $"cr.extortions: {hero.Name}, {hold.Lever}, chance {hold.Chance}%, {(hold.Yields ? "gives in" : "refuses")} today, at most {Logic.Extortion.ExtortionPolicy.MostTaken(hero.Gold)} denars. {hold.Words}";
+         }
+
+         return behavior.Ledger.Attempts.Count == 0
+            ? "cr.extortions: none yet."
+            : "cr.extortions:\n" + string.Join("\n", behavior.Ledger.Attempts.Select(a => $"  day {a.Day}, {a.VictimId}, {a.Lever}, {(a.Amount > 0 ? $"paid {a.Amount}" : "refused")}{(a.BargainBroken ? ", bargain broken" : "")}"));
+      }
+
       /// <summary>cr.legends: every legend of the campaign.</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("legends", "cr")]
       public static string LegendsStatus(List<string> args)
