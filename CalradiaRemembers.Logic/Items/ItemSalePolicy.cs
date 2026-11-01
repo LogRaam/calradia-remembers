@@ -43,10 +43,7 @@ namespace CalradiaRemembers.Logic.Items
       /// <summary>The player still holds the item being sold.</summary>
       public bool PlayerStillHolds { get; init; }
 
-      /// <summary>
-      ///   The item's market value. Not used to cap the price yet (whether a dagger may sell for a fortune is Gabriel's
-      ///   call); carried so that rule has its fact when it is decided.
-      /// </summary>
+      /// <summary>The item's market value, which bounds the price (Gabriel, 01/11/2026). Zero when unread: the transfer ceiling then holds.</summary>
       public int ItemValue { get; init; }
    }
 
@@ -61,26 +58,46 @@ namespace CalradiaRemembers.Logic.Items
 
       /// <summary>The price was brought down to what the buyer can pay.</summary>
       public bool ClampedToPurse { get; init; }
+
+      /// <summary>The price was brought down to the most such an item fetches.</summary>
+      public bool ClampedToWorth { get; init; }
    }
 
    /// <summary>Settles a sale. Pure.</summary>
    public static class ItemSalePolicy
    {
+      /// <summary>TUNE: the most a buyer pays, as a multiple of market value: a premium, not a fortune for a dagger.</summary>
+      public const int WorthCeilingFactor = 3;
+
+      /// <summary>The most this item fetches. An unread value falls to the ceiling a figure with no worth behind it gets.</summary>
+      public static int MostFor(int itemValue)
+         => itemValue > 0 ? Math.Max(itemValue, (int) Math.Min(itemValue * (long) WorthCeilingFactor, int.MaxValue)) : GoldTransferLimit.MaxSingleTransfer;
+
       /// <summary>
-      ///   The agreed price, brought down to the buyer's purse and the one-transfer ceiling every gold move obeys; refused
-      ///   when there is no price, no item, or no coin.
+      ///   Gabriel (01/11/2026): a sale is bounded by what the thing is worth, not by a flat 10,000. The agreed price, brought
+      ///   down to the buyer's purse and the item's worth; refused when there is no price, no item, or no coin.
       /// </summary>
       public static ItemSaleDecision Settle(ItemSaleFacts f)
       {
          if (f == null || f.AgreedPrice <= 0) return new ItemSaleDecision {Refusal = ItemSaleRefusal.NoPrice};
          if (!f.PlayerStillHolds) return new ItemSaleDecision {Refusal = ItemSaleRefusal.ItemGone};
 
-         int payable = Math.Min(Math.Max(0, f.BuyerPurse), GoldTransferLimit.MaxSingleTransfer);
-         if (payable <= 0) return new ItemSaleDecision {Refusal = ItemSaleRefusal.BuyerCannotPay};
+         int purse = Math.Max(0, f.BuyerPurse);
+         if (purse <= 0) return new ItemSaleDecision {Refusal = ItemSaleRefusal.BuyerCannotPay};
 
-         int price = Math.Min(f.AgreedPrice, payable);
+         int most = MostFor(f.ItemValue);
+         int price = Math.Min(f.AgreedPrice, Math.Min(purse, most));
+         bool purseHeld = price < f.AgreedPrice && price == purse;
 
-         return new ItemSaleDecision {Price = price, ClampedToPurse = price < f.AgreedPrice && price == f.BuyerPurse};
+         return new ItemSaleDecision {Price = price, ClampedToPurse = purseHeld, ClampedToWorth = price < f.AgreedPrice && !purseHeld};
+      }
+
+      /// <summary>Added to a sale's notice when less was paid than agreed, so neither the player nor the model is left guessing.</summary>
+      public static string DifferenceNote(ItemSaleDecision deal, int agreed)
+      {
+         if (deal == null || deal.Price >= agreed) return "";
+
+         return deal.ClampedToPurse ? $" (not the {agreed} agreed: that is all they hold)" : $" (not the {agreed} agreed: that is the most such a thing fetches)";
       }
    }
 }

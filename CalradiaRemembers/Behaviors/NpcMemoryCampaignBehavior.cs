@@ -268,6 +268,7 @@ namespace CalradiaRemembers.Behaviors
          SafeRun.Step("OnSessionLaunched.LetterWindowManager.ResetForSession", Letters.LetterWindowManager.ResetForSession); // C4: never inherit a dead window from a prior session
          SafeRun.Step("OnSessionLaunched.LetterBox.ResetForSession", Letters.LetterBox.ResetForSession);
          SafeRun.Step("OnSessionLaunched.LetterBoxWindow.ResetForSession", Letters.LetterBoxWindow.ResetForSession);
+         SafeRun.Step("OnSessionLaunched.PriceReferenceReader.ResetForSession", Mapping.PriceReferenceReader.ResetForSession); // each campaign reads its own prices
          SafeRun.Step("OnSessionLaunched.ChatManager.ResetForSession", Chat.ChatManager.ResetForSession); // same reason, and the chat had no such reset until a player lost every conversation to a ghost (2026-09-08)
          SafeRun.Step("OnSessionLaunched.LetterMutationQueue.Clear", Letters.LetterMutationQueue.Clear); // 3.1: drop closures captured against a prior campaign's objects
          SafeRun.Step("OnSessionLaunched.DisplayLoadedProfiles", DisplayLoadedProfiles);

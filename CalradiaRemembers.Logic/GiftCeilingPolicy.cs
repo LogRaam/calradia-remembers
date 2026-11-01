@@ -1,0 +1,113 @@
+﻿// Code written by Gabriel Mailhot, 01/11/2026.
+// RaveN017Mod (Nexus, 01/11/2026): Rhagaea offered 20,000 denars for a prisoner, nothing happened, and when told the money
+// had not come she sent 1,000. Gabriel, same day: "Le probleme qu'il faut regler: l'incoherence entre ce que le LLM dit et ce
+// que le joueur recoit, et eviter les abus de joueurs qui pourraient soutirer trop d'or au LLM par rapport a la valeur des
+// choses." A sum handed over with nothing in return has no worth to be measured against, so it is bounded by what a person
+// would give away: a share of their purse, by their regard ("part de la bourse selon le regard"). Counted over a window, or
+// a player asking again and again would take the same share of what is left until the purse is empty.
+
+#region
+
+using System;
+using NpcMemoryService.Core.Standing;
+
+#endregion
+
+namespace CalradiaRemembers.Logic
+{
+   /// <summary>What a gift of coin is weighed on.</summary>
+   public sealed class GiftFacts
+   {
+      /// <summary>What the giver's purse holds now.</summary>
+      public int Purse { get; init; }
+
+      /// <summary>The giver's personal regard for the player.</summary>
+      public int Regard { get; init; }
+
+      /// <summary>What they already gave the player inside the window, freely. Oath money does not count.</summary>
+      public int GivenInWindow { get; init; }
+
+      /// <summary>What they still owe the player by a sworn pay_gold oath: a debt is never held back as a gift.</summary>
+      public int OwedByOath { get; init; }
+   }
+
+   /// <summary>The most a character gives away freely. Pure.</summary>
+   public static class GiftCeilingPolicy
+   {
+      /// <summary>TUNE: the days over which what a character gave away counts against their next gift.</summary>
+      public const int WindowDays = 30;
+
+      /// <summary>TUNE: a few coins anyone not hostile may spare, however thin the share of a thin purse.</summary>
+      public const int SmallCoin = 100;
+
+      /// <summary>TUNE: the share of the purse a character would give away at this regard. Nothing below wary.</summary>
+      public static double ShareFor(int regard)
+      {
+         if (regard < Regard.WaryTier) return 0.0;
+         if (regard < Regard.WarmTier) return 0.01;
+         if (regard < Regard.ConfidingTier) return 0.03;
+         if (regard < Regard.DevotedTier) return 0.05;
+         if (regard < Regard.DeepBondTier) return 0.10;
+
+         return 0.20;
+      }
+
+      /// <summary>
+      ///   The most this character hands over now: their share of what they held before this window's gifts, less those
+      ///   gifts, or what an oath still owes when that is more, and never beyond the purse.
+      /// </summary>
+      public static int Ceiling(GiftFacts f)
+      {
+         if (f == null) return 0;
+
+         int purse = Math.Max(0, f.Purse);
+         int given = Math.Max(0, f.GivenInWindow);
+         double share = ShareFor(f.Regard);
+
+         int free = 0;
+         if (share > 0.0)
+         {
+            var whole = (int) ((purse + (long) given) * share);
+            free = Math.Max(whole, SmallCoin) - given;
+         }
+
+         return Math.Min(purse, Math.Max(Math.Max(0, free), Math.Max(0, f.OwedByOath)));
+      }
+
+      /// <summary>What still counts of the last window's gifts on this day: nothing once the window has run out.</summary>
+      public static int GivenStill(int? windowStartDay, int gifted, int today)
+         => windowStartDay is int start && today >= start && today - start < WindowDays ? Math.Max(0, gifted) : 0;
+
+      /// <summary>
+      ///   Added to a gift's notice when less was given than was named, and why. Read by the player and by the model, so
+      ///   neither is left with a sum that does not match (RaveN017Mod) and neither invents a reason.
+      /// </summary>
+      public static string ReducedNote(GiftOutcome o)
+      {
+         if (o == null || o.Asked <= o.Given) return "";
+
+         return o.LimitedByPurse
+            ? $" (not the {o.Asked} named: that is all {o.GiverName} holds)"
+            : $" (not the {o.Asked} named: that is all {o.GiverName} will part with freely)";
+      }
+
+      /// <summary>The refusal when a character will give nothing more away for now, whatever their purse holds.</summary>
+      public static string WillNotGiveNote(string giverName) => $"({giverName} will part with no more coin freely for now, so none changed hands.)";
+   }
+
+   /// <summary>How a gift came out.</summary>
+   public sealed class GiftOutcome
+   {
+      /// <summary>The sum named.</summary>
+      public int Asked { get; init; }
+
+      /// <summary>The sum that changed hands.</summary>
+      public int Given { get; init; }
+
+      /// <summary>The purse held it back, not the character's willingness.</summary>
+      public bool LimitedByPurse { get; init; }
+
+      /// <summary>The giver's name.</summary>
+      public string GiverName { get; init; }
+   }
+}

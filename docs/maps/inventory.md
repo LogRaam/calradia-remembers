@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 607 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1456 types in 50 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 608 types in 65 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1461 types in 50 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 281 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -584,7 +584,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterBoxNavigationItemVM` | internal class | A genuine nav-bar item that opens the letter box, its badge counting the letters waiting. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (48)
+### CalradiaRemembers.Mapping (49)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -620,6 +620,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PlayerFameResolver` | public static class | Builds the "what you know of their name" line for a character who does not know the player in person, or null. |
 | `PlayerPrisonBreakPatch` | public static class | Who the player is breaking out of prison right now, for the listeners of that release. |
 | `PlayerRungReader` | public static class | Where the player stands beside a character, read from the live game. |
+| `PriceReferenceReader` | internal static class | The game's real prices, worded once a session for the prompt. |
 | `PromptProfileService` | internal static class | The prompt profile in use, and the layout each kind of character gets from it. |
 | `RealmFaceBehavior` | public class | Dresses each realm's queen in the face its faces file gives, and gives a former queen her own face back. |
 | `RealmWarFooting` | public static class | Reads a realm's war footing from the live game. |
@@ -978,7 +979,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (459)
+### CalradiaRemembers.Logic (464)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1122,10 +1123,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GameRelationReading` | public static class | Reads a character's clan standing and own relation with the player. |
 | `GarrisonStrength` | public static class | A garrison's strength band. |
 | `GeographyDescriber` | public static class | Pure rules for describing a bearing (distance band plus 8-wind direction) between two map points. |
+| `GiftCeilingPolicy` | public static class | The most a character gives away freely. |
 | `GiftEquipDecision` | public struct | The policy's verdict: whether to equip the gift, and why. |
 | `GiftEquipFacts` | public struct | The facts GiftEquipPolicy.Decide needs to judge one gifted equipment item. |
 | `GiftEquipPolicy` | public static class | Pure policy for whether an NPC equips an equipment item the player just gifted them: an empty slot always takes it, a real upgrade is worn on merit, a sentimental or fond-enough NPC wears even a lateral gift, and a cold... |
 | `GiftEquipReason` | public enum | Why an NPC did, or did not, equip a gift the player just handed them. |
+| `GiftFacts` | public class | What a gift of coin is weighed on. |
+| `GiftOutcome` | public class | How a gift came out. |
 | `GiftQuantityPolicy` | public static class | Resolves how many units of an item a gift transfers, clamped to what the player actually holds. |
 | `GoldTransferLimit` | public static class | The ceiling on a single gold transfer, enforced by the bridge and mirrored by every policy that prices one. |
 | `GreetingDeferencePolicy` | public static class | Which greeting lines offer service, and who may say them to the player. |
@@ -1283,6 +1287,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PresentWitness` | public class | A witness in the room, as the privacy rule sees them. |
 | `PressForWarFacts` | public class | The facts one lord's pressing for war against one realm rests on, read from the game. |
 | `PressForWarPolicy` | public static class | Whether and how a lord may press his realm toward war at the player's word. |
+| `PriceFacts` | public class | Real prices read from the game, in denars. |
+| `PriceReference` | public static class | Words the price table the model reasons from before it names a sum. |
 | `PrisonerDeedTarget` | public class | What captive an NPC is asking for: a specific hero (HeroId) when named, otherwise any lord of a faction (FactionId). |
 | `PrisonerRecruitmentBlock` | public enum | Why a held prisoner cannot (yet) be recruited, or None when they can. |
 | `PrisonerRecruitmentPolicy` | public static class | The pure gate behind recruit_prisoner. |

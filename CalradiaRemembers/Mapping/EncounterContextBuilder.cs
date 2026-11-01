@@ -495,7 +495,12 @@ namespace CalradiaRemembers.Mapping
             LeanLevel = leanLevel,
             ItemOnOffer = OfferedItem(offeredItemId)?.Name?.ToString(),
             ItemOnOfferValue = OfferedItem(offeredItemId)?.Value ?? 0,
-            Purse = string.IsNullOrWhiteSpace(offeredItemId) || hero == null ? null : hero.Gold,
+            ItemOnOfferMost = OfferedItem(offeredItemId) is { } onOffer ? ItemSalePolicy.MostFor(onOffer.Value) : null,
+            // RaveN017Mod (01/11/2026): what the character holds and would give, before they name a sum.
+            Purse = hero?.Gold,
+            GiftCeiling = hero == null ? null : BannerlordGameStateBridge.GiftCeilingFor(hero, profile),
+            PriceReference = PriceReferenceReader.Full,
+            PriceReferenceCompact = PriceReferenceReader.Compact,
             IsFinalSceneBeat = isFinalSceneBeat,
             SceneStage = sceneStage,
             AggressorKind = aggressorKind,

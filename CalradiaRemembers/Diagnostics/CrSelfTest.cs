@@ -550,6 +550,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("kin_identity", Severity.Light, "DepaHN (Nexus, 26/10/2026): children, grandchildren, siblings and relatives felt cold, told they were family only while they shared no memory with the player. Through the REAL EncounterContextBuilder: a kinsman of the player (a child, a sibling, a parent, else any kin in the player's house) is named by his bond, and a lord of another house who is no blood of the player is named nothing. Read-only", TestKinIdentity),
          new SelfTest("companion_identity", Severity.Light, "fearente (Nexus, 26/10/2026): a companion hired a week before spoke of a childhood shared with the player, and the story the game had the wanderer tell at the first meeting was never remembered. Borrows one of the player's companions: drives the REAL hire listener (CompanionHireBehavior.OnHired) and asserts the REAL EncounterContextBuilder says hired companion, joined today; drives the REAL story keeper twice with the same line and asserts ONE OwnLife memory that keeps it, closed by the line saying the story's people belong to the past (fearente, 29/10/2026: Brave sought the creditor of his backstory), and that the REAL prompt carries that line. Restores the profile's memories and hire day", TestCompanionIdentity),
          new SelfTest("supply_quest", Severity.Heavy, "personal supply quest (ProvideGoods) END-TO-END: a bad-category proposal is REFUSED by the pipeline (nothing grounded), then a grain proposal is ISSUED through QuestService.ApplyResponse and grounds a real category+count; give the player grain -> real SettleSupplyQuest hands over EXACTLY the required count, CLOSES the quest (Completed), and pays the reward. Restores the roster. Then (froggyluv, 26/10/2026) the same grain handed over in WORDS through the REAL give_item action: short of the count it is refused and nothing leaves; with the count it settles the task (Completed). Restores the roster", TestSupplyQuest),
+         new SelfTest("coin_matches_words", Severity.Heavy, "RaveN017Mod (01/11/2026): Rhagaea offered 20,000, then sent 1,000 with no word. The real give_gold pays no more than the ceiling the prompt told the model, says why it paid less, and a second ask inside the window moves nothing. Restores the purse, the regard and the window", TestCoinMatchesWords),
          new SelfTest("memory_discussed", Severity.Heavy, "kurushimi00 (01/11/2026): a character recites the same memory at every meeting. The real parser, splice and mutator mark a memory the reply tagged, the talk's prompt does not change, the next conversation reads it as already discussed. No model call. Removes its memories", TestMemoryDiscussed),
          new SelfTest("fixed_letter_translation", Severity.Heavy, "RaveN017Mod (29/10/2026): a fixed English letter is translated for a player reading another language and for no one else; the translation lands in the letter; a failed call or a lost number leaves the English. Uses a stand-in model, no real call. Cleans up its setting", TestFixedLetterTranslation),
          new SelfTest("letter_riders", Severity.Heavy, "kurushimi00 (31/10/2026): a rider bound for the player delivers when close enough, on the campaign tick, without touching and with no hour passing; a far one stays on the road, known to the speed patch; riders off means none spawns and the letter keeps its date; unasked letters off stops a tournament note, not a war summons. Cleans up its letters and riders", TestLetterRiders),
@@ -8938,6 +8939,55 @@ namespace CalradiaRemembers.Diagnostics
             if (thrownCongratulations) behavior.LetterEvaluator?.NudgeSubject(LetterReason.TournamentVictory, -CorrespondenceInterestPolicy.OnAcknowledge().SubjectDelta);
             LetterBox.Invalidate();
             behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestCoinMatchesWords(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("coin_matches_words");
+         string id = behavior.Store.ListIds().FirstOrDefault();
+         NpcProfile profile = id != null ? behavior.Store.Get(id) : null;
+         Hero hero = profile?.Id == null ? null : Hero.FindFirst(h => h != null && h.StringId == profile.Id);
+         if (t.Skip(hero == null || Hero.MainHero == null, "no NPC profile with a live hero yet (chat with someone once, then re-run)")) return t.Line();
+         if (t.Skip(behavior.LlmServices?.ChatService?.PromptBuilder == null, "the prompt builder is not up")) return t.Line();
+
+         int purse = hero.Gold, playerPurse = Hero.MainHero.Gold, regard = profile.ReputationWithPlayer, gifted = profile.GiftedInWindow;
+         int? window = profile.GiftWindowStartDay;
+         ActionOutcome Give(int sum) => behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "give_gold", Parameters = new Dictionary<string, string> {["amount"] = sum.ToString()}}, hero, new ActionContext(profile, null));
+
+         try
+         {
+            hero.ChangeHeroGold(100000 - hero.Gold);
+            profile.ReputationWithPlayer = 0;
+            profile.GiftedInWindow = 0;
+            profile.GiftWindowStartDay = null;
+
+            int ceiling = BannerlordGameStateBridge.GiftCeilingFor(hero, profile);
+            t.Expect("aStrangerGivesAShareOfTheirPurse", ceiling, 1000);
+
+            EncounterContext ctx = EncounterContextBuilder.Build(hero, profile, behavior.GameStateBridge, null);
+            string prompt = behavior.LlmServices.ChatService.PromptBuilder.BuildSystemPrompt(profile, new WorldState {CurrentDay = (int) CampaignTime.Now.ToDays}, ctx);
+            t.Expect("theModelIsToldTheCeilingFirst", prompt.Contains($"you would give {ceiling:N0} at the very most"), true);
+            t.Expect("theModelReadsThePriceTable", ctx.PriceReference != null && prompt.Contains(ctx.PriceReference.Trim()), true);
+
+            int before = Hero.MainHero.Gold;
+            ActionOutcome first = Give(20000);
+            t.Expect("thePlayerReceivesWhatTheModelWasTold", Hero.MainHero.Gold - before, ceiling);
+            t.Expect("theNoticeSaysWhyLess", first?.Message?.Contains("not the 20000 named") == true, true);
+
+            before = Hero.MainHero.Gold;
+            Give(20000);
+            t.Expect("askingAgainMovesNothing", Hero.MainHero.Gold - before, 0);
+         }
+         finally
+         {
+            hero.ChangeHeroGold(purse - hero.Gold);
+            Hero.MainHero.ChangeHeroGold(playerPurse - Hero.MainHero.Gold);
+            profile.ReputationWithPlayer = regard;
+            profile.GiftedInWindow = gifted;
+            profile.GiftWindowStartDay = window;
          }
 
          return t.Line();

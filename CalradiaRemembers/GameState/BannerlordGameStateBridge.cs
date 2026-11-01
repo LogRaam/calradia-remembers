@@ -253,7 +253,7 @@ namespace CalradiaRemembers.GameState
             case "change_relation":
                return ExecuteChangeRelation(action, npcHero, context);
             case "give_gold":
-               return ExecuteGiveGold(action, npcHero);
+               return ExecuteGiveGold(action, npcHero, context);
             case "take_gold":
                return ExecuteTakeGold(action, npcHero);
             case "pay_blackmail":
@@ -1707,7 +1707,7 @@ namespace CalradiaRemembers.GameState
       ///   term that happens, exactly as <see cref="PreviewItem" /> is shared for a sale. Re-decides the SAME offer
       ///   the captive-terms prompt section decided (<see cref="Mapping.EncounterContextBuilder.ResolveCaptiveOffer" />)
       ///   and refuses any emitted term that is not open to her right now, by name: the prompt is advice, the bridge
-      ///   is law. The ransom is clamped here, once, to what the payer holds and <see cref="GoldTransferLimit.MaxSingleTransfer" />.
+      ///   is law. The ransom is clamped here, once, to what the payer holds and the most such a captive fetches.
       /// </summary>
       public static CounterOfferPreview PreviewCounterOffer(GameAction action, Hero npcHero, ActionContext context)
       {
@@ -1740,10 +1740,11 @@ namespace CalradiaRemembers.GameState
             Hero payer = npcHero.Clan?.Leader ?? npcHero;
             bool wantsRansom = wanted.Contains(CaptiveTerm.Ransom);
             int named = CoinAmount.Parse(amountText);
-            int ransom = wantsRansom ? Math.Min(named, Math.Min(payer.Gold, GoldTransferLimit.MaxSingleTransfer)) : 0;
+            int ransom = wantsRansom ? Math.Min(named, Math.Min(payer.Gold, CalradiaRemembers.Logic.Prisoners.PrisonerTradePolicy.MaxPrice(CourtActionResolver.RansomAnchor(npcHero)))) : 0;
+            bool purseHeld = wantsRansom && ransom < named && ransom == payer.Gold;
 
             return new CounterOfferPreview {
-               Terms = wanted, Ransom = ransom, RansomClampedToPurse = wantsRansom && ransom < named,
+               Terms = wanted, Ransom = ransom, RansomClampedToPurse = purseHeld, RansomClampedToWorth = wantsRansom && ransom < named && !purseHeld,
                FealtyRealm = wanted.Contains(CaptiveTerm.Fealty) ? Hero.MainHero.Clan?.Kingdom?.Name?.ToString() : null
             };
          }
@@ -1796,7 +1797,7 @@ namespace CalradiaRemembers.GameState
                Hero payer = npcHero.Clan?.Leader ?? npcHero;
                GiveGoldAction.ApplyBetweenCharacters(payer, Hero.MainHero, preview.Ransom);
                ransomApplied = preview.Ransom;
-               done.Add($"{preview.Ransom} denars ransomed from {payer.Name}{(preview.RansomClampedToPurse ? " (all they had)" : "")}");
+               done.Add($"{preview.Ransom} denars ransomed from {payer.Name}{(preview.RansomClampedToPurse ? " (all they had)" : preview.RansomClampedToWorth ? " (the most they fetch)" : "")}");
             }
 
             if (preview.Terms.Contains(CaptiveTerm.Fealty) && npcHero.Clan != null && Hero.MainHero.Clan?.Kingdom != null)
@@ -1903,7 +1904,19 @@ namespace CalradiaRemembers.GameState
          }
       }
 
-      private static ActionOutcome ExecuteGiveGold(GameAction action, Hero npcHero)
+      /// <summary>
+      ///   What this character would give the player now with nothing in return, read by the give_gold action and told to
+      ///   the model before it names a sum, so the two agree (RaveN017Mod, Gabriel, 01/11/2026).
+      /// </summary>
+      internal static int GiftCeilingFor(Hero giver, NpcProfile profile) => GiftCeilingPolicy.Ceiling(GiftFactsFor(giver, profile));
+
+      private static GiftFacts GiftFactsFor(Hero giver, NpcProfile profile) => new() {
+         Purse = giver?.Gold ?? 0, Regard = profile?.ReputationWithPlayer ?? 0,
+         GivenInWindow = GiftCeilingPolicy.GivenStill(profile?.GiftWindowStartDay, profile?.GiftedInWindow ?? 0, (int) CampaignTime.Now.ToDays),
+         OwedByOath = CalradiaRemembers.Commitments.CommitmentBehavior.Instance?.OwedBy(giver?.StringId) ?? 0
+      };
+
+      private static ActionOutcome ExecuteGiveGold(GameAction action, Hero npcHero, ActionContext context)
       {
          if (!TryGetInt(action.Parameters, "amount", out int amount))
          {
@@ -1919,10 +1932,13 @@ namespace CalradiaRemembers.GameState
          }
          if (npcHero == null || Hero.MainHero == null) return null;
 
-         // Solvency: an NPC cannot give gold it does not hold. Clamp to the giver's real purse so a hallucinated
-         // "10000" from a lord carrying 40 denars neither conjures coin nor drives the giver's purse negative.
-         int payable = Math.Min(npcHero.Gold, GoldTransferLimit.MaxSingleTransfer);
-         if (payable < 1)
+         // Solvency: an NPC cannot give gold it does not hold. And a gift has no worth behind it to measure a sum against,
+         // so what they would part with bounds it (GiftCeilingPolicy): a hallucinated figure or a player's persuasion moves
+         // no more than that.
+         NpcProfile profile = context?.Profile ?? NpcMemoryCampaignBehavior.Instance?.Store?.Get(npcHero.StringId);
+         GiftFacts gift = GiftFactsFor(npcHero, profile);
+         int payable = GiftCeilingPolicy.Ceiling(gift);
+         if (npcHero.Gold < 1)
          {
             ModLog.Info($"[ACTION] give_gold: {npcHero.Name} has no gold to give: ignored.");
 
@@ -1931,8 +1947,18 @@ namespace CalradiaRemembers.GameState
             return ActionOutcome.Refused(SilentRefusalMessages.GiveGoldGiverInsolvent(npcHero.Name.ToString()));
          }
 
+         if (payable < 1)
+         {
+            ModLog.Info($"[ACTION] give_gold: {npcHero.Name} will give no more (regard {gift.Regard}, given {gift.GivenInWindow} in the window): ignored.");
+
+            return ActionOutcome.Refused(GiftCeilingPolicy.WillNotGiveNote(npcHero.Name.ToString()));
+         }
+
+         int asked = amount;
+         bool purseHolds = payable >= npcHero.Gold;
          amount = ClampInt(amount, 1, payable);
          GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, amount);
+         RecordGift(profile, gift, amount);
          // R7-light (swear_oath): this is ALSO the pay_gold oath's own verification hook, whichever channel
          // the gold actually moved through (this 1:1 action, or the council's own give_gold resolution).
          CalradiaRemembers.Commitments.CommitmentBehavior.Instance?.OnGoldGivenToPlayer(npcHero.StringId, amount);
@@ -1940,8 +1966,20 @@ namespace CalradiaRemembers.GameState
 
          // The map bar does not refresh while campaign time is frozen under the chat
          // overlay — showing the balance here is the player's only live confirmation.
-         return new ActionOutcome($"{npcHero.Name} gives you {amount} denars (purse: {Hero.MainHero.Gold}).", true,
+         string reduced = GiftCeilingPolicy.ReducedNote(new GiftOutcome {Asked = asked, Given = amount, LimitedByPurse = purseHolds, GiverName = npcHero.Name.ToString()});
+
+         return new ActionOutcome($"{npcHero.Name} gives you {amount} denars{reduced} (purse: {Hero.MainHero.Gold}).", true,
             appliedGoldAmount: amount);
+      }
+
+      /// <summary>Counts what was freely given against the window. What paid a sworn debt was owed, not given.</summary>
+      private static void RecordGift(NpcProfile profile, GiftFacts gift, int amount)
+      {
+         int free = amount - Math.Min(amount, Math.Max(0, gift.OwedByOath));
+         if (profile == null || free <= 0) return;
+
+         if (gift.GivenInWindow == 0) profile.GiftWindowStartDay = (int) CampaignTime.Now.ToDays;
+         profile.GiftedInWindow = gift.GivenInWindow + free;
       }
 
       /// <summary>
@@ -2062,7 +2100,7 @@ namespace CalradiaRemembers.GameState
             ModLog.Info($"[ACTION] sell_item: player sold '{name}' (value {item.Value}) to {npcHero.Name} for {deal.Price}{(deal.ClampedToPurse ? " (all they had)" : "")}");
             string equipTail = TryEquipGift(npcHero, item);
 
-            return new ActionOutcome($"You sell {name} to {npcHero.Name} for {deal.Price} denars (purse: {Hero.MainHero.Gold}).{equipTail}", true,
+            return new ActionOutcome($"You sell {name} to {npcHero.Name} for {deal.Price} denars{ItemSalePolicy.DifferenceNote(deal, CoinAmount.Parse(priceText))} (purse: {Hero.MainHero.Gold}).{equipTail}", true,
                appliedGoldAmount: deal.Price);
          }
          catch (Exception ex)

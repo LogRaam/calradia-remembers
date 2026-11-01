@@ -204,7 +204,7 @@ namespace CalradiaRemembers.Chat
             Amount = deal?.Price ?? 0,
             Question = ActionConfirmationPolicy.BuildItemQuestion(new ItemConfirmationFacts {
                ActionType = type, ItemName = taleCount > 0 ? taleLabel : item.Name, NpcName = npc?.Name?.ToString() ?? profile?.Name ?? "them",
-               Price = deal?.Price ?? 0, ClampedToPurse = deal?.ClampedToPurse == true, TaleCount = taleCount
+               Price = deal?.Price ?? 0, ClampedToPurse = deal?.ClampedToPurse == true, ClampedToWorth = deal?.ClampedToWorth == true, TaleCount = taleCount
             })
          });
 
@@ -239,7 +239,7 @@ namespace CalradiaRemembers.Chat
             Action = action, Npc = npc, Profile = profile, Context = context, Amount = preview.Ransom,
             Question = ActionConfirmationPolicy.BuildOfferQuestion(new OfferConfirmationFacts {
                NpcName = npcName, IsFemale = npc?.IsFemale == true, Terms = preview.Terms,
-               Ransom = preview.Ransom, RansomClampedToPurse = preview.RansomClampedToPurse, FealtyRealm = preview.FealtyRealm
+               Ransom = preview.Ransom, RansomClampedToPurse = preview.RansomClampedToPurse, RansomClampedToWorth = preview.RansomClampedToWorth, FealtyRealm = preview.FealtyRealm
             })
          });
 

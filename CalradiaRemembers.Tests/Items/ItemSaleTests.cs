@@ -58,6 +58,27 @@ namespace CalradiaRemembers.Tests.Items
                        .Price.Should().Be(Logic.GoldTransferLimit.MaxSingleTransfer);
       }
 
+      // RaveN017Mod, Gabriel (01/11/2026): a sale pays what the thing is worth, so a costly item is not stopped at 10,000.
+      [Test]
+      public void GIVEN_a_costly_item_WHEN_sold_above_10000_THEN_its_worth_decides_and_not_the_old_ceiling()
+      {
+         ItemSalePolicy.Settle(new ItemSaleFacts {AgreedPrice = 30000, BuyerPurse = 90000, PlayerStillHolds = true, ItemValue = 12000})
+                       .Price.Should().Be(30000);
+      }
+
+      // Gabriel (01/11/2026): players must not extract "trop d'or au LLM par rapport a la valeur des choses": a dagger talked
+      // up to a fortune sells for what such a thing fetches, and the deal says so.
+      [Test]
+      public void GIVEN_a_cheap_item_talked_up_WHEN_settled_THEN_the_price_stops_at_its_worth_and_says_so()
+      {
+         ItemSaleDecision deal = ItemSalePolicy.Settle(new ItemSaleFacts {AgreedPrice = 9000, BuyerPurse = 90000, PlayerStillHolds = true, ItemValue = 200});
+
+         deal.Price.Should().Be(200 * ItemSalePolicy.WorthCeilingFactor);
+         deal.ClampedToWorth.Should().BeTrue();
+         deal.ClampedToPurse.Should().BeFalse();
+         ItemSalePolicy.DifferenceNote(deal, 9000).Should().Contain("not the 9000 agreed");
+      }
+
       // No sale without something to sell, someone to pay, or a price at all (a gift is give_item, not a sale at 0).
       [Test]
       public void GIVEN_no_item_no_coin_or_no_price_WHEN_settled_THEN_the_sale_is_refused_with_the_reason()

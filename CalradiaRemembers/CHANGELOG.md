@@ -26,6 +26,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   raise it or something new gives it a reason. The memory itself stays, in every other prompt too. A tag the model
   forgets leaves things as they were. `MemoryRecall`, `cr.test memory_discussed`. Not play-verified.
 
+- **What a character says about gold now matches what you receive** (RaveN017Mod, 01/11/2026: Rhagaea offered 20,000
+  denars for a prisoner, nothing happened, then she sent 1,000). Gabriel: the model must know what things are worth before
+  naming a sum, and a player must not talk it out of more gold than things are worth. A character now reads a price table
+  taken from your running game (full or one line in Compact), and each turn what their purse holds and what they would
+  give. The flat 10,000 on a gift is gone: with nothing in return a character gives a share of their purse by their regard
+  for you (1% for a stranger up to 20% at the deepest bond, nothing if hostile, 100 denars at the least otherwise), and
+  asking again inside 30 days takes nothing beyond that share. A sworn debt is paid in full. A sale stops at three times
+  an item's market value and a ransom at the most a captive fetches, not at 10,000. When less is paid than was named, the
+  notice says why. `GiftCeilingPolicy`, `PriceReference`, `cr.test coin_matches_words`. Not play-verified.
+
 ### Fixed
 - **Fixed letters now reach you in your language** (RaveN017Mod, Nexus PM, 29/10/2026: threats from lords "appear in
   English even though my game is in French"). Five kinds of letter are texts the mod writes itself, with no model call, so

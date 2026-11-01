@@ -678,7 +678,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 #### `CalradiaRemembers.GameState` and `CalradiaRemembers.Mapping`
 
 - `CalradiaRemembers.GameState` uses `CalradiaRemembers.Mapping` in 3 file(s): `GameState/BannerlordGameStateBridge.cs`, `GameState/CourtActionResolver.cs`, `GameState/LordRecruitmentFactsBuilder.cs`
-- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.GameState` in 6 files: `Mapping/ContextualNameResolver.cs`, `Mapping/EncounterContextBuilder.cs`, `Mapping/FirstImpressionResolver.cs`, and 3 more
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.GameState` in 7 files: `Mapping/ContextualNameResolver.cs`, `Mapping/EncounterContextBuilder.cs`, `Mapping/FirstImpressionResolver.cs`, and 4 more
 
 #### `CalradiaRemembers.Grudges` and `CalradiaRemembers.Mapping`
 

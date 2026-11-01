@@ -57,6 +57,9 @@ namespace CalradiaRemembers.Logic.Actions
       /// <summary>The price was brought down to what the buyer can pay.</summary>
       public bool ClampedToPurse { get; init; }
 
+      /// <summary>The price was brought down to the most such an item fetches.</summary>
+      public bool ClampedToWorth { get; init; }
+
       /// <summary>The count a tale asks of this person when the gift is its goods (ItemName then names the goods); 0 otherwise.</summary>
       public int TaleCount { get; init; }
    }
@@ -113,6 +116,9 @@ namespace CalradiaRemembers.Logic.Actions
 
       /// <summary>The ransom named above was brought down to what the payer can pay.</summary>
       public bool RansomClampedToPurse { get; init; }
+
+      /// <summary>The ransom named above was brought down to the most such a captive fetches.</summary>
+      public bool RansomClampedToWorth { get; init; }
 
       /// <summary>The realm she would swear her house to, with fealty among her terms.</summary>
       public string FealtyRealm { get; init; }
@@ -198,7 +204,7 @@ namespace CalradiaRemembers.Logic.Actions
          string npc = string.IsNullOrWhiteSpace(f?.NpcName) ? "them" : f.NpcName.Trim();
 
          if (string.Equals(f?.ActionType, "sell_item", StringComparison.OrdinalIgnoreCase))
-            return $"Sell {item} to {npc} for {f.Price} coins{(f.ClampedToPurse ? " (all they have)" : "")}?";
+            return $"Sell {item} to {npc} for {f.Price} coins{(f.ClampedToPurse ? " (all they have)" : f.ClampedToWorth ? " (the most it fetches)" : "")}?";
 
          if (f?.TaleCount > 0) return $"Hand {f.TaleCount} {item} to {npc}, as they asked?";
 
@@ -251,7 +257,7 @@ namespace CalradiaRemembers.Logic.Actions
             switch (term)
             {
                case CaptiveTerm.Ransom:
-                  parts.Add($"{f.Ransom}{(f.RansomClampedToPurse ? " coins (all they have)" : " coins")}");
+                  parts.Add($"{f.Ransom}{(f.RansomClampedToPurse ? " coins (all they have)" : f.RansomClampedToWorth ? " coins (the most they fetch)" : " coins")}");
                   break;
                case CaptiveTerm.Fealty:
                   parts.Add($"swear {possessive} house to {(string.IsNullOrWhiteSpace(f.FealtyRealm) ? "your realm" : f.FealtyRealm.Trim())}");

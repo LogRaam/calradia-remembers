@@ -18,8 +18,9 @@ namespace CalradiaRemembers.Logic
    public static class GoldTransferLimit
    {
       /// <summary>
-      ///   The largest amount one give_gold or take_gold may move. A guard against a hallucinated figure, not a
-      ///   balance choice: a model that writes "1000000" must neither conjure that coin nor empty a purse with it.
+      ///   The largest amount one take_gold, player's payment, pledge or levy may move: it stops a hallucinated figure from
+      ///   emptying a purse, and a player from extracting a fortune in roleplay (Gabriel, 01/11/2026). What a character
+      ///   gives away is bounded by GiftCeilingPolicy, and a sale by the worth of what is sold.
       /// </summary>
       public const int MaxSingleTransfer = 10000;
 

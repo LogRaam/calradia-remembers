@@ -90,11 +90,14 @@ namespace CalradiaRemembers.GameState
         /// <summary>The terms she struck, in the order named, each one confirmed open to her right now.</summary>
         public IReadOnlyList<CaptiveTerm> Terms { get; set; } = new List<CaptiveTerm>();
 
-        /// <summary>The ransom in denars, clamped to the payer's purse and GoldTransferLimit.MaxSingleTransfer.</summary>
+        /// <summary>The ransom in denars, clamped to the payer's purse and the most such a captive fetches.</summary>
         public int Ransom { get; set; }
 
-        /// <summary>The ransom above was brought down from the amount named.</summary>
+        /// <summary>The payer's purse brought the ransom down from the amount named.</summary>
         public bool RansomClampedToPurse { get; set; }
+
+        /// <summary>The most such a captive fetches brought the ransom down from the amount named.</summary>
+        public bool RansomClampedToWorth { get; set; }
 
         /// <summary>The realm she would swear her house to, when fealty is one of her terms; null otherwise.</summary>
         public string FealtyRealm { get; set; }

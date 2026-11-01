@@ -182,6 +182,10 @@ namespace CalradiaRemembers.Commitments
          catch (Exception ex) { ModLog.Error($"[COMMITMENT] OnSchemeVoided failed: {ex.GetType().Name}: {ex.Message}"); }
       }
 
+      /// <summary>What this character still owes the player by a sworn pay_gold oath: paying it is no gift (GiftCeilingPolicy).</summary>
+      public int OwedBy(string giverId)
+         => string.IsNullOrEmpty(giverId) ? 0 : _active.FirstOrDefault(c => c.State == CommitmentState.Active && c.Kind == CommitmentKind.PayGold && c.PromisorId == giverId)?.PromisedAmount ?? 0;
+
       /// <summary>
       ///   PayGold's own verification hook (R7-light, COUNCIL_ACTIONS.md's swear_oath): called from BOTH
       ///   gold-giving paths (<see cref="GameState.BannerlordGameStateBridge.ExecuteAction" />'s 1:1
