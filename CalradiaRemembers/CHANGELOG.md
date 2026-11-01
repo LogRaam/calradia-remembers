@@ -4,6 +4,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.8.2.. open
 
+### Changed
+- **Characters recite the past less and keep small things small** (kurushimi00, Nexus, 01/11/2026: "it has a tendency to
+  restate, almost in checklist fashion, things captured in memories", and to take "some symbolic gesture or item traded
+  and elevate it beyond all proportion"). The history block ended on "Reference them when relevant" with nothing against
+  it; it now says memories colour how a character speaks and are not a list to go through. Prose craft gains a proportion
+  rule, full and compact. A small gift or courtesy no longer counts as a memory, for the writer or the interpreter, and a
+  memory is written plainly instead of saying "why it mattered". Not play-verified.
+
 ### Fixed
 - **Fixed letters now reach you in your language** (RaveN017Mod, Nexus PM, 29/10/2026: threats from lords "appear in
   English even though my game is in French"). Five kinds of letter are texts the mod writes itself, with no model call, so
