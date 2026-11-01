@@ -320,7 +320,7 @@ model's review of war and peace parked.
   and when (besieged, ruined, at war, a battle lost), what is asked against what the player has, how the player answers
   (a letter reply, troops sent, coin), what answering or ignoring does to regard and memory, and how often (never a
   flood of pleas).
-- **3. Legends.** DepaHN: "When something extraordinary happens, such as a heroic last stand or a siege won against
+- **3. BUILT 01/11/2026 (2.8.2), not play-verified; see the CHANGELOG. Left out: gameplay effects beyond renown.** Legends. DepaHN: "When something extraordinary happens, such as a heroic last stand or a siege won against
   the odds, it could become a legend that characters retell, differently depending on their connection to the event.
   This could apply to the player too. Optionally, legends could have gameplay effects." What exists, as raw material:
   feats rated and remembered by those present (`Battles/BattleFeatReporter`, `CombatFeat`, `CombatProwessPolicy`),

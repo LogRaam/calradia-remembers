@@ -127,7 +127,7 @@ namespace CalradiaRemembers.WorldEvents
       // Names a hero actor for a Summary line with the clan disambiguator (rumor/news phrasing must
       // never let a namesake, such as a lord and the player's own young son, be read as the same
       // person). Empty when the hero itself is null, so callers keep their own sentence-start fallback.
-      private static string Named(Hero h) => HeroLabel.Describe(new HeroLabel.HeroNaming {Name = h?.Name?.ToString(), ClanName = h?.Clan?.Name?.ToString()});
+      internal static string Named(Hero h) => HeroLabel.Describe(new HeroLabel.HeroNaming {Name = h?.Name?.ToString(), ClanName = h?.Clan?.Name?.ToString()});
 
       private static string PairKey(Hero a, Hero b)
          => string.CompareOrdinal(a.StringId, b.StringId) < 0
@@ -485,7 +485,7 @@ namespace CalradiaRemembers.WorldEvents
             .Select(f => f.StringId);
 
       /// <summary>The settlement closest to where the battle was fought (hideouts aside), if it is near enough to name.</summary>
-      private static Settlement NearestSettlementTo(MapEvent mapEvent)
+      internal static Settlement NearestSettlementTo(MapEvent mapEvent)
       {
          try
          {

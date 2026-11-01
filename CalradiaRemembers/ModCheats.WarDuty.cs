@@ -31,6 +31,40 @@ namespace CalradiaRemembers
          return $"cr.help_pleas (today day {HelpPleas.HelpPleaBehavior.Today}, unasked letters {(ModSettings.UnaskedLetters ? "ON" : "OFF")}):\n{open}\n  writers who have asked: {behavior.Ledger.LastPleaDay.Count}";
       }
 
+      /// <summary>cr.legends: every legend of the campaign.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("legends", "cr")]
+      public static string LegendsStatus(List<string> args)
+      {
+         WorldEvents.LegendBehavior behavior = WorldEvents.LegendBehavior.Instance;
+         if (behavior == null) return "cr.legends: no campaign loaded.";
+
+         string legends = behavior.Ledger.Legends.Count == 0
+            ? "  none yet"
+            : string.Join("\n", behavior.Ledger.Legends.Select(l => $"  day {l.Day}, {l.Name}: {Logic.Legends.LegendPolicy.Deed(l)}"));
+
+         return $"cr.legends ({(ModSettings.Legends ? "ON" : "OFF")}):\n{legends}";
+      }
+
+      /// <summary>cr.legend &lt;name&gt;: the named lord's deed passes into legend now, with no battle.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("legend", "cr")]
+      public static string LegendRaise(List<string> args)
+      {
+         WorldEvents.LegendBehavior behavior = WorldEvents.LegendBehavior.Instance;
+         if (behavior == null) return "cr.legend: no campaign loaded.";
+
+         string name = string.Join(" ", args ?? new List<string>());
+         Hero hero = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.Name?.ToString().IndexOf(name, System.StringComparison.OrdinalIgnoreCase) >= 0);
+         if (string.IsNullOrWhiteSpace(name) || hero == null) return "Usage: cr.legend <name of a lord>";
+
+         behavior.Raise(new Logic.Legends.Legend {
+            Kind = Logic.Legends.LegendKind.SiegeHeld, Day = (int) CampaignTime.Now.ToDays - Logic.Legends.LegendPolicy.DaysToReachCalradia, HeroId = hero.StringId, HeroName = hero.Name.ToString(),
+            ClanId = hero.Clan?.StringId, RealmId = hero.MapFaction?.StringId, PlaceName = hero.HomeSettlement?.Name?.ToString(), FewMen = 120, ManyMen = 450,
+            Name = Logic.Legends.LegendPolicy.Name(Logic.Legends.LegendKind.SiegeHeld, hero.HomeSettlement?.Name?.ToString(), hero.Name.ToString())
+         }, false);
+
+         return $"cr.legend: {behavior.Ledger.Legends[behavior.Ledger.Legends.Count - 1].Name}, dated a month ago so everyone has heard. This stays in the save.";
+      }
+
       /// <summary>cr.raid_restraint: what each lord drew in the wars against the player.</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("raid_restraint", "cr")]
       public static string RaidRestraintStatus(List<string> args)

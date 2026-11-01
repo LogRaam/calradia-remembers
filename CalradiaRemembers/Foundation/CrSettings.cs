@@ -633,6 +633,11 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool RaidRestraint { get; set; } = true;
 
+      [SettingPropertyBool("{=CR_MCM_Legends}Legends", RequireRestart = false, Order = 16,
+         HintText = "{=CR_MCM_Legends_Hint}A battle won against the odds, a siege held or a last stand can become a legend that characters tell in their own way, yours included. At most one a season, your own excepted. Off: no new legend, none told.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
+      public bool Legends { get; set; } = true;
+
       // "Intercepted letters can leak" (Order 12) is gone since 26/09/2026: Gabriel ruled that an intercepted letter
       // with substance ALWAYS becomes a secret carried in the world (CourierSecretBehavior); the one switch left is
       // Invulnerable Couriers above.

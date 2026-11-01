@@ -218,6 +218,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("secret_propagation", Severity.Light, "Mystery-lover (phase 3b-2): record a live lord (forced to neutral regard so he is not the player's confidant) as KNOWING the secret, then drive the REAL propagation (DebugSpreadOnce, bypassing only the daily chance) and assert the secret reaches one of his friends who then knows it too, never the player. Forgets both ledger entries and restores the teller's regard afterwards", TestSecretPropagation),
          new SelfTest("pay_for_silence", Severity.Light, "Mystery-lover (phase 3b-3): mark a companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL bridge dispatch of pay_for_silence with a price and assert the gold moves player->lord, the hush is stamped as recently paid (easing the leverage prompt), and a memory is kept. Restores both purses, the flag, the ledger, and trims the memory afterwards", TestPayForSilence),
          new SelfTest("player_violence", Severity.Light, "Player violence (player request, Inc 2): drives the REAL bridge dispatch of kill_npc against a live lord and asserts THE guarantee, that with the MCM lethal toggle off (its default) the attempt is refused and the victim is still alive. Also checks the scene reader measures both fighters and that robbery is never barred by the lethal toggle. Mutates nothing while the toggle is off", TestPlayerViolence),
+         new SelfTest("legends", Severity.Light, "DepaHN (Nexus, 27/10/2026): an extraordinary deed becomes a legend characters retell by their connection to it. On a legend entered by hand (no battle can be staged here, so the reading of a real MapEvent is NOT driven): the one it honours and a witness carry it at once, each in their own way; a stranger carries nothing on the day and the fixed deed after a month; the context a character is built from holds it. Restores the ledger, and raises no news", TestLegends),
          new SelfTest("raid_restraint", Severity.Light, "DepaHN (Nexus, 27/10/2026): a close friend was the first to burn his villages; Gabriel: a friend may hold back, by chance. Checks the game scores targets through our model (a mod that replaced it would silently end the feature), then on a lord and an enemy village: a failed draw leaves its score, a lord who drew to spare scores it at zero, a broken restraint gives the score back, and a lord who may write tells the player once per war with a letter dropped on the road once he breaks. Restores the ledger, sends no letter", TestRaidRestraint),
          new SelfTest("captor_terms", Severity.Light, "Windmolen (Nexus, 26/10/2026): captors should be able to free or ransom the player; Gabriel: other scenarios than abuse, with an oath the game holds the player to. Refuses a ransom, an oath and an exchange when the player is not a prisoner, with no gold moved and nothing sworn, then drives the REAL oath on a lord already met, with no release: kept, it raises his regard and leaves a memory; broken, it lowers it and leaves a memory. Restores the lord and the ledger, and leaves no grudge", TestCaptorTerms),
          new SelfTest("help_plea", Severity.Light, "DepaHN (Nexus, 27/10/2026): friends, kin and allies should write when they need help, and Gabriel (01/11/2026): the game holds the player to what follows, thrown letter or not. Drives the REAL behavior on a lord already met, with no letter written: a letter still on the road costs nothing when the plea closes; on arrival the plea waits for an answer with a deadline; Send moves the true sum and closes it; a refusal lowers regard; a promise opens a journal entry and a siege already over closes it with no blame. Restores gold, regard and the ledger, and leaves no grievance or kindness", TestHelpPlea),
@@ -9873,6 +9874,46 @@ namespace CalradiaRemembers.Diagnostics
             subjectProfile.Romantic.Status = prevStatus;
             behavior.Store.Set(subjectProfile);
             gossip.ForgetKnows(holder, subject.StringId);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestLegends(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("legends");
+         WorldEvents.LegendBehavior legends = WorldEvents.LegendBehavior.Instance;
+         if (t.Skip(legends == null || Hero.MainHero == null, "no campaign")) return t.Line();
+         if (t.Skip(!ModSettings.Legends, "Legends is off")) return t.Line();
+
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h.IsLord && !h.IsChild && h.Clan != null && h.Clan != Clan.PlayerClan && h.MapFaction != null).ToList();
+         Hero hero = lords.FirstOrDefault();
+         Hero witness = lords.FirstOrDefault(h => h != hero && h.Clan != hero?.Clan);
+         Hero stranger = lords.FirstOrDefault(h => hero != null && witness != null && h.Clan != hero.Clan && h.MapFaction != hero.MapFaction && h != witness);
+         if (t.Skip(stranger == null, "no three lords of two realms")) return t.Line();
+
+         int today = (int) CampaignTime.Now.ToDays;
+         var tale = new Logic.Legends.Legend {
+            Kind = Logic.Legends.LegendKind.SiegeHeld, Name = "The Holding of Nowhere", Day = today, HeroId = hero.StringId, HeroName = hero.Name.ToString(), ClanId = hero.Clan.StringId,
+            RealmId = hero.MapFaction.StringId, PlaceName = "Nowhere", FewMen = 120, ManyMen = 450, BesideIds = new List<string> {witness.StringId}
+         };
+
+         Logic.Legends.LegendLedger before = legends.Ledger;
+         try
+         {
+            legends.Ledger = new Logic.Legends.LegendLedger();
+            legends.Ledger.Legends.Add(tale);
+            t.Expect("theOneItHonoursCarriesItAtOnce", WorldEvents.LegendBehavior.LineFor(hero)?.Contains("your own deed") == true, true);
+            t.Expect("aWitnessCarriesItWithPride", WorldEvents.LegendBehavior.LineFor(witness)?.Contains("with pride") == true, true);
+            t.Expect("aStrangerHasNotHeard", WorldEvents.LegendBehavior.LineFor(stranger), null);
+
+            tale.Day = today - Logic.Legends.LegendPolicy.DaysToReachCalradia;
+            t.Expect("aMonthLaterTheStrangerHas", WorldEvents.LegendBehavior.LineFor(stranger)?.Contains("a story people tell") == true, true);
+            t.Expect("theFactsAreTheSameInEveryMouth", WorldEvents.LegendBehavior.LineFor(stranger)?.Contains("with 120 men against 450") == true, true);
+         }
+         finally
+         {
+            legends.Ledger = before;
          }
 
          return t.Line();

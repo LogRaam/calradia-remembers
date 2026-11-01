@@ -486,6 +486,7 @@ namespace CalradiaRemembers.Mapping
             CaptorParoleDays = ResolveCaptorOffers(hero, playerStatus, captiveIntent) && CaptorAudiencePolicy.OffersParole(captiveIntent) ? CaptorAudiencePolicy.ParoleDays : 0,
             CaptorParoleRealm = hero?.MapFaction?.Name?.ToString(),
             SparesPlayerVillages = RaidRestraintBehavior.SparesThePlayer(hero),
+            LegendKnown = LegendBehavior.LineFor(hero),
             CaptorExchangeCaptive = ResolveCaptorOffers(hero, playerStatus, captiveIntent) ? Labelled(Quests.CaptorTermsBehavior.ExchangeableCaptive(hero)) : null,
             CaptiveSceneAtSea = ResolveCaptiveSceneAtSea(hero, playerStatus),
             CaptiveSceneFocus = captiveSceneFocus,

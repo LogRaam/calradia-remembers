@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 613 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1477 types in 51 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 614 types in 65 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1484 types in 52 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 282 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -962,7 +962,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StrategicAssessmentContextBuilder` | public static class | Chooses the advisor and gathers the player's strategic context from the live campaign. |
 | `StrategicAssessmentService` | public static class | Populates a Balance of Power view model's Strategic Assessment: offline summary, cached counsel, or a fresh async LLM call. |
 
-### CalradiaRemembers.WorldEvents (15)
+### CalradiaRemembers.WorldEvents (16)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -971,6 +971,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ConversationEventFeeder` | public static class | Records social outcomes of CR conversations into the world-event store. |
 | `FoodTradeMemoryBehavior` | public class | Records a hungry town's memory of the player's food trade there. |
 | `HistoryQuery` | public class | What to read from the long-term tier (WorldEventStore.GetHistory). |
+| `LegendBehavior` | public class | Raises the campaign's legends and tells each character the one they carry. |
 | `MercenaryReputationBehavior` | public class | Judges the end of the player's mercenary contracts, and remembers them. |
 | `SchemeStore` | public class | Drives the v1.3 feud schemes: bitter rivals quietly plot against one another, the plots mature or collapse mechanically each day, and word of them spreads through the rumour network. |
 | `SecretLoverGossipBehavior` | public class | Once a secret lover has been secret long enough, an anonymous whisper of its EXISTENCE may begin to circulate (identity never leaks). |
@@ -2226,6 +2227,18 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ScatteredLootItem` | public class | One item taken from the player on a fled bandit escape, scattered among that culture's bands until recovered. |
 | `ScatteredLootLedger` | public class | Save-serializable carrier for every item currently scattered among bandit bands, awaiting recovery. |
 | `ScatteredLootPolicy` | public static class | Pure rules for recovering scattered captivity loot from defeated bandit bands. |
+
+### CalradiaRemembers.Logic.Legends (7)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `Legend` | public class | One deed passed into legend, as told for good. |
+| `LegendBattleFacts` | public class | A battle as it ended, read at the start of it for the numbers. |
+| `LegendBond` | public enum | What separates one who hears of a legend from the deed. |
+| `LegendKind` | public enum | What kind of deed passed into legend. |
+| `LegendLedger` | public class | Every legend of the campaign, for good. |
+| `LegendPolicy` | public static class | Which battles pass into legend, who has heard of them, and how each tells it. |
+| `LegendTellerFacts` | public class | What ties one character to a legend. |
 
 ### CalradiaRemembers.Logic.Letters (44)
 

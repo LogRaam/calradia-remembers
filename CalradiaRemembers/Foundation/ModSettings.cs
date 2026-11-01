@@ -83,6 +83,9 @@ namespace CalradiaRemembers.Foundation
       /// <summary>A friend or relative at war with the player may spare the player's villages (on without MCM).</summary>
       public static bool RaidRestraint => CrSettings.Instance?.RaidRestraint ?? true;
 
+      /// <summary>Extraordinary battles become legends that characters tell (on without MCM).</summary>
+      public static bool Legends => CrSettings.Instance?.Legends ?? true;
+
       /// <summary>Characters write to the player of their own accord; off, only the letters that matter still come (on without MCM).</summary>
       public static bool UnaskedLetters => CrSettings.Instance?.UnaskedLetters ?? true;
 
