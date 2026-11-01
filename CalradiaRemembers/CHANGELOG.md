@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.8.1.. open
+## v2.8.1.. 2026-10-31
 
 ### Fixed
 - **A tale's picture no longer lands on the pause menu** (Gabriel's screenshot, 31/10/2026). In Dark Leather the picture

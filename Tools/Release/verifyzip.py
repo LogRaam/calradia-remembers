@@ -653,6 +653,16 @@ MUST = [
     ("sdk",   b"IntimateActNames"),
     ("sdk",   b"LessFondActs"),
     ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
+    # 2.8.1
+    ("logic", b"KillAttemptPolicy"),
+    ("logic", b"ButtonGlowPolicy"),
+    ("logic", b"NpcDossierText"),
+    ("logic", b"ReplyRiderPolicy"),
+    ("mod", b"CrButtonArtWidget"),
+    ("mod", b"CrHoverGlowWidget"),
+    ("mod", b"DossierReader"),
+    ("mod", b"RefreshOpenDossier"),
+    ("mod", b"TickReplyRiders"),
     # 2.8.0
     ("logic", b"LetterBoxPolicy"),
     ("logic", b"LetterEnvelopePolicy"),
@@ -688,6 +698,7 @@ MUST = [
     ("sdk",   b"EnvelopeKnownThrough"),
 ]
 MUST_NOT = [
+    ("mod",   b"ResolveKnownGrievances"),   # 2.8.1: moved into DossierReader, shared with the encyclopedia
     ("logic", b"LetterPacing"),   # 2.8.0: the letter box replaced the mailbox budget
     ("logic", b"LetterBudget"),   # 2.8.0: same
     ("mod",   "event:/ui/default".encode("utf-16-le")),   # 2.8.0: the courier's sound road that played nothing
@@ -774,6 +785,13 @@ for path, needle in [("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf
                      ("CalradiaRemembers/ModuleData/Languages/EN/std_CalradiaRemembers_mcm.xml", "CR_MCM_"),
                      ("CalradiaRemembers/ModuleData/Languages/README.txt", "language"),
                      ("CalradiaRemembers/ModuleData/Custom/README.txt", "behavior_guidelines_merchant.txt"),
+                     # 2.8.1
+                     ("CalradiaRemembers/GUI/Images/cr_hover_glow.png", "PNG"),
+                     ("CalradiaRemembers/GUI/Images/cr_killroll_panel.png", "PNG"),
+                     ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersChat.xml", "@ShowPanelKindnesses"),
+                     ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersChat_Manuscript.xml", "@ShowPanelKindnesses"),
+                     ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersCouncil.xml", "@ShowPanelKindnesses"),
+                     ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersChat_Manuscript.xml", "CrHoverGlowWidget"),
                      # 2.8.0
                      ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersLetterBox.xml", "cr_mailbox"),
                      ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersLetterBox.xml", "ScrollbarWidget"),

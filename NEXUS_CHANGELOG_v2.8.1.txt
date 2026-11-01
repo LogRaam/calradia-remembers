@@ -1,0 +1,30 @@
+Version 2.8.1
+
+A killing attempt played out in front of you, a character panel that holds what you have learned of them, letter riders who catch you on the move, and two letter settings.
+
+New
+
+- A killing attempt is played in front of you. In a chat, the window names your chance and why, Strike rolls a number that stops on the score, and the story of what happened is then told in the conversation. After a kill only Leave remains; after a failure the character answers you. A captive who kills the captor escapes as the scene closes. Outside a chat, at the council, the game's popup now names the chance too. (Thank you, zhenja1.)
+- The character panel beside the chat, and at the council, now holds what you have learned of them: why they regard you as they do, their bearing toward you, what matters most to them, their fears and superstitions, the gifts they love or that leave them cold, your bond, their kindnesses and grievances, the accords between you, a nemesis's history, and at Hardcore what they lived through. What a reply teaches you shows at once, and what you have not learned stays hidden.
+- Letter Riders on the Map, in the MCM: turn it off and no rider comes, the letter simply reaches your letter box on its date. (Thank you, kurushimi00.)
+- Unasked Letters, in the MCM: turn it off and characters stop writing of their own accord. Replies, war summons and levies, divorce, news of a child and child support, blackmail, jealous threats, patrol reports, farewells, other mods' letters and a courtship's marriage letter still come. (Thank you, kurushimi00.)
+
+Fixed
+
+- A letter rider now catches you on the move. Nobody moving at speed ever received one before: the rider now turns when you turn, hands over the letter as it comes near, and rides a little faster than you if you outrun it. (Thank you, kurushimi00.)
+- A character the game keeps alive, such as a notable who gave you a task still under way, is refused before the killing window opens. You no longer read that you killed someone who then goes on living. (Thank you, zhenja1.)
+- A tale's picture no longer lands on the pause menu.
+
+Changed
+
+- The chat's buttons answer the cursor: a gold halo fades in around a button and deepens on a press, and text links change colour. A disabled button stays dark.
+- The World's Initiative hints in the MCM no longer say that letters take turns. Letters Count As stays, for the letters that still ask for a turn: a lord's stance letter, a companion's farewell, a divorce demand.
+
+Developer tools
+
+- cr.kill_roll [chance] [roll] plays the killing window in the open chat with nobody harmed.
+- cr.test all gains kill_roll, letter_riders, hover_glow and npc_dossier.
+
+Notes
+
+- Existing saves load as they are.
