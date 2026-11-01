@@ -100,6 +100,9 @@ namespace CalradiaRemembers.Stance
       internal static bool SparesThePlayer(Hero lord)
          => lord != null && Instance != null && ModSettings.RaidRestraint && Clan.PlayerClan?.Villages?.Count > 0 && Instance._sparing.Contains(lord.StringId);
 
+      /// <summary>True while this lord spares the player's villages, for a letter still on the road.</summary>
+      internal bool StillSpares(string heroId) => heroId != null && _sparing.Contains(heroId);
+
       /// <summary>Puts a ledger in force. Internal for cr.test all.</summary>
       internal void ReplaceLedger(RaidRestraintLedger ledger)
       {
@@ -190,7 +193,7 @@ namespace CalradiaRemembers.Stance
       };
 
       // DepaHN's son-in-law: the kinship label stops at blood, so a marriage is walked here.
-      private static bool IsKinOrInLaw(Hero lord)
+      internal static bool IsKinOrInLaw(Hero lord)
       {
          if (EncounterContextBuilder.ResolveKinshipToPlayer(lord) != null) return true;
 
@@ -225,6 +228,6 @@ namespace CalradiaRemembers.Stance
          return theirs != null && mine != null && theirs != mine && theirs.IsAtWarWith(mine);
       }
 
-      private static Hero FindHero(string id) => Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == id);
+      internal static Hero FindHero(string id) => Hero.AllAliveHeroes.FirstOrDefault(h => h.StringId == id);
    }
 }

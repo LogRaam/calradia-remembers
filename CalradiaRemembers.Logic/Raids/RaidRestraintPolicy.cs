@@ -6,6 +6,9 @@
 
 #region
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using NpcMemoryService.Core.Standing;
 
 #endregion
@@ -53,6 +56,18 @@ namespace CalradiaRemembers.Logic.Raids
          int kinship = f.IsKin && f.Regard >= KinFloor ? ChanceOfKin : 0;
 
          return System.Math.Max(friendship, kinship);
+      }
+
+      /// <summary>
+      ///   The one lord who tells the player, for one realm's war: the closest of those sparing them who may write. None
+      ///   when the player was already told: Gabriel accepted one letter a war, not five.
+      /// </summary>
+      public static RaidRestraint WhoWrites(IEnumerable<RaidRestraint> drawsOfThisWar, Func<RaidRestraint, int?> regardOfAWriter)
+      {
+         List<RaidRestraint> draws = drawsOfThisWar?.ToList() ?? new List<RaidRestraint>();
+         if (regardOfAWriter == null || draws.Any(d => d.PlayerWasTold)) return null;
+
+         return draws.Where(d => d.IsSparing && regardOfAWriter(d).HasValue).OrderByDescending(d => regardOfAWriter(d).Value).FirstOrDefault();
       }
 
       /// <summary>True when a draw from 0 to 99 lands inside the chance.</summary>

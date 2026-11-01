@@ -31,6 +31,9 @@ namespace CalradiaRemembers.Logic
         /// <summary>The last word of someone the player abandoned in a crisis: it asks nothing, but it must be read.</summary>
         public const int WeightAbandonedReproach = 85;
 
+        /// <summary>A friend's word in a war just begun: it asks nothing, and arrives with the news that makes it matter.</summary>
+        public const int WeightVillagesSpared = 60;
+
         /// <summary>A jealous confrontation or threat: high emotional stakes, often the opening of a conflict.</summary>
         public const int WeightJealousThreat = 85;
 
@@ -185,6 +188,7 @@ namespace CalradiaRemembers.Logic
                 case LetterReason.InterceptionMissed: return WeightInterceptionMissed;
                 case LetterReason.StandingAim: return WeightStandingAim;
                 case LetterReason.AbandonedReproach: return WeightAbandonedReproach;
+                case LetterReason.VillagesSpared: return WeightVillagesSpared;
 
                 case LetterReason.AwaitingReply: return WeightAwaitingReply;
                 case LetterReason.RomanticCorrespondence: return WeightRomanticCorrespondence;

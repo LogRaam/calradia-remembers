@@ -31,6 +31,9 @@ namespace CalradiaRemembers.Logic.Raids
       /// <summary>Why he stopped sparing them, or null while the restraint stands.</summary>
       public string BrokenBecause { get; set; }
 
+      /// <summary>True when he is the one who wrote to the player about this war.</summary>
+      public bool PlayerWasTold { get; set; }
+
       /// <summary>True while the player's villages are safe from him.</summary>
       [JsonIgnore]
       public bool IsSparing => Spares && BrokenBecause == null;

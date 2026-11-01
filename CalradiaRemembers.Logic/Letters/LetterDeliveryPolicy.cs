@@ -80,6 +80,7 @@ namespace CalradiaRemembers.Logic.Letters
                 case LetterReason.SpouseDivorceEscalation:
                 case LetterReason.StanceHostility:
                 case LetterReason.ReinforcementRequest:
+                case LetterReason.VillagesSpared:
                 case LetterReason.MarriageProposal:
                 case LetterReason.StanceFavor:
                 case LetterReason.JealousThreat:

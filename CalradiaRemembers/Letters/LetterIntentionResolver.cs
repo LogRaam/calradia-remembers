@@ -88,6 +88,8 @@ namespace CalradiaRemembers.Letters
 
             public bool PleaStillStands(string senderId) => LetterPleas.Desk?.StillStands(senderId) == true;
 
+            public bool RestraintStillStands(string senderId) => Stance.RaidRestraintBehavior.Instance?.StillSpares(senderId) == true;
+
             public bool SenderStanceStillHostile(string senderId)
             {
                 StanceConsequence? v = Verdict(HeroById(senderId));

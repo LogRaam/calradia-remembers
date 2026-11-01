@@ -285,7 +285,7 @@ DepaHN's second post, three ideas in his order of importance, traced 27/10/2026 
 the raid lock and the calls for help after 2.7.21, each designed in prose with Gabriel first; legends after them; the
 model's review of war and peace parked.
 
-- **1a. BUILT 01/11/2026 (2.8.2), not play-verified; see the CHANGELOG. A draw at each war, not a lock (Gabriel: "un ami PEUT ne pas toucher le village"). Left out: sieges (ruled), the letter that tells the player (next step).** A lord's stance toward the player when a war breaks out, and the raid lock. DepaHN: "when a war breaks out
+- **1a. BUILT 01/11/2026 (2.8.2), not play-verified; see the CHANGELOG. A draw at each war, not a lock (Gabriel: "un ami PEUT ne pas toucher le village"). The closest friend tells the player by letter, once per war. Left out: sieges (ruled).** A lord's stance toward the player when a war breaks out, and the raid lock. DepaHN: "when a war breaks out
   and a lord has a very high relationship with me, the mod could forbid him from raiding or burning my villages [...]
   the LLM could decide each lord's stance once, when the war starts"; "a close friend was the first to burn my
   villages". Nothing exists: no lord stance, no raid or party-AI patch (CR's Harmony patches are UI, captivity,

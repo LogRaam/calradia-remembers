@@ -40,7 +40,7 @@ namespace CalradiaRemembers
 
          string draws = behavior.Ledger.Draws.Count == 0
             ? "  no draw yet (friends and kin draw at the next daily tick, once you hold a village)"
-            : string.Join("\n", behavior.Ledger.Draws.Select(d => $"  {d.HeroId} ({d.FactionId}), day {d.Day}: {(d.IsSparing ? "spares your villages" : d.Spares ? $"no longer spares them: {d.BrokenBecause}" : "drew to raid")}"));
+            : string.Join("\n", behavior.Ledger.Draws.Select(d => $"  {d.HeroId} ({d.FactionId}), day {d.Day}: {(d.IsSparing ? "spares your villages" : d.Spares ? $"no longer spares them: {d.BrokenBecause}" : "drew to raid")}{(d.PlayerWasTold ? ", wrote to you" : "")}"));
 
          return $"cr.raid_restraint ({(ModSettings.RaidRestraint ? "ON" : "OFF")}):\n{draws}";
       }

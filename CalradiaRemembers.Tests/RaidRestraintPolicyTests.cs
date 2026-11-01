@@ -141,6 +141,42 @@ namespace CalradiaRemembers.Tests
          read.Draws[1].IsSparing.Should().BeFalse();
          read.Draws[2].IsSparing.Should().BeFalse();
          read.Draws[2].BrokenBecause.Should().Be("a vendetta");
+         read.Draws[0].PlayerWasTold.Should().BeFalse();
+      }
+
+      private static RaidRestraint Draw(string hero, bool spares = true, bool told = false)
+         => new() {HeroId = hero, FactionId = "realm", Spares = spares, PlayerWasTold = told};
+
+      [Test]
+      public void GIVEN_several_friends_who_spare_WHEN_the_war_is_told_THEN_only_the_closest_writes()
+      {
+         // STAKE: Gabriel accepted one letter from the closest friend, so a war does not bring five.
+         RaidRestraint writer = RaidRestraintPolicy.WhoWrites(new[] {Draw("near"), Draw("nearest"), Draw("far")}, d => d.HeroId == "nearest" ? 80 : d.HeroId == "near" ? 40 : 20);
+
+         writer.HeroId.Should().Be("nearest");
+      }
+
+      [Test]
+      public void GIVEN_the_player_already_told_WHEN_the_next_day_comes_THEN_nobody_writes()
+      {
+         // STAKE: the letter is one word for one war, not a daily reassurance.
+         RaidRestraintPolicy.WhoWrites(new[] {Draw("near", told: true), Draw("nearest")}, d => 50).Should().BeNull();
+      }
+
+      [Test]
+      public void GIVEN_a_lord_who_drew_to_raid_WHEN_the_war_is_told_THEN_he_does_not_write()
+      {
+         // STAKE: NPCs never lie: he cannot promise what he drew not to do, however close he is.
+         RaidRestraintPolicy.WhoWrites(new[] {Draw("raider", false)}, d => 100).Should().BeNull();
+      }
+
+      [Test]
+      public void GIVEN_the_closest_friend_cannot_write_WHEN_the_war_is_told_THEN_the_next_one_does()
+      {
+         // STAKE: a prisoner or a silenced lord must not keep the word from reaching the player.
+         RaidRestraint writer = RaidRestraintPolicy.WhoWrites(new[] {Draw("captive"), Draw("free")}, d => d.HeroId == "captive" ? null : 30);
+
+         writer.HeroId.Should().Be("free");
       }
 
       [TestCase(null)]

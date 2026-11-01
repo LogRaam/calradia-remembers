@@ -28,6 +28,10 @@ namespace CalradiaRemembers.Logic.Letters
         bool SpouseStillDemandsDivorce(string senderId);
         bool SpouseStillEstranging(string senderId);
         bool PleaStillStands(string senderId);
+
+        /// <summary>The sender still spares the player's villages: not broken, and the war not over.</summary>
+        bool RestraintStillStands(string senderId);
+
         bool SenderStanceStillHostile(string senderId);
         bool SenderStanceStillFriendly(string senderId);
         bool SenderHasLiveJealousyGrudge(string senderId);
@@ -58,6 +62,9 @@ namespace CalradiaRemembers.Logic.Letters
                 // A call for help is stale once its crisis closed on the road (DepaHN, 27/10/2026). Nothing sent this
                 // reason before 01/11/2026, when its rule read "still at war with the player": the opposite of a friend.
                 case LetterReason.ReinforcementRequest:    return world.PleaStillStands(senderId);
+
+                // The text is written at opening: a resolve that broke on the road must not be promised after the fact.
+                case LetterReason.VillagesSpared:          return world.RestraintStillStands(senderId);
 
                 // An open-enmity / friendship letter is stale once the sender's posture flipped the other way.
                 case LetterReason.StanceHostility:         return world.SenderStanceStillHostile(senderId);

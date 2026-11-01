@@ -218,7 +218,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("secret_propagation", Severity.Light, "Mystery-lover (phase 3b-2): record a live lord (forced to neutral regard so he is not the player's confidant) as KNOWING the secret, then drive the REAL propagation (DebugSpreadOnce, bypassing only the daily chance) and assert the secret reaches one of his friends who then knows it too, never the player. Forgets both ledger entries and restores the teller's regard afterwards", TestSecretPropagation),
          new SelfTest("pay_for_silence", Severity.Light, "Mystery-lover (phase 3b-3): mark a companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL bridge dispatch of pay_for_silence with a price and assert the gold moves player->lord, the hush is stamped as recently paid (easing the leverage prompt), and a memory is kept. Restores both purses, the flag, the ledger, and trims the memory afterwards", TestPayForSilence),
          new SelfTest("player_violence", Severity.Light, "Player violence (player request, Inc 2): drives the REAL bridge dispatch of kill_npc against a live lord and asserts THE guarantee, that with the MCM lethal toggle off (its default) the attempt is refused and the victim is still alive. Also checks the scene reader measures both fighters and that robbery is never barred by the lethal toggle. Mutates nothing while the toggle is off", TestPlayerViolence),
-         new SelfTest("raid_restraint", Severity.Light, "DepaHN (Nexus, 27/10/2026): a close friend was the first to burn his villages; Gabriel: a friend may hold back, by chance. Checks the game scores targets through our model (a mod that replaced it would silently end the feature), then on a lord and an enemy village: a failed draw leaves its score, a lord who drew to spare scores it at zero, a broken restraint gives the score back. Restores the ledger", TestRaidRestraint),
+         new SelfTest("raid_restraint", Severity.Light, "DepaHN (Nexus, 27/10/2026): a close friend was the first to burn his villages; Gabriel: a friend may hold back, by chance. Checks the game scores targets through our model (a mod that replaced it would silently end the feature), then on a lord and an enemy village: a failed draw leaves its score, a lord who drew to spare scores it at zero, a broken restraint gives the score back, and a lord who may write tells the player once per war with a letter dropped on the road once he breaks. Restores the ledger, sends no letter", TestRaidRestraint),
          new SelfTest("captor_terms", Severity.Light, "Windmolen (Nexus, 26/10/2026): captors should be able to free or ransom the player; Gabriel: other scenarios than abuse, with an oath the game holds the player to. Refuses a ransom, an oath and an exchange when the player is not a prisoner, with no gold moved and nothing sworn, then drives the REAL oath on a lord already met, with no release: kept, it raises his regard and leaves a memory; broken, it lowers it and leaves a memory. Restores the lord and the ledger, and leaves no grudge", TestCaptorTerms),
          new SelfTest("help_plea", Severity.Light, "DepaHN (Nexus, 27/10/2026): friends, kin and allies should write when they need help, and Gabriel (01/11/2026): the game holds the player to what follows, thrown letter or not. Drives the REAL behavior on a lord already met, with no letter written: a letter still on the road costs nothing when the plea closes; on arrival the plea waits for an answer with a deadline; Send moves the true sum and closes it; a refusal lowers regard; a promise opens a journal entry and a siege already over closes it with no blame. Restores gold, regard and the ledger, and leaves no grievance or kindness", TestHelpPlea),
          new SelfTest("npc_dossier", Severity.Light, "Gabriel (31/10/2026): the NPC panel should hold everything the player has learned that the encyclopedia shows. The model knows truths the player has not learned, so the panel must keep them hidden. Opens a REAL chat ViewModel's dossier on a lord already met (no model call): a fear not yet learned stays out of it, the discovery of that fear marks it learned, the open panel shows it at once, and its grievances and kindnesses match the reader the encyclopedia uses. Restores the lord's fear", TestNpcDossier),
@@ -9901,6 +9901,7 @@ namespace CalradiaRemembers.Diagnostics
 
          Logic.Raids.RaidRestraintLedger before = restraint.Ledger;
          Stance.RaidRestraintBehavior.DebugProtectedClan = village.OwnerClan;
+         Letters.VillagesSparedLetterBehavior.DebugSuppressLetters = true;
          try
          {
             var ledger = new Logic.Raids.RaidRestraintLedger();
@@ -9917,12 +9918,29 @@ namespace CalradiaRemembers.Diagnostics
             restraint.ReplaceLedger(ledger);
             t.Expect("aFriendWhoSparesScoresItAtZero", Score(), 0f);
 
+            t.Expect("aLetterOnTheRoadStillHolds", restraint.StillSpares(lord.StringId), true);
             restraint.BreakForHouse(lord.Clan, "cr.test");
             t.Expect("aBrokenRestraintGivesItBack", Score() > 0f, true);
+            t.Expect("aLetterOnTheRoadIsNowStale", restraint.StillSpares(lord.StringId), false);
+
+            Hero writer = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.HasMet && h.Clan != Clan.PlayerClan && Mapping.ActionGate.Allows(h, ActionKind.Letter)
+                                                                  && h.MapFaction != null && behavior?.Store?.Get(h.StringId) != null);
+            if (writer != null)
+            {
+               ledger = new Logic.Raids.RaidRestraintLedger();
+               ledger.Add(writer.StringId, writer.MapFaction.StringId, true, 0);
+               ledger.Add("nobody", writer.MapFaction.StringId, true, 0);
+               restraint.ReplaceLedger(ledger);
+               Letters.VillagesSparedLetterBehavior.TellThePlayer();
+               Letters.VillagesSparedLetterBehavior.TellThePlayer();
+               t.Expect("oneWriterOneWar", ledger.Draws.Count(d => d.PlayerWasTold), 1);
+               t.Expect("theLordWhoMayWriteIsTheOne", ledger.Draws[0].PlayerWasTold, true);
+            }
          }
          finally
          {
             Stance.RaidRestraintBehavior.DebugProtectedClan = null;
+            Letters.VillagesSparedLetterBehavior.DebugSuppressLetters = false;
             restraint.ReplaceLedger(before);
          }
 

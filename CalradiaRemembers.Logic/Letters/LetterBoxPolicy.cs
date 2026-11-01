@@ -71,6 +71,7 @@ namespace CalradiaRemembers.Logic.Letters
             LetterReason.ReinforcementRequest => "pleas",
             // Its own subject too: a player who threw the plea silenced the asking, not what followed from it.
             LetterReason.AbandonedReproach => "reproaches",
+            LetterReason.VillagesSpared => "spared_villages",
             _ => reason.ToString()
         };
 

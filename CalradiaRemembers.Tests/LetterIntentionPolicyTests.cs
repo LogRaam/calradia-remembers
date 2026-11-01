@@ -55,6 +55,15 @@ namespace CalradiaRemembers.Tests
             Holds(LetterReason.ReinforcementRequest, new StubWorld {PleaStands = false}).Should().BeFalse();
         }
 
+        // A letter's text is written at opening: a lord who broke his resolve, or a war that ended, on the road, would
+        // otherwise promise the player what is no longer true, and NPCs never lie.
+        [Test]
+        public void GIVEN_a_promise_to_spare_villages_WHEN_it_broke_on_the_road_THEN_the_letter_does_not_arrive()
+        {
+            Holds(LetterReason.VillagesSpared, new StubWorld {RestraintStands = true}).Should().BeTrue();
+            Holds(LetterReason.VillagesSpared, new StubWorld {RestraintStands = false}).Should().BeFalse();
+        }
+
         // A hostility letter announces an open threat; if the sender's posture has already cooled, delivering it
         // anyway would read as a threat that was never withdrawn.
         [Test]
@@ -153,6 +162,8 @@ namespace CalradiaRemembers.Tests
             public bool DivorceDemand { get; set; }
             public bool Estranging { get; set; }
             public bool PleaStands { get; set; }
+
+            public bool RestraintStands { get; set; }
             public bool StanceHostile { get; set; }
             public bool StanceFriendly { get; set; }
             public bool JealousyGrudge { get; set; }
@@ -161,6 +172,8 @@ namespace CalradiaRemembers.Tests
             public bool SpouseStillDemandsDivorce(string senderId) => DivorceDemand;
             public bool SpouseStillEstranging(string senderId) => Estranging;
             public bool PleaStillStands(string senderId) => PleaStands;
+
+            public bool RestraintStillStands(string senderId) => RestraintStands;
             public bool SenderStanceStillHostile(string senderId) => StanceHostile;
             public bool SenderStanceStillFriendly(string senderId) => StanceFriendly;
             public bool SenderHasLiveJealousyGrudge(string senderId) => JealousyGrudge;

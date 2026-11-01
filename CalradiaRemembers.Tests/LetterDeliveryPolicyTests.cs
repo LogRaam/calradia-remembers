@@ -173,6 +173,7 @@ namespace CalradiaRemembers.Tests
         [TestCase(LetterReason.SpouseDivorceEscalation)]
         [TestCase(LetterReason.StanceHostility)]
         [TestCase(LetterReason.ReinforcementRequest)]
+        [TestCase(LetterReason.VillagesSpared)]
         [TestCase(LetterReason.MarriageProposal)]
         [TestCase(LetterReason.StanceFavor)]
         [TestCase(LetterReason.JealousThreat)]
