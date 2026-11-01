@@ -210,7 +210,7 @@ namespace CalradiaRemembers.Letters
       }
 
       [DataSourceProperty]
-      public bool ShowAcknowledge => _state.ShowsAcknowledge && !IsOfferLetter;
+      public bool ShowAcknowledge => _state.ShowsAcknowledge && !IsOfferLetter && Plea == null;
 
       [DataSourceProperty]
       public bool ShowInput => _state.ShowsInput;

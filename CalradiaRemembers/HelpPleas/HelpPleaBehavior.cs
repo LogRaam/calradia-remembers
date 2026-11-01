@@ -139,6 +139,15 @@ namespace CalradiaRemembers.HelpPleas
       }
 
       /// <inheritdoc />
+      public void OnLetterStopped(string senderId)
+      {
+         HelpPlea plea = Ledger.From(senderId);
+         if (plea == null || plea.ReceivedOnDay.HasValue) return;
+
+         Close(plea, null, false, false);
+      }
+
+      /// <inheritdoc />
       public bool StillStands(string senderId) => Ledger.From(senderId) != null;
 
       /// <inheritdoc />

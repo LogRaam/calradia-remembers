@@ -55,11 +55,11 @@ namespace CalradiaRemembers.Logic.HelpPleas
             case HelpIncapacity.TooPoor: return "You do not have the sum. Nobody will hold it against you.";
          }
 
-         string left = daysLeft.HasValue && daysLeft.Value > 0 ? $"{daysLeft.Value} days to answer. " : "";
+         if (ask != HelpAsk.Relief) return "Refusing will disappoint them. Leaving this letter unanswered will be remembered.";
 
-         return ask == HelpAsk.Relief
-            ? $"{left}A promise you do not keep, or a letter left unanswered, will be remembered."
-            : $"{left}A letter left unanswered will be remembered.";
+         string left = daysLeft.HasValue && daysLeft.Value > 0 ? $"You have {daysLeft.Value} days to reach them. " : "";
+
+         return $"{left}A promise you do not keep, or a letter left unanswered, will be remembered.";
       }
 
       /// <summary>The journal entry of a promised relief.</summary>

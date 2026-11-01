@@ -30,6 +30,9 @@ namespace CalradiaRemembers.Letters
       /// <summary>The courier handed the letter over.</summary>
       void OnLetterReached(string senderId, int today);
 
+      /// <summary>The letter arrived about a subject the player had turned off: it was never seen, and asks nothing of them.</summary>
+      void OnLetterStopped(string senderId);
+
       /// <summary>True while this writer has a plea open: its letter is not stale.</summary>
       bool StillStands(string senderId);
 

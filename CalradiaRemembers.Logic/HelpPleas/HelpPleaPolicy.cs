@@ -342,7 +342,7 @@ namespace CalradiaRemembers.Logic.HelpPleas
          switch (f.Answer)
          {
             case HelpAnswer.Promised:
-               if (f.WasOnTheWay) return new HelpVerdict {Feeling = HelpFeeling.TooLate};
+               if (f.WasOnTheWay || f.Incapacity == HelpIncapacity.Captive) return new HelpVerdict {Feeling = HelpFeeling.TooLate};
 
                return new HelpVerdict {Feeling = HelpFeeling.Betrayed, RegardDelta = f.Disaster ? -8 : -5, GrudgeMagnitude = f.Disaster ? 55 : 30};
             case HelpAnswer.Refused:

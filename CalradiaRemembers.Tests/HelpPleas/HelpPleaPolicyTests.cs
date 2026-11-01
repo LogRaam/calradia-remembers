@@ -213,6 +213,16 @@ namespace CalradiaRemembers.Tests.HelpPleas
       }
 
       [Test]
+      public void GIVEN_a_promise_WHEN_the_player_was_taken_prisoner_THEN_the_word_is_not_broken()
+      {
+         // STAKE: Gabriel's default: a prisoner is not to blame. Captured on the way to a siege is no betrayal.
+         HelpVerdict verdict = HelpPleaPolicy.Judge(new HelpCloseFacts {LetterReached = true, Answer = HelpAnswer.Promised, Incapacity = HelpIncapacity.Captive, Disaster = true});
+
+         verdict.GrudgeMagnitude.Should().Be(0);
+         verdict.RegardDelta.Should().Be(0);
+      }
+
+      [Test]
       public void GIVEN_a_promise_and_a_ride_WHEN_the_place_fell_first_THEN_the_word_is_not_broken()
       {
          // STAKE: a siege can end in days; a player who set out at once and came too late kept faith.
@@ -281,7 +291,8 @@ namespace CalradiaRemembers.Tests.HelpPleas
       public void GIVEN_a_capable_player_WHEN_the_note_is_read_THEN_they_know_what_silence_costs()
       {
          // STAKE: a grievance the player was never warned of feels like a bug; the price is told before the choice.
-         HelpPleaWording.Note(HelpAsk.Coin, HelpIncapacity.None, 9).Should().Contain("9 days").And.Contain("remembered");
+         HelpPleaWording.Note(HelpAsk.Relief, HelpIncapacity.None, 9).Should().Contain("9 days").And.Contain("remembered");
+         HelpPleaWording.Note(HelpAsk.Coin, HelpIncapacity.None, 9).Should().Contain("remembered");
          HelpPleaWording.Note(HelpAsk.Relief, HelpIncapacity.TooFewMen, 9).Should().Contain("Nobody will hold it against you");
       }
 

@@ -9845,7 +9845,14 @@ namespace CalradiaRemembers.Diagnostics
             Logic.HelpPleas.HelpPlea coin = pleas.Open(lord, Logic.HelpPleas.HelpCrisis.Ruined, lord.Clan, null, null, amount, "test:coin", today);
             pleas.OnLetterReached(lord.StringId, today);
             t.Expect("onArrivalItWaitsForTheAnswer", pleas.Waiting(lord.StringId) == coin, true);
-            t.Expect("theLetterShowsTheSumOnItsButton", pleas.AwaitingAnswerFrom(lord.StringId)?.AcceptText, $"Send {amount} denars");
+            var window = new LetterViewModel();
+            window.SetupRead(new PendingLetter {Reason = LetterReason.ReinforcementRequest, Content = "Help."}, profile);
+            t.Expect("theLetterShowsTheSumOnItsButton", window.AcceptOfferButtonText, $"Send {amount} denars");
+            t.Expect("theYesIsOnOffer", window.ShowAcceptOffer, true);
+            t.Expect("theNoIsOnOffer", window.ShowDeclineOffer, true);
+            t.Expect("theFreeReplyIsNot", window.ShowReplyButton, false);
+            t.Expect("norAcknowledge", window.ShowAcknowledge, false);
+            t.Expect("thePriceIsTold", window.ShowOfferLapsedNote, true);
             t.Expect("theDeadlineRunsFromTheArrival", coin.DeadlineDay, today + Logic.HelpPleas.HelpPleaPolicy.DaysToAnswer);
             int before = lord.Gold;
             pleas.Accept(coin);
@@ -9857,6 +9864,13 @@ namespace CalradiaRemembers.Diagnostics
             Logic.HelpPleas.HelpPlea refused = pleas.Open(lord, Logic.HelpPleas.HelpCrisis.Starving, lord.Clan, quiet, null, Logic.HelpPleas.HelpPleaPolicy.FoodAsked, "test:food", today);
             pleas.OnLetterReached(lord.StringId, today);
             pleas.Refuse(refused);
+            var answered = new LetterViewModel();
+            answered.SetupRead(new PendingLetter {Reason = LetterReason.ReinforcementRequest, Content = "Help."}, profile);
+            t.Expect("onceAnsweredTheButtonsAreGone", answered.ShowDeclineOffer, false);
+
+            Logic.HelpPleas.HelpPlea stopped = pleas.Open(lord, Logic.HelpPleas.HelpCrisis.Ruined, lord.Clan, null, null, amount, "test:stopped", today);
+            pleas.OnLetterStopped(lord.StringId);
+            t.Expect("aLetterTheSwitchStoppedClosesItsPlea", pleas.Ledger.From(lord.StringId) == null, true);
             bool couldHave = refused.IncapacityWhenAnswered == Logic.HelpPleas.HelpIncapacity.None;
             t.Expect("anHonestNoLowersRegardOnlyIfThePlayerCould", profile.ReputationWithPlayer < warm, couldHave);
 

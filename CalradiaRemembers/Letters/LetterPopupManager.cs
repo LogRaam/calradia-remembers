@@ -44,6 +44,13 @@ namespace CalradiaRemembers.Letters
             if (!unwritten) StoryLog.WriteLetterReceived(letter.SenderName, letter.Content ?? "(The letter is blank.)", arrival);
             MarkReceived(letter, senderProfile, arrival);
 
+            if (letter.Reason == LetterReason.ReinforcementRequest)
+            {
+                // Set aside unseen is not a letter thrown away: the player asked not to receive these before it came.
+                if (silenced) LetterPleas.Desk?.OnLetterStopped(senderProfile.Id);
+                else LetterPleas.Desk?.OnLetterReached(senderProfile.Id, arrival);
+            }
+
             if (silenced) LetterBox.SetAsideSilenced(letter, senderProfile);
             else LetterBox.Receive(letter, senderProfile);
 
@@ -107,8 +114,6 @@ namespace CalradiaRemembers.Letters
 
             if (letter.Reason == LetterReason.ChildSupportRequest)
                 OpenChildSupportQuest(profile, today, behavior?.Store);
-            if (letter.Reason == LetterReason.ReinforcementRequest)
-                LetterPleas.Desk?.OnLetterReached(profile.Id, today);
 
             ModLog.Info($"[LETTER] received from {profile.Name} ({letter.Reason}).");
         }
