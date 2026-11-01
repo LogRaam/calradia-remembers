@@ -628,6 +628,11 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool CaptorConversations { get; set; } = true;
 
+      [SettingPropertyBool("{=CR_MCM_RaidRestraint}Friends May Spare Your Villages", RequireRestart = false, Order = 15,
+         HintText = "{=CR_MCM_RaidRestraint_Hint}When a war sets a friend or relative against you, they draw once: the closer they are, the likelier they leave your villages alone. Off: every lord raids as in the base game.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
+      public bool RaidRestraint { get; set; } = true;
+
       // "Intercepted letters can leak" (Order 12) is gone since 26/09/2026: Gabriel ruled that an intercepted letter
       // with substance ALWAYS becomes a secret carried in the world (CourierSecretBehavior); the one switch left is
       // Invulnerable Couriers above.

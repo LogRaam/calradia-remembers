@@ -80,6 +80,9 @@ namespace CalradiaRemembers.Foundation
       /// <summary>A lord who holds the player may send for them to talk, at every content level (on without MCM).</summary>
       public static bool CaptorConversations => CrSettings.Instance?.CaptorConversations ?? true;
 
+      /// <summary>A friend or relative at war with the player may spare the player's villages (on without MCM).</summary>
+      public static bool RaidRestraint => CrSettings.Instance?.RaidRestraint ?? true;
+
       /// <summary>Characters write to the player of their own accord; off, only the letters that matter still come (on without MCM).</summary>
       public static bool UnaskedLetters => CrSettings.Instance?.UnaskedLetters ?? true;
 

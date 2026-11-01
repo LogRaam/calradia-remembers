@@ -31,6 +31,20 @@ namespace CalradiaRemembers
          return $"cr.help_pleas (today day {HelpPleas.HelpPleaBehavior.Today}, unasked letters {(ModSettings.UnaskedLetters ? "ON" : "OFF")}):\n{open}\n  writers who have asked: {behavior.Ledger.LastPleaDay.Count}";
       }
 
+      /// <summary>cr.raid_restraint: what each lord drew in the wars against the player.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("raid_restraint", "cr")]
+      public static string RaidRestraintStatus(List<string> args)
+      {
+         Stance.RaidRestraintBehavior behavior = Stance.RaidRestraintBehavior.Instance;
+         if (behavior == null) return "cr.raid_restraint: no campaign loaded.";
+
+         string draws = behavior.Ledger.Draws.Count == 0
+            ? "  no draw yet (friends and kin draw at the next daily tick, once you hold a village)"
+            : string.Join("\n", behavior.Ledger.Draws.Select(d => $"  {d.HeroId} ({d.FactionId}), day {d.Day}: {(d.IsSparing ? "spares your villages" : d.Spares ? $"no longer spares them: {d.BrokenBecause}" : "drew to raid")}"));
+
+         return $"cr.raid_restraint ({(ModSettings.RaidRestraint ? "ON" : "OFF")}):\n{draws}";
+      }
+
       /// <summary>cr.help_plea &lt;name&gt; [coin|food]: a chosen character writes to the player now, for coin by default.</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("help_plea", "cr")]
       public static string HelpPleaForce(List<string> args)

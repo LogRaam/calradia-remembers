@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 610 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1473 types in 50 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 612 types in 65 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1477 types in 51 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 282 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 24500+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 25000+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 9000+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -790,7 +790,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `PlayerPresenceResolver` | public static class | Resolves an NPC's live PresenceTier and the "is beside the player" gate that most callers want. |
 
-### CalradiaRemembers.Stance (9)
+### CalradiaRemembers.Stance (11)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -799,6 +799,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AmbushMissionStartPatch` | public static class | Starts a pending town-centre ambush brawl or a pending town duel, once the mission has fully started. |
 | `AmbushSettlementAccessModel` | public class | Decorates the settlement-access model already in effect: forwards every decision to it (so other mods' location rules, e.g. |
 | `GateAmbushMenuBehavior` | public class | Redirects the "not allowed inside" gate menu into a single-option ambush when one is armed. |
+| `RaidRestraintBehavior` | public class | Holds what each lord drew in the war against the player, and sets it aside when he is given a reason. |
+| `RaidRestraintScoreModel` | public class | Forwards every score to the model in effect, and scores nothing for a village its would-be raider spares. |
 | `StanceBehavior` | public class | Owns the time-based and capture-based stance movements. |
 | `StanceConsequenceBehavior` | public class | Weekly: turns a hardened stance into an unbidden letter (open enmity, or genuine friendship). |
 | `StanceService` | public static class | The single place stance is read from / written to an NpcProfile. |
@@ -2407,6 +2409,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestRewardGatePolicy` | public static class | Pure eligibility/re-validation gate for RewardGrant.GrantFief and RewardGrant.MarriageReward. |
 | `QuestRewardPayoutVerdict` | public enum | The binary outcome of re-validating a heavy quest reward (fief or marriage) at payout. |
 | `QuestSaveBasePolicy` | public static class | Decides the quest definer's save-type base id, avoiding a known boot-crash collision with Europe1100. |
+
+### CalradiaRemembers.Logic.Raids (4)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `RaidRestraint` | public class | One lord's draw for one war. |
+| `RaidRestraintFacts` | public class | What a lord's draw reads when a war sets him against the player. |
+| `RaidRestraintLedger` | public class | Every draw of the wars under way. |
+| `RaidRestraintPolicy` | public static class | Whether a lord at war with the player may spare the player's villages, and how likely he is to. |
 
 ### CalradiaRemembers.Logic.RealmTidings (12)
 

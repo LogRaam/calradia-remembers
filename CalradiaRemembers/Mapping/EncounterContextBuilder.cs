@@ -485,6 +485,7 @@ namespace CalradiaRemembers.Mapping
             CaptorRansomPrice = ResolveCaptorOffers(hero, playerStatus, captiveIntent) ? Quests.CaptorTermsBehavior.RansomThePlayerCanPay() : 0,
             CaptorParoleDays = ResolveCaptorOffers(hero, playerStatus, captiveIntent) && CaptorAudiencePolicy.OffersParole(captiveIntent) ? CaptorAudiencePolicy.ParoleDays : 0,
             CaptorParoleRealm = hero?.MapFaction?.Name?.ToString(),
+            SparesPlayerVillages = RaidRestraintBehavior.SparesThePlayer(hero),
             CaptorExchangeCaptive = ResolveCaptorOffers(hero, playerStatus, captiveIntent) ? Labelled(Quests.CaptorTermsBehavior.ExchangeableCaptive(hero)) : null,
             CaptiveSceneAtSea = ResolveCaptiveSceneAtSea(hero, playerStatus),
             CaptiveSceneFocus = captiveSceneFocus,

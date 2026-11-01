@@ -135,6 +135,8 @@ namespace CalradiaRemembers
          // another mod's location rules survive — notably War Sails' ports, which the vanilla default locks out.
          SettlementAccessModel priorAccessModel = gameStarterObject.Models.OfType<SettlementAccessModel>().LastOrDefault();
          campaignStarter.AddModel(new AmbushSettlementAccessModel(priorAccessModel));
+         // Wraps the target score in effect: the player's friends may leave the player's villages off their list.
+         campaignStarter.AddModel<TargetScoreCalculatingModel>(new RaidRestraintScoreModel());
          campaignStarter.AddBehavior(new NpcMemoryCampaignBehavior());
          // Player-authored character data: applies hand-crafted personalities (traits via SetTraitLevel,
          // the single source of truth) from ModuleData/character_overrides.json when the MCM toggle is on.
@@ -211,6 +213,7 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new WarDuty.WarDutyBehavior());
          campaignStarter.AddBehavior(new HelpPleas.HelpPleaBehavior());
          campaignStarter.AddBehavior(new Quests.CaptorTermsBehavior());
+         campaignStarter.AddBehavior(new RaidRestraintBehavior());
          Letters.LetterIntentionResolver.WarDutyOpenFor = id =>
          {
             Logic.WarDuty.WarDutyCase open = WarDuty.WarDutyBehavior.Instance?.Ledger?.Case;

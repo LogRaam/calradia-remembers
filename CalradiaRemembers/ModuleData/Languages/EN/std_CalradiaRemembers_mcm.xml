@@ -171,6 +171,8 @@
     <string id="CR_MCM_UnaskedLetters_Hint" text="Off: characters stop writing of their own accord. Still come: replies to your letters, war summons and levies, divorce, news of your children and their support, blackmail, threats, a courtship's answer, patrol reports, farewells, other mods' letters." />
     <string id="CR_MCM_CaptorConversations" text="Captor Conversations" />
     <string id="CR_MCM_CaptorConversations_Hint" text="A lord who holds you may send for you to talk: courtesy, a ransom, an oath, an exchange. At most one a week, at every content level. Off: no such scene." />
+    <string id="CR_MCM_RaidRestraint" text="Friends May Spare Your Villages" />
+    <string id="CR_MCM_RaidRestraint_Hint" text="When a war sets a friend or relative against you, they draw once: the closer they are, the likelier they leave your villages alone. Off: every lord raids as in the base game." />
     <string id="CR_MCM_AllowCaptorExecutions" text="Allow Captor Executions" />
     <string id="CR_MCM_AllowCaptorExecutions_Hint" text="Let a captor's scene end your character, at their own deliberate choice, deep in a Hardcore captive scene. Off by default. Irreversible: game over, or your heir succeeds you." />
     <string id="CR_MCM_AllowFiefAndMarriageQuestRewards" text="Allow Fief And Marriage Quest Rewards" />

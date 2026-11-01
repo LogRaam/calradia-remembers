@@ -218,6 +218,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("secret_propagation", Severity.Light, "Mystery-lover (phase 3b-2): record a live lord (forced to neutral regard so he is not the player's confidant) as KNOWING the secret, then drive the REAL propagation (DebugSpreadOnce, bypassing only the daily chance) and assert the secret reaches one of his friends who then knows it too, never the player. Forgets both ledger entries and restores the teller's regard afterwards", TestSecretPropagation),
          new SelfTest("pay_for_silence", Severity.Light, "Mystery-lover (phase 3b-3): mark a companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL bridge dispatch of pay_for_silence with a price and assert the gold moves player->lord, the hush is stamped as recently paid (easing the leverage prompt), and a memory is kept. Restores both purses, the flag, the ledger, and trims the memory afterwards", TestPayForSilence),
          new SelfTest("player_violence", Severity.Light, "Player violence (player request, Inc 2): drives the REAL bridge dispatch of kill_npc against a live lord and asserts THE guarantee, that with the MCM lethal toggle off (its default) the attempt is refused and the victim is still alive. Also checks the scene reader measures both fighters and that robbery is never barred by the lethal toggle. Mutates nothing while the toggle is off", TestPlayerViolence),
+         new SelfTest("raid_restraint", Severity.Light, "DepaHN (Nexus, 27/10/2026): a close friend was the first to burn his villages; Gabriel: a friend may hold back, by chance. Checks the game scores targets through our model (a mod that replaced it would silently end the feature), then on a lord and an enemy village: a failed draw leaves its score, a lord who drew to spare scores it at zero, a broken restraint gives the score back. Restores the ledger", TestRaidRestraint),
          new SelfTest("captor_terms", Severity.Light, "Windmolen (Nexus, 26/10/2026): captors should be able to free or ransom the player; Gabriel: other scenarios than abuse, with an oath the game holds the player to. Refuses a ransom, an oath and an exchange when the player is not a prisoner, with no gold moved and nothing sworn, then drives the REAL oath on a lord already met, with no release: kept, it raises his regard and leaves a memory; broken, it lowers it and leaves a memory. Restores the lord and the ledger, and leaves no grudge", TestCaptorTerms),
          new SelfTest("help_plea", Severity.Light, "DepaHN (Nexus, 27/10/2026): friends, kin and allies should write when they need help, and Gabriel (01/11/2026): the game holds the player to what follows, thrown letter or not. Drives the REAL behavior on a lord already met, with no letter written: a letter still on the road costs nothing when the plea closes; on arrival the plea waits for an answer with a deadline; Send moves the true sum and closes it; a refusal lowers regard; a promise opens a journal entry and a siege already over closes it with no blame. Restores gold, regard and the ledger, and leaves no grievance or kindness", TestHelpPlea),
          new SelfTest("npc_dossier", Severity.Light, "Gabriel (31/10/2026): the NPC panel should hold everything the player has learned that the encyclopedia shows. The model knows truths the player has not learned, so the panel must keep them hidden. Opens a REAL chat ViewModel's dossier on a lord already met (no model call): a fear not yet learned stays out of it, the discovery of that fear marks it learned, the open panel shows it at once, and its grievances and kindnesses match the reader the encyclopedia uses. Restores the lord's fear", TestNpcDossier),
@@ -9872,6 +9873,57 @@ namespace CalradiaRemembers.Diagnostics
             subjectProfile.Romantic.Status = prevStatus;
             behavior.Store.Set(subjectProfile);
             gossip.ForgetKnows(holder, subject.StringId);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestRaidRestraint(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("raid_restraint");
+         Stance.RaidRestraintBehavior restraint = Stance.RaidRestraintBehavior.Instance;
+         if (t.Skip(restraint == null || Hero.MainHero == null, "no campaign")) return t.Line();
+         if (t.Skip(!ModSettings.RaidRestraint, "Friends May Spare Your Villages is off")) return t.Line();
+
+         TaleWorlds.CampaignSystem.ComponentInterfaces.TargetScoreCalculatingModel model = Campaign.Current.Models.TargetScoreCalculatingModel;
+         t.Note(model?.GetType().FullName);
+         t.Expect("theGameScoresThroughOurModel", model is Stance.RaidRestraintScoreModel, true);
+
+         MobileParty party = MobileParty.AllLordParties.FirstOrDefault(p => p.LeaderHero != null && p.LeaderHero != Hero.MainHero && p.MapFaction != null && p.ActualClan != null
+                                                                            && TaleWorlds.CampaignSystem.Settlements.Village.All.Any(v => v.Settlement.MapFaction.IsAtWarWith(p.MapFaction) && v.VillageState == TaleWorlds.CampaignSystem.Settlements.Village.VillageStates.Normal));
+         if (t.Skip(party == null, "no lord at war with a village's realm")) return t.Line();
+
+         TaleWorlds.CampaignSystem.Settlements.Settlement village = TaleWorlds.CampaignSystem.Settlements.Village.All.First(v => v.Settlement.MapFaction.IsAtWarWith(party.MapFaction) && v.VillageState == TaleWorlds.CampaignSystem.Settlements.Village.VillageStates.Normal).Settlement;
+         Hero lord = party.LeaderHero;
+         t.Note($"{lord.Name}, {village.Name}");
+
+         float Score() => model.GetTargetScoreForFaction(village, Army.ArmyTypes.Raider, party, party.Party.EstimatedStrength);
+
+         Logic.Raids.RaidRestraintLedger before = restraint.Ledger;
+         Stance.RaidRestraintBehavior.DebugProtectedClan = village.OwnerClan;
+         try
+         {
+            var ledger = new Logic.Raids.RaidRestraintLedger();
+            restraint.ReplaceLedger(ledger);
+            float free = Score();
+            if (t.Skip(free <= 0f, "the base game gives this target no score")) return t.Line();
+
+            ledger.Add(lord.StringId, party.MapFaction.StringId, false, 0);
+            restraint.ReplaceLedger(ledger);
+            t.Expect("aFailedDrawLeavesTheScore", Score() > 0f, true);
+
+            ledger = new Logic.Raids.RaidRestraintLedger();
+            ledger.Add(lord.StringId, party.MapFaction.StringId, true, 0);
+            restraint.ReplaceLedger(ledger);
+            t.Expect("aFriendWhoSparesScoresItAtZero", Score(), 0f);
+
+            restraint.BreakForHouse(lord.Clan, "cr.test");
+            t.Expect("aBrokenRestraintGivesItBack", Score() > 0f, true);
+         }
+         finally
+         {
+            Stance.RaidRestraintBehavior.DebugProtectedClan = null;
+            restraint.ReplaceLedger(before);
          }
 
          return t.Line();
