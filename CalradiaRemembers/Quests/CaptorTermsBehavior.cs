@@ -161,7 +161,9 @@ namespace CalradiaRemembers.Quests
          return true;
       }
 
-      private static bool Release(Hero captor) => NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.CommitCaptorRelease(captor) ?? false;
+      // A term frees a prisoner: with none, nothing is paid, sworn or handed back, whatever the model emitted.
+      private static bool Release(Hero captor)
+         => Hero.MainHero?.IsPrisoner == true && (NpcMemoryCampaignBehavior.Instance?.GameStateBridge?.CommitCaptorRelease(captor) ?? false);
 
       #endregion
 

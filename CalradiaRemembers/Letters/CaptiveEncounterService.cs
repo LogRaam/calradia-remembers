@@ -311,6 +311,8 @@ namespace CalradiaRemembers.Letters
       {
          _captiveSinceDay = -1;
          _lastEncounterDay = -1;
+         _audienceSinceDay = -1;
+         _lastAudienceDay = -1;
       }
 
       /// <summary>

@@ -1140,21 +1140,21 @@ namespace CalradiaRemembers.Chat
             }
 
             // A captor's terms: each is a release that costs the player something real, re-validated where it is granted.
-            if (IsCaptiveEncounter && DialogueHeuristics.HasAction(response, "ransom_player"))
+            if (IsCaptiveEncounter && CaptiveSceneIntentRules.IsAudience(_captiveEncounterIntent) && DialogueHeuristics.HasAction(response, "ransom_player"))
             {
                ResolveCaptorRelease(placeholder, speaker, profile, npcLine, response, Quests.CaptorTermsBehavior.GrantRansom);
 
                return;
             }
 
-            if (IsCaptiveEncounter && DialogueHeuristics.HasAction(response, "parole_player"))
+            if (IsCaptiveEncounter && CaptorAudiencePolicy.OffersParole(_captiveEncounterIntent) && DialogueHeuristics.HasAction(response, "parole_player"))
             {
                ResolveCaptorRelease(placeholder, speaker, profile, npcLine, response, Quests.CaptorTermsBehavior.GrantParole);
 
                return;
             }
 
-            if (IsCaptiveEncounter && DialogueHeuristics.HasAction(response, "exchange_for_player"))
+            if (IsCaptiveEncounter && CaptiveSceneIntentRules.IsAudience(_captiveEncounterIntent) && DialogueHeuristics.HasAction(response, "exchange_for_player"))
             {
                ResolveCaptorRelease(placeholder, speaker, profile, npcLine, response, Quests.CaptorTermsBehavior.GrantExchange);
 
