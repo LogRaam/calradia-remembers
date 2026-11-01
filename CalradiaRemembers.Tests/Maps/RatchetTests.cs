@@ -75,7 +75,7 @@ namespace CalradiaRemembers.Tests.Maps
          // already in the group. Breaking it would take a hook per effect; Aims, which needed one edge, was kept out.
          "CalradiaRemembers.WarDuty",
 
-         // NEW on 01/11/2026, by Claude, put to Gabriel the same day: the calls for help. The same shape as WarDuty: a
+         // NEW on 01/11/2026, by Claude, accepted by Gabriel the same day: the calls for help. The same shape as WarDuty: a
          // campaign behavior that sends letters (Letters), leaves memories and grudges (Behaviors, Grudges), opens quests
          // (Quests) and reads presence (Mapping), and the console, cr.test all and the submodule call it. The two edges
          // that could go did: Letters reaches it through ILetterPleaDesk, and it no longer touches MissionBoard in the root.
