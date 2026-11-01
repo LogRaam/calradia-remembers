@@ -7,8 +7,8 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 603 types in 64 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1440 types in 49 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 278 types in 17 namespaces, 9 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1441 types in 49 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 280 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -2175,7 +2175,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ScatteredLootLedger` | public class | Save-serializable carrier for every item currently scattered among bandit bands, awaiting recovery. |
 | `ScatteredLootPolicy` | public static class | Pure rules for recovering scattered captivity loot from defeated bandit bands. |
 
-### CalradiaRemembers.Logic.Letters (43)
+### CalradiaRemembers.Logic.Letters (44)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2188,6 +2188,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CourierSecretPolicy` | public static class | The decisions a lost courier and its secret turn on. |
 | `CourierStuckPolicy` | public static class | Decides when a live courier's lack of movement stops being patience and becomes a jam. |
 | `CourierWaylayPolicy` | public static class | Pure rules for whether a single bandit party waylays a passing courier. |
+| `FixedLetterTranslationPolicy` | public static class | Which letters are translated when opened, and whether the translation that came back may stand. |
 | `ILetterIntentionWorld` | public interface | The live-world signals the per-reason staleness decision needs, keyed by the letter's sender id. |
 | `LetterAgeDescriber` | public static class | Renders how long ago a received letter was written, for the read window's heading. |
 | `LetterArchivePolicy` | public static class | Archive-membership rules for a contact's letter correspondence (retention is unbounded by design). |
@@ -2979,12 +2980,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SingleCallExtractionPromptBuilder` | public static class | Builds the single-call composer+extractor system prompt used by the spike (cr.single_call_probe). |
 | `VerbCatalogPolicy` | public static class | Decides which verbs the GAME ACTIONS catalogue lists, by reading back what the finished prompt already taught. |
 
-### NpcMemoryService.Core.Services (9)
+### NpcMemoryService.Core.Services (11)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ChronicleIlluminator` | public class | Turns the player's plain, dated deed list into an "illuminated" chronicle — connected medieval-chronicler prose — via a single LLM call. |
 | `ConversationSummarizer` | public class | Generates a first-person memory line summarizing an ordinary conversation from the NPC's point of view. |
+| `FixedLetterTranslation` | public class | One fixed letter to translate, and what its grammar needs to know. |
+| `FixedLetterTranslator` | public class | Translates a letter the mod wrote from a fixed text into the player's reply language, via a single LLM call. |
 | `LetterMemorySummarizer` | public class | Generates a first-person memory line summarizing a LETTER's actual substance from the NPC's point of view (what it proposed, agreed, reported), for storage on the sender's own profile. |
 | `MemoryLanguagePolicy` | public static class | The ONE rule deciding what language a private memory is written in, asked by every summarizer instead of each carrying its own sentence. |
 | `NpcChatResult` | public class | The result of a single NPC chat turn. |

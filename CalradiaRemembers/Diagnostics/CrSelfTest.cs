@@ -549,6 +549,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("kin_identity", Severity.Light, "DepaHN (Nexus, 26/10/2026): children, grandchildren, siblings and relatives felt cold, told they were family only while they shared no memory with the player. Through the REAL EncounterContextBuilder: a kinsman of the player (a child, a sibling, a parent, else any kin in the player's house) is named by his bond, and a lord of another house who is no blood of the player is named nothing. Read-only", TestKinIdentity),
          new SelfTest("companion_identity", Severity.Light, "fearente (Nexus, 26/10/2026): a companion hired a week before spoke of a childhood shared with the player, and the story the game had the wanderer tell at the first meeting was never remembered. Borrows one of the player's companions: drives the REAL hire listener (CompanionHireBehavior.OnHired) and asserts the REAL EncounterContextBuilder says hired companion, joined today; drives the REAL story keeper twice with the same line and asserts ONE OwnLife memory that keeps it, closed by the line saying the story's people belong to the past (fearente, 29/10/2026: Brave sought the creditor of his backstory), and that the REAL prompt carries that line. Restores the profile's memories and hire day", TestCompanionIdentity),
          new SelfTest("supply_quest", Severity.Heavy, "personal supply quest (ProvideGoods) END-TO-END: a bad-category proposal is REFUSED by the pipeline (nothing grounded), then a grain proposal is ISSUED through QuestService.ApplyResponse and grounds a real category+count; give the player grain -> real SettleSupplyQuest hands over EXACTLY the required count, CLOSES the quest (Completed), and pays the reward. Restores the roster. Then (froggyluv, 26/10/2026) the same grain handed over in WORDS through the REAL give_item action: short of the count it is refused and nothing leaves; with the count it settles the task (Completed). Restores the roster", TestSupplyQuest),
+         new SelfTest("fixed_letter_translation", Severity.Heavy, "RaveN017Mod (29/10/2026): a fixed English letter is translated for a player reading another language and for no one else; the translation lands in the letter; a failed call or a lost number leaves the English. Uses a stand-in model, no real call. Cleans up its setting", TestFixedLetterTranslation),
          new SelfTest("letter_riders", Severity.Heavy, "kurushimi00 (31/10/2026): a rider bound for the player delivers when close enough, on the campaign tick, without touching and with no hour passing; a far one stays on the road, known to the speed patch; riders off means none spawns and the letter keeps its date; unasked letters off stops a tournament note, not a war summons. Cleans up its letters and riders", TestLetterRiders),
          new SelfTest("courier_waylay", Severity.Heavy, "waylaid-letter resend: a waylaid letter keeps its typed text, and the Resend path re-queues a FRESH non-lost letter carrying the SAME content, so a waylaid letter never has to be retyped. Cleans up its test letters + courier (no popup)", TestCourierWaylayResend),
          new SelfTest("prisoner_trade", Severity.Heavy, "prisoner trade: take a real lord captive into the player's party -> real buy_prisoner via the bridge (an NPC lord buys him) -> assert the player was PAID (price clamped around the ransom anchor) and the captive left the player's custody -> cleanup frees him", TestPrisonerTrade),
@@ -8935,6 +8936,64 @@ namespace CalradiaRemembers.Diagnostics
             if (thrownCongratulations) behavior.LetterEvaluator?.NudgeSubject(LetterReason.TournamentVictory, -CorrespondenceInterestPolicy.OnAcknowledge().SubjectDelta);
             LetterBox.Invalidate();
             behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      private sealed class LetterAnswerClient : NpcMemoryService.Core.LlmClient.ILlmClient
+      {
+         private readonly string _answer;
+
+         public LetterAnswerClient(string answer) => _answer = answer;
+
+         public string LastPrompt { get; private set; }
+
+         public System.Threading.Tasks.Task<LlmResponse> CompleteAsync(LlmRequest request, CancellationToken ct = default)
+         {
+            LastPrompt = request.SystemPrompt;
+
+            return System.Threading.Tasks.Task.FromResult(new LlmResponse {Content = _answer ?? "", IsSuccess = _answer != null});
+         }
+      }
+
+      private static string TestFixedLetterTranslation(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("fixed_letter_translation");
+         CrSettings s = CrSettings.Instance;
+         if (t.Skip(s == null, "no MCM settings")) return t.Line();
+
+         NpcProfile profile = behavior.Store.ListIds().Select(id => behavior.Store.Get(id)).FirstOrDefault(p => p != null);
+         if (t.Skip(profile == null, "no remembered character")) return t.Line();
+
+         const string english = "[SELFTEST] Send me 5000 denars.";
+         PendingLetter Threat() => new PendingLetter {SenderId = profile.Id, SenderName = profile.Name, Reason = LetterReason.Blackmail, Content = english};
+         string Run(string answer)
+         {
+            var boxed = new BoxedLetter {Letter = Threat(), Sender = profile};
+            var client = new LetterAnswerClient(answer);
+            LetterBox.ApplyTranslation(boxed, LetterGenerationService.TranslateFixedLetterAsync(boxed.Letter, profile, client).GetAwaiter().GetResult());
+            if (answer != null) t.Expect("theModelIsToldTheLanguage", client.LastPrompt?.Contains("into French"), true);
+
+            return boxed.Letter.Content;
+         }
+
+         string languageBefore = s.ReplyLanguage;
+         try
+         {
+            s.ReplyLanguage = "French";
+            t.Expect("aFixedLetterAsksForItsLanguage", LetterBox.WillTranslate(Threat()), true);
+            t.Expect("aModelWrittenLetterDoesNot", LetterBox.WillTranslate(new PendingLetter {Reason = LetterReason.RealmTidings, Content = english}), false);
+            t.Expect("theTranslationLandsInTheLetter", Run("[SELFTEST] Envoyez-moi 5 000 deniers."), "[SELFTEST] Envoyez-moi 5 000 deniers.");
+            t.Expect("aLostNumberLeavesTheEnglish", Run("[SELFTEST] Envoyez-moi de l'or."), english);
+            t.Expect("aFailedCallLeavesTheEnglish", Run(null), english);
+
+            s.ReplyLanguage = "English";
+            t.Expect("anEnglishPlayerSpendsNoCall", LetterBox.WillTranslate(Threat()), false);
+         }
+         finally
+         {
+            s.ReplyLanguage = languageBefore;
          }
 
          return t.Line();

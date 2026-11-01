@@ -182,26 +182,28 @@ namespace CalradiaRemembers.Letters
       private static int _session;
       private static int _writingSession;
 
-      /// <summary>True while an envelope's text is being written for the player who opened it.</summary>
+      /// <summary>True while an envelope's text is being written, or a fixed letter translated, for the player who opened it.</summary>
       public static bool IsWriting => _writing != null;
 
       /// <summary>
       ///   Opens a waiting letter in the reading window; it leaves the box. An envelope is written first (the letter box,
-      ///   step 3, Gabriel 31/10/2026): the seal breaks now and the letter opens once its text comes back (Tick). False when
-      ///   the window is busy, another envelope is being written, or the letter no longer waits.
+      ///   step 3, Gabriel 31/10/2026) and a fixed English letter is translated first (RaveN017Mod, 29/10/2026): the seal
+      ///   breaks now and the letter opens once its text comes back (Tick). False when the window is busy, another letter is
+      ///   being written, or the letter no longer waits.
       /// </summary>
       public static bool Open(BoxedLetter boxed)
       {
          if (boxed?.Letter == null || boxed.Sender == null || !boxed.Letter.InBox) return false;
          if (LetterWindowManager.IsOpen || _writing != null) return false;
 
-         if (LetterEnvelopePolicy.IsUnwritten(boxed.Letter))
+         bool unwritten = LetterEnvelopePolicy.IsUnwritten(boxed.Letter);
+         if (unwritten || WillTranslate(boxed.Letter))
          {
             _writing = boxed;
             _writingSession = _session;
             MBInformationManager.AddQuickInformation(new TextObject($"You break the seal of {boxed.Sender.Name}'s letter."));
-            ModLog.Info($"[LETTERBOX] writing {boxed.Sender.Name}'s envelope ({boxed.Letter.Reason}) as of day {boxed.Letter.SentOnDay}.");
-            LetterGenerationService.WriteEnvelopeAsync(boxed.Letter, boxed.Sender)
+            ModLog.Info($"[LETTERBOX] {(unwritten ? "writing" : "translating")} {boxed.Sender.Name}'s letter ({boxed.Letter.Reason}) as of day {boxed.Letter.SentOnDay}.");
+            (unwritten ? LetterGenerationService.WriteEnvelopeAsync(boxed.Letter, boxed.Sender) : LetterGenerationService.TranslateFixedLetterAsync(boxed.Letter, boxed.Sender))
                .ContinueWith(t => Written.Enqueue(new KeyValuePair<BoxedLetter, string>(boxed, t.Status == TaskStatus.RanToCompletion ? t.Result : null)));
 
             return true;
@@ -212,9 +214,21 @@ namespace CalradiaRemembers.Letters
          return true;
       }
 
+      /// <summary>True when this letter is a fixed English text and the player reads another language.</summary>
+      internal static bool WillTranslate(PendingLetter letter) => FixedLetterTranslationPolicy.NeedsTranslation(letter, ModSettings.ReplyLanguage);
+
+      /// <summary>Puts a translation in a fixed letter, or leaves the English when none came back or it lost a number.</summary>
+      internal static void ApplyTranslation(BoxedLetter boxed, string translated)
+      {
+         string text = FixedLetterTranslationPolicy.TextToShow(boxed.Letter.Content, translated);
+         ModLog.Info($"[LETTERBOX] {boxed.Sender?.Name}'s letter {(text == boxed.Letter.Content ? "stays in English" : "was translated")}.");
+         boxed.Letter.Content = text;
+      }
+
       /// <summary>
       ///   Called from the application tick: an envelope's text that came back is put in the letter, its sender's memory gets
-      ///   its substance, and the letter opens. When the model did not answer, the letter stays in the box to try again.
+      ///   its substance, and the letter opens. When the model did not answer, the letter stays in the box to try again; a
+      ///   fixed letter has its text already, so it opens in English instead.
       /// </summary>
       public static void Tick()
       {
@@ -234,6 +248,14 @@ namespace CalradiaRemembers.Letters
          _writing = null;
          BoxedLetter boxed = done.Key;
          string text = done.Value;
+
+         if (!LetterEnvelopePolicy.IsUnwritten(boxed.Letter))
+         {
+            ApplyTranslation(boxed, text);
+            if (boxed.Letter.InBox) Show(boxed);
+
+            return;
+         }
 
          if (string.IsNullOrWhiteSpace(text))
          {

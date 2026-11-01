@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-663 rules read 500 facts.
+665 rules read 501 facts.
 
 ## Facts read by more than one rule
 
@@ -188,6 +188,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.CncProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.CompanionAudienceCadence` (3) | `CompanionAudiencePacingRules.CooldownDays`, `CompanionAudiencePacingRules.DailyChancePercent`, `CompanionAudiencePacingRules.IsOff` |
 | `ModSettings.HousekeepingProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
+| `ModSettings.ReplyLanguage` (3) | `FixedLetterTranslationPolicy.NeedsTranslation`, `PendingSummaryJob`, `ReplyLanguagePolicy.WithLanguage` |
 | `ModSettings.RoleplayProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.WarLevyScale` (3) | `StandingAim`, `SummonsFacts`, `WarLevyFacts` |
 | `Mother.IsDead` (3) | `MattersMostFacts`, `MattersMostPolicy.Resolve`, `MattersMostPolicy.StillKnown` |
@@ -277,7 +278,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.MarriageRegardThreshold` (2) | `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion` |
 | `ModSettings.NsfwReasoningEffort` (2) | `OnOffReasoningPolicy.ForModel`, `RoleSettings` |
 | `ModSettings.ReasoningEffort` (2) | `OnOffReasoningPolicy.ForModel`, `RoleSettings` |
-| `ModSettings.ReplyLanguage` (2) | `PendingSummaryJob`, `ReplyLanguagePolicy.WithLanguage` |
 | `ModSettings.SelfEsteemClimb` (2) | `SelfEsteemClimb`, `SelfEsteemPolicy.Record` |
 | `ModSettings.WarDutyWindowDays` (2) | `WarDutyLive`, `WarDutyPolicy.Decide` |
 | `ModSettings.WorldInitiative` (2) | `InitiativeGrant`, `WorldInitiativePolicy.Decide` |
@@ -548,6 +548,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `FirstImpressionDescriber.Describe`: `Clan.Renown`, `Hero.Clan`, `Hero.GetTraitLevel`, `Hero.MapFaction`, `IFaction.IsKingdomFaction`, `StatureReader.Player`
 - `FirstImpressionInputs`: `Clan.Renown`, `Hero.Clan`, `Hero.GetTraitLevel`, `Hero.MapFaction`, `IFaction.IsKingdomFaction`, `StatureReader.Player`
 - `FirstImpressionPolicy.Resolve`: `Clan.Renown`, `Hero.Clan`, `Hero.GetTraitLevel`, `Hero.MapFaction`, `IFaction.IsKingdomFaction`, `StatureReader.Player`
+- `FixedLetterTranslationPolicy.NeedsTranslation`: `ModSettings.ReplyLanguage`
+- `FixedLetterTranslationPolicy.TextToShow`: `Letter.Content`
 - `FoodTradeFacts`: `Item.IsFood`, `Item1.Amount`, `Settlement.CurrentSettlement`, `Settlement.IsStarving`, `Town.FoodChange`, `Town.FoodStocks`
 - `ForcedMarriagePolicy.GrudgeMagnitude`: `Hero.GetRelation`, `ModSettings.MarriageRegardThreshold`, `Profile.ReputationWithPlayer`
 - `ForcedMarriagePolicy.IsForcedUnion`: `Hero.GetRelation`, `ModSettings.MarriageRegardThreshold`, `Profile.ReputationWithPlayer`

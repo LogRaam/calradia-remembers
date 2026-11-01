@@ -570,7 +570,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 #### `NpcMemoryService.Core.Models` and `NpcMemoryService.Core.Services`
 
 - `NpcMemoryService.Core.Models` uses `NpcMemoryService.Core.Services` in 1 file(s): `Models/NpcProfile.cs`
-- `NpcMemoryService.Core.Services` uses `NpcMemoryService.Core.Models` in 7 files: `Services/ChronicleIlluminator.cs`, `Services/ConversationSummarizer.cs`, `Services/LetterMemorySummarizer.cs`, and 4 more
+- `NpcMemoryService.Core.Services` uses `NpcMemoryService.Core.Models` in 8 files: `Services/ChronicleIlluminator.cs`, `Services/ConversationSummarizer.cs`, `Services/FixedLetterTranslator.cs`, and 5 more
 
 #### `NpcMemoryService.Core.Prompts` and `NpcMemoryService.Core.Standing`
 

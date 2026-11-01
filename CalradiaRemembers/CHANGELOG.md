@@ -4,6 +4,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.8.2.. open
 
+### Fixed
+- **Fixed letters now reach you in your language** (RaveN017Mod, Nexus PM, 29/10/2026: threats from lords "appear in
+  English even though my game is in French"). Five kinds of letter are texts the mod writes itself, with no model call, so
+  Reply Language never reached them: a lord's threats and warnings, a friend's favour, a blackmail, a mother's note, a
+  companion's farewell. They are now translated when you open them, as an envelope is written then, so a letter thrown away
+  costs nothing and an English player costs no call (`FixedLetterTranslationPolicy`, SDK `FixedLetterTranslator`). The prose
+  model does it, because you read the result. If it does not answer, or its text loses a number (a blackmail's sum or delay
+  is the real mechanic's), the letter opens in English. Letters already read stay as they were; one still waiting in the box
+  is translated. `cr.test fixed_letter_translation`. Not play-verified.
+
 ## v2.8.1.. 2026-10-31
 
 ### Fixed

@@ -475,6 +475,52 @@ namespace CalradiaRemembers.Letters
          return CallLlmForLetterAsync(llm, profile, letter.EnvelopeMessage, letter.SentOnDay, letter.EnvelopeKnownThrough);
       }
 
+      /// <summary>
+      ///   Translates a fixed English letter into the reply language (RaveN017Mod, 29/10/2026). Starts on the game thread, where
+      ///   the writer and the reader are read; the text comes back off it, or null when the model did not answer. The prose
+      ///   client, as the chronicle: the player reads this. A self-test hands in its own client.
+      /// </summary>
+      public static Task<string> TranslateFixedLetterAsync(PendingLetter letter, NpcProfile profile, NpcMemoryService.Core.LlmClient.ILlmClient client = null)
+      {
+         NpcMemoryService.Core.LlmClient.ILlmClient translatorClient = client ?? NpcMemoryCampaignBehavior.Instance?.LlmServices?.LlmClient;
+         if (letter == null || profile == null || translatorClient == null) return Task.FromResult<string>(null);
+
+         var request = new FixedLetterTranslation {
+            Text = letter.Content,
+            Language = ModSettings.ReplyLanguage,
+            WriterName = letter.SenderName ?? profile.Name,
+            WriterIsFemale = Hero.FindFirst(h => h.StringId == profile.Id)?.IsFemale,
+            ReaderIsFemale = Hero.MainHero?.IsFemale
+         };
+
+         return TranslateOffThreadAsync(new FixedLetterTranslator(translatorClient), request, waitForConversation: client == null);
+      }
+
+      private static async Task<string> TranslateOffThreadAsync(FixedLetterTranslator translator, FixedLetterTranslation request, bool waitForConversation)
+      {
+         try
+         {
+            if (waitForConversation) await BackgroundCallHold.WhileConversationOpenAsync(LlmServices.MainClientRunsLocally, $"translating a letter from {request.WriterName}");
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(LetterLlmTimeoutSeconds));
+            CancellationToken token = cts.Token;
+
+            return await Task.Run(() => translator.TranslateAsync(request, token), token).ConfigureAwait(false);
+         }
+         catch (System.OperationCanceledException)
+         {
+            ModLog.Info($"[LETTER] translation timed out after {LetterLlmTimeoutSeconds}s; the letter stays in English.");
+
+            return null;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[LETTER] translation failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
       private static async Task GeneratePlayerLetterReplyAsync(
          NpcProfile profile,
          Hero senderHero,
