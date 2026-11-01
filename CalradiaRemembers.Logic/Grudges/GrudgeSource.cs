@@ -150,6 +150,12 @@ namespace CalradiaRemembers.Logic.Grudges
         ///   06/10/2026: "a quest can influence the regard between lords; CR already handles the time for that"). It
         ///   mends with time, as the grudge ledger already lets every grudge fade, unless it hardened into a vendetta.
         /// </summary>
-        Tale = 23
+        Tale = 23,
+
+        /// <summary>
+        ///   A friend or kinsman who called for help (DepaHN, Nexus, 27/10/2026) and was left without an answer, or was
+        ///   promised help that never came. Appended last to preserve the ordinals above in old saves.
+        /// </summary>
+        AbandonedPlea = 24
     }
 }

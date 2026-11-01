@@ -107,6 +107,8 @@ namespace CalradiaRemembers.Letters
 
             if (letter.Reason == LetterReason.ChildSupportRequest)
                 OpenChildSupportQuest(profile, today, behavior?.Store);
+            if (letter.Reason == LetterReason.ReinforcementRequest)
+                LetterPleas.Desk?.OnLetterReached(profile.Id, today);
 
             ModLog.Info($"[LETTER] received from {profile.Name} ({letter.Reason}).");
         }

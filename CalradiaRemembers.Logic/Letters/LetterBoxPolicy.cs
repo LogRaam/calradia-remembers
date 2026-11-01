@@ -66,7 +66,9 @@ namespace CalradiaRemembers.Logic.Letters
             LetterReason.PrisonerOffer or LetterReason.ServiceOffer => "offers",
             LetterReason.BirthAnnouncement or LetterReason.ChildSupportRequest or LetterReason.BastardMotherNote => "children",
             LetterReason.CorruptionAttempt or LetterReason.Blackmail or LetterReason.GangFavor => "dark_dealings",
-            LetterReason.ReinforcementRequest or LetterReason.PoliticalAlliance or LetterReason.StandingAim or LetterReason.QuestUpdate => "requests",
+            LetterReason.PoliticalAlliance or LetterReason.StandingAim or LetterReason.QuestUpdate => "requests",
+            // A call for help has its own subject: throwing one must not silence the tasks the same person writes about.
+            LetterReason.ReinforcementRequest => "pleas",
             _ => reason.ToString()
         };
 
@@ -76,11 +78,12 @@ namespace CalradiaRemembers.Logic.Letters
         /// <summary>
         ///   The letters that carry a deadline or a consequence the player must not miss: they wear the urgent mark. A war
         ///   summons or levy (the game holds the player to its deadline), a prisoner offer, a divorce under way, blackmail, a
-        ///   jealous threat, a child's support.
+        ///   jealous threat, a child's support, a call for help (the game holds the player to what follows).
         /// </summary>
         public static bool IsUrgent(LetterReason reason) => reason is LetterReason.WarSummons or LetterReason.WarLevyDemand
             or LetterReason.PrisonerOffer or LetterReason.SpouseDivorceDemand or LetterReason.SpouseDivorceEscalation
-            or LetterReason.Blackmail or LetterReason.JealousThreat or LetterReason.ChildSupportRequest;
+            or LetterReason.Blackmail or LetterReason.JealousThreat or LetterReason.ChildSupportRequest
+            or LetterReason.ReinforcementRequest;
 
         /// <summary>
         ///   The letters a throw never silences, urgent or not: what the game holds the player to, or must always tell. A war

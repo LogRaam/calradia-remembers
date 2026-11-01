@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 603 types in 64 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1441 types in 49 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 607 types in 65 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1455 types in 50 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 281 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -481,6 +481,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GrudgeResolutionService` | public static class | Shared glue between the make_amends verb and the gift-routing hooks (ExecuteTakeGold, ExecuteGiveItem): evaluate the player's offered gesture against the holder's dominant resolvable live grudge, apply the verdict, and p... |
 | `SwayExposureBehavior` | public class | Owns the delayed reveal for the GrudgeSource.SwayExposed grudge source. |
 
+### CalradiaRemembers.HelpPleas (1)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `HelpPleaBehavior` | public class | Sees a friend's crisis, sends the plea, and holds the player to what happens next. |
+
 ### CalradiaRemembers.Initiative (2)
 
 | Type | Kind | What it is |
@@ -517,7 +523,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `JealousyCultureLoader` | public static class | Loads and caches jealousy_cultures.json from the mod's ModuleData folder, keyed by culture display name ("Khuzait", "Battania", …) to match Mapping.CulturalTraditionsLoader and stay interoperable with conversion mods. |
 | `JealousyCultureProfile` | public class | The on-disk shape of a culture's stance on romantic exclusivity, deserialized from jealousy_cultures.json. |
 
-### CalradiaRemembers.Letters (33)
+### CalradiaRemembers.Letters (36)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -530,6 +536,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CourierService` | public static class | Spawns and manages the visible courier party that carries a PlayerLetter from the player to its recipient. |
 | `CourierSpeedPatch` | public static class | Guarantees a minimum map speed for parties this mod identifies as couriers, so they are not slowed to a crawl (and starved) by the engine's terrain/night/size penalties on small custom parties. |
 | `HeroProximity` | public static class | One authoritative answer to "is this NPC effectively beside the player right now?" (delegates to PlayerPresenceResolver). |
+| `ILetterPleaDesk` | public interface | The side of a call for help that the letters deal with. |
 | `LetterArchiveEntryViewModel` | public class | One letter in the thread: its dated attribution header, its body, and which side wrote it. |
 | `LetterArchiveManager` | public static class | Show/hide lifecycle for the letter-archive thread window. |
 | `LetterArchiveViewModel` | public class | View model for the per-contact letter archive (thread) window. |
@@ -543,6 +550,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterIntentionResolver` | public static class | Decides whether a pending letter should be dropped as stale. |
 | `LetterMemoryFinalizer` | public static class | Records a letter's SUBSTANCE, not just its arrival, into the sender NPC's own memory. |
 | `LetterMutationQueue` | public static class | Marshals letter-generation mutations from LLM continuation threads onto the main game thread. |
+| `LetterPleas` | public static class | The door to the pleas, set by the campaign behaviour that keeps them. |
 | `LetterPopupManager` | public static class | Presents a delivered letter to the player on the parchment courier window. |
 | `LetterRegardService` | public static class | Moves a letter reader's regard by their judgement of the player's letter. |
 | `LetterTriggerEvaluator` | public class | Listens to campaign events and evaluates daily conditions to decide when an NPC should initiate a letter to the player. |
@@ -550,6 +558,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterWindowManager` | public static class | Show/hide lifecycle for the parchment courier window, composed on the shared crash-safe panel host. |
 | `ModLetterNotices` | internal static class | What the player did with a letter another mod delivered. |
 | `PlayerLetterService` | public static class | Creates and queues letters from the player to NPCs, runs the daily delivery check, and marks delivered letters as read after the NPC's first response. |
+| `PleaOnLetter` | public class | A call for help as its letter shows it, while it waits for an answer. |
 | `PrisonerEnvoyBehavior` | public class | Sends and announces envoys come to treat for a captive the player holds. |
 | `SilencedSubjectRowViewModel` | public class | One subject the player silenced from one correspondent. |
 | `TaverneLetterBehavior` | public class | Registers a courier-hire option in the Tavern Keeper's service menu. |
@@ -2116,6 +2125,25 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TraitFacts` | public class | A hero's trait levels relevant to grudge formation, rigidity, and decay: Mercy (forgiving vs tallying), Honor (broken word stings hardest), Valor (fearful grudges hide rather than confront), Calculating (forms easily, ne... |
 | `UnblessedMarriageFacts` | public class | Facts for Tier2GrudgeRules.UnblessedMarriageGrudge: a family member who opposed an unblessed marriage the player made. |
 | `WorldEventFacts` | public class | A persisted WorldEvent, as read by the engine-side scan. |
+
+### CalradiaRemembers.Logic.HelpPleas (14)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `HelpAnswer` | public enum | The player's answer, as they gave it on the letter. |
+| `HelpAsk` | public enum | What the writer asks of the player. |
+| `HelpCloseFacts` | public class | The whole of a plea at the moment it closes. |
+| `HelpCrisis` | public enum | What has gone wrong for the writer. |
+| `HelpFeeling` | public enum | What a closed plea leaves in the writer. |
+| `HelpIncapacity` | public enum | Why the player truly cannot do what is asked, as the game sees it. |
+| `HelpMeansFacts` | public class | What the player can do today, read from the game. |
+| `HelpOpeningFacts` | public class | The state of a plea about to be opened. |
+| `HelpPlea` | public class | One call for help, from the day it was sealed to the day its crisis closed. |
+| `HelpPleaLedger` | public class | Every plea open, and what keeps the next one from coming too soon. |
+| `HelpPleaPolicy` | public static class | Who may ask the player for help, for what, and what the answer is worth. |
+| `HelpPleaWording` | public static class | The words of a plea. |
+| `HelpVerdict` | public class | What a closed plea did to the writer's regard and memory. |
+| `HelpWriterFacts` | public class | How a would-be writer stands to the player. |
 
 ### CalradiaRemembers.Logic.Initiative (15)
 

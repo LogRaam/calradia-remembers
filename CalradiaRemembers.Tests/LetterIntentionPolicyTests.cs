@@ -45,13 +45,14 @@ namespace CalradiaRemembers.Tests
 
         // ── War / stance ────────────────────────────────────────────────────
 
-        // A war letter's whole premise is the war: once the sender has made peace with the player, a
-        // reinforcement plea still arriving would misrepresent a relationship that has already moved on.
+        // A call for help's whole premise is the crisis (DepaHN, 27/10/2026): one that closed while the letter rode must
+        // not arrive still begging. Nothing sent this reason before 01/11/2026; its old rule, "still at war with the
+        // player", would have dropped every plea from a friend, and this test used to pin that.
         [Test]
-        public void GIVEN_a_reinforcement_request_WHEN_the_sender_made_peace_THEN_the_intention_does_not_hold()
+        public void GIVEN_a_call_for_help_WHEN_its_crisis_closed_on_the_road_THEN_the_letter_does_not_arrive()
         {
-            Holds(LetterReason.ReinforcementRequest, new StubWorld {AtWar = true}).Should().BeTrue();
-            Holds(LetterReason.ReinforcementRequest, new StubWorld {AtWar = false}).Should().BeFalse();
+            Holds(LetterReason.ReinforcementRequest, new StubWorld {PleaStands = true}).Should().BeTrue();
+            Holds(LetterReason.ReinforcementRequest, new StubWorld {PleaStands = false}).Should().BeFalse();
         }
 
         // A hostility letter announces an open threat; if the sender's posture has already cooled, delivering it
@@ -151,7 +152,7 @@ namespace CalradiaRemembers.Tests
             public bool PlayerHasSecretLover { get; set; }
             public bool DivorceDemand { get; set; }
             public bool Estranging { get; set; }
-            public bool AtWar { get; set; }
+            public bool PleaStands { get; set; }
             public bool StanceHostile { get; set; }
             public bool StanceFriendly { get; set; }
             public bool JealousyGrudge { get; set; }
@@ -159,7 +160,7 @@ namespace CalradiaRemembers.Tests
 
             public bool SpouseStillDemandsDivorce(string senderId) => DivorceDemand;
             public bool SpouseStillEstranging(string senderId) => Estranging;
-            public bool SenderStillAtWarWithPlayer(string senderId) => AtWar;
+            public bool PleaStillStands(string senderId) => PleaStands;
             public bool SenderStanceStillHostile(string senderId) => StanceHostile;
             public bool SenderStanceStillFriendly(string senderId) => StanceFriendly;
             public bool SenderHasLiveJealousyGrudge(string senderId) => JealousyGrudge;

@@ -265,7 +265,7 @@ namespace CalradiaRemembers.Letters
       public bool ShowReceivedBody => _state.ShowsReceivedBody;
 
       [DataSourceProperty]
-      public bool ShowReplyButton => _state.ShowsReplyButton && !IsOfferLetter;
+      public bool ShowReplyButton => _state.ShowsReplyButton && !IsOfferLetter && Plea == null;
 
       [DataSourceProperty]
       public bool ShowSend => _state.ShowsSend;
@@ -287,6 +287,7 @@ namespace CalradiaRemembers.Letters
       {
          get
          {
+            if (Plea != null) return Plea.CanAccept;
             if (!IsOfferLetter) return false;
             if (_letter.Reason == LetterReason.PrisonerOffer) return OfferPrisonerStillHeld();
 
@@ -296,7 +297,16 @@ namespace CalradiaRemembers.Letters
 
       /// <summary>Decline is always available on an offer letter (a free refusal, the way out when Accept has lapsed).</summary>
       [DataSourceProperty]
-      public bool ShowDeclineOffer => IsOfferLetter;
+      public bool ShowDeclineOffer => IsOfferLetter || Plea != null;
+
+      /// <summary>
+      ///   The call for help this letter carries, while it waits for an answer (DepaHN, 27/10/2026). The buttons answer it: a
+      ///   reply in words could only promise, and the game holds the player to what they do.
+      /// </summary>
+      private PleaOnLetter Plea
+         => _state.Mode == LetterWindowMode.Read && _letter?.Reason == LetterReason.ReinforcementRequest
+            ? LetterPleas.Desk?.AwaitingAnswerFrom(_profile?.Id)
+            : null;
 
       /// <summary>
       ///   The line explaining why a prisoner offer cannot be taken, shown in place of nothing at all. A player
@@ -305,21 +315,25 @@ namespace CalradiaRemembers.Letters
       /// </summary>
       [DataSourceProperty]
       public string OfferLapsedNote
-         => IsOfferLetter && _letter.Reason == LetterReason.PrisonerOffer
-            ? PrisonerOfferAvailabilityPolicy.Describe(PrisonerOfferBlocker(), OfferCaptiveName())
-            : "";
+         => Plea != null
+            ? Plea.Note
+            : IsOfferLetter && _letter.Reason == LetterReason.PrisonerOffer
+               ? PrisonerOfferAvailabilityPolicy.Describe(PrisonerOfferBlocker(), OfferCaptiveName())
+               : "";
 
       /// <summary>True when there is a reason to show, so the note's row stays out of the way otherwise.</summary>
       [DataSourceProperty]
       public bool ShowOfferLapsedNote => !string.IsNullOrEmpty(OfferLapsedNote);
 
       [DataSourceProperty]
-      public string AcceptOfferButtonText => _letter?.Reason == LetterReason.PrisonerOffer
-         ? "Accept the trade"
-         : "Accept the offer";
+      public string AcceptOfferButtonText => Plea != null
+         ? Plea.AcceptText
+         : _letter?.Reason == LetterReason.PrisonerOffer
+            ? "Accept the trade"
+            : "Accept the offer";
 
       [DataSourceProperty]
-      public string DeclineOfferButtonText => "Decline";
+      public string DeclineOfferButtonText => Plea != null ? Plea.DeclineText : "Decline";
 
       // ── Bindings ────────────────────────────────────────────────────────
 
@@ -444,6 +458,14 @@ namespace CalradiaRemembers.Letters
       /// <summary>Offer letter: accept the lord's proposition. A PrisonerOffer settles the ransom; a ServiceOffer warms the bond (light).</summary>
       public void ExecuteAcceptOffer()
       {
+         if (Plea != null)
+         {
+            LetterPleas.Desk?.Accept(_profile?.Id);
+            OnCloseRequested?.Invoke();
+
+            return;
+         }
+
          if (!IsOfferLetter) return;
 
          if (_letter.Reason == LetterReason.PrisonerOffer) AcceptPrisonerOffer();
@@ -454,6 +476,14 @@ namespace CalradiaRemembers.Letters
       /// <summary>Offer letter: refuse the proposition. Costs nothing beyond setting the letter aside.</summary>
       public void ExecuteDeclineOffer()
       {
+         if (Plea != null)
+         {
+            LetterPleas.Desk?.Refuse(_profile?.Id);
+            OnCloseRequested?.Invoke();
+
+            return;
+         }
+
          if (_profile != null)
             MBInformationManager.AddQuickInformation(new TextObject($"You set {_profile.Name}'s offer aside."));
 

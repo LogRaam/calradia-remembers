@@ -86,7 +86,7 @@ namespace CalradiaRemembers.Letters
             public bool SpouseStillEstranging(string senderId)
                 => SpouseDivorceDemandBehavior.Instance?.IsEstranging(senderId) ?? true;
 
-            public bool SenderStillAtWarWithPlayer(string senderId) => StillAtWar(HeroById(senderId));
+            public bool PleaStillStands(string senderId) => LetterPleas.Desk?.StillStands(senderId) == true;
 
             public bool SenderStanceStillHostile(string senderId)
             {

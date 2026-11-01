@@ -4,6 +4,13 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.8.2.. open
 
+### New
+
+- **Calls for help by letter** (DepaHN, Nexus, 27/10/2026: "Friends, relatives, and allies could write to the player when they need help"; Gabriel 01/11/2026: "oui vas-y", with both of Claude's defaults). `HelpPleaBehavior` sees a crisis the game can prove: a siege, a ruined house, a lost field battle, a fief lost to a siege, a town or castle out of food. One person of that house writes if they may (`HelpPleaPolicy.MayWrite`: met, not of the player's clan, not at war with the player; kin from regard -6, a war ally from 10, a friend from 20), kin first. A siege asks for relief, hunger for food (the existing `ProvideGoods` quest, by hand), the rest for coin (a fifth of the player's gold, 500 to 5000). One plea per crisis, 60 days between two from one writer, two open at once at most. The letter's buttons answer it: the free reply is hidden because a reply in words could only promise. Coin moves on the button, as a `PrisonerOffer` does. A promised relief is a journal entry (`QuestType.External`, no quest deadline, closed by the plea). The player has 14 days from the letter's ARRIVAL to come within 8 map units of the place or to fight on its defending side. The game judges the deed, not the letter (`HelpPleaPolicy.Judge`): help that came is thanked whatever was answered; a letter unanswered or thrown away costs a `GrudgeSource.AbandonedPlea` of 15, or 40 if the place fell; a refusal costs a little regard and no grudge; a broken promise 30 or 55 with promise-trust spent; a player who was on the road and came late, who never received the letter, or who truly could not (prisoner, own walls besieged, under 20 men, not enough gold) owes nothing. `ILetterPleaDesk` keeps Letters from knowing the behavior. Save key `cr_help_pleas` (additive). Unasked Letters off stops them, and throwing one silences this subject from that person.
+- `LetterReason.ReinforcementRequest` had no producer and is now the plea: its intention rule read "still at war with the player", the opposite of an ally, and is now `PleaStillStands`; its subject is `pleas`, so a throw does not silence tasks; it is urgent. SDK: its prompt line is rewritten.
+- `cr.help_pleas` lists what is open; `cr.help_plea <name> [coin|food]` makes someone write. `cr.test help_plea`.
+- `CalradiaRemembers.HelpPleas` joins the namespace cycle baseline, the same shape as `WarDuty`, put to Gabriel.
+
 ### Changed
 - **Characters recite the past less and keep small things small** (kurushimi00, Nexus, 01/11/2026: "it has a tendency to
   restate, almost in checklist fashion, things captured in memories", and to take "some symbolic gesture or item traded

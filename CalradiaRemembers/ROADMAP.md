@@ -309,7 +309,8 @@ model's review of war and peace parked.
   players who accept the cost; or narrowed to decisions that involve the player, their family and allies. That answers
   the cost; the leader-only ruling is Gabriel's to weigh (a model that can return a ruler's decision is a veto, even
   opt-in).
-- **2. Calls for help by letter.** DepaHN: "Friends, relatives, and allies could write to the player when they need
+- **2. Calls for help by letter. BUILT 01/11/2026 (2.8.2), not play-verified; see the CHANGELOG.** Left out: a spouse in the
+  player's clan writing for their birth house, sending troops without going, and food for a besieged place. DepaHN: "Friends, relatives, and allies could write to the player when they need
   help: military (joining a war, sending troops), financial, or economic, depending on their situation, what the
   player has, and the relationship." What exists: the ruler's war duty (`WarDuty/WarDutyBehavior`: a summons, a levy
   in coin, troops, horses and arms), a spouse's `LetterReason.ChildSupportRequest`, goods asked in tales

@@ -218,6 +218,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("secret_propagation", Severity.Light, "Mystery-lover (phase 3b-2): record a live lord (forced to neutral regard so he is not the player's confidant) as KNOWING the secret, then drive the REAL propagation (DebugSpreadOnce, bypassing only the daily chance) and assert the secret reaches one of his friends who then knows it too, never the player. Forgets both ledger entries and restores the teller's regard afterwards", TestSecretPropagation),
          new SelfTest("pay_for_silence", Severity.Light, "Mystery-lover (phase 3b-3): mark a companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL bridge dispatch of pay_for_silence with a price and assert the gold moves player->lord, the hush is stamped as recently paid (easing the leverage prompt), and a memory is kept. Restores both purses, the flag, the ledger, and trims the memory afterwards", TestPayForSilence),
          new SelfTest("player_violence", Severity.Light, "Player violence (player request, Inc 2): drives the REAL bridge dispatch of kill_npc against a live lord and asserts THE guarantee, that with the MCM lethal toggle off (its default) the attempt is refused and the victim is still alive. Also checks the scene reader measures both fighters and that robbery is never barred by the lethal toggle. Mutates nothing while the toggle is off", TestPlayerViolence),
+         new SelfTest("help_plea", Severity.Light, "DepaHN (Nexus, 27/10/2026): friends, kin and allies should write when they need help, and Gabriel (01/11/2026): the game holds the player to what follows, thrown letter or not. Drives the REAL behavior on a lord already met, with no letter written: a letter still on the road costs nothing when the plea closes; on arrival the plea waits for an answer with a deadline; Send moves the true sum and closes it; a refusal lowers regard; a promise opens a journal entry and a siege already over closes it with no blame. Restores gold, regard and the ledger, and leaves no grievance or kindness", TestHelpPlea),
          new SelfTest("npc_dossier", Severity.Light, "Gabriel (31/10/2026): the NPC panel should hold everything the player has learned that the encyclopedia shows. The model knows truths the player has not learned, so the panel must keep them hidden. Opens a REAL chat ViewModel's dossier on a lord already met (no model call): a fear not yet learned stays out of it, the discovery of that fear marks it learned, the open panel shows it at once, and its grievances and kindnesses match the reader the encyclopedia uses. Restores the lord's fear", TestNpcDossier),
          new SelfTest("hover_glow", Severity.Light, "Gabriel (31/10/2026): the chat's buttons should answer the cursor; Dark Leather's tool buttons were transparent hotspots over painted tiles. Checks the glow widget can be built by the engine and that both installed chat skins carry it. Mutates nothing; the rule itself is pinned by ButtonGlowPolicyTests", TestHoverGlow),
          new SelfTest("kill_roll", Severity.Light, "zhenja1 (Nexus, 31/10/2026): he confirmed a killing twice and the man lived, because the roll failed and nothing on screen said there was a roll. Gabriel: the window names the chance, a number rolls to the score, the model tells the scene, then the end of the conversation or the character's answer. Builds a REAL chat ViewModel on a live lord and drives its killing window through the strike seam (nobody is harmed, no model call): the window names the measured chance and holds the chat, staying your hand leaves nothing open, a strike is made with the forced roll, the number lands on that roll and shows the verdict, then a failure hands the turn back for the character's answer and a kill leaves only Leave", TestKillRoll),
@@ -9800,6 +9801,88 @@ namespace CalradiaRemembers.Diagnostics
             subjectProfile.Romantic.Status = prevStatus;
             behavior.Store.Set(subjectProfile);
             gossip.ForgetKnows(holder, subject.StringId);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestHelpPlea(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("help_plea");
+         HelpPleas.HelpPleaBehavior pleas = HelpPleas.HelpPleaBehavior.Instance;
+         if (t.Skip(behavior?.Store == null || pleas == null || Hero.MainHero == null, "no campaign")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h.Clan != Clan.PlayerClan && Mapping.HeroPresence.IsInTheWorld(h)
+                                                             && behavior.Store.Get(h.StringId) != null && !h.MapFaction.IsAtWarWith(Hero.MainHero.MapFaction));
+         if (t.Skip(lord == null, "no lord met yet who is not at war with you")) return t.Line();
+
+         Settlement quiet = Settlement.All.FirstOrDefault(s => s.IsFortification && !s.IsUnderSiege);
+         if (t.Skip(quiet == null, "no quiet town or castle")) return t.Line();
+
+         NpcProfile profile = behavior.Store.Get(lord.StringId);
+         int regardBefore = profile.ReputationWithPlayer;
+         int eventsBefore = profile.Events.Count;
+         int playerGold = Hero.MainHero.Gold;
+         int lordGold = lord.Gold;
+         Logic.HelpPleas.HelpPleaLedger ledgerBefore = pleas.Ledger;
+         const int amount = 100;
+         int today = HelpPleas.HelpPleaBehavior.Today;
+         pleas.Ledger = new Logic.HelpPleas.HelpPleaLedger {NextId = ledgerBefore.NextId + 1000}; // never an id a real plea holds
+         string reliefId = null;
+         HelpPleas.HelpPleaBehavior.DebugSuppressLetters = true;
+         HelpPleas.HelpPleaBehavior.DebugSuppressKeepsakes = true;
+         try
+         {
+            t.Note($"{lord.Name}");
+            Hero.MainHero.ChangeHeroGold(amount);
+
+            Logic.HelpPleas.HelpPlea onTheRoad = pleas.Open(lord, Logic.HelpPleas.HelpCrisis.Besieged, lord.Clan, quiet, null, 0, "test:road", today);
+            t.Expect("noAnswerIsWantedBeforeTheLetterArrives", pleas.Waiting(lord.StringId) == null, true);
+            pleas.Upkeep(today);
+            t.Expect("aSiegeOverWhileTheLetterRodeClosesIt", pleas.Ledger.From(lord.StringId) == null, true);
+            t.Expect("andAskedNothingOfThePlayer", profile.ReputationWithPlayer, regardBefore);
+
+            Logic.HelpPleas.HelpPlea coin = pleas.Open(lord, Logic.HelpPleas.HelpCrisis.Ruined, lord.Clan, null, null, amount, "test:coin", today);
+            pleas.OnLetterReached(lord.StringId, today);
+            t.Expect("onArrivalItWaitsForTheAnswer", pleas.Waiting(lord.StringId) == coin, true);
+            t.Expect("theLetterShowsTheSumOnItsButton", pleas.AwaitingAnswerFrom(lord.StringId)?.AcceptText, $"Send {amount} denars");
+            t.Expect("theDeadlineRunsFromTheArrival", coin.DeadlineDay, today + Logic.HelpPleas.HelpPleaPolicy.DaysToAnswer);
+            int before = lord.Gold;
+            pleas.Accept(coin);
+            t.Expect("theTrueSumReachesTheWriter", lord.Gold - before, amount);
+            t.Expect("thePleaIsClosed", pleas.Ledger.From(lord.StringId) == null, true);
+            t.Expect("andTheyAreThankful", profile.ReputationWithPlayer > regardBefore, true);
+
+            int warm = profile.ReputationWithPlayer;
+            Logic.HelpPleas.HelpPlea refused = pleas.Open(lord, Logic.HelpPleas.HelpCrisis.Starving, lord.Clan, quiet, null, Logic.HelpPleas.HelpPleaPolicy.FoodAsked, "test:food", today);
+            pleas.OnLetterReached(lord.StringId, today);
+            pleas.Refuse(refused);
+            bool couldHave = refused.IncapacityWhenAnswered == Logic.HelpPleas.HelpIncapacity.None;
+            t.Expect("anHonestNoLowersRegardOnlyIfThePlayerCould", profile.ReputationWithPlayer < warm, couldHave);
+
+            Logic.HelpPleas.HelpPlea relief = pleas.Open(lord, Logic.HelpPleas.HelpCrisis.Besieged, quiet.OwnerClan, quiet, null, 0, "test:relief", today);
+            pleas.OnLetterReached(lord.StringId, today);
+            reliefId = relief.Id;
+            pleas.Accept(relief);
+            bool journalled = profile.ActiveQuests.Any(q => q.ExternalId == relief.Id && q.Status == QuestStatus.Active);
+            t.Expect("aPromiseIsAJournalEntry", journalled, true);
+            int promised = profile.ReputationWithPlayer;
+            relief.DistanceWhenPromised = float.MaxValue; // the player has closed the distance: on the road, and late
+            pleas.Upkeep(today);
+            t.Expect("theSiegeOverClosesTheEntry", profile.ActiveQuests.Any(q => q.ExternalId == relief.Id && q.Status == QuestStatus.Active), false);
+            t.Expect("aPlayerOnTheRoadWhoCameTooLateIsNotBlamed", profile.ReputationWithPlayer, promised);
+         }
+         finally
+         {
+            HelpPleas.HelpPleaBehavior.DebugSuppressLetters = false;
+            HelpPleas.HelpPleaBehavior.DebugSuppressKeepsakes = false;
+            pleas.Ledger = ledgerBefore;
+            profile.ReputationWithPlayer = regardBefore;
+            while (profile.Events.Count > eventsBefore) profile.Events.RemoveAt(profile.Events.Count - 1);
+            profile.ActiveQuests.RemoveAll(q => q.ExternalId == reliefId);
+            Hero.MainHero.ChangeHeroGold(playerGold - Hero.MainHero.Gold);
+            lord.ChangeHeroGold(lordGold - lord.Gold);
+            behavior.Store.Set(profile);
          }
 
          return t.Line();

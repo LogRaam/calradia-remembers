@@ -314,6 +314,8 @@ namespace CalradiaRemembers.Logic.Grudges
                 // a seized possession or a severed bond, so a still-soft grudge can be talked down (Amends), but
                 // once it has hardened only a real deed will mend it.
                 case GrudgeSource.PactBroken:         return soft ? GrudgeResolutionKind.Amends : GrudgeResolutionKind.Deed;
+                // AbandonedPlea (DepaHN, 27/10/2026): a word or a duty failed, the same family as the two above.
+                case GrudgeSource.AbandonedPlea:      return soft ? GrudgeResolutionKind.Amends : GrudgeResolutionKind.Deed;
                 default:                              return GrudgeResolutionKind.Amends;
             }
         }

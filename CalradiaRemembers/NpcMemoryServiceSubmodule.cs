@@ -209,6 +209,7 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new CommitmentBehavior());
          // Vassal war duty (Maifailun, Gabriel, 15/10/2026): keeps the service ledger; the ruler acts only with the MCM switch on.
          campaignStarter.AddBehavior(new WarDuty.WarDutyBehavior());
+         campaignStarter.AddBehavior(new HelpPleas.HelpPleaBehavior());
          Letters.LetterIntentionResolver.WarDutyOpenFor = id =>
          {
             Logic.WarDuty.WarDutyCase open = WarDuty.WarDutyBehavior.Instance?.Ledger?.Case;
