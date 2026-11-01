@@ -42,6 +42,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   ceilings. `MoneyTokens`, `MoneyTokenPolicy`. Not play-verified.
 
 ### Fixed
+
+- At Hardcore a lord's ransom offer reaches the player again (Windmolen, Nexus, 26/10/2026: "just ... ransom you"). `VanillaCaptivityPatch` cancelled it for every captor, under a log line that named only bandits. `CaptivityRansomPolicy` keeps the cancel for bandits, a nemesis and an ambush convoy, and for the law at every level.
 - **Fixed letters now reach you in your language** (RaveN017Mod, Nexus PM, 29/10/2026: threats from lords "appear in
   English even though my game is in French"). Five kinds of letter are texts the mod writes itself, with no model call, so
   Reply Language never reached them: a lord's threats and warnings, a friend's favour, a blackmail, a mother's note, a

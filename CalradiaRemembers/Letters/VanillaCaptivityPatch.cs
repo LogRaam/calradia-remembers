@@ -5,8 +5,11 @@
 using System;
 using System.Collections.Generic;
 using HarmonyLib;
+using CalradiaRemembers.Logic.Captivity;
 using NpcMemoryService.Core.Models;
+using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.GameMenus;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 using CalradiaRemembers.Foundation;
 
@@ -20,7 +23,7 @@ namespace CalradiaRemembers.Letters
    ///   <list type="bullet">
    ///     <item>
    ///       the captor's ransom offer ("he proposes to free you in return for N gold") —
-   ///       cancelled entirely; and
+   ///       cancelled for those who do not bargain (<see cref="CaptivityRansomPolicy" />); a lord's stands; and
    ///     </item>
    ///     <item>
    ///       the spontaneous escape ("you find a chance and escape from your captors") —
@@ -31,8 +34,8 @@ namespace CalradiaRemembers.Letters
    ///   <c>EndCaptivityAction</c> itself — it only <see cref="GameMenu.SwitchToMenu" />es to the
    ///   relevant menu, and the captivity is ended inside that menu. So skipping the switch keeps
    ///   the player captive cleanly, with no native state half-applied. Gated to Hardcore — the
-   ///   content level where CR captive scenes are active — and applies to ALL captors (bandit and
-   ///   lord alike); lower content levels keep their full vanilla behavior.
+   ///   content level where CR captive scenes are active; lower content levels keep their full
+   ///   vanilla behavior.
    /// </summary>
    [HarmonyPatch(typeof(GameMenu), nameof(GameMenu.SwitchToMenu))]
    public static class VanillaCaptivityPatch
@@ -62,24 +65,25 @@ namespace CalradiaRemembers.Letters
          if (string.IsNullOrEmpty(menuId)) return true;
          if (!EscapeMenus.Contains(menuId) && !RansomMenus.Contains(menuId)) return true;
 
-         // Arrests (26/09/2026): a player held for trial, or serving a sentence, is never ransomed free by the captor.
-         // An escape stays the engine's own, and counts as a flight (ArrestBehavior).
-         if (RansomMenus.Contains(menuId) && Arrests.ArrestBehavior.Instance?.HoldsPlayer == true)
+         if (RansomMenus.Contains(menuId))
          {
-            ModLog.Info($"[ARREST] vanilla ransom offer '{menuId}' suppressed: the player is held by the law.");
+            // Arrests (26/09/2026): held by the law, the player is never ransomed. An escape stays the engine's own, and
+            // counts as a flight (ArrestBehavior).
+            MobileParty captor = PlayerCaptivity.CaptorParty?.MobileParty;
+            bool suppressed = CaptivityRansomPolicy.Suppresses(new RansomOfferFacts {
+               IsHardcore = ModSettings.AdultContentLevel == AdultContentLevel.Hardcore,
+               HeldByTheLaw = Arrests.ArrestBehavior.Instance?.HoldsPlayer == true,
+               CaptorIsBandit = captor?.IsBandit == true,
+               CaptorIsNemesis = captor != null && Nemesis.NemesisBehavior.Instance?.NemesisCaptorFor(captor) != null,
+               InAmbushConvoy = captor != null && Stance.AmbushCaptivityBehavior.Instance?.IsAmbushCaptor(captor) == true
+            });
+            if (suppressed) ModLog.Info($"[CAPTIVITY] vanilla ransom offer '{menuId}' suppressed: this captor does not bargain.");
 
-            return false;
+            return !suppressed;
          }
 
          // Only extend captivity where CR captive scenes can actually use the extra time.
          if (ModSettings.AdultContentLevel != AdultContentLevel.Hardcore) return true;
-
-         if (RansomMenus.Contains(menuId))
-         {
-            ModLog.Info($"[CAPTIVITY] vanilla ransom offer '{menuId}' suppressed — bandits do not bargain you free.");
-
-            return false;
-         }
 
          // A nemesis suppresses the drip harder than an ordinary captor and tightens his guard with every
          // recapture, but never fully: a slim passive chance always remains, so the player is not left to wait

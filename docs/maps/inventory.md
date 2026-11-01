@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 608 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1464 types in 50 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1466 types in 50 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 282 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1800,7 +1800,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SkirmishMemoryText` | public static class | Pure: the folded "small fights" memory a companion keeps of the skirmishes shared with the player. |
 | `TalliedFoe` | public class | One foe a hero put out of the fight, with the campaign's verdict on them afterwards. |
 
-### CalradiaRemembers.Logic.Captivity (20)
+### CalradiaRemembers.Logic.Captivity (22)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1819,10 +1819,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptiveSceneArcPolicy` | public static class | Picks the lead captor's opening arc as a WEIGHTED draw over SceneArc, mirroring CaptiveEncounterPolicy.SelectIntent's draw style: context LEANS the odds rather than gating them, and every arc keeps a floor weight so it c... |
 | `CaptiveSceneDirector` | public class | The "director" of a captive scene: a small state machine that owns the dramatic structure so the model never has to (and never loops a beat). |
 | `CaptiveTerm` | public enum | A term a captive may put on the table for her freedom. |
+| `CaptivityRansomPolicy` | public static class | Whether the game's own ransom offer reaches the player. |
 | `CaptureFacts` | public class | What is known of the capture. |
 | `CaptureMemoryText` | public static class | The captor's memory of the capture. |
 | `CaptureNorm` | public static class | The framing of a lord taken captive by the player. |
 | `CaptureStake` | public enum | What the captive is to the one who hears of the capture. |
+| `RansomOfferFacts` | public class | Who holds the player when the game is about to offer a ransom. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 
 ### CalradiaRemembers.Logic.Character (15)
