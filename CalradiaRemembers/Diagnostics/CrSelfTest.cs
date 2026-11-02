@@ -6458,7 +6458,8 @@ namespace CalradiaRemembers.Diagnostics
          int heldBefore = roster.GetItemNumber(good);
          int playerGold = Hero.MainHero.Gold;
          int buyerGold = buyer.Gold;
-         const int price = 100;
+         // Within what the good fetches: a price above its ceiling is brought down, which coin_matches_words drives.
+         int price = Math.Min(100, ItemSalePolicy.MostFor(good.Value));
          roster.AddToCounts(good, 1);
          var paid = 0;
          try
@@ -9888,7 +9889,7 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(extortion == null || Hero.MainHero == null || behavior.Store == null, "no campaign")) return t.Line();
 
          Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && !h.IsPrisoner && h.Clan != null && h.Clan != Clan.PlayerClan && h.Clan.Villages.Count > 0);
-         Hero lover = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != lord);
+         Hero lover = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsChild && h != lord);
          if (t.Skip(lord == null || lover == null || Hero.MainHero.IsPrisoner, "no lord with villages, or the player is a prisoner")) return t.Line();
 
          NpcProfile profile = behavior.Store.Get(lord.StringId) ?? HeroProfileMapper.FromHero(lord);
@@ -9979,7 +9980,7 @@ namespace CalradiaRemembers.Diagnostics
 
          List<string> ownLovers = gossip.PlayerSecretLoverSubjectIds();
          Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h.Clan != null && h.Clan != Clan.PlayerClan && h.Spouse is {IsAlive: true} && h.Spouse != Hero.MainHero && !ownLovers.Contains(h.StringId));
-         Hero listener = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && !h.IsPrisoner && h != lord && h != lord?.Spouse);
+         Hero listener = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsChild && !h.IsPrisoner && h != lord && h != lord?.Spouse);
          if (t.Skip(lord == null || listener == null, "no married lord, or nobody to tell")) return t.Line();
 
          Hero spouse = lord.Spouse;
