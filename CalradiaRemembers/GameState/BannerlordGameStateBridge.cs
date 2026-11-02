@@ -4495,6 +4495,10 @@ namespace CalradiaRemembers.GameState
             if (profile.Romantic == null || string.IsNullOrEmpty(profile.Romantic.TakenLoverId))
                return ActionOutcome.Refused($"({npcHero.Name} has no lover to give up.)");
 
+            // A lord's hidden affair is not the player's to end: only their own partner's lover is, "at my asking".
+            if (Mapping.HiddenAffairBehavior.Instance?.IsHidden(npcHero.StringId) == true)
+               return ActionOutcome.Refused($"(That is no affair of yours to end with {npcHero.Name}.)");
+
             Hero lover = Hero.FindFirst(h => h.StringId == profile.Romantic.TakenLoverId);
             string loverName = lover?.Name?.ToString() ?? "her lover";
 

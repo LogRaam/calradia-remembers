@@ -230,6 +230,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("battle_feat", Severity.Light, "Battle-memory enrichment (Gabriel 2026-09-06, Inc 1): reads LIVE hero fighting facts through the real BattleFeatFacts bridge and asserts they yield a real prowess score; then pins the exploit ruling on synthetic extremes (besting a champion is an Exploit and travels as gossip, stomping a weakling is Unremarkable and never travels); then drives the REAL mission journal through its debug seam and asserts it keeps the felled hero (deduplicated), who downed the player, and the troop tally apart; and asserts a bested lord is never called killed (the truth rule). Mutates nothing", TestBattleFeat),
          new SelfTest("tournament_memory", Severity.Light, "Tournament memory (player suggestion, Inc 2): build a synthetic arena result (the player bested one lord, another beat the player and took the crown) and drive the REAL feeder (TournamentMemoryFeeder.Apply). Asserts a first-hand LIVED memory lands on each lord's profile (the loser recalls losing, the champion recalls besting the player and taking the crown) so the recent-matter interception makes them approach, and a champion gossip world event is recorded (player not involved). Trims the memories and removes the event afterwards", TestTournamentMemory),
          new SelfTest("tournament_rivalry", Severity.Light, "Tournament memory (player suggestion, Inc 4): force a low-honour lord and record three arena head-to-heads via the REAL rivalry behavior; asserts no rivalry forms before the threshold, it crystallizes at the threshold, the tally is right, and a BITTER rivalry plants a light grudge. Clears the grudge, forgets the tally, and restores the trait afterwards", TestTournamentRivalry),
+         new SelfTest("hidden_affairs", Severity.Light, "Gabriel's go 01/11/2026: a married lord may take a hidden lover, found by a companion sent to spy on them. Begins an affair between two lords and asserts both carry it in their prompt, told to evade and never lie; the player holds nothing yet; end_affair refuses it and the partner path leaves it alone; a poor inquiry says nothing certain; a companion dispatched with the lord's name through the real errand reports it and the player then holds it, on the lover too. Then ends it as a telling would, and asserts the fields are clear. Expose itself is driven by cr.test secret_exposure. Restores all borrowed state", TestHiddenAffairs),
          new SelfTest("lord_secret_lover", Severity.Light, "Mystery-lover (lord coverage): a MARRIED lord the player is secretly the lover of carries the SDK Status SecretLover (not the companion-only IsSecretLover flag). Mark a non-companion lord's profile Status SecretLover and assert the unified detection (PlayerSecretLoverSubjectIds) finds him, then record a second lord as knowing and drive the REAL EncounterContextBuilder.Build to assert the held-secret payoff names the lord subject (adult on) or is suppressed (gate off). Restores the status and forgets the ledger afterwards", TestLordSecretLover),
          new SelfTest("quest_hideout", Severity.Light, "issue a BanditHideout quest through the real pipeline anchored on a town with a live infested lair nearby -> assert it bound a REAL existing hideout (TargetHideoutId) + a cardinal bearing (DirectionHint) against the live world (MANUAL when no town has an infested lair in range, which is itself the designed refusal)", TestQuestHideout),
          new SelfTest("quest_hideout_marker", Severity.Light, "increment 2a (player report: 'clear the base south of the village' but the map marker sat on the village): issue a BanditHideout quest through the real pipeline against a town with a live infested lair, drive the marker-resolution seam, and assert the marker resolves to the bound LAIR, not the anchor town. MANUAL when no town has an infested lair in range. Cleans up the seeded quest", TestQuestHideoutMarker),
@@ -10075,6 +10076,91 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       private static int SecretExposureHeld(Hero listener) => Violence.SecretExposure.HeldFor(listener).Count;
+
+      private static string TestHiddenAffairs(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("hidden_affairs");
+         Mapping.HiddenAffairBehavior affairs = Mapping.HiddenAffairBehavior.Instance;
+         Violence.ExtortionBehavior extortion = Violence.ExtortionBehavior.Instance;
+         CompanionMissionBehavior missions = CompanionMissionBehavior.Instance;
+         if (t.Skip(affairs == null || extortion == null || missions == null || Hero.MainHero == null || behavior.Store == null, "no campaign")) return t.Line();
+         if (t.Skip(ModSettings.AdultContentLevel == AdultContentLevel.Off, "adult content is off: no affair exists")) return t.Line();
+         if (t.Skip(!ModSettings.HiddenAffairs, "Hidden Affairs Among Lords is off")) return t.Line();
+         if (t.Skip(missions.DebugActiveCount > 0, "a companion is already away: the test resolves the first errand")) return t.Line();
+
+         bool Free(Hero h) => h != Hero.MainHero && h.IsLord && !h.IsChild && h.Clan != null && h.Clan != Clan.PlayerClan && affairs.Ledger.Of(h.StringId) == null && string.IsNullOrEmpty(behavior.Store.Get(h.StringId)?.Romantic?.TakenLoverId);
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => Free(h) && Mapping.HeroPresence.IsInTheWorld(h.Spouse) && h.Spouse != Hero.MainHero && (h.CurrentSettlement != null || h.PartyBelongedTo != null));
+         Hero lover = Hero.AllAliveHeroes.FirstOrDefault(h => Free(h) && h.Spouse == null && h != lord);
+         Hero listener = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsChild && !h.IsPrisoner && h != lord && h != lover && h != lord?.Spouse);
+         if (t.Skip(lord == null || lover == null || listener == null, "no married lord, no free lord, or nobody to tell")) return t.Line();
+
+         using var arranged = ArrangedCompanion.Get(behavior, mustBeInMainParty: true);
+         if (t.Skip(arranged == null, "no available companion in your party, and no wanderer template to arrange one")) return t.Line();
+         Hero companion = arranged.Companion;
+         if (arranged.WasMinted) companion.SetSkillValue(DefaultSkills.Roguery, 40);
+
+         NpcProfile profile = GetOrCreate(behavior, lord);
+         profile.Romantic ??= new RomanticProfile();
+         NpcProfile told = GetOrCreate(behavior, companion);
+         int toldEvents = told.Events.Count;
+         HiddenAffairLedger kept = affairs.Ledger;
+         Logic.Extortion.ExtortionLedger keptExtortion = extortion.Ledger;
+         try
+         {
+            affairs.Ledger = new HiddenAffairLedger();
+            extortion.Ledger = new Logic.Extortion.ExtortionLedger();
+            t.Expect("theAffairBegins", affairs.Begin(lord, lover, (int) CampaignTime.Now.ToDays), true);
+
+            string own = affairs.PromptFor(lord) ?? "";
+            string other = affairs.PromptFor(lover) ?? "";
+            // STAKE: Gabriel: the character knows it. Without these two lines the lovers would answer as if nothing were hidden.
+            t.Expect("theMarriedOneCarriesIt", own.Contains(lover.Name.ToString()) && own.Contains("never deny it with a lie"), true);
+            t.Expect("theLoverCarriesItToo", other.Contains(lord.Name.ToString()), true);
+            // STAKE: the player finds it or it does not exist for them: no verb before a companion brings it back.
+            t.Expect("thePlayerHoldsNothingYet", SecretExposureHeld(listener), 0);
+
+            // STAKE: the partner path's every line calls a lover a betrayal of the player: left in it, a lord's affair would make a scandal about them.
+            t.Expect("thePartnerPathLeavesItAlone", affairs.IsHidden(lord.StringId), true);
+            ActionOutcome ended = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "end_affair"}, lord, new ActionContext(profile, null));
+            t.Note(ended?.Message);
+            t.Expect("thePlayerCannotEndIt", behavior.Store.Get(lord.StringId)?.Romantic?.TakenLoverId, lover.StringId);
+
+            // STAKE: NPCs never lie: a poor errand says nothing certain, never "nothing hidden".
+            t.Expect("aPoorInquiryFindsNothing", affairs.Inquire(lord, Logic.Companions.MissionResult.Partial).SubjectId, (string) null);
+            // STAKE: the lover has no field of their own: looking into them must still lead to the affair.
+            t.Expect("lookingIntoTheLoverFindsIt", affairs.Inquire(lover, Logic.Companions.MissionResult.Success).SubjectId, lord.StringId);
+
+            (bool dispatched, string refusal) = missions.Dispatch(companion, CompanionMissionType.Spy, lord.Name.ToString());
+            if (t.Skip(!dispatched, $"dispatch refused for {companion.Name}: {refusal}")) return t.Line();
+
+            missions.DebugForceFirstQuality(Logic.Companions.MissionResult.Success);
+            missions.ForceResolveFirst();
+            string report = missions.ConsumeNewsReport(companion) ?? "";
+            t.Note(report);
+            // STAKE: the one road Gabriel chose: the report is what tells the player.
+            t.Expect("theReportTellsIt", report.Contains(lover.Name.ToString()), true);
+            t.Expect("thePlayerNowKnows", behavior.Store.Get(lord.StringId)?.Romantic?.LoverKnownToPlayer == true, true);
+            t.Expect("itCanBeTold", Violence.SecretExposure.HeldFor(listener).Any(s => s.Subject == lord && s.Lover == lover), true);
+            t.Expect("theMarriedOneCanBePressed", extortion.HoldOver(lord)?.Lever == Logic.Extortion.ExtortionLever.Secret || !Logic.Extortion.ExtortionPolicy.IsWorthAsking(lord.Gold), true);
+            t.Expect("theLoverCanBePressed", extortion.HoldOver(lover)?.Lever == Logic.Extortion.ExtortionLever.Secret || !Logic.Extortion.ExtortionPolicy.IsWorthAsking(lover.Gold) || lover.IsPrisoner, true);
+
+            // STAKE: a told secret is over: a lord still "secret" after the whole realm heard would contradict the scandal.
+            affairs.OnExposed(lord.StringId);
+            t.Expect("aToldAffairEnds", affairs.Ledger.Of(lord.StringId), (HiddenAffair) null);
+            t.Expect("theFieldsAreClear", behavior.Store.Get(lord.StringId)?.Romantic?.TakenLoverId, (string) null);
+            t.Expect("theyCarryItNoMore", affairs.PromptFor(lover), (string) null);
+         }
+         finally
+         {
+            foreach (HiddenAffair affair in affairs.Ledger.Affairs.ToList()) affairs.End(affair);
+            affairs.Ledger = kept;
+            extortion.Ledger = keptExtortion;
+            while (told.Events.Count > toldEvents) told.Events.RemoveAt(told.Events.Count - 1);
+            behavior.Store.Set(told);
+         }
+
+         return t.Line();
+      }
 
       private static string TestLegends(NpcMemoryCampaignBehavior behavior)
       {

@@ -10,7 +10,6 @@ using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Jealousy;
 using CalradiaRemembers.Logic;
-using CalradiaRemembers.Logic.Marriage;
 using CalradiaRemembers.Logic.Romance;
 using CalradiaRemembers.Social;
 using CalradiaRemembers.WorldEvents;
@@ -200,7 +199,7 @@ namespace CalradiaRemembers.OpenPartnerLover
                return null;
          }
 
-         Hero lover = SelectLover(partner, profile);
+         Hero lover = Mapping.LoverSelector.Best(partner, profile);
 
          if (lover == null) return null;
 
@@ -220,53 +219,6 @@ namespace CalradiaRemembers.OpenPartnerLover
          ModLog.Info($"[OPEN-LOVER] {partner.Name} ({(isHaremCulture ? "harem" : "open")} partner, neglect {neglect}d) has taken {lover.Name} as her own {(secret ? "secret" : "open")} lover.");
 
          return lover;
-      }
-
-      /// <summary>
-      ///   Scans the living heroes for the best-acquainted plausible lover for <paramref name="partner" />,
-      ///   gating each candidate through the pure <see cref="OpenPartnerLoverPolicy.IsPlausibleLover" /> and
-      ///   inferring compatibility the way CR infers a match elsewhere (unwed adult of a sex she is drawn to,
-      ///   an associate, never the player or the player's own household). Prefers the highest relation to her,
-      ///   with an <see cref="MBRandom" /> tie-break so equal ties do not always pick the same hero.
-      /// </summary>
-      private static Hero SelectLover(Hero partner, NpcProfile profile)
-      {
-         var player = Hero.MainHero;
-         Clan playerClan = Clan.PlayerClan;
-
-         Hero best = null;
-         int bestRel = int.MinValue;
-         foreach (Hero h in Hero.AllAliveHeroes)
-         {
-            if (h == null || h == partner) continue;
-
-            int rel = h.GetRelation(partner);
-            bool acquainted = rel > 0 || (h.MapFaction != null && h.MapFaction == partner.MapFaction);
-            // The partner's own orientation against the candidate's sex: the single authoritative compatibility
-            // rule (RomanticProfile.IsCompatibleWith), reused for a female-partner-seeking-a-male-lover direction.
-            bool orientationCompatible = profile.Romantic.IsCompatibleWith(h.IsFemale);
-
-            bool ok = OpenPartnerLoverPolicy.IsPlausibleLover(new OpenPartnerLoverPolicy.LoverCandidateFacts {
-               IsAlive = h.IsAlive,
-               IsHero = h.IsLord, // a proper lord/lady, not a wanderer or notable
-               OrientationCompatible = orientationCompatible,
-               IsUnwed = h.Spouse == null,
-               IsAdult = !h.IsChild && h.Age >= MarriageEligibility.MinMarriageAge,
-               Acquainted = acquainted,
-               IsThePlayer = h == player,
-               IsOfPlayerHousehold = playerClan != null && h.Clan == playerClan
-            });
-
-            if (!ok) continue;
-
-            if (rel > bestRel || (rel == bestRel && MBRandom.RandomInt(2) == 0))
-            {
-               bestRel = rel;
-               best = h;
-            }
-         }
-
-         return best;
       }
 
       /// <summary>
@@ -562,6 +514,9 @@ namespace CalradiaRemembers.OpenPartnerLover
             NpcProfile p = behavior.Store.Get(id);
 
             if (p?.Romantic == null || string.IsNullOrEmpty(p.Romantic.TakenLoverId)) continue;
+
+            // A lord's hidden affair is no partner's lover: every line below speaks of a betrayal of the player.
+            if (Mapping.HiddenAffairBehavior.Instance?.IsHidden(id) == true) continue;
 
             Hero h = Hero.FindFirst(x => x.StringId == id);
 

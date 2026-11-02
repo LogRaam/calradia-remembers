@@ -91,6 +91,7 @@ namespace CalradiaRemembers.Violence
 
          Remember(listener, NotableEventType.Other, $"{player.Name} told me that {secret.Subject.Name} and {secret.Lover.Name} are lovers in secret.", today);
          SecretLoverGossipBehavior.Instance?.Retire(secret.Subject.StringId);
+         Mapping.HiddenAffairBehavior.Instance?.OnExposed(secret.Subject.StringId);
          if (secret.Lover == player) JealousyBehavior.Instance?.OnAffairExposed(secret.Subject, today);
 
          ModLog.Info($"[EXTORT] {player.Name} told {listener.Name} of {secret.Subject.Name} and {secret.Lover.Name}.");

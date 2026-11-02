@@ -57,7 +57,7 @@ reads alive, and `Clan.Heroes` keeps both the dead and the disabled. A check tha
 the backlog (a baseline in `RatchetTests` that may only go down); many are bookkeeping ("is the subject of
 this memory still alive") where death alone is the question.
 
-313 reads in 85 files.
+313 reads in 86 files.
 
 | File | Reads |
 |---|---|
@@ -107,6 +107,7 @@ this memory still alive") where death alone is the question.
 | `Letters/PrisonerEnvoyBehavior.cs` | 2 |
 | `Mapping/EncounterContextBuilder.cs` | 30 |
 | `Mapping/HeroProfileMapper.cs` | 4 |
+| `Mapping/LoverSelector.cs` | 2 |
 | `Mapping/RelationshipsBuilder.cs` | 7 |
 | `Marriage/DivorceEligibilityResolver.cs` | 2 |
 | `Marriage/DivorceProcessBehavior.cs` | 3 |
@@ -129,7 +130,7 @@ this memory still alive") where death alone is the question.
 | `Nemesis/NemesisBountyDialogFlow.cs` | 2 |
 | `Nemesis/NemesisResolutionBehavior.cs` | 3 |
 | `Nemesis/NemesisTavernRumorDialogFlow.cs` | 2 |
-| `OpenPartnerLover/OpenPartnerLoverBehavior.cs` | 7 |
+| `OpenPartnerLover/OpenPartnerLoverBehavior.cs` | 5 |
 | `Quests/QuestJournalBridge.cs` | 3 |
 | `Quests/QuestService.cs` | 1 |
 | `Quests/ViableQuestScanner.cs` | 1 |

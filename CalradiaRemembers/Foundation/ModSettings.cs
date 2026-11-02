@@ -86,6 +86,9 @@ namespace CalradiaRemembers.Foundation
       /// <summary>Extraordinary battles become legends that characters tell (on without MCM).</summary>
       public static bool Legends => CrSettings.Instance?.Legends ?? true;
 
+      /// <summary>A married lord may take a hidden lover (Gabriel, 01/11/2026). Never at adult content Off.</summary>
+      public static bool HiddenAffairs => CrSettings.Instance?.HiddenAffairs ?? true;
+
       /// <summary>Characters write to the player of their own accord; off, only the letters that matter still come (on without MCM).</summary>
       public static bool UnaskedLetters => CrSettings.Instance?.UnaskedLetters ?? true;
 

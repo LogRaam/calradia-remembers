@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 621 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1495 types in 53 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 624 types in 65 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1502 types in 53 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 282 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -586,11 +586,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterBoxNavigationItemVM` | internal class | A genuine nav-bar item that opens the letter box, its badge counting the letters waiting. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (49)
+### CalradiaRemembers.Mapping (52)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ActionGate` | public static class | The live-game side of the one initiative gate. |
+| `AffairFinding` | internal class | What a companion's inquiry brought back. |
 | `BattleFeatFacts` | public static class | Reads a live hero's fighting facts for CombatProwessPolicy. |
 | `ContextualNameResolver` | public static class | Scans the player's message for hero names and produces a ready-to-inject hint block for the LLM system prompt. |
 | `CouncilSeatNoteResolver` | internal static class | Resolves one council seat's modder note from council_seat.txt and that seat's own variables. |
@@ -608,9 +609,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroPresence` | public static class | Whether a hero is in the world at all: alive, and not taken out of it by the game. |
 | `HeroProfileMapper` | public static class | (no summary) |
 | `HeroSeats` | public static class | The places a character answers for, closest first. |
+| `HiddenAffairBehavior` | public class | Lets a lord take a hidden lover now and then, keeps the handful standing, and answers an inquiry. |
 | `IntimacyBargainEligibility` | public static class | Resolves the adult-gated, archetype-filtered eligibility for the intimacy-as-currency dynamic. |
 | `IntimateActApplier` | internal static class | Teaches the reader a character's tastes in bed, and carries out a reported gesture. |
 | `KnownPageReader` | internal static class | Reads the What You Know lines of a hero's page. |
+| `LoverSelector` | internal static class | Finds the lover a character would take. |
 | `MattersMostReader` | internal static class | Reads what is true of a character, keeps what matters most to them up to date, and words it for their page. |
 | `MisdeedLedgerBehavior` | public class | The ledger of the player's misdeeds no other source records as a deed, one record per deed and day. |
 | `MisdeedsPageReader` | internal static class | Reads what the player did of their own will for the Misdeeds section. |
@@ -2486,16 +2489,23 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RescueGratitudePolicy` | public static class | Decides how strongly an NPC reacts to being rescued (or to a loved one being rescued) by the player. |
 | `RescueTie` | public enum | How the freed prisoner relates to the player, deciding the shape of their gratitude. |
 
-### CalradiaRemembers.Logic.Romance (36)
+### CalradiaRemembers.Logic.Romance (43)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `AffairInquiry` | public enum | What a companion's inquiry into a lord comes to. |
 | `HeartChild` | public class | A child the player and this character have together, as the page names it. |
 | `HeartFacts` | public class | What the player knows of one character's bond with them. |
 | `HeartIntimacyPolicy` | public static class | The intimate lines of the Heart section: their gate and their words. |
 | `HeartNightsFacts` | public class | The nights the player shared with one character, as the page tells them. |
 | `HeartPagePolicy` | public static class | Tells a character's bond with the player for the Heart section, and the recap line on the player's page. |
 | `HeartTastesFacts` | public class | What the player has learned of a character's tastes in bed. |
+| `HiddenAffair` | public class | One hidden affair the world holds. |
+| `HiddenAffairCandidate` | public class | What decides whether a lord may take a hidden lover. |
+| `HiddenAffairLedger` | public class | Every hidden affair standing. |
+| `HiddenAffairNames` | public class | The names a report or a prompt is written with. |
+| `HiddenAffairPolicy` | public static class | Decides who takes a lover, how many stand at once, when it ends and what an inquiry finds. |
+| `HiddenAffairSpan` | public class | What decides whether an affair is over. |
 | `IntimateActJudgeFacts` | public class | What a reported gesture is, as the game judges it. |
 | `IntimateActPolicy` | public static class | The gestures a character loves, is less fond of and dislikes, rolled once from their id. |
 | `IntimateActReaderFacts` | public class | What the turn's reader is told of a character's tastes in bed. |

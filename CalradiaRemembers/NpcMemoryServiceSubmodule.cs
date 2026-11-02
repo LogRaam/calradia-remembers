@@ -216,6 +216,7 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new HelpPleas.HelpPleaBehavior());
          campaignStarter.AddBehavior(new Quests.CaptorTermsBehavior());
          campaignStarter.AddBehavior(new RaidRestraintBehavior());
+         campaignStarter.AddBehavior(new Mapping.HiddenAffairBehavior());
          campaignStarter.AddBehavior(new Letters.VillagesSparedLetterBehavior());
          Letters.LetterIntentionResolver.WarDutyOpenFor = id =>
          {

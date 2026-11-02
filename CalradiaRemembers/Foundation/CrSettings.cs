@@ -638,6 +638,11 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool Legends { get; set; } = true;
 
+      [SettingPropertyBool("{=CR_MCM_HiddenAffairs}Hidden Affairs Among Lords", RequireRestart = false, Order = 17,
+         HintText = "{=CR_MCM_HiddenAffairs_Hint}Now and then a married lord takes a hidden lover, a handful at most. Send a companion to spy on a lord to find out. A found affair can be used or told. Off: no new affair. Never at adult content Off.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
+      public bool HiddenAffairs { get; set; } = true;
+
       // "Intercepted letters can leak" (Order 12) is gone since 26/09/2026: Gabriel ruled that an intercepted letter
       // with substance ALWAYS becomes a secret carried in the world (CourierSecretBehavior); the one switch left is
       // Invulnerable Couriers above.

@@ -31,6 +31,12 @@ namespace CalradiaRemembers.Missions
       /// <summary>StringId of the dispatched companion (a real hero, vanilla-serialized).</summary>
       public string CompanionId { get; set; }
 
+      /// <summary>For a SPY errand sent after a named lord: that lord's StringId. Null on every other errand.</summary>
+      public string AboutHeroId { get; set; }
+
+      /// <summary>The married one whose hidden affair the errand found: the player knows it once the report is heard.</summary>
+      public string AffairSubjectId { get; set; }
+
       /// <summary>Cached display name, so the report still reads right if the hero is gone on return.</summary>
       public string CompanionName { get; set; }
 

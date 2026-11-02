@@ -228,6 +228,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 - taught when: `context?.PartnerLoverKnown != true [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} has no lover to give up.)"
+  - $"(That is no affair of yours to end with {npcHero.Name}.)"
 
 ### end_marriage
 

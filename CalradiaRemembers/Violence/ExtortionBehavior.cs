@@ -251,6 +251,10 @@ namespace CalradiaRemembers.Violence
          if (IsAffairKnown(spouses) && spouses.TakenLoverId == npc.StringId && !Ledger.IsExposed(player.Spouse.StringId, npc.StringId))
             return $"{player.Name} knows that you are the hidden lover of {player.Spouse.Name}.";
 
+         Hero loved = Mapping.HiddenAffairBehavior.Instance?.KnownSubjectOf(npc);
+         if (loved != null && !Ledger.IsExposed(loved.StringId, npc.StringId))
+            return $"{player.Name} knows that you are the hidden lover of {loved.Name}.";
+
          return null;
       }
 

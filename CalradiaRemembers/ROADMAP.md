@@ -376,7 +376,7 @@ never taught a ransom though the host already computes `CaptorAllowsRansomReleas
 
 ## BUILT 2026-11-01 (2.8.2), not play-verified, see the CHANGELOG (Gabriel's "go"): extortion by the player, on a hold the game verifies
 
-Traced 01/11/2026: a threat of violence is already `rob_npc`, and the player never holds a third party's letter (a recovered courier letter is their own), so the lever on courier secrets below does not exist. Levers built: a known hidden affair, and lands in reach of a stronger host. `expose_secret`, a named scandal the spouse learns, BUILT the same day on Gabriel's go, see the CHANGELOG. Left out: a divorce on the spot, and hidden affairs between lords (no code simulates one, so the secret lever and the telling only reach the player's own lover, a partner of theirs and that partner's lover).
+Traced 01/11/2026: a threat of violence is already `rob_npc`, and the player never holds a third party's letter (a recovered courier letter is their own), so the lever on courier secrets below does not exist. Levers built: a known hidden affair, and lands in reach of a stronger host. `expose_secret`, a named scandal the spouse learns, BUILT the same day on Gabriel's go, see the CHANGELOG. Left out: a divorce on the spot. Hidden affairs between lords BUILT the same day on Gabriel's go, see the CHANGELOG, with a companion's spying as the one road to them; rumours as a second road are left for later.
 
 
 Gabriel (23/10/2026), for the Misdeeds section of the player's page (`4679f2a`): "on pourrait aussi ajouter des

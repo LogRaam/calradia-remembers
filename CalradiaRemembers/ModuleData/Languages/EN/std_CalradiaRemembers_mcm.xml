@@ -175,6 +175,8 @@
     <string id="CR_MCM_RaidRestraint_Hint" text="When a war sets a friend or relative against you, they draw once: the closer they are, the likelier they leave your villages alone. Off: every lord raids as in the base game." />
     <string id="CR_MCM_Legends" text="Legends" />
     <string id="CR_MCM_Legends_Hint" text="A battle won against the odds, a siege held or a last stand can become a legend that characters tell in their own way, yours included. At most one a season, your own excepted. Off: no new legend, none told." />
+    <string id="CR_MCM_HiddenAffairs" text="Hidden Affairs Among Lords" />
+    <string id="CR_MCM_HiddenAffairs_Hint" text="Now and then a married lord takes a hidden lover, a handful at most. Send a companion to spy on a lord to find out. A found affair can be used or told. Off: no new affair. Never at adult content Off." />
     <string id="CR_MCM_AllowCaptorExecutions" text="Allow Captor Executions" />
     <string id="CR_MCM_AllowCaptorExecutions_Hint" text="Let a captor's scene end your character, at their own deliberate choice, deep in a Hardcore captive scene. Off by default. Irreversible: game over, or your heir succeeds you." />
     <string id="CR_MCM_AllowFiefAndMarriageQuestRewards" text="Allow Fief And Marriage Quest Rewards" />

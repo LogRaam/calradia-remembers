@@ -123,7 +123,9 @@ namespace CalradiaRemembers.Missions
          // rather than riding in on this increment. Left commented per the increment's "do not force it"
          // guidance; see the increment's report for detail.
 
-         Settlement dest = ResolveDestination(about);
+         // A spy sent after a lord rides to where that lord is, and looks into them there (Gabriel, 01/11/2026).
+         Hero lord = type == CompanionMissionType.Spy ? Mapping.HiddenAffairBehavior.LordNamed(about, companion) : null;
+         Settlement dest = TownNear(lord) ?? ResolveDestination(about);
 
          if (dest == null) return (false, "There is no town to send them to.");
 
@@ -139,6 +141,7 @@ namespace CalradiaRemembers.Missions
             CompanionId = companion.StringId,
             CompanionName = companion.Name?.ToString() ?? "Your companion",
             Type = type,
+            AboutHeroId = lord?.StringId,
             DestinationSettlementId = dest.StringId,
             DestinationName = dest.Name?.ToString() ?? "a town",
             PartyId = party.StringId,
@@ -167,6 +170,15 @@ namespace CalradiaRemembers.Missions
       // ── Console test path ─────────────────────────────────────────────────
 
       /// <summary>Force-completes the first active errand NOW (gather + reunite + report), skipping travel.</summary>
+      /// <summary>How many errands are under way (cr.test all, which resolves the first).</summary>
+      internal int DebugActiveCount => _active.Count;
+
+      /// <summary>Sets how the first errand went, in place of its roll (cr.test all).</summary>
+      internal void DebugForceFirstQuality(MissionResult quality)
+      {
+         if (_active.Count > 0) _active[0].Quality = quality;
+      }
+
       public string ForceResolveFirst()
       {
          CompanionMission m = _active.FirstOrDefault();
@@ -175,7 +187,7 @@ namespace CalradiaRemembers.Missions
 
          Hero companion = HeroById(m.CompanionId);
          Settlement dest = Settlement.Find(m.DestinationSettlementId);
-         if (!m.NewsGathered && dest != null) GatherNews(m, dest);
+         if (!m.NewsGathered && dest != null) PerformErrand(m, dest);
 
          MobileParty party = FindParty(m.PartyId);
          if (party != null && companion != null)
@@ -476,6 +488,18 @@ namespace CalradiaRemembers.Missions
             : towns[0];
       }
 
+      // The town nearest the lord; null when they stand nowhere to be read, and the errand then rides by its words.
+      private static Settlement TownNear(Hero lord)
+      {
+         Settlement at = lord?.CurrentSettlement;
+         MobileParty party = lord?.PartyBelongedTo;
+         if (at == null && party == null) return null;
+
+         Vec2 from = at?.GetPosition2D ?? party.GetPosition2D;
+
+         return Settlement.All.Where(s => s.IsTown).OrderBy(s => s.GetPosition2D.Distance(from)).FirstOrDefault();
+      }
+
       /// <summary>Detaches the companion into their own clan party (vanilla-serialized) with a small escort, bound for the town.</summary>
       private static MobileParty SpawnTravelingCompanionParty(Hero companion, Settlement dest)
       {
@@ -762,6 +786,8 @@ namespace CalradiaRemembers.Missions
          if (companion != null)
             _pendingReports[companion.StringId] = BuildNewsContext(m);
 
+         if (!string.IsNullOrEmpty(m.AffairSubjectId)) Mapping.HiddenAffairBehavior.Instance?.MarkKnown(m.AffairSubjectId, companion);
+
          string town = m.DestinationName ?? "their errand";
          MBInformationManager.AddQuickInformation(
             new TextObject($"{m.CompanionName} has returned from {town} — have a word with them."),
@@ -788,7 +814,18 @@ namespace CalradiaRemembers.Missions
 
          int count = CompanionMissions.NewsItemsForResult(m.Quality, lines.Count);
          m.News = lines.Take(count).ToList();
+         InquireAboutLord(m);
          ModLog.Info($"[MISSION] {m.CompanionName} scouted {dest.Name}: {m.News.Count} item(s) (quality {m.Quality}).");
+      }
+
+      // First in the report: it is what they were sent for.
+      private static void InquireAboutLord(CompanionMission m)
+      {
+         Mapping.AffairFinding finding = string.IsNullOrEmpty(m.AboutHeroId) ? null : Mapping.HiddenAffairBehavior.Instance?.Inquire(HeroById(m.AboutHeroId), m.Quality);
+         if (finding == null) return;
+
+         m.News.Insert(0, finding.Line);
+         m.AffairSubjectId = finding.SubjectId;
       }
 
       private void GatherMood(CompanionMission m, Settlement dest)

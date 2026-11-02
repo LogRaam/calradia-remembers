@@ -91,6 +91,20 @@ namespace CalradiaRemembers
          return $"cr.legend: {behavior.Ledger.Legends[behavior.Ledger.Legends.Count - 1].Name}, dated a month ago so everyone has heard. This stays in the save.";
       }
 
+      /// <summary>cr.affairs: every hidden affair standing. It tells what the player may not know yet.</summary>
+      [CommandLineFunctionality.CommandLineArgumentFunction("affairs", "cr")]
+      public static string HiddenAffairsStatus(List<string> args)
+      {
+         Mapping.HiddenAffairBehavior behavior = Mapping.HiddenAffairBehavior.Instance;
+         if (behavior == null) return "cr.affairs: no campaign loaded.";
+
+         string affairs = behavior.Ledger.Affairs.Count == 0
+            ? "  none standing"
+            : string.Join("\n", behavior.Ledger.Affairs.Select(a => $"  {a.SubjectId} with {a.LoverId}, since day {a.Day}{(Behaviors.NpcMemoryCampaignBehavior.Instance?.Store?.Get(a.SubjectId)?.Romantic?.LoverKnownToPlayer == true ? ", known to you" : "")}"));
+
+         return $"cr.affairs ({(ModSettings.HiddenAffairs ? "ON" : "OFF")}, at most {Logic.Romance.HiddenAffairPolicy.MaxAtOnce}):\n{affairs}";
+      }
+
       /// <summary>cr.raid_restraint: what each lord drew in the wars against the player.</summary>
       [CommandLineFunctionality.CommandLineArgumentFunction("raid_restraint", "cr")]
       public static string RaidRestraintStatus(List<string> args)

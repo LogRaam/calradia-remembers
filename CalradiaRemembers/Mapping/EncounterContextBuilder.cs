@@ -1837,6 +1837,9 @@ namespace CalradiaRemembers.Mapping
          // extort and expose_secret, only while the player really holds what they would use.
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, ExtortionVerbs));
 
+         // Their own hidden affair: theirs to keep, never to lie about (Gabriel, 01/11/2026). The bond pack refuses a secret by design.
+         sb.Append(HiddenAffairBehavior.Instance?.PromptFor(hero));
+
          // Another mod's actions (CrActions.Register): each one's TeachingText while its IsEligible holds. They had
          // no place in the name lists above, so until 05/10/2026 they were taught nothing but their catalog entry
          // (tashmetu, Bridges to Remember). In normal play nothing external is registered, so this appends nothing.
