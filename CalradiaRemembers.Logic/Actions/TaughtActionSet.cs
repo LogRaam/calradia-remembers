@@ -208,7 +208,8 @@ namespace CalradiaRemembers.Logic.Actions
          "press_for_war",
          "enact_edict",
          "pay_bounty",
-         "extort"
+         "extort",
+         "expose_secret"
       };
 
       /// <summary>

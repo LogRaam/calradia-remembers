@@ -127,8 +127,8 @@ namespace CalradiaRemembers.Mapping
       /// <summary>pay_bounty (froggyluv and Gabriel, 23/10/2026): a lord of a realm with a price on the player's head takes it off for gold.</summary>
       private static readonly string[] LawVerbs = {"pay_bounty"};
 
-      /// <summary>extort (Gabriel, 23/10/2026): only to someone the player has a hold over that the game can verify.</summary>
-      private static readonly string[] ExtortionVerbs = {"extort"};
+      /// <summary>extort (Gabriel, 23/10/2026): only to someone the player has a hold over that the game can verify; expose_secret: only while they hold an affair to tell.</summary>
+      private static readonly string[] ExtortionVerbs = {"extort", "expose_secret"};
 
       /// <summary>
       ///   CR's own verbs taught by another path, so they belong in no list here: pay_for_silence inline in the held-secret
@@ -1834,7 +1834,7 @@ namespace CalradiaRemembers.Mapping
          // pay_bounty, only from a lord of a realm with a price on the player's head.
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, LawVerbs));
 
-         // extort, only while the player has a real hold over this character.
+         // extort and expose_secret, only while the player really holds what they would use.
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, ExtortionVerbs));
 
          // Another mod's actions (CrActions.Register): each one's TeachingText while its IsEligible holds. They had

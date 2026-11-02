@@ -162,6 +162,12 @@ namespace CalradiaRemembers.Logic.Grudges
         ///   "You bled me with a threat": the player extorted this character, or tried, or took their coin to spare their
         ///   lands and raided them anyway (Gabriel, 23/10/2026; ExtortionPolicy). Appended last to preserve the ordinals above.
         /// </summary>
-        Extorted = 25
+        Extorted = 25,
+
+        /// <summary>
+        ///   "You told what should have stayed hidden": the player exposed this character's affair (Gabriel's "go", 01/11/2026;
+        ///   SecretExposurePolicy). Appended last to preserve the ordinals above.
+        /// </summary>
+        SecretExposed = 26
     }
 }

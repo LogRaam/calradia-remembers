@@ -111,6 +111,7 @@ namespace CalradiaRemembers.Logic
             case "enact_edict": return "An edict decreed";
             case "pay_bounty": return "A bounty paid off";
             case "extort": return "A threat for coin";
+            case "expose_secret": return "A secret told";
             case "grant_blessing": return "A blessing given";
             case "mediate_peace": return "Peace brokered";
 

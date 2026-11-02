@@ -103,7 +103,7 @@ narrow is rarely a decision anybody made.
 
 ## What this table does not show yet, and why
 
-12 rules can be swept here. Against that, the code declares **96 regard-named thresholds**
+12 rules can be swept here. Against that, the code declares **97 regard-named thresholds**
 (constants whose name carries regard, relation or reputation). The difference is the gap: those thresholds are
 compared INLINE, at the place that wants the answer, so there is no function to call and nothing to sweep.
 
@@ -138,6 +138,7 @@ cannot. Each one moved into a rule adds a column here.
 - `CourtActionPolicy.SpendInfluenceMinRelation = 0`
 - `CourtActionPolicy.TroopLoanMinRelation = 20`
 - `CourtActionPolicy.TroopLoanRelationDivisor = 5`
+- `DeedRegardPolicy.BetrayedSpouseRelation = -NpcMemoryService.Core.Standing.VanillaRelation.TrustedTier`
 - `DiscretionPolicy.ConfidingRegardFloor = Standing.Regard.ConfidingTier`
 - `DivorceConsequencePolicy.LowRegardThreshold = VanillaRelation.EnemyTier`
 - `DivorceConsequencePolicy.SpouseGrudgeLowRegardBonus = 15`

@@ -318,6 +318,8 @@ namespace CalradiaRemembers.Logic.Grudges
                 case GrudgeSource.AbandonedPlea:      return soft ? GrudgeResolutionKind.Amends : GrudgeResolutionKind.Deed;
                 // Extorted (Gabriel, 23/10/2026): a wrong done on purpose: fresh it can be talked down, hardened only a deed mends it.
                 case GrudgeSource.Extorted:           return soft ? GrudgeResolutionKind.Amends : GrudgeResolutionKind.Deed;
+                // SecretExposed (Gabriel's "go", 01/11/2026): the same shape: what was told cannot be untold, but a fresh wound can be answered.
+                case GrudgeSource.SecretExposed:      return soft ? GrudgeResolutionKind.Amends : GrudgeResolutionKind.Deed;
                 default:                              return GrudgeResolutionKind.Amends;
             }
         }

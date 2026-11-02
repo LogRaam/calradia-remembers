@@ -287,6 +287,13 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - $"({npcHero.Name} is your own spouse; that bond can only be ended another way.)"
   - $"({npcHero.Name} is away on an errand; recall them before casting them out.)"
 
+### expose_secret
+
+- executor: `Execute`
+- taught in: no prompt section names it
+- taught when: no gate found
+- the bridge refuses: never
+
 ### extort
 
 - executor: `Execute`

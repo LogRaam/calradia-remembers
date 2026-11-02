@@ -2,7 +2,8 @@
 // extort: the player demands coin from a character with a hold the game can verify (Gabriel, 23/10/2026; his "go", 01/11/2026).
 // Taught only while ExtortionBehavior sees that hold, with the most they pay and the day's answer, so the character never
 // agrees in words to what the game then refuses, and never hears of a secret that does not exist. The reverse direction, a
-// character extorting the player, is pay_for_silence and pay_blackmail. A blade in hand is rob_npc.
+// character extorting the player, is pay_for_silence and pay_blackmail. A blade in hand is rob_npc. Carrying out a threat of
+// exposure is expose_secret.
 
 #region
 

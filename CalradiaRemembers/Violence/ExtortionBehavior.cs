@@ -3,7 +3,7 @@
 // the live world, keeps the attempts, and spends the cost through the systems that already exist: the realm's crime rating,
 // the mod's regard, the grudge ledger, the Misdeeds page. The answer is drawn once a day per person, before they speak, so the
 // words the model writes and the coin the game moves agree. Coin paid for lands is a bargain: raiding that house within the
-// month breaks it. Carrying out a threat of exposure is not built: a refused secret stays a bluff until expose_secret exists.
+// month breaks it, and so does telling a secret they paid to keep (SecretExposure).
 
 #region
 
@@ -45,6 +45,28 @@ namespace CalradiaRemembers.Violence
 
       /// <summary>They will give in today.</summary>
       public bool Yields { get; set; }
+   }
+
+   /// <summary>What one wrong against a character costs the player.</summary>
+   internal sealed class ExtortionCharge
+   {
+      /// <summary>The deed, for the regard table.</summary>
+      public PlayerDeed Deed { get; set; }
+
+      /// <summary>The grudge's source.</summary>
+      public GrudgeSource Source { get; set; }
+
+      /// <summary>How far their regard falls.</summary>
+      public int RelationHit { get; set; }
+
+      /// <summary>The grudge they keep.</summary>
+      public int Grudge { get; set; }
+
+      /// <summary>The grudge's cause, in their words.</summary>
+      public string Cause { get; set; }
+
+      /// <summary>What they remember.</summary>
+      public string Memory { get; set; }
    }
 
    /// <summary>Reads the player's hold over a character, keeps every attempt, and watches the bargains made for lands.</summary>
@@ -150,8 +172,11 @@ namespace CalradiaRemembers.Violence
          Standing.SelfEsteemService.Record(npc, SelfEsteemEvent.Humiliated);
          if (paid > 0) MisdeedLedgerBehavior.Record(npc.StringId, MisdeedKind.Extorted);
 
-         string cause = paid > 0 ? $"The player extorted {paid} denars from me." : "The player tried to extort me.";
-         Charge(npc, PlayerDeed.Extorted, cost.RelationHit, cost.GrudgeMagnitude, cause, paid > 0 ? $"You bled me of {paid} denars with a threat." : "You tried to bleed me with a threat, and I refused.");
+         Charge(npc, new ExtortionCharge {
+            Deed = PlayerDeed.Extorted, Source = GrudgeSource.Extorted, RelationHit = cost.RelationHit, Grudge = cost.GrudgeMagnitude,
+            Cause = paid > 0 ? $"The player extorted {paid} denars from me." : "The player tried to extort me.",
+            Memory = paid > 0 ? $"You bled me of {paid} denars with a threat." : "You tried to bleed me with a threat, and I refused."
+         });
 
          ModLog.Info($"[EXTORT] {npc.Name} ({lever}): paid={paid}, crime={cost.CrimeRating}, regard={cost.RelationHit}, grudge={cost.GrudgeMagnitude}.");
       }
@@ -171,8 +196,11 @@ namespace CalradiaRemembers.Violence
 
             Hero victim = Hero.FindFirst(h => h != null && h.StringId == bargain.VictimId);
             if (victim != null && !victim.IsDead)
-               Charge(victim, PlayerDeed.ExtortionBargainBroken, DeedRegardPolicy.ExtortionBargainBrokenVictim, ExtortionPolicy.BrokenBargainGrudge, "The player took my coin to spare my lands, and raided them anyway.",
-                  "You took my coin to spare my lands, and raided them anyway.");
+               Charge(victim, new ExtortionCharge {
+                  Deed = PlayerDeed.ExtortionBargainBroken, Source = GrudgeSource.Extorted, RelationHit = DeedRegardPolicy.ExtortionBargainBrokenVictim,
+                  Grudge = ExtortionPolicy.BrokenBargainGrudge, Cause = "The player took my coin to spare my lands, and raided them anyway.",
+                  Memory = "You took my coin to spare my lands, and raided them anyway."
+               });
 
             ModLog.Info($"[EXTORT] the bargain with {bargain.VictimId} is broken: {village?.Name} raided within the month.");
          }
@@ -191,44 +219,45 @@ namespace CalradiaRemembers.Violence
       }
 
       // The mod's own regard, the first-hand memory, the grudge: what they carry away from it whichever way it went.
-      private static void Charge(Hero npc, PlayerDeed deed, int relationHit, int grudge, string cause, string memory)
+      internal static void Charge(Hero npc, ExtortionCharge charge)
       {
-         DeedRegardApplier.Apply(npc, deed, relationHit);
+         DeedRegardApplier.Apply(npc, charge.Deed, charge.RelationHit);
 
          NpcMemoryCampaignBehavior behavior = NpcMemoryCampaignBehavior.Instance;
          NpcProfile profile = behavior?.Store?.Get(npc.StringId);
          if (profile != null)
          {
-            profile.Events.Add(new NotableEvent(Today, NotableEventType.Confrontation, memory));
+            profile.Events.Add(new NotableEvent(Today, NotableEventType.Confrontation, charge.Memory));
             behavior.Store.Set(profile);
          }
 
-         GrudgeBehavior.Instance?.TryPlant(npc, Hero.MainHero, GrudgeSource.Extorted, cause, grudge, knownToPlayer: true, Today);
+         GrudgeBehavior.Instance?.TryPlant(npc, Hero.MainHero, charge.Source, charge.Cause, charge.Grudge, knownToPlayer: true, Today);
       }
 
       // Only what the player really knows: being this married lord's secret lover, their hidden affair found out, or being
-      // the hidden lover of the player's own spouse. Nothing else counts, so the model has nothing to invent from.
-      private static string SecretOver(Hero npc, Hero player)
+      // the hidden lover of the player's own spouse. Nothing else counts, so the model has nothing to invent from. A secret
+      // already told is no hold.
+      private string SecretOver(Hero npc, Hero player)
       {
          RomanticProfile romantic = RomanticOf(npc);
 
-         if (romantic?.Status == RomanticStatus.SecretLover && npc.Spouse != null && npc.Spouse != player)
+         if (romantic?.Status == RomanticStatus.SecretLover && npc.Spouse != null && npc.Spouse != player && !Ledger.IsExposed(npc.StringId, player.StringId))
             return $"{player.Name} is your lover in secret, and your {(npc.IsFemale ? "husband" : "wife")} {npc.Spouse.Name} does not know.";
 
-         if (IsAffairKnown(romantic))
+         if (IsAffairKnown(romantic) && !Ledger.IsExposed(npc.StringId, romantic.TakenLoverId))
             return $"{player.Name} knows of your hidden affair with {Hero.FindFirst(h => h != null && h.StringId == romantic.TakenLoverId)?.Name}.";
 
          RomanticProfile spouses = RomanticOf(player.Spouse);
-         if (IsAffairKnown(spouses) && spouses.TakenLoverId == npc.StringId)
+         if (IsAffairKnown(spouses) && spouses.TakenLoverId == npc.StringId && !Ledger.IsExposed(player.Spouse.StringId, npc.StringId))
             return $"{player.Name} knows that you are the hidden lover of {player.Spouse.Name}.";
 
          return null;
       }
 
-      private static RomanticProfile RomanticOf(Hero hero)
+      internal static RomanticProfile RomanticOf(Hero hero)
          => hero == null ? null : NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId)?.Romantic;
 
-      private static bool IsAffairKnown(RomanticProfile romantic) => romantic is {LoverIsSecret: true, LoverKnownToPlayer: true} && !string.IsNullOrEmpty(romantic.TakenLoverId);
+      internal static bool IsAffairKnown(RomanticProfile romantic) => romantic is {LoverIsSecret: true, LoverKnownToPlayer: true} && !string.IsNullOrEmpty(romantic.TakenLoverId);
 
       // The nearest unspoiled village of their house, unless the player already sold that house a bargain.
       private Village VillageInReach(Hero npc)

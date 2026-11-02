@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 617 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1491 types in 53 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 621 types in 65 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1495 types in 53 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 282 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -916,14 +916,18 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrvidPoster` | internal static class | The first frame of a .crvid, as a JPEG file the image loaders can read. |
 | `DecodedFrame` | internal class | One decoded frame: its index and its pixels (width x height x 4 bytes). |
 
-### CalradiaRemembers.Violence (6)
+### CalradiaRemembers.Violence (10)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `ExposeSecretVerb` | public class | expose_secret: the player tells a hidden affair to the character before them. |
 | `ExtortVerb` | public class | extort: the player presses a character for coin with a verified hold. |
 | `ExtortionBehavior` | public class | Reads the player's hold over a character, keeps every attempt, and watches the bargains made for lands. |
+| `ExtortionCharge` | internal class | What one wrong against a character costs the player. |
 | `ExtortionHold` | internal class | A hold the player really has over someone today, and how they will answer it. |
+| `HeldSecret` | internal class | An affair the player can tell. |
 | `PlayerViolenceVerb` | public class | rob_npc / assault_npc / kill_npc: the player turning on the character they are speaking to. |
+| `SecretExposure` | internal static class | Lists the affairs the player can tell, and carries out the telling. |
 | `ViolenceConsequenceService` | public static class | Applies the real cost of an act of violence: the law, the victim, their kin, and the player's name. |
 | `ViolenceSceneReader` | public static class | Reads the live scene for the facts an act of violence is judged on. |
 
@@ -2112,17 +2116,21 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `ConversationLineSequencer` | public class | Sequences line indices within one conversation session. |
 
-### CalradiaRemembers.Logic.Extortion (7)
+### CalradiaRemembers.Logic.Extortion (11)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `ExposureCost` | public class | What telling a secret costs the player with one of the two it names. |
+| `ExposureNames` | public class | The names a scandal is told with. |
+| `ExposureRecord` | public class | One affair the player told. |
 | `ExtortionCost` | public class | What one attempt costs the player. |
-| `ExtortionLedger` | public class | Every attempt of the campaign. |
+| `ExtortionLedger` | public class | Every attempt of the campaign, and every secret told. |
 | `ExtortionLever` | public enum | What the player holds over someone. |
 | `ExtortionLeverFacts` | public class | What decides whether the player has a hold over someone. |
 | `ExtortionPolicy` | public static class | Decides who can be extorted, whether they give in, how much they pay, and what it costs. |
 | `ExtortionRecord` | public class | One attempt on one person. |
 | `ExtortionResistanceFacts` | public class | What decides whether someone gives in. |
+| `SecretExposurePolicy` | public static class | Decides who may hear a secret, what telling it costs, and how the scandal reads. |
 
 ### CalradiaRemembers.Logic.Grudges (33)
 

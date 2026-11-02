@@ -87,7 +87,13 @@ namespace CalradiaRemembers.Logic.Trauma
       Extorted,
 
       /// <summary>Took coin to spare someone's lands, then raided them.</summary>
-      BrokeExtortionBargain
+      BrokeExtortionBargain,
+
+      /// <summary>Told someone's hidden affair.</summary>
+      ExposedSecret,
+
+      /// <summary>Took coin for silence, then told the secret.</summary>
+      BrokeSecretBargain
    }
 
    /// <summary>One deed of the player, as a source gives it.</summary>
@@ -229,6 +235,8 @@ namespace CalradiaRemembers.Logic.Trauma
             MisdeedKind.Pillaged => $"You gave {victimName} to your men to pillage after taking it",
             MisdeedKind.Extorted => $"You extorted {victimName}",
             MisdeedKind.BrokeExtortionBargain => $"You took {victimName}'s coin to spare {his} lands, then raided them",
+            MisdeedKind.ExposedSecret => $"You told the world of {victimName}'s hidden affair",
+            MisdeedKind.BrokeSecretBargain => $"You took {victimName}'s coin for your silence, then told {his} secret",
             _ => $"You tormented {victimName} {prisoner}"
          };
          IReadOnlyList<int> days = deed?.Days ?? Array.Empty<int>();

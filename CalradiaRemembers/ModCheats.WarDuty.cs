@@ -50,9 +50,11 @@ namespace CalradiaRemembers
                : $"cr.extortions: {hero.Name}, {hold.Lever}, chance {hold.Chance}%, {(hold.Yields ? "gives in" : "refuses")} today, at most {Logic.Extortion.ExtortionPolicy.MostTaken(hero.Gold)} denars. {hold.Words}";
          }
 
-         return behavior.Ledger.Attempts.Count == 0
+         string told = string.Join("", behavior.Ledger.Exposures.Select(e => $"\n  day {e.Day}, told {e.ListenerId} of {e.SubjectId} and {e.LoverId}"));
+
+         return behavior.Ledger.Attempts.Count == 0 && told.Length == 0
             ? "cr.extortions: none yet."
-            : "cr.extortions:\n" + string.Join("\n", behavior.Ledger.Attempts.Select(a => $"  day {a.Day}, {a.VictimId}, {a.Lever}, {(a.Amount > 0 ? $"paid {a.Amount}" : "refused")}{(a.BargainBroken ? ", bargain broken" : "")}"));
+            : "cr.extortions:\n" + string.Join("\n", behavior.Ledger.Attempts.Select(a => $"  day {a.Day}, {a.VictimId}, {a.Lever}, {(a.Amount > 0 ? $"paid {a.Amount}" : "refused")}{(a.BargainBroken ? ", bargain broken" : "")}")) + told;
       }
 
       /// <summary>cr.legends: every legend of the campaign.</summary>

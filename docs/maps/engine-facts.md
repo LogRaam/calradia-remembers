@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-711 rules read 525 facts.
+712 rules read 527 facts.
 
 ## Facts read by more than one rule
 
@@ -262,6 +262,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Kingdom.CurrentTotalStrength` (2) | `CounterweightFacts`, `RealmCounterweightPolicy.Steps` |
 | `Leader.Gold` (2) | `EdictCounselPolicy.Answer`, `EdictTownFacts` |
 | `Ledger.BargainOver` (2) | `ExtortionLeverFacts`, `ExtortionResistanceFacts` |
+| `Ledger.IsExposed` (2) | `ExtortionLeverFacts`, `ExtortionResistanceFacts` |
 | `Ledger.LastDay` (2) | `ExtortionPolicy.MayPressAgain`, `LegendPolicy.MayRaise` |
 | `Ledger.Legends` (2) | `LegendPolicy.Closest`, `LegendPolicy.PromptLine` |
 | `Ledger.OpenCase` (2) | `StandingAim`, `SummonsFacts` |
@@ -560,14 +561,14 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `EscortStandingFacts`: `FactionManager.IsAtWarAgainstFaction`, `Hero.IsPrisoner`, `Hero.MapFaction`, `Hero.PartyBelongedTo`, `MobileParty.Army`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`
 - `ExecutionFacts`: `CampaignOptions.IsLifeDeathCycleDisabled`, `ModSettings.AdultContentLevel`, `ModSettings.AllowCaptorExecutions`, `PartyBelongedToAsPrisoner.LeaderHero`
 - `ExpulsionFacts`: `Clan.Leader`, `Hero.IsAlive`, `Hero.IsPlayerCompanion`, `Hero.Spouse`
-- `ExtortionLeverFacts`: `GetPosition2D.Distance`, `Hero.Clan`, `Hero.IsFemale`, `Hero.Name`, `Hero.Spouse`, `Ledger.BargainOver`, `MemberRoster.TotalHealthyCount`, `MobileParty.GetPosition2D`, `Spouse.Name`, `VillageStates.Normal`
+- `ExtortionLeverFacts`: `GetPosition2D.Distance`, `Hero.Clan`, `Hero.IsFemale`, `Hero.Name`, `Hero.Spouse`, `Ledger.BargainOver`, `Ledger.IsExposed`, `MemberRoster.TotalHealthyCount`, `MobileParty.GetPosition2D`, `Spouse.Name`, `VillageStates.Normal`
 - `ExtortionPolicy.Cost`: `Ledger.TimesPressed`
 - `ExtortionPolicy.IsWorthAsking`: `Hero.Gold`
 - `ExtortionPolicy.MayPressAgain`: `Ledger.LastDay`
 - `ExtortionPolicy.MostTaken`: `Npc.Gold`
 - `ExtortionPolicy.Take`: `Hero.Gold`
 - `ExtortionPolicy.Yields`: `Clan.Tier`, `Hero.GetSkillValue`, `Hero.GetTraitLevel`, `Kingdom.Leader`, `MemberRoster.TotalHealthyCount`
-- `ExtortionResistanceFacts`: `Clan.Tier`, `GetPosition2D.Distance`, `Hero.Clan`, `Hero.GetSkillValue`, `Hero.GetTraitLevel`, `Hero.IsFemale`, `Hero.Name`, `Hero.Spouse`, `Kingdom.Leader`, `Ledger.BargainOver`, `MemberRoster.TotalHealthyCount`, `MobileParty.GetPosition2D`, `Spouse.Name`, `VillageStates.Normal`
+- `ExtortionResistanceFacts`: `Clan.Tier`, `GetPosition2D.Distance`, `Hero.Clan`, `Hero.GetSkillValue`, `Hero.GetTraitLevel`, `Hero.IsFemale`, `Hero.Name`, `Hero.Spouse`, `Kingdom.Leader`, `Ledger.BargainOver`, `Ledger.IsExposed`, `MemberRoster.TotalHealthyCount`, `MobileParty.GetPosition2D`, `Spouse.Name`, `VillageStates.Normal`
 - `FactionGuidelinesPolicy.NarrowToOwnCulture`: `Hero.CompanionOf`, `Hero.IsClanLeader`
 - `FiefAudiencePolicy.ChooseFiefValid`: `ModSettings.LordsApproaching`
 - `FiefAudiencePolicy.IsOnCooldown`: `ModSettings.LordsApproaching`
@@ -925,6 +926,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `SecretAffectionFacts`: `Hero.IsFemale`, `Hero.Spouse`, `ModSettings.AdultContentLevel`, `ModSettings.RelationWarmth`, `Romantic.IsCompatibleWith`, `Romantic.IsConsort`, `Romantic.IsSecretLover`, `Romantic.Status`
 - `SecretBondEligibility.IsEligible`: `Hero.IsFemale`, `Hero.IsPlayerCompanion`, `Hero.Spouse`, `ModSettings.AdultContentLevel`, `ModSettings.RelationWarmth`, `Romantic.IsCompatibleWith`, `Romantic.IsConsort`, `Romantic.IsSecretLover`, `Romantic.Status`
 - `SecretDefeaterFacts`: `MobileParty.ActualClan`, `MobileParty.HomeSettlement`, `MobileParty.IsBandit`, `Owner.Clan`, `PartyBase.MobileParty`, `PartyBase.Settlement`
+- `SecretExposurePolicy.Cost`: `Ledger.SecretBargainWith`
 - `SeductionFacts`: `Hero.Children`, `Hero.GetRelation`, `Hero.GetTraitLevel`, `Hero.Spouse`
 - `SelfEsteemBaselineFacts`: `Hero.GetTraitLevel`, `StatureReader.Of`
 - `SelfEsteemClimb`: `Hero.GetTraitLevel`, `ModSettings.SelfEsteemClimb`, `StatureReader.Of`

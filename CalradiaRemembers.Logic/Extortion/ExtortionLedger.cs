@@ -35,11 +35,30 @@ namespace CalradiaRemembers.Logic.Extortion
       public bool BargainBroken { get; set; }
    }
 
-   /// <summary>Every attempt of the campaign.</summary>
+   /// <summary>One affair the player told.</summary>
+   public sealed class ExposureRecord
+   {
+      /// <summary>The one whose affair it was.</summary>
+      public string SubjectId { get; set; }
+
+      /// <summary>Their lover, who may be the player.</summary>
+      public string LoverId { get; set; }
+
+      /// <summary>The one the player told.</summary>
+      public string ListenerId { get; set; }
+
+      /// <summary>The day of it.</summary>
+      public int Day { get; set; }
+   }
+
+   /// <summary>Every attempt of the campaign, and every secret told.</summary>
    public sealed class ExtortionLedger
    {
       /// <summary>The attempts, oldest first.</summary>
       public List<ExtortionRecord> Attempts { get; set; } = new List<ExtortionRecord>();
+
+      /// <summary>The affairs told, oldest first.</summary>
+      public List<ExposureRecord> Exposures { get; set; } = new List<ExposureRecord>();
 
       /// <summary>How many times this person was pressed.</summary>
       public int TimesPressed(string victimId) => Attempts.Count(a => a.VictimId == victimId);
@@ -57,6 +76,14 @@ namespace CalradiaRemembers.Logic.Extortion
          => Attempts.LastOrDefault(a => a.ClanId == clanId && a.Lever == ExtortionLever.Lands && a.Amount > 0 && !a.BargainBroken
                                         && today - a.Day <= ExtortionPolicy.DaysOfTheBargain);
 
+      /// <summary>The live payment this person made for silence, or null.</summary>
+      public ExtortionRecord SecretBargainWith(string victimId, int today)
+         => Attempts.LastOrDefault(a => a.VictimId == victimId && a.Lever == ExtortionLever.Secret && a.Amount > 0 && !a.BargainBroken
+                                        && today - a.Day <= ExtortionPolicy.DaysOfTheBargain);
+
+      /// <summary>True when this affair was told: a secret is spent once.</summary>
+      public bool IsExposed(string subjectId, string loverId) => Exposures.Any(e => e.SubjectId == subjectId && e.LoverId == loverId);
+
       /// <summary>The ledger as saved.</summary>
       public string Serialize() => JsonConvert.SerializeObject(this, Formatting.None);
 
@@ -69,6 +96,7 @@ namespace CalradiaRemembers.Logic.Extortion
          {
             ExtortionLedger ledger = JsonConvert.DeserializeObject<ExtortionLedger>(json) ?? new ExtortionLedger();
             ledger.Attempts = ledger.Attempts ?? new List<ExtortionRecord>();
+            ledger.Exposures = ledger.Exposures ?? new List<ExposureRecord>();
 
             return ledger;
          }

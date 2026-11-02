@@ -296,6 +296,16 @@ namespace CalradiaRemembers.WorldEvents
       public bool Knows(string lordId, string subjectId)
          => !string.IsNullOrEmpty(lordId) && !string.IsNullOrEmpty(subjectId) && _known.Contains(KnownKey(lordId, subjectId));
 
+      /// <summary>The affair is out, by name (SecretExposure): no anonymous whisper can follow it, and nobody holds it over the player now.</summary>
+      internal void Retire(string subjectId)
+      {
+         _leaked.Add(subjectId);
+         _known.RemoveWhere(key => key.EndsWith("|" + subjectId));
+      }
+
+      /// <summary>cr.test all cleanup: forgets that this subject's affair was told.</summary>
+      internal void DebugUnretire(string subjectId) => _leaked.Remove(subjectId);
+
       /// <summary>Retracts a recorded knowledge entry (cr.test all cleanup so a self-test leaves nothing persisted).</summary>
       public void ForgetKnows(Hero lord, string subjectId)
       {

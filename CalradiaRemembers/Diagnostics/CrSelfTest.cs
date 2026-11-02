@@ -218,6 +218,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("secret_propagation", Severity.Light, "Mystery-lover (phase 3b-2): record a live lord (forced to neutral regard so he is not the player's confidant) as KNOWING the secret, then drive the REAL propagation (DebugSpreadOnce, bypassing only the daily chance) and assert the secret reaches one of his friends who then knows it too, never the player. Forgets both ledger entries and restores the teller's regard afterwards", TestSecretPropagation),
          new SelfTest("pay_for_silence", Severity.Light, "Mystery-lover (phase 3b-3): mark a companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL bridge dispatch of pay_for_silence with a price and assert the gold moves player->lord, the hush is stamped as recently paid (easing the leverage prompt), and a memory is kept. Restores both purses, the flag, the ledger, and trims the memory afterwards", TestPayForSilence),
          new SelfTest("player_violence", Severity.Light, "Player violence (player request, Inc 2): drives the REAL bridge dispatch of kill_npc against a live lord and asserts THE guarantee, that with the MCM lethal toggle off (its default) the attempt is refused and the victim is still alive. Also checks the scene reader measures both fighters and that robbery is never barred by the lethal toggle. Mutates nothing while the toggle is off", TestPlayerViolence),
+         new SelfTest("secret_exposure", Severity.Light, "Gabriel's go 01/11/2026 on expose_secret, the player's own affair included. On a married lord who is the player's secret lover, told to a third lord: the verb is taught saying the listener does not know it, words that name nobody are refused with nothing moved, then the real path records a named Scandal involving the player, the house loses renown and influence, the lover keeps a grudge and a Misdeeds line, their spouse's relation falls and their reaction to the player is queued, the secret is spent and a coin paid for silence reads as a broken bargain. Restores all borrowed state", TestSecretExposure),
          new SelfTest("extortion", Severity.Light, "Gabriel (23/10/2026): extortion on the Misdeeds page; his go 01/11/2026 on a hold the game verifies. On a lord given a hidden affair the player knows of: the verb is taught with the day's answer; a yes moves at most a fifth of the purse, writes the page and a grudge, and closes that lord for a month; a no moves no coin and writes no page; a raid on lands sold a bargain breaks it once, in the real listener. No threat of exposure can be carried out yet. Restores gold, regard, grudges, the page and the ledger", TestExtortion),
          new SelfTest("legends", Severity.Light, "DepaHN (Nexus, 27/10/2026): an extraordinary deed becomes a legend characters retell by their connection to it. On a legend entered by hand (no battle can be staged here, so the reading of a real MapEvent is NOT driven): the one it honours and a witness carry it at once, each in their own way; a stranger carries nothing on the day and the fixed deed after a month; the context a character is built from holds it. Restores the ledger, and raises no news", TestLegends),
          new SelfTest("raid_restraint", Severity.Light, "DepaHN (Nexus, 27/10/2026): a close friend was the first to burn his villages; Gabriel: a friend may hold back, by chance. Checks the game scores targets through our model (a mod that replaced it would silently end the feature), then on a lord and an enemy village: a failed draw leaves its score, a lord who drew to spare scores it at zero, a broken restraint gives the score back, and a lord who may write tells the player once per war with a letter dropped on the road once he breaks. Restores the ledger, sends no letter", TestRaidRestraint),
@@ -9967,6 +9968,113 @@ namespace CalradiaRemembers.Diagnostics
 
          return t.Line();
       }
+
+      private static string TestSecretExposure(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("secret_exposure");
+         Violence.ExtortionBehavior extortion = Violence.ExtortionBehavior.Instance;
+         WorldEvents.SecretLoverGossipBehavior gossip = WorldEvents.SecretLoverGossipBehavior.Instance;
+         if (t.Skip(extortion == null || gossip == null || Jealousy.JealousyBehavior.Instance == null || Hero.MainHero == null || behavior.Store == null, "no campaign")) return t.Line();
+         if (t.Skip(ModSettings.AdultContentLevel == AdultContentLevel.Off, "adult content is off: affairs cannot be told")) return t.Line();
+
+         List<string> ownLovers = gossip.PlayerSecretLoverSubjectIds();
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h.Clan != null && h.Clan != Clan.PlayerClan && h.Spouse is {IsAlive: true} && h.Spouse != Hero.MainHero && !ownLovers.Contains(h.StringId));
+         Hero listener = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && !h.IsPrisoner && h != lord && h != lord?.Spouse);
+         if (t.Skip(lord == null || listener == null, "no married lord, or nobody to tell")) return t.Line();
+
+         Hero spouse = lord.Spouse;
+         NpcProfile profile = behavior.Store.Get(lord.StringId) ?? HeroProfileMapper.FromHero(lord);
+         behavior.Store.Set(profile);
+         NpcProfile heard = behavior.Store.Get(listener.StringId) ?? HeroProfileMapper.FromHero(listener);
+         behavior.Store.Set(heard);
+         NpcProfile wronged = behavior.Store.Get(spouse.StringId) ?? HeroProfileMapper.FromHero(spouse);
+         behavior.Store.Set(wronged);
+
+         RomanticProfile romantic = profile.Romantic;
+         int regard = profile.ReputationWithPlayer;
+         var events = new Dictionary<NpcProfile, int> {{profile, profile.Events.Count}, {heard, heard.Events.Count}, {wronged, wronged.Events.Count}};
+         int ownGrudges = GrudgeBehavior.Instance?.GrudgesFor(lord.StringId).Count ?? 0;
+         int betrayal = spouse.GetRelation(lord);
+         float renown = lord.Clan.Renown;
+         float influence = lord.Clan.Influence;
+         float ownRenown = Clan.PlayerClan.Renown;
+         float ownInfluence = Clan.PlayerClan.Influence;
+         int pendingBefore = Jealousy.JealousyBehavior.Instance.DebugPendingCount;
+         Logic.Extortion.ExtortionLedger kept = extortion.Ledger;
+         string eventId = null;
+         try
+         {
+            extortion.Ledger = new Logic.Extortion.ExtortionLedger();
+            profile.Romantic = new RomanticProfile {Status = RomanticStatus.SecretLover};
+            behavior.Store.Set(profile);
+
+            var verbCtx = new VerbContext(listener, heard, behavior.GameStateBridge, null, new ActionContext(heard, null) {PlayerWordsThisConversation = "A fine evening, my lord."});
+            string taught = VerbRegistry.Instance.ComposeTeachings(verbCtx, new[] {"expose_secret"}) ?? "";
+            t.Note(taught);
+            // STAKE: only a secret the game holds is taught, so a false accusation has no verb.
+            t.Expect("theSecretIsTaught", taught.Contains(lord.Name.ToString()), true);
+            // STAKE: the listener reads the secret to recognise it: without this line they would raise it unprompted.
+            t.Expect("theyAreToldTheyDoNotKnowIt", taught.Contains("You do not know this"), true);
+
+            var action = new GameAction {Type = "expose_secret", Parameters = new Dictionary<string, string> {{"target", lord.Name.ToString()}}};
+            ActionOutcome silent = VerbRegistry.Instance.Execute(action, verbCtx);
+            t.Note(silent?.Message);
+            // STAKE: a model that decides on its own that the player told it moves nothing, as Maifailun's sway did.
+            t.Expect("wordsThatNameNobodyMoveNothing", extortion.Ledger.Exposures.Count, 0);
+
+            extortion.Ledger.Attempts.Add(new Logic.Extortion.ExtortionRecord {
+               VictimId = lord.StringId, ClanId = lord.Clan.StringId, Lever = Logic.Extortion.ExtortionLever.Secret, Day = (int) CampaignTime.Now.ToDays, Amount = 500
+            });
+            ActionOutcome told = VerbRegistry.Instance.Execute(action, new VerbContext(listener, heard, behavior.GameStateBridge, null,
+               new ActionContext(heard, null) {PlayerWordsThisConversation = $"{lord.Name} has been in my bed."}));
+            t.Note(told?.Message);
+
+            eventId = WorldEvents.WorldEventStore.Instance?.GetPlayerChronicle().LastOrDefault(e => e.Type == WorldEventType.Scandal && e.ActorIds.Contains(lord.StringId))?.Id;
+            WorldEvent scandal = WorldEvents.WorldEventStore.Instance?.GetPlayerChronicle().LastOrDefault(e => e.Id == eventId);
+            t.Note(scandal?.Summary);
+            // STAKE: a Scandal without InvolvesPlayer reaches prompts only with NpcsRaiseWorldNews, off by default: nobody would ever speak of it.
+            t.Expect("theScandalNamesThePlayer", scandal?.InvolvesPlayer == true && scandal.Summary.Contains(Hero.MainHero.Name.ToString()), true);
+            t.Expect("theHouseIsShamed", lord.Clan.Renown < renown || renown == 0f, true);
+            t.Expect("thePlayersHouseToo", Clan.PlayerClan.Influence < ownInfluence, true);
+            t.Expect("theyKeepAGrudge", GrudgeBehavior.Instance?.GrudgesFor(lord.StringId).Any(g => g.Source == GrudgeSource.SecretExposed) == true, true);
+            // STAKE: taking the coin and telling anyway is the worse deed, and the page says so.
+            t.Expect("thePaidSilenceIsBroken", Mapping.MisdeedLedgerBehavior.All().Any(r => r.VictimId == lord.StringId && r.Kind == Logic.Trauma.MisdeedKind.BrokeSecretBargain), true);
+            t.Expect("theBargainIsMarked", extortion.Ledger.Attempts[0].BargainBroken, true);
+            t.Expect("theSpouseTurnsOnThem", spouse.GetRelation(lord) < betrayal, true);
+            // STAKE: Gabriel's go on mutual ruin: the betrayed spouse answers the player through the jealousy that exists.
+            t.Expect("theSpouseAnswersThePlayer", Jealousy.JealousyBehavior.Instance.DebugPendingCount, pendingBefore + 1);
+            // STAKE: told once, it is spent: no second scandal, no silence to sell.
+            t.Expect("theSecretIsSpent", SecretExposureHeld(listener), 0);
+         }
+         finally
+         {
+            extortion.Ledger = kept;
+            profile.Romantic = romantic;
+            profile.ReputationWithPlayer = regard;
+            foreach (KeyValuePair<NpcProfile, int> entry in events)
+            {
+               while (entry.Key.Events.Count > entry.Value) entry.Key.Events.RemoveAt(entry.Key.Events.Count - 1);
+               behavior.Store.Set(entry.Key);
+            }
+
+            foreach (Grudge grudge in (GrudgeBehavior.Instance?.GrudgesFor(lord.StringId) ?? new List<Grudge>()).Skip(ownGrudges).ToList()) GrudgeBehavior.Instance.RemoveGrudge(grudge);
+            Mapping.MisdeedLedgerBehavior.Forget(lord.StringId, Logic.Trauma.MisdeedKind.BrokeSecretBargain);
+            Mapping.MisdeedLedgerBehavior.Forget(lord.StringId, Logic.Trauma.MisdeedKind.ExposedSecret);
+            Mapping.MisdeedLedgerBehavior.Forget(spouse.StringId, Logic.Trauma.MisdeedKind.LayWithSpouseOf);
+            gossip.DebugUnretire(lord.StringId);
+            Jealousy.JealousyBehavior.Instance.DebugForgetPending(spouse.StringId);
+            if (eventId != null) WorldEvents.WorldEventStore.Instance?.Remove(eventId);
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(spouse, lord, betrayal - spouse.GetRelation(lord), false);
+            lord.Clan.Renown = renown;
+            Clan.PlayerClan.Renown = ownRenown;
+            ChangeClanInfluenceAction.Apply(lord.Clan, influence - lord.Clan.Influence);
+            ChangeClanInfluenceAction.Apply(Clan.PlayerClan, ownInfluence - Clan.PlayerClan.Influence);
+         }
+
+         return t.Line();
+      }
+
+      private static int SecretExposureHeld(Hero listener) => Violence.SecretExposure.HeldFor(listener).Count;
 
       private static string TestLegends(NpcMemoryCampaignBehavior behavior)
       {

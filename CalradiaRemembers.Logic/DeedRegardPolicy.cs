@@ -104,7 +104,13 @@ namespace CalradiaRemembers.Logic
       Extorted,
 
       /// <summary>Took the character's coin to spare their lands, then raided them.</summary>
-      ExtortionBargainBroken
+      ExtortionBargainBroken,
+
+      /// <summary>Told the character's hidden affair.</summary>
+      SecretExposed,
+
+      /// <summary>Took the character's coin for silence, then told their affair.</summary>
+      SecretBargainBroken
    }
 
    /// <summary>The regard a deed costs or earns.</summary>
@@ -180,6 +186,15 @@ namespace CalradiaRemembers.Logic
       /// <summary>Their coin taken to spare their lands, and the lands raided.</summary>
       public const int ExtortionBargainBrokenVictim = -30;
 
+      /// <summary>Their hidden affair told. No kin: the shame reaches their house through the scandal.</summary>
+      public const int SecretExposedVictim = -35;
+
+      /// <summary>Their coin taken for silence, and the secret told.</summary>
+      public const int SecretBargainBrokenVictim = -45;
+
+      /// <summary>What a told affair does between the spouses: their vanilla relation, not regard for the player. No divorce, ruled out of this step.</summary>
+      public const int BetrayedSpouseRelation = -NpcMemoryService.Core.Standing.VanillaRelation.TrustedTier;
+
       /// <summary>A pact broken, to the leader of the realm it bound.</summary>
       public const int PactBrokenVictim = -20;
 
@@ -242,6 +257,8 @@ namespace CalradiaRemembers.Logic
          PlayerDeed.FoundLovedGesture => new DeedRegard {Victim = FoundLovedGestureVictim},
          PlayerDeed.Extorted => new DeedRegard {Victim = ExtortedVictim},
          PlayerDeed.ExtortionBargainBroken => new DeedRegard {Victim = ExtortionBargainBrokenVictim},
+         PlayerDeed.SecretExposed => new DeedRegard {Victim = SecretExposedVictim},
+         PlayerDeed.SecretBargainBroken => new DeedRegard {Victim = SecretBargainBrokenVictim},
          _ => new DeedRegard()
       };
 

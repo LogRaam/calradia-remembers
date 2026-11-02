@@ -113,6 +113,7 @@ namespace CalradiaRemembers.Verbs
          registry.Register(new AdmitSecretLoverVerb());
          registry.Register(new PayBountyVerb());
          registry.Register(new CalradiaRemembers.Violence.ExtortVerb());
+         registry.Register(new CalradiaRemembers.Violence.ExposeSecretVerb());
          registry.Register(new PayForSilenceVerb());
          registry.Register(new CalradiaRemembers.Violence.PlayerViolenceVerb(CalradiaRemembers.Logic.Violence.ViolentAct.Rob));
          registry.Register(new CalradiaRemembers.Violence.PlayerViolenceVerb(CalradiaRemembers.Logic.Violence.ViolentAct.Assault));

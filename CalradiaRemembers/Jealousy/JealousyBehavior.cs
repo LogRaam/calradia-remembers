@@ -289,6 +289,23 @@ namespace CalradiaRemembers.Jealousy
          }
       }
 
+      /// <summary>
+      ///   The player's affair with <paramref name="courted" /> was told aloud (SecretExposure). Their spouse reacts for
+      ///   certain: the chance gates above weigh whether word gets out, and here it is out. Only that stake: the other
+      ///   parties OnRomanticAct can find, a rival or an admirer, have no part in a told secret.
+      /// </summary>
+      public void OnAffairExposed(Hero courted, int today)
+      {
+         JealousResolution res = JealousPartyResolver.Resolve(courted, id => NpcMemoryCampaignBehavior.Instance?.Store?.Get(id), null);
+         if (res?.Stake != JealousStake.SpouseOfCourted) return;
+
+         _state.LastReactionDay[res.Party.StringId + "|" + courted.StringId] = today;
+         SchedulePendingReaction(res, courted, RomanticActTier.Intimacy, 1 + MBRandom.RandomInt(3), today);
+      }
+
+      /// <summary>cr.test all cleanup: forgets what this party had yet to react to.</summary>
+      internal void DebugForgetPending(string partyId) => _state.Pending.RemoveAll(p => p.PartyId == partyId);
+
       public override void RegisterEvents()
       {
          CampaignEvents.BeforeHeroesMarried.AddNonSerializedListener(this, OnBeforeHeroesMarried);
