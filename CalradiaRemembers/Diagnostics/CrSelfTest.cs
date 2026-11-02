@@ -10060,7 +10060,6 @@ namespace CalradiaRemembers.Diagnostics
             foreach (Grudge grudge in (GrudgeBehavior.Instance?.GrudgesFor(lord.StringId) ?? new List<Grudge>()).Skip(ownGrudges).ToList()) GrudgeBehavior.Instance.RemoveGrudge(grudge);
             Mapping.MisdeedLedgerBehavior.Forget(lord.StringId, Logic.Trauma.MisdeedKind.BrokeSecretBargain);
             Mapping.MisdeedLedgerBehavior.Forget(lord.StringId, Logic.Trauma.MisdeedKind.ExposedSecret);
-            Mapping.MisdeedLedgerBehavior.Forget(spouse.StringId, Logic.Trauma.MisdeedKind.LayWithSpouseOf);
             gossip.DebugUnretire(lord.StringId);
             Jealousy.JealousyBehavior.Instance.DebugForgetPending(spouse.StringId);
             if (eventId != null) WorldEvents.WorldEventStore.Instance?.Remove(eventId);
