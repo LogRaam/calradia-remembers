@@ -663,7 +663,7 @@ namespace CalradiaRemembers.Witnesses
          try
          {
             Hero subject = Hero.FindFirst(h => h != null && h.StringId == entry.HeroStringId);
-            string standing = subject == null ? null : DescribeStanding(observer, subject);
+            string standing = subject == null ? null : DescribeStanding(observer, subject, entry.IsPlayerCompanion);
 
             if (standing == entry.Standing) return entry;
 
@@ -691,7 +691,7 @@ namespace CalradiaRemembers.Witnesses
       }
 
       /// <summary>Who <paramref name="subject" /> is to <paramref name="observer" />: kin and rank, or null.</summary>
-      internal static string DescribeStanding(Hero observer, Hero subject)
+      internal static string DescribeStanding(Hero observer, Hero subject, bool withRegard = false)
       {
          Kingdom realm = subject.Clan?.Kingdom;
          bool rules = realm != null && realm.Leader == subject;
@@ -704,7 +704,9 @@ namespace CalradiaRemembers.Witnesses
             RulesSpeakersRealm = rules && observer.Clan?.Kingdom == realm,
             HeadsClan = heads ? subject.Clan.Name?.ToString() ?? "" : "",
             HeadsSpeakersClan = heads && observer.Clan == subject.Clan,
-            Governs = subject.GovernorOf?.Settlement?.Name?.ToString() ?? ""
+            Governs = subject.GovernorOf?.Settlement?.Name?.ToString() ?? "",
+            // A companion's line says only "the player's companion": give the speaker his own regard for her.
+            SpeakerRelation = withRegard ? subject.GetRelation(observer) : null
          });
       }
 

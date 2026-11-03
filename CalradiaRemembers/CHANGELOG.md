@@ -23,6 +23,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 - `CalradiaRemembers.HelpPleas` joins the namespace cycle baseline, the same shape as `WarDuty`, accepted by Gabriel.
 
 ### Changed
+- **A lord no longer applauds every companion who speaks up** (froggyluv, Nexus, 02/11/2026, v2.8.1: when the player's companion
+  spoke in a talk with a lord, he always praised her, "your Shield Maiden has the right of it", however sharp or combative
+  she was). No line asked for praise; the witness teaching showed only an ally who "confirms", and the turn after a witness
+  speaks said only "react to what they expressed". Both now say the main speaker judges a witness by his own regard for them
+  and by what was said, and may agree, disagree, rebuke, dismiss or ignore; an insolent remark from a lower station is
+  answered as he would answer it. Compact keeps one line of it. The player's companion's line also tells the lord his own
+  regard for her (trust, favour, distrust or enmity, from the game's relation, silent when neutral or never met). SDK
+  golden prompts regenerated; the Compact room ceiling rose 8800 to 8950. Not play-verified. Tests:
+  `WitnessMainSpeakerJudgesPromptTests`, `WitnessStandingTextTests`.
+
 - **Characters recite the past less and keep small things small** (kurushimi00, Nexus, 01/11/2026: "it has a tendency to
   restate, almost in checklist fashion, things captured in memories", and to take "some symbolic gesture or item traded
   and elevate it beyond all proportion"). The history block ended on "Reference them when relevant" with nothing against

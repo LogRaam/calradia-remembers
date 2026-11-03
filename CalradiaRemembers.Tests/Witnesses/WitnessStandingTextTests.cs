@@ -52,6 +52,29 @@ namespace CalradiaRemembers.Tests.Witnesses
             }).Should().Be("your mother, ruler of the Southern Empire and your sovereign, head of your clan");
         }
 
+        // froggyluv (Nexus, 2/11/2026): the lord always praised the companion who spoke up. A lord who distrusts her must
+        // be told so on her line, or he has nothing to weigh her sharp remark against.
+        [Test]
+        public void GIVEN_a_companion_the_speaker_distrusts_WHEN_described_THEN_the_line_says_so()
+        {
+            WitnessStandingText.Describe(new WitnessStandingFacts {IsFemale = true, SpeakerRelation = -15}).Should().Be("you distrust her");
+        }
+
+        // Stranger or mild acquaintance: saying "neutral" would only add tokens, so the line stays as it was.
+        [Test]
+        public void GIVEN_a_companion_the_speaker_barely_knows_WHEN_described_THEN_nothing_is_added()
+        {
+            WitnessStandingText.Describe(new WitnessStandingFacts {SpeakerRelation = 4}).Should().BeNull();
+        }
+
+        // The regard sits after kin and rank: a lord's own daughter who is also a companion keeps "your daughter" first.
+        [Test]
+        public void GIVEN_a_trusted_daughter_WHEN_described_THEN_kin_comes_before_the_regard()
+        {
+            WitnessStandingText.Describe(new WitnessStandingFacts {Kin = WitnessKin.Child, IsFemale = true, SpeakerRelation = 40})
+                               .Should().Be("your daughter, you trust her deeply");
+        }
+
         // A lord who leads another house is the speaker's peer at best: he is named with his house.
         [Test]
         public void GIVEN_the_head_of_another_clan_WHEN_described_THEN_his_clan_is_named()

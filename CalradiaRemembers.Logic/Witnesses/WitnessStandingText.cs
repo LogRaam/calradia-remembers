@@ -61,6 +61,13 @@ namespace CalradiaRemembers.Logic.Witnesses
 
         /// <summary>The town or castle they govern; blank otherwise.</summary>
         public string Governs { get; init; } = "";
+
+        /// <summary>
+        ///   The speaker's own vanilla relation with them (-100..100), set only for a player's companion, whose line
+        ///   carries nothing else about how the speaker feels. Null = not measured. froggyluv (Nexus, 2/11/2026): a
+        ///   lord always praised the companion who spoke up; he was never told what he thought of her.
+        /// </summary>
+        public int? SpeakerRelation { get; init; }
     }
 
     /// <summary>One tie between a council seat and someone else at the table (or the player): the seat IS their Kin.</summary>
@@ -106,7 +113,25 @@ namespace CalradiaRemembers.Logic.Witnesses
 
             parts.AddRange(titles);
 
+            string regard = RegardClause(f);
+            if (regard != null) parts.Add(regard);
+
             return parts.Count == 0 ? null : string.Join(", ", parts);
+        }
+
+        // Same cut-offs as the lord-to-lord witness line (DescribeWitnessRelation): between -10 and 10 is silence,
+        // because a stranger and a mild acquaintance read the same, and the vanilla value cannot tell "never met".
+        private static string RegardClause(WitnessStandingFacts f)
+        {
+            if (f.SpeakerRelation is not int rel) return null;
+            string them = f.IsFemale ? "her" : "him";
+
+            if (rel >= 30) return $"you trust {them} deeply";
+            if (rel >= 10) return $"you regard {them} favorably";
+            if (rel <= -30) return $"you hold {them} in deep enmity";
+            if (rel <= -10) return $"you distrust {them}";
+
+            return null;
         }
 
         /// <summary>
