@@ -121,6 +121,7 @@ namespace CalradiaRemembers.Chat
          // un log qui le specifie" (InterpreterRetryPolicy). A reading that parsed is an answer, even with no deed in it.
          ParsedResponse interpreted = null;
          string error = null;
+         InterpreterAttemptOutcome lastOutcome = InterpreterAttemptOutcome.Empty;
          for (int attempt = 1; ; attempt++)
          {
             (InterpreterAttemptOutcome outcome, ParsedResponse read, string why) = await AttemptAsync(request, services, ct).ConfigureAwait(false);
@@ -133,6 +134,7 @@ namespace CalradiaRemembers.Chat
             }
 
             error = why;
+            lastOutcome = outcome;
             if (!InterpreterRetryPolicy.ShouldRetry(outcome, attempt)) break;
 
             ModLog.Compat($"[PROSE-INTERPRET] interpreter attempt {attempt} of {InterpreterRetryPolicy.MaxAttempts} brought back nothing usable "
@@ -146,9 +148,7 @@ namespace CalradiaRemembers.Chat
             // the deeds quietly stop being recorded. A player on a small local model could run a whole campaign
             // in that state, as DuskSymphony did, with nothing anywhere to explain it.
             ModLog.Compat($"[PROSE-INTERPRET] interpreter produced no tags after {InterpreterRetryPolicy.MaxAttempts} attempts; applying none: {error ?? "empty reply"}. "
-                        + "Deeds from this reply are NOT recorded. If this repeats on a local model, its context is "
-                        + "too small for the interpreter: turn on 'Compact prompt for small models', or switch "
-                        + "Chat Composition to Standard so the scene model emits its own tags in one call.");
+                        + "Deeds from this reply are NOT recorded. " + InterpreterRetryPolicy.FailureAdvice(lastOutcome, error));
 
             return WithInterpretedTags(proseResponse, null);
          }
@@ -234,8 +234,10 @@ namespace CalradiaRemembers.Chat
          // interpreter recorded none (Lufaine, 30/09/2026: the room never cleared); deeds stay the interpreter's.
          Actions = Logic.SceneDecisionMerge.Merge(interpreted?.Actions, prose.Actions),
          Discovery = prose.Discovery,
-         QuestGiven = prose.QuestGiven,
-         QuestBlockMalformed = prose.QuestBlockMalformed,
+         // avalanche24 (03/11/2026): a task the interpreter found written as [ACTION] type: quest is the writer's offer too.
+         QuestGiven = prose.QuestGiven ?? interpreted?.QuestGiven,
+         QuestBlockMalformed = prose.QuestBlockMalformed
+                               || (prose.QuestGiven == null && interpreted?.QuestGiven == null && interpreted?.QuestBlockMalformed == true),
          QuestCompleted = prose.QuestCompleted,
          QuestAbandoned = prose.QuestAbandoned,
          WitnessReactions = prose.WitnessReactions,
