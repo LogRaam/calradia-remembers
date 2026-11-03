@@ -104,6 +104,29 @@ namespace CalradiaRemembers.Tests
          lists.AtOdds.Should().Equal("Osticos: Hertogi and Lucon resent each other (-35)");
       }
 
+      // STAKE: tashmetu (2/11/2026): on a member's page the heads' lines read as the member's own regard, the same on
+      // every member of the house; the label names the house and the head the standing runs through.
+      [Test]
+      public void GIVEN_a_page_of_someone_who_is_not_the_head_WHEN_the_label_is_written_THEN_it_names_the_house_and_its_head()
+      {
+         ClanRegardListPolicy.HousesLabel(false, "Banu Azad", "Shaykh Yasir").Should().Be("Houses (Banu Azad, through Shaykh Yasir):");
+      }
+
+      // STAKE: the head's own page, and the player's, keep the plain label: the standing is theirs.
+      [Test]
+      public void GIVEN_the_head_of_the_house_WHEN_the_label_is_written_THEN_it_is_the_plain_houses_label()
+      {
+         ClanRegardListPolicy.HousesLabel(true, "Banu Azad", "Shaykh Yasir").Should().Be("Houses:");
+      }
+
+      // STAKE: a nameless clan or head never prints "through ):" on a page.
+      [TestCase(null, "Shaykh Yasir")]
+      [TestCase("Banu Azad", " ")]
+      public void GIVEN_a_blank_name_WHEN_the_label_is_written_THEN_it_falls_back_to_the_plain_label(string house, string head)
+      {
+         ClanRegardListPolicy.HousesLabel(false, house, head).Should().Be("Houses:");
+      }
+
       // STAKE: the four bands read as plain words between two people, never as a house-wide mood.
       [TestCase(30, "Hertogi and Ulfhild trust each other deeply (+30)")]
       [TestCase(10, "Hertogi and Ulfhild hold each other in good regard (+10)")]

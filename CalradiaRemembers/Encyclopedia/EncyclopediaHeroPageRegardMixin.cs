@@ -255,7 +255,8 @@ namespace CalradiaRemembers.Encyclopedia
          // for odds (the colour replaces the "At odds" / "Of affinity" subtitles of 20/10); the war under its house.
          // Gabriel (23/10/2026): a house on the vanilla number alone has its own row, the banner then the line naming
          // both heads of house, the war on that line.
-         CalradiaRegardHousesLabel = "Houses:";
+         // tashmetu (2/11/2026): on a member's page the heads' lines read as the member's own; say whose standing it is.
+         CalradiaRegardHousesLabel = ClanRegardListPolicy.HousesLabel(hero == Hero.MainHero || lord == hero, hero.Clan?.Name?.ToString(), lord.Name?.ToString());
          foreach (ClanRegardGroup g in groups)
          {
             var row = new RegardHouseRowVM(g.Reason == null ? "Named above, through their lord" : Capitalised(g.Reason), g.Affinity, g.OneHouse);

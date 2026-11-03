@@ -12,6 +12,9 @@
 // The vanilla number is between the two heads of house only, so a house that stands on it gets a row of its own, the two
 // heads named with the number ("Hertogi and Ulfhild trust each other deeply (+42)"), the banner first, the war on the
 // same line. A house with a story keeps sharing its row with the houses of the same story.
+// tashmetu (2/11/2026): on the page of a character who is not the head of the house, "Hertogi and Ulfhild hold each other
+// in good regard" read as if it were about the page's character, and every member of the house showed the same lines. The
+// label of the section now says whose standing it is.
 
 #region
 
@@ -169,6 +172,15 @@ namespace CalradiaRemembers.Logic
 
         private static ClanRegardHouse House(ClanRegardCandidate c, bool through)
             => new() {Name = c.Name, Id = c.Id, AtWar = c.AtWar, Through = through ? c.Through : null};
+
+        /// <summary>
+        ///   The label over the houses: "Houses:" on the head's own page, "Houses (Banu Azad, through Shaykh Yasir):" on a
+        ///   member's, whose houses are those of the head. A blank name falls back to the plain label.
+        /// </summary>
+        public static string HousesLabel(bool isHead, string houseName, string headName)
+            => isHead || string.IsNullOrWhiteSpace(houseName) || string.IsNullOrWhiteSpace(headName)
+                ? "Houses:"
+                : $"Houses ({houseName}, through {headName}):";
 
         /// <summary>
         ///   The line of a house standing on the vanilla number alone: the two heads of house named, how they hold each

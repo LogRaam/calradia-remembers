@@ -67,6 +67,7 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ### Fixed
 
+- **The Houses section says whose standing it is** (tashmetu, Nexus, 2/11/2026: on the page of a character who is not the head of their house, lines like "Shaykh Yasir and Amir Talas hold each other in good regard (+15)" read as the character's own, the same on every member). On a member's page the label is now "Houses (Banu Azad, through Shaykh Yasir):"; the head's page and the player's keep "Houses:". `ClanRegardListPolicy.HousesLabel`. A long clan or head name may need an in-game look.
 - `cr.test secret_exposure` and `cr.test extortion` no longer pick the player as a third lord: the player is a lord in `Hero.AllAliveHeroes`, so `secret_exposure` asked `HeldFor` about telling the player, which is refused, and every check after it failed; `extortion` gave a lover the player's own name. `cr.test sell_item` still asked 100 denars for Grain, above the ceiling of three times its value added in 3ae1c82; it now sells within what the good fetches. Gabriel's `cr.test all`, 01/11/2026, 2 FAIL. Tests only: the verbs were not at fault.
 - At Hardcore a lord's ransom offer reaches the player again (Windmolen, Nexus, 26/10/2026: "just ... ransom you"). `VanillaCaptivityPatch` cancelled it for every captor, under a log line that named only bandits. `CaptivityRansomPolicy` keeps the cancel for bandits, a nemesis and an ambush convoy, and for the law at every level.
 - **Fixed letters now reach you in your language** (RaveN017Mod, Nexus PM, 29/10/2026: threats from lords "appear in
