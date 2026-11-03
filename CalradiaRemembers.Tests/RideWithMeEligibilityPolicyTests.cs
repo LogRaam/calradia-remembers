@@ -12,13 +12,12 @@
 // rewrites for a signature change that altered nothing a player would notice, so both now take a facts object
 // and both sets of tests name only what they are about.
 //
-// NO BEHAVIOUR CHANGED HERE, and one thing deliberately did not. RealmAtWar still refuses, where its twin stopped
-// refusing on 2026-09-10: an escorting lord who is summoned has a party for the muster to reclaim and the escort
-// ENDS, saying why; a retainer has no party by definition, so nothing reclaims him and nothing ends it. Same
-// words, different situation, awaiting its own ruling.
+// 03/11/2026, the ruling came. RealmAtWar no longer refuses: Lordfadooboo (Nexus, 01/11/2026) "can never seem to
+// get it to trigger", Maifailun (03/11/2026) "They always mention they have duties", because some realm is nearly
+// always at war. He now warns as he agrees and leaves when his liege leads an army (RetainerLeavePolicy).
 //
-// If these tests fail, either an idle lord has stopped agreeing to ride, or one is about to ride away from a war
-// his own realm is fighting with no way back.
+// If these tests fail, either an idle lord has stopped agreeing to ride, or one rides off to war without having
+// said he might.
 
 #region
 
@@ -127,17 +126,28 @@ namespace CalradiaRemembers.Tests
             RideWithMeEligibilityPolicy.CanRideWithPlayer(atTheFloor).Should().BeTrue();
         }
 
-        // Still a refusal here, where its twin stopped refusing on 2026-09-10. An escorting lord who is summoned
-        // has a party for the muster to reclaim, and the escort ends with him saying why; a retainer has no party
-        // by the very precondition above, so nothing reclaims him and nothing ends the arrangement. Dropping this
-        // would let him ride the whole term while his realm fights, with no way out.
+        // STAKE: Lordfadooboo and Maifailun (Nexus, 01-03/11/2026) never saw a lord agree, because some realm is
+        // nearly always at war. A friend whose realm fights may ride now; the muster ends it (RetainerLeavePolicy).
         [Test]
-        public void GIVEN_his_own_realm_is_at_war_WHEN_asked_THEN_he_stays_available_for_the_muster()
+        public void GIVEN_his_own_realm_is_at_war_WHEN_asked_THEN_he_may_still_ride()
         {
             RideWithMeEligibilityPolicy.RideWithMeFacts facts = AnIdleFriendlyLord();
             facts.RealmAtWar = true;
 
-            RideWithMeEligibilityPolicy.CanRideWithPlayer(facts).Should().BeFalse();
+            RideWithMeEligibilityPolicy.CanRideWithPlayer(facts).Should().BeTrue();
+        }
+
+        // STAKE: a lord who may be called away and does not say so leaves the player to find out when he rides off,
+        // a promise broken; at peace there is no muster to warn of, and saying it anyway is noise.
+        [Test]
+        public void GIVEN_his_realm_at_war_or_at_peace_WHEN_he_agrees_THEN_he_warns_of_the_muster_only_at_war()
+        {
+            RideWithMeEligibilityPolicy.RideWithMeFacts facts = AnIdleFriendlyLord();
+            facts.RealmAtWar = true;
+            RideWithMeEligibilityPolicy.ShouldWarnOfMuster(facts).Should().BeTrue();
+
+            facts.RealmAtWar = false;
+            RideWithMeEligibilityPolicy.ShouldWarnOfMuster(facts).Should().BeFalse();
         }
 
         // Facts we could not read are not permission: the safe answer to "I do not know" is that nobody rides.

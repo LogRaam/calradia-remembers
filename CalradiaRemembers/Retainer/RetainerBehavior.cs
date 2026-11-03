@@ -259,15 +259,25 @@ namespace CalradiaRemembers.Retainer
                     NotifyPlayer(lord, $"{lord.Name} no longer rides with you.");
                 }
 
-                if (RetainerLeavePolicy.MustLeave(new RetainerLeavePolicy.RetainerStandingFacts {FactionAtWarWithPlayer = atWar, IsAlive = alive, StillTracked = IsRetainer(id)}))
+                Army liegeArmy = alive ? LiegeArmyOf(lord) : null;
+                var standing = new RetainerLeavePolicy.RetainerStandingFacts {
+                    FactionAtWarWithPlayer = atWar, IsAlive = alive, StillTracked = IsRetainer(id),
+                    LiegeLeadsAnArmy = liegeArmy != null || (alive && TestCalledToMuster?.Invoke(lord) == true),
+                    PlayerMarchesInThatArmy = liegeArmy != null && MobileParty.MainParty?.Army == liegeArmy
+                };
+
+                if (RetainerLeavePolicy.MustLeave(standing))
                 {
                     if (alive)
                     {
+                        bool mustered = !atWar && RetainerLeavePolicy.CalledToMuster(standing);
                         if (atWar)
                             NotifyPlayer(lord, $"{lord.Name} breaks from your company: their people are now at war with yours.");
+                        else if (mustered)
+                            NotifyPlayer(lord, RetainerLeavePolicy.MusterNotice(lord.Name?.ToString()));
 
                         TryRelease(lord, out string _);
-                        ModLog.Info($"[RETAINER] {lord.Name} released by rule ({(atWar ? "their faction is at war with the player" : "left the party")}).");
+                        ModLog.Info($"[RETAINER] {lord.Name} released by rule ({(atWar ? "their faction is at war with the player" : mustered ? "their liege leads an army" : "left the party")}).");
                     }
                     else
                     {
@@ -330,6 +340,28 @@ namespace CalradiaRemembers.Retainer
         }
 
         #region private
+
+        /// <summary>Self-test seam: forces "his liege leads an army" for one hero, since raising a real army is not reversible.</summary>
+        internal static Func<Hero, bool> TestCalledToMuster;
+
+        /// <summary>
+        ///   The army his clan's leader or his realm's ruler leads now, if any: the muster a retainer owes
+        ///   (Lordfadooboo, Maifailun, Nexus, 01-03/11/2026; Gabriel's ruling 03/11/2026). Null for a lord of no realm.
+        /// </summary>
+        private static Army LiegeArmyOf(Hero lord)
+        {
+            Kingdom realm = lord?.Clan?.Kingdom;
+            if (realm == null) return null;
+
+            Hero clanLeader = lord.Clan.Leader;
+            foreach (Army army in realm.Armies)
+            {
+                Hero leader = army?.LeaderParty?.LeaderHero;
+                if (leader != null && leader != lord && (leader == clanLeader || leader == realm.Leader)) return army;
+            }
+
+            return null;
+        }
 
         private static bool IsAtWarWithPlayer(Hero lord)
             => lord?.MapFaction != null && Hero.MainHero?.MapFaction != null &&

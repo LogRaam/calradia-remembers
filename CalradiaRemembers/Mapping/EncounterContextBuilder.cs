@@ -640,9 +640,13 @@ namespace CalradiaRemembers.Mapping
             NpcCanEscortPlayer = npcCanEscortPlayer,
             // He may ride, but his realm is at war, so the muster may call him away. He is told to say so
             // as he agrees rather than leaving the player to find out when he goes (Gabriel, 2026-09-10).
-            NpcMayBeCalledToMuster = npcCanEscortPlayer
-                                     && EscortEligibilityPolicy.ShouldWarnOfMuster(
-                                        EscortFactsFor(hero, ResolveNpcIsEscortingPlayer(hero))),
+            // The same warning for ride_with_me, now that a lord of a warring realm may ride in the player's party
+            // (Lordfadooboo, Maifailun, Nexus, 01-03/11/2026). The two verbs never both apply to one lord.
+            NpcMayBeCalledToMuster = (npcCanEscortPlayer
+                                      && EscortEligibilityPolicy.ShouldWarnOfMuster(
+                                         EscortFactsFor(hero, ResolveNpcIsEscortingPlayer(hero))))
+                                     || (npcCanRideWithPlayer && RideWithMeEligibilityPolicy.ShouldWarnOfMuster(
+                                         new RideWithMeEligibilityPolicy.RideWithMeFacts {RealmAtWar = FactionIsAtWarWithAnyone(hero?.MapFaction)})),
             NpcIsEscortingPlayer = npcIsEscortingPlayer,
             // ride_with_me / part_ways: the idle-lord complement of follow_me, taught only when
             // RideWithMeEligibilityPolicy says the game can honour it right now AND RetainerBehavior.Enabled is on

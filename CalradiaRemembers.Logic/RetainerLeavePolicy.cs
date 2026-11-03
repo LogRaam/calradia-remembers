@@ -6,6 +6,10 @@
 // hook and the daily safety check in RetainerSpikeBehavior, so the two paths can never quietly diverge. It
 // reasons over plain facts only (the mod's CampaignBehaviorBase reads the engine and hands them in), mirroring
 // the split EscortContinuationPolicy already draws for the follow_me escort's own end conditions.
+//
+// 03/11/2026: a third cause. A lord may now ride while his realm is at war (Lordfadooboo, Maifailun, Nexus; Gabriel's
+// "oui vas-y"), so when his clan's leader or his ruler leads an army he leaves to answer it, unless the player
+// already marches in that very army, where he is answering it at the player's side.
 
 #region
 
@@ -37,6 +41,12 @@ namespace CalradiaRemembers.Logic
 
          /// <summary>The mod is still tracking them as an active retainer.</summary>
          public bool StillTracked { get; set; }
+
+         /// <summary>His clan's leader or his realm's ruler leads an army now: the muster he owes.</summary>
+         public bool LiegeLeadsAnArmy { get; set; }
+
+         /// <summary>The player's own party marches in that army, so riding with the player is answering it.</summary>
+         public bool PlayerMarchesInThatArmy { get; set; }
       }
 
       /// <summary>
@@ -60,7 +70,23 @@ namespace CalradiaRemembers.Logic
          if (!stillTracked) return false;
          if (!retainerAlive) return true;
 
-         return retainerFactionAtWarWithPlayer;
+         return retainerFactionAtWarWithPlayer || CalledToMuster(facts);
+      }
+
+      /// <summary>
+      ///   True when a living, tracked retainer is called away by the muster: his clan's leader or his ruler leads an
+      ///   army and the player does not march in it. Lordfadooboo and Maifailun (Nexus, 01-03/11/2026); Gabriel's
+      ///   ruling of 03/11/2026, the condition on letting a lord of a warring realm ride at all.
+      /// </summary>
+      public static bool CalledToMuster(RetainerStandingFacts facts)
+         => facts != null && facts.StillTracked && facts.IsAlive && facts.LiegeLeadsAnArmy && !facts.PlayerMarchesInThatArmy;
+
+      /// <summary>What the player is told when the muster takes the retainer away, in the lord's terms.</summary>
+      public static string MusterNotice(string lordName)
+      {
+         string who = string.IsNullOrWhiteSpace(lordName) ? "Your companion of the road" : lordName.Trim();
+
+         return $"{who} breaks from your company: their liege has called the muster, and they must answer it.";
       }
    }
 }

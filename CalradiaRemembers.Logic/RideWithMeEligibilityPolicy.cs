@@ -15,6 +15,12 @@
 // decision and can never drift. The factionAtWar guard (added 29/08/2026) mirrors EscortEligibilityPolicy's own:
 // a lord whose realm is at war with anyone stays home and available for his liege's muster call, rather than
 // riding off with the player and quietly weakening his faction.
+//
+// 03/11/2026, that guard is lifted. Lordfadooboo (Nexus, 01/11/2026): "i can never seem to get it to trigger";
+// Maifailun (03/11/2026): "They always mention they have duties". Some realm is nearly always at war, so the verb
+// was almost never taught. Gabriel's ruling ("oui vas-y", 03/11/2026), the one follow_me got on 10/09/2026: he may
+// ride while his realm fights, says as he agrees that he may be called away, and leaves when his clan's leader or
+// his ruler leads an army (RetainerLeavePolicy.CalledToMuster).
 
 #region
 
@@ -72,7 +78,9 @@ namespace CalradiaRemembers.Logic
          public int Regard { get; set; }
 
          /// <summary>
-         ///   Their own realm is at war with somebody, anybody. STILL A REFUSAL HERE, unlike its twin.
+         ///   Their own realm is at war with somebody, anybody. NO LONGER A REFUSAL (03/11/2026): it is the fact
+         ///   behind <see cref="ShouldWarnOfMuster" />, and the muster that may follow ends the arrangement
+         ///   (<see cref="RetainerLeavePolicy" />). The history below is why it once refused.
          ///   <para>
          ///     EscortEligibilityPolicy dropped the same blanket gate on 2026-09-10, because it made follow_me
          ///     nearly unreachable, and it was safe to drop there because a summoned lord's own party joins an
@@ -90,9 +98,8 @@ namespace CalradiaRemembers.Logic
       /// <summary>
       ///   True only when this hero is a lord or lady, alive, not a prisoner, does NOT lead their own field
       ///   party, is not already of the player's clan, is not at war with the player, is not already riding,
-      ///   holds the player in at least <see cref="RegardFloor" /> personal regard, and their own realm is not
-      ///   at war (see <see cref="RideWithMeFacts.RealmAtWar" /> for why that last one still refuses here while
-      ///   its twin no longer does). Missing facts refuse: the safe answer to "I do not know" is no.
+      ///   and holds the player in at least <see cref="RegardFloor" /> personal regard. A realm at war no longer
+      ///   refuses (03/11/2026). Missing facts refuse: the safe answer to "I do not know" is no.
       /// </summary>
       public static bool CanRideWithPlayer(RideWithMeFacts facts)
       {
@@ -106,9 +113,15 @@ namespace CalradiaRemembers.Logic
          if (facts.AtWarWithPlayer) return false;
          if (facts.AlreadyRiding) return false;
          if (facts.Regard < RegardFloor) return false;
-         if (facts.RealmAtWar) return false;
 
          return true;
       }
+
+      /// <summary>
+      ///   True when he should say, as he agrees, that his liege may call him away: his realm is at war, so the
+      ///   muster may reach him and he will leave the player's party for it. Said in advance it is honesty; said only
+      ///   when he rides off it is a broken promise (Gabriel, 10/09/2026, for follow_me; the same for this verb).
+      /// </summary>
+      public static bool ShouldWarnOfMuster(RideWithMeFacts facts) => facts?.RealmAtWar == true;
    }
 }

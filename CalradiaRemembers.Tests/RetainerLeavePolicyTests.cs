@@ -55,6 +55,35 @@ namespace CalradiaRemembers.Tests
                 .Should().BeFalse();
         }
 
+        // STAKE: a lord may now ride while his realm is at war (Lordfadooboo, Maifailun, Nexus, 01-03/11/2026), on
+        // Gabriel's condition that the muster takes him back. If it did not, he would sit out his liege's war in the
+        // player's party, the exact thing the old gate prevented.
+        [Test]
+        public void GIVEN_his_liege_leads_an_army_WHEN_checked_THEN_he_leaves_to_answer_the_muster()
+        {
+            var facts = new RetainerLeavePolicy.RetainerStandingFacts {IsAlive = true, StillTracked = true, LiegeLeadsAnArmy = true};
+
+            RetainerLeavePolicy.MustLeave(facts).Should().BeTrue();
+            RetainerLeavePolicy.CalledToMuster(facts).Should().BeTrue();
+        }
+
+        // STAKE: when the player marches in that very army, riding with the player IS answering the muster; sending
+        // him away would split a lord from the army he was called to.
+        [Test]
+        public void GIVEN_the_player_marches_in_his_lieges_army_WHEN_checked_THEN_he_stays()
+        {
+            RetainerLeavePolicy.MustLeave(new RetainerLeavePolicy.RetainerStandingFacts
+                {IsAlive = true, StillTracked = true, LiegeLeadsAnArmy = true, PlayerMarchesInThatArmy = true})
+                .Should().BeFalse();
+        }
+
+        // STAKE: a departure the game makes on its own must say why, or it reads as a bug; the notice names him.
+        [Test]
+        public void GIVEN_the_muster_takes_him_WHEN_the_player_is_told_THEN_the_notice_names_him_and_the_muster()
+        {
+            RetainerLeavePolicy.MusterNotice("Lord Ulbos").Should().Contain("Lord Ulbos").And.Contain("muster");
+        }
+
         // Even a dead, untracked hero must not report "must leave": the not-tracked short-circuit outranks the
         // death rule, so the policy never asks the behavior to act on someone it is not holding.
         [Test]
