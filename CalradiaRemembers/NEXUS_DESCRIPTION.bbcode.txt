@@ -647,7 +647,7 @@ Popular options:
   2. Open Options → Mod Options → Calradia Remembers.
   3. Set `LLM Provider` to [b]OpenAI-Compatible[/b].
   4. Paste the server URL into [b]Endpoint URL[/b] (e.g. http://localhost:1234/v1 for LM Studio, http://localhost:11434/v1 for Ollama). Include the /v1 path.. the mod appends /chat/completions automatically.
-  5. Paste the model id into the [b]PROSE model[/b] field (LM Studio shows it in its server panel; Ollama uses the name you pulled, e.g. llama3.1:8b). Running a small short-context model? Turn on [b]Compact prompt for small models[/b] if the AI stays silent.
+  5. Paste the model id into the [b]PROSE model[/b] field (LM Studio shows it in its server panel; Ollama uses the name you pulled, e.g. llama3.1:8b). The NSFW, Interpret and Background roles follow it on their own: a field left blank, or still holding its shipped OpenRouter id, uses the PROSE model on your server. Name a model there only if you want a different one. Running a small short-context model? Turn on [b]Compact prompt for small models[/b] if the AI stays silent.
   6. Leave [b]API Key[/b] blank unless your server is configured to require one.
   7. Click [b]Test Endpoint[/b].. it sends a one-token completion to confirm the server is up and the model id is correct.
   8. That's it. Settings apply immediately.
@@ -690,7 +690,7 @@ Everything lives in Options → Mod Options → Calradia Remembers, in ten group
 [b][color=#b6d7a8]OpenAI-Compatible[/color][/b] (a local server, or any OpenAI-style API):
 [list]
 [*][b]API Key (optional)[/b].. leave blank for keyless servers like LM Studio or Ollama.[/*]
-[*][b]Endpoint URL (Prose / shared)[/b].. base URL of your server, with /v1 (e.g. http://localhost:1234/v1). It serves the PROSE role and any role whose own endpoint below is blank. Set that role's model under LLM Provider too, or it sends an OpenRouter id to your server.[/*]
+[*][b]Endpoint URL (Prose / shared)[/b].. base URL of your server, with /v1 (e.g. http://localhost:1234/v1). It serves the PROSE role and any role whose own endpoint below is blank. A role whose model field is blank, or still holds its shipped OpenRouter id, uses the PROSE model there.[/*]
 [*][b]Endpoint URL[/b] and [b]API Key[/b] for [b]NSFW[/b], [b]Interpret[/b] and [b]Background[/b].. optional. Give a role its own server and key, to split the work across machines. Blank uses the shared ones.[/*]
 [*][b]Parameter Compatibility[/b] (Auto).. Auto detects OpenAI reasoning models (gpt-5, the o-series) and sends what they require; everything else gets the classic max_tokens and temperature. Leave it on Auto unless your endpoint rejects a field.[/*]
 [*][b]Reasoning Effort[/b] (Default, sends nothing).. sends a reasoning effort to your endpoint. Set Off if a reasoning model spends the whole reply thinking and stalls. Some servers (vLLM) ignore it.[/*]
