@@ -7,8 +7,8 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 624 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1502 types in 53 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 282 types in 17 namespaces, 9 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1504 types in 54 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -2135,6 +2135,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ExtortionResistanceFacts` | public class | What decides whether someone gives in. |
 | `SecretExposurePolicy` | public static class | Decides who may hear a secret, what telling it costs, and how the scandal reads. |
 
+### CalradiaRemembers.Logic.Folklore (2)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `FolkTale` | public class | One tale as written in a folklore file. |
+| `FolkTalePolicy` | public static class | Reads folklore files and decides which tales a character carries. |
+
 ### CalradiaRemembers.Logic.Grudges (33)
 
 | Type | Kind | What it is |
@@ -2825,7 +2832,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ResolvedEntity` | public class | One entity the player mentioned, as the host resolved it: its stable engine id, a display name, and an optional short note (e.g. a hero's relation category to the NPC). |
 | `VerbFacts` | public class | The engine-agnostic facts about the conversation partner an ExternalVerbContract's callbacks reason over: who they are, their standing, and their relation to the player. |
 
-### NpcMemoryService.Core.Knowledge (64)
+### NpcMemoryService.Core.Knowledge (67)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2835,6 +2842,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ClaimVerdict` | public enum | Why a claim was refused, so a refusal can be counted and read rather than merely happening. |
 | `Discretion` | public enum | How freely a character would speak of something they know. |
 | `DiscretionPolicy` | public static class | Whether a character would speak of something, given who is listening. |
+| `FolkTaleFacts` | public class | One tale as a character knows it. |
+| `FolkloreFacts` | public class | The tales of a character's own people that they carry. |
+| `FolklorePack` | public class | The tales a character's own people tells, known as tales, and the one they could tell in full. |
 | `FoodBand` | public enum | The granary, as a share of what the place can hold. |
 | `FoodTrend` | public enum | Which way it is going, which is half of what a steward actually reports. |
 | `GarrisonBand` | public enum | The garrison as a share of what the place can hold, again on the engine's own limit. |

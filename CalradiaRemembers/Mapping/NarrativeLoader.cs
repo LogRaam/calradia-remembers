@@ -4,7 +4,9 @@
 
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Storage;
+using CalradiaRemembers.Logic.Folklore;
 using CalradiaRemembers.Logic.Narrative;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -26,6 +28,7 @@ namespace CalradiaRemembers.Mapping
    {
       private static readonly Dictionary<string, string> _stationGuidelines = new();
       private static readonly Dictionary<string, IReadOnlyDictionary<string, string>> _stationDefinitions = new();
+      private static readonly Dictionary<string, IReadOnlyList<FolkTale>> _folkTales = new(StringComparer.OrdinalIgnoreCase);
       public static string BehaviorGuidelines { get; private set; } = "";
       public static string PlayerDescription { get; private set; } = "";
       public static string PostHistoryInstructions { get; private set; } = "";
@@ -60,6 +63,31 @@ namespace CalradiaRemembers.Mapping
          _stationDefinitions.Clear();
          foreach (string key in CalradiaRemembers.Logic.Social.SocialStationPolicy.Keys)
             _stationDefinitions[key] = CalradiaRemembers.Logic.Social.SocialStationPolicy.Parse(ReadFile($"stations/{key}.txt", $"{key} station"));
+
+         // The tales each people tells around the fire (Gabriel, 03/11/2026), one file per culture id. A file named
+         // after another mod's culture is read too, so a total conversion can bring its own.
+         _folkTales.Clear();
+         foreach (string culture in FolkloreCultureIds())
+            _folkTales[culture] = FolkTalePolicy.Parse(ReadFile($"folklore/{culture}.txt", $"{culture} folklore"));
+      }
+
+      /// <summary>The tales of a people by its culture id (ModuleData/folklore/&lt;id&gt;.txt); empty when it has none.</summary>
+      public static IReadOnlyList<FolkTale> FolkTales(string cultureId)
+         => cultureId != null && _folkTales.TryGetValue(cultureId, out IReadOnlyList<FolkTale> tales) ? tales : Array.Empty<FolkTale>();
+
+      /// <summary>The game's culture ids, and the name of every folklore file shipped or in the Custom folder.</summary>
+      private static IEnumerable<string> FolkloreCultureIds()
+      {
+         var ids = new HashSet<string>(FolkTalePolicy.GameCultureIds, StringComparer.OrdinalIgnoreCase);
+         foreach (string folder in new[] {Path.Combine(ModuleDataFolder(), "folklore"), Path.Combine(CustomBaseFolder(), "folklore")})
+            try
+            {
+               if (!Directory.Exists(folder)) continue;
+               foreach (string file in Directory.GetFiles(folder, "*.txt")) ids.Add(Path.GetFileNameWithoutExtension(file));
+            }
+            catch { /* an unreadable folder leaves the game's own ids */ }
+
+         return ids;
       }
 
       /// <summary>

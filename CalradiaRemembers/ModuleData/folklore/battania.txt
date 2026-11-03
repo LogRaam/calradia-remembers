@@ -1,0 +1,45 @@
+# The tales the Battanians tell around the fire
+# Calradia Remembers reads this file for every character of Battanian culture (their own people, not their realm).
+# They know these as tales, never as history. Each character carries a few, and loves one best: that one alone they can
+# tell in full, from its beats; the others they can only name or allude to.
+#
+# How to write a tale:
+#   [Title]          opens a tale
+#   gist: ...        what it is about, in one line (required: a tale without it is not read)
+#   beat: ...        one part of the story, in order; a tale with no beats can be named, never told
+# A line with no key continues the line before it. Lines starting with # are never read.
+# A copy in ModuleData/Custom/folklore/ is read instead of this one, so your edits survive an update. A file named after
+# another culture's id (folklore/<id>.txt) gives that people tales of its own.
+
+[The Hound of the Grey Ford]
+gist: a chieftain's hound that kept a ford against the legions long after its master fell, and keeps it still.
+beat: In the days when the old Empire pressed into the high woods, a chieftain rode east to war and left his grey hound at the ford below his hall, telling it to keep the crossing until he came home.
+beat: A cohort came up the valley by night. The hound stood in the water and bayed so long and so loud that the whole glen woke, took up spears, and met the legionaries at the ford.
+beat: The soldiers turned back, but they had cut the hound across the shoulder, and it lay down on the far bank and would not leave it.
+beat: The chieftain never came home; he fell far to the east, and his name was carried back with his sword.
+beat: The hound waited on the bank until it died there, and the people buried it beneath the ford's standing stone.
+beat: Battanians say a grey hound is still seen in the mist at dusk, and that a stranger who crosses there without speaking the chieftain's name will hear it bay.
+
+[The Wren and the Champion]
+gist: the proudest of the Fian champions, who swore no living thing could best him, and the wren that did.
+beat: A champion of the Fians, strong and fair, boasted at a feast that no living thing in all Battania could best him at anything.
+beat: A wren on the rafters called down that it would race him to the top of the tallest hill at dawn, and the hall laughed.
+beat: At dawn the champion ran up the hill like a stag, never noticing the wren that had hidden in his hair.
+beat: When he reached the cairn and turned to look for it, the wren hopped from his head onto the topmost stone and said it was there first.
+beat: The champion laughed louder than anyone, and from that day he never boasted again, and he would not let a wren be harmed in his lands.
+beat: So when a child brags, a Battanian mother says: "Mind the wren in your hair."
+
+[The Three Gifts Under the Hill]
+gist: a poor herdsman who was given three gifts by the folk under the hill, and the one he kept.
+beat: A poor herdsman sheltered from a storm in a hollow hill and found the folk under the hill at their feast; he sat, ate, and thanked them in verse, as is proper.
+beat: Pleased with his manners, they gave him three gifts: a cup that was never empty, a word that opened any door, and a small harp that could make the hardest man weep.
+beat: On the road home a lowland lord took the cup from him for a debt, and a thief who learned the word took that from him too.
+beat: The herdsman had only the harp left, and he played it at every hearth in the glens, so that wherever he went people wept, and laughed, and fed him.
+beat: When he grew old he was richer in friends than any lord, and when he died the harp went silent and would play for no one else.
+beat: Battanians tell it to say that what is taken from you was never truly yours, and what you give away keeps you.
+
+[The Stag of the Seven Glens]
+gist: a white stag that leads hunters astray, and the price of following it too far.
+
+[The Bride Who Walked Into the Lake]
+gist: a bride promised against her will who walked into a lake on her wedding day and became its mist.

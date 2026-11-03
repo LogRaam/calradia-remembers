@@ -220,6 +220,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("player_violence", Severity.Light, "Player violence (player request, Inc 2): drives the REAL bridge dispatch of kill_npc against a live lord and asserts THE guarantee, that with the MCM lethal toggle off (its default) the attempt is refused and the victim is still alive. Also checks the scene reader measures both fighters and that robbery is never barred by the lethal toggle. Mutates nothing while the toggle is off", TestPlayerViolence),
          new SelfTest("secret_exposure", Severity.Light, "Gabriel's go 01/11/2026 on expose_secret, the player's own affair included. On a married lord who is the player's secret lover, told to a third lord: the verb is taught saying the listener does not know it, words that name nobody are refused with nothing moved, then the real path records a named Scandal involving the player, the house loses renown and influence, the lover keeps a grudge and a Misdeeds line, their spouse's relation falls and their reaction to the player is queued, the secret is spent and a coin paid for silence reads as a broken bargain. Restores all borrowed state", TestSecretExposure),
          new SelfTest("extortion", Severity.Light, "Gabriel (23/10/2026): extortion on the Misdeeds page; his go 01/11/2026 on a hold the game verifies. On a lord given a hidden affair the player knows of: the verb is taught with the day's answer; a yes moves at most a fifth of the purse, writes the page and a grudge, and closes that lord for a month; a no moves no coin and writes no page; a raid on lands sold a bargain breaks it once, in the real listener. No threat of exposure can be carried out yet. Restores gold, regard, grudges, the page and the ledger", TestExtortion),
+         new SelfTest("folk_tales", Severity.Light, "Gabriel (03/11/2026): the tales each people tells around the fire, known as tales, that a character may allude to or tell when asked. For a lord of each people with a folklore file: the context he is built from carries its tales with the one he loves best first and its parts, the same favourite on a second build, and the prompt frames them as stories, not history. A lord of a people with no file carries none. Reads only, changes nothing", TestFolkTales),
          new SelfTest("legends", Severity.Light, "DepaHN (Nexus, 27/10/2026): an extraordinary deed becomes a legend characters retell by their connection to it. On a legend entered by hand (no battle can be staged here, so the reading of a real MapEvent is NOT driven): the one it honours and a witness carry it at once, each in their own way; a stranger carries nothing on the day and the fixed deed after a month; the context a character is built from holds it. Restores the ledger, and raises no news", TestLegends),
          new SelfTest("raid_restraint", Severity.Light, "DepaHN (Nexus, 27/10/2026): a close friend was the first to burn his villages; Gabriel: a friend may hold back, by chance. Checks the game scores targets through our model (a mod that replaced it would silently end the feature), then on a lord and an enemy village: a failed draw leaves its score, a lord who drew to spare scores it at zero, a broken restraint gives the score back, and a lord who may write tells the player once per war with a letter dropped on the road once he breaks. Restores the ledger, sends no letter", TestRaidRestraint),
          new SelfTest("captor_terms", Severity.Light, "Windmolen (Nexus, 26/10/2026): captors should be able to free or ransom the player; Gabriel: other scenarios than abuse, with an oath the game holds the player to. Refuses a ransom, an oath and an exchange when the player is not a prisoner, with no gold moved and nothing sworn, then drives the REAL oath on a lord already met, with no release: kept, it raises his regard and leaves a memory; broken, it lowers it and leaves a memory. Restores the lord and the ledger, and leaves no grudge", TestCaptorTerms),
@@ -10158,6 +10159,42 @@ namespace CalradiaRemembers.Diagnostics
             while (told.Events.Count > toldEvents) told.Events.RemoveAt(told.Events.Count - 1);
             behavior.Store.Set(told);
          }
+
+         return t.Line();
+      }
+
+      private static string TestFolkTales(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("folk_tales");
+         if (t.Skip(Hero.MainHero == null, "no campaign")) return t.Line();
+
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h.IsLord && !h.IsChild && h.Clan != Clan.PlayerClan && h.Culture != null).ToList();
+         List<string> peoples = CalradiaRemembers.Logic.Folklore.FolkTalePolicy.GameCultureIds
+            .Where(id => Mapping.NarrativeLoader.FolkTales(id).Count > 0 && lords.Any(h => h.Culture.StringId == id)).ToList();
+         if (t.Skip(peoples.Count == 0, "no lord of a people with a folklore file")) return t.Line();
+
+         foreach (string people in peoples)
+         {
+            Hero lord = lords.First(h => h.Culture.StringId == people);
+            NpcProfile profile = GetOrCreate(behavior, lord);
+            NpcMemoryService.Core.Knowledge.FolkloreFacts tales = Mapping.EncounterContextBuilder.KnowledgeContextFor(lord, profile).Folklore;
+            bool anyTellable = Mapping.NarrativeLoader.FolkTales(people).Any(x => x.Beats.Count > 0);
+
+            t.Expect($"{people}:carriesTales", tales?.Tales.Count > 0, true);
+            if (tales == null || tales.Tales.Count == 0) continue;
+
+            t.Expect($"{people}:favouriteCanBeTold", tales.Tales[0].Beats.Count > 0, anyTellable);
+            t.Expect($"{people}:sameFavouriteNextTime",
+               Mapping.EncounterContextBuilder.KnowledgeContextFor(lord, profile).Folklore?.Tales[0].Title, tales.Tales[0].Title);
+
+            var sb = new StringBuilder();
+            new NpcMemoryService.Core.Knowledge.FolklorePack().Render(sb, new EncounterContext {Folklore = tales}, false);
+            t.Expect($"{people}:toldAsATale", sb.ToString().Contains("stories, not history"), true);
+         }
+
+         Hero untold = lords.FirstOrDefault(h => Mapping.NarrativeLoader.FolkTales(h.Culture.StringId).Count == 0);
+         if (untold != null)
+            t.Expect("aPeopleWithNoFileCarriesNone", Mapping.EncounterContextBuilder.KnowledgeContextFor(untold, GetOrCreate(behavior, untold)).Folklore, null);
 
          return t.Line();
       }

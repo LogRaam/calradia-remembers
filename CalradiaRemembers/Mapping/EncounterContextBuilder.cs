@@ -603,6 +603,7 @@ namespace CalradiaRemembers.Mapping
             OwnBody = knowledge.OwnBody,
             MarketWord = knowledge.MarketWord,
             Underworld = knowledge.Underworld,
+            Folklore = knowledge.Folklore,
             OwnVentures = knowledge.OwnVentures,
             HeldFor = knowledge.HeldFor,
             CaptiveNotoriety = knowledge.CaptiveNotoriety,
@@ -3630,6 +3631,13 @@ namespace CalradiaRemembers.Mapping
       ///   to end, still live in a whole conversation mode (audit, 15/09/2026).
       /// </summary>
       /// <summary>
+      ///   The tales of the hero's OWN people (their culture, not their realm's: a Battanian sworn to Vlandia grew up on
+      ///   Battanian tales), with the one they love best first. Null when their people has no tales on file.
+      /// </summary>
+      internal static FolkloreFacts BuildFolklore(Hero hero)
+         => hero == null ? null : CalradiaRemembers.Logic.Folklore.FolkTalePolicy.Compose(hero.StringId, NarrativeLoader.FolkTales(hero.Culture?.StringId));
+
+      /// <summary>
       ///   A hero's KNOWLEDGE facts: the bearer that decides what a person like this would know, and every
       ///   fact set the packs read. The companion to <see cref="StationContextFor" /> — that one is what they
       ///   ARE, this is what they KNOW — and shared with the COUNCIL for the same reason: the table had no
@@ -3664,6 +3672,7 @@ namespace CalradiaRemembers.Mapping
             OwnBody = BuildOwnBody(hero),
             MarketWord = marketWord,
             Underworld = BuildUnderworld(hero),
+            Folklore = BuildFolklore(hero),
             OwnVentures = ventures,
             HeldFor = ReadHeldFor(hero),
             CaptiveNotoriety = hero is {IsPrisoner: true} ? CalradiaRemembers.Logic.Captivity.CaptiveNotoriety.Describe(StatureReader.Of(hero), hero.IsClanLeader) : null,

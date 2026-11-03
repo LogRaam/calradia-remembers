@@ -2,6 +2,12 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.8.3.. open
+
+### New
+
+- **Folk tales: the stories each people tells around the fire** (Gabriel, 03/11/2026: "des contes qui existeraient dans la culture des factions de Calradia... Les NPC sauraient que c'est des contes, mais pourraient parfois en faire reference, ou meme raconter le conte si on leur demande"). A character carries up to six tales of their OWN people (their culture, not their realm), known as tales and never as history, and loves one best, drawn from their id with a fixed hash so it never changes. Only that favourite carries its parts, so it is the only one they can tell in full; the others they can name or allude to and are told never to fill in. Allusions are rare, never at every meeting (kurushimi00's recital lesson). Knowledge, not memory: a new knowledge pack, `folklore`, the first one Compact drops, and in Compact the favourite's outline only. Tales are plain text in `ModuleData/folklore/<culture id>.txt` (Custom-first, `cr_patch`-able, `cr.reload_prompts` rereads them); a file named after another mod's culture is read too. PILOT: only `battania.txt` ships, three tales with parts and two outlines, for Gabriel's review of the format and the voice before the other peoples are written. No gameplay effect. `FolkTalePolicy`, SDK `FolklorePack`, `cr.test folk_tales`. Not play-verified.
+
 ## v2.8.2.. 2026-11-03
 
 ### New
