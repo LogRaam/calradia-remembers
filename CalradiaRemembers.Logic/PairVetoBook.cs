@@ -4,6 +4,9 @@
 // CR's own conception (an intimate act carried to completion, a tale's reward) never read it: a Sterile woman could fall
 // pregnant through CR while her own words said she never would. Only the mod that owns the trait knows it, so it
 // registers a veto here and CR asks every veto before it conceives (Gabriel approved, 28/10/2026).
+// tashmetu (Nexus, 03/11/2026), for Romance & Seduction: CR's hidden affairs between lords should not give a lord a
+// second affair in another mod. Gabriel (03/11/2026) wanted CR to depend on no mod, so the same book now answers for
+// any pair CR would join, a conception's mother and father or an affair's married lord and lover.
 
 #region
 
@@ -15,7 +18,7 @@ using System.Collections.Generic;
 namespace CalradiaRemembers.Logic
 {
    /// <summary>What the vetoes answered: who refused and why, and which vetoes failed while asked.</summary>
-   public sealed class ConceptionVetoVerdict
+   public sealed class PairVetoVerdict
    {
       /// <summary>The mod that refused, or null when none did.</summary>
       public string Source { get; init; }
@@ -26,12 +29,12 @@ namespace CalradiaRemembers.Logic
       /// <summary>Each veto that threw, as "source: error"; a fault never refuses.</summary>
       public IReadOnlyList<string> Faults { get; init; } = Array.Empty<string>();
 
-      /// <summary>Whether a veto refused the conception.</summary>
+      /// <summary>Whether a veto refused.</summary>
       public bool Refused => Source != null;
    }
 
-   /// <summary>The vetoes other mods registered against a conception, asked in the order they were registered.</summary>
-   public sealed class ConceptionVetoBook<THero>
+   /// <summary>The vetoes other mods registered against a pair CR would join, asked in the order they were registered.</summary>
+   public sealed class PairVetoBook<THero>
    {
       private readonly List<KeyValuePair<string, Func<THero, THero, string>>> _vetoes = new();
 
@@ -61,10 +64,11 @@ namespace CalradiaRemembers.Logic
       }
 
       /// <summary>
-      ///   Asks every veto about <paramref name="mother" /> and <paramref name="father" /> (default when the father is
-      ///   unknown). The first that answers with words refuses; one that throws is noted and passed over.
+      ///   Asks every veto about the pair, <paramref name="first" /> then <paramref name="second" /> (a conception's
+      ///   mother and father, default when unknown; an affair's married lord and lover). The first that answers with
+      ///   words refuses; one that throws is noted and passed over.
       /// </summary>
-      public ConceptionVetoVerdict Ask(THero mother, THero father)
+      public PairVetoVerdict Ask(THero first, THero second)
       {
          var faults = new List<string>();
 
@@ -73,7 +77,7 @@ namespace CalradiaRemembers.Logic
             string reason;
             try
             {
-               reason = v.Value(mother, father);
+               reason = v.Value(first, second);
             }
             catch (Exception ex)
             {
@@ -82,10 +86,10 @@ namespace CalradiaRemembers.Logic
                continue;
             }
 
-            if (!string.IsNullOrWhiteSpace(reason)) return new ConceptionVetoVerdict {Source = v.Key, Reason = reason.Trim(), Faults = faults};
+            if (!string.IsNullOrWhiteSpace(reason)) return new PairVetoVerdict {Source = v.Key, Reason = reason.Trim(), Faults = faults};
          }
 
-         return new ConceptionVetoVerdict {Faults = faults};
+         return new PairVetoVerdict {Faults = faults};
       }
    }
 }
