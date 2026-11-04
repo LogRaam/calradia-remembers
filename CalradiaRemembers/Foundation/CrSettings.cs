@@ -405,6 +405,21 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public float ChatTemperature { get; set; } = ChatTemperaturePolicy.Default;
 
+      // avalanche24 (Nexus, 03/11/2026): a local reasoning model counts its thinking against the reply budget and was cut off
+      // mid-thought at Compact's fixed 1200. Gabriel's go the same day.
+      [SettingPropertyInteger("{=CR_MCM_ReplyTokenBudget}Reply Token Budget", ReplyBudgetPolicy.Auto, ReplyBudgetPolicy.Max, "0", RequireRestart = false, Order = 16,
+         HintText = "{=CR_MCM_ReplyTokenBudget_Hint}Most tokens a conversation reply may use. 0 = Auto (3000, 1200 in Compact). A reasoning model " +
+                    "counts its thinking in it: raise it if it is cut off mid-thought. On a local server it shares the context window.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
+      public int ReplyTokenBudget { get; set; } = ReplyBudgetPolicy.Auto;
+
+      // avalanche24 (Nexus, 03/11/2026): "the presence penalty is killing my model's thought process prematurely".
+      [SettingPropertyFloatingInteger("{=CR_MCM_PresencePenalty}Presence Penalty", PresencePenaltyPolicy.Min, PresencePenaltyPolicy.Max, "0.00", RequireRestart = false, Order = 17,
+         HintText = "{=CR_MCM_PresencePenalty_Hint}How hard conversation replies avoid repeating words (default 0.50). 0 sends none, for a local " +
+                    "model it hurts. Higher is more varied but may drift off names. Reasoning models ignore it.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
+      public float PresencePenalty { get; set; } = PresencePenaltyPolicy.Default;
+
       [SettingPropertyInteger("{=CR_MCM_LlmTimeoutSeconds}LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 11,
          HintText = "{=CR_MCM_LlmTimeoutSeconds_Hint}How long to wait for a reply, in seconds (default 120), in conversations and for letters and " +
                     "summaries (never under 60). Raise it for a slow local or reasoning model; lower it to fail fast. " +

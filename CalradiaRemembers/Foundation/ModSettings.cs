@@ -637,6 +637,12 @@ namespace CalradiaRemembers.Foundation
       /// </summary>
       public static float ChatTemperature => CalradiaRemembers.Logic.Chat.ChatTemperaturePolicy.Clamp(CrSettings.Instance?.ChatTemperature ?? CalradiaRemembers.Logic.Chat.ChatTemperaturePolicy.Default);
 
+      /// <summary>The conversation reply budget the player chose ("Reply Token Budget"), or null on Auto. Read live; the chat service rebuilds when it moves.</summary>
+      public static int? ReplyTokenBudget => CalradiaRemembers.Logic.Chat.ReplyBudgetPolicy.Chosen(CrSettings.Instance?.ReplyTokenBudget ?? CalradiaRemembers.Logic.Chat.ReplyBudgetPolicy.Auto);
+
+      /// <summary>The conversation presence penalty ("Presence Penalty", default 0.5). Read live; the chat service rebuilds when it moves.</summary>
+      public static float PresencePenalty => CalradiaRemembers.Logic.Chat.PresencePenaltyPolicy.Clamp(CrSettings.Instance?.PresencePenalty ?? CalradiaRemembers.Logic.Chat.PresencePenaltyPolicy.Default);
+
       /// <summary>
       ///   The model id for consensual-intimate scenes (the "NSFW Consensual model" MCM field). Its stored value
       ///   lives under the legacy <c>CrSettings.NsfwModel</c> persistence identity (see that property's comment), so

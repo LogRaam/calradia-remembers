@@ -68,6 +68,8 @@ namespace CalradiaRemembers.Services
       private string _builtPlayerFaction;
       private string _builtPlayerClan;
       private float _builtTemperature;
+      private int? _builtReplyBudget;
+      private float _builtPresencePenalty;
       private NpcChatService _chatService;
 
       private HttpClient _httpClient;
@@ -130,6 +132,8 @@ namespace CalradiaRemembers.Services
             string replyLanguage = ModSettings.ReplyLanguage;
             NpcMemoryService.Core.Prompts.ReplyLength replyLength = ModSettings.ReplyLength;
             float temperature = ModSettings.ChatTemperature;
+            int? replyBudget = ModSettings.ReplyTokenBudget;
+            float presencePenalty = ModSettings.PresencePenalty;
 
             string playerFaction = Hero.MainHero?.MapFaction?.Name?.ToString() ?? "";
             string playerClan = Hero.MainHero?.Clan?.Name?.ToString() ?? "";
@@ -137,7 +141,8 @@ namespace CalradiaRemembers.Services
             if (_chatService != null && _builtAdultLevel == current && _builtWarmth == warmth
                                       && _builtReplyLanguage == replyLanguage && _builtReplyLength == replyLength
                                       && _builtPlayerFaction == playerFaction && _builtPlayerClan == playerClan
-                                      && _builtTemperature == temperature)
+                                      && _builtTemperature == temperature && _builtReplyBudget == replyBudget
+                                      && _builtPresencePenalty == presencePenalty)
                return _chatService;
             _chatService = BuildChatService();
             _builtAdultLevel = current;
@@ -147,6 +152,8 @@ namespace CalradiaRemembers.Services
             _builtPlayerFaction = playerFaction;
             _builtPlayerClan = playerClan;
             _builtTemperature = temperature;
+            _builtReplyBudget = replyBudget;
+            _builtPresencePenalty = presencePenalty;
 
             return _chatService;
          }
@@ -1014,23 +1021,6 @@ namespace CalradiaRemembers.Services
       public string DebugResolveApiKeyFor(ServiceRole role) => ApiKeyFor(role, ResolveKindForRole(role));
 
       /// <summary>
-      ///   TUNE. Adult-prompt audit M13: the mod's anti-repetition rested entirely on prompt text, which is
-      ///   exactly what a weaker model ignores, so intimate and captive scenes reused the same gestures and
-      ///   phrases turn after turn. A sampling penalty is the only lever that also reaches those models.
-      ///   <para>
-      ///     Deliberately modest. The penalty is blunt: it discourages every token already used, and in
-      ///     roleplay the tokens that recur most are the character and place NAMES. Raising this buys variety
-      ///     at the cost of the model drifting off its own cast, so it wants play-testing before it moves.
-      ///     Set to 0 to send nothing at all and restore the exact previous payload.
-      ///   </para>
-      /// </summary>
-      // AUDIT-CAPTIVE-STYLE T5 (2026-07-24): raised 0.3 -> 0.5 to push harder against the model reusing its
-      // own recent tokens within a scene (completes AUDIT-PROMPTS-ADULTES P5.3). Not the temperature (raising
-      // that risks role incoherence). NOTE: a reasoning model (gpt-5*/o*) drops temperature AND penalty
-      // together (LlmParameterPolicy), so this only bites on ordinary sampled models.
-      private const float ScenePresencePenalty = 0.5f;
-
-      /// <summary>
       ///   The REAL PromptBuilder the chat runs on, built exactly as <see cref="BuildChatService" /> builds it.
       ///   Extracted so cr.test all can read the live construction rather than a copy of it: a self-test that
       ///   rebuilt these fields itself would agree with itself forever, which is precisely how the 2026-09-08
@@ -1106,12 +1096,15 @@ namespace CalradiaRemembers.Services
             // mid-sentence at 1500 (a beat's prose plus, on a reasoning model, its thinking can exceed it). This
             // is a CEILING, not a target: an ordinary chat reply still stops on its own, so cost only rises on
             // the rare long beat that actually needs the room. Kept in sync with NpcChatService's default.
+            // avalanche24 (03/11/2026): the "Reply Token Budget" setting, kept in Compact too when the player chose one.
             ChatParameters = new LlmParameters {
-               MaxTokens = 3000,
+               MaxTokens = ModSettings.ReplyTokenBudget ?? CalradiaRemembers.Logic.Chat.ReplyBudgetPolicy.FullDefault,
                // The "Chat Temperature" setting (fkasad, 17/10/2026), 0.7 unless the player moved it.
                Creativity = ModSettings.ChatTemperature,
-               PresencePenalty = ScenePresencePenalty
-            }
+               // The "Presence Penalty" setting (avalanche24, 03/11/2026), 0.5 unless the player moved it.
+               PresencePenalty = ModSettings.PresencePenalty
+            },
+            KeepReplyBudgetInCompact = ModSettings.ReplyTokenBudget != null
          };
       }
 

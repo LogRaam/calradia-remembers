@@ -109,9 +109,9 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Jealousy` | 16 | 9 |
 | `CalradiaRemembers.Dialogue` | 16 | 2 |
 | `CalradiaRemembers.WorldAlmanac` | 16 | 2 |
+| `CalradiaRemembers.Services` | 15 | 8 |
 | `CalradiaRemembers.Assemblies` | 15 | 7 |
 | `CalradiaRemembers.HelpPleas` | 15 | 2 |
-| `CalradiaRemembers.Services` | 14 | 8 |
 | `CalradiaRemembers.Commitments` | 13 | 8 |
 | `CalradiaRemembers.Tournaments` | 13 | 3 |
 | `CalradiaRemembers.WarDuty` | 13 | 2 |
@@ -191,9 +191,9 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `NpcMemoryService.Core.LlmClient` | 1 | 14 |
 | `CalradiaRemembers.Logic.Battles` | 1 | 9 |
 | `CalradiaRemembers.Logic.Providers` | 1 | 9 |
+| `CalradiaRemembers.Logic.Chat` | 1 | 7 |
 | `CalradiaRemembers.Logic.Prisoners` | 1 | 7 |
 | `CalradiaRemembers.Logic.Bastards` | 1 | 6 |
-| `CalradiaRemembers.Logic.Chat` | 1 | 6 |
 | `CalradiaRemembers.Logic.Quests` | 1 | 6 |
 | `CalradiaRemembers.Logic.WarDuty` | 1 | 6 |
 | `CalradiaRemembers.Social` | 1 | 6 |
@@ -914,7 +914,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### CalradiaRemembers.Logic.Chat
 
 - uses: `CalradiaRemembers.Logic.Providers`
-- used by: `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Portraits`
+- used by: `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Portraits`, `CalradiaRemembers.Services`
 
 ### CalradiaRemembers.Logic.Chronicle
 
@@ -1208,7 +1208,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### CalradiaRemembers.Services
 
-- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Actions`, `CalradiaRemembers.Logic.Providers`, `CalradiaRemembers.Mapping`, `NpcMemoryService.Core.Actions`, `NpcMemoryService.Core.LlmClient`, `NpcMemoryService.Core.LlmClient.OpenRouter`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Parsing`, `NpcMemoryService.Core.Prompts`, `NpcMemoryService.Core.Services`
+- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Actions`, `CalradiaRemembers.Logic.Chat`, `CalradiaRemembers.Logic.Providers`, `CalradiaRemembers.Mapping`, `NpcMemoryService.Core.Actions`, `NpcMemoryService.Core.LlmClient`, `NpcMemoryService.Core.LlmClient.OpenRouter`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Parsing`, `NpcMemoryService.Core.Prompts`, `NpcMemoryService.Core.Services`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Memory`
 
 ### CalradiaRemembers.Social

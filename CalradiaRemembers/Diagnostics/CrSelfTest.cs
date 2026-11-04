@@ -351,6 +351,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("aims_channels", Severity.Light, "CrAims audience and letter channels (tashmetu 14/10: 'nobody takes the first step with the player'; Gabriel 28/10: 'fait 2 et 1'). A test aim open to audiences and letters is registered on a lord at peace with the player: he may raise it by audience and by letter; an audience he sought gives him leave in the conversation that follows, recorded as an audience, even with the conversation channel closed; after it, the letter waits (raised too recently). An aim closed to audiences is not a reason to seek the player. Retracts after", TestAimsChannels),
          new SelfTest("aims_door", Severity.Light, "The public CrAims door (tashmetu, 14/10/2026: 'nobody takes the first step with the player'; proposed in ROADMAP, approved by Gabriel 20/10/2026). Registers an aim for a lord at peace with the player through the REAL door: accepted, updated under the same id, refused for a second aim on the same lord, an unknown hero, and CR's own name; a conversation opened with him gives him leave and the context carries the want; CrAims.Raised tells the mod, with the aim's id, the lord and the channel; retracted, it is gone. Retracts and closes after", TestAimsDoor),
          new SelfTest("player_named_on_screen", Severity.Light, "Gabriel (17/10/2026): a grievance read 'over The marriage was ended by the player's own choice'; never 'the player' in the game, the character by name. Passes a stored cause saying 'the player' through the real grievance line and the real chat message line, and asserts both show the player's name, never 'the player', and that a sentence cause follows a colon. Changes nothing", TestPlayerNamedOnScreen),
+         new SelfTest("reply_shape", Severity.Light, "avalanche24 (Nexus, 03/11/2026): a local reasoning model was cut off mid-thought at the fixed 1200-token Compact budget, and the fixed 0.5 presence penalty cut its thinking short. Moves Reply Token Budget and Presence Penalty and asserts the live chat service sends them and keeps the budget in Compact; on Auto, 3000 and Compact's own budget again; restores both settings", TestReplyShape),
          new SelfTest("chat_temperature", Severity.Light, "fkasad (Nexus, 17/10/2026) asked whether the mod tunes the temperature; the conversation value was fixed at 0.7, and Gabriel asked for a setting. Moves the Chat Temperature setting and asserts the live chat service sends the new value, and that an out-of-range value is held in range; restores the setting", TestChatTemperature),
          new SelfTest("companion_patrol", Severity.Light, "jaserms1 (Nexus, 16/10/2026): a council's patrol order did nothing; Gabriel's rulings 16-17/10 (the player's own men, chosen on the game's troop screen, until told to stop) and his spike at Ebereth (a free AI patrol drifts off its post). Arranges a companion and men, confirms a 5-man patrol of the nearest village through the same handler the troop screen calls, and asserts the men really left the main party, the patrol is anchored on the village with the AI free; then drags it away and runs the hourly leash, which must re-anchor it; then brings it home and asserts every man is back. tashmetu (18/10/2026): another mod reads the patrol through CrPatrols.Current and hears its end through CrPatrols.Ended, as Back. Cleans up", TestCompanionPatrol),
          new SelfTest("enemy_meeting_offer", Severity.Light, "fkasad (Nexus, 16/10/2026): an enemy lord rode up as the player was about to attack him, the chat opened by force and a local model reasoned for half a minute over an opener nobody read; Gabriel the same day: a popup for hostile lords only. On real lords: one at peace with the player, holding a grudge, still opens the meeting at once; the same lord defending his land asks first; a lord of a realm at war with the player asks first whatever his reason (when such a lord exists). Changes nothing", TestEnemyMeetingOffer),
@@ -15949,6 +15950,8 @@ namespace CalradiaRemembers.Diagnostics
                "0 must mean the witnesses fall silent, 3 must mean three rounds"),
             ["MarriageRegardNeeded"] = ("MarriageRegardThreshold", SettingShape.Reshapes,
                "capped at MarriageEligibilityThreshold: the setting may only make marriage EASIER, never harder"),
+            ["ReplyTokenBudget"] = ("ReplyTokenBudget", SettingShape.Reshapes,
+               "0 is Auto (no budget chosen: 3000, or Compact's own), and a pick under 500 is raised to 500, too small for any reply"),
             ["LlmTimeoutSeconds"] = ("LlmResponseTimeoutSeconds", SettingShape.Honours,
                "a timeout the player set is the timeout the request gets"),
             ["ChatTextSizePercent"] = ("ChatTextSizeStep", SettingShape.Reshapes,
@@ -21158,6 +21161,41 @@ namespace CalradiaRemembers.Diagnostics
          // STAKE: a narration or reply that says "the player" names the character in the chat window.
          string line = new ChatMessageViewModel("The player rides on.", "#FFFFFFFF").DisplayText;
          t.Expect("chatLineNamesThePlayer", line == name + " rides on.", true);
+
+         return t.Line();
+      }
+
+      private static string TestReplyShape(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("reply_shape");
+         CrSettings settings = CrSettings.Instance;
+         if (t.Skip(settings == null, "the MCM settings are not loaded")) return t.Line();
+         if (t.Skip(behavior?.LlmServices?.ChatService == null, "the chat service is unavailable (no key or model)")) return t.Line();
+
+         int savedBudget = settings.ReplyTokenBudget;
+         float savedPenalty = settings.PresencePenalty;
+         try
+         {
+            // STAKE: avalanche24: the budget and penalty picked are the ones the next turn is sent with, in Compact too.
+            settings.ReplyTokenBudget = 4000;
+            settings.PresencePenalty = 0.1f;
+            NpcMemoryService.Core.Services.NpcChatService chat = behavior.LlmServices.ChatService;
+            t.Expect("theBudgetIsSent", chat.ChatParameters.MaxTokens, 4000);
+            t.Expect("keptInCompact", chat.KeepReplyBudgetInCompact, true);
+            t.Expect("thePenaltyIsSent", Math.Abs(chat.ChatParameters.PresencePenalty - 0.1f) < 0.001f, true);
+
+            // STAKE: a player who never moved them is sent what everyone was sent before.
+            settings.ReplyTokenBudget = CalradiaRemembers.Logic.Chat.ReplyBudgetPolicy.Auto;
+            settings.PresencePenalty = CalradiaRemembers.Logic.Chat.PresencePenaltyPolicy.Default;
+            chat = behavior.LlmServices.ChatService;
+            t.Expect("autoIsTheOldBudget", chat.ChatParameters.MaxTokens, CalradiaRemembers.Logic.Chat.ReplyBudgetPolicy.FullDefault);
+            t.Expect("autoLetsCompactLowerIt", chat.KeepReplyBudgetInCompact, false);
+         }
+         finally
+         {
+            settings.ReplyTokenBudget = savedBudget;
+            settings.PresencePenalty = savedPenalty;
+         }
 
          return t.Line();
       }

@@ -116,6 +116,10 @@
     <string id="CR_MCM_MemoryCompression_Hint" text="Lets characters fold old, superseded memories into a short outline, so a long campaign stops inflating every prompt (the usual cause of slow replies on a local model). First meetings, recent events and grave moments are never dropped." />
     <string id="CR_MCM_ChatTemperature" text="Chat Temperature" />
     <string id="CR_MCM_ChatTemperature_Hint" text="How varied conversation replies are (default 0.70). Lower is steadier and more repetitive, higher more surprising; above 1.0 a local model may lose its character. Reasoning models ignore it. Applies immediately." />
+    <string id="CR_MCM_ReplyTokenBudget" text="Reply Token Budget" />
+    <string id="CR_MCM_ReplyTokenBudget_Hint" text="Most tokens a conversation reply may use. 0 = Auto (3000, 1200 in Compact). A reasoning model counts its thinking in it: raise it if it is cut off mid-thought. On a local server it shares the context window." />
+    <string id="CR_MCM_PresencePenalty" text="Presence Penalty" />
+    <string id="CR_MCM_PresencePenalty_Hint" text="How hard conversation replies avoid repeating words (default 0.50). 0 sends none, for a local model it hurts. Higher is more varied but may drift off names. Reasoning models ignore it." />
     <string id="CR_MCM_LlmTimeoutSeconds" text="LLM Response Timeout (s)" />
     <string id="CR_MCM_LlmTimeoutSeconds_Hint" text="How long to wait for a reply, in seconds (default 120), in conversations and for letters and summaries (never under 60). Raise it for a slow local or reasoning model; lower it to fail fast. Applies immediately." />
     <string id="CR_MCM_Model" text="PROSE model" />
