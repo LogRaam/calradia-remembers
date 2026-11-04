@@ -5,9 +5,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Romance;
 using CalradiaRemembers.Mapping;
+using NpcMemoryService.Core.Models;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;
@@ -120,6 +123,61 @@ namespace CalradiaRemembers.Lore
 
          return (o?.ParsedLoves, o?.ParsedLessFond, o?.ParsedDislikes);
       }
+
+      /// <summary>
+      ///   Lays the authored gesture lock ("loves", "lessFond", "dislikes") onto the profile, the ONE place it is written
+      ///   (Tene21, Nexus, 03/11/2026: cr.acts still showed the roll after cr.reload_lore, because the lock was copied only
+      ///   when a chat message was sent). Called by <see cref="HeroProfileMapper.UpgradeIfNeeded" />, so every reader that
+      ///   brings a profile up to date sees it, and by <see cref="CharacterLoreBehavior.ApplyAll" /> for the stored
+      ///   profiles the encyclopedia reads as they are. Does nothing while custom traits are off or no list is written.
+      ///   Returns true when the tastes changed.
+      /// </summary>
+      public static bool SyncAuthoredTastes(NpcProfile profile, Hero hero)
+      {
+         RomanticProfile r = profile?.Romantic;
+         if (r == null || hero == null) return false;
+
+         IntimateTastes now = TastesOf(r);
+         var acts = ActsFor(hero);
+         IntimateTastes locked = AuthoredTastesPolicy.Apply(new AuthoredTastesFacts {Current = now, Loves = acts.Loves, LessFond = acts.LessFond, Dislikes = acts.Dislikes});
+         if (locked == null || Same(locked, now)) return false;
+
+         r.LovedActs = locked.Loved;
+         r.LessFondActs = locked.LessFond;
+         r.DislikedActs = locked.Disliked;
+         ModLog.Info($"[OVERRIDE] {profile.Name} gestures locked by authored char data: loves [{string.Join(", ", locked.Loved)}], less fond [{string.Join(", ", locked.LessFond)}], dislikes [{string.Join(", ", locked.Disliked)}].");
+
+         return true;
+      }
+
+      /// <summary>
+      ///   Lifts a gesture lock that had landed on the profile (custom traits turned off): the three lists go back to null so
+      ///   the next <see cref="HeroProfileMapper.UpgradeIfNeeded" /> rolls the character's own tastes again from their id.
+      ///   A profile whose tastes are still the roll is left alone. Returns true when the lock was lifted.
+      /// </summary>
+      public static bool LiftAuthoredTastes(NpcProfile profile, Hero hero)
+      {
+         RomanticProfile r = profile?.Romantic;
+         CharacterOverride o = For(hero);
+         if (r == null || o == null) return false;
+
+         var f = new AuthoredTastesFacts {Current = TastesOf(r), Loves = o.ParsedLoves, LessFond = o.ParsedLessFond, Dislikes = o.ParsedDislikes};
+         if (!AuthoredTastesPolicy.LockIsInPlace(f)) return false;
+
+         r.LovedActs = null;
+         r.LessFondActs = null;
+         r.DislikedActs = null;
+         ModLog.Info($"[OVERRIDE] {profile.Name} gesture lock lifted (custom traits off): their own tastes are rolled again.");
+
+         return true;
+      }
+
+      private static IntimateTastes TastesOf(RomanticProfile r) => new() {
+         Loved = r.LovedActs ?? new List<IntimateAct>(), LessFond = r.LessFondActs ?? new List<IntimateAct>(), Disliked = r.DislikedActs ?? new List<IntimateAct>()
+      };
+
+      private static bool Same(IntimateTastes a, IntimateTastes b)
+         => a.Loved.SequenceEqual(b.Loved) && a.LessFond.SequenceEqual(b.LessFond) && a.Disliked.SequenceEqual(b.Disliked);
 
       /// <summary>The override that applies to <paramref name="hero" />, or null.</summary>
       public static CharacterOverride For(Hero hero)

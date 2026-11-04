@@ -114,6 +114,22 @@ namespace CalradiaRemembers.Mapping
       {
          if (profile == null || hero == null) return;
 
+         Upgrade(profile, hero);
+         // Last, after every roll, completion and rebuild above: a lock laid earlier would be padded by Complete or
+         // replaced by a rebuilt romantic profile (Tene21, 03/11/2026, saw the roll in cr.acts after cr.reload_lore).
+         AuthoredTastesSync?.Invoke(profile, hero);
+      }
+
+      /// <summary>
+      ///   Lays the authored gesture lock of character_overrides.json on a profile just brought up to date. Plugged in by
+      ///   <c>Lore.CharacterLoreBehavior</c> when it is created: the lock is read by Lore, and Lore already uses Mapping,
+      ///   so Mapping calling Lore by name would make the two namespaces use each other. Unset, no lock lands, which
+      ///   cr.test override_acts reports.
+      /// </summary>
+      public static Action<NpcProfile, Hero> AuthoredTastesSync { get; set; }
+
+      private static void Upgrade(NpcProfile profile, Hero hero)
+      {
          // Diagnostic — surface an existing Romantic profile's compatibility so a
          // missing ROMANTIC NATURE section can be diagnosed as by-design (incompatible
          // orientation) versus a stale/incomplete profile. Runs before the cheap exit

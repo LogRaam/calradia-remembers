@@ -25,6 +25,7 @@ namespace CalradiaRemembers.Lore
       public CharacterLoreBehavior()
       {
          Instance = this;
+         HeroProfileMapper.AuthoredTastesSync = (profile, hero) => CharacterOverrideLoader.SyncAuthoredTastes(profile, hero);
       }
 
       public static CharacterLoreBehavior Instance { get; private set; }
@@ -68,6 +69,10 @@ namespace CalradiaRemembers.Lore
             // lock); a backstory/conviction/orientation-only override must not re-roll and wipe an NPC's kinks.
             if (ov.HasTraits || ov.ParsedKinks != null)
                RederiveKinks(hero); // frozen kinks on an already-met NPC follow the new personality, or an authored lock
+            // The gesture lock lands on the STORED profile here, after the kinks it is weighed against: the Heart line of
+            // the encyclopedia reads the store as it is (Tene21, 03/11/2026: cr.acts showed the roll after cr.reload_lore).
+            if (ov.Loves != null || ov.LessFond != null || ov.Dislikes != null)
+               UpdateStoredTastes(hero, false);
             n++;
          }
 
@@ -112,6 +117,8 @@ namespace CalradiaRemembers.Lore
 
             if (ov.HasTraits || ov.ParsedKinks != null)
                RederiveKinks(hero); // back to the kinks the vanilla traits imply (lock is inert while the toggle is off)
+            if (ov.Loves != null || ov.LessFond != null || ov.Dislikes != null)
+               UpdateStoredTastes(hero, true); // the character's own roll back, re-rolled from their id after their kinks
             n++;
          }
 
@@ -180,6 +187,22 @@ namespace CalradiaRemembers.Lore
             ModLog.Info($"[OVERRIDE] {profile.Name} romantic preferences locked to [{string.Join(", ", authoredPreferences)}] by authored char data.");
          }
 
+         store.Set(profile);
+      }
+
+      /// <summary>
+      ///   Brings the stored profile of an already-met character up to date, which lays the authored gesture lock (or, with
+      ///   <paramref name="lift" />, lifts it first so their own roll comes back). A never-met character has no profile yet
+      ///   and is given the lock when first built and brought up to date.
+      /// </summary>
+      private static void UpdateStoredTastes(Hero hero, bool lift)
+      {
+         BannerlordNpcMemoryStore store = NpcMemoryCampaignBehavior.Instance?.Store;
+         NpcProfile profile = store?.Get(hero.StringId);
+         if (profile?.Romantic == null) return;
+
+         if (lift) CharacterOverrideLoader.LiftAuthoredTastes(profile, hero);
+         HeroProfileMapper.UpgradeIfNeeded(profile, hero);
          store.Set(profile);
       }
 

@@ -123,11 +123,11 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Arrests` | 10 | 7 |
 | `CalradiaRemembers.Aims` | 10 | 6 |
 | `CalradiaRemembers.Battles` | 10 | 4 |
+| `CalradiaRemembers.Lore` | 10 | 4 |
 | `CalradiaRemembers.OpenPartnerLover` | 10 | 2 |
 | `CalradiaRemembers.Rescue` | 10 | 2 |
 | `CalradiaRemembers.Logic` | 9 | 76 |
 | `CalradiaRemembers.Standing` | 9 | 6 |
-| `CalradiaRemembers.Lore` | 9 | 4 |
 | `CalradiaRemembers.Scenarios` | 9 | 4 |
 | `CalradiaRemembers.Chronicle` | 9 | 2 |
 | `CalradiaRemembers.RealmTidings` | 9 | 2 |
@@ -144,8 +144,8 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Dynasty` | 5 | 3 |
 | `CalradiaRemembers.WarCouncil` | 5 | 2 |
 | `CalradiaRemembers.Storage` | 4 | 24 |
+| `CalradiaRemembers.Logic.Romance` | 4 | 13 |
 | `CalradiaRemembers.Logic.Captivity` | 4 | 12 |
-| `CalradiaRemembers.Logic.Romance` | 4 | 12 |
 | `CalradiaRemembers.Logic.Assemblies` | 4 | 10 |
 | `CalradiaRemembers.Logic.Marriage` | 4 | 10 |
 | `NpcMemoryService.Core.Knowledge` | 4 | 9 |
@@ -1064,7 +1064,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### CalradiaRemembers.Logic.Romance
 
 - uses: `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Companions`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Standing`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic.Character`, `CalradiaRemembers.Logic.Trauma`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.OpenPartnerLover`, `CalradiaRemembers.Verbs`, `CalradiaRemembers.WorldEvents`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic.Character`, `CalradiaRemembers.Logic.Trauma`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.OpenPartnerLover`, `CalradiaRemembers.Verbs`, `CalradiaRemembers.WorldEvents`
 
 ### CalradiaRemembers.Logic.Scenarios
 
@@ -1133,7 +1133,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### CalradiaRemembers.Lore
 
-- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Portraits`, `CalradiaRemembers.Storage`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Prompts`
+- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Romance`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Portraits`, `CalradiaRemembers.Storage`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Prompts`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.WorldAlmanac`
 
 ### CalradiaRemembers.Map

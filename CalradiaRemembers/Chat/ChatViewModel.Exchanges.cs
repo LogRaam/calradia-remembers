@@ -950,11 +950,9 @@ namespace CalradiaRemembers.Chat
                ModLog.Info($"[OVERRIDE] {profile.Name} kinks locked to [{string.Join(", ", authoredKinks)}] by authored char data.");
             }
 
-            // The gestures loved and disliked, locked the same way (Gabriel, 26/10/2026).
-            var authoredActs = CharacterOverrideLoader.ActsFor(speaker.Hero);
-            if (profile.Romantic != null && authoredActs.Loves != null) profile.Romantic.LovedActs = authoredActs.Loves;
-            if (profile.Romantic != null && authoredActs.LessFond != null) profile.Romantic.LessFondActs = authoredActs.LessFond;
-            if (profile.Romantic != null && authoredActs.Dislikes != null) profile.Romantic.DislikedActs = authoredActs.Dislikes;
+            // The gestures loved and disliked, locked the same way (Gabriel, 26/10/2026), through the one sync every
+            // other reader goes through too (Tene21, 03/11/2026), so an edit to the file still lands on the next turn.
+            CharacterOverrideLoader.SyncAuthoredTastes(profile, speaker.Hero);
 
             // ── Diagnostic: log the full system prompt sent to the LLM ─────
             if (ModSettings.VerboseLogging)

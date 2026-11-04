@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 626 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1504 types in 54 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1506 types in 54 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 25000+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 25500+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 9000+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -2498,11 +2498,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RescueGratitudePolicy` | public static class | Decides how strongly an NPC reacts to being rescued (or to a loved one being rescued) by the player. |
 | `RescueTie` | public enum | How the freed prisoner relates to the player, deciding the shape of their gratitude. |
 
-### CalradiaRemembers.Logic.Romance (43)
+### CalradiaRemembers.Logic.Romance (45)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `AffairInquiry` | public enum | What a companion's inquiry into a lord comes to. |
+| `AuthoredTastesFacts` | public class | A character's tastes as they stand, and the lists an author wrote for them. |
+| `AuthoredTastesPolicy` | public static class | How an authored gesture lock lands on a character's rolled tastes. |
 | `HeartChild` | public class | A child the player and this character have together, as the page names it. |
 | `HeartFacts` | public class | What the player knows of one character's bond with them. |
 | `HeartIntimacyPolicy` | public static class | The intimate lines of the Heart section: their gate and their words. |

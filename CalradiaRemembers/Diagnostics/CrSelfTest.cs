@@ -389,6 +389,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("scene_opener", Severity.Light, "Lordfadooboo (Nexus, 21/10/2026): a conversation opened cold; Gabriel (22/10/2026): the character sets the scene by default, as captive scenes do. Reads the LIVE opening facts (LlmDialogFlow.SceneFacts) and asserts a conversation opened by the greeting gets a scene while one opened any other way (an interception, a tale meeting) does not, nor one put back from earlier today, nor one carrying the game's own dialogue, nor any with the MCM switch off (set off for a moment, restored). Then, with a model available and nothing on screen, opens a REAL conversation with a lord, starts the scene on a test greeting and plays the player speaking first: the scene is set aside, the greeting stays on screen and is the line remembered, and the call is aborted. Closes the conversation", TestSceneOpener),
          new SelfTest("scene_image_shown", Severity.Light, "Gabriel (08/10/2026): a tale's stage may carry a picture, opening by itself beside the chat when its scene opens. Writes a small picture to a temporary file, opens a scene with it through the real door (its narration refused before any model call), checks the left panel shows that very file and, in Dark Leather, that it steps aside when the chat yields to the pause menu, then closes the scene and deletes the file.", TestSceneImageShown),
          new SelfTest("intimate_acts", Severity.Light, "Gabriel (26/10/2026): 'chaque NPC avait des preferences pour certains gestes sexuels, et meme parfois des gestes qu'il n'aime pas', and 'un geste impose que le NPC n'aime pas devrait reduire le personal regard'. At Hardcore, with a lord arranged as the player's lover (regard 60, intimate; put back after) who loves oral given and dislikes anal received: the turn's reader is taught both from the real EncounterContextBuilder seam; the disliked gesture only asked for costs nothing and is learned; performed, it costs 4 personal regard and leaves a memory; performed again the same day, nothing more; the loved gesture found warms them by 1; one they are less fond of costs nothing; the Heart section names a taste only once it is learned; a profile rolled before the list widened (27/10/2026: 'd'en mettre beaucoup') is completed through the real load path, keeping what she loved and what the player learned. Skips below Hardcore", TestIntimateActs),
+         new SelfTest("override_acts", Severity.Light, "Tene21 (Nexus, 03/11/2026): 'Setting a character's tastes in the file, then running cr.reload_lore followed by cr.acts Character Name still show what I assume are the character's generated tastes.' With custom traits on and a lock injected at runtime (loves kissing and beneath, less fond dirty talk, dislikes none; character_overrides.json untouched) on a lord whose roll had kissing as less loved: the reload's own ApplyAll lays the lock on the STORED profile (what the encyclopedia reads) with kissing in one list only and the empty dislike kept empty; the path cr.acts takes (UpgradeIfNeeded) lays it on a profile still carrying the roll, and a profile of an older taste revision is not padded past the lock; the Heart line reads the authored gesture once learned; custom traits off, RestoreAll gives back the character's own roll. Everything put back, the file reloaded", TestOverrideActs),
          new SelfTest("gift_tastes", Severity.Light, "Gabriel (27/10/2026): 'un NPC pourrait [...] preferer certains cadeaux [...] Une Dame pourrait aimer les fourrures'. With a lord already met, arranged to love furs (put back after): a fur handed over through the real give_item path (the bag-picked way) is read as furs from the item's own category, earns twice the regard its value would, is remembered as a gift after their own heart, and the player now knows the taste, which their What You Know section names. Characters met before 2.8.0 are rolled their tastes on the next reading. Picks a lord with no grudge against you; what stays behind in the save: the fur's remembered kindness and the small trust a gift builds with that lord", TestGiftTastes),
          new SelfTest("matters_most", Severity.Light, "Gabriel (27/10/2026): 'qu'est-ce qui compte le plus pour un NPC. Ses enfants? Sa richesse? Son amoureux?', and 'il faudra penser a les indiquer dans des sections de l'encyclopedia'. With a married lord (put back after): read through the real load path, what matters most to him is chosen and true of him; his page says nothing of it until he says it himself; the reserved discovery from his reply marks it learned without a free-text discovery beside it, and his What You Know section names it; an anchor whose ground is gone (a spouse he does not have) is moved at the next reading", TestMattersMost),
          new SelfTest("summoned_meeting_on_backdrop", Severity.Light, "Gabriel (26/10/2026, Rhagaea's night): the conversation a scenario's tale brings to the player opened over the game's own map conversation (the Empress in armour among her guards in the street, her vanilla greeting under the video of her bed) and the chat stayed empty until he typed. Opens the REAL summoned meeting with a lord, nothing else on screen: the chat sits on the scene's dark backdrop, no vanilla conversation runs, the character's opening line is pending (its call is aborted by the close). Then closes it: the backdrop is gone and the map is given back as it was", TestSummonedMeetingOnBackdrop),
@@ -13887,6 +13888,90 @@ namespace CalradiaRemembers.Diagnostics
             if (profile.Events.Count > eventsBefore) profile.Events.RemoveRange(eventsBefore, profile.Events.Count - eventsBefore);
             NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, regardBefore - profile.ReputationWithPlayer, NpcMemoryService.Core.Standing.RegardCause.SelfTest);
             if (hadProfile) behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestOverrideActs(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("override_acts");
+         if (t.Skip(behavior?.Store == null || Hero.MainHero == null, "no campaign")) return t.Line();
+         if (t.Skip(CrSettings.Instance == null || Lore.CharacterLoreBehavior.Instance == null, "MCM settings or the lore behaviour unavailable")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && h.Clan != Clan.PlayerClan
+                                                            && CharacterOverrideLoader.For(h) == null && Mapping.ActionGate.Allows(h, Logic.ActionKind.Witness));
+         if (t.Skip(lord == null, "no lord without an authored entry")) return t.Line();
+
+         NpcProfile stored = behavior.Store.Get(lord.StringId);
+         bool hadProfile = stored != null;
+         NpcProfile profile = stored ?? Mapping.HeroProfileMapper.FromHero(lord);
+         Mapping.HeroProfileMapper.UpgradeIfNeeded(profile, lord);
+         RomanticProfile r = profile.Romantic;
+         if (t.Skip(r == null, $"{lord.Name} has no romantic profile")) return t.Line();
+
+         bool wasEnabled = ModSettings.UseCustomTraits;
+         List<IntimateAct> lovedBefore = r.LovedActs, dislikedBefore = r.DislikedActs, lessFondBefore = r.LessFondActs, knownBefore = r.KnownActs;
+         int revisionBefore = r.TastesRevision;
+         void Roll()
+         {
+            r.LovedActs = new List<IntimateAct> {IntimateAct.Massage};
+            r.LessFondActs = new List<IntimateAct> {IntimateAct.Kissing};
+            r.DislikedActs = new List<IntimateAct> {IntimateAct.Spanking};
+            r.TastesRevision = Logic.Romance.IntimateActPolicy.Revision;
+         }
+
+         try
+         {
+            CrSettings.Instance.UseCustomTraits = true;
+            CharacterOverrideLoader.InjectRuntimeOverride(new CharacterOverride {
+               Id = lord.StringId, Hero = lord.Name?.ToString(), Loves = new List<string> {"kissing", "beneath"},
+               LessFond = new List<string> {"dirty_talk"}, Dislikes = new List<string>()
+            });
+            t.Note($"{lord.Name}; lock injected at runtime, character_overrides.json untouched");
+            t.Expect("theLoreBehaviourPluggedTheSyncIntoTheProfileUpgrade", Mapping.HeroProfileMapper.AuthoredTastesSync != null, true);
+
+            Roll();
+            r.KnownActs = null;
+            behavior.Store.Set(profile);
+            Lore.CharacterLoreBehavior.Instance.ApplyAll();
+            RomanticProfile inStore = behavior.Store.Get(lord.StringId)?.Romantic;
+            t.Expect("theReloadLaysTheLockOnTheStoredProfile", inStore?.LovedActs != null && inStore.LovedActs.SequenceEqual(new[] {IntimateAct.Kissing, IntimateAct.Beneath}), true);
+            t.Expect("kissingSitsInOneListOnly", inStore?.LessFondActs != null && inStore.LessFondActs.SequenceEqual(new[] {IntimateAct.DirtyTalk}), true);
+            t.Expect("anEmptyDislikeStaysEmpty", inStore?.DislikedActs?.Count, 0);
+
+            inStore.KnownActs = new List<IntimateAct> {IntimateAct.Beneath};
+            t.Expect("theHeartLineReadsTheAuthoredGesture", Mapping.HeartPageReader.TastesLine(lord, behavior.Store.Get(lord.StringId)) != null, true);
+            inStore.KnownActs = null;
+
+            Roll();
+            Mapping.HeroProfileMapper.UpgradeIfNeeded(profile, lord);
+            t.Expect("thePathCrActsTakesSeesTheLock", r.LovedActs.SequenceEqual(new[] {IntimateAct.Kissing, IntimateAct.Beneath}), true);
+
+            r.TastesRevision = 0;
+            Mapping.HeroProfileMapper.UpgradeIfNeeded(profile, lord);
+            t.Expect("anOlderRevisionIsNotPaddedPastTheLock", r.LovedActs.Count == 2 && r.DislikedActs.Count == 0 && r.LessFondActs.SequenceEqual(new[] {IntimateAct.DirtyTalk}), true);
+
+            behavior.Store.Set(profile);
+            CrSettings.Instance.UseCustomTraits = false;
+            Lore.CharacterLoreBehavior.Instance.RestoreAll();
+            RomanticProfile lifted = behavior.Store.Get(lord.StringId)?.Romantic;
+            Logic.Romance.IntimateTastes own = Logic.Romance.IntimateActPolicy.Roll(Mapping.RomanticProfileBuilder.TasteFacts(lord, lifted?.Kinks, lifted?.Preferences));
+            t.Expect("customTraitsOffGivesBackTheirOwnRoll", lifted?.LovedActs != null && lifted.LovedActs.SequenceEqual(own.Loved), true);
+         }
+         finally
+         {
+            CharacterOverrideLoader.Load();
+            CrSettings.Instance.UseCustomTraits = wasEnabled;
+            if (wasEnabled) Lore.CharacterLoreBehavior.Instance.ApplyAll();
+            else Lore.CharacterLoreBehavior.Instance.RestoreAll();
+            r.LovedActs = lovedBefore;
+            r.DislikedActs = dislikedBefore;
+            r.LessFondActs = lessFondBefore;
+            r.KnownActs = knownBefore;
+            r.TastesRevision = revisionBefore;
+            if (hadProfile) behavior.Store.Set(profile);
+            else behavior.Store.Remove(lord.StringId);
          }
 
          return t.Line();
