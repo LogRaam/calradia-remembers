@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 624 types in 65 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 626 types in 65 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1504 types in 54 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
@@ -44,7 +44,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (54)
+### CalradiaRemembers (56)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -58,6 +58,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrConversationInfo` | public class | The identity of a conversation as it OPENS, delivered by CrConversation.Started. |
 | `CrConversationLog` | public class | A whole conversation as it CLOSES, delivered by CrConversation.Ended. |
 | `CrCultures` | public static class | Read-only readings of the cultures CR plays by (its ModuleData jealousy_cultures.json, or a Custom copy). |
+| `CrHiddenAffair` | public class | A hidden affair between two lords (see CrRomance.GetHiddenAffair). |
+| `CrHiddenAffairChange` | public class | A hidden affair beginning or ending (see CrRomance.HiddenAffairChanged). |
 | `CrLetters` | public static class | Another mod's letters, delivered through CR's courier and letter window. |
 | `CrMatchOutcome` | public class | What came of a registered match when its decider was asked in the chat. |
 | `CrMatchRequest` | public class | A match offered to CrMatches.Register, its people named by hero StringId. |
@@ -1077,8 +1079,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ConceptionChroniclePolicy` | public static class | Decides whether a conception involving the player is a PUBLIC heir worth chronicling, or a private matter the chronicle must stay silent about (the seed of a hidden bastard). |
 | `ConceptionResolver` | public static class | Decides, from the two participants' sex / life / age, which (if either) could conceive from a completed vaginal act. |
 | `ConceptionRole` | public enum | Which participant, if either, becomes the mother of a conception in this scene. |
-| `ConceptionVetoBook` | public class | The vetoes other mods registered against a conception, asked in the order they were registered. |
-| `ConceptionVetoVerdict` | public class | What the vetoes answered: who refused and why, and which vetoes failed while asked. |
 | `ConsoleCommandDoc` | public class | One console command, described in a player's terms. |
 | `ConsoleHelpPolicy` | public static class | How cr.help answers, given what is actually registered and what each command is documented to do. |
 | `ContentmentPacing` | public enum | How readily a companion's spirits recover from a grievance. |
@@ -1259,6 +1259,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PairRegardPolicy` | public static class | Weighs what lies between two characters into a verdict with its reason. |
 | `PairRegardTrace` | public class | One thing that happened between the speaker and the other, already weighed and aged. |
 | `PairRegardVerdict` | public enum | Friend, enemy, or neither, by what lies between two characters. |
+| `PairVetoBook` | public class | The vetoes other mods registered against a pair CR would join, asked in the order they were registered. |
+| `PairVetoVerdict` | public class | What the vetoes answered: who refused and why, and which vetoes failed while asked. |
 | `PanelTickSuppressionCounter` | public class | A reference count of how many CR panels currently need the vanilla settlement-visual tick suppressed (the mod wires this to a Harmony guard: while the count is above zero, SettlementVisualManager.OnTick is skipped so its... |
 | `PartnerFacts` | public class | One other partner of the player, as a partner sees them. |
 | `PartnerStanding` | public class | One partner's standing as the competition pass sees it (engine-gathered, pure to reason over). |

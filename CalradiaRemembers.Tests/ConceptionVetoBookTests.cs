@@ -1,5 +1,5 @@
 // Code written by Gabriel Mailhot, 28/10/2026.
-// ConceptionVetoBook holds the vetoes other mods register against a conception CR would create, and answers whether one
+// PairVetoBook holds the vetoes other mods register against a conception CR would create, and answers whether one
 // refuses. tashmetu (Nexus, 28/10/2026): Traits of Calradia's Sterile character is told "you will have none", yet CR's
 // own conception never asked. If this is wrong, a Sterile woman falls pregnant through CR against her own words, or one
 // broken mod's veto stops every child in the campaign, or a mod reloading its veto ends up asked twice.
@@ -16,7 +16,7 @@ using NUnit.Framework;
 namespace CalradiaRemembers.Tests
 {
    [TestFixture]
-   public sealed class ConceptionVetoBookTests
+   public sealed class PairVetoBookTests
    {
       private static string Sterile(string mother, string father) => mother == "sterile_lady" || father == "sterile_lord" ? "Sterile" : null;
 
@@ -24,17 +24,17 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_no_veto_WHEN_asked_THEN_the_conception_is_allowed()
       {
-         new ConceptionVetoBook<string>().Ask("lady", "player").Refused.Should().BeFalse();
+         new PairVetoBook<string>().Ask("lady", "player").Refused.Should().BeFalse();
       }
 
       // STAKE: tashmetu's Sterile woman: the mod that owns the trait refuses, and the log can say who and why.
       [Test]
       public void GIVEN_a_sterile_mother_WHEN_asked_THEN_the_veto_refuses_and_names_itself()
       {
-         var book = new ConceptionVetoBook<string>();
+         var book = new PairVetoBook<string>();
          book.Register("Traits of Calradia", Sterile);
 
-         ConceptionVetoVerdict v = book.Ask("sterile_lady", "player");
+         PairVetoVerdict v = book.Ask("sterile_lady", "player");
 
          v.Refused.Should().BeTrue();
          v.Source.Should().Be("Traits of Calradia");
@@ -45,7 +45,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_father_sterile_or_neither_WHEN_asked_THEN_only_the_sterile_father_is_refused()
       {
-         var book = new ConceptionVetoBook<string>();
+         var book = new PairVetoBook<string>();
          book.Register("Traits of Calradia", Sterile);
 
          book.Ask("lady", "sterile_lord").Refused.Should().BeTrue();
@@ -56,12 +56,12 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_veto_that_throws_WHEN_asked_THEN_it_never_refuses_and_the_next_is_asked()
       {
-         var book = new ConceptionVetoBook<string>();
+         var book = new PairVetoBook<string>();
          book.Register("Broken Mod", (m, f) => throw new InvalidOperationException("boom"));
          book.Register("Traits of Calradia", Sterile);
 
          book.Ask("lady", "player").Refused.Should().BeFalse();
-         ConceptionVetoVerdict v = book.Ask("sterile_lady", "player");
+         PairVetoVerdict v = book.Ask("sterile_lady", "player");
          v.Source.Should().Be("Traits of Calradia");
          v.Faults.Should().ContainSingle().Which.Should().StartWith("Broken Mod: InvalidOperationException");
       }
@@ -70,7 +70,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_same_source_registered_twice_WHEN_counted_THEN_one_veto_and_it_can_be_withdrawn()
       {
-         var book = new ConceptionVetoBook<string>();
+         var book = new PairVetoBook<string>();
          book.Register("Traits of Calradia", Sterile);
          book.Register("Traits of Calradia", (m, f) => null);
 
@@ -84,7 +84,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_veto_answering_blank_WHEN_asked_THEN_the_conception_is_allowed()
       {
-         var book = new ConceptionVetoBook<string>();
+         var book = new PairVetoBook<string>();
          book.Register("Quiet Mod", (m, f) => "  ");
 
          book.Ask("lady", "player").Refused.Should().BeFalse();

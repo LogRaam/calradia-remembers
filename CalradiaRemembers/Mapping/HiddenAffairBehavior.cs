@@ -4,6 +4,8 @@
 // with LoverSelector. It keeps its own ledger because OpenPartnerLoverBehavior's weekly pass speaks of any
 // TakenLoverId as a betrayal of the player: PartnersWithLover leaves these out through IsHidden. No Status is set: SecretLover
 // means the player's own bond to SecretLoverGossipBehavior. No trysts and no children: it is a fact the game holds.
+// tashmetu (Nexus, 03/11/2026), for Romance & Seduction: one lord should never carry an affair in each mod. Gabriel wanted CR
+// to depend on no mod, so another mod registers a veto through CrRomance and hears each affair begin and end; CR names none.
 
 #region
 
@@ -47,6 +49,12 @@ namespace CalradiaRemembers.Mapping
 
       /// <summary>The live behavior, or null outside a campaign.</summary>
       public static HiddenAffairBehavior Instance { get; private set; }
+
+      /// <summary>The vetoes other mods registered against an affair: the married lord first, then the lover.</summary>
+      internal static readonly PairVetoBook<Hero> Vetoes = new();
+
+      /// <summary>An affair began (true) or ended (false): the married lord's id, then the lover's. CrRomance relays it to other mods.</summary>
+      internal static event Action<string, string, bool> Changed;
 
       /// <summary>Every affair standing (never null).</summary>
       public HiddenAffairLedger Ledger { get; internal set; } = new HiddenAffairLedger();
@@ -121,6 +129,7 @@ namespace CalradiaRemembers.Mapping
          Memory.Store.Set(profile);
          Ledger.Affairs.Add(new HiddenAffair {SubjectId = subject.StringId, LoverId = lover.StringId, Day = today});
          ModLog.Info($"[AFFAIR] {subject.Name} took {lover.Name} as a hidden lover, behind {subject.Spouse.Name}.");
+         Changed?.Invoke(subject.StringId, lover.StringId, true);
 
          return true;
       }
@@ -128,7 +137,7 @@ namespace CalradiaRemembers.Mapping
       /// <summary>Ends an affair and clears the fields, so no reader goes on calling them lovers.</summary>
       internal void End(HiddenAffair affair)
       {
-         Ledger.Affairs.Remove(affair);
+         if (Ledger.Affairs.Remove(affair)) Changed?.Invoke(affair.SubjectId, affair.LoverId, false);
          NpcProfile profile = Memory?.Store?.Get(affair.SubjectId);
          if (profile?.Romantic == null || profile.Romantic.TakenLoverId != affair.LoverId) return;
 
@@ -137,6 +146,19 @@ namespace CalradiaRemembers.Mapping
          profile.Romantic.LoverKnownToPlayer = false;
          Memory.Store.Set(profile);
          ModLog.Info($"[AFFAIR] the affair of {affair.SubjectId} and {affair.LoverId} is over.");
+      }
+
+      /// <summary>
+      ///   Whether every mod that registered a veto lets these two begin an affair. A refusal or a failing veto is logged;
+      ///   a veto that throws never refuses.
+      /// </summary>
+      internal static bool OtherModsAllow(Hero subject, Hero lover)
+      {
+         PairVetoVerdict veto = Vetoes.Ask(subject, lover);
+         foreach (string fault in veto.Faults) ModLog.Error($"[AFFAIR] an affair veto failed and was passed over: {fault}");
+         if (veto.Refused) ModLog.Info($"[AFFAIR] no affair: {veto.Source} forbids it for {subject?.Name} and {lover?.Name} ({veto.Reason}).");
+
+         return !veto.Refused;
       }
 
       /// <summary>The player told it: a secret spent is no longer a hidden affair.</summary>
@@ -229,7 +251,8 @@ namespace CalradiaRemembers.Mapping
          if (profile.Romantic == null) return;
 
          Hero lover = LoverSelector.Best(subject, profile);
-         if (lover != null && Ledger.Of(lover.StringId) == null && Memory?.Store?.Get(lover.StringId)?.Romantic?.Status != RomanticStatus.SecretLover) Begin(subject, lover, today);
+         if (lover != null && Ledger.Of(lover.StringId) == null && Memory?.Store?.Get(lover.StringId)?.Romantic?.Status != RomanticStatus.SecretLover
+             && OtherModsAllow(subject, lover)) Begin(subject, lover, today);
       }
 
       private HiddenAffairCandidate Candidate(Hero hero)

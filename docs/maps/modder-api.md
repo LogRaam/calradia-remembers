@@ -99,6 +99,25 @@ _Read-only readings of the cultures CR plays by (its ModuleData jealousy_culture
 
 - `static MarriageCustomReading MarriageCustom(string cultureName, int clanTier)`
 
+### CrHiddenAffair
+
+_A hidden affair between two lords (see CrRomance.GetHiddenAffair)._
+
+- `int SinceDay { get; set; }`
+- `string LoverId { get; set; }`
+- `string SubjectId { get; set; }`
+
+### CrHiddenAffairChange
+
+_A hidden affair beginning or ending (see CrRomance.HiddenAffairChanged)._
+
+- `bool Began { get; set; }`
+- `bool DuringSelfTest { get; set; }`
+- `int GameDay { get; set; }`
+- `string LoverId { get; set; }`
+- `string SaveId { get; set; }`
+- `string SubjectId { get; set; }`
+
 ### CrLetters
 
 _Another mod's letters, delivered through CR's courier and letter window._
@@ -268,10 +287,15 @@ _One change of a character's personal regard for the player (see CrNpcMemory.Reg
 
 _Reads and records intimacy with the player, held to the bar CR's own chat holds; reads the bond and its changes._
 
+- `static CrHiddenAffair GetHiddenAffair(string heroId)`
 - `static CrRomanceStatus GetStatus(string npcId)`
+- `static IReadOnlyList<CrHiddenAffair> GetHiddenAffairs()`
 - `static SharedIntimacyResult RecordSharedIntimacy(string npcId, string summary, string sourceMod)`
+- `static bool UnregisterAffairVeto(string source)`
 - `static bool? WouldAcceptIntimacy(string npcId)`
+- `static event Action<CrHiddenAffairChange> HiddenAffairChanged`
 - `static event Action<CrRomanceStatusChange> StatusChanged`
+- `static void RegisterAffairVeto(string source, Func<Hero, Hero, string> veto)`
 
 ### CrRomanceStatus
 

@@ -38,7 +38,7 @@ namespace CalradiaRemembers.GameState
       private const float ConceptionChance = 0.15f;
 
       /// <summary>The vetoes other mods registered through CrConception, asked before every conception.</summary>
-      internal static readonly ConceptionVetoBook<Hero> Vetoes = new();
+      internal static readonly PairVetoBook<Hero> Vetoes = new();
       private const float MaxFertileAge = 45f;
       private const float MinFertileAge = 18f;
       private const int PostpartumCooldownDays = 30; // tuning — recovery before she can conceive again
@@ -81,7 +81,7 @@ namespace CalradiaRemembers.GameState
 
             // tashmetu (Nexus, 28/10/2026): Traits of Calradia's Sterile character is told she will have no child; the
             // mod that owns that truth may forbid what CR would create, forced or not.
-            ConceptionVetoVerdict veto = Vetoes.Ask(mother, father);
+            PairVetoVerdict veto = Vetoes.Ask(mother, father);
             foreach (string fault in veto.Faults) ModLog.Error($"[PREGNANCY] a conception veto failed and was passed over: {fault}");
             if (veto.Refused)
             {

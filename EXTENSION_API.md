@@ -444,6 +444,32 @@ an unknown one as "none". Bonds are read when a conversation closes and every in
 to an hour after the change; a loaded save's bonds are never announced, read them with `GetStatus` at session start.
 CR never writes into your mod: what a bond means there is your bridge's call.
 
+**Hidden affairs between lords (since 2.8.3).** Since 2.8.2 a married lord may take a hidden lover in CR (a handful in
+the realm, never the player, nor the player's spouse or household). If your mod has affairs of its own, keep one lord
+from carrying one in each mod: CR asks your veto before any affair, tells you when one begins or ends, and lets you
+read them. CR knows nothing of your mod (tashmetu, for Romance & Seduction):
+
+```csharp
+CrRomance.RegisterAffairVeto("My Mod", (married, lover) =>
+   InMyAffair(married) || InMyAffair(lover) ? "already in an affair" : null);   // null lets it be
+
+CrRomance.HiddenAffairChanged += change =>
+{
+    if (change.DuringSelfTest) return;            // cr.test all begins one and ends it
+    // change.SubjectId (the married lord), change.LoverId, change.Began (false when it ended), change.GameDay
+};
+
+CrHiddenAffair a = CrRomance.GetHiddenAffair(heroId);   // either side; null when none
+IReadOnlyList<CrHiddenAffair> all = CrRomance.GetHiddenAffairs();
+```
+
+The veto works like the conception veto: the first that answers with words forbids the affair, and the log says who
+and why (`[AFFAIR] no affair: <source> forbids it ...`); one that throws is logged and never forbids; the same source
+registered again replaces its veto; `UnregisterAffairVeto(source)` withdraws it. Not saved: register when a game
+starts or loads. An affair ends on a death, a marriage, the player telling it, or after about three years. A loaded
+save's affairs are never announced: read them with `GetHiddenAffairs` at session start. Before 2.8.3 the only way in
+was CR's internal `HiddenAffairBehavior`: use these instead, which will not move.
+
 CR also writes, on its own, the memory a quest giver keeps of the game's own quests (begun, done, failed, let lapse):
 do not inject those.
 

@@ -6,6 +6,9 @@
 // LapitaPolata (Nexus, 22/10/2026): a secret lover made in CR's chat "only exists in my and her memory. Affairs of Calradia
 // does not know about it". Gabriel (23/10/2026) approved the way back: the bond read as one word (GetStatus) and an event
 // when it changes (StatusChanged), for a bridge to carry into its own mod (RomanceBondPolicy).
+// tashmetu (Nexus, 03/11/2026), for Romance & Seduction: CR's hidden affairs between lords could give one lord an affair in
+// each mod. Gabriel (03/11/2026): CR depends on no mod, so the other mod registers a veto CR asks before any affair
+// (RegisterAffairVeto), hears each one begin and end (HiddenAffairChanged), and reads them (GetHiddenAffair).
 
 #region
 
@@ -28,6 +31,12 @@ namespace CalradiaRemembers
    public static class CrRomance
    {
       private static readonly RomanceBondWatch Watch = new();
+
+      static CrRomance()
+      {
+         // Mapping raises its own event and never names this door, so the hidden affairs need not know the API exists.
+         HiddenAffairBehavior.Changed += RaiseHiddenAffairChanged;
+      }
 
       /// <summary>
       ///   Fired when a character's bond with the player changes (a courtship begins, she becomes the player's secret lover,
@@ -56,6 +65,81 @@ namespace CalradiaRemembers
 
             return null;
          }
+      }
+
+      /// <summary>
+      ///   Fired when a hidden affair between two lords begins or ends (a death, a marriage, the player telling it, or it
+      ///   simply running its course). Never about the player: their own bonds are <see cref="StatusChanged" />. A loaded
+      ///   save's affairs are not announced: read them with <see cref="GetHiddenAffairs" />. Each listener is called under
+      ///   its own guard. Since 2.8.3.
+      /// </summary>
+      public static event Action<CrHiddenAffairChange> HiddenAffairChanged;
+
+      /// <summary>
+      ///   Registers a veto under <paramref name="source" /> (your mod's name, shown in the log). Before CR lets a married
+      ///   lord take a hidden lover it calls <paramref name="veto" /> with the married lord, then the lover; return a few
+      ///   words saying why (e.g. "already in an affair") to forbid it, or null to let it be. A veto that throws is logged
+      ///   and never forbids. Registering the same source again replaces its veto. Not saved: register again when a game
+      ///   is loaded. Since 2.8.3.
+      /// </summary>
+      public static void RegisterAffairVeto(string source, Func<Hero, Hero, string> veto)
+      {
+         if (HiddenAffairBehavior.Vetoes.Register(source, veto)) ModLog.Info($"[ROMANCE API] affair veto registered by '{source}'");
+      }
+
+      /// <summary>Withdraws the affair veto of <paramref name="source" />. Returns whether one was there.</summary>
+      public static bool UnregisterAffairVeto(string source) => HiddenAffairBehavior.Vetoes.Unregister(source);
+
+      /// <summary>
+      ///   The hidden affair this lord is in, on either side, or null when none (or no campaign). Read-only, cheap. Since 2.8.3.
+      /// </summary>
+      public static CrHiddenAffair GetHiddenAffair(string heroId)
+      {
+         try
+         {
+            return string.IsNullOrWhiteSpace(heroId) ? null : CrHiddenAffair.Of(HiddenAffairBehavior.Instance?.Ledger.Of(heroId));
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ROMANCE API] GetHiddenAffair failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>Every hidden affair standing between lords (empty outside a campaign). Copies, oldest first. Since 2.8.3.</summary>
+      public static IReadOnlyList<CrHiddenAffair> GetHiddenAffairs()
+      {
+         try
+         {
+            var all = new List<CrHiddenAffair>();
+            foreach (HiddenAffair a in HiddenAffairBehavior.Instance?.Ledger.Affairs ?? new List<HiddenAffair>()) all.Add(CrHiddenAffair.Of(a));
+
+            return all;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ROMANCE API] GetHiddenAffairs failed: {ex.GetType().Name}: {ex.Message}");
+
+            return Array.Empty<CrHiddenAffair>();
+         }
+      }
+
+      private static void RaiseHiddenAffairChanged(string subjectId, string loverId, bool began)
+      {
+         Action<CrHiddenAffairChange> handlers = HiddenAffairChanged;
+         if (handlers == null) return;
+
+         var change = new CrHiddenAffairChange {
+            SubjectId = subjectId, LoverId = loverId, Began = began, SaveId = CrConversation.CurrentSaveId(),
+            GameDay = (int) CampaignTime.Now.ToDays, DuringSelfTest = Diagnostics.CrSelfTest.IsRunning
+         };
+         foreach (Delegate handler in handlers.GetInvocationList())
+            try { ((Action<CrHiddenAffairChange>) handler)(change); }
+            catch (Exception ex)
+            {
+               ModLog.Error($"[ROMANCE API] a HiddenAffairChanged subscriber threw and was isolated: {ex.GetType().Name}: {ex.Message}");
+            }
       }
 
       /// <summary>Forgets the bonds seen: the next check only learns them (a campaign started or loaded).</summary>
@@ -165,6 +249,43 @@ namespace CalradiaRemembers
             return SharedIntimacyResult.RejectedInvalid;
          }
       }
+   }
+
+   /// <summary>A hidden affair between two lords (see <see cref="CrRomance.GetHiddenAffair" />). A copy: changing it changes nothing.</summary>
+   public sealed class CrHiddenAffair
+   {
+      /// <summary>The married lord's hero StringId.</summary>
+      public string SubjectId { get; set; }
+
+      /// <summary>Their lover's hero StringId (unwed).</summary>
+      public string LoverId { get; set; }
+
+      /// <summary>The in-game day it began.</summary>
+      public int SinceDay { get; set; }
+
+      internal static CrHiddenAffair Of(HiddenAffair a) => a == null ? null : new CrHiddenAffair {SubjectId = a.SubjectId, LoverId = a.LoverId, SinceDay = a.Day};
+   }
+
+   /// <summary>A hidden affair beginning or ending (see <see cref="CrRomance.HiddenAffairChanged" />).</summary>
+   public sealed class CrHiddenAffairChange
+   {
+      /// <summary>The married lord's hero StringId.</summary>
+      public string SubjectId { get; set; }
+
+      /// <summary>Their lover's hero StringId.</summary>
+      public string LoverId { get; set; }
+
+      /// <summary>True when it began, false when it ended.</summary>
+      public bool Began { get; set; }
+
+      /// <summary>The loaded campaign's unique id, as in the conversation events.</summary>
+      public string SaveId { get; set; }
+
+      /// <summary>The in-game day of the change.</summary>
+      public int GameDay { get; set; }
+
+      /// <summary>True when cr.test made it: ignore it.</summary>
+      public bool DuringSelfTest { get; set; }
    }
 
    /// <summary>A character's bond with the player (see <see cref="CrRomance.GetStatus" />). A copy: changing it changes nothing.</summary>
