@@ -5,15 +5,51 @@
 // it emits is clamped here around the game's own ransom valuation of the captive, so a silver-tongued player
 // can haggle within reason yet never talk a lord into absurdity. Opens the bounty-hunting loop (a lord wants a
 // prisoner and names a price; the player captures and sells).
+// Thoragoros1 (Nexus, 03/11/2026): "There are any number of roleplay reasons a captive might be valued above the very low
+// in-game value." Gabriel (03/11/2026) agreed the ceiling should read a reason the GAME holds, never one claimed in the chat:
+// a buyer pays more for their own kin, and for someone they deeply love or hate, by the engine's family and relation.
 
 #region
 
 using System;
+using NpcMemoryService.Core.Standing;
 
 #endregion
 
 namespace CalradiaRemembers.Logic.Prisoners
 {
+   /// <summary>What a captive is to the character buying them, as the game knows it. Only a buyer paying reads it.</summary>
+   public enum CaptiveBond
+   {
+      /// <summary>Nothing the game knows of: the ordinary band.</summary>
+      None,
+
+      /// <summary>Their parent, brother or sister.</summary>
+      Kin,
+
+      /// <summary>Their spouse or their own child: they would give everything they hold.</summary>
+      SpouseOrChild,
+
+      /// <summary>Someone they deeply love or bitterly hate, by the game's relation.</summary>
+      StrongFeeling
+   }
+
+   /// <summary>What decides a captive's bond to their buyer. Read from the engine's family and relation, never from words.</summary>
+   public sealed class CaptiveBondFacts
+   {
+      /// <summary>The captive is the buyer's spouse.</summary>
+      public bool IsSpouse { get; init; }
+
+      /// <summary>The captive is the buyer's child.</summary>
+      public bool IsChild { get; init; }
+
+      /// <summary>The captive is the buyer's father, mother, brother or sister.</summary>
+      public bool IsParentOrSibling { get; init; }
+
+      /// <summary>The game's relation between buyer and captive.</summary>
+      public int Relation { get; init; }
+   }
+
    /// <summary>Pure price discipline for a prisoner sale, either direction. See the file header.</summary>
    public static class PrisonerTradePolicy
    {
@@ -58,6 +94,32 @@ namespace CalradiaRemembers.Logic.Prisoners
       /// <summary>TUNE: the ceiling as a multiple of the ransom anchor (a premium, but not absurdity).</summary>
       public const double CeilingFactor = 3.0;
 
+      /// <summary>TUNE: the ceiling, in ransom anchors, for a buyer's parent, brother or sister, or someone they love or hate.</summary>
+      public const double PersonalCeilingFactor = 5.0;
+
+      /// <summary>What the captive is to the buyer. A spouse or child first, then kin, then a strong feeling.</summary>
+      public static CaptiveBond BondOf(CaptiveBondFacts f)
+      {
+         if (f == null) return CaptiveBond.None;
+         if (f.IsSpouse || f.IsChild) return CaptiveBond.SpouseOrChild;
+         if (f.IsParentOrSibling) return CaptiveBond.Kin;
+
+         // The game's close friend and bitter enemy rungs, either way a captive who matters to the buyer.
+         return f.Relation >= VanillaRelation.CloseTier || f.Relation <= VanillaRelation.BitterTier ? CaptiveBond.StrongFeeling : CaptiveBond.None;
+      }
+
+      /// <summary>The ceiling in ransom anchors a buyer with this bond pays up to. A spouse or child has none: the purse bounds it.</summary>
+      public static double CeilingFactorFor(CaptiveBond bond)
+      {
+         switch (bond)
+         {
+            case CaptiveBond.SpouseOrChild: return double.PositiveInfinity;
+            case CaptiveBond.Kin:
+            case CaptiveBond.StrongFeeling: return PersonalCeilingFactor;
+            default: return CeilingFactor;
+         }
+      }
+
       /// <summary>Fallback anchor when the game's ransom valuation cannot be read for this captive.</summary>
       public const int FallbackAnchor = 500;
 
@@ -66,12 +128,16 @@ namespace CalradiaRemembers.Logic.Prisoners
       ///   A non-positive proposed price falls to the floor (the emission promised a sale, so a sale
       ///   at the minimum honest figure beats a broken promise); a non-positive anchor uses the fallback.
       /// </summary>
-      public static int ClampPrice(int proposedPrice, int ransomAnchor)
+      /// <remarks>
+      ///   <paramref name="bond" /> is what the captive is to the BUYER, and is given only when the character pays (buy_prisoner):
+      ///   when the player buys, the ordinary band holds, so a lord never charges the player more for his own enemy.
+      /// </remarks>
+      public static int ClampPrice(int proposedPrice, int ransomAnchor, CaptiveBond bond = CaptiveBond.None)
       {
          int anchor = ransomAnchor > 0 ? ransomAnchor : FallbackAnchor;
          var floor = (int) (anchor * FloorFactor);
          if (floor < MinPrice) floor = MinPrice;
-         var ceiling = (int) (anchor * CeilingFactor);
+         var ceiling = (int) Math.Min(int.MaxValue, anchor * CeilingFactorFor(bond));
          if (ceiling < floor) ceiling = floor;
 
          if (proposedPrice <= 0) return floor;
@@ -88,11 +154,11 @@ namespace CalradiaRemembers.Logic.Prisoners
       ///   gating rather than being refuted after.
       /// </summary>
       /// <summary>The most any buyer pays for this captive (the ceiling of <see cref="ClampPrice" />).</summary>
-      public static int MaxPrice(int ransomAnchor) => ClampPrice(int.MaxValue, ransomAnchor);
+      public static int MaxPrice(int ransomAnchor, CaptiveBond bond = CaptiveBond.None) => ClampPrice(int.MaxValue, ransomAnchor, bond);
 
-      public static int MostABuyerCanPay(int ransomAnchor, int buyerGold)
+      public static int MostABuyerCanPay(int ransomAnchor, int buyerGold, CaptiveBond bond = CaptiveBond.None)
       {
-         return Math.Max(0, Math.Min(MaxPrice(ransomAnchor), buyerGold));
+         return Math.Max(0, Math.Min(MaxPrice(ransomAnchor, bond), buyerGold));
       }
 
       /// <summary>

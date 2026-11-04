@@ -2057,7 +2057,7 @@ namespace CalradiaRemembers.GameState
 
             ItemSaleDecision deal = ItemSalePolicy.Settle(new ItemSaleFacts {
                AgreedPrice = CoinAmount.Parse(priceText), BuyerPurse = npcHero.Gold, PlayerStillHolds = item != null && found.Amount > 0,
-               ItemValue = item?.Value ?? 0
+               ItemValue = item?.Value ?? 0, BuyerLovesItsKind = Mapping.NatureReader.LovesKindOf(item, npcHero, context?.Profile)
             });
             switch (deal.Refusal)
             {

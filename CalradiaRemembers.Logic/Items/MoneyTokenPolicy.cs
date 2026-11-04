@@ -23,6 +23,9 @@ namespace CalradiaRemembers.Logic.Items
 
       /// <summary>What the game values them at.</summary>
       public int RansomAnchor { get; init; }
+
+      /// <summary>What they are to this character, when this character would buy them: it lifts the most they pay.</summary>
+      public CaptiveBond BondToBuyer { get; init; }
    }
 
    /// <summary>What this turn's sums are computed from.</summary>
@@ -42,6 +45,9 @@ namespace CalradiaRemembers.Logic.Items
 
       /// <summary>The market value of the item held out this turn, or 0 when none is.</summary>
       public int ItemValue { get; init; }
+
+      /// <summary>The item held out is of a kind this character loves, so they would pay more for it.</summary>
+      public bool ItemOfALovedKind { get; init; }
    }
 
    /// <summary>The sums a character may name this turn. Pure.</summary>
@@ -64,7 +70,7 @@ namespace CalradiaRemembers.Logic.Items
          foreach (PricedCaptive captive in f.ToBuy ?? new List<PricedCaptive>())
          {
             int low = PrisonerTradePolicy.MinAcceptablePayment(captive.RansomAnchor);
-            int most = PrisonerTradePolicy.MostABuyerCanPay(captive.RansomAnchor, f.Purse);
+            int most = PrisonerTradePolicy.MostABuyerCanPay(captive.RansomAnchor, f.Purse, captive.BondToBuyer);
             if (most >= low) Add(table, captive.Name, low, Math.Min(captive.RansomAnchor, most), most);
          }
 
@@ -73,7 +79,7 @@ namespace CalradiaRemembers.Logic.Items
 
          if (f.ItemValue > 0 && f.Purse > 0)
          {
-            int most = Math.Min(ItemSalePolicy.MostFor(f.ItemValue), f.Purse);
+            int most = Math.Min(ItemSalePolicy.MostFor(f.ItemValue, f.ItemOfALovedKind), f.Purse);
             Add(table, ItemSubject, Math.Min((int) (f.ItemValue * ItemLowFactor), most), Math.Min(f.ItemValue, most), most);
          }
 

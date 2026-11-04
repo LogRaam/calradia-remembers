@@ -6,6 +6,9 @@
 // no sale verb: the interpreter had to read a sale as give_item plus a gold move, and guessed the gold's direction
 // wrong ("The coin is yours." became "Give Poison Menja 9000 coins? [Y/n]"). Gabriel (13/10/2026): a sell_item deal,
 // the item and the coin moving together, confirmed by the player at the price the buyer can really pay.
+// Thoragoros1 (Nexus, 03/11/2026): "What if a character simply values a specific product or type of product above the
+// arbitrary 3x value?" Gabriel (03/11/2026): yes, when the game knows it: a kind of thing the buyer loves (their gift
+// tastes) raises the ceiling. A need told in the chat does not: the player could tell it too.
 
 #region
 
@@ -45,6 +48,9 @@ namespace CalradiaRemembers.Logic.Items
 
       /// <summary>The item's market value, which bounds the price (Gabriel, 01/11/2026). Zero when unread: the transfer ceiling then holds.</summary>
       public int ItemValue { get; init; }
+
+      /// <summary>The item is of a kind the buyer loves (their gift tastes), so they would pay more for it.</summary>
+      public bool BuyerLovesItsKind { get; init; }
    }
 
    /// <summary>How a sale is settled.</summary>
@@ -69,9 +75,14 @@ namespace CalradiaRemembers.Logic.Items
       /// <summary>TUNE: the most a buyer pays, as a multiple of market value: a premium, not a fortune for a dagger.</summary>
       public const int WorthCeilingFactor = 3;
 
-      /// <summary>The most this item fetches. An unread value falls to the ceiling a figure with no worth behind it gets.</summary>
-      public static int MostFor(int itemValue)
-         => itemValue > 0 ? Math.Max(itemValue, (int) Math.Min(itemValue * (long) WorthCeilingFactor, int.MaxValue)) : GoldTransferLimit.MaxSingleTransfer;
+      /// <summary>TUNE: the most a buyer pays for a kind of thing they love, as a multiple of market value.</summary>
+      public const int LovedKindFactor = 5;
+
+      /// <summary>The most this item fetches from this buyer. An unread value falls to the ceiling a figure with no worth behind it gets.</summary>
+      public static int MostFor(int itemValue, bool buyerLovesItsKind = false)
+         => itemValue > 0
+            ? Math.Max(itemValue, (int) Math.Min(itemValue * (long) (buyerLovesItsKind ? LovedKindFactor : WorthCeilingFactor), int.MaxValue))
+            : GoldTransferLimit.MaxSingleTransfer;
 
       /// <summary>
       ///   Gabriel (01/11/2026): a sale is bounded by what the thing is worth, not by a flat 10,000. The agreed price, brought
@@ -85,7 +96,7 @@ namespace CalradiaRemembers.Logic.Items
          int purse = Math.Max(0, f.BuyerPurse);
          if (purse <= 0) return new ItemSaleDecision {Refusal = ItemSaleRefusal.BuyerCannotPay};
 
-         int most = MostFor(f.ItemValue);
+         int most = MostFor(f.ItemValue, f.BuyerLovesItsKind);
          int price = Math.Min(f.AgreedPrice, Math.Min(purse, most));
          bool purseHeld = price < f.AgreedPrice && price == purse;
 

@@ -56,14 +56,19 @@ namespace CalradiaRemembers.GameState
       ///   The sums this character may name this turn. Reads the same ceiling and the same anchors the actions pay by, so a
       ///   token is a sum the game keeps.
       /// </summary>
-      public static IReadOnlyDictionary<string, int> MoneyTokensFor(Hero hero, NpcProfile profile, int offeredItemValue)
+      public static IReadOnlyDictionary<string, int> MoneyTokensFor(Hero hero, NpcProfile profile, ItemObject offeredItem, bool offeredItemOfALovedKind)
       {
-         IReadOnlyList<PricedCaptive> Priced(IEnumerable<Hero> captives) => captives.Take(TokenCaptives)
-            .Select(c => new PricedCaptive {Name = c.Name?.ToString(), RansomAnchor = CourtActionResolver.RansomAnchor(c)}).ToList();
+         // The bond lifts only what this character would pay; when they sell, the player meets the ordinary band.
+         IReadOnlyList<PricedCaptive> Priced(IEnumerable<Hero> captives, bool theyBuy) => captives.Take(TokenCaptives)
+            .Select(c => new PricedCaptive {
+               Name = c.Name?.ToString(), RansomAnchor = CourtActionResolver.RansomAnchor(c),
+               BondToBuyer = theyBuy ? BuyPrisonerVerb.BondTo(hero, c) : Logic.Prisoners.CaptiveBond.None
+            }).ToList();
 
          return MoneyTokenPolicy.Table(new MoneyTokenFacts {
-            Gift = GiftCeilingFor(hero, profile), Purse = hero.Gold, ItemValue = offeredItemValue,
-            ToBuy = Priced(BuyPrisonerVerb.PlayerHeldHeroPrisoners()), ToSell = Priced(CourtActionResolver.HeldPrisonersOf(hero))
+            Gift = GiftCeilingFor(hero, profile), Purse = hero.Gold, ItemValue = offeredItem?.Value ?? 0,
+            ItemOfALovedKind = offeredItemOfALovedKind,
+            ToBuy = Priced(BuyPrisonerVerb.PlayerHeldHeroPrisoners(), true), ToSell = Priced(CourtActionResolver.HeldPrisonersOf(hero), false)
          });
       }
 

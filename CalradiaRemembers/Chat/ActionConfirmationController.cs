@@ -178,7 +178,10 @@ namespace CalradiaRemembers.Chat
 
          int agreed = ExtractAmount(action);
          ItemSaleDecision deal = sale
-            ? ItemSalePolicy.Settle(new ItemSaleFacts {AgreedPrice = agreed, BuyerPurse = npc?.Gold ?? 0, PlayerStillHolds = true, ItemValue = item.Value})
+            ? ItemSalePolicy.Settle(new ItemSaleFacts {
+               AgreedPrice = agreed, BuyerPurse = npc?.Gold ?? 0, PlayerStillHolds = true, ItemValue = item.Value,
+               BuyerLovesItsKind = Mapping.NatureReader.LovesKindOf(TaleWorlds.ObjectSystem.MBObjectManager.Instance?.GetObject<TaleWorlds.Core.ItemObject>(item.Id), npc, profile)
+            })
             : null;
          if (sale && deal.Refusal != ItemSaleRefusal.None) return ActionDisposition.ExecuteInline; // the bridge refuses it, saying why
 

@@ -59,7 +59,7 @@ namespace CalradiaRemembers.Verbs
             foreach (Hero captive in held.Take(3))
             {
                 int anchor = RansomAnchor(captive);
-                int most = PrisonerTradePolicy.MostABuyerCanPay(anchor, ctx.Npc.Gold);
+                int most = PrisonerTradePolicy.MostABuyerCanPay(anchor, ctx.Npc.Gold, BondTo(ctx.Npc, captive));
                 string means = most < PrisonerTradePolicy.MinAcceptablePayment(anchor)
                     ? "you cannot raise a fair price for them"
                     : $"the most you can pay is {most}";
@@ -138,7 +138,7 @@ namespace CalradiaRemembers.Verbs
                 action.Parameters.TryGetValue("price", out string priceStr);
                 int.TryParse(priceStr?.Trim(), out int proposed);
                 int anchor = RansomAnchor(captive);
-                int price = PrisonerTradePolicy.ClampPrice(proposed, anchor);
+                int price = PrisonerTradePolicy.ClampPrice(proposed, anchor, BondTo(npcHero, captive));
 
                 // Given away, not sold (fkasad, 26/09/2026: "yours for 0 denars" to his own queen's envoy paid him the
                 // full ceiling). Only a "gift" the player agreed skips the price; the envoy's binder sets it.
@@ -345,5 +345,23 @@ namespace CalradiaRemembers.Verbs
 
         /// <summary>The game's own ransom valuation of the captive, or the policy fallback when unreadable.</summary>
         internal static int RansomAnchor(Hero captive) => CourtActionResolver.RansomAnchor(captive);
+
+        /// <summary>
+        ///   What the captive is to the one buying them, read from the game's family and relation (Thoragoros1, 03/11/2026):
+        ///   it lifts the most they pay. Only for a buyer paying; the player buying meets the ordinary band.
+        /// </summary>
+        internal static CaptiveBond BondTo(Hero buyer, Hero captive)
+        {
+            if (buyer == null || captive == null) return CaptiveBond.None;
+
+            bool sibling = (captive.Father != null && captive.Father == buyer.Father) || (captive.Mother != null && captive.Mother == buyer.Mother);
+
+            return PrisonerTradePolicy.BondOf(new CaptiveBondFacts {
+                IsSpouse = buyer.Spouse == captive,
+                IsChild = captive.Father == buyer || captive.Mother == buyer,
+                IsParentOrSibling = buyer.Father == captive || buyer.Mother == captive || sibling,
+                Relation = buyer.GetRelation(captive)
+            });
+        }
     }
 }

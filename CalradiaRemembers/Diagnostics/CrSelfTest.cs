@@ -232,6 +232,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("tournament_memory", Severity.Light, "Tournament memory (player suggestion, Inc 2): build a synthetic arena result (the player bested one lord, another beat the player and took the crown) and drive the REAL feeder (TournamentMemoryFeeder.Apply). Asserts a first-hand LIVED memory lands on each lord's profile (the loser recalls losing, the champion recalls besting the player and taking the crown) so the recent-matter interception makes them approach, and a champion gossip world event is recorded (player not involved). Trims the memories and removes the event afterwards", TestTournamentMemory),
          new SelfTest("tournament_rivalry", Severity.Light, "Tournament memory (player suggestion, Inc 4): force a low-honour lord and record three arena head-to-heads via the REAL rivalry behavior; asserts no rivalry forms before the threshold, it crystallizes at the threshold, the tally is right, and a BITTER rivalry plants a light grudge. Clears the grudge, forgets the tally, and restores the trait afterwards", TestTournamentRivalry),
          new SelfTest("affair_veto", Severity.Light, "tashmetu 03/11 (Romance & Seduction): one lord should never carry an affair in each mod, and Gabriel wants CR to depend on no mod. Registers a veto through CrRomance against a married lord and a free lord and asserts CR refuses that pair, allows it once withdrawn and past a veto that throws; then begins and ends an affair and asserts HiddenAffairChanged told both, and GetHiddenAffair read it on the lover side. Restores the ledger and the veto list", TestAffairVeto),
+         new SelfTest("personal_worth", Severity.Light, "Thoragoros1 03/11: a captive is worth more to their own kin than the game's ransom. Takes a lord whose clan leader is his parent, child, spouse or sibling, reads the most the leader may offer in the turn's sum tokens, has the leader buy him through the real buy_prisoner at an absurd price, and asserts the token, the payment and the policy agree and stand above the ordinary band. Restores both purses and frees the captive", TestPersonalWorth),
          new SelfTest("hidden_affairs", Severity.Light, "Gabriel's go 01/11/2026: a married lord may take a hidden lover, found by a companion sent to spy on them. Begins an affair between two lords and asserts both carry it in their prompt, told to evade and never lie; the player holds nothing yet; end_affair refuses it and the partner path leaves it alone; a poor inquiry says nothing certain; a companion dispatched with the lord's name through the real errand reports it and the player then holds it, on the lover too. Then ends it as a telling would, and asserts the fields are clear. Expose itself is driven by cr.test secret_exposure. Restores all borrowed state", TestHiddenAffairs),
          new SelfTest("lord_secret_lover", Severity.Light, "Mystery-lover (lord coverage): a MARRIED lord the player is secretly the lover of carries the SDK Status SecretLover (not the companion-only IsSecretLover flag). Mark a non-companion lord's profile Status SecretLover and assert the unified detection (PlayerSecretLoverSubjectIds) finds him, then record a second lord as knowing and drive the REAL EncounterContextBuilder.Build to assert the held-secret payoff names the lord subject (adult on) or is suppressed (gate off). Restores the status and forgets the ledger afterwards", TestLordSecretLover),
          new SelfTest("quest_hideout", Severity.Light, "issue a BanditHideout quest through the real pipeline anchored on a town with a live infested lair nearby -> assert it bound a REAL existing hideout (TargetHideoutId) + a cardinal bearing (DirectionHint) against the live world (MANUAL when no town has an infested lair in range, which is itself the designed refusal)", TestQuestHideout),
@@ -9182,7 +9183,7 @@ namespace CalradiaRemembers.Diagnostics
 
          Hero buyer = Hero.AllAliveHeroes.FirstOrDefault(h =>
             h != Hero.MainHero && h != captive && h.IsLord && !h.IsPrisoner && h.Clan != captive.Clan
-            && h.Gold >= ceilingForCaptive);
+            && h.Gold >= ceilingForCaptive && BuyPrisonerVerb.BondTo(h, captive) == CaptiveBond.None);
 
          if (t.Skip(buyer == null, $"no lord solvent enough ({ceilingForCaptive}g) to prove the price clamp rather than their purse"))
             return t.Line();
@@ -9253,7 +9254,7 @@ namespace CalradiaRemembers.Diagnostics
          int playerGold0 = Hero.MainHero.Gold;
          int buyerGold0 = buyer.Gold;
 
-         int ceiling = PrisonerTradePolicy.ClampPrice(999999, BuyPrisonerVerb.RansomAnchor(captive));
+         int ceiling = PrisonerTradePolicy.ClampPrice(999999, BuyPrisonerVerb.RansomAnchor(captive), BuyPrisonerVerb.BondTo(buyer, captive));
          if (buyer.Gold < ceiling) buyer.ChangeHeroGold(ceiling - buyer.Gold); // solvent, so the clamp is what is proven
 
          TakePrisonerAction.Apply(PartyBase.MainParty, captive);
@@ -9297,13 +9298,14 @@ namespace CalradiaRemembers.Diagnostics
          Hero captive = CaptiveWithFreeClanLeader();
          if (t.Skip(captive == null, "no free lord whose clan leader is free to ransom him")) return t.Line();
 
-         int expected = PrisonerTradePolicy.ClampPrice(999999, BuyPrisonerVerb.RansomAnchor(captive));
+         // The clan leader is often his father or brother, who pays more (Thoragoros1, 03/11/2026).
+         int expected = PrisonerTradePolicy.ClampPrice(999999, BuyPrisonerVerb.RansomAnchor(captive), BuyPrisonerVerb.BondTo(captive.Clan.Leader, captive));
          RunOwnSideRansom(t, behavior, captive, new Dictionary<string, string> {["price"] = "999999"}, (paid, outcome) =>
          {
             t.Note($"paid={paid} (expected {expected}); told: {outcome?.Message}");
             t.Expect("paidTheClampedPrice", paid == expected, true);
             // tashmetu (27/09/2026): a figure paid short of the one named says why, so nobody invents a reason.
-            t.Expect("toldWhyLessWasPaid", outcome?.Message?.Contains("(not the 999999 named: ") == true, true);
+            if (expected < 999999) t.Expect("toldWhyLessWasPaid", outcome?.Message?.Contains("(not the 999999 named: ") == true, true);
          });
 
          return t.Line();
@@ -10211,6 +10213,60 @@ namespace CalradiaRemembers.Diagnostics
             CrRomance.UnregisterAffairVeto(broken);
             foreach (HiddenAffair affair in affairs.Ledger.Affairs.ToList()) affairs.End(affair);
             affairs.Ledger = kept;
+         }
+
+         return t.Line();
+      }
+
+      private static string TestPersonalWorth(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("personal_worth");
+         if (t.Abort(Hero.MainHero == null || MobileParty.MainParty == null, "no player party")) return t.Line();
+
+         Hero captive = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && !h.IsChild && h.PartyBelongedTo != null && h.Clan != null && h.Clan != Clan.PlayerClan
+            && h.Clan.Leader != null && h.Clan.Leader != h && h.Clan.Leader != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(h.Clan.Leader)
+            && !h.Clan.Leader.IsPrisoner && BuyPrisonerVerb.BondTo(h.Clan.Leader, h) is CaptiveBond.Kin or CaptiveBond.SpouseOrChild);
+         if (t.Skip(captive == null, "no free lord whose clan leader is his kin")) return t.Line();
+
+         Hero buyer = captive.Clan.Leader;
+         CaptiveBond bond = BuyPrisonerVerb.BondTo(buyer, captive);
+         int anchor = BuyPrisonerVerb.RansomAnchor(captive);
+         int expected = PrisonerTradePolicy.ClampPrice(999999, anchor, bond);
+         int playerGold0 = Hero.MainHero.Gold;
+         int buyerGold0 = buyer.Gold;
+         if (buyer.Gold < expected) buyer.ChangeHeroGold(expected - buyer.Gold);
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, captive);
+         try
+         {
+            if (t.Abort(!captive.IsPrisoner, $"could not take {captive.Name} captive")) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, buyer);
+            IReadOnlyDictionary<string, int> tokens = ExchangeService.MoneyTokensFor(buyer, profile, null, false);
+            tokens.TryGetValue(NpcMemoryService.Core.Parsing.MoneyTokens.Key("most", captive.Name.ToString()), out int offered);
+
+            int before = Hero.MainHero.Gold;
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(new GameAction {
+               Type = "buy_prisoner", Parameters = new Dictionary<string, string> {["target"] = captive.Name.ToString(), ["price"] = "999999"}
+            }, buyer, new ActionContext(profile, null));
+            int paid = Hero.MainHero.Gold - before;
+
+            t.Note($"captive={captive.Name}, buyer={buyer.Name} ({bond}), anchor={anchor}, token={offered}, paid={paid}, expected={expected}, told: {outcome?.Message}");
+            // STAKE: Thoragoros1: kin pay above the game's low valuation, beyond the ordinary three times.
+            t.Expect("kinPayMoreThanAStranger", expected > PrisonerTradePolicy.MaxPrice(anchor), true);
+            // STAKE: RaveN017Mod: the sum the character may name is the sum the player receives.
+            // A spouse or child is offered the whole purse, which may hold more than the sum named.
+            t.Expect("theOfferCoversWhatIsPaid", bond == CaptiveBond.SpouseOrChild ? offered >= paid : offered == paid, true);
+            t.Expect("thePolicyIsWhatIsPaid", paid, expected);
+         }
+         finally
+         {
+            try { if (captive.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(captive, buyer); }
+            catch { /* best-effort cleanup */ }
+
+            Hero.MainHero.ChangeHeroGold(playerGold0 - Hero.MainHero.Gold);
+            buyer.ChangeHeroGold(buyerGold0 - buyer.Gold);
          }
 
          return t.Line();

@@ -79,6 +79,28 @@ namespace CalradiaRemembers.Mapping
          }
       }
 
+      /// <summary>
+      ///   Whether this item is of a kind the character loves, so they would pay more for it (Thoragoros1, 03/11/2026). Reads
+      ///   only: unlike <see cref="WelcomeOf" /> it never marks the taste learned, since a price is read every turn and no gift
+      ///   was given.
+      /// </summary>
+      internal static bool LovesKindOf(ItemObject item, Hero hero, NpcProfile profile)
+      {
+         try
+         {
+            if (item == null || profile == null) return false;
+            Refresh(hero, profile);
+
+            return GiftTastePolicy.Welcome(GiftTastePolicy.KindOf(item.ItemCategory?.StringId), profile.LovedGifts, profile.ColdGifts) == GiftWelcome.Loved;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[NATURE] loved kind failed: {ex.GetType().Name}: {ex.Message}");
+
+            return false;
+         }
+      }
+
       /// <summary>The fear, superstition and gift lines of their page, only what the player has learned.</summary>
       internal static IReadOnlyList<string> PageLines(Hero hero, NpcProfile profile)
       {

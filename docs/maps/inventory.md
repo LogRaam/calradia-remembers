@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 626 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1506 types in 54 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1508 types in 54 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2401,10 +2401,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NemesisRosterPolicy` | public static class | Pure roster lookup: which (if any) living nemesis of a given band culture already claims a given region. |
 | `NemesisRumorLine` | public static class | Pure text for the tavern-keeper's nemesis rumour line: takes the nemesis's display label and his region's display string (both already resolved by the caller, exactly like the lord bounty announcement resolves them) and... |
 
-### CalradiaRemembers.Logic.Prisoners (16)
+### CalradiaRemembers.Logic.Prisoners (18)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `CaptiveBond` | public enum | What a captive is to the character buying them, as the game knows it. |
+| `CaptiveBondFacts` | public class | What decides a captive's bond to their buyer. |
 | `EnvoyVisitFacts` | public class | What decides whether an envoy may come about a captive the player holds (PrisonerExchangePolicy.EnvoyMayCome). |
 | `ExchangeCaptiveFacts` | public class | What an exchange needs to know about one captive. |
 | `ExchangeHandover` | public enum | What happens to a captive once the other side has them. |
