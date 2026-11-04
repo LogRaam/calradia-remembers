@@ -111,7 +111,7 @@ namespace CalradiaRemembers
 
          Hero target = Hero.AllAliveHeroes
                            .Where(h => h != plotter && h != Hero.MainHero && h.IsLord)
-                           .OrderBy(h => h.GetRelation(plotter))
+                           .OrderBy(h => Mapping.PairBondReader.Points(h, plotter))
                            .FirstOrDefault();
 
          if (target == null) return $"Found no rival lord for {plotter.Name} to plot against.";

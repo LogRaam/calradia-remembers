@@ -90,9 +90,9 @@ namespace CalradiaRemembers
             h != Hero.MainHero && h != npc && h.IsLord && h.IsAlive && !CourtActionResolver.IsCloseKin(npc, h));
          if (target == null) return $"No kin-safe rival found for {npc.Name}.";
 
-         int relBefore = npc.GetRelation(target);
+         int relBefore = Mapping.PairBondReader.Points(npc, target);
          int wantedRelation = CourtActionPolicy.PledgeMinAnimosity - 10;
-         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, target, wantedRelation - relBefore, false);
+         Mapping.RelationLedgerBehavior.SetAsHistory(npc, target, wantedRelation);
 
          ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(
             new GameAction {
@@ -103,7 +103,7 @@ namespace CalradiaRemembers
          if (outcome is not {IsPositive: true})
             return $"pledge_against failed for {npc.Name} -> {target.Name}: {outcome?.Message ?? "(no outcome)"}";
 
-         return $"{outcome.Message} (relation {npc.Name}->{target.Name}: {relBefore} -> {npc.GetRelation(target)})";
+         return $"{outcome.Message} (relation {npc.Name}->{target.Name}: {relBefore} -> {Mapping.PairBondReader.Points(npc, target)})";
       }
 
    }

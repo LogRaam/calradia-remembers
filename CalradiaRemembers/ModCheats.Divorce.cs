@@ -121,8 +121,8 @@ namespace CalradiaRemembers
 
             Hero spouse = npc.Spouse;
             int wantSpouse = DivorcePolicy.UnhappyThreshold - 5; // comfortably unhappy
-            if (spouse != null && npc.GetRelation(spouse) > wantSpouse)
-                ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, spouse, wantSpouse - npc.GetRelation(spouse), false);
+            if (spouse != null && Mapping.PairBondReader.Points(npc, spouse) > wantSpouse)
+                Mapping.RelationLedgerBehavior.SetAsHistory(npc, spouse, wantSpouse);
             if (npc.GetRelation(Hero.MainHero) < DivorcePolicy.BondThreshold)
                 ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, Hero.MainHero, DivorcePolicy.BondThreshold - npc.GetRelation(Hero.MainHero), false);
 

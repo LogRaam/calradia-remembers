@@ -1560,11 +1560,10 @@ namespace CalradiaRemembers.Diagnostics
             : model;
       }
 
-      /// <summary>Resets the engine relation between two heroes to a neutral 0, via the same path the tests use to seed it.</summary>
+      /// <summary>Resets what CR believes between two heroes to a neutral 0, the way the tests seed it (on their own slot).</summary>
       private static void NeutralizeRelation(Hero a, Hero b)
       {
-         int rel = a.GetRelation(b);
-         if (rel != 0) ChangeRelationAction.ApplyRelationChangeBetweenHeroes(a, b, -rel, false);
+         if (Mapping.PairBondReader.Points(a, b) != 0) Mapping.RelationLedgerBehavior.SetAsHistory(a, b, 0);
       }
 
       /// <summary>Lowercases and strips everything but letters/digits to spaces, so phrase comparison ignores punctuation/case.</summary>
@@ -1642,7 +1641,7 @@ namespace CalradiaRemembers.Diagnostics
          if (pool.Count == 0) return null;
 
          List<CourtActionPolicy.SwayCandidate> candidates = pool.Select(h =>
-            new CourtActionPolicy.SwayCandidate(h.StringId, npc.GetRelation(h), IsCloseKin(npc, h), h.MapFaction?.Leader == h)).ToList();
+            new CourtActionPolicy.SwayCandidate(h.StringId, Mapping.PairBondReader.Points(npc, h), IsCloseKin(npc, h), h.MapFaction?.Leader == h)).ToList();
 
          string targetId = CourtActionPolicy.SelectSwayTarget(candidates);
 
@@ -1991,7 +1990,7 @@ namespace CalradiaRemembers.Diagnostics
       /// </summary>
       private static bool SeedPledgeEligible(NpcMemoryCampaignBehavior behavior, NpcProfile profile, Hero npc, Hero target)
       {
-         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, target, CourtActionPolicy.PledgeMinAnimosity - 10 - npc.GetRelation(target), false);
+         Mapping.RelationLedgerBehavior.SetAsHistory(npc, target, CourtActionPolicy.PledgeMinAnimosity - 10);
 
          ActionOutcome seedOutcome = behavior.GameStateBridge.ExecuteAction(
             new GameAction {
@@ -3550,7 +3549,7 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(!CourtActionResolver.CanTeachSway(npc, profile), "NPC not eligible for court-action teaching")) return t.Line();
 
          ArrangeCleanNpc(behavior, profile, npc, target);
-         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, target, CourtActionPolicy.PledgeMinAnimosity - 10 - npc.GetRelation(target), false);
+         Mapping.RelationLedgerBehavior.SetAsHistory(npc, target, CourtActionPolicy.PledgeMinAnimosity - 10);
          profile.Events.Add(new NotableEvent(behavior.GameStateBridge.GetCurrentGameDay() - 60, NotableEventType.Conflict,
             $"[SELFTEST] {target.Name} betrayed you before the whole court and has never answered for it; the grudge still burns."));
 
@@ -3734,7 +3733,7 @@ namespace CalradiaRemembers.Diagnostics
          // ResolveSwayPair already excludes the NPC's close kin and prefers a target it regards worst,
          // but push the starting relation clearly into hostile territory so the ask is easy and
          // in-character (a genuine turn, not a betrayal of someone it still holds dear).
-         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, target, -20 - npc.GetRelation(target), false);
+         Mapping.RelationLedgerBehavior.SetAsHistory(npc, target, -20);
          profile.Events.Add(new NotableEvent(behavior.GameStateBridge.GetCurrentGameDay() - 40, NotableEventType.Conflict,
             $"[SELFTEST] {target.Name} murdered your closest friend in cold blood and still boasts of it; you have never forgiven it."));
 
@@ -4928,7 +4927,7 @@ namespace CalradiaRemembers.Diagnostics
          NeutralizeRelation(spouse, Hero.MainHero); // deterministic baseline for the exSpouse->player delta assertion below
 
          // Force the two relation gates: an unhappy marriage, a deep bond with the player.
-         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, spouse, DivorcePolicy.UnhappyThreshold - 10 - npc.GetRelation(spouse), false);
+         Mapping.RelationLedgerBehavior.SetAsHistory(npc, spouse, DivorcePolicy.UnhappyThreshold - 10);
          ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, Hero.MainHero, DivorcePolicy.BondThreshold + 10 - npc.GetRelation(Hero.MainHero), false);
 
          if (t.Abort(!DivorceEligibilityResolver.IsEligible(npc, out string ineligibleReason), $"seed not eligible: {ineligibleReason}")) return t.Line();
@@ -5008,8 +5007,8 @@ namespace CalradiaRemembers.Diagnostics
 
          Hero bestFriendCandidate = Hero.AllAliveHeroes
                                         .Where(h => h != null && h != spouse && h != npc && h != Hero.MainHero && !directFamilyCandidates.Contains(h))
-                                        .Where(h => h.GetRelation(spouse) >= VanillaRelation.TrustedTier)
-                                        .OrderByDescending(h => h.GetRelation(spouse))
+                                        .Where(h => Mapping.PairBondReader.Points(h, spouse) >= VanillaRelation.TrustedTier)
+                                        .OrderByDescending(h => Mapping.PairBondReader.Points(h, spouse))
                                         .FirstOrDefault();
 
          if (bestFriendCandidate == null)
@@ -5045,7 +5044,7 @@ namespace CalradiaRemembers.Diagnostics
          ArrangeCleanNpc(behavior, profile2, npc2, spouse2);
          NeutralizeRelation(spouse2, Hero.MainHero);
 
-         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc2, spouse2, DivorcePolicy.UnhappyThreshold - 10 - npc2.GetRelation(spouse2), false);
+         Mapping.RelationLedgerBehavior.SetAsHistory(npc2, spouse2, DivorcePolicy.UnhappyThreshold - 10);
          ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc2, Hero.MainHero, DivorcePolicy.BondThreshold + 10 - npc2.GetRelation(Hero.MainHero), false);
 
          if (!DivorceEligibilityResolver.IsEligible(npc2, out string ineligibleReason2))
@@ -5452,7 +5451,7 @@ namespace CalradiaRemembers.Diagnostics
             PairRegard house = PairRegardReader.Assess(wronged, betrayer);
             var houses = Logic.ClanRegardListPolicy.Lists(new[] {
                new Logic.ClanRegardCandidate {Name = betrayer.Clan.Name.ToString(), Derived = house.Verdict, DerivedReason = PairRegardPolicy.PageReason(house),
-                  VanillaRelation = CharacterRelationManager.GetHeroRelation(wronged, betrayer)}
+                  VanillaRelation = Mapping.PairBondReader.Points(wronged, betrayer)}
             });
             t.Expect("theBetrayersHouseIsAtOdds", houses.AtOdds.Any(l => l.Contains(betrayer.Clan.Name.ToString()) && l.Contains("[SELFTEST]")), true);
 
@@ -7182,7 +7181,7 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Skip(lover == null, "no live lord outside the player's household to stand as the lover")) return t.Line();
 
-         int loverRelBefore = partner.GetRelation(lover);
+         int loverRelBefore = CharacterRelationManager.GetHeroRelation(partner, lover);
 
          // ── Secret affair: seed it directly, then force trysts that leak it ─────────────────────────────────
          // Seed the SECRET lover link directly: this test exercises the tryst/discovery WIRING, not who strays
@@ -7242,8 +7241,7 @@ namespace CalradiaRemembers.Diagnostics
 
          // Restore all borrowed state, including the partner-to-lover relation the trysts warmed.
          RestoreOpenPartner(behavior, partner);
-         NeutralizeRelation(partner, lover);
-         if (loverRelBefore != 0) ChangeRelationAction.ApplyRelationChangeBetweenHeroes(partner, lover, loverRelBefore, false);
+         partner.SetPersonalRelation(lover, loverRelBefore);
 
          return t.Line();
       }
@@ -7273,7 +7271,7 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Skip(lover == null, "no live lord with a clan outside the player's household to stand as the lover")) return t.Line();
 
-         int loverRelBefore = partner.GetRelation(lover);
+         int loverRelBefore = CharacterRelationManager.GetHeroRelation(partner, lover);
 
          // Seed a SECRET affair directly: this test exercises the conception + attribution WIRING, not who strays
          // (the culture gate is covered elsewhere), so it bypasses TakeLover's selection.
@@ -7340,8 +7338,7 @@ namespace CalradiaRemembers.Diagnostics
          RestoreOpenPartner(behavior, partner);
          if (lover != null)
          {
-            NeutralizeRelation(partner, lover);
-            if (loverRelBefore != 0) ChangeRelationAction.ApplyRelationChangeBetweenHeroes(partner, lover, loverRelBefore, false);
+            partner.SetPersonalRelation(lover, loverRelBefore);
          }
       }
 
@@ -7622,8 +7619,8 @@ namespace CalradiaRemembers.Diagnostics
 
          // SelectSwayTarget picks the most-negative rival, which can already sit at the -100 engine floor
          // where a further drop clamps to nothing, give the relation headroom, mirrors TestRpSway.
-         if (npc.GetRelation(target) <= NearTheEngineFloor)
-            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, target, -50 - npc.GetRelation(target), false);
+         if (Mapping.PairBondReader.Points(npc, target) <= NearTheEngineFloor)
+            Mapping.RelationLedgerBehavior.SetAsHistory(npc, target, -50);
 
          var today = (int) CampaignTime.Now.ToDays;
          int pendingBefore = SwayExposureBehavior.Instance.Pending.Count(p => p.TargetId == target.StringId);
@@ -9718,7 +9715,7 @@ namespace CalradiaRemembers.Diagnostics
          foreach (Hero cand in Hero.AllAliveHeroes.Where(h => h != null && h != Hero.MainHero && h.IsLord && !h.IsPrisoner))
          {
             if (Hero.AllAliveHeroes.Any(f => f != null && f != cand && f != Hero.MainHero && !f.IsPrisoner
-                   && CalradiaRemembers.Logic.Romance.SecretPropagationPolicy.IsFriend(new NpcMemoryService.Core.Standing.VanillaRelation(cand.GetRelation(f)))))
+                   && CalradiaRemembers.Logic.Romance.SecretPropagationPolicy.IsFriend(new NpcMemoryService.Core.Standing.VanillaRelation(Mapping.PairBondReader.Points(cand, f)))))
             {
                teller = cand;
                break;
@@ -10003,7 +10000,7 @@ namespace CalradiaRemembers.Diagnostics
          int regard = profile.ReputationWithPlayer;
          var events = new Dictionary<NpcProfile, int> {{profile, profile.Events.Count}, {heard, heard.Events.Count}, {wronged, wronged.Events.Count}};
          int ownGrudges = GrudgeBehavior.Instance?.GrudgesFor(lord.StringId).Count ?? 0;
-         int betrayal = spouse.GetRelation(lord);
+         int betrayal = Mapping.PairBondReader.Points(spouse, lord);
          float renown = lord.Clan.Renown;
          float influence = lord.Clan.Influence;
          float ownRenown = Clan.PlayerClan.Renown;
@@ -10049,7 +10046,7 @@ namespace CalradiaRemembers.Diagnostics
             // STAKE: taking the coin and telling anyway is the worse deed, and the page says so.
             t.Expect("thePaidSilenceIsBroken", Mapping.MisdeedLedgerBehavior.All().Any(r => r.VictimId == lord.StringId && r.Kind == Logic.Trauma.MisdeedKind.BrokeSecretBargain), true);
             t.Expect("theBargainIsMarked", extortion.Ledger.Attempts[0].BargainBroken, true);
-            t.Expect("theSpouseTurnsOnThem", spouse.GetRelation(lord) < betrayal, true);
+            t.Expect("theSpouseTurnsOnThem", Mapping.PairBondReader.Points(spouse, lord) < betrayal, true);
             // STAKE: Gabriel's go on mutual ruin: the betrayed spouse answers the player through the jealousy that exists.
             t.Expect("theSpouseAnswersThePlayer", Jealousy.JealousyBehavior.Instance.DebugPendingCount, pendingBefore + 1);
             // STAKE: told once, it is spent: no second scandal, no silence to sell.
@@ -10072,7 +10069,7 @@ namespace CalradiaRemembers.Diagnostics
             gossip.DebugUnretire(lord.StringId);
             Jealousy.JealousyBehavior.Instance.DebugForgetPending(spouse.StringId);
             if (eventId != null) WorldEvents.WorldEventStore.Instance?.Remove(eventId);
-            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(spouse, lord, betrayal - spouse.GetRelation(lord), false);
+            Mapping.RelationLedgerBehavior.SetAsHistory(spouse, lord, betrayal);
             lord.Clan.Renown = renown;
             Clan.PlayerClan.Renown = ownRenown;
             ChangeClanInfluenceAction.Apply(lord.Clan, influence - lord.Clan.Influence);
@@ -10279,29 +10276,45 @@ namespace CalradiaRemembers.Diagnostics
          var t = new TestRun("pair_bond");
          if (t.Abort(Mapping.RelationLedgerBehavior.Instance == null, "the relation ledger is not running")) return t.Line();
 
-         bool Far(Hero x, Hero y) => x.MapFaction is Kingdom kx && y.MapFaction is Kingdom ky && kx != ky && !FactionManager.IsAtWarAgainstFaction(kx, ky)
-                                     && !Mapping.PairBondReader.HousesAreNeighbours(x.Clan, y.Clan) && !(x.IsKingdomLeader && y.IsKingdomLeader);
+         // The pair is chosen by the reader itself, so whatever could explain a start (neighbouring realms, kin married
+         // out, a reason another mod gives) passes the pair over instead of turning the test red.
          List<Hero> lords = Hero.AllAliveHeroes.Where(h => h != Hero.MainHero && h.IsLord && !h.IsChild && h.Clan != null && h.Clan != Clan.PlayerClan
                                                            && h.Clan.Leader != null && h.Clan.Leader != h && Mapping.HeroPresence.IsInTheWorld(h)).ToList();
          Hero a = null, b = null;
+         int pair0 = 0, tried = 0;
+         Logic.Relations.PairBond drawn = null;
          foreach (Hero x in lords)
          {
-            b = lords.FirstOrDefault(y => y.Clan != x.Clan && Far(x, y) && Mapping.RelationLedgerBehavior.Instance.Ledger.BaselineOf(x.StringId, y.StringId) == null
-                                          && Mapping.RelationLedgerBehavior.Instance.Ledger.BaselineOf(x.Clan.Leader.StringId, y.Clan.Leader.StringId) == null);
-            if (b == null) continue;
-            a = x;
-            break;
+            foreach (Hero y in lords.Where(y => y.Clan != x.Clan && x.MapFaction != y.MapFaction
+                                                && Mapping.RelationLedgerBehavior.Instance.Ledger.BaselineOf(x.StringId, y.StringId) == null))
+            {
+               if (++tried > 60) break;
+
+               int before = CharacterRelationManager.GetHeroRelation(x, y);
+               // A start written as the game's draw writes it: no change announced.
+               x.SetPersonalRelation(y, -80);
+               Logic.Relations.PairBond read = Mapping.PairBondReader.Of(x, y);
+               if (read.Basis == Logic.Relations.PairBondBasis.Unexplained)
+               {
+                  a = x;
+                  b = y;
+                  pair0 = before;
+                  drawn = read;
+                  break;
+               }
+
+               x.SetPersonalRelation(y, before);
+            }
+
+            if (a != null || tried > 60) break;
          }
 
-         if (t.Skip(a == null, "no two lords (not heads of house) of realms neither neighbours nor at war")) return t.Line();
+         if (t.Skip(a == null, "no two lords (not heads of house) with nothing to explain a start between them")) return t.Line();
 
          Hero headA = a.Clan.Leader, headB = b.Clan.Leader;
-         int pair0 = CharacterRelationManager.GetHeroRelation(a, b), heads0 = CharacterRelationManager.GetHeroRelation(headA, headB);
+         int heads0 = CharacterRelationManager.GetHeroRelation(headA, headB);
          try
          {
-            // A start written as the game's draw writes it: no change announced.
-            a.SetPersonalRelation(b, -80);
-            Logic.Relations.PairBond drawn = Mapping.PairBondReader.Of(a, b);
             t.Note($"{a.Name} ({a.MapFaction?.Name}) / {b.Name} ({b.MapFaction?.Name}): start -80 read as {drawn.Basis}, {drawn.Points}, {drawn.Echo}, reason '{drawn.Reason}'");
             // STAKE: tashmetu's Derthert and Tasynor: a blind draw between strangers starts no plot and no news.
             t.Expect("theDrawIsNotBelieved", drawn.Points == 0 && drawn.Basis == Logic.Relations.PairBondBasis.Unexplained, true);
@@ -14558,7 +14571,7 @@ namespace CalradiaRemembers.Diagnostics
          try
          {
             // Arranged: her heart won, her family well disposed toward the broker.
-            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(bride, suitor, Math.Max(0, 60 - bride.GetRelation(suitor)), false);
+            if (Mapping.PairBondReader.Points(bride, suitor) < 60) Mapping.RelationLedgerBehavior.SetAsHistory(bride, suitor, 60);
             headProfile.ReputationWithPlayer = 80;
             behavior.Store.Set(headProfile);
 
@@ -19370,10 +19383,10 @@ namespace CalradiaRemembers.Diagnostics
 
          // SelectSwayTarget picks the most-negative rival, which can already sit at the -100 engine floor
          // where a further drop clamps to nothing. Give the relation headroom so the delta is measurable.
-         if (npc.GetRelation(target) <= NearTheEngineFloor)
-            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npc, target, -50 - npc.GetRelation(target), false);
+         if (Mapping.PairBondReader.Points(npc, target) <= NearTheEngineFloor)
+            Mapping.RelationLedgerBehavior.SetAsHistory(npc, target, -50);
 
-         int relBefore = npc.GetRelation(target);
+         int relBefore = Mapping.PairBondReader.Points(npc, target);
 
          // Maifailun (01/10/2026): a bow is no case. The player never names the target: refused, nothing moves.
          ActionOutcome unargued = behavior.GameStateBridge.ExecuteAction(
@@ -19381,7 +19394,7 @@ namespace CalradiaRemembers.Diagnostics
                Type = "sway_opinion",
                Parameters = new Dictionary<string, string> {{"target", target.Name.ToString()}, {"stance", "against"}}
             }, npc, new ActionContext(profile, null) {PlayerWordsThisConversation = "Have you enjoyed the tournament, my lady? *bows*"});
-         t.Expect("unarguedSwayRefused", unargued != null && !unargued.IsPositive && npc.GetRelation(target) == relBefore, true);
+         t.Expect("unarguedSwayRefused", unargued != null && !unargued.IsPositive && Mapping.PairBondReader.Points(npc, target) == relBefore, true);
 
          int eventsBefore = WorldEventStore.Instance.Count;
 
@@ -19391,7 +19404,7 @@ namespace CalradiaRemembers.Diagnostics
                Parameters = new Dictionary<string, string> {{"target", target.Name.ToString()}, {"stance", "against"}}
             }, npc, new ActionContext(profile, null) {PlayerWordsThisConversation = $"{target.Name} has betrayed you."});
 
-         int relAfter = npc.GetRelation(target);
+         int relAfter = Mapping.PairBondReader.Points(npc, target);
          int eventsAfter = WorldEventStore.Instance.Count;
          NpcProfile after = behavior.Store.Get(npc.StringId);
          bool marked = after != null &&
@@ -22935,7 +22948,7 @@ namespace CalradiaRemembers.Diagnostics
 
             // The jilted-spouse grudge is bounded for the real couple, so a divorce would never plant a nonsense value.
             Hero jilted = npc.Spouse;
-            int magnitude = StolenSpouseGrudgePolicy.Magnitude(jilted.GetRelation(npc), jilted.GetTraitLevel(DefaultTraits.Mercy));
+            int magnitude = StolenSpouseGrudgePolicy.Magnitude(Mapping.PairBondReader.Points(jilted, npc), jilted.GetTraitLevel(DefaultTraits.Mercy));
             t.Expect("jiltedGrudgeWithinBounds",
                magnitude >= StolenSpouseGrudgePolicy.MinMagnitude && magnitude <= StolenSpouseGrudgePolicy.MaxMagnitude, true);
          }

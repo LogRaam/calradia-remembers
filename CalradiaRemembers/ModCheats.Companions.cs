@@ -519,7 +519,7 @@ namespace CalradiaRemembers
 
          List<string> lines = Hero.AllAliveHeroes
                                   .Where(h => h != hero && h != Hero.MainHero && h.IsAlive && h.IsPlayerCompanion)
-                                  .Select(h => $"- {h.Name}: {hero.GetRelation(h)} ({CompanionRapport.Band(new NpcMemoryService.Core.Standing.VanillaRelation(hero.GetRelation(h)))})")
+                                  .Select(h => $"- {h.Name}: {Mapping.PairBondReader.Points(hero, h)} ({CompanionRapport.Band(new NpcMemoryService.Core.Standing.VanillaRelation(Mapping.PairBondReader.Points(hero, h)))})")
                                   .ToList();
 
          return lines.Count == 0

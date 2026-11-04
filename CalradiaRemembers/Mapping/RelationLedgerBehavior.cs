@@ -100,6 +100,26 @@ namespace CalradiaRemembers.Mapping
          }
       }
 
+      /// <summary>
+      ///   Sets what CR believes between two NPCs to <paramref name="target" />, as history on their own slot (the ledger
+      ///   marks a start of 0). For cr.test all and the console, which arrange a relation before driving a real path; with
+      ///   the player on either side it keeps the game's action, which is what production reads there.
+      /// </summary>
+      internal static void SetAsHistory(Hero a, Hero b, int target)
+      {
+         if (a == null || b == null || a == b) return;
+         if (a == Hero.MainHero || b == Hero.MainHero)
+         {
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(a, b, target - a.GetRelation(b), false);
+
+            return;
+         }
+
+         Instance?.Ledger.Forget(a.StringId, b.StringId);
+         Instance?.Ledger.Saw(a.StringId, b.StringId, 0);
+         a.SetPersonalRelation(b, target);
+      }
+
       /// <summary>Whether the game's own action writes this very pair (heads of their houses, one house, or no house).</summary>
       internal static bool GameWritesThePair(Hero a, Hero b)
       {
