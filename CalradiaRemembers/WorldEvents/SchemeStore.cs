@@ -337,7 +337,7 @@ namespace CalradiaRemembers.WorldEvents
 
          try
          {
-            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(plotter, target, feud.PlotterTargetDelta, false);
+            Mapping.RelationLedgerBehavior.Change(plotter, target, feud.PlotterTargetDelta);
             CoolTargetAllies(plotter, target, feud.AllyCoolingDelta, feud.AllyFanOutCap);
 
             int magnitude = Math.Min(60, 20 + Math.Abs(feud.PlotterTargetDelta));
@@ -360,12 +360,12 @@ namespace CalradiaRemembers.WorldEvents
 
          var allies = target.Clan.Heroes
                              .Where(h => h is {IsAlive: true, IsLord: true} && h != target && h != plotter && h != Hero.MainHero)
-                             .OrderByDescending(h => h.GetRelation(target))
+                             .OrderByDescending(h => Mapping.PairBondReader.Points(h, target))
                              .Take(cap)
                              .ToList();
 
          foreach (Hero ally in allies)
-            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(ally, plotter, delta, false);
+            Mapping.RelationLedgerBehavior.Change(ally, plotter, delta);
 
          if (allies.Count > 0)
             ModLog.Info($"[SCHEME] feud fan-out: {allies.Count} of {target.Name}'s clan cooled toward {plotter.Name} ({delta}).");
@@ -376,7 +376,7 @@ namespace CalradiaRemembers.WorldEvents
       private static SchemeFactors BuildFactors(Hero plotter, Hero target) => new() {
          PlotterCunning = Cunning(plotter),
          PlotterBoldness = Clamp0to100(30 + TraitLevel(plotter, DefaultTraits.Valor) * 20),
-         Animosity = Clamp0to100(-plotter.GetRelation(target)),
+         Animosity = Clamp0to100(-Mapping.PairBondReader.Points(plotter, target)),
          TargetVigilance = Cunning(target)
       };
 
@@ -609,6 +609,8 @@ namespace CalradiaRemembers.WorldEvents
       {
          int activeAutonomous = _schemes.Count(s => s.Autonomous);
          if (!AutonomousSchemePolicy.BudgetAllowsLaunch(activeAutonomous)) return;
+         // A plot writes relations for good: never launched from the first days' numbers (tashmetu, 04/11/2026).
+         if (!Mapping.PairBondReader.PastStartGrace()) return;
 
          foreach (Hero instigator in EligibleInstigators(today))
          {
@@ -698,7 +700,7 @@ namespace CalradiaRemembers.WorldEvents
             if (!Mapping.HeroPresence.IsInTheWorld(head)) continue;
 
             candidates.Add(new AutonomousSchemePolicy.SchemeTargetCandidate {
-               Id = head.StringId, Relation = instigator.GetRelation(head), IsKin = CourtActionResolver.IsCloseKin(instigator, head),
+               Id = head.StringId, Relation = Mapping.PairBondReader.Points(instigator, head), IsKin = CourtActionResolver.IsCloseKin(instigator, head),
                IsPlayerSide = head == Hero.MainHero || house == Clan.PlayerClan, IsFactionLeader = head.MapFaction?.Leader == head,
                IsHouseHead = true, SameHouse = house == own, HouseStrength = house.CurrentTotalStrength, OwnHouseStrength = own.CurrentTotalStrength,
                RivalRealm = realm != null && (head.MapFaction == realm || FactionManager.IsAtWarAgainstFaction(realm, head.MapFaction)),
@@ -721,7 +723,7 @@ namespace CalradiaRemembers.WorldEvents
             bool isKin = CourtActionResolver.IsCloseKin(instigator, other);
             bool isFactionLeader = other.MapFaction?.Leader == other;
 
-            candidates.Add(new AutonomousSchemePolicy.SchemeTargetCandidate {Id = other.StringId, Relation = instigator.GetRelation(other), IsKin = isKin, IsPlayerSide = isPlayerSide, IsFactionLeader = isFactionLeader});
+            candidates.Add(new AutonomousSchemePolicy.SchemeTargetCandidate {Id = other.StringId, Relation = Mapping.PairBondReader.Points(instigator, other), IsKin = isKin, IsPlayerSide = isPlayerSide, IsFactionLeader = isFactionLeader});
          }
 
          return AutonomousSchemePolicy.SelectAutonomousTarget(candidates);

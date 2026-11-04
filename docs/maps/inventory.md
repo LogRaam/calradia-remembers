@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 626 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1510 types in 54 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 628 types in 65 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1518 types in 55 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -588,7 +588,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterBoxNavigationItemVM` | internal class | A genuine nav-bar item that opens the letter box, its badge counting the letters waiting. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (52)
+### CalradiaRemembers.Mapping (54)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -621,6 +621,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MisdeedsPageReader` | internal static class | Reads what the player did of their own will for the Misdeeds section. |
 | `NarrativeLoader` | public static class | Loads narrative text files from the mod's ModuleData folder at session launch. |
 | `NatureReader` | internal static class | Rolls and reads a character's fear, superstition and gift tastes. |
+| `PairBondReader` | internal static class | Reads how two NPCs stand with each other, personally and between their houses. |
 | `PairRegardReader` | internal static class | Reads what lies between two characters into PairRegardFacts, and assesses it. |
 | `PlayerDressResolver` | public static class | Resolves the player's live PlayerDressBand from Hero.MainHero's equipment. |
 | `PlayerDungeons` | public static class | Where the player left each prisoner, by hero id. |
@@ -631,6 +632,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PromptProfileService` | internal static class | The prompt profile in use, and the layout each kind of character gets from it. |
 | `RealmFaceBehavior` | public class | Dresses each realm's queen in the face its faces file gives, and gives a former queen her own face back. |
 | `RealmWarFooting` | public static class | Reads a realm's war footing from the live game. |
+| `RelationLedgerBehavior` | public class | Marks where each pair's history begins, and changes a relation between two NPCs on their own slot. |
 | `RelationshipsBuilder` | public static class | Builds a human-readable RELATIONSHIPS block for an NPC from live game state. |
 | `RomanticProfileBuilder` | public static class | Builds a deterministic RomanticProfile for a Bannerlord Hero. |
 | `SeductionFactsMapper` | public static class | Builds SeductionFacts for a married NPC from live game state. |
@@ -2488,6 +2490,19 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RealmTidingsSalience` | public static class | Turns a world event's magnitude (how far the news carries, 0..100) and the writer's RumorConfidence in it into the opaque salience score RealmTidingsPolicy.RealmTidingsCandidate competes on. |
 | `TidingsEventFacts` | public class | How a piece of news touches the player. |
 | `TidingsWriterFacts` | public class | Who would write the player news of the realm. |
+
+### CalradiaRemembers.Logic.Relations (8)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `HouseStanding` | public class | Another house and how the speaker's house stands with it. |
+| `PairBond` | public class | How two people stand with each other, personally, and on what. |
+| `PairBondBasis` | public enum | On what CR believes the relation between two people. |
+| `PairBondEcho` | public enum | The vague feeling an unexplained starting value leaves, said in words and never counted. |
+| `PairBondFacts` | public class | What decides how two people stand with each other, personally. |
+| `PairBondPolicy` | public static class | Decides how two people stand with each other. |
+| `PairBondText` | public static class | Words for a pair bond. |
+| `RelationBaselineLedger` | public class | The value each pair held just before CR first saw it change, by pair key. |
 
 ### CalradiaRemembers.Logic.Rescue (8)
 

@@ -97,7 +97,7 @@ namespace CalradiaRemembers.Verbs
                 bool against = stance == SwayStance.Against;
                 int delta = CourtActionPolicy.SwayDelta(against);
 
-                ChangeRelationAction.ApplyRelationChangeBetweenHeroes(npcHero, target, delta, false);
+                Mapping.RelationLedgerBehavior.Change(npcHero, target, delta);
 
                 string verb = against ? "turned against" : "warmed toward";
                 var today = (int) CampaignTime.Now.ToDays;

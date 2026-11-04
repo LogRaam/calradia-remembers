@@ -8,6 +8,7 @@ using System.Text;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Captivity;
+using CalradiaRemembers.Logic.Relations;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 
@@ -41,6 +42,7 @@ namespace CalradiaRemembers.Mapping
          AppendLiege(sb, hero);
          AppendFriends(sb, hero);
          AppendEnemies(sb, hero);
+         AppendHouses(sb, hero);
          AppendFamily(sb, hero);
 
          return sb.ToString().TrimEnd();
@@ -77,7 +79,8 @@ namespace CalradiaRemembers.Mapping
                                                  now - h.DeathDay.ToDays >= 0 &&
                                                  now - h.DeathDay.ToDays <= 168 // ~2 Calradian years
                                                  &&
-                                                 CharacterRelationManager.GetHeroRelation(hero, h) <= EnemyThreshold)
+                                                 PairBondReader.CouldReach(hero, h, r => r <= EnemyThreshold) &&
+                                                 PairBondReader.Points(hero, h) <= EnemyThreshold)
                                      .OrderByDescending(h => h.DeathDay.ToDays)
                                      .Take(4)
                                      .ToList();
@@ -92,7 +95,8 @@ namespace CalradiaRemembers.Mapping
          var enemies = new List<Hero>();
          foreach (Hero hero1 in Hero.AllAliveHeroes
                                     .Where(h => h != hero && !h.IsHumanPlayerCharacter)
-                                    .Select(h => (h, rel: CharacterRelationManager.GetHeroRelation(hero, h)))
+                                    .Where(h => PairBondReader.CouldReach(hero, h, r => r <= EnemyThreshold))
+                                    .Select(h => (h, rel: PairBondReader.Points(hero, h)))
                                     .Where(x => x.rel <= EnemyThreshold)
                                     .OrderBy(x => x.rel)
                                     .Where(x => PairRegardReader.Assess(hero, x.h).Verdict != PairRegardVerdict.Friend)
@@ -228,14 +232,42 @@ namespace CalradiaRemembers.Mapping
       private static void AppendFriends(StringBuilder sb, Hero hero)
       {
          var friends = new List<Hero>();
-         foreach (Hero hero1 in Hero.AllAliveHeroes.Where(h => h != hero && !h.IsHumanPlayerCharacter && CharacterRelationManager.GetHeroRelation(hero, h) >= FriendThreshold)
-                                    .OrderByDescending(h => CharacterRelationManager.GetHeroRelation(hero, h))
+         // Believed only (PairBondPolicy, tashmetu 04/11/2026): a start drawn blind between strangers is no friendship.
+         foreach (Hero hero1 in Hero.AllAliveHeroes.Where(h => h != hero && !h.IsHumanPlayerCharacter && PairBondReader.CouldReach(hero, h, r => r >= FriendThreshold))
+                                    .Select(h => (h, rel: PairBondReader.Points(hero, h)))
+                                    .Where(x => x.rel >= FriendThreshold)
+                                    .OrderByDescending(x => x.rel)
+                                    .Select(x => x.h)
                                     // A derived enemy, with a reason, is no friend (NPC_REGARD.md section 9, 17/10/2026)
                                     .Where(h => PairRegardReader.Assess(hero, h).Verdict != PairRegardVerdict.Enemy)
                                     .Take(MaxEntries)) friends.Add(hero1);
 
          if (friends.Count > 0)
             sb.AppendLine($"Friends: {string.Join(", ", friends.Select(h => h.Name))}.");
+      }
+
+      /// <summary>
+      ///   How the speaker's house stands with others, said apart from the speaker's own friends and enemies, for someone
+      ///   who does not lead their house. tashmetu (Nexus, 04/11/2026): in the base game "a younger son, a wife or a cousin
+      ///   shares the leader's friends and enemies"; Gabriel (04/11/2026) wanted it as "une phrase distincte".
+      /// </summary>
+      private static void AppendHouses(StringBuilder sb, Hero hero)
+      {
+         Hero head = hero.Clan?.Leader;
+         if (head == null || head == hero || hero.Clan == Clan.PlayerClan) return;
+
+         var houses = new List<HouseStanding>();
+         foreach (Clan other in Clan.All)
+         {
+            Hero theirs = other?.Leader;
+            if (other == hero.Clan || other.IsEliminated || theirs == null || theirs == Hero.MainHero || !HeroPresence.IsInTheWorld(theirs)) continue;
+            if (!PairBondReader.CouldReach(head, theirs, r => r >= FriendThreshold || r <= EnemyThreshold)) continue;
+
+            houses.Add(new HouseStanding {House = $"House {other.Name}", Points = PairBondReader.Points(head, theirs)});
+         }
+
+         string line = PairBondText.HousesLine(head.Name?.ToString(), houses);
+         if (line != null) sb.AppendLine(line);
       }
 
       private static void AppendLiege(StringBuilder sb, Hero hero)

@@ -332,7 +332,7 @@ namespace CalradiaRemembers.GameState
          foreach (Hero other in Hero.AllAliveHeroes)
          {
             if (other == npc || other == Hero.MainHero || !other.IsLord) continue;
-            candidates.Add(new CourtActionPolicy.SwayCandidate(other.StringId, npc.GetRelation(other), IsCloseKin(npc, other), other.MapFaction?.Leader == other));
+            candidates.Add(new CourtActionPolicy.SwayCandidate(other.StringId, Mapping.PairBondReader.Points(npc, other), IsCloseKin(npc, other), other.MapFaction?.Leader == other));
          }
 
          string targetId = CourtActionPolicy.SelectPledgeTarget(candidates);
@@ -491,7 +491,7 @@ namespace CalradiaRemembers.GameState
          int regard = head == null ? 0 : NpcMemoryCampaignBehavior.Instance?.Store?.Get(head.StringId)?.ReputationWithPlayer ?? head.GetRelation(Hero.MainHero);
 
          MatchVerdict verdict = MatchmakerPolicy.Decide(new MatchFacts {
-            BrideRelationToSuitor = bride.GetRelation(suitor), OfAnotherHouse = bride.Clan != suitor.Clan,
+            BrideRelationToSuitor = Mapping.PairBondReader.Points(bride, suitor), OfAnotherHouse = bride.Clan != suitor.Clan,
             FamilyRegardForThePlayer = regard, SuitorClanTier = suitor.Clan?.Tier ?? 0, BrideClanTier = bride.Clan?.Tier ?? 0
          });
 
@@ -528,7 +528,7 @@ namespace CalradiaRemembers.GameState
 
          // The family is the player, whose yes was asked in the chat: only her heart and the houses are weighed.
          MatchVerdict verdict = MatchmakerPolicy.Decide(new MatchFacts {
-            BrideRelationToSuitor = bride.GetRelation(suitor), OfAnotherHouse = bride.Clan != suitor.Clan,
+            BrideRelationToSuitor = Mapping.PairBondReader.Points(bride, suitor), OfAnotherHouse = bride.Clan != suitor.Clan,
             FamilyRegardForThePlayer = 100, SuitorClanTier = suitor.Clan?.Tier ?? 0, BrideClanTier = suitor.Clan?.Tier ?? 0
          });
          if (verdict == MatchVerdict.NotWonOver) return new ArrangeMarriageVerdict(ArrangeMarriageResult.NotWonOver, suitor, bride, null, null);

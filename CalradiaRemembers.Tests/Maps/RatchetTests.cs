@@ -324,6 +324,30 @@ namespace CalradiaRemembers.Tests.Maps
          if (direct < DirectGoodsMovesOn1November) Assert.Warn($"{DirectGoodsMovesOn1November - direct} move(s) came through the door: lower the baseline to {direct}.");
       }
 
+      // RELATIONS BETWEEN NPCS THROUGH ONE READER (04/11/2026). tashmetu (Nexus, 04/11/2026): the game's Hero.GetRelation
+      // answers for the two clan leaders, and its starting draw is blind; some of CR asked one, some read the pair's own
+      // slot, and both trusted the draw. Every relation between two NPCs now goes through Mapping/PairBondReader (read) and
+      // Mapping/RelationLedgerBehavior (write). What is left is the player's own standing, which the game's relation does
+      // carry, and pairs of one house; a new direct read or write is how the next disagreement starts.
+      private const int DirectRelationTouchesOn4November = 68;
+
+      [Test]
+      public void GIVEN_relations_read_or_written_outside_the_pair_bond_reader_WHEN_counted_THEN_there_are_no_more_than_the_baseline()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
+
+         int direct = SourceTree.Production
+                                .Where(f => !f.RelativePath.EndsWith("Mapping/PairBondReader.cs", StringComparison.Ordinal)
+                                            && !f.RelativePath.EndsWith("Mapping/RelationLedgerBehavior.cs", StringComparison.Ordinal)
+                                            && !("/" + f.RelativePath).Contains("/Diagnostics/")
+                                            && !System.IO.Path.GetFileName(f.RelativePath).StartsWith("ModCheats", StringComparison.Ordinal))
+                                .Sum(f => Regex.Matches(f.Root.ToFullString(), @"\.GetRelation\(|GetHeroRelation\(|ApplyRelationChangeBetweenHeroes\(|SetPersonalRelation\(").Count);
+
+         direct.Should().BeLessThanOrEqualTo(DirectRelationTouchesOn4November,
+            "a relation is read or written outside Mapping/PairBondReader and RelationLedgerBehavior: between two NPCs, go through them.");
+         if (direct < DirectRelationTouchesOn4November) Assert.Warn($"{DirectRelationTouchesOn4November - direct} touch(es) moved onto the reader: lower the baseline to {direct}.");
+      }
+
       // REGARD CHANGES IN ONE PLACE (29/09/2026). CrNpcMemory.RegardChanged tells other mods of every change of a
       // character's regard for the player, and it can only do that because every change goes through
       // ProfileMutator.ApplyReputationDelta. On the day the event was built, six places wrote the value directly

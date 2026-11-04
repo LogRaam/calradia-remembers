@@ -242,7 +242,7 @@ namespace CalradiaRemembers.Encyclopedia
             houses.Add(new ClanRegardCandidate {
                Name = c.Name?.ToString(), Id = c.StringId, Derived = r.Verdict,
                DerivedReason = PairRegardPolicy.WithoutThePair(PairRegardPolicy.PageReason(r), lord.Name?.ToString(), other.Name?.ToString()),
-               VanillaRelation = CharacterRelationManager.GetHeroRelation(lord, other), AtWar = atWar,
+               VanillaRelation = Mapping.PairBondReader.Points(lord, other), AtWar = atWar,
                Through = lord == hero && _explained.Contains(other) ? other.Name?.ToString() : null,
                Lord = lord.Name?.ToString(), OtherLord = other.Name?.ToString()
             });

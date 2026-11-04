@@ -233,6 +233,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("tournament_rivalry", Severity.Light, "Tournament memory (player suggestion, Inc 4): force a low-honour lord and record three arena head-to-heads via the REAL rivalry behavior; asserts no rivalry forms before the threshold, it crystallizes at the threshold, the tally is right, and a BITTER rivalry plants a light grudge. Clears the grudge, forgets the tally, and restores the trait afterwards", TestTournamentRivalry),
          new SelfTest("affair_veto", Severity.Light, "tashmetu 03/11 (Romance & Seduction): one lord should never carry an affair in each mod, and Gabriel wants CR to depend on no mod. Registers a veto through CrRomance against a married lord and a free lord and asserts CR refuses that pair, allows it once withdrawn and past a veto that throws; then begins and ends an affair and asserts HiddenAffairChanged told both, and GetHiddenAffair read it on the lover side. Restores the ledger and the veto list", TestAffairVeto),
          new SelfTest("personal_worth", Severity.Light, "Thoragoros1 03/11: a captive is worth more to their own kin than the game's ransom. Takes a lord whose clan leader is his parent, child, spouse or sibling, reads the most the leader may offer in the turn's sum tokens, has the leader buy him through the real buy_prisoner at an absurd price, and asserts the token, the payment and the policy agree and stand above the ordinary band. Restores both purses and frees the captive", TestPersonalWorth),
+         new SelfTest("pair_bond", Severity.Light, "tashmetu 04/11: the game's starting draw gave strangers of far realms -100, and a change with a younger son landed on his father. Takes two lords of realms neither neighbours nor at war, no kin, writes a -80 start on their own slot, and asserts CR does not believe it (vague unease, 0 points); then changes it through CR and asserts only the change counts, on their own slot, and the clan leaders' relation is untouched. Restores both values and forgets the ledger rows", TestPairBond),
          new SelfTest("hidden_affairs", Severity.Light, "Gabriel's go 01/11/2026: a married lord may take a hidden lover, found by a companion sent to spy on them. Begins an affair between two lords and asserts both carry it in their prompt, told to evade and never lie; the player holds nothing yet; end_affair refuses it and the partner path leaves it alone; a poor inquiry says nothing certain; a companion dispatched with the lord's name through the real errand reports it and the player then holds it, on the lover too. Then ends it as a telling would, and asserts the fields are clear. Expose itself is driven by cr.test secret_exposure. Restores all borrowed state", TestHiddenAffairs),
          new SelfTest("lord_secret_lover", Severity.Light, "Mystery-lover (lord coverage): a MARRIED lord the player is secretly the lover of carries the SDK Status SecretLover (not the companion-only IsSecretLover flag). Mark a non-companion lord's profile Status SecretLover and assert the unified detection (PlayerSecretLoverSubjectIds) finds him, then record a second lord as knowing and drive the REAL EncounterContextBuilder.Build to assert the held-secret payoff names the lord subject (adult on) or is suppressed (gate off). Restores the status and forgets the ledger afterwards", TestLordSecretLover),
          new SelfTest("quest_hideout", Severity.Light, "issue a BanditHideout quest through the real pipeline anchored on a town with a live infested lair nearby -> assert it bound a REAL existing hideout (TargetHideoutId) + a cardinal bearing (DirectionHint) against the live world (MANUAL when no town has an infested lair in range, which is itself the designed refusal)", TestQuestHideout),
@@ -10268,6 +10269,59 @@ namespace CalradiaRemembers.Diagnostics
 
             Hero.MainHero.ChangeHeroGold(playerGold0 - Hero.MainHero.Gold);
             buyer.ChangeHeroGold(buyerGold0 - buyer.Gold);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestPairBond(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("pair_bond");
+         if (t.Abort(Mapping.RelationLedgerBehavior.Instance == null, "the relation ledger is not running")) return t.Line();
+
+         bool Far(Hero x, Hero y) => x.MapFaction is Kingdom kx && y.MapFaction is Kingdom ky && kx != ky && !FactionManager.IsAtWarAgainstFaction(kx, ky)
+                                     && !Mapping.PairBondReader.HousesAreNeighbours(x.Clan, y.Clan) && !(x.IsKingdomLeader && y.IsKingdomLeader);
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h != Hero.MainHero && h.IsLord && !h.IsChild && h.Clan != null && h.Clan != Clan.PlayerClan
+                                                           && h.Clan.Leader != null && h.Clan.Leader != h && Mapping.HeroPresence.IsInTheWorld(h)).ToList();
+         Hero a = null, b = null;
+         foreach (Hero x in lords)
+         {
+            b = lords.FirstOrDefault(y => y.Clan != x.Clan && Far(x, y) && Mapping.RelationLedgerBehavior.Instance.Ledger.BaselineOf(x.StringId, y.StringId) == null
+                                          && Mapping.RelationLedgerBehavior.Instance.Ledger.BaselineOf(x.Clan.Leader.StringId, y.Clan.Leader.StringId) == null);
+            if (b == null) continue;
+            a = x;
+            break;
+         }
+
+         if (t.Skip(a == null, "no two lords (not heads of house) of realms neither neighbours nor at war")) return t.Line();
+
+         Hero headA = a.Clan.Leader, headB = b.Clan.Leader;
+         int pair0 = CharacterRelationManager.GetHeroRelation(a, b), heads0 = CharacterRelationManager.GetHeroRelation(headA, headB);
+         try
+         {
+            // A start written as the game's draw writes it: no change announced.
+            a.SetPersonalRelation(b, -80);
+            Logic.Relations.PairBond drawn = Mapping.PairBondReader.Of(a, b);
+            t.Note($"{a.Name} ({a.MapFaction?.Name}) / {b.Name} ({b.MapFaction?.Name}): start -80 read as {drawn.Basis}, {drawn.Points}, {drawn.Echo}, reason '{drawn.Reason}'");
+            // STAKE: tashmetu's Derthert and Tasynor: a blind draw between strangers starts no plot and no news.
+            t.Expect("theDrawIsNotBelieved", drawn.Points == 0 && drawn.Basis == Logic.Relations.PairBondBasis.Unexplained, true);
+            // STAKE: Gabriel: "mefiance vague": the feeling is left, in words only.
+            t.Expect("aVagueUneaseRemains", drawn.Echo, Logic.Relations.PairBondEcho.VagueUnease);
+
+            Mapping.RelationLedgerBehavior.Change(a, b, -15);
+            Logic.Relations.PairBond changed = Mapping.PairBondReader.Of(a, b);
+            t.Note($"after a change of -15: own slot {CharacterRelationManager.GetHeroRelation(a, b)}, believed {changed.Points}, heads {CharacterRelationManager.GetHeroRelation(headA, headB)} (was {heads0})");
+            // STAKE: what happens in play is history, believed even between strangers.
+            t.Expect("onlyTheChangeCounts", changed.Points, -15);
+            // STAKE: tashmetu: a younger son's quarrel is his own; his father's standing does not move.
+            t.Expect("theHeadsAreUntouched", CharacterRelationManager.GetHeroRelation(headA, headB), heads0);
+            t.Expect("writtenOnTheirOwnSlot", CharacterRelationManager.GetHeroRelation(a, b), -95);
+         }
+         finally
+         {
+            a.SetPersonalRelation(b, pair0);
+            headA.SetPersonalRelation(headB, heads0);
+            Mapping.RelationLedgerBehavior.Instance.Ledger.Forget(a.StringId, b.StringId);
          }
 
          return t.Line();

@@ -58,12 +58,12 @@ namespace CalradiaRemembers.Missions
 
          if (dir == 0) return;
 
-         int rel = a.GetRelation(b);
+         int rel = Mapping.PairBondReader.Points(a, b);
 
          if (dir > 0 && rel >= RelationSoftCap) return;
          if (dir < 0 && rel <= -RelationSoftCap) return;
 
-         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(a, b, dir, false);
+         Mapping.RelationLedgerBehavior.Change(a, b, dir);
       }
 
       private static void TryMarry(Hero a, Hero b)
@@ -72,7 +72,7 @@ namespace CalradiaRemembers.Missions
          bool opposite = a.IsFemale != b.IsFemale;
          bool adult = !a.IsChild && !b.IsChild;
 
-         if (!CompanionRapport.CanMarry(new CompanionRapport.CompanionMatchFacts {Relation = a.GetRelation(b), BothUnmarried = true, OppositeGender = opposite, BothAdult = adult})) return;
+         if (!CompanionRapport.CanMarry(new CompanionRapport.CompanionMatchFacts {Relation = Mapping.PairBondReader.Points(a, b), BothUnmarried = true, OppositeGender = opposite, BothAdult = adult})) return;
 
          // Vanilla has the final say: MarriageAction.Apply silently no-ops unless the marriage model deems the
          // couple suitable (extra checks our own guards do not make, e.g. for a same-clan companion pair). Ask it

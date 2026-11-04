@@ -183,7 +183,7 @@ namespace CalradiaRemembers.Violence
          if (!HeroPresence.IsInTheWorld(spouse) || spouse == Hero.MainHero) return;
 
          Hero other = hero == secret.Subject ? secret.Lover : secret.Subject;
-         ChangeRelationAction.ApplyRelationChangeBetweenHeroes(spouse, hero, DeedRegardPolicy.BetrayedSpouseRelation, false);
+         Mapping.RelationLedgerBehavior.Change(spouse, hero, DeedRegardPolicy.BetrayedSpouseRelation);
          Remember(spouse, NotableEventType.Jealousy, $"Word reached me that {hero.Name} has been lying with {other.Name}.", today);
       }
 

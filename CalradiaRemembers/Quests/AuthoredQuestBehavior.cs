@@ -1847,7 +1847,7 @@ namespace CalradiaRemembers.Quests
 
          var today = (int) CampaignTime.Now.ToDays;
          if (MobileParty.MainParty != null) TaleWorlds.CampaignSystem.Actions.AddHeroToPartyAction.Apply(her, MobileParty.MainParty, false);
-         int magnitude = Logic.StolenSpouseGrudgePolicy.Magnitude(him.GetRelation(her), him.GetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Mercy));
+         int magnitude = Logic.StolenSpouseGrudgePolicy.Magnitude(Mapping.PairBondReader.Points(him, her), him.GetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Mercy));
          Grudges.GrudgeBehavior.Instance?.TryPlant(him, Hero.MainHero, Logic.Grudges.GrudgeSource.StolenSpouse,
             $"the player took {her.Name}, my wife, from my own hall", magnitude, knownToPlayer: true, today: today);
          Mapping.MisdeedLedgerBehavior.Record(him.StringId, Logic.Trauma.MisdeedKind.StoleSpouse);

@@ -49,7 +49,7 @@ namespace CalradiaRemembers.GameState
             LordClanWeakOrDestroyed = clan == null || clan.IsEliminated || clan.Heroes.Count(h => h is {IsAlive: true, IsLord: true}) <= 1,
             HasLiege = hasLiege,
             RelationWithLiege = hasLiege
-               ? lord.GetRelation(liege)
+               ? Mapping.PairBondReader.Points(lord, liege)
                : 0,
             IsClanLeader = clan != null && clan.Leader == lord
          };

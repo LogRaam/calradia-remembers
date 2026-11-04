@@ -235,7 +235,7 @@ namespace CalradiaRemembers.WorldEvents
       {
          List<Hero> friends = Hero.AllAliveHeroes?.Where(h => h != null && h != teller && h != Hero.MainHero
                && h.StringId != subjectId && !h.IsPrisoner
-               && SecretPropagationPolicy.IsFriend(new NpcMemoryService.Core.Standing.VanillaRelation(teller.GetRelation(h)))
+               && SecretPropagationPolicy.IsFriend(new NpcMemoryService.Core.Standing.VanillaRelation(Mapping.PairBondReader.Points(teller, h)))
                && !Knows(h.StringId, subjectId)).ToList();
 
          if (friends == null || friends.Count == 0) return null;

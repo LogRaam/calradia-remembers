@@ -485,7 +485,7 @@ namespace CalradiaRemembers.Grudges
             if (p != null) return p.ReputationWithPlayer;
          }
 
-         return holder.GetRelation(target);
+         return Mapping.PairBondReader.Points(holder, target);
       }
 
       private static List<MigrationCandidate> ScanCandidates(BannerlordNpcMemoryStore store)

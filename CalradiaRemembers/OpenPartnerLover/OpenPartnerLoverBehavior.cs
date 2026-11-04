@@ -344,8 +344,8 @@ namespace CalradiaRemembers.OpenPartnerLover
 
          // Warm the bond a little, but only while it is still below the ceiling (a tryst deepens attachment; it
          // does not pump the relation to the maximum over time). Guarded: a relation read must never crash the tick.
-         if (lover != null && lover.IsAlive && partner.GetRelation(lover) < TrystRelationCap)
-            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(partner, lover, TrystRelationBump, false);
+         if (lover != null && lover.IsAlive && Mapping.PairBondReader.Points(partner, lover) < TrystRelationCap)
+            Mapping.RelationLedgerBehavior.Change(partner, lover, TrystRelationBump);
 
          profile.Romantic.LoverTrystCount++;
 

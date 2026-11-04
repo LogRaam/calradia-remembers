@@ -35,9 +35,6 @@ namespace CalradiaRemembers.WorldEvents
       /// <summary>At most this many new pairs drawn per page opening (design 7.1).</summary>
       public const int MaxDrawsPerOpening = 6;
 
-      /// <summary>Two houses are neighbours when a fief of one lies within this many map units of a fief of the other.</summary>
-      public const float NeighbourDistance = 40f;
-
       /// <summary>No new draw once the long-term memory is this close to its cap: a past once drawn should not be evicted.</summary>
       public const int HeadroomBelowCap = 500;
 
@@ -91,6 +88,8 @@ namespace CalradiaRemembers.WorldEvents
       {
          if (hero == null || candidates == null || WorldEventStore.Instance == null) return 0;
          if (WorldEventStore.Instance.AllHistory().Count >= LongTermHistoryPolicy.Cap - HeadroomBelowCap) return 0;
+         // A past is kept for good: never drawn from the first days' numbers, which another mod may still be seeding.
+         if (!PairBondReader.PastStartGrace()) return 0;
 
          int drawn = 0;
          try
@@ -166,7 +165,7 @@ namespace CalradiaRemembers.WorldEvents
             Compatibility = CompanionRapport.Compatibility(Traits(a), Traits(b)),
             SameRealm = a.MapFaction != null && a.MapFaction == b.MapFaction,
             SameCulture = a.Culture != null && a.Culture == b.Culture,
-            VanillaRelation = CharacterRelationManager.GetHeroRelation(a, b),
+            VanillaRelation = Mapping.PairBondReader.Points(a, b),
             PlaceName = place?.Name?.ToString(), PlaceId = place?.StringId,
             CampaignStartDay = (int) Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.ToDays,
             DaysInYear = daysInYear,
@@ -202,9 +201,7 @@ namespace CalradiaRemembers.WorldEvents
 
       private static bool Neighbours(Clan a, Clan b)
       {
-         if (a?.Settlements == null || b?.Settlements == null || a == b) return false;
-
-         return a.Settlements.Any(x => b.Settlements.Any(y => x.GetPosition2D.Distance(y.GetPosition2D) <= NeighbourDistance));
+         return PairBondReader.HousesAreNeighbours(a, b);
       }
 
       private static Settlement NearestTown(Settlement from)

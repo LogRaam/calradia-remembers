@@ -133,7 +133,7 @@ namespace CalradiaRemembers.Scenarios
 
          Hero king = pressed.Leader;
          var facts = new WarPressFacts {
-            PresserRules = king == presser, KingRegardForPresser = king.GetRelation(presser),
+            PresserRules = king == presser, KingRegardForPresser = Mapping.PairBondReader.Points(king, presser),
             KingOpenWars = System.Linq.Enumerable.Count(Kingdom.All, k => k != pressed && !k.IsEliminated && FactionManager.IsAtWarAgainstFaction(pressed, k)),
             StrengthRatio = target.CurrentTotalStrength > 0 ? pressed.CurrentTotalStrength / target.CurrentTotalStrength : 10.0
          };

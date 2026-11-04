@@ -289,7 +289,7 @@ namespace CalradiaRemembers.Marriage
 
          return Hero.AllAliveHeroes
                     .Where(h => h != null && h != spouse && h != npc && h != Hero.MainHero && !familyIds.Contains(h.StringId))
-                    .Select(h => new {Hero = h, Regard = h.GetRelation(spouse)})
+                    .Select(h => new {Hero = h, Regard = Mapping.PairBondReader.Points(h, spouse)})
                     .Where(x => x.Regard >= BestFriendThreshold)
                     .OrderByDescending(x => x.Regard)
                     .Take(FriendTierSize)

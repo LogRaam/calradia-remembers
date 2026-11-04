@@ -703,7 +703,7 @@ namespace CalradiaRemembers.Letters
             if (h?.StringId == null) return;
             byId[h.StringId] = h;
             facts.Add(new PrisonerBuyerCandidate {
-               HeroId = h.StringId, Role = role, CanTreat = IsEligibleBuyer(h, captive), RelationToCaptive = h.GetRelation(captive),
+               HeroId = h.StringId, Role = role, CanTreat = IsEligibleBuyer(h, captive), RelationToCaptive = Mapping.PairBondReader.Points(h, captive),
                IsOfPlayersClan = h.Clan != null && h.Clan == Clan.PlayerClan
             });
          }
@@ -722,7 +722,7 @@ namespace CalradiaRemembers.Letters
          IFaction playerRealm = Hero.MainHero?.MapFaction;
          if (playerRealm != null && playerRealm != captive.MapFaction)
             foreach (Hero lord in Hero.AllAliveHeroes)
-               if (lord.IsLord && lord.MapFaction == playerRealm && lord != captive && lord.GetRelation(captive) <= VanillaRelation.BitterTier)
+               if (lord.IsLord && lord.MapFaction == playerRealm && lord != captive && Mapping.PairBondReader.Points(lord, captive) <= VanillaRelation.BitterTier)
                   Consider(lord, PrisonerBuyerRole.Enemy);
 
          return PrisonerBuyerPolicy.Order(facts).Select(c => (byId[c.HeroId], c.Role)).ToList();

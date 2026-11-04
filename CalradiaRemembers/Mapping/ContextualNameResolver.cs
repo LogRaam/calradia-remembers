@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Relations;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -224,20 +225,28 @@ namespace CalradiaRemembers.Mapping
       // What lies between the speaker and the person named, with its reason, wins over the vanilla number when it
       // gives a verdict (NPC_REGARD.md section 9; Gabriel, 17/10/2026: every friend or enemy carries its reason). Kin
       // keep their word and gain the reason; a pair with nothing between them reads as before.
+      // tashmetu (Nexus, 04/11/2026): the number is believed only with a reason (PairBondPolicy); a start drawn blind
+      // leaves a vague feeling with no cause, and the houses' standing is said apart (Gabriel, 04/11/2026).
       private static string Categorize(Hero npc, Hero other)
       {
-         string label = VanillaCategory(npc, other);
+         PairBond bond = other == Hero.MainHero ? new PairBond {Points = npc.GetRelation(other)} : PairBondReader.Of(npc, other);
+         string label = VanillaCategory(npc, other, bond.Points);
+         string clause = PairBondText.Clause(bond);
+         if (clause != null) label = $"{label}; {clause}";
+
          string derived = PairRegardPolicy.Describe(PairRegardReader.Assess(npc, other));
-         if (derived == null) return label;
-
          bool kin = npc.Spouse == other || npc.Father == other || npc.Mother == other || npc.Children != null && npc.Children.Any(c => c == other);
+         string said = derived == null ? label : kin ? $"{label}, and {derived}" : derived;
 
-         return kin ? $"{label}, and {derived}" : derived;
+         PairBond houses = other == Hero.MainHero ? null : PairBondReader.OfHouses(npc, other);
+         string house = houses == null ? null : PairBondText.HouseClause(houses.Points, npc.Clan?.Leader?.Name?.ToString(), other.Clan?.Leader?.Name?.ToString());
+
+         return house == null ? said : $"{said}; {house}";
       }
 
-      private static string VanillaCategory(Hero npc, Hero other)
+      private static string VanillaCategory(Hero npc, Hero other, int believed)
          => ThirdPartyDescriptor.Categorize(new ThirdPartyFacts {
-            Relation = CharacterRelationManager.GetHeroRelation(npc, other),
+            Relation = believed,
             IsSpouse = npc.Spouse == other,
             IsFather = npc.Father == other,
             IsMother = npc.Mother == other,
@@ -307,7 +316,7 @@ namespace CalradiaRemembers.Mapping
          => ThirdPartyDescriptor.KnowledgeOf(
             npc.CurrentSettlement != null && npc.CurrentSettlement == other.CurrentSettlement,
             npc.Spouse == other || npc.Father == other || npc.Mother == other || npc.Children != null && npc.Children.Any(c => c == other) || npc.Clan != null && npc.Clan == other.Clan,
-            CharacterRelationManager.GetHeroRelation(npc, other),
+            PairBondReader.Points(npc, other),
             npc.MapFaction != null && npc.MapFaction == other.MapFaction);
 
       /// <summary>

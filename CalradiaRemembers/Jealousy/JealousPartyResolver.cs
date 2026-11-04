@@ -168,7 +168,7 @@ namespace CalradiaRemembers.Jealousy
             // sibling) can never be one; without this an opposite-sex parent or sibling could be picked and write
             // an incestuous "I intend to marry {courted}".
             if (IsCloseKin(courted, h)) continue;
-            int rel = h.GetRelation(courted);
+            int rel = Mapping.PairBondReader.Points(h, courted);
 
             if (rel <= bestRelation) continue;
             bestRelation = rel;

@@ -398,6 +398,39 @@ own reason is said first. `TracesFor` is called for each page opened and each ch
 it cheap. A source that throws adds nothing and is logged once. The page weighs the vanilla friends and enemies and
 those CR ties to the character; a source does not add new people to it.
 
+### Which starting relations CR believes (`CrPairRegard.RegisterStartReason`, since 2.8.3)
+
+The game's relation between two lords of different houses answers for their two clan leaders, and a new campaign
+draws thousands of friendships and enmities between lords who never met. Since 2.8.3 CR reads every relation between
+two NPCs on the pair's own slot (never the leaders'), and splits it in two:
+
+- **What changed since CR first saw the pair change** is history, believed as it is. A change made through the game's
+  `ChangeRelationAction` is heard; a value written with `SetPersonalRelation` is not, so the game's draw and any
+  seeding your mod writes that way count as the START.
+- **The start** is believed only when the two have a reason to know each other: kin, one house, one court, neighbouring
+  lands, a war between their realms (for an enmity), or both ruling. With none, CR acts as if it were 0 and the
+  character is only told of "a vague unease" (or goodwill) with no known cause.
+
+If your mod seeds ties with reasons of its own, give CR the reason:
+
+```csharp
+CrPairRegard.RegisterStartReason("My Mod", (a, b) =>
+   MyRivalPeoples(a, b) ? "an old rivalry between your peoples" : null);   // completes "known to each other through ..."
+
+(int points, string basis, string reason)? bond = CrPairRegard.GetBond(heroId, otherId);   // what CR believes, or null
+CrPairRegard.UnregisterStartReason("My Mod");
+```
+
+- The function is asked only for a start CR could not explain itself, so keep it cheap; one that throws is logged once
+  and passed over. Register again each time a game starts or loads.
+- `basis` is `"None"`, `"Earned"` (moved in play), `"Known"` (a reason) or `"Unexplained"` (start set aside).
+- Nothing CR keeps for good reads a start before day `CrPairRegard.StartGraceDays` (2) of a new campaign: no shared past
+  is drawn and no plot launched, so ties your mod seeds in the first days are what CR reads.
+- When CR changes a relation between two NPCs it writes their own slot, and goes through the game's action only for
+  the heads of two houses or two of one house. A younger son's quarrel no longer moves his father's standing.
+- A character who does not lead their house is told their house's standing in a sentence of its own ("Between
+  houses: your house, under Derthert, is at odds with ..."), apart from their own friends and enemies.
+
 ### Cultures (`CrCultures.MarriageCustom`, since 2.7.5)
 
 ```csharp

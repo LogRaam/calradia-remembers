@@ -267,7 +267,7 @@ namespace CalradiaRemembers.Mapping
             HasLover = !string.IsNullOrEmpty(romantic?.TakenLoverId) || Ledger.Of(hero.StringId) != null,
             IsPlayersLover = romantic?.Status == RomanticStatus.SecretLover,
             Honor = hero.GetTraitLevel(DefaultTraits.Honor),
-            FeelingForSpouse = hero.Spouse == null ? 0 : hero.GetRelation(hero.Spouse)
+            FeelingForSpouse = hero.Spouse == null ? 0 : PairBondReader.Points(hero, hero.Spouse)
          };
       }
    }

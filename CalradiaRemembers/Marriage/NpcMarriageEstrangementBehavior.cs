@@ -290,7 +290,7 @@ namespace CalradiaRemembers.Marriage
 
          // Capture the grudge inputs BEFORE the dissolution: the jilted spouse's relation to the partner who is
          // leaving them (a loved partner lost cuts deeper) and their forgiving nature.
-         int jiltedRelationToDeparted = jilted.GetRelation(npc);
+         int jiltedRelationToDeparted = Mapping.PairBondReader.Points(jilted, npc);
          int jiltedMercy = jilted.GetTraitLevel(DefaultTraits.Mercy);
 
          if (!MarriageDissolutionService.TryDissolve(npc, jilted, out string reason))

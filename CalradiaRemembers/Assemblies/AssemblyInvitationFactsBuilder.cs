@@ -76,7 +76,7 @@ namespace CalradiaRemembers.Assemblies
                 return profile?.ReputationWithPlayer ?? 0;
             }
 
-            return invitee.GetRelation(initiator);
+            return Mapping.PairBondReader.Points(invitee, initiator);
         }
 
         private static float DistanceToHost(Hero invitee, Settlement host)

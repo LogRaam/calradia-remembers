@@ -655,7 +655,7 @@ namespace CalradiaRemembers.WorldEvents
          if (shift == 0 || company.Leader == null) return;
 
          foreach (Hero lord in RealmLords(kingdom).Where(h => h.Clan != company))
-            TaleWorlds.CampaignSystem.Actions.ChangeRelationAction.ApplyRelationChangeBetweenHeroes(lord, company.Leader, shift, false);
+            Mapping.RelationLedgerBehavior.Change(lord, company.Leader, shift);
       }
 
       private static void RecordCompanyNews(Clan company, Kingdom kingdom, MercenaryDepartureVerdict verdict, string enemyName)

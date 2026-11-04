@@ -360,7 +360,7 @@ namespace CalradiaRemembers.Verbs
                 IsSpouse = buyer.Spouse == captive,
                 IsChild = captive.Father == buyer || captive.Mother == buyer,
                 IsParentOrSibling = buyer.Father == captive || buyer.Mother == captive || sibling,
-                Relation = buyer.GetRelation(captive)
+                Relation = Mapping.PairBondReader.Points(buyer, captive)
             });
         }
     }

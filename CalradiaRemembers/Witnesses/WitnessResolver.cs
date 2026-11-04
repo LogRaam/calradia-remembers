@@ -706,7 +706,7 @@ namespace CalradiaRemembers.Witnesses
             HeadsSpeakersClan = heads && observer.Clan == subject.Clan,
             Governs = subject.GovernorOf?.Settlement?.Name?.ToString() ?? "",
             // A companion's line says only "the player's companion": give the speaker his own regard for her.
-            SpeakerRelation = withRegard ? subject.GetRelation(observer) : null
+            SpeakerRelation = withRegard ? Mapping.PairBondReader.Points(subject, observer) : null
          });
       }
 
@@ -733,7 +733,7 @@ namespace CalradiaRemembers.Witnesses
             if (witness.Clan?.Kingdom?.Leader == npcHero) return "your vassal";
             if (npcHero.Clan != null && npcHero.Clan == witness.Clan)
                return "your clan member";
-            int rel = witness.GetRelation(npcHero);
+            int rel = Mapping.PairBondReader.Points(witness, npcHero);
 
             // "lord" is gendered in the prompt's ear (player report 2026-08-31: a lady witness read as male);
             // "your liege" / "your vassal" / "your clan member" already read either way.

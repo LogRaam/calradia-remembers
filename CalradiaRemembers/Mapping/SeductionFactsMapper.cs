@@ -27,7 +27,7 @@ namespace CalradiaRemembers.Mapping
       /// </summary>
       public static SeductionFacts For(Hero hero, NpcProfile profile)
          => new SeductionFacts {
-            NpcSpouseRelation = hero.GetRelation(hero.Spouse),
+            NpcSpouseRelation = PairBondReader.Points(hero, hero.Spouse),
             HasChildrenTogether = hero.Children != null
                && hero.Children.Any(c => c != null && (c.Father == hero.Spouse || c.Mother == hero.Spouse)),
             MarriageDurationDays = 0,

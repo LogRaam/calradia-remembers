@@ -36,7 +36,7 @@ namespace CalradiaRemembers.Mapping
          {
             if (h == null || h == partner) continue;
 
-            int rel = h.GetRelation(partner);
+            int rel = PairBondReader.Points(h, partner);
             bool acquainted = rel > 0 || (h.MapFaction != null && h.MapFaction == partner.MapFaction);
             // The partner's own orientation against the candidate's sex: the single authoritative compatibility
             // rule (RomanticProfile.IsCompatibleWith), reused for a female-partner-seeking-a-male-lover direction.

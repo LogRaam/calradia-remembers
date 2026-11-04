@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (114)
+## Keys (115)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -122,6 +122,7 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `cr_hidden_affairs` | `HiddenAffairBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `cr_legends` | `LegendBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `cr_raid_restraint` | `RaidRestraintBehavior` | constant `SaveKey` passed to SyncData (fact) |
+| `cr_relation_baselines` | `RelationLedgerBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `cr_standing_aims` | `AimsBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `cr_war_duty` | `WarDutyBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `cr_world_initiative` | `WorldInitiativeBehavior` | constant `SaveKey` passed to SyncData (fact) |

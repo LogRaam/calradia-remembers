@@ -280,7 +280,10 @@ namespace CalradiaRemembers.WorldEvents
          Hero a = Find(step.A), b = Find(step.B);
          if (a == null || b == null) return;
 
-         int value = Math.Max(-VanillaRelation.Bound, Math.Min(VanillaRelation.Bound, CharacterRelationManager.GetHeroRelation(a, b) + step.Delta));
+         int before = CharacterRelationManager.GetHeroRelation(a, b);
+         int value = Math.Max(-VanillaRelation.Bound, Math.Min(VanillaRelation.Bound, before + step.Delta));
+         // A written history is a reason: what it moves is history, not a start (PairBondPolicy).
+         Mapping.RelationLedgerBehavior.Instance?.Ledger.Saw(a.StringId, b.StringId, before);
          a.SetPersonalRelation(b, value);
 
          if (!step.TouchesPlayer) return;

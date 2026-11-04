@@ -54,7 +54,7 @@ namespace CalradiaRemembers.Marriage
             return new DivorceEligibilityFacts {
                 NpcIsMarried = married,
                 NpcRelationWithSpouse = married
-                    ? npc.GetRelation(spouse)
+                    ? Mapping.PairBondReader.Points(npc, spouse)
                     : 0,
                 NpcRelationWithPlayer = npc.GetRelation(Hero.MainHero),
                 NpcIsRomanticallyBoundToPlayer = IsRomanticallyBoundToPlayer(npc),

@@ -1615,7 +1615,7 @@ namespace CalradiaRemembers.WorldEvents
          for (var i = 0; i < lords.Count; i++)
             for (int j = i + 1; j < lords.Count; j++)
             {
-               if (lords[i].GetRelation(lords[j]) > RivalryThreshold) continue;
+               if (Mapping.PairBondReader.Points(lords[i], lords[j]) > RivalryThreshold) continue;
 
                string key = PairKey(lords[i], lords[j]);
 

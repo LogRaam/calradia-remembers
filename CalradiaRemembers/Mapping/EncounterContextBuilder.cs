@@ -1567,7 +1567,7 @@ namespace CalradiaRemembers.Mapping
          foreach (Hero c in Hero.AllAliveHeroes)
          {
             if (c == hero || c == Hero.MainHero || !c.IsAlive || !c.IsPlayerCompanion) continue;
-            int rel = hero.GetRelation(c);
+            int rel = PairBondReader.Points(hero, c);
 
             if (Math.Abs(rel) <= Math.Abs(strongest)) continue;
             strongest = rel;
