@@ -180,7 +180,8 @@ namespace CalradiaRemembers.Verbs
                 CaptiveName = captive?.Name?.ToString() ?? (query.Length > 0 ? query : "that captive"),
                 HolderName = captive == null ? null : holder,
                 PlaceName = place,
-                IsPlayersOwn = own
+                IsPlayersOwn = own,
+                PlayerWasSelling = verb == "buy_prisoner"
             });
         }
     }

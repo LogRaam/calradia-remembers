@@ -663,7 +663,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 #### `CalradiaRemembers.Mapping` and `CalradiaRemembers.Marriage`
 
 - `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Marriage` in 2 file(s): `Mapping/EncounterContextBuilder.cs`, `Mapping/RelationshipsBuilder.cs`
-- `CalradiaRemembers.Marriage` uses `CalradiaRemembers.Mapping` in 8 files: `Marriage/CourtshipTrialBehavior.cs`, `Marriage/DivorceEligibilityResolver.cs`, `Marriage/DivorceProcessBehavior.cs`, and 5 more
+- `CalradiaRemembers.Marriage` uses `CalradiaRemembers.Mapping` in 9 files: `Marriage/CourtshipLapseBehavior.cs`, `Marriage/CourtshipTrialBehavior.cs`, `Marriage/DivorceEligibilityResolver.cs`, and 6 more
 
 #### `CalradiaRemembers.Mapping` and `CalradiaRemembers.Nemesis`
 

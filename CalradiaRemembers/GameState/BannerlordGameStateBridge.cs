@@ -2027,8 +2027,16 @@ namespace CalradiaRemembers.GameState
                ? ResolveSaleItem(itemName, context)
                : ResolveNamedItem(itemName, context?.OfferedItemId, out _);
             ItemObject item = found.EquipmentElement.Item;
+            if (item == null) return null;
 
-            return item == null ? null : new ItemPreview {Id = item.StringId, Name = item.Name?.ToString(), Value = item.Value};
+            // A sale from the bag moves the amount set there (froggyluv, 04/11/2026): the confirmation names it and its worth.
+            GiftBundle bundle = context?.OfferedBundle;
+            int count = string.Equals(action.Type, "sell_item", StringComparison.OrdinalIgnoreCase) && bundle?.Items is {Count: 1}
+                        && bundle.Items[0].ItemId == item.StringId && !bundle.Handed
+               ? Math.Max(1, Math.Min(bundle.Items[0].Count, found.Amount))
+               : 1;
+
+            return new ItemPreview {Id = item.StringId, Name = count > 1 ? $"{count} {item.Name}" : item.Name?.ToString(), Value = item.Value * count};
          }
          catch (Exception ex)
          {

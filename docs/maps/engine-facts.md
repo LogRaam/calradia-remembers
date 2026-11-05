@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-737 rules read 544 facts.
+738 rules read 546 facts.
 
 ## Facts read by more than one rule
 
@@ -524,6 +524,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `CourtActionPolicy.IsPartyWeakened`: `Hero.PartyBelongedTo`, `MobileParty.MemberRoster`, `Party.PartySizeLimit`, `TroopRoster.GetTroopRoster`
 - `CourtActionPolicy.IsPlayerHousehold`: `Hero.Clan`
 - `CourtshipLapsePolicy.After`: `Romantic.Status`
+- `CourtshipLapsePolicy.EndsForAPastWedding`: `Romantic.StatusSinceDay`
 - `CraftWeaponPolicy.Answers`: `ItemObject.IsCraftedByPlayer`
 - `CustodyReleaseFacts`: `EndCaptivityDetail.ReleasedByChoice`
 - `DayMoodFactsPolicy.From`: `Clan.Kingdom`, `Hero.Clan`, `Hero.CurrentSettlement`, `Hero.IsPrisoner`, `Settlement.IsCastle`, `Settlement.IsTown`, `Settlement.IsUnderSiege`
@@ -732,7 +733,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `LetterCandidate`: `Hero.Spouse`
 - `LetterCandidateFreshness.PremiseStillHolds`: `Hero.MapFaction`
 - `LetterDeliveryPolicy.ShouldHoldDeliveryAtSea`: `MobileParty.IsCurrentlyAtSea`
-- `LetterEnvelopePolicy.IsUnwritten`: `Boxed.Letter`
+- `LetterEnvelopePolicy.IsUnwritten`: `Boxed.Letter`, `PrewriteQueue.Dequeue`
 - `LetterFontPolicy.PreferPlainFont`: `LanguageIdProvider.Invoke`
 - `LetterRegardFacts`: `ModSettings.RelationWarmth`
 - `LetterRegardPolicy.ParseTone`: `DayMoodReader.Draw`

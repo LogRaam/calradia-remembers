@@ -171,12 +171,20 @@ namespace CalradiaRemembers.Letters
          lock (Prewriting)
             if (!Prewriting.Add(boxed.Letter)) return false;
 
+         // One at a time, as a local server answers one at a time: a courier bringing several letters must not fire them all.
+         if (_prewriteBusy) PrewriteQueue.Enqueue(boxed);
+         else StartPrewrite(boxed);
+
+         return true;
+      }
+
+      private static void StartPrewrite(BoxedLetter boxed)
+      {
+         _prewriteBusy = true;
          int session = _session;
          ModLog.Info($"[LETTERBOX] writing {boxed.Sender.Name}'s letter ({boxed.Letter.Reason}) on arrival, as of day {boxed.Letter.SentOnDay}.");
          LetterGenerationService.WriteEnvelopeAsync(boxed.Letter, boxed.Sender)
             .ContinueWith(t => Prewritten.Enqueue(new PrewrittenText {Boxed = boxed, Text = t.Status == TaskStatus.RanToCompletion ? t.Result : null, Session = session}));
-
-         return true;
       }
 
       /// <summary>
@@ -201,6 +209,8 @@ namespace CalradiaRemembers.Letters
       private static readonly HashSet<PendingLetter> Prewriting = new();
       private static readonly ConcurrentQueue<PrewrittenText> Prewritten = new();
       private static BoxedLetter _awaitingPrewrite;
+      private static readonly Queue<BoxedLetter> PrewriteQueue = new();
+      private static bool _prewriteBusy;
 
       private sealed class PrewrittenText
       {
@@ -324,6 +334,8 @@ namespace CalradiaRemembers.Letters
             lock (Prewriting) Prewriting.Remove(done.Boxed.Letter);
             if (done.Session != _session) continue; // written for a campaign since left
 
+            _prewriteBusy = false;
+
             bool awaited = _awaitingPrewrite?.Letter == done.Boxed.Letter;
             if (string.IsNullOrWhiteSpace(done.Text))
             {
@@ -344,6 +356,13 @@ namespace CalradiaRemembers.Letters
             Store?.Set(done.Boxed.Sender);
             StoryLog.WriteLetterReceived(done.Boxed.Letter.SenderName, done.Boxed.Letter.Content, (int) CampaignTime.Now.ToDays);
             ModLog.Info($"[LETTERBOX] {done.Boxed.Sender?.Name}'s letter written on arrival.");
+         }
+
+         while (!_prewriteBusy && PrewriteQueue.Count > 0)
+         {
+            BoxedLetter next = PrewriteQueue.Dequeue();
+            if (LetterEnvelopePolicy.IsUnwritten(next.Letter)) StartPrewrite(next);
+            else lock (Prewriting) Prewriting.Remove(next.Letter);
          }
 
          if (_awaitingPrewrite == null || LetterEnvelopePolicy.IsUnwritten(_awaitingPrewrite.Letter)) return;
@@ -460,6 +479,8 @@ namespace CalradiaRemembers.Letters
          _session++;
          while (Written.TryDequeue(out _)) { }
          lock (Prewriting) Prewriting.Clear();
+         PrewriteQueue.Clear();
+         _prewriteBusy = false;
          _dirty = true;
       }
 

@@ -131,10 +131,10 @@ namespace CalradiaRemembers.Logic.Companions
                                .ToList();
 
          string why = causes.Count == 0
-            ? "No single wrong has soured you: it is a slow unease in their service, and if you speak of it you say so."
-            : $"What has soured you, and only this: {string.Join("; ", causes)}.";
+            ? "Nothing lately is recorded as souring you: if you speak of it, speak of your memories or of a slow unease."
+            : $"What has soured you lately: {string.Join("; ", causes)}.";
 
-         return $"{mood} {why} Never claim a broken promise, a slight or any wrong not named here.";
+         return $"{mood} {why} Never claim a broken promise, a slight or any wrong that is neither named here nor among your memories.";
       }
    }
 }

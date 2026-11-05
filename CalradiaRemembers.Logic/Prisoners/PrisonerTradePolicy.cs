@@ -175,6 +175,16 @@ namespace CalradiaRemembers.Logic.Prisoners
       {
          if (f == null) return "(There is no such captive to trade.)";
          if (f.IsPlayersOwn) return $"({f.CaptiveName} is one of your own, and not for sale. Ask for their release, or offer an exchange.)";
+         // froggyluv (Nexus, 04/11/2026): a lady BUYING his captive was told she "holds no captive called Elthild", which read
+         // as the sale reversed. When the player was the seller, the refusal speaks of the player's keeping.
+         if (f.PlayerWasSelling)
+         {
+            if (string.IsNullOrWhiteSpace(f.HolderName)) return $"(You hold no captive called {f.CaptiveName} for {f.SellerName} to buy. Nothing is paid.)";
+
+            string held = string.IsNullOrWhiteSpace(f.PlaceName) ? "" : $", at {f.PlaceName}";
+
+            return $"({f.CaptiveName} is not in your keeping: {f.HolderName} holds them{held}. Nothing is paid.)";
+         }
          if (string.IsNullOrWhiteSpace(f.HolderName)) return $"({f.SellerName} holds no captive called {f.CaptiveName}. Nothing is paid.)";
 
          string where = string.IsNullOrWhiteSpace(f.PlaceName) ? "" : $", at {f.PlaceName}";
@@ -225,5 +235,8 @@ namespace CalradiaRemembers.Logic.Prisoners
 
       /// <summary>The captive is of the player's own house: never merchandise.</summary>
       public bool IsPlayersOwn { get; init; }
+
+      /// <summary>The player was the seller (buy_prisoner): the refusal speaks of the player's keeping, not the buyer's.</summary>
+      public bool PlayerWasSelling { get; init; }
    }
 }

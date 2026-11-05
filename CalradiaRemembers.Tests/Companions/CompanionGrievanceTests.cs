@@ -21,12 +21,15 @@ namespace CalradiaRemembers.Tests.Companions
    {
       // STAKE: froggyluv: a disgruntled companion with no recorded wrong must not be invited to name one.
       [Test]
-      public void GIVEN_a_disgruntled_companion_with_no_recorded_cause_WHEN_the_note_is_built_THEN_it_says_no_single_wrong_and_forbids_inventing_one()
+      public void GIVEN_a_disgruntled_companion_with_no_recorded_cause_WHEN_the_note_is_built_THEN_it_points_to_memories_and_forbids_inventing_a_wrong()
       {
          string note = CompanionGrievancePolicy.MoodNote(20, new List<GrievanceEntry>());
 
-         note.Should().Contain("No single wrong");
+         note.Should().Contain("Nothing lately is recorded");
          note.Should().Contain("Never claim a broken promise");
+         // STAKE: froggyluv: "when its an actual mission that i forgot to do for one i dont mind it": a task the player let
+         // lapse lives in the companion's memories, and the note must leave it sayable.
+         note.Should().Contain("nor among your memories");
       }
 
       // STAKE: the real cause the game counted is what the companion speaks of, so the grievance is one the player can mend.

@@ -43,6 +43,23 @@ namespace CalradiaRemembers.Tests.Romance
          CourtshipLapsePolicy.After(status, false).Should().Be(status);
       }
 
+      // STAKE: avalanche24's own save: Rhagaea was already wed when this came; the courtship still running beside it ends.
+      [Test]
+      public void GIVEN_a_courtship_and_a_later_wedding_to_another_WHEN_reconciled_THEN_it_ends()
+      {
+         CourtshipLapsePolicy.EndsForAPastWedding(true, 300, 120).Should().BeTrue();
+      }
+
+      // STAKE: a married lady the player began courting after her wedding is the player's affair to pursue, not a lapse;
+      // and a wedding CR never saw proves nothing.
+      [TestCase(true, 100, 200)]
+      [TestCase(true, null, 200)]
+      [TestCase(false, 300, 120)]
+      public void GIVEN_a_courtship_after_the_wedding_or_an_unseen_wedding_WHEN_reconciled_THEN_it_stays(bool wedToAnother, int? weddedOn, int? since)
+      {
+         CourtshipLapsePolicy.EndsForAPastWedding(wedToAnother, weddedOn, since).Should().BeFalse();
+      }
+
       // STAKE: Gabriel's rule that NPCs never lie: she remembers choosing another and never denies the courtship was real.
       [Test]
       public void GIVEN_a_lapsed_courtship_WHEN_remembered_THEN_she_names_her_spouse_and_owns_what_was()

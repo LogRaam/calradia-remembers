@@ -22,7 +22,35 @@ namespace CalradiaRemembers.Marriage
    public sealed class CourtshipLapseBehavior : CampaignBehaviorBase
    {
       public override void RegisterEvents()
-         => CampaignEvents.BeforeHeroesMarried.AddNonSerializedListener(this, OnBeforeHeroesMarried);
+      {
+         CampaignEvents.BeforeHeroesMarried.AddNonSerializedListener(this, OnBeforeHeroesMarried);
+         CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, () => SafeRun.Step("CourtshipLapseBehavior.Reconcile", () => Reconcile()));
+      }
+
+      /// <summary>
+      ///   Ends the courtships still running beside a wedding already past (avalanche24's Rhagaea, wed before this existed);
+      ///   returns how many ended. Daily, and a cr.test seam.
+      /// </summary>
+      internal static int Reconcile()
+      {
+         var store = NpcMemoryCampaignBehavior.Instance?.Store;
+         if (store == null) return 0;
+
+         var ended = 0;
+         foreach (Hero hero in Hero.AllAliveHeroes)
+         {
+            Hero spouse = hero?.Spouse;
+            if (spouse == null || hero == Hero.MainHero || spouse == Hero.MainHero) continue;
+
+            NpcProfile profile = store.Get(hero.StringId);
+            if (profile?.Romantic == null || CourtshipLapsePolicy.After(profile.Romantic.Status, false) == profile.Romantic.Status) continue;
+            if (!CourtshipLapsePolicy.EndsForAPastWedding(true, Mapping.WeddingDayBehavior.WeddedOn(hero), profile.Romantic.StatusSinceDay)) continue;
+
+            if (Lapse(hero, spouse)) ended++;
+         }
+
+         return ended;
+      }
 
       public override void SyncData(IDataStore dataStore)
       {

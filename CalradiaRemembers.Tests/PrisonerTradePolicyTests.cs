@@ -169,5 +169,16 @@ namespace CalradiaRemembers.Tests
             PrisonerTradePolicy.NotHisToSellNote(new NotHisToSellFacts {SellerName = "Taslur", CaptiveName = "Rhagaea"})
                 .Should().Contain("Taslur holds no captive called Rhagaea");
         }
+
+        // STAKE: froggyluv (Nexus, 04/11/2026): Eilidh was buying his captive and the refusal said "Eilidh holds no captive
+        // called Elthild", which read as the trade reversed. A failed purchase speaks of the player's keeping.
+        [Test]
+        public void GIVEN_the_player_selling_a_captive_not_found_WHEN_refused_THEN_the_refusal_speaks_of_the_players_keeping()
+        {
+            string note = PrisonerTradePolicy.NotHisToSellNote(new NotHisToSellFacts {SellerName = "Eilidh", CaptiveName = "Elthild of dey Tihr", PlayerWasSelling = true});
+
+            note.Should().Contain("You hold no captive called Elthild of dey Tihr for Eilidh to buy");
+            note.Should().NotContain("Eilidh holds");
+        }
     }
 }

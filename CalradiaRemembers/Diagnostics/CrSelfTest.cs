@@ -235,6 +235,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("personal_worth", Severity.Light, "Thoragoros1 03/11: a captive is worth more to their own kin than the game's ransom. Takes a lord whose clan leader is his parent, child, spouse or sibling, reads the most the leader may offer in the turn's sum tokens, has the leader buy him through the real buy_prisoner at an absurd price, and asserts the token, the payment and the policy agree and stand above the ordinary band. Restores both purses and frees the captive", TestPersonalWorth),
          new SelfTest("courtship_lapse", Severity.Light, "avalanche24 04/11: the game wed Queen Rhagaea to another while the player courted her, and CR kept the courtship running (Heart page, letters) while she denied it in chat. Takes a lord or lady of the other sex, sets their bond with the player to Courting, drives the real wedding hook as if they wed another hero, and asserts the bond falls to Estranged and they remember the wedding as their own life. Restores the bond and removes the memory", TestCourtshipLapse),
          new SelfTest("companion_grievance", Severity.Light, "froggyluv 04/11: unhappy companions invented a broken promise because the mood note named no cause. Lowers a companion's contentment through the real driver with a named cause, and asserts the cause is kept and the note names it and forbids inventing another. Restores the contentment and the causes", TestCompanionGrievance),
+         new SelfTest("courtship_lapse_past", Severity.Light, "avalanche24 04/11: Rhagaea was already wed to another when the lapse came, so no wedding would ever fire for her again. Takes a hero married to someone other than the player, sets their bond with the player to Courting from before a wedding day CR records, runs the daily reconcile, and asserts the bond falls to Estranged; a courtship begun after the wedding is left alone. Restores the bond, its dates, the memories and the wedding day", TestCourtshipLapsePast),
+         new SelfTest("bag_sale", Severity.Light, "froggyluv 04/11: food chosen in the bag to sell moved one unit or left as a gift. Holds three of a trade good in the bag with an asking price, asserts give_item refuses them (no gift), then that sell_item moves all three and the buyer pays. Restores the goods and the coin", TestBagSale),
          new SelfTest("captive_name", Severity.Light, "froggyluv 04/11: a buyer named the captive with her house ('Elthild of dey Tihr') and the sale failed: no captive by that name. Takes a hero captive the player holds and asserts the real resolver finds them by name with the house appended. Skips when the player holds no hero captive; changes nothing", TestCaptiveName),
          new SelfTest("pair_bond", Severity.Light, "tashmetu 04/11: the game's starting draw gave strangers of far realms -100, and a change with a younger son landed on his father. Takes two lords of realms neither neighbours nor at war, no kin, writes a -80 start on their own slot, and asserts CR does not believe it (vague unease, 0 points); then changes it through CR and asserts only the change counts, on their own slot, and the clan leaders' relation is untouched. Restores both values and forgets the ledger rows", TestPairBond),
          new SelfTest("hidden_affairs", Severity.Light, "Gabriel's go 01/11/2026: a married lord may take a hidden lover, found by a companion sent to spy on them. Begins an affair between two lords and asserts both carry it in their prompt, told to evade and never lie; the player holds nothing yet; end_affair refuses it and the partner path leaves it alone; a poor inquiry says nothing certain; a companion dispatched with the lord's name through the real errand reports it and the player then holds it, on the lover too. Then ends it as a telling would, and asserts the fields are clear. Expose itself is driven by cr.test secret_exposure. Restores all borrowed state", TestHiddenAffairs),
@@ -10287,6 +10289,7 @@ namespace CalradiaRemembers.Diagnostics
 
          NpcProfile profile = store.Get(wed.StringId);
          RomanticStatus status0 = profile.Romantic.Status;
+         int? since0 = profile.Romantic.StatusSinceDay, lovers0 = profile.Romantic.LoversSinceDay;
          int events0 = profile.Events.Count;
          try
          {
@@ -10308,6 +10311,8 @@ namespace CalradiaRemembers.Diagnostics
          {
             NpcProfile back = store.Get(wed.StringId);
             back.Romantic.Status = status0;
+            back.Romantic.StatusSinceDay = since0;
+            back.Romantic.LoversSinceDay = lovers0;
             while (back.Events.Count > events0) back.Events.RemoveAt(back.Events.Count - 1);
             store.Set(back);
          }
@@ -10342,6 +10347,100 @@ namespace CalradiaRemembers.Diagnostics
          {
             Missions.CompanionHappinessService.Set(companion, happiness0);
             Missions.CompanionHappinessService.Grievances = Logic.Companions.CompanionGrievanceLedger.Deserialize(ledger0);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestCourtshipLapsePast(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("courtship_lapse_past");
+         var store = behavior?.Store;
+         if (t.Abort(store == null, "no memory store")) return t.Line();
+
+         Hero wed = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.Spouse != null && h.Spouse != Hero.MainHero && !h.IsChild
+                                                            && store.Get(h.StringId)?.Romantic != null);
+         if (t.Skip(wed == null, "no hero married to someone other than the player with a romantic profile")) return t.Line();
+
+         NpcProfile profile = store.Get(wed.StringId);
+         RomanticStatus status0 = profile.Romantic.Status;
+         int? since0 = profile.Romantic.StatusSinceDay, lovers0 = profile.Romantic.LoversSinceDay;
+         int events0 = profile.Events.Count;
+         int? wedding0 = Mapping.WeddingDayBehavior.WeddedOn(wed);
+         var today = (int) CampaignTime.Now.ToDays;
+         try
+         {
+            // A courtship begun AFTER her wedding: the player's affair to pursue, never ended by it.
+            Mapping.WeddingDayBehavior.DebugSet(wed, today - 20);
+            profile.Romantic.Status = RomanticStatus.Courting;
+            profile.Romantic.StatusSinceDay = today - 10;
+            store.Set(profile);
+            Marriage.CourtshipLapseBehavior.Reconcile();
+            t.Expect("aCourtshipAfterTheWeddingStays", store.Get(wed.StringId).Romantic.Status, RomanticStatus.Courting);
+
+            // STAKE: avalanche24's Rhagaea: courted before she was wed to another, the courtship ends on the next day's reconcile.
+            NpcProfile before = store.Get(wed.StringId);
+            before.Romantic.StatusSinceDay = today - 30;
+            store.Set(before);
+            Marriage.CourtshipLapseBehavior.Reconcile();
+            t.Note($"{wed.Name}, wed to {wed.Spouse?.Name}: {store.Get(wed.StringId).Romantic.Status}");
+            t.Expect("aCourtshipBeforeTheWeddingEnds", store.Get(wed.StringId).Romantic.Status, RomanticStatus.Estranged);
+         }
+         finally
+         {
+            NpcProfile back = store.Get(wed.StringId);
+            back.Romantic.Status = status0;
+            back.Romantic.StatusSinceDay = since0;
+            back.Romantic.LoversSinceDay = lovers0;
+            while (back.Events.Count > events0) back.Events.RemoveAt(back.Events.Count - 1);
+            store.Set(back);
+            Mapping.WeddingDayBehavior.DebugSet(wed, wedding0);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestBagSale(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("bag_sale");
+         ItemRoster roster = MobileParty.MainParty?.ItemRoster;
+         if (t.Abort(roster == null || Hero.MainHero == null, "no player item roster")) return t.Line();
+
+         Hero buyer = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && h.Gold >= 2000 && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(buyer == null, "no lord in the world with 2000 denars")) return t.Line();
+
+         ItemObject good = MBObjectManager.Instance?.GetObjectTypeList<ItemObject>()?.FirstOrDefault(it => it != null && it.IsTradeGood && it.Value > 0);
+         if (t.Skip(good == null, "no trade good in the game data")) return t.Line();
+
+         int heldBefore = roster.GetItemNumber(good);
+         int playerGold = Hero.MainHero.Gold;
+         int buyerGold = buyer.Gold;
+         int price = Math.Min(3 * good.Value, ItemSalePolicy.MostFor(3 * good.Value));
+         roster.AddToCounts(good, 3);
+         var paid = 0;
+         try
+         {
+            var bundle = new GiftBundle {Items = new List<ItemOffer> {new ItemOffer(good.StringId, 3)}, AskingPrice = price};
+            var ctx = new ActionContext(GetOrCreate(behavior, buyer), null) {OfferedItemId = good.StringId, OfferedBundle = bundle};
+
+            // STAKE: froggyluv: goods held out for a price never leave as a gift.
+            ActionOutcome gift = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "give_item"}, buyer, ctx);
+            t.Expect("noGiftOfGoodsForSale", roster.GetItemNumber(good), heldBefore + 3);
+            t.Note($"give_item: {gift?.Message}");
+
+            // STAKE: froggyluv: the whole amount chosen in the bag is sold, and paid for.
+            var sale = new GameAction {Type = "sell_item", Parameters = new Dictionary<string, string> {["item"] = good.Name.ToString(), ["price"] = price.ToString()}};
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(sale, buyer, ctx);
+            paid = Hero.MainHero.Gold - playerGold;
+            t.Note($"sell_item: {outcome?.Message}");
+            t.Expect("allThreeAreSold", roster.GetItemNumber(good), heldBefore);
+            t.Expect("thePlayerIsPaid", paid > 0 && buyerGold - buyer.Gold == paid, true);
+         }
+         finally
+         {
+            if (paid > 0) GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, buyer, paid);
+            int extra = roster.GetItemNumber(good) - heldBefore;
+            if (extra != 0) roster.AddToCounts(good, -extra);
          }
 
          return t.Line();

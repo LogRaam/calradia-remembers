@@ -35,6 +35,14 @@ namespace CalradiaRemembers.Logic.Romance
          }
       }
 
+      /// <summary>
+      ///   Whether a bond still running beside a marriage to someone else ends now, for a wedding already past (avalanche24's
+      ///   Rhagaea was wed before this existed). Only when CR saw the wedding and it came on or after the bond's own day: a
+      ///   courtship begun after her wedding, or revived since, is the player's own doing and is left alone.
+      /// </summary>
+      public static bool EndsForAPastWedding(bool wedToAnother, int? weddedOnDay, int? bondSinceDay)
+         => wedToAnother && weddedOnDay is int wed && bondSinceDay is int since && wed >= since;
+
       /// <summary>What the character remembers of it, in their own memory (first person, as their own life is kept).</summary>
       public static string Memory(string spouseName)
          => $"Wed {spouseName ?? "another"}, though the player had been courting me. What was between the player and me ended there; " +
