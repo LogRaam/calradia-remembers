@@ -1,0 +1,57 @@
+# The tales the Darshi tell around the fire
+# Calradia Remembers reads this file for every character of Darshi culture (their own people, not their realm).
+# They know these as tales, never as history. Each character carries a few, and loves one best: that one alone they can
+# tell in full, from its beats; the others they can only name or allude to.
+#
+# How to write a tale:
+#   [Title]          opens a tale
+#   gist: ...        what it is about, in one line (required: a tale without it is not read)
+#   beat: ...        one part of the story, in order; a tale with no beats can be named, never told
+# A line with no key continues the line before it. Lines starting with # are never read.
+# A copy in ModuleData/Custom/folklore/ is read instead of this one, so your edits survive an update. A file named after
+# another culture's id (folklore/<id>.txt) gives that people tales of its own.
+
+[The Keeper of the Levee]
+gist: the keeper of a river levee who died at his post when the nomads broke it, and still walks the old dikes with his lamp.
+beat: When the river cities still stood under the old shahs, every levee had a keeper who walked it each night with a lamp, looking for leaks.
+beat: When the steppe riders came and broke the levees, one keeper refused to flee, and stood in the breach heaping mud and reeds until the water took him.
+beat: His city drowned, but the families on his stretch of the river had time to reach the high ground, because he held the water back for half a night.
+beat: Now, when the river rises, farmers in the valley sometimes see a small lamp moving along the broken dikes where no one walks.
+beat: Those who follow it are always led to high ground before the flood, and those who mock it have to swim.
+beat: So the Darshi say: "Follow the keeper's lamp," and they honour anyone who stays at his post when others run.
+
+[The Conqueror's Boast and the Soldier's Line]
+gist: a conqueror who carved his boast on a great boulder, and the homesick soldier who carved one line beneath it.
+beat: A conqueror marching through a pass ordered his stonecutters to carve his victories on a great boulder, so that all who passed would know his name.
+beat: The stonecutters worked for a month and carved a hundred lines of titles, battles and cities taken.
+beat: On the night before the army marched on, a footsore soldier crept up with his knife and scratched one line beneath it: "And my feet hurt, and I miss my mother's bread."
+beat: Travellers through the pass soon forgot the hundred lines, which were tiresome, but every one of them read the soldier's line and laughed and sighed.
+beat: Today the conqueror's name is worn away by the wind, but people still repeat the soldier's words when the road is long.
+beat: The Darshi say: "Kings write on the stone, and soldiers write the truth beneath it."
+
+[The Drover of the Dawn Mountains]
+gist: a drover who brought a whole herd safe across raider country by moving only in the hour before dawn.
+beat: Once the merchants of the plateau had a great herd of horses and sheep to drive west to market, but the road was thick with raiders from the steppe.
+beat: The bold drovers wanted to ride by day with many guards, and the cautious ones wanted to wait a year, and the merchants could not decide.
+beat: An old drover said that raiders sleep hardest in the hour before dawn, when even the dogs doze, and that he would move the herd only then.
+beat: Each night he rested the herd in a hidden gully, and each morning, as the mountains in the east turned pink, he moved it a little farther.
+beat: It took him three times as long as any drive before, but he came to the market with every animal and every man alive.
+beat: The Darshi call patience "the drover's hour," and say: "The dawn belongs to the one who is awake."
+
+[The Weaver Who Promised Two Shahs]
+gist: a carpet-weaver who promised the same carpet to two shahs, and the war her greed began.
+beat: A carpet-weaver made the most beautiful carpet ever seen in the river cities, with a garden of a thousand flowers woven into it.
+beat: A shah offered her a fortune for it, and she said yes; then a rival shah offered twice as much, and she said yes to him too.
+beat: She thought she could weave a second carpet in time, but no second carpet came out as fine, and both shahs claimed the first.
+beat: Each shah called the other a thief, and their quarrel over one carpet became a war between two cities, and many fields were burned.
+beat: When the war was over, both cities were poorer, and the carpet itself had been cut in half by soldiers who could not decide whose it was.
+beat: The Darshi tell it to merchants and end: "One carpet covers one floor," meaning a promise can be sold only once.
+
+[The Sister Who Carried the Bricks]
+gist: a sister who carried bricks from the ruined city every day to rebuild her brother's house after the flood.
+beat: When the floods ruined the old cities, a young woman and her brother lost everything except one another, and the brother was lamed by the water.
+beat: He could not work, so she walked each day to the ruins, which were full of good fired brick, and carried back as many as she could hold.
+beat: The neighbours told her it was hopeless, that a house of a thousand bricks could not be carried by one pair of arms.
+beat: She answered that she did not need a thousand bricks today, only the one in her hands, and went on.
+beat: In two years the house stood, with a garden and a well, and her brother, healed, built the second storey for her own children.
+beat: The Darshi say "Brick by brick" to anyone facing a great task, and they say it softly, the way a sister would.

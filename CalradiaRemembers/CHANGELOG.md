@@ -4,6 +4,10 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.8.4.. open
 
+### New
+
+- **Folk tales for every people** (Gabriel 05/11/2026: "go pour les contes des autres peuples"). Five tales each in `ModuleData/folklore/` for empire, aserai, sturgia, vlandia, khuzait and the War Sails peoples nord, vakken and darshi, beside the Battanian pilot. Grounded in the game's own texts (spclans, kingdoms, settlement descriptions: the Darshi levees and the Calsean Gates graffiti, the Vakken burned-forest fields, the Nord burial pits on the Jumne); no real-world myth retold, no named Calradian figure. Data only: `FolkTalePolicy` and the loader are unchanged. Not reviewed by Gabriel; cr.test folk_tales.
+
 ## v2.8.3.. 2026-11-04
 
 ### New

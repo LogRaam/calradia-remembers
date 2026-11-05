@@ -1,0 +1,57 @@
+# The tales the Vlandians tell around the fire
+# Calradia Remembers reads this file for every character of Vlandian culture (their own people, not their realm).
+# They know these as tales, never as history. Each character carries a few, and loves one best: that one alone they can
+# tell in full, from its beats; the others they can only name or allude to.
+#
+# How to write a tale:
+#   [Title]          opens a tale
+#   gist: ...        what it is about, in one line (required: a tale without it is not read)
+#   beat: ...        one part of the story, in order; a tale with no beats can be named, never told
+# A line with no key continues the line before it. Lines starting with # are never read.
+# A copy in ModuleData/Custom/folklore/ is read instead of this one, so your edits survive an update. A file named after
+# another culture's id (folklore/<id>.txt) gives that people tales of its own.
+
+[The Knight Who Kept the Dawn Joust]
+gist: a knight who swore to meet his rival on the lists at dawn, died in the night, and came anyway.
+beat: Two knights of the same shire quarrelled over a slight at a feast, and swore before the count to settle it with lances on the tourney field at dawn.
+beat: In the night one of them was taken by a fever and died before the cock crowed, and his squire wept over his armour.
+beat: At dawn the rival rode out to an empty field, ready to claim the victory, and the crowd heard hooves at the far end of the lists.
+beat: A knight in the dead man's colours rode down at him, lowered his lance in salute without striking, and was gone before he reached the barrier.
+beat: The rival dismounted, knelt where the hooves had stopped, and never jousted again in anger for the rest of his life.
+beat: Vlandians tell it to say that "an oath outlives the man," and that a vow made before witnesses must be kept, one way or another.
+
+[The Knight Who Feared Hens]
+gist: a fearless knight with a secret terror of hens, and the squire who turned the siege-trick on its head.
+beat: There was once a knight who had faced bears, brigands and crossbow bolts without blinking, but who could not abide a hen.
+beat: His enemies learned his secret, and when they besieged his castle, they drove a great flock of hens up to the walls each morning, clucking and pecking.
+beat: The knight hid in his tower and would not come down, and the garrison despaired, for their food was running low.
+beat: His squire, a practical lad, opened the postern gate at night, gathered up every hen he could catch, and the garrison feasted for a week.
+beat: The besiegers ran out of hens before the castle ran out of courage, and went home, and the knight rewarded his squire with spurs of his own.
+beat: Vlandians say: "Every fear is somebody's supper," meaning that what frightens one man may be the very thing that feeds another.
+
+[The Landless Knight and the Widow's Oats]
+gist: a landless knight who swore to serve whoever fed his horse, and the poor widow who did.
+beat: A landless knight, with nothing but his sword and his horse, swore on a hungry winter's night that he would serve whoever first gave his horse a meal.
+beat: The lords' gates were shut to him, but a poor widow at the edge of a village gave the horse her last measure of oats.
+beat: The knight kept his word: he mended her fence, cleared the brigands from her road, and stood guard over her field at harvest.
+beat: When a count, hearing of his skill, offered him a fief and a castle to serve instead, the knight refused, saying his oath was already given.
+beat: The widow's village grew so safe under his watch that it became a town, and the count himself came to ask for the knight's friendship.
+beat: So a Vlandian who keeps faith with humble folk is said to "serve the one who fed his horse."
+
+[The Mason's Loose Stone]
+gist: a lord who cheated the mason who built his tower, and the one stone that only the mason knew.
+beat: A proud lord hired a master mason to build him the tallest tower in the valley, promising him a purse of gold when the last stone was set.
+beat: When the tower stood, the lord said the gold had been spent on the feast to celebrate it, and sent the mason away with a loaf of bread.
+beat: The mason bowed and went, and told no one that he had left one stone near the foundation set without mortar.
+beat: For years the tower stood, and the lord boasted of it, until a winter storm shook the valley and the loose stone slipped.
+beat: The tower leaned, cracked, and fell into the moat, and the lord had to live in his stables while he hired a new mason, at twice the price.
+beat: Vlandians still say: "Pay the mason," to anyone who thinks a debt to a humble man can be ignored.
+
+[The Two Banners at the Ford]
+gist: two brothers who sided with rival lords in a war, and met lance to lance on the same field.
+beat: Two brothers took service with two rival lords, one for each, and when those lords went to war, each brother rode under a different banner.
+beat: They had not seen each other for seven years when the two armies met at a river ford, and in the charge each found himself riding straight at the other.
+beat: Both knew the other's shield, and both raised their lances at the last moment, passing so close that their horses touched.
+beat: Their lords were furious and accused each of cowardice, and both brothers answered the same: that no lord's quarrel was worth a brother's blood.
+beat: Both lost their places, and they rode home together to their father's small manor, and in time both their old lords sought them as peacemakers.
+beat: Vlandian mothers tell it to their sons and end: "A banner can be changed; a brother cannot."

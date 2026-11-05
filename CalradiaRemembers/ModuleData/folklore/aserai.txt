@@ -1,0 +1,57 @@
+# The tales the Aserai tell around the fire
+# Calradia Remembers reads this file for every character of Aserai culture (their own people, not their realm).
+# They know these as tales, never as history. Each character carries a few, and loves one best: that one alone they can
+# tell in full, from its beats; the others they can only name or allude to.
+#
+# How to write a tale:
+#   [Title]          opens a tale
+#   gist: ...        what it is about, in one line (required: a tale without it is not read)
+#   beat: ...        one part of the story, in order; a tale with no beats can be named, never told
+# A line with no key continues the line before it. Lines starting with # are never read.
+# A copy in ModuleData/Custom/folklore/ is read instead of this one, so your edits survive an update. A file named after
+# another culture's id (folklore/<id>.txt) gives that people tales of its own.
+
+[The Caravan That Comes at Noon]
+gist: a caravan lost in a sandstorm long ago that still crosses the dunes in the noon heat, asking for water.
+beat: A great caravan once set out across the deep sand in the hottest month, against the advice of the old guides, and a sandstorm swallowed it whole.
+beat: Ever since, in the white heat of noon, travellers sometimes see a line of camels on the far dunes where no caravan should be.
+beat: Its master walks out of the shimmer, his lips cracked, and asks the travellers for one cup of water.
+beat: A young drover once gave him a cup, though his own skins were low, and the master pointed to a dip between two dunes before he faded; there the drover found a spring no map had ever shown.
+beat: A rich trader who met him the next year turned his face away, and his own guide led him in circles until his camels lay down in the sand.
+beat: So the Aserai say: "Never refuse the noon caravan," and they share water with any stranger in the deep desert.
+
+[The Camel Who Weighed the Goods]
+gist: a merchant's camel that would only kneel for a fair weight, and the cheat who tried to bribe it with dates.
+beat: A spice merchant had an old she-camel who would kneel to be loaded only when every sack on the scales was weighed honestly.
+beat: If a seller's thumb was on the scale, she would stand and groan and refuse to bend her knees, and nothing would move her.
+beat: Soon the whole market brought their quarrels over weights to the camel, and she settled them better than any judge.
+beat: A crooked dealer, tired of losing, slipped her a basket of the finest dates on the morning he meant to cheat.
+beat: She ate every date, thanked him with a grunt, and then stood up and refused to kneel, and the whole market laughed him out of town.
+beat: When an Aserai suspects a cheat, he says: "Even the camel knows a short weight."
+
+[The Girl Who Found the Hidden Well]
+gist: a shepherd girl who followed a desert fox to a hidden well in a drought, and would not sell its secret.
+beat: In a year when no rain fell and the wells of three clans ran dry, a shepherd girl noticed a desert fox with wet whiskers at dawn.
+beat: She followed it for a day and a night into the rocks, and found a cleft where sweet water rose from deep under the stone.
+beat: A sheikh heard of it and offered her a hundred camels to tell him alone where the water was, so that he could sell it to the others.
+beat: She refused, and instead she led every family of every clan to the well, even the clan that had feuded with her own for three generations.
+beat: The clans made peace at the well and swore that it would belong to no one, and the girl's name was sung at every wedding for years.
+beat: The Aserai still say: "Water has no master," and to sell water to the thirsty is the meanest of deeds.
+
+[The Sheikh Who Walled the Oasis]
+gist: a sheikh who built a wall around his oasis to tax every traveller, and the road that went around it.
+beat: A sheikh who held a rich oasis on the trade road decided that every caravan that drank there should pay him a heavy toll.
+beat: He built a high wall around the palms and the pool, with a single gate, and set guards on it.
+beat: The caravan masters grumbled, paid once, and then quietly found a longer road through the hills where the water was poorer but free.
+beat: Within a few years no caravans came, the dates rotted unsold, and the craftsmen who had lived by the trade drifted away.
+beat: The sheikh sat alone behind his wall with his full pool and his empty market, and his sons sold the wall stone by stone to buy bread.
+beat: So the Aserai warn the greedy: "A closed gate keeps out the bread as well as the beggar."
+
+[The Two Brothers and the Inheritance]
+gist: two brothers who split their father's goods, one taking the oasis and one the camels, and how each came to need the other.
+beat: A rich man died and left two sons; the elder chose the oasis with its palms and fields, and the younger took the camels and the desert roads.
+beat: The elder laughed that his brother had chosen sand, and the younger laughed that his brother had chosen to sit still for life.
+beat: Then came a year of locusts, and the elder's fields were stripped bare, while the younger was far away and safe with his herds.
+beat: The year after, raiders took the younger's camels on the road, and he came home with nothing but the clothes he wore.
+beat: The elder fed him without a word, and the younger led a new caravan from the oasis to the coast, and together they grew richer than their father ever was.
+beat: Aserai fathers tell it to quarrelling sons and end: "The palm needs the road, and the road needs the palm."

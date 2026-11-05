@@ -1,0 +1,57 @@
+# The tales the people of the Empire tell around the fire
+# Calradia Remembers reads this file for every character of imperial culture (their own people, not their realm).
+# They know these as tales, never as history. Each character carries a few, and loves one best: that one alone they can
+# tell in full, from its beats; the others they can only name or allude to.
+#
+# How to write a tale:
+#   [Title]          opens a tale
+#   gist: ...        what it is about, in one line (required: a tale without it is not read)
+#   beat: ...        one part of the story, in order; a tale with no beats can be named, never told
+# A line with no key continues the line before it. Lines starting with # are never read.
+# A copy in ModuleData/Custom/folklore/ is read instead of this one, so your edits survive an update. A file named after
+# another culture's id (folklore/<id>.txt) gives that people tales of its own.
+
+[The Legion on the Old Road]
+gist: a legion lost in the wars of an old emperor that still marches the paved roads at night, and what it asks of those it meets.
+beat: Long ago a legion marched out to a frontier war under an emperor whose name no one now remembers, and it never marched back.
+beat: Years later a carter on the old paved road heard hobnails ringing on the stones behind him at midnight, many hundreds of them, though the road was empty under the moon.
+beat: He was afraid, but his grandfather had served in the legions, so he pulled his cart onto the verge, stood straight, and saluted the empty road as it passed.
+beat: The marching faded toward the frontier, and when he came home he found his lame mule walking sound and his lost purse lying in the cart.
+beat: A neighbour who heard the same tramp a month later whipped his oxen and tried to race it, and his cart lost a wheel in the dark and was never mended right.
+beat: So the old folk say: "Give the road to the old legion," which means let pass what you do not understand, and show it respect.
+
+[The Mule of the Ninth Cohort]
+gist: a stubborn baggage mule that a whole cohort cursed, until it was made a centurion.
+beat: The Ninth Cohort had a baggage mule so stubborn that it would stop dead in the road and no amount of shouting would move it.
+beat: The legate ordered it beaten, but the first time it stopped, the cohort found the bridge ahead had been cut through by raiders and would have dropped them into the river.
+beat: The second time, the scouts found an ambush in the olive groves beyond the bend.
+beat: The third time, it stopped for no reason anyone could see, and while the officers argued, a storm washed out the road just ahead of them.
+beat: The legate, who was a sensible man, gave the mule a centurion's red crest and its own ration of barley, and the cohort never lost a man on the march again.
+beat: Soldiers still say "Ask the mule" when an officer is in too great a hurry.
+
+[The Paymaster's Purse]
+gist: a paymaster who carried a beaten legion's pay home across the wastes and would not spend a single coin of it.
+beat: After a lost battle on the eastern frontier, the paymaster of a broken legion found himself alone in the hills with a chest of silver meant for the men's wages.
+beat: He walked home with it on his back for forty days, eating roots and begging bread, though a single coin would have bought him a horse.
+beat: Brigands stopped him at a pass, and he told them the truth: the silver belonged to dead men and their widows, and they would have to kill him for it.
+beat: The brigand chief, who had once been a legionary himself, gave him a mule and an escort to the nearest city instead.
+beat: The paymaster went from door to door until every widow and every orphan had their share, and only then did he go home to his own wife.
+beat: When something is accounted to the last copper, the people of the Empire say it is "honest as the paymaster's purse."
+
+[The Statue That Drank the City Dry]
+gist: an emperor who wanted a statue taller than any before him, and the aqueduct he pulled down to build it.
+beat: In an old city every emperor raised a bronze statue of himself, each a little taller than the one before.
+beat: One emperor wanted a statue so tall it could be seen from the sea, and when the quarries ran short, he ordered the stones taken from the aqueduct that brought the city its water.
+beat: The senate warned him, and a fountain-keeper warned him, and he had them both laughed out of the forum.
+beat: The statue rose, gleaming, and the fountains went dry, and in the summer heat the people left the city for the hills, one street at a time.
+beat: When the emperor rode through on his birthday, he found no one to cheer him but the pigeons on his own bronze head.
+beat: So a wise governor is told: "Build the aqueduct before the statue."
+
+[The Mosaic Floor]
+gist: a mosaic-maker who set one stone a day for the daughter married off to a far city.
+beat: A mosaic-maker of the capital married his only daughter to a merchant from a city across the sea, and she sailed away weeping.
+beat: He was a man of few words and could write no letters, so each evening he set one small stone into the floor of his workshop.
+beat: Year after year the stones became a picture: a girl at a loom, a girl on a ship, a woman with a child, all as he imagined her life far away.
+beat: Other craftsmen offered to buy the floor, and a senator offered a fortune for it, but he would never sell.
+beat: When his daughter came home a widow, grey herself, she found her whole life laid out in stone at his feet, and he had just set the last piece, which showed her coming home.
+beat: The people of the Empire say of a silent father: "He counts in stones what he cannot say."

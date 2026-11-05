@@ -1,0 +1,57 @@
+# The tales the Nords tell around the fire
+# Calradia Remembers reads this file for every character of Nord culture (their own people, not their realm).
+# They know these as tales, never as history. Each character carries a few, and loves one best: that one alone they can
+# tell in full, from its beats; the others they can only name or allude to.
+#
+# How to write a tale:
+#   [Title]          opens a tale
+#   gist: ...        what it is about, in one line (required: a tale without it is not read)
+#   beat: ...        one part of the story, in order; a tale with no beats can be named, never told
+# A line with no key continues the line before it. Lines starting with # are never read.
+# A copy in ModuleData/Custom/folklore/ is read instead of this one, so your edits survive an update. A file named after
+# another culture's id (folklore/<id>.txt) gives that people tales of its own.
+
+[The Oars in the Fog]
+gist: a longship lost with all hands whose oars are still heard in the fjord fog, and the girl who followed them.
+beat: A longship sailed north for walrus ivory late in the year and never came back, and the women of the fjord waited on the shore until the ice came.
+beat: Ever after, on foggy evenings, the people heard the creak and splash of oars out on the water, keeping time, though no ship could be seen.
+beat: Years later another ship was lost in a fog so thick its crew could not see their own prow, and the people on the shore feared it would break on the rocks.
+beat: A fisherman's daughter rowed out alone in a small boat, and followed the sound of the old oars, which led her past the reefs to where the lost ship was drifting.
+beat: She shouted the crew into her wake, and the ghostly oars led them all into the harbour, then fell silent and were not heard for a long time after.
+beat: Nords say: "Follow the old oars," meaning trust the ones who went before you, when you cannot see the way yourself.
+
+[The Poet Who Praised the Stingy Jarl]
+gist: a poet who sang a stingy jarl a praise-song that was really a mockery, and still went home with a ring.
+beat: There was a jarl so mean that he gave his warriors bent rings and thin ale, yet he loved to hear himself praised at the feast.
+beat: A wandering poet came to his hall and offered to make him a song, and the jarl promised a gold ring if it pleased him.
+beat: The poet sang of a lord whose hand was "closed as tight as a fist in battle," whose hall "never wasted a drop," and whose gifts "were long remembered, because there were so few."
+beat: The jarl, hearing only the fine words, was delighted and gave the ring, while his warriors laughed into their thin ale until they choked.
+beat: The poet went on his way, and the song went from hall to hall, and the jarl never knew why everyone smiled when they sang it.
+beat: Nords say: "A ring buys the verse, not the meaning," and they listen closely when a poet praises a lord.
+
+[The Shield-Maiden on the Ice]
+gist: a shield-maiden who freed her crew's ship from the closing ice with her axe through a whole night.
+beat: A walrus-hunting ship stayed too long in the far north, and one evening the sea began to freeze around it, closing in on every side.
+beat: The crew despaired and talked of walking home across the ice, though everyone knew the ice would kill them before the shore did.
+beat: A shield-maiden among them took her axe, climbed down onto the floe, and began to cut a channel toward the open water.
+beat: She chopped all night without stopping, and one by one the others, ashamed, climbed down beside her and took their turn.
+beat: At dawn the ship slipped through the last of the ice, and she slept for two days while the others rowed.
+beat: When the hard work is to be done, Nords say "Who climbs down first?" and the bravest answers with her axe.
+
+[The Hall Over the Barrow Pits]
+gist: a jarl who built his feasting hall over the old burial pits by the river, and the feasts that went sour.
+beat: Along the great river there are old pits in the earth where people buried their dead long before the Nords came, and wise folk leave them alone.
+beat: A proud jarl wanted the best ground for his new hall, and the best ground lay right over the old pits, so he had them filled and built there anyway.
+beat: From the first feast, the ale turned sour in the cups, the meat spoiled on the boards, and guests who had been friends drew knives over nothing.
+beat: The jarl brought in more ale and more meat and more guests, but every feast ended in a quarrel, and no oath sworn in that hall was ever kept.
+beat: At last his own warriors left him for a kinder jarl, and the hall stood empty until the river took it in a spring flood.
+beat: Nords say: "Do not feast on another man's grave," and they build their halls where the dead are not.
+
+[The Shield and the Spindle]
+gist: a shield-maiden wife and her weaver husband, and the winter each had to do the other's work.
+beat: A shield-maiden married a weaver, and the village laughed, saying she would carry the axe and he the spindle.
+beat: They did not mind: she went raiding in summer, and he wove the finest sails in the fjord at home.
+beat: One winter she broke her leg on the ice, and that same winter raiders came up the fjord, and the village needed every fighter.
+beat: The weaver took her shield and stood in the shield wall, frightened but steady, and the raiders were driven back to their ships.
+beat: Meanwhile she sat at his loom and finished the sail he had begun, and it was the strongest sail he ever had, for she had pulled it tight as a bowstring.
+beat: Nords tell it at weddings and end: "A hall needs both hands," and no one laughs at the weaver any more.

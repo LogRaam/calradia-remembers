@@ -1,0 +1,57 @@
+# The tales the Vakken tell around the fire
+# Calradia Remembers reads this file for every character of Vakken culture (their own people, not their realm).
+# They know these as tales, never as history. Each character carries a few, and loves one best: that one alone they can
+# tell in full, from its beats; the others they can only name or allude to.
+#
+# How to write a tale:
+#   [Title]          opens a tale
+#   gist: ...        what it is about, in one line (required: a tale without it is not read)
+#   beat: ...        one part of the story, in order; a tale with no beats can be named, never told
+# A line with no key continues the line before it. Lines starting with # are never read.
+# A copy in ModuleData/Custom/folklore/ is read instead of this one, so your edits survive an update. A file named after
+# another culture's id (folklore/<id>.txt) gives that people tales of its own.
+
+[The Old Woman of the Sleeping Field]
+gist: the old woman who tends a burned clearing after the family has moved on, until the forest grows back.
+beat: The Vakken burn a clearing in the woods, sow it for a few seasons, and when the soil is tired they move on and let the forest take it back.
+beat: It is said that when the last family leaves a clearing, an old woman no one knows comes to sit in it, with a shawl the colour of ash.
+beat: She plants birch seeds with her fingers and sings to the stumps, and in a few years the young trees stand thick again.
+beat: Once a greedy settler from the south found such a clearing and ploughed it at once, laughing at the woodfolk who had left good land behind.
+beat: His plough struck stones every furrow, though no stones had been there, and his crop came up thin and grey, until he gave up and left.
+beat: So the Vakken say: "Let the field sleep," and they never sow a clearing before the old woman is done with it.
+
+[The Tax-Gatherer Who Chased the Smoke]
+gist: a boyar's tax-gatherer sent to measure the Vakken fields, who spent a year chasing smoke.
+beat: A boyar heard that the woodfolk grew rye in his forests and sent his tax-gatherer with a measuring rope to count their fields.
+beat: The tax-gatherer saw smoke over the trees and walked toward it, but when he arrived, the clearing was ash and the family was gone.
+beat: He saw new smoke beyond the next ridge and walked toward that, and it was the same, and so on, all through the summer and the autumn.
+beat: In winter a Vakken family took pity on him, fed him at their fire, and asked him why he had been walking in circles for a year.
+beat: He went home with no measure and a sack of pine cones, which the family had given him to pay "the tax on the forest," and the boyar never sent him again.
+beat: When someone tries to pin down what cannot be held, the Vakken laugh and say: "Go and measure the smoke."
+
+[The Hunter Who Led Them Through the Snow]
+gist: a Vakken hunter who led a family fleeing a blood feud through the winter woods by paths only his people know.
+beat: In a hard winter a family fleeing a blood feud came to the edge of the deep forest with armed men a day behind them.
+beat: They had no friends there and could not speak the woodfolk's tongue, but a Vakken hunter saw the children's feet wrapped in rags and asked no questions.
+beat: He led them along frozen streams and through bogs that only hold a man's weight in the deepest cold, by paths his people had never shown to anyone from outside.
+beat: The pursuers followed the tracks onto the ice, but the hunter had led the family across where it was thick, and the pursuers went where it was thin, and turned back wet and cursing.
+beat: He brought the family to a clearing where his kin were wintering, and they lived among the Vakken until the feud was forgotten.
+beat: The Vakken say: "The woods keep whom they choose," and they do not ask a stranger at the fire what he is fleeing.
+
+[The Man Who Sold the Paths]
+gist: a woodsman who sold the secret forest paths to strangers for silver, and what came down those paths.
+beat: A Vakken woodsman grew tired of being poor and sold the secret paths of the forest to traders from the coast for a bag of silver.
+beat: At first the traders came to buy furs, and he was proud of his new wealth.
+beat: Then came men with axes, who cut the tall trees for ships, and then men with spears, who demanded tribute from every fire.
+beat: Soon there was no clearing his kin could burn that some stranger did not claim, and they had to move farther and farther into the cold.
+beat: The woodsman threw his silver into a river, but no river carries back a path once it has been shown.
+beat: The Vakken say: "A path once sold is never bought back," and they teach their children to keep the trails to themselves.
+
+[The Boy Who Followed the Smoke]
+gist: a young man who followed the smoke of a girl's family fields for three years until he found her.
+beat: A young man met a girl at a midsummer fire where two Vakken families shared their meat, and they danced until dawn.
+beat: In the morning her family moved on, as the woodfolk do, and he had not even learned which way they went.
+beat: For three years he wandered the forest, looking for smoke over the trees, and walked toward every column he saw.
+beat: He found burned clearings and empty hearths, and old women who sent him on, and once a bear who did not, but he did not give up.
+beat: At last, at another midsummer fire, he found her, and she said she had been watching his smoke as he had watched hers, and had waited in every clearing as long as she dared.
+beat: So the Vakken tell their young: "Follow the smoke," and say that two people who are looking for each other in the forest will meet in the end.

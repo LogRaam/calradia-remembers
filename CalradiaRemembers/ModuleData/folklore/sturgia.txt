@@ -1,0 +1,57 @@
+# The tales the Sturgians tell around the fire
+# Calradia Remembers reads this file for every character of Sturgian culture (their own people, not their realm).
+# They know these as tales, never as history. Each character carries a few, and loves one best: that one alone they can
+# tell in full, from its beats; the others they can only name or allude to.
+#
+# How to write a tale:
+#   [Title]          opens a tale
+#   gist: ...        what it is about, in one line (required: a tale without it is not read)
+#   beat: ...        one part of the story, in order; a tale with no beats can be named, never told
+# A line with no key continues the line before it. Lines starting with # are never read.
+# A copy in ModuleData/Custom/folklore/ is read instead of this one, so your edits survive an update. A file named after
+# another culture's id (folklore/<id>.txt) gives that people tales of its own.
+
+[The Empty Place at the Midwinter Table]
+gist: a warrior of a prince's druzhina who comes home every midwinter night to the seat his family keeps for him.
+beat: A young warrior of a prince's druzhina rode out in autumn against raiders on the river and promised his mother he would be home for the midwinter feast.
+beat: He fell in the reeds before the first snow, and his comrades brought home only his shield.
+beat: At midwinter his mother set a bowl and a spoon at his place anyway, and in the night the family heard the bench creak and the spoon scrape, though no one sat there.
+beat: Every year after she kept his place, and every year the bowl was empty by morning and the house stood safe through the hardest winters.
+beat: When the old woman died, a new bride in the house thought it foolish and set no bowl, and that winter the roof beam cracked under the snow.
+beat: So Sturgians still lay one bowl more than they need at midwinter, and say: "Keep the place, and the place keeps you."
+
+[The Boyar Who Taxed the Snow]
+gist: a greedy boyar who taxed everything in his village, and the fool who paid him in snow.
+beat: A greedy boyar demanded a tax on every chicken, every log and every child born in his village, until the people had nothing left to give.
+beat: At last he declared a tax on whatever a man owned most of, and the village fool said that, in winter, what he owned most of was snow.
+beat: The boyar, who thought himself clever, said a tax is a tax, and ordered the snow carried into his cellar and counted.
+beat: The fool and his friends shovelled for a week and packed the boyar's cellar full to the beams, and the boyar was pleased with his white treasure.
+beat: In spring the whole tax melted at once, flooded the cellar, ruined his wine and his grain, and the boyar never spoke of the snow tax again.
+beat: When a lord asks too much, Sturgians mutter: "Let him tax the snow."
+
+[The Woman Who Carried the Bell]
+gist: a shieldmaiden who walked alone through winter to win back her town's stolen bell.
+beat: A forest town had a bronze bell that rang to warn of raiders, and one winter raiders came quietly by night and carried the bell away first.
+beat: The men of the town argued over who should go after it, and while they argued, a shieldmaiden took her axe and her skis and went alone.
+beat: She followed the sledge tracks for three days through the snow and walked straight into the raiders' camp, where they laughed at her.
+beat: She challenged their chief to wrestle on the ice for the bell, and threw him three times running before his own men stopped laughing.
+beat: The chief kept his word, for even raiders fear to break a wager made before witnesses, and she carried the bell home on her back.
+beat: The bell still rings in that town, and Sturgians call a person who will not wait for others "a bell-carrier."
+
+[Leave One in the Snare]
+gist: a trapper who took the last sable of the forest, and how the forest closed its paths to him.
+beat: The old trappers of the forest keep a rule: when you take sables from a valley, always leave a pair to breed.
+beat: One trapper, greedy for silver from the river traders, took every sable in his valley, down to the last.
+beat: The next winter his traps stayed empty, and when he went deeper into the woods, the paths he knew seemed to turn under his feet.
+beat: He walked in circles for three days until another trapper found him half frozen beside a tree he had passed twenty times.
+beat: He lived, but he never trapped again, and he spent his old age teaching boys the rule he had broken.
+beat: Sturgians say "Leave one in the snare" to anyone who takes everything and leaves nothing for tomorrow.
+
+[One Boat, Two Backs]
+gist: two quarrelling brothers who had to carry one boat across a portage between two rivers.
+beat: Two brothers inherited their father's river boat and quarrelled over everything, from who steered to who kept the coin.
+beat: At the portage between two great rivers, where boats must be carried over land, each refused to lift the end the other had chosen.
+beat: Each tried to drag the boat alone, and each fell under it in the mud, while other traders went past them laughing.
+beat: At last the elder said nothing, took the bow, and waited; the younger, ashamed, took the stern, and they carried it over in half a day.
+beat: On the far river they sold their furs together for a better price than either had ever got alone, and they did not quarrel again for a whole year.
+beat: Sturgian mothers tell it to bickering children and end: "One boat, two backs."

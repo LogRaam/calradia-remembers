@@ -1,0 +1,57 @@
+# The tales the Khuzaits tell around the fire
+# Calradia Remembers reads this file for every character of Khuzait culture (their own people, not their realm).
+# They know these as tales, never as history. Each character carries a few, and loves one best: that one alone they can
+# tell in full, from its beats; the others they can only name or allude to.
+#
+# How to write a tale:
+#   [Title]          opens a tale
+#   gist: ...        what it is about, in one line (required: a tale without it is not read)
+#   beat: ...        one part of the story, in order; a tale with no beats can be named, never told
+# A line with no key continues the line before it. Lines starting with # are never read.
+# A copy in ModuleData/Custom/folklore/ is read instead of this one, so your edits survive an update. A file named after
+# another culture's id (folklore/<id>.txt) gives that people tales of its own.
+
+[The Rider Who Never Dismounts]
+gist: a messenger of the old khan killed on the road, whose horse still runs the steppe at night with his message.
+beat: In the days of the great khans, a messenger rode with word from the old khan to a clan far across the steppe, carrying news that would have stopped a war.
+beat: Robbers shot him from his saddle at a dry riverbed, but his horse ran on with his body bound to it, and neither horse nor rider was ever found.
+beat: The war came, and two clans bled for a quarrel the message would have ended.
+beat: Since then herders on the night watch sometimes hear a single horse galloping past in the dark, and feel the wind of it, though they see nothing.
+beat: It is said that whoever catches its bridle will hear the old khan's message, and that it will be the very word they most need to hear.
+beat: So Khuzaits never hinder a rider in the night, and say: "Let the messenger pass, his news may be yours."
+
+[The Horse That Chose the Khan]
+gist: clans who could not agree on a khan and let a horse choose, and the cook it chose.
+beat: Once the clans gathered to raise a khan, but every chief wanted it to be himself, and they argued for nine days.
+beat: At last an old woman said to let a white mare loose, and to raise up whoever she stopped beside, and the chiefs agreed, each sure the mare would love him.
+beat: The mare walked past every chief, past every banner, and stopped beside the cook's fire, where a pot of mutton was bubbling.
+beat: The chiefs laughed, but an oath was an oath, and the cook was raised on a felt and made khan until the next gathering.
+beat: He ruled well, for he saw to it that every tent had meat and no herder went hungry, and at the next gathering the clans begged him to stay.
+beat: Khuzaits say "A full pot makes a good khan," and laugh at any chief who forgets to feed his people.
+
+[The Girl Who Raced the Storm]
+gist: a herd girl who rode ahead of a great blizzard to bring the scattered herds of her clan home.
+beat: In the late autumn, while the men were away at war, a herd girl saw the sky in the north turn the colour of iron and knew a great storm was coming.
+beat: The clan's horses and sheep were scattered across three valleys, and there was no one else to bring them in.
+beat: She took the fastest mare and rode from valley to valley, whistling the herds together and driving them before her toward the winter camp.
+beat: The storm caught her at the last ridge, and she drove the herd on by the sound of the camp's drums, which the old folk beat all night to guide her.
+beat: She came in at dawn with ice in her braids and not one animal lost, and the elders gave her the clan's best bow.
+beat: Khuzaits still say a brave rider "rides like the herd girl" and mothers drum on a winter night when someone is out late.
+
+[The Archer Who Shot the Eagle]
+gist: a proud archer who shot the eagle that guarded the herds, to show his skill.
+beat: There was a young archer so proud of his aim that he shot at anything in the sky, to make the herders cheer.
+beat: Above his clan's pastures there lived an old eagle, and the herders had a saying that while it circled, the wolves stayed in the hills.
+beat: One day, to prove he was the best archer on the steppe, he shot the eagle down with a single arrow, and was very pleased.
+beat: That winter the wolves came down from the hills, bolder each night, and took lambs and foals from every herd.
+beat: The archer spent the whole season hunting wolves by night to pay back his clan, and grew wiser, but never again so proud.
+beat: Khuzaits say "Spare the eagle" to anyone who would destroy a thing only to show that he can.
+
+[The Mended Bowstring]
+gist: a khan's daughter who chose a husband not by his gifts but by the bowstring he mended.
+beat: A khan's daughter, skilled with the bow herself, had many suitors who rode in with gifts of silk, silver and fine horses.
+beat: On the day she was to choose, the string of her favourite bow snapped as she drew it before the gathered suitors.
+beat: The rich suitors went on talking of their herds, but a poor young herdsman took a cord from his own saddle and quietly restrung the bow for her.
+beat: She chose him, and when her father asked why, she said that a husband should notice what is broken before he is asked.
+beat: They lived many years together, and it was said that nothing in their tent was ever left broken for a single night.
+beat: Khuzait women tell their daughters: "Choose the one who mends the bowstring."
