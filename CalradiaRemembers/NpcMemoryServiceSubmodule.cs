@@ -78,6 +78,7 @@ namespace CalradiaRemembers
          Marriage.LeaveHouseForRulerBehavior.Instance?.Tick(); // hands the house to the heir once the chat is over, in a town too
          Companions.CompanionBriefingCoordinator.TickReturn(); // takes the player back into the meeting a briefing was for
          UI.Spike.CrMapTickSpike.Tick(dt); // throwaway spike (cr.tick_probe): closes its own measurement window
+         UI.Spike.BarterScreenSpike.Tick(); // throwaway spike (cr.barter_spike): the barter screen's Escape / Confirm / Reset
          Chat.CrVideoPlayer.Tick(); // CR's own video player: the frame due, as a new texture (runs in conversations too)
          Chat.ChatManager.TickEscapeClose(); // an Escape close, once the key is up, outside the chat's widget update (philip0105)
          Interception.AudienceInquiry.Tick(dt); // an invitation away while its "Who is this?" encyclopedia page is read (Lordfadooboo)

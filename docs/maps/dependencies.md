@@ -582,7 +582,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 #### `CalradiaRemembers` and `CalradiaRemembers.Chat`
 
-- `CalradiaRemembers` uses `CalradiaRemembers.Chat` in 18 files: `Extension/CrConversation.cs`, `ModCheats.Assembly.cs`, `ModCheats.CaptiveTalkProbe.cs`, and 15 more
+- `CalradiaRemembers` uses `CalradiaRemembers.Chat` in 19 files: `Extension/CrConversation.cs`, `ModCheats.Assembly.cs`, `ModCheats.BarterSpike.cs`, and 16 more
 - `CalradiaRemembers.Chat` uses `CalradiaRemembers` in 2 file(s): `Chat/ChatViewModel.Helpers.cs`, `Chat/ChatViewModel.cs`
 
 #### `CalradiaRemembers` and `CalradiaRemembers.Mapping`

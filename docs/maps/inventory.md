@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 629 types in 65 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 631 types in 65 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1525 types in 55 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
@@ -99,7 +99,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
-| `ModCheats` | public static class, partial over 70 files | Exposes diagnostic commands to the Bannerlord cheat console. |
+| `ModCheats` | public static class, partial over 71 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
 | `ProseInterpretTestRunner` | internal static class | The runner behind cr.prose_interpret_test. |
 | `RomanceBondWatchBehavior` | internal class | Reads the bonds with the player at session start and every hour, for CrRomance.StatusChanged. |
@@ -873,13 +873,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MapNavigationInputGuard` | public static class | Harmony guard that skips MapScreen.TickNavigationInput while a CR panel owns the screen, so map hotkeys cannot fire under the letter book or the Balance of Power panel. |
 | `SettlementVisualTickGuard` | public static class | Harmony guard that skips SettlementVisualManager.OnTick while any CR panel owns the screen, so the vanilla siege-visual tick cannot crash natively under a pushed panel. |
 
-### CalradiaRemembers.UI.Spike (3)
+### CalradiaRemembers.UI.Spike (5)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `BarterScreenSpike` | internal static class | Opens the game's barter screen over the chat for one held captive and one buyer. |
 | `CrMapTickSpike` | public static class | Measures whether a way of hosting a panel actually silences the live map underneath it, by sampling the guards' call counters across a fixed window. |
 | `CrSpikeScreen` | internal class | The one screen the probe uses, pushed BOTH ways so the measurement compares mechanisms rather than screens. |
 | `CrSpikeState` | public class | The spike's game state: deliberately empty, it exists only to be pushed so a screen binds to it. |
+| `SpikeCaptiveBarterable` | internal class | A captive the player holds, offered to a buyer at the price our policy lets that buyer pay. |
 
 ### CalradiaRemembers.Verbs (30)
 
