@@ -1,0 +1,35 @@
+Version 2.8.3
+
+Relations between characters that make sense, courtships that are owned, companions who complain of what really happened, sales from the bag, folk tales, and settings for local models.
+
+New
+
+- Relations between characters now have a reason. The game hands out thousands of friendships and enmities at the start of a campaign between lords who never met. A character now believes such a starting relation only when they have a reason to know the other: kin, the same house, the same court, neighbouring lands, a war between their realms, or both ruling. Without one, it counts for nothing, and at most leaves a vague unease (or goodwill) with no known cause. What happens in play always counts. A younger son's quarrel no longer moves his father's standing, and a character who does not lead their house is told their house's standing in a sentence of its own. (Thank you, tashmetu.)
+- Folk tales: each people has tales told around the fire. A character knows a few tales of their own people, as tales and never as history, may allude to one now and then, and can tell their favourite in full if you ask. The Battanians' tales come first; the other peoples will follow.
+- A thing is worth more to the one who cares for it. A character buying a captive you hold pays up to their whole purse for their own spouse or child, and up to five times the ransom for a parent, brother or sister, or someone they deeply love or bitterly hate. An item of a kind they love sells for up to five times its value. (Thank you, Thoragoros1.)
+- Two settings for local models, on the LLM Provider page: Reply Token Budget (0 = Auto, as before) and Presence Penalty (0 to 1, default 0.50). Give a reasoning model a larger budget and it is no longer cut off mid-thought, in Compact too. (Thank you, avalanche24.)
+- Write Letters on Arrival (off by default): each letter is written as it reaches your box, one at a time, so it opens at once. Off, it is written when you open it, so a letter you never open costs nothing. (Thank you, SgtAlexGreen.)
+
+Fixed
+
+- A character you court now owns the courtship and never denies it, even when their regard is not yet enough to speak of love. When the game marries them to someone else, the courtship ends, and they remember choosing another. A courtship already overtaken by such a marriage in your save ends on its own within a day. (Thank you, avalanche24.)
+- An unhappy companion now speaks of what really soured them (being left idle, kept from someone they love, a failed errand, a hearing refused) and no longer invents a broken promise. A task you really let lapse can still come up. (Thank you, froggyluv.)
+- A captive named with their house ("Elthild of dey Tihr") is found, so a sale both sides agreed goes through. When a sale of your captive fails, the notice now speaks of your keeping, not as if the buyer held them. (Thank you, froggyluv.)
+- The bag now asks whether you give or sell one kind of good, and for what price. A sale moves the whole amount you chose, and goods you priced never leave as a gift. A sale typed in your own words still moves a single item. (Thank you, froggyluv.)
+- Companions Asking For A Word on Rarely keeps its long wait between words even while How Often the World Comes to You paces the world. A companion no longer always raises the same kind of topic, and news you decline is not offered again. (Thank you, Lufaine.)
+- Gestures written in character_overrides.json now show everywhere at once, not only after a chat message. (Thank you, Tene21.)
+
+For modders
+
+- CrPairRegard.RegisterStartReason(source, (a, b) => reason or null) gives the mod a reason it cannot see for a starting relation; CrPairRegard.GetBond(heroId, otherId) reads what it believes; CrPairRegard.StartGraceDays (2) is how long a new campaign is left to other mods' seeding. See EXTENSION_API.md, "Which starting relations CR believes". (Thank you, tashmetu.)
+- CrRomance.RegisterAffairVeto(source, (married, lover) => reason or null) keeps a lord from a hidden affair; CrRomance.HiddenAffairChanged, GetHiddenAffair and GetHiddenAffairs read them. (Thank you, tashmetu.)
+
+Developer tools
+
+- cr.test all gains pair_bond, folk_tales, personal_worth, reply_shape, affair_veto, override_acts, courtship_lapse, courtship_lapse_past, companion_grievance, captive_name and bag_sale.
+
+Notes
+
+- In an existing save, every relation between characters reads as a start until it moves in play, so one with no reason is set aside; shared pasts already drawn are kept.
+- Write Letters on Arrival is off by default; the other new settings keep what every player had.
+- Existing saves load as they are.

@@ -1,4 +1,4 @@
-Released in v2.8.2
+Released in v2.8.3
 
 The modder API as it SHIPPED, the baseline for the vanished-member guard (see docs/maps/README.md). Recorded on
 purpose at each release cut with Tools/Update-Maps.ps1 -RecordReleasedApi; never by a plain regeneration.
@@ -104,6 +104,25 @@ _Read-only readings of the cultures CR plays by (its ModuleData jealousy_culture
 
 - `static MarriageCustomReading MarriageCustom(string cultureName, int clanTier)`
 
+### CrHiddenAffair
+
+_A hidden affair between two lords (see CrRomance.GetHiddenAffair)._
+
+- `int SinceDay { get; set; }`
+- `string LoverId { get; set; }`
+- `string SubjectId { get; set; }`
+
+### CrHiddenAffairChange
+
+_A hidden affair beginning or ending (see CrRomance.HiddenAffairChanged)._
+
+- `bool Began { get; set; }`
+- `bool DuringSelfTest { get; set; }`
+- `int GameDay { get; set; }`
+- `string LoverId { get; set; }`
+- `string SaveId { get; set; }`
+- `string SubjectId { get; set; }`
+
 ### CrLetters
 
 _Another mod's letters, delivered through CR's courier and letter window._
@@ -193,8 +212,12 @@ _The public NPC-memory API. A caller identifies the NPC by its hero StringId (ne
 
 _The door through which other mods add to what one character thinks of another._
 
+- `const int StartGraceDays = Logic.Relations.PairBondPolicy.StartGraceDays`
+- `static (int points, string basis, string reason)? GetBond(string heroId, string otherId)`
+- `static bool UnregisterStartReason(string source)`
 - `static void RegisterPairRegardSource(IPairRegardSource source)`
 - `static void RegisterPairRegardSource(string sourceId, Func<Hero, Hero, int, IEnumerable<(int weight, string line, string pageLine, bool knownToPlayer)>> traces)`
+- `static void RegisterStartReason(string source, Func<Hero, Hero, string> reason)`
 - `static void UnregisterPairRegardSource(IPairRegardSource source)`
 - `static void UnregisterPairRegardSource(string sourceId)`
 
@@ -273,10 +296,15 @@ _One change of a character's personal regard for the player (see CrNpcMemory.Reg
 
 _Reads and records intimacy with the player, held to the bar CR's own chat holds; reads the bond and its changes._
 
+- `static CrHiddenAffair GetHiddenAffair(string heroId)`
 - `static CrRomanceStatus GetStatus(string npcId)`
+- `static IReadOnlyList<CrHiddenAffair> GetHiddenAffairs()`
 - `static SharedIntimacyResult RecordSharedIntimacy(string npcId, string summary, string sourceMod)`
+- `static bool UnregisterAffairVeto(string source)`
 - `static bool? WouldAcceptIntimacy(string npcId)`
+- `static event Action<CrHiddenAffairChange> HiddenAffairChanged`
 - `static event Action<CrRomanceStatusChange> StatusChanged`
+- `static void RegisterAffairVeto(string source, Func<Hero, Hero, string> veto)`
 
 ### CrRomanceStatus
 

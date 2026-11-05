@@ -653,6 +653,31 @@ MUST = [
     ("sdk",   b"IntimateActNames"),
     ("sdk",   b"LessFondActs"),
     ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
+    # 2.8.3
+    ("logic", b"PairBondPolicy"),
+    ("logic", b"RelationBaselineLedger"),
+    ("logic", b"PairBondText"),
+    ("logic", b"PairVetoBook"),
+    ("logic", b"FolkTalePolicy"),
+    ("logic", b"AuthoredTastesPolicy"),
+    ("logic", b"ReplyBudgetPolicy"),
+    ("logic", b"PresencePenaltyPolicy"),
+    ("logic", b"CaptiveBond"),
+    ("logic", b"CourtshipLapsePolicy"),
+    ("logic", b"CompanionGrievancePolicy"),
+    ("logic", b"CaptiveNameMatch"),
+    ("logic", b"DrawTopic"),
+    ("logic", b"CompanionCooldownDays"),
+    ("mod", b"RelationLedgerBehavior"),
+    ("mod", b"PairBondReader"),
+    ("mod", b"CrPairRegard"),
+    ("mod", b"RegisterAffairVeto"),
+    ("mod", b"CourtshipLapseBehavior"),
+    ("mod", b"SyncAuthoredTastes"),
+    ("mod", b"StartPrewrite"),
+    ("mod", b"WriteLettersOnArrival"),
+    ("sdk", b"FolklorePack"),
+    ("sdk", b"KeepReplyBudgetInCompact"),
     # 2.8.2
     ("logic", b"HiddenAffairPolicy"),
     ("logic", b"SecretExposurePolicy"),
@@ -715,7 +740,7 @@ MUST = [
     ("logic", b"WitnessStandingText"),
     ("logic", b"ChildrenListText"),
     ("logic", b"LeaveHouseWording"),
-    ("logic", b"ConceptionVetoBook"),
+    ("logic", b"PairVetoBook"),           # ConceptionVetoBook until 2.8.3 (renamed, serves the affair veto too)
     ("mod",   b"LetterBoxWindow"),
     ("mod",   b"LetterBoxNavigationItemVM"),
     ("mod",   b"EnsurePlainSteps"),
@@ -827,7 +852,8 @@ for path, needle in [("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf
                      ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersLetterBox.xml", "cr_mailbox"),
                      ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersLetterBox.xml", "ScrollbarWidget"),
                      ("CalradiaRemembers/ModuleData/module_sounds.xml", "cr_letter_arrival"),
-                     ("CalradiaRemembers/ModuleData/stations/gangleader.txt", "[who]")]:
+                     ("CalradiaRemembers/ModuleData/stations/gangleader.txt", "[who]"),
+                     ("CalradiaRemembers/ModuleData/folklore/battania.txt", "around the fire")]:
     found = path in names and needle in zn.read(path).decode("utf-8", "ignore")
     ok &= found
     print("  %-70s %s" % (path[18:], "YES" if found else "*** MISSING ***"))
