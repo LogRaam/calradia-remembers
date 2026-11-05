@@ -157,13 +157,13 @@ namespace CalradiaRemembers.Verbs
         ///   no such captive to sell" answered a purchase). Finds the captive in whatever cell holds them, and says who
         ///   holds them and where, or that they are of the player's own house.
         /// </summary>
-        internal static string NotHisToSell(Hero seller, string targetName, Hero resolved = null)
+        internal static string NotHisToSell(Hero seller, string targetName, Hero resolved = null, string verb = "sell_prisoner")
         {
             string query = targetName?.Trim() ?? "";
             Hero captive = resolved ?? (query.Length == 0
                 ? null
                 : Hero.AllAliveHeroes.FirstOrDefault(h => h is {IsPrisoner: true} && h != Hero.MainHero && h.Name != null
-                                                          && h.Name.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0));
+                                                          && CaptiveNameMatch.Matches(h.Name.ToString(), query)));
 
             PartyBase captor = captive?.PartyBelongedToAsPrisoner;
             Hero keeper = captor?.LeaderHero ?? captor?.Settlement?.OwnerClan?.Leader;
@@ -171,7 +171,8 @@ namespace CalradiaRemembers.Verbs
             string place = captor?.Settlement?.Name?.ToString() ?? captor?.MobileParty?.Name?.ToString();
             bool own = captive != null && captive.Clan != null && captive.Clan == Clan.PlayerClan;
 
-            ModLog.Info($"[ACTION] {seller?.Name} agreed to sell '{targetName}', who is not theirs to sell: "
+            // froggyluv (04/11/2026): "agreed to sell" read as a reversed trade when the lord was BUYING; say which verb ran.
+            ModLog.Info($"[ACTION] {verb}: {seller?.Name} agreed on '{targetName}', who is not in the right hands for it: "
                         + (captive == null ? "no prisoner by that name." : $"{captive.Name} is held by {holder ?? "?"} at {place ?? "?"}{(own ? ", of the player's own house" : "")}."));
 
             return PrisonerTradePolicy.NotHisToSellNote(new NotHisToSellFacts {

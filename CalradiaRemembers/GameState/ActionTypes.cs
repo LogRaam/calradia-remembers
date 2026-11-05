@@ -62,6 +62,9 @@ namespace CalradiaRemembers.GameState
 
         /// <summary>Already handed over this turn: a second give_item moves nothing more.</summary>
         public bool Handed { get; set; }
+
+        /// <summary>The price the player asked in the bag for a sale (froggyluv, 04/11/2026); null for a gift.</summary>
+        public int? AskingPrice { get; set; }
     }
 
     /// <summary>The roster item a give_item or sell_item would take, as the player's confirmation names it.</summary>

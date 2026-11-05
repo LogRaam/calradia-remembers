@@ -107,7 +107,7 @@ namespace CalradiaRemembers.Verbs
 
                     // Neither of them holds the captive named: say who does, never "you hold no such captive to sell"
                     // to a player who was buying (Lordfadooboo, 04/10/2026).
-                    return ActionOutcome.Refused(SellPrisonerVerb.NotHisToSell(npcHero, targetName));
+                    return ActionOutcome.Refused(SellPrisonerVerb.NotHisToSell(npcHero, targetName, verb: "buy_prisoner"));
                 }
 
                 // A CAPTIVE HE ASKED FOR IS A DELIVERY, NOT A SALE (Lordfadooboo, 18/09/2026). A Khuzait lord
@@ -340,7 +340,7 @@ namespace CalradiaRemembers.Verbs
             string query = name.Trim();
 
             return PlayerHeldHeroPrisoners().FirstOrDefault(h =>
-                h.Name != null && h.Name.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
+                h.Name != null && CaptiveNameMatch.Matches(h.Name.ToString(), query)); // froggyluv 04/11/2026: "Elthild of dey Tihr" is Elthild
         }
 
         /// <summary>The game's own ransom valuation of the captive, or the policy fallback when unreadable.</summary>

@@ -158,6 +158,25 @@ namespace CalradiaRemembers.Letters
          PlayArrivalSound();
          ModLog.Info($"[LETTERBOX] {sender.Name}'s letter ({letter.Reason}) waits in the box.");
          RaiseChanged();
+         if (ModSettings.WriteLettersOnArrival) Prewrite(new BoxedLetter {Letter = letter, Sender = sender});
+      }
+
+      /// <summary>
+      ///   Writes a waiting envelope now, in the background, so it opens at once (SgtAlexGreen, Nexus, 04/11/2026). The text
+      ///   is as of the day it was sent, as when written on opening. False when it has its text or is being written already.
+      /// </summary>
+      internal static bool Prewrite(BoxedLetter boxed)
+      {
+         if (boxed?.Letter == null || boxed.Sender == null || !LetterEnvelopePolicy.IsUnwritten(boxed.Letter)) return false;
+         lock (Prewriting)
+            if (!Prewriting.Add(boxed.Letter)) return false;
+
+         int session = _session;
+         ModLog.Info($"[LETTERBOX] writing {boxed.Sender.Name}'s letter ({boxed.Letter.Reason}) on arrival, as of day {boxed.Letter.SentOnDay}.");
+         LetterGenerationService.WriteEnvelopeAsync(boxed.Letter, boxed.Sender)
+            .ContinueWith(t => Prewritten.Enqueue(new PrewrittenText {Boxed = boxed, Text = t.Status == TaskStatus.RanToCompletion ? t.Result : null, Session = session}));
+
+         return true;
       }
 
       /// <summary>
@@ -178,6 +197,18 @@ namespace CalradiaRemembers.Letters
       private static BoxedLetter _writing;
       private static readonly ConcurrentQueue<KeyValuePair<BoxedLetter, string>> Written = new();
 
+      // Letters written on arrival (SgtAlexGreen, 04/11/2026): those under way, the texts back, and the one opened meanwhile.
+      private static readonly HashSet<PendingLetter> Prewriting = new();
+      private static readonly ConcurrentQueue<PrewrittenText> Prewritten = new();
+      private static BoxedLetter _awaitingPrewrite;
+
+      private sealed class PrewrittenText
+      {
+         public BoxedLetter Boxed;
+         public string Text;
+         public int Session;
+      }
+
       // A text written for a campaign the player has since left must never land in the next one (31/10/2026).
       private static int _session;
       private static int _writingSession;
@@ -197,6 +228,19 @@ namespace CalradiaRemembers.Letters
          if (LetterWindowManager.IsOpen || _writing != null) return false;
 
          bool unwritten = LetterEnvelopePolicy.IsUnwritten(boxed.Letter);
+         bool underWay;
+         lock (Prewriting) underWay = unwritten && Prewriting.Contains(boxed.Letter);
+         if (underWay)
+         {
+            // Being written since it arrived: it opens when that text comes back, not written twice.
+            _writing = boxed;
+            _writingSession = _session;
+            _awaitingPrewrite = boxed;
+            MBInformationManager.AddQuickInformation(new TextObject($"You break the seal of {boxed.Sender.Name}'s letter."));
+
+            return true;
+         }
+
          if (unwritten || WillTranslate(boxed.Letter))
          {
             _writing = boxed;
@@ -232,6 +276,7 @@ namespace CalradiaRemembers.Letters
       /// </summary>
       public static void Tick()
       {
+         TickPrewritten();
          if (!Written.TryPeek(out KeyValuePair<BoxedLetter, string> done)) return;
          if (_writing == null || _writingSession != _session)
          {
@@ -269,6 +314,45 @@ namespace CalradiaRemembers.Letters
          if (string.IsNullOrWhiteSpace(boxed.Letter.Content)) boxed.Letter.Content = text;
          StoryLog.WriteLetterReceived(boxed.Letter.SenderName, boxed.Letter.Content, (int)CampaignTime.Now.ToDays);
          if (boxed.Letter.InBox) Show(boxed);
+      }
+
+      // Puts each text written on arrival in its letter, and opens the one the player opened meanwhile once on the map.
+      private static void TickPrewritten()
+      {
+         while (Prewritten.TryDequeue(out PrewrittenText done))
+         {
+            lock (Prewriting) Prewriting.Remove(done.Boxed.Letter);
+            if (done.Session != _session) continue; // written for a campaign since left
+
+            bool awaited = _awaitingPrewrite?.Letter == done.Boxed.Letter;
+            if (string.IsNullOrWhiteSpace(done.Text))
+            {
+               ModLog.Info($"[LETTERBOX] {done.Boxed.Sender?.Name}'s letter was not written on arrival (the model did not answer); it will be on opening.");
+               if (!awaited) continue;
+
+               _awaitingPrewrite = null;
+               _writing = null;
+               MBInformationManager.AddQuickInformation(new TextObject($"{done.Boxed.Sender?.Name}'s letter could not be read just now. It waits in the box."));
+               RaiseChanged();
+
+               continue;
+            }
+
+            if (!LetterEnvelopePolicy.IsUnwritten(done.Boxed.Letter)) continue;
+
+            done.Boxed.Letter.Content = done.Text;
+            Store?.Set(done.Boxed.Sender);
+            StoryLog.WriteLetterReceived(done.Boxed.Letter.SenderName, done.Boxed.Letter.Content, (int) CampaignTime.Now.ToDays);
+            ModLog.Info($"[LETTERBOX] {done.Boxed.Sender?.Name}'s letter written on arrival.");
+         }
+
+         if (_awaitingPrewrite == null || LetterEnvelopePolicy.IsUnwritten(_awaitingPrewrite.Letter)) return;
+         if (!OnTheMap() || LetterWindowManager.IsOpen || UI.CrPanelHost.AnyPanelOwnsScreen) return;
+
+         BoxedLetter opened = _awaitingPrewrite;
+         _awaitingPrewrite = null;
+         _writing = null;
+         if (opened.Letter.InBox) Show(opened);
       }
 
       /// <summary>True when the campaign map is the active screen (not a mission, not a menu over it).</summary>
@@ -372,8 +456,10 @@ namespace CalradiaRemembers.Letters
       {
          _lastSoundTick = int.MinValue;
          _writing = null;
+         _awaitingPrewrite = null;
          _session++;
          while (Written.TryDequeue(out _)) { }
+         lock (Prewriting) Prewriting.Clear();
          _dirty = true;
       }
 

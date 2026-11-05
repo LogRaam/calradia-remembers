@@ -180,11 +180,22 @@ namespace CalradiaRemembers.Chat
                   .ToList();
                if (goods.Count == 0) return;
 
+               string named = GiftBundlePolicy.Describe(goods.Select(g => new GiftLine {Name = g.Item.Name.ToString(), Count = g.Count}).ToList());
+               int value = goods.Sum(g => g.Item.Value * g.Count);
+
+               // froggyluv (Nexus, 04/11/2026): "ill hit the Bag icon and choose the amount of Food to sell but... they dont
+               // register the money that was demanded and think its a gift": the bag only ever wrote a gift. One kind of
+               // good may now be held out for a price the player names; several kinds stay a gift.
+               if (goods.Count == 1)
+               {
+                  AskGiveOrSell(host, offers, named, value);
+
+                  return;
+               }
+
                _offeredBundle = new GiftBundle {Items = offers};
                _offeredItemId = offers[0].ItemId;
                _itemOnTheTable = offers[0].ItemId;
-               string named = GiftBundlePolicy.Describe(goods.Select(g => new GiftLine {Name = g.Item.Name.ToString(), Count = g.Count}).ToList());
-               int value = goods.Sum(g => g.Item.Value * g.Count);
                // Frame it as a COMPLETED handover (a stage direction), not a tentative "I would like to offer":
                // the offer wording read as a proposal, so the NPC reacted to the OFFER and the gift needed a
                // second turn to land (player report: two reactions for one gift). Handing it over now makes the
@@ -194,6 +205,50 @@ namespace CalradiaRemembers.Chat
                ModLog.Info($"[OFFER] player pre-filled gift: {named} ({value} denars, {offers.Count} kind(s)).");
             },
             () => PromptGoldOffer(host));
+      }
+
+      /// <summary>Asks whether one kind of good is given or sold, and for a sale the price asked; pre-fills the line.</summary>
+      private void AskGiveOrSell(IOfferHost host, IReadOnlyList<ItemOffer> offers, string named, int value)
+      {
+         var choices = new List<InquiryElement> {new InquiryElement("give", "Give it", null), new InquiryElement("sell", "Sell it for a price", null)};
+         MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
+            "Give or sell?",
+            $"{named} (worth {value:N0} denars)",
+            choices, true, 1, 1, "Choose", "Cancel",
+            picked =>
+            {
+               if ((picked?.FirstOrDefault()?.Identifier as string) != "sell")
+               {
+                  HoldTheBag(host, new GiftBundle {Items = offers}, $"*I hand you {named} (worth {value:N0} denars).*");
+                  ModLog.Info($"[OFFER] player pre-filled gift: {named} ({value} denars).");
+
+                  return;
+               }
+
+               InformationManager.ShowTextInquiry(new TextInquiryData(
+                  "Your price",
+                  $"How many denars do you ask for {named}? (Worth {value:N0}.)",
+                  true, true,
+                  "Ask", "Cancel",
+                  priceText =>
+                  {
+                     if (!int.TryParse(priceText?.Trim().Replace(",", ""), out int price) || price <= 0) return;
+                     HoldTheBag(host, new GiftBundle {Items = offers, AskingPrice = price},
+                        $"*I lay out {named} (worth {value:N0} denars).* I will sell you this for {price:N0} denars.");
+                     ModLog.Info($"[OFFER] player pre-filled a sale: {named} for {price} denars (worth {value}).");
+                  },
+                  null));
+            },
+            null));
+      }
+
+      private void HoldTheBag(IOfferHost host, GiftBundle bundle, string line)
+      {
+         _offeredBundle = bundle;
+         _offeredItemId = bundle.Items[0].ItemId;
+         _itemOnTheTable = bundle.Items[0].ItemId;
+         _bundleLine = line;
+         host.SetInputText(line);
       }
 
       /// <summary>Opens a picker of the held hero captives so the player can offer to sell one; the pick pre-fills the chat input.</summary>

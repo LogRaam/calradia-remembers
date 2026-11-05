@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (115)
+## Keys (116)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -46,6 +46,7 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_Commitments_v1bytes` | `CommitmentBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_CompanionAffectionAsked_v1` | `CompanionAffectionBehavior` | constant `CooldownSaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_CompanionFarewellDay_v1` | `CompanionHappinessBehavior` | constant `FarewellSaveKey` passed to `SyncDict`, which reaches SyncData (fact) |
+| `CalradiaRemembers_CompanionGrievances_v1` | `CompanionHappinessBehavior` | constant `GrievancesSaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_CompanionHeardDay_v1` | `CompanionHappinessBehavior` | constant `HeardSaveKey` passed to `SyncDict`, which reaches SyncData (fact) |
 | `CalradiaRemembers_CompanionMissions_v2bytes` | `CompanionMissionBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_CompanionPatrols_v1bytes` | `CompanionPatrolBehavior` | constant `SaveKey` passed to SyncData (fact) |

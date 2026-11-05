@@ -2055,9 +2055,18 @@ namespace CalradiaRemembers.GameState
             ItemRosterElement found = ResolveSaleItem(itemName, context);
             ItemObject item = found.EquipmentElement.Item;
 
+            // froggyluv (04/11/2026): "I choose the amount of Food to sell but the mechanic may not fire": a sale moved
+            // one unit whatever was agreed. The amount set in the bag for this very good decides; a sale in words stays one
+            // (the Compact interpreter prompt has no room to teach sell_item a count).
+            GiftBundle bundle = context?.OfferedBundle;
+            bool fromBag = item != null && bundle?.Items is {Count: 1} && bundle.Items[0].ItemId == item.StringId && !bundle.Handed;
+            int requested = fromBag ? bundle.Items[0].Count : 1;
+
+            int count = Math.Max(1, GiftQuantityPolicy.Resolve(requested, found.Amount));
+
             ItemSaleDecision deal = ItemSalePolicy.Settle(new ItemSaleFacts {
                AgreedPrice = CoinAmount.Parse(priceText), BuyerPurse = npcHero.Gold, PlayerStillHolds = item != null && found.Amount > 0,
-               ItemValue = item?.Value ?? 0, BuyerLovesItsKind = Mapping.NatureReader.LovesKindOf(item, npcHero, context?.Profile)
+               ItemValue = (item?.Value ?? 0) * count, BuyerLovesItsKind = Mapping.NatureReader.LovesKindOf(item, npcHero, context?.Profile)
             });
             switch (deal.Refusal)
             {
@@ -2069,15 +2078,16 @@ namespace CalradiaRemembers.GameState
                   return ActionOutcome.Refused($"({npcHero.Name} has no coin to pay for it, so nothing was sold.)");
             }
 
-            ExchangeService.TakeFromPlayer(ExchangeKind.ItemSale, found.EquipmentElement, 1, npcHero);
+            ExchangeService.TakeFromPlayer(ExchangeKind.ItemSale, found.EquipmentElement, count, npcHero);
             try { ExchangeService.Pay(ExchangeKind.ItemSale, npcHero, Hero.MainHero, deal.Price); }
             catch
             {
-               ExchangeService.ReturnToPlayer(found.EquipmentElement, 1);
+               ExchangeService.ReturnToPlayer(found.EquipmentElement, count);
                throw;
             }
 
-            string name = item.Name.ToString();
+            if (fromBag) bundle.Handed = true; // the bag's goods are sold: a give_item of the same turn moves nothing more
+            string name = count > 1 ? $"{count} {item.Name}" : item.Name.ToString();
             ModLog.Info($"[ACTION] sell_item: player sold '{name}' (value {item.Value}) to {npcHero.Name} for {deal.Price}{(deal.ClampedToPurse ? " (all they had)" : "")}");
             string equipTail = TryEquipGift(npcHero, item);
 
@@ -2112,6 +2122,9 @@ namespace CalradiaRemembers.GameState
             if (bundle?.Items is {Count: > 0})
             {
                if (bundle.Handed) return null;
+               // A price was asked in the bag (froggyluv, 04/11/2026): the goods leave only through sell_item, paid.
+               if (bundle.AskingPrice.HasValue)
+                  return ActionOutcome.Refused($"(You asked {bundle.AskingPrice.Value:N0} denars for it; nothing changes hands until a price is paid.)");
                bundle.Handed = true;
                if (bundle.Items.Count > 1) return GiveBundle(bundle, npcHero, context);
                bagOne = bundle.Items[0];

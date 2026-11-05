@@ -43,6 +43,9 @@ namespace CalradiaRemembers.Missions
       private const string HeardSaveKey = "CalradiaRemembers_CompanionHeardDay_v1";
 
       private const string RefusalsSaveKey = "CalradiaRemembers_CompanionRefusals_v1";
+
+      // Additive (froggyluv, 04/11/2026): what lowered each companion's contentment; an older save reads none.
+      private const string GrievancesSaveKey = "CalradiaRemembers_CompanionGrievances_v1";
       public static CompanionHappinessBehavior Instance;
       private Dictionary<string, int> _farewellDay = new(); // companion id → day the farewell arrives (they leave then)
       private Dictionary<string, int> _heardDay = new();    // companion id → day the player last truly heard them
@@ -52,6 +55,7 @@ namespace CalradiaRemembers.Missions
       public CompanionHappinessBehavior()
       {
          Instance = this;
+         CompanionHappinessService.Grievances = new CompanionGrievanceLedger();
       }
 
       private static int Today => (int) CampaignTime.Now.ToDays;
@@ -96,6 +100,31 @@ namespace CalradiaRemembers.Missions
          SyncDict(dataStore, RefusalsSaveKey, ref _refusals);
          SyncDict(dataStore, FarewellSaveKey, ref _farewellDay);
          SyncDict(dataStore, HeardSaveKey, ref _heardDay);
+         SyncGrievances(dataStore);
+      }
+
+      private static void SyncGrievances(IDataStore dataStore)
+      {
+         if (dataStore.IsSaving)
+         {
+            byte[] bytes;
+            try { bytes = Encoding.UTF8.GetBytes(CompanionHappinessService.Grievances.Serialize()); }
+            catch { bytes = Array.Empty<byte>(); }
+
+            try { dataStore.SyncData(GrievancesSaveKey, ref bytes); }
+            catch (Exception ex) { ModLog.Error($"[HAPPINESS] save failed ({GrievancesSaveKey}): {ex.Message}"); }
+         }
+         else
+         {
+            byte[] bytes = null;
+            try { dataStore.SyncData(GrievancesSaveKey, ref bytes); }
+            catch
+            {
+               /* key absent in older saves */
+            }
+
+            CompanionHappinessService.Grievances = CompanionGrievanceLedger.Deserialize(bytes is {Length: > 0} ? Encoding.UTF8.GetString(bytes) : null);
+         }
       }
 
       #region private
@@ -300,7 +329,7 @@ namespace CalradiaRemembers.Missions
             ? r
             : 0;
          _refusals[h.StringId] = CompanionRetentionPolicy.RegisterRefusal(refusals);
-         CompanionHappinessService.ApplyDriver(h, HappinessDriver.Mistreated); // turned away unheard — it sours them further
+         CompanionHappinessService.ApplyDriver(h, HappinessDriver.Mistreated, "being refused a hearing when you asked the player for a word"); // turned away unheard: it sours them further
          ModLog.Info($"[HAPPINESS] {h.Name}'s audience refused ({_refusals[h.StringId]}/{CompanionRetentionPolicy.MaxAudienceRefusals}).");
       }
 

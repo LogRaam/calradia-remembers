@@ -197,7 +197,7 @@ namespace CalradiaRemembers.Missions
          _forcedBack[h.StringId] = n;
 
          // They resent being marched to war after you granted them their rest.
-         CompanionHappinessService.ApplyDriver(h, HappinessDriver.Mistreated);
+         CompanionHappinessService.ApplyDriver(h, HappinessDriver.Mistreated, "being marched back to war after the player granted you your rest");
          MBInformationManager.AddQuickInformation(
             new TextObject($"{h.Name} chafes at being marched back to war after you granted them their rest."), 0, h.CharacterObject);
 
@@ -242,7 +242,7 @@ namespace CalradiaRemembers.Missions
          _requestOpen = false;
          _declinedUntil[h.StringId] = Today + RetireDeclineCooldownDays;
          // Turning a faithful, war-weary veteran away without a hearing stings.
-         CompanionHappinessService.ApplyDriver(h, HappinessDriver.Mistreated);
+         CompanionHappinessService.ApplyDriver(h, HappinessDriver.Mistreated, "being turned away unheard when you came to the player weary of war");
          MBInformationManager.AddQuickInformation(
             new TextObject($"You have no time for {h.Name}. They turn away, the weariness of war still on them — and the slight of being unheard now with it."),
             0, h.CharacterObject);

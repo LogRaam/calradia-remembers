@@ -42,5 +42,13 @@ namespace CalradiaRemembers.Logic.Initiative
 
       /// <summary>A cooldown that limits a whole kind (all companions at once): its own while the director is off, none while it paces.</summary>
       public static int KindCooldownDays(int ownDays, bool directorPaces) => directorPaces ? 0 : ownDays;
+
+      /// <summary>
+      ///   The companions' cooldown across them all: as <see cref="KindCooldownDays" />, except that Rarely keeps its own
+      ///   while the director paces. Lufaine (Nexus, 04/11/2026): "Even on 'Rarely' frequency, I have companions
+      ///   constantly asking to speak"; a weight of one half was all that was left of the word (Gabriel, 04/11/2026: ok).
+      /// </summary>
+      public static int CompanionCooldownDays(Companions.CompanionAudiencePacing pacing, int ownDays, bool directorPaces)
+         => directorPaces && pacing != Companions.CompanionAudiencePacing.Rarely ? 0 : ownDays;
    }
 }

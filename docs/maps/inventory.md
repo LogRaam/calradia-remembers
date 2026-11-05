@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 628 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1518 types in 55 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 629 types in 65 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1523 types in 55 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -647,10 +647,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TraumaPageReader` | internal static class | Reads the aggressions a hero lived through for the Trauma section. |
 | `WeddingDayBehavior` | public class | The day each married hero was wed, as CR saw it happen. |
 
-### CalradiaRemembers.Marriage (16)
+### CalradiaRemembers.Marriage (17)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `CourtshipLapseBehavior` | public class | Ends a character's courtship of the player when they marry someone else. |
 | `CourtshipTrialBehavior` | public class | Tracks courtship trials (a marriage prospect riding with the player to be tested), and opens the match when one is served. |
 | `CourtshipTrialRecord` | public class | One courtship trial: the day it began and whether it has since been served (passed). |
 | `DivorceEligibilityResolver` | public static class | Gathers the live facts behind end_marriage eligibility and evaluates them via DivorcePolicy. "The leaving spouse" is whichever of the NPC and their spouse currently sits in a clan other than the one they were born/create... |
@@ -1914,7 +1915,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `ChronicleResumePolicy` | public static class | Decides which deed the illuminator should resume from, given what it wrote last time. |
 
-### CalradiaRemembers.Logic.Companions (43)
+### CalradiaRemembers.Logic.Companions (46)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1935,6 +1936,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CompanionErrandJournalText` | public static class | Pure formatting for the companion-errand quest-journal mirror: a stable title and one status line per phase / closing outcome. |
 | `CompanionErrandPhase` | public enum | Where a companion's errand is in its out-to-back arc, for journal-text purposes only. |
 | `CompanionGratitudePolicy` | public static class | Pure rules for whether/how strongly a live Appreciation qualifies as an unprompted gratitude audience. |
+| `CompanionGrievanceLedger` | public class | What lowered each companion's contentment lately, by hero id. |
+| `CompanionGrievancePolicy` | public static class | Says to an unhappy companion how they feel and, only from what was recorded, why. |
 | `CompanionLifecyclePolicy` | public static class | Pure gates for companion lifecycle transitions the engine drives: whether one may organically depart right now, and whether a returning errand-runner may be re-added to the player's party. |
 | `CompanionMissionOutcome` | public class | The resolved result of a dispatched mission. |
 | `CompanionMissionPayload` | public enum | The KIND of thing an errand brings back: drives how the host gathers it (flavour/voice is per-type). |
@@ -1953,6 +1956,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CompanionServiceTransferBlock` | public enum | Why a companion cannot be handed into a lord's service, or None when they can. |
 | `CompanionServiceTransferFacts` | public record | Everything the gate needs, as plain facts the caller reads off the live game. |
 | `CompanionServiceTransferPolicy` | public static class | The pure gate behind take_into_service. |
+| `GrievanceEntry` | public class | One thing that lowered a companion's contentment. |
 | `MissionResult` | public enum | How well a dispatched companion's errand turned out. |
 | `MissionSkill` | public enum | The CR-local skill a mission is judged by, kept independent of the engine's SkillObject. |
 | `PartyCounselFacts` | public class | Live facts about the party the caller has already gathered (item roster, morale model, member roster, carry weight), everything CompanionCounselPolicy needs, and nothing it has to guess. |
@@ -2405,12 +2409,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NemesisRosterPolicy` | public static class | Pure roster lookup: which (if any) living nemesis of a given band culture already claims a given region. |
 | `NemesisRumorLine` | public static class | Pure text for the tavern-keeper's nemesis rumour line: takes the nemesis's display label and his region's display string (both already resolved by the caller, exactly like the lord bounty announcement resolves them) and... |
 
-### CalradiaRemembers.Logic.Prisoners (18)
+### CalradiaRemembers.Logic.Prisoners (19)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `CaptiveBond` | public enum | What a captive is to the character buying them, as the game knows it. |
 | `CaptiveBondFacts` | public class | What decides a captive's bond to their buyer. |
+| `CaptiveNameMatch` | public static class | Whether a name written in conversation points at a captive, tolerant of a house or title around it. |
 | `EnvoyVisitFacts` | public class | What decides whether an envoy may come about a captive the player holds (PrisonerExchangePolicy.EnvoyMayCome). |
 | `ExchangeCaptiveFacts` | public class | What an exchange needs to know about one captive. |
 | `ExchangeHandover` | public enum | What happens to a captive once the other side has them. |
@@ -2517,13 +2522,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RescueGratitudePolicy` | public static class | Decides how strongly an NPC reacts to being rescued (or to a loved one being rescued) by the player. |
 | `RescueTie` | public enum | How the freed prisoner relates to the player, deciding the shape of their gratitude. |
 
-### CalradiaRemembers.Logic.Romance (45)
+### CalradiaRemembers.Logic.Romance (46)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `AffairInquiry` | public enum | What a companion's inquiry into a lord comes to. |
 | `AuthoredTastesFacts` | public class | A character's tastes as they stand, and the lists an author wrote for them. |
 | `AuthoredTastesPolicy` | public static class | How an authored gesture lock lands on a character's rolled tastes. |
+| `CourtshipLapsePolicy` | public static class | What becomes of a character's bond with the player when they marry someone else. |
 | `HeartChild` | public class | A child the player and this character have together, as the page names it. |
 | `HeartFacts` | public class | What the player knows of one character's bond with them. |
 | `HeartIntimacyPolicy` | public static class | The intimate lines of the Heart section: their gate and their words. |

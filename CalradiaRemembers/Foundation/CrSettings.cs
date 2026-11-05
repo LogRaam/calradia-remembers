@@ -638,6 +638,13 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool UnaskedLetters { get; set; } = true;
 
+      // SgtAlexGreen (Nexus, 04/11/2026): "letters being written when they are sent instead of opened? ... I click to open a
+      // letter and then have to wait for it to be generated". Off by default: a letter never opened then costs nothing.
+      [SettingPropertyBool("{=CR_MCM_WriteLettersOnArrival}Write Letters on Arrival", RequireRestart = false, Order = 13,
+         HintText = "{=CR_MCM_WriteLettersOnArrival_Hint}On: each letter is written as it reaches your box, so it opens at once. Off: written when you open it, so a letter you throw away or never open costs nothing. The text is as of the day it was sent either way.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
+      public bool WriteLettersOnArrival { get; set; } = false;
+
       [SettingPropertyBool("{=CR_MCM_CaptorConversations}Captor Conversations", RequireRestart = false, Order = 14,
          HintText = "{=CR_MCM_CaptorConversations_Hint}A lord who holds you may send for you to talk: courtesy, a ransom, an oath, an exchange. At most one a week, at every content level. Off: no such scene.")]
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]

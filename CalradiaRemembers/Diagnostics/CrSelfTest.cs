@@ -233,6 +233,9 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("tournament_rivalry", Severity.Light, "Tournament memory (player suggestion, Inc 4): force a low-honour lord and record three arena head-to-heads via the REAL rivalry behavior; asserts no rivalry forms before the threshold, it crystallizes at the threshold, the tally is right, and a BITTER rivalry plants a light grudge. Clears the grudge, forgets the tally, and restores the trait afterwards", TestTournamentRivalry),
          new SelfTest("affair_veto", Severity.Light, "tashmetu 03/11 (Romance & Seduction): one lord should never carry an affair in each mod, and Gabriel wants CR to depend on no mod. Registers a veto through CrRomance against a married lord and a free lord and asserts CR refuses that pair, allows it once withdrawn and past a veto that throws; then begins and ends an affair and asserts HiddenAffairChanged told both, and GetHiddenAffair read it on the lover side. Restores the ledger and the veto list", TestAffairVeto),
          new SelfTest("personal_worth", Severity.Light, "Thoragoros1 03/11: a captive is worth more to their own kin than the game's ransom. Takes a lord whose clan leader is his parent, child, spouse or sibling, reads the most the leader may offer in the turn's sum tokens, has the leader buy him through the real buy_prisoner at an absurd price, and asserts the token, the payment and the policy agree and stand above the ordinary band. Restores both purses and frees the captive", TestPersonalWorth),
+         new SelfTest("courtship_lapse", Severity.Light, "avalanche24 04/11: the game wed Queen Rhagaea to another while the player courted her, and CR kept the courtship running (Heart page, letters) while she denied it in chat. Takes a lord or lady of the other sex, sets their bond with the player to Courting, drives the real wedding hook as if they wed another hero, and asserts the bond falls to Estranged and they remember the wedding as their own life. Restores the bond and removes the memory", TestCourtshipLapse),
+         new SelfTest("companion_grievance", Severity.Light, "froggyluv 04/11: unhappy companions invented a broken promise because the mood note named no cause. Lowers a companion's contentment through the real driver with a named cause, and asserts the cause is kept and the note names it and forbids inventing another. Restores the contentment and the causes", TestCompanionGrievance),
+         new SelfTest("captive_name", Severity.Light, "froggyluv 04/11: a buyer named the captive with her house ('Elthild of dey Tihr') and the sale failed: no captive by that name. Takes a hero captive the player holds and asserts the real resolver finds them by name with the house appended. Skips when the player holds no hero captive; changes nothing", TestCaptiveName),
          new SelfTest("pair_bond", Severity.Light, "tashmetu 04/11: the game's starting draw gave strangers of far realms -100, and a change with a younger son landed on his father. Takes two lords of realms neither neighbours nor at war, no kin, writes a -80 start on their own slot, and asserts CR does not believe it (vague unease, 0 points); then changes it through CR and asserts only the change counts, on their own slot, and the clan leaders' relation is untouched. Restores both values and forgets the ledger rows", TestPairBond),
          new SelfTest("hidden_affairs", Severity.Light, "Gabriel's go 01/11/2026: a married lord may take a hidden lover, found by a companion sent to spy on them. Begins an affair between two lords and asserts both carry it in their prompt, told to evade and never lie; the player holds nothing yet; end_affair refuses it and the partner path leaves it alone; a poor inquiry says nothing certain; a companion dispatched with the lord's name through the real errand reports it and the player then holds it, on the lover too. Then ends it as a telling would, and asserts the fields are clear. Expose itself is driven by cr.test secret_exposure. Restores all borrowed state", TestHiddenAffairs),
          new SelfTest("lord_secret_lover", Severity.Light, "Mystery-lover (lord coverage): a MARRIED lord the player is secretly the lover of carries the SDK Status SecretLover (not the companion-only IsSecretLover flag). Mark a non-companion lord's profile Status SecretLover and assert the unified detection (PlayerSecretLoverSubjectIds) finds him, then record a second lord as knowing and drive the REAL EncounterContextBuilder.Build to assert the held-secret payoff names the lord subject (adult on) or is suppressed (gate off). Restores the status and forgets the ledger afterwards", TestLordSecretLover),
@@ -10267,6 +10270,94 @@ namespace CalradiaRemembers.Diagnostics
             Hero.MainHero.ChangeHeroGold(playerGold0 - Hero.MainHero.Gold);
             buyer.ChangeHeroGold(buyerGold0 - buyer.Gold);
          }
+
+         return t.Line();
+      }
+
+      private static string TestCourtshipLapse(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("courtship_lapse");
+         var store = behavior?.Store;
+         if (t.Abort(store == null, "no memory store")) return t.Line();
+
+         Hero wed = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsChild && h.IsFemale != Hero.MainHero.IsFemale
+                                                            && h.Spouse == null && store.Get(h.StringId)?.Romantic != null);
+         Hero other = wed == null ? null : Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != wed && h.IsLord && !h.IsChild);
+         if (t.Skip(wed == null || other == null, "no unwed lord or lady with a romantic profile")) return t.Line();
+
+         NpcProfile profile = store.Get(wed.StringId);
+         RomanticStatus status0 = profile.Romantic.Status;
+         int events0 = profile.Events.Count;
+         try
+         {
+            profile.Romantic.Status = RomanticStatus.Courting;
+            store.Set(profile);
+
+            bool moved = Marriage.CourtshipLapseBehavior.Lapse(wed, other);
+            NpcProfile after = store.Get(wed.StringId);
+            t.Note($"{wed.Name} weds {other.Name}: {after.Romantic.Status}; last memory '{after.Events.LastOrDefault()?.summary}'");
+            // STAKE: avalanche24: the courtship ends the day she weds another; her page and letters stop calling it a courtship.
+            t.Expect("theCourtshipEnds", moved && after.Romantic.Status == RomanticStatus.Estranged, true);
+            // STAKE: NPCs never lie: she remembers choosing another, so she never denies what was.
+            t.Expect("sheRemembersTheWedding", after.Events.Count > events0 && after.Events.Last().type == NotableEventType.OwnLife, true);
+            // STAKE: wedding the player is no lapse.
+            after.Romantic.Status = RomanticStatus.Courting;
+            t.Expect("weddingThePlayerKeepsIt", Marriage.CourtshipLapseBehavior.Lapse(wed, Hero.MainHero), false);
+         }
+         finally
+         {
+            NpcProfile back = store.Get(wed.StringId);
+            back.Romantic.Status = status0;
+            while (back.Events.Count > events0) back.Events.RemoveAt(back.Events.Count - 1);
+            store.Set(back);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestCompanionGrievance(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("companion_grievance");
+         var store = behavior?.Store;
+         if (t.Abort(store == null, "no memory store")) return t.Line();
+
+         Hero companion = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsPlayerCompanion && h != Hero.MainHero && store.Get(h.StringId) != null);
+         if (t.Skip(companion == null, "no companion with a profile")) return t.Line();
+
+         int happiness0 = Missions.CompanionHappinessService.Get(companion);
+         string ledger0 = Missions.CompanionHappinessService.Grievances.Serialize();
+         try
+         {
+            Missions.CompanionHappinessService.Set(companion, 20);
+            Missions.CompanionHappinessService.ApplyDriver(companion, Logic.HappinessDriver.Mistreated, "a cr.test slight that never happened in play");
+            var recent = Missions.CompanionHappinessService.Grievances.Recent(companion.StringId, (int) CampaignTime.Now.ToDays);
+            string note = Logic.Companions.CompanionGrievancePolicy.MoodNote(Missions.CompanionHappinessService.Get(companion), recent);
+            t.Note($"{companion.Name}: {note}");
+            // STAKE: froggyluv: the real cause is kept and named, so the companion speaks of what happened.
+            t.Expect("theCauseIsNamed", note != null && note.Contains("a cr.test slight"), true);
+            // STAKE: froggyluv: no broken promise is invented beside it.
+            t.Expect("noInventedWrong", note != null && note.Contains("Never claim a broken promise"), true);
+         }
+         finally
+         {
+            Missions.CompanionHappinessService.Set(companion, happiness0);
+            Missions.CompanionHappinessService.Grievances = Logic.Companions.CompanionGrievanceLedger.Deserialize(ledger0);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestCaptiveName(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("captive_name");
+         Hero captive = Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners().FirstOrDefault(h => h.Clan != null);
+         if (t.Skip(captive == null, "the player holds no hero captive of a house")) return t.Line();
+
+         string written = $"{captive.Name} of {captive.Clan.Name}";
+         Hero found = Verbs.BuyPrisonerVerb.ResolvePlayerHeldPrisonerByName(written);
+         t.Note($"'{written}' -> {found?.Name}");
+         // STAKE: froggyluv's Elthild: the captive named with her house is found, so the agreed sale goes through.
+         t.Expect("foundWithTheHouse", found, captive);
 
          return t.Line();
       }

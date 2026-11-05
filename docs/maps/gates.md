@@ -353,6 +353,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 - taught in: `AppendEncounterContext`
 - taught when: `context == null [early return naming context]`
 - the bridge refuses:
+  - $"(You asked {bundle.AskingPrice.Value:N0} denars for it; nothing changes hands until a price is paid.)"
   - SilentRefusalMessages.GiveItemNoneNamed()
   - "(You don't seem to have anything like that to give.)"
   - $"(You don't seem to have '{label}' to give.)"

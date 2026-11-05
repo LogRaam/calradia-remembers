@@ -92,6 +92,9 @@ namespace CalradiaRemembers.Foundation
       /// <summary>Characters write to the player of their own accord; off, only the letters that matter still come (on without MCM).</summary>
       public static bool UnaskedLetters => CrSettings.Instance?.UnaskedLetters ?? true;
 
+      /// <summary>Each letter is written as it reaches the box (SgtAlexGreen, 04/11/2026); off: written when opened.</summary>
+      public static bool WriteLettersOnArrival => CrSettings.Instance?.WriteLettersOnArrival ?? false;
+
       /// <summary>Intercepted-letter-leak Inc 1: when ON, a bandit-waylaid substantive letter may leak to a hostile hand. OFF by default (today's behaviour).</summary>
 
       /// <summary>

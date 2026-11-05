@@ -108,5 +108,41 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_global_cooldown_constant_WHEN_read_THEN_it_governs_the_whole_roster_not_one_companion()
          => CompanionAudienceTopicPolicy.GlobalCooldownDays.Should().BeGreaterThan(0);
+
+      // STAKE: Lufaine (Nexus, 04/11/2026): "always either an update about a war declaration or a memory of a previous
+      // scene... robotic and predictable". A weaker topic now gets its turn, in proportion to its strength.
+      [Test]
+      public void GIVEN_a_strong_memory_and_a_weaker_counsel_WHEN_drawn_across_the_rolls_THEN_each_is_raised_sometimes()
+      {
+         var candidates = new List<CompanionAudienceTopicCandidate> {
+            new(CompanionAudienceReason.Callback, true, 75),
+            new(CompanionAudienceReason.PracticalCounsel, true, 25)
+         };
+         var drawn = new HashSet<CompanionAudienceReason>();
+         for (int i = 0; i < 100; i++) drawn.Add(CompanionAudienceTopicPolicy.DrawTopic(candidates, i / 100.0));
+
+         drawn.Should().BeEquivalentTo(new[] {CompanionAudienceReason.Callback, CompanionAudienceReason.PracticalCounsel});
+      }
+
+      // STAKE: a plot against the player is never left to a draw: the warning is raised whenever it holds.
+      [Test]
+      public void GIVEN_a_scheme_warning_among_others_WHEN_drawn_THEN_the_warning_is_always_raised()
+      {
+         var candidates = new List<CompanionAudienceTopicCandidate> {
+            new(CompanionAudienceReason.Callback, true, 100),
+            new(CompanionAudienceReason.SchemeWarning, true, 90)
+         };
+
+         CompanionAudienceTopicPolicy.DrawTopic(candidates, 0.0).Should().Be(CompanionAudienceReason.SchemeWarning);
+         CompanionAudienceTopicPolicy.DrawTopic(candidates, 0.99).Should().Be(CompanionAudienceReason.SchemeWarning);
+      }
+
+      // STAKE: nothing that holds, no word asked.
+      [Test]
+      public void GIVEN_no_topic_holds_WHEN_drawn_THEN_none()
+      {
+         CompanionAudienceTopicPolicy.DrawTopic(new List<CompanionAudienceTopicCandidate> {new(CompanionAudienceReason.Callback, false, 80)}, 0.5)
+            .Should().Be(CompanionAudienceReason.None);
+      }
    }
 }

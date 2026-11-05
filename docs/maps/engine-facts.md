@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-734 rules read 542 facts.
+737 rules read 544 facts.
 
 ## Facts read by more than one rule
 
@@ -106,6 +106,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `PartyBelongedTo.GetPosition2D` (6) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `EscortCostPolicy.EscortPremium`, `JealousyHearingPolicy.WithinEarshot` |
 | `PartyBelongedTo.MapEvent` (6) | `AssemblyInvitationFacts`, `AssemblyTravelFacts`, `AssemblyTravelOutcome.Evaluate`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate`, `ReturnFacts` |
 | `Romantic.IsOpenArrangement` (6) | `LoverEligibilityFacts`, `OpenRelationshipPolicy.SuppressesJealousy`, `PartnerStanding`, `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot` |
+| `Romantic.Status` (6) | `CourtshipLapsePolicy.After`, `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `BirthDay.GetYear` (5) | `HeartChild`, `HeartFacts`, `HeartPagePolicy.Lines`, `HeartPagePolicy.RecapLine`, `RomanceBondPolicy.Read` |
 | `CurrentSettlement.GetPosition2D` (5) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `JealousyHearingPolicy.WithinEarshot` |
 | `Event.InvolvesPlayer` (5) | `PlayerFameFacts`, `PlayerFamePolicy.Line`, `PlayerFamePolicy.Read`, `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
@@ -127,7 +128,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `PartyBelongedTo.Army` (5) | `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate`, `ReturnFacts` |
 | `Result.Killed` (5) | `KillAftermathFacts`, `KillAttemptPolicy.FallbackNarration`, `KillAttemptPolicy.NarratorTask`, `KillAttemptPolicy.ReactionHint`, `KillNarrationFacts` |
 | `Romantic.IsCompatibleWith` (5) | `CaptiveOfferFacts`, `JealousyTriggerPolicy.IsPlausibleCourtship`, `LoverCandidateFacts`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
-| `Romantic.Status` (5) | `PluralAcceptanceFacts`, `PluralAcceptancePolicy.CanBeOffered`, `PluralAcceptancePolicy.WhyNot`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Settlement.IsCastle` (5) | `CommonerChatContext`, `CourierHirePlacePolicy.OfferedInTheMenu`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts` |
 | `Settlement.IsStarving` (5) | `FoodTradeFacts`, `ReliefSeat`, `TownFoodFacts`, `TownFoodPolicy.IsHungry`, `TownFoodPolicy.ReliefDestination` |
 | `Town.FoodChange` (5) | `FoodTradeFacts`, `ReliefSeat`, `TownFoodFacts`, `TownFoodPolicy.IsHungry`, `TownFoodPolicy.ReliefDestination` |
@@ -472,6 +472,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `CompanionBaseline.From`: `StatureReader.Player`
 - `CompanionChargeFacts`: `Hero.GovernorOf`, `Hero.PartyBelongedTo`, `PartyBelongedTo.LeaderHero`
 - `CompanionCounselPolicy.Select`: `Character.HeroObject`, `EquipmentElement.Item`, `Hero.GetSkillValue`, `MemberRoster.GetTroopRoster`, `MobileParty.InventoryCapacity`, `MobileParty.ItemRoster`, `MobileParty.Morale`, `MobileParty.TotalWeightCarried`
+- `CompanionGrievancePolicy.MoodNote`: `Grievances.Recent`
 - `CompanionLifecyclePolicy.MayReintegrate`: `Hero.Clan`, `Hero.IsPlayerCompanion`
 - `CompanionMatchFacts`: `Hero.IsChild`, `Hero.IsFemale`, `PairBondReader.Points`
 - `CompanionMissions.CanAttempt`: `Hero.GetSkillValue`
@@ -522,6 +523,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `CourtActionPolicy.CooldownElapsed`: `summary.IndexOf`
 - `CourtActionPolicy.IsPartyWeakened`: `Hero.PartyBelongedTo`, `MobileParty.MemberRoster`, `Party.PartySizeLimit`, `TroopRoster.GetTroopRoster`
 - `CourtActionPolicy.IsPlayerHousehold`: `Hero.Clan`
+- `CourtshipLapsePolicy.After`: `Romantic.Status`
 - `CraftWeaponPolicy.Answers`: `ItemObject.IsCraftedByPlayer`
 - `CustodyReleaseFacts`: `EndCaptivityDetail.ReleasedByChoice`
 - `DayMoodFactsPolicy.From`: `Clan.Kingdom`, `Hero.Clan`, `Hero.CurrentSettlement`, `Hero.IsPrisoner`, `Settlement.IsCastle`, `Settlement.IsTown`, `Settlement.IsUnderSiege`
@@ -730,6 +732,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `LetterCandidate`: `Hero.Spouse`
 - `LetterCandidateFreshness.PremiseStillHolds`: `Hero.MapFaction`
 - `LetterDeliveryPolicy.ShouldHoldDeliveryAtSea`: `MobileParty.IsCurrentlyAtSea`
+- `LetterEnvelopePolicy.IsUnwritten`: `Boxed.Letter`
 - `LetterFontPolicy.PreferPlainFont`: `LanguageIdProvider.Invoke`
 - `LetterRegardFacts`: `ModSettings.RelationWarmth`
 - `LetterRegardPolicy.ParseTone`: `DayMoodReader.Draw`

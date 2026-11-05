@@ -96,8 +96,8 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Letters` | 43 | 13 |
 | `CalradiaRemembers.GameState` | 41 | 20 |
 | `CalradiaRemembers.Quests` | 36 | 11 |
+| `CalradiaRemembers.Marriage` | 28 | 8 |
 | `CalradiaRemembers.Verbs` | 28 | 8 |
-| `CalradiaRemembers.Marriage` | 27 | 8 |
 | `CalradiaRemembers.WorldEvents` | 25 | 32 |
 | `CalradiaRemembers.Missions` | 25 | 10 |
 | `CalradiaRemembers.Behaviors` | 23 | 43 |
@@ -144,7 +144,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Dynasty` | 5 | 3 |
 | `CalradiaRemembers.WarCouncil` | 5 | 2 |
 | `CalradiaRemembers.Storage` | 4 | 24 |
-| `CalradiaRemembers.Logic.Romance` | 4 | 13 |
+| `CalradiaRemembers.Logic.Romance` | 4 | 14 |
 | `CalradiaRemembers.Logic.Captivity` | 4 | 12 |
 | `CalradiaRemembers.Logic.Assemblies` | 4 | 10 |
 | `CalradiaRemembers.Logic.Marriage` | 4 | 10 |
@@ -1070,7 +1070,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### CalradiaRemembers.Logic.Romance
 
 - uses: `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Companions`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Standing`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic.Character`, `CalradiaRemembers.Logic.Trauma`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.OpenPartnerLover`, `CalradiaRemembers.Verbs`, `CalradiaRemembers.WorldEvents`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic.Character`, `CalradiaRemembers.Logic.Trauma`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.OpenPartnerLover`, `CalradiaRemembers.Verbs`, `CalradiaRemembers.WorldEvents`
 
 ### CalradiaRemembers.Logic.Scenarios
 
@@ -1154,7 +1154,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### CalradiaRemembers.Marriage
 
-- uses: `CalradiaRemembers`, `CalradiaRemembers.Appreciations`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Dynasty`, `CalradiaRemembers.Escort`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Initiative`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Appreciations`, `CalradiaRemembers.Logic.Dynasty`, `CalradiaRemembers.Logic.Grudges`, `CalradiaRemembers.Logic.Initiative`, `CalradiaRemembers.Logic.Marriage`, `CalradiaRemembers.Logic.Trauma`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Retainer`, `CalradiaRemembers.Scenarios`, `CalradiaRemembers.Services`, `CalradiaRemembers.Storage`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Services`, `NpcMemoryService.Core.Standing`
+- uses: `CalradiaRemembers`, `CalradiaRemembers.Appreciations`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Dynasty`, `CalradiaRemembers.Escort`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Initiative`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Appreciations`, `CalradiaRemembers.Logic.Dynasty`, `CalradiaRemembers.Logic.Grudges`, `CalradiaRemembers.Logic.Initiative`, `CalradiaRemembers.Logic.Marriage`, `CalradiaRemembers.Logic.Romance`, `CalradiaRemembers.Logic.Trauma`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Retainer`, `CalradiaRemembers.Scenarios`, `CalradiaRemembers.Services`, `CalradiaRemembers.Storage`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Services`, `NpcMemoryService.Core.Standing`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Quests`, `CalradiaRemembers.Verbs`
 
 ### CalradiaRemembers.Memory

@@ -8,6 +8,7 @@
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Companions;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -23,8 +24,17 @@ namespace CalradiaRemembers.Missions
         public static int Get(Hero hero)
             => ProfileOf(hero)?.Happiness ?? CompanionHappiness.Default;
 
-        /// <summary>Applies a driver to the companion's stored happiness (no-op when they have no profile).</summary>
-        public static void ApplyDriver(Hero hero, HappinessDriver driver)
+        /// <summary>
+        ///   What lowered each companion's contentment lately (froggyluv, 04/11/2026: an unhappy companion invented a
+        ///   broken promise because the note named no cause). Saved by CompanionHappinessBehavior; never null.
+        /// </summary>
+        public static CompanionGrievanceLedger Grievances { get; internal set; } = new CompanionGrievanceLedger();
+
+        /// <summary>
+        ///   Applies a driver to the companion's stored happiness (no-op when they have no profile). A driver that
+        ///   lowers it is recorded with <paramref name="cause" /> (said to the companion; null reads the driver's own).
+        /// </summary>
+        public static void ApplyDriver(Hero hero, HappinessDriver driver, string cause = null)
         {
             NpcProfile p = ProfileOf(hero);
             if (p == null) return;
@@ -32,6 +42,9 @@ namespace CalradiaRemembers.Missions
             int before = p.Happiness;
             p.Happiness = CompanionHappiness.ApplyDriver(p.Happiness, driver);
             if (p.Happiness == before) return;
+
+            if (p.Happiness < before)
+                Grievances.Record(hero.StringId, new GrievanceEntry {Day = (int) CampaignTime.Now.ToDays, Driver = driver, Cause = cause});
 
             Store?.Set(p);
             ModLog.Info($"[HAPPINESS] {hero.Name}: {before}→{p.Happiness} ({driver}).");

@@ -384,6 +384,8 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new WorldEvents.FoodTradeMemoryBehavior());
          // The day of every wedding, for the family line (raphareish, 01/10/2026).
          campaignStarter.AddBehavior(new Mapping.WeddingDayBehavior());
+         // A courtship of the player ends when the courted one weds another (avalanche24, 04/11/2026).
+         campaignStarter.AddBehavior(new Marriage.CourtshipLapseBehavior());
          // The bonds with the player, read hourly for CrRomance.StatusChanged (LapitaPolata, 22/10/2026).
          campaignStarter.AddBehavior(new RomanceBondWatchBehavior());
          campaignStarter.AddBehavior(new Mapping.TraumaLedgerBehavior());

@@ -364,7 +364,8 @@ namespace CalradiaRemembers.Missions
       // While the world's initiative paces, the companions' turns are its to give: the cooldown across them all and the
       // road roll step aside, and the dial is a weight on their family (29/10/2026).
       private static int CompanionCooldownDays
-         => Logic.Initiative.InitiativeDials.KindCooldownDays(CompanionAudiencePacingRules.CooldownDays(ModSettings.CompanionAudienceCadence), !ModSettings.WorldInitiativeOff);
+         => Logic.Initiative.InitiativeDials.CompanionCooldownDays(ModSettings.CompanionAudienceCadence,
+            CompanionAudiencePacingRules.CooldownDays(ModSettings.CompanionAudienceCadence), !ModSettings.WorldInitiativeOff);
 
       /// <summary>
       ///   Who asks next, and on what: each traveller's strongest matter, then the strongest of those, except that
@@ -380,7 +381,7 @@ namespace CalradiaRemembers.Missions
          foreach (Hero h in Companions().OrderBy(h => h.StringId, StringComparer.Ordinal))
          {
             List<CompanionAudienceTopicScan> scans = CompanionAudienceTopicResolver.Scan(h, _reportedRumourIds, _usedCallbackKeys, _thankedKeys, _warnedKeys, _ambitionAskedDays);
-            CompanionAudienceReason topic = SelectFrom(scans);
+            CompanionAudienceReason topic = SelectFrom(scans, MBRandom.RandomFloat); // Lufaine (04/11/2026): a draw, not always the strongest
 
             if (topic == CompanionAudienceReason.None) continue;
 
@@ -676,17 +677,23 @@ namespace CalradiaRemembers.Missions
          // A companion is known: no "Who:" line, but the "Who is this?" button to their page (Lordfadooboo, 13/10/2026).
          Interception.AudienceInquiry.Show(h, title.ToString(), body.ToString(), "Speak with them", "Not now",
             GrantAudience,
-            () => ModLog.Info($"[AUDIENCE_TOPIC] {h.Name}'s private word was declined, no penalty, free refusal."), sayWho: false);
+            () =>
+            {
+               // News offered and declined is told: the same war is not offered again (Lufaine, 04/11/2026).
+               if (scan.Topic == CompanionAudienceReason.RumourReport && !string.IsNullOrEmpty(scan.Key)) _reportedRumourIds.Add(scan.Key);
+               ModLog.Info($"[AUDIENCE_TOPIC] {h.Name}'s private word was declined, no penalty, free refusal.");
+            }, sayWho: false);
       }
 
       /// <summary>Mirrors CompanionAudienceTopicPolicy.SelectTopic over a resolver scan.</summary>
-      private static CompanionAudienceReason SelectFrom(List<CompanionAudienceTopicScan> scans)
+      private static CompanionAudienceReason SelectFrom(List<CompanionAudienceTopicScan> scans, double? roll = null)
       {
          var candidates = scans
             .Select(s => new CompanionAudienceTopicCandidate(s.Topic, s.Holds, s.Strength))
             .ToList();
 
-         return CompanionAudienceTopicPolicy.SelectTopic(candidates);
+         // No roll (the console's "would fire"): the strongest, as before; a real request draws (DrawTopic).
+         return roll is double r ? CompanionAudienceTopicPolicy.DrawTopic(candidates, r) : CompanionAudienceTopicPolicy.SelectTopic(candidates);
       }
 
       /// <summary>Plain persisted shape, deliberately NOT the live fields, so JSON shape changes stay isolated here.</summary>

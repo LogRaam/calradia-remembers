@@ -9,6 +9,7 @@
 
 #region
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NpcMemoryService.Core.Models;
@@ -73,6 +74,33 @@ namespace CalradiaRemembers.Logic.Companions
                 .FirstOrDefault();
 
             return best?.Topic ?? CompanionAudienceReason.None;
+        }
+
+        /// <summary>
+        ///   The topic actually raised: a draw among those that hold, each as likely as it is strong, so the strongest is
+        ///   the likeliest but never the only one. Lufaine (Nexus, 04/11/2026): "the dialogue always seems to be either an
+        ///   update about a war declaration or a memory of a previous scene. Makes the interaction seem quite robotic and
+        ///   predictable." A scheme warning is never left to chance: it is raised whenever it holds.
+        ///   <paramref name="roll" /> is in [0, 1); outside it reads as the edge.
+        /// </summary>
+        public static CompanionAudienceReason DrawTopic(IReadOnlyList<CompanionAudienceTopicCandidate> candidates, double roll)
+        {
+            List<CompanionAudienceTopicCandidate> holding = (candidates ?? new List<CompanionAudienceTopicCandidate>())
+                .Where(c => c != null && c.PreconditionHolds && c.Strength > 0)
+                .OrderBy(c => (int) c.Topic)
+                .ToList();
+            if (holding.Count == 0) return CompanionAudienceReason.None;
+            if (holding.Any(c => c.Topic == CompanionAudienceReason.SchemeWarning)) return CompanionAudienceReason.SchemeWarning;
+
+            int total = holding.Sum(c => c.Strength);
+            double at = Math.Max(0, Math.Min(0.999999, roll)) * total;
+            foreach (CompanionAudienceTopicCandidate c in holding)
+            {
+                if (at < c.Strength) return c.Topic;
+                at -= c.Strength;
+            }
+
+            return holding[holding.Count - 1].Topic;
         }
     }
 }

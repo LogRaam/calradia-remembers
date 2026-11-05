@@ -52,5 +52,15 @@ namespace CalradiaRemembers.Tests.Initiative
          InitiativeDials.ChancePercent(25, false).Should().Be(25);
          InitiativeDials.KindCooldownDays(14, false).Should().Be(14);
       }
+
+      // STAKE: Lufaine (Nexus, 04/11/2026): "Even on 'Rarely' frequency, I have companions constantly asking to speak". Under
+      // the director, Rarely keeps its own wait between words; the other settings still leave the pacing to the director.
+      [Test]
+      public void GIVEN_the_director_pacing_WHEN_the_companions_cooldown_is_read_THEN_rarely_keeps_its_own_and_the_others_step_aside()
+      {
+         InitiativeDials.CompanionCooldownDays(CompanionAudiencePacing.Rarely, 21, true).Should().Be(21);
+         InitiativeDials.CompanionCooldownDays(CompanionAudiencePacing.Occasionally, 14, true).Should().Be(0);
+         InitiativeDials.CompanionCooldownDays(CompanionAudiencePacing.Often, 7, false).Should().Be(7);
+      }
    }
 }

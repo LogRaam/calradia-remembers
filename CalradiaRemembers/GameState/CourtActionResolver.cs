@@ -1188,7 +1188,7 @@ namespace CalradiaRemembers.GameState
             h != npc && !CourtActionPolicy.IsPlayerHousehold(h == Hero.MainHero, h.Clan == Clan.PlayerClan) &&
             h is {IsLord: true, IsPrisoner: true} &&
             IsHeldByClan(h, npc.Clan) &&
-            h.Name != null && h.Name.ToString().IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0);
+            h.Name != null && Logic.Prisoners.CaptiveNameMatch.Matches(h.Name.ToString(), query));
       }
 
       #region private

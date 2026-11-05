@@ -1593,14 +1593,8 @@ namespace CalradiaRemembers.Mapping
 
          int score = CompanionHappinessService.Get(hero);
 
-         if (score >= 50) return null; // content or better — nothing to voice
-
-         if (CompanionHappiness.WantsToLeave(score))
-            return "You are bitterly unhappy in the player's service and mean to LEAVE. You may say so plainly, " + "or give them one last chance to make it right — but your patience is at its end.";
-         if (score < 25)
-            return "You are disgruntled in the player's service and have begun to think of leaving. You may voice " + "your grievance — what has soured you, and what it would take to keep you.";
-
-         return "You are restless in the player's service — your patience is thinning. You may let a coolness or a " + "small complaint show, without yet threatening to leave.";
+         // froggyluv (04/11/2026): only the recorded causes are named, so no broken promise is invented.
+         return CompanionGrievancePolicy.MoodNote(score, CompanionHappinessService.Grievances.Recent(hero.StringId, (int) CampaignTime.Now.ToDays));
       }
 
       /// <summary>
