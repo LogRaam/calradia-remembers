@@ -2,6 +2,8 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.8.4.. open
+
 ## v2.8.3.. 2026-11-04
 
 ### New
