@@ -180,5 +180,34 @@ namespace CalradiaRemembers.Tests
             note.Should().Contain("You hold no captive called Elthild of dey Tihr for Eilidh to buy");
             note.Should().NotContain("Eilidh holds");
         }
+
+        // STAKE: RaveN017Mod (Nexus, 05/11/2026), sales in a row: the interpreter reads the reply where Monchug was sold; named
+        // again, the sale would find him in the buyer's cage and sell him back to the player, gold and all.
+        [Test]
+        public void GIVEN_a_captive_just_sold_to_a_lord_WHEN_the_same_lord_trades_him_again_that_day_THEN_it_is_an_echo()
+        {
+            PrisonerTradePolicy.IsEchoOfLastTrade("lord_rhagaea", 100.2, "lord_rhagaea", 100.6).Should().BeTrue();
+        }
+
+        // STAKE: another lord may still buy the captive from the one who bought him; only the same pair repeats itself.
+        [Test]
+        public void GIVEN_a_captive_just_sold_WHEN_another_lord_trades_him_THEN_it_is_no_echo()
+        {
+            PrisonerTradePolicy.IsEchoOfLastTrade("lord_rhagaea", 100.2, "lord_monchug", 100.6).Should().BeFalse();
+        }
+
+        // STAKE: a buy-back days later is a new bargain the player may want.
+        [Test]
+        public void GIVEN_a_trade_days_ago_WHEN_the_same_lord_trades_him_again_THEN_it_is_no_echo()
+        {
+            PrisonerTradePolicy.IsEchoOfLastTrade("lord_rhagaea", 100.2, "lord_rhagaea", 103.0).Should().BeFalse();
+        }
+
+        // STAKE: a captive never traded has nothing to echo.
+        [Test]
+        public void GIVEN_no_trade_noted_WHEN_checked_THEN_it_is_no_echo()
+        {
+            PrisonerTradePolicy.IsEchoOfLastTrade(null, 0, "lord_rhagaea", 100.6).Should().BeFalse();
+        }
     }
 }

@@ -87,9 +87,28 @@ namespace CalradiaRemembers.Logic.Prisoners
 
       /// <summary>
       ///   TUNE: the captives a buyer is taught a price for and offered money tokens for. Was 3 (RaveN017Mod, Nexus, 05/11/2026:
-      ///   from the fourth captive on the character had no figure and improvised); one short line each.
+      ///   from the fourth captive on the character had no figure and improvised); a line and three tokens each.
       /// </summary>
       public const int CaptivesPriced = 8;
+
+      /// <summary>TUNE: the same under "Compact prompt for small models", where every line is paid on every turn: as before.</summary>
+      public const int CaptivesPricedCompact = 3;
+
+      /// <summary>How many captives are priced this turn.</summary>
+      public static int CaptivesPricedFor(bool compactPrompt) => compactPrompt ? CaptivesPricedCompact : CaptivesPriced;
+
+      /// <summary>TUNE: within this many days, a trade of the same captive with the same character echoes the one just made.</summary>
+      public const double EchoWindowDays = 1.0;
+
+      /// <summary>
+      ///   True when a trade of a captive with <paramref name="counterpartId" /> repeats the last one made for that captive with the
+      ///   same character (RaveN017Mod, Nexus, 05/11/2026: the interpreter now reads the reply before, where the first sale was
+      ///   agreed). Re-emitted, buy_prisoner finds the captive in the buyer's cage and the redirect would sell him back to the
+      ///   player, gold and all, with no one having asked. A real buy-back the same day is refused too; that costs a line.
+      /// </summary>
+      public static bool IsEchoOfLastTrade(string lastCounterpartId, double lastTradeDay, string counterpartId, double today)
+         => !string.IsNullOrEmpty(lastCounterpartId) && lastCounterpartId == counterpartId
+            && today >= lastTradeDay && today - lastTradeDay < EchoWindowDays;
 
       /// <summary>TUNE: no captive ever trades for less than this, whatever the ransom model says.</summary>
       public const int MinPrice = 50;

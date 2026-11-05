@@ -56,7 +56,7 @@ namespace CalradiaRemembers.Verbs
             sb.AppendLine("kin to ransom home, leverage over a rival house):");
             // The most this buyer can really pay, stated BEFORE they name a figure (tashmetu, 27/09/2026: a lord
             // offered fifteen thousand she did not have, and the game paid 5098).
-            foreach (Hero captive in held.Take(PrisonerTradePolicy.CaptivesPriced))
+            foreach (Hero captive in held.Take(PrisonerTradePolicy.CaptivesPricedFor(ModSettings.LeanPromptChosen)))
             {
                 int anchor = RansomAnchor(captive);
                 int most = PrisonerTradePolicy.MostABuyerCanPay(anchor, ctx.Npc.Gold, BondTo(ctx.Npc, captive));
@@ -109,6 +109,8 @@ namespace CalradiaRemembers.Verbs
                     // to a player who was buying (Lordfadooboo, 04/10/2026).
                     return ActionOutcome.Refused(SellPrisonerVerb.NotHisToSell(npcHero, targetName, verb: "buy_prisoner"));
                 }
+
+                if (IsEchoOfLastTrade(captive, npcHero)) return ActionOutcome.Refused(EchoRefusal(npcHero, captive));
 
                 // A CAPTIVE HE ASKED FOR IS A DELIVERY, NOT A SALE (Lordfadooboo, 18/09/2026). A Khuzait lord
                 // asked for a Nord lord in chains; the player brought one and typed the handover, and the model
@@ -237,6 +239,7 @@ namespace CalradiaRemembers.Verbs
                 }
 
                 ModLog.Info($"[ACTION] buy_prisoner: {npcHero.Name} {(gift ? "received" : "bought")} {captive.Name} from the player for {payment} denars{(goesHome ? ", and freed them" : "")}.");
+                RecordTrade(captive, npcHero);
 
                 string handed = goesHome ? $"and {captive.Name} goes home free" : $"and takes {captive.Name} into their custody";
                 return new ActionOutcome(gift
@@ -331,6 +334,46 @@ namespace CalradiaRemembers.Verbs
 
             return new PrisonHolding(isPlayerMainParty, ownedByPlayer, ids);
         }
+
+        // The last trade of each captive between the player and a character, this session: captive id -> (character id, day).
+        // Not saved: a reload forgets it, and the echo it guards against happens within the same conversation.
+        private static readonly Dictionary<string, (string counterpart, double day)> LastTrades = new Dictionary<string, (string, double)>();
+
+        /// <summary>Notes that <paramref name="captive" /> just changed hands between the player and <paramref name="counterpart" />.</summary>
+        internal static void RecordTrade(Hero captive, Hero counterpart)
+        {
+            if (captive?.StringId == null || counterpart?.StringId == null) return;
+
+            LastTrades[captive.StringId] = (counterpart.StringId, CampaignTime.Now.ToDays);
+        }
+
+        /// <summary>The trade noted for a captive, or null; for cr.test to put back what it found.</summary>
+        internal static (string counterpart, double day)? NotedTradeOf(Hero captive)
+            => captive?.StringId != null && LastTrades.TryGetValue(captive.StringId, out var last) ? last : ((string, double)?) null;
+
+        /// <summary>Puts back the trade noted for a captive (null forgets it); for cr.test.</summary>
+        internal static void PutNotedTrade(Hero captive, (string counterpart, double day)? trade)
+        {
+            if (captive?.StringId == null) return;
+
+            if (trade.HasValue) LastTrades[captive.StringId] = trade.Value;
+            else LastTrades.Remove(captive.StringId);
+        }
+
+        /// <summary>True when trading <paramref name="captive" /> with <paramref name="counterpart" /> again echoes the trade just made.</summary>
+        internal static bool IsEchoOfLastTrade(Hero captive, Hero counterpart)
+        {
+            if (captive?.StringId == null || counterpart?.StringId == null || !LastTrades.TryGetValue(captive.StringId, out var last)) return false;
+
+            bool echo = PrisonerTradePolicy.IsEchoOfLastTrade(last.counterpart, last.day, counterpart.StringId, CampaignTime.Now.ToDays);
+            if (echo) ModLog.Info($"[ACTION] {captive.Name} just changed hands with {counterpart.Name}; the same trade named again is refused, nothing moves.");
+
+            return echo;
+        }
+
+        /// <summary>What the player reads when a trade just made is named again.</summary>
+        internal static string EchoRefusal(Hero counterpart, Hero captive)
+            => $"(You and {counterpart.Name} have just settled {captive.Name}; that bargain is done, and nothing changes hands again.)";
 
         /// <summary>Tolerant name match among the player's held hero captives.</summary>
         /// <summary>Whether the player themselves holds the captive this name points at; the mirror redirect in SellPrisonerVerb asks this.</summary>

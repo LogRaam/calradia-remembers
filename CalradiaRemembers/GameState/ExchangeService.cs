@@ -56,7 +56,7 @@ namespace CalradiaRemembers.GameState
       public static IReadOnlyDictionary<string, int> MoneyTokensFor(Hero hero, NpcProfile profile, ItemObject offeredItem, bool offeredItemOfALovedKind)
       {
          // The bond lifts only what this character would pay; when they sell, the player meets the ordinary band.
-         IReadOnlyList<PricedCaptive> Priced(IEnumerable<Hero> captives, bool theyBuy) => captives.Take(Logic.Prisoners.PrisonerTradePolicy.CaptivesPriced)
+         IReadOnlyList<PricedCaptive> Priced(IEnumerable<Hero> captives, bool theyBuy) => captives.Take(Logic.Prisoners.PrisonerTradePolicy.CaptivesPricedFor(ModSettings.LeanPromptChosen))
             .Select(c => new PricedCaptive {
                Name = c.Name?.ToString(), RansomAnchor = CourtActionResolver.RansomAnchor(c),
                BondToBuyer = theyBuy ? BuyPrisonerVerb.BondTo(hero, c) : Logic.Prisoners.CaptiveBond.None

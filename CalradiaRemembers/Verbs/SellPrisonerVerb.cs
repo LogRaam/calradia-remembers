@@ -95,6 +95,8 @@ namespace CalradiaRemembers.Verbs
                     return ActionOutcome.Refused(NotHisToSell(npcHero, targetName, captive));
                 }
 
+                if (BuyPrisonerVerb.IsEchoOfLastTrade(captive, npcHero)) return ActionOutcome.Refused(BuyPrisonerVerb.EchoRefusal(npcHero, captive));
+
                 action.Parameters.TryGetValue("price", out string priceStr);
                 int.TryParse(priceStr?.Trim(), out int proposed);
                 int price = PrisonerTradePolicy.ClampPrice(proposed, BuyPrisonerVerb.RansomAnchor(captive));
@@ -138,6 +140,7 @@ namespace CalradiaRemembers.Verbs
                     $"Sold the captive {captive.Name} to the player for {price} denars."));
 
                 ModLog.Info($"[ACTION] sell_prisoner: {npcHero.Name} sold {captive.Name} to the player for {price} denars.");
+                BuyPrisonerVerb.RecordTrade(captive, npcHero);
 
                 return new ActionOutcome($"You pay {price} denars{PrisonerTradePolicy.PriceDifferenceNote(proposed, price, false, "you")}, "
                                          + $"and {captive.Name} is delivered into your custody.", true);
