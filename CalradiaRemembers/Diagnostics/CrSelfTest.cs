@@ -238,6 +238,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("courtship_lapse_past", Severity.Light, "avalanche24 04/11: Rhagaea was already wed to another when the lapse came, so no wedding would ever fire for her again. Takes a hero married to someone other than the player, sets their bond with the player to Courting from before a wedding day CR records, runs the daily reconcile, and asserts the bond falls to Estranged; a courtship begun after the wedding is left alone. Restores the bond, its dates, the memories and the wedding day", TestCourtshipLapsePast),
          new SelfTest("bag_sale", Severity.Light, "froggyluv 04/11: food chosen in the bag to sell moved one unit or left as a gift. Holds three of a trade good in the bag with an asking price, asserts give_item refuses them (no gift), then that sell_item moves all three and the buyer pays. Restores the goods and the coin", TestBagSale),
          new SelfTest("captive_name", Severity.Light, "froggyluv 04/11: a buyer named the captive with her house ('Elthild of dey Tihr') and the sale failed: no captive by that name. Takes a hero captive the player holds and asserts the real resolver finds them by name with the house appended. Skips when the player holds no hero captive; changes nothing", TestCaptiveName),
+         new SelfTest("captive_trade_context", Severity.Light, "RaveN017Mod 05/11: prisoner sales 'still don't work every single time ... especially when I perform several prisoner exchanges in a row'. Takes a hero captive the player holds and a lord who could buy: on a turn naming the captive, the live builder hands the interpreter the captives held, the player's line and the reply before; on a turn about something else it hands nothing; a money token naming the captive with his house fills the same sum as his bare name. Skips when the player holds no hero captive; changes nothing", TestCaptiveTradeContext),
          new SelfTest("pair_bond", Severity.Light, "tashmetu 04/11: the game's starting draw gave strangers of far realms -100, and a change with a younger son landed on his father. Takes two lords of realms neither neighbours nor at war, no kin, writes a -80 start on their own slot, and asserts CR does not believe it (vague unease, 0 points); then changes it through CR and asserts only the change counts, on their own slot, and the clan leaders' relation is untouched. Restores both values and forgets the ledger rows", TestPairBond),
          new SelfTest("hidden_affairs", Severity.Light, "Gabriel's go 01/11/2026: a married lord may take a hidden lover, found by a companion sent to spy on them. Begins an affair between two lords and asserts both carry it in their prompt, told to evade and never lie; the player holds nothing yet; end_affair refuses it and the partner path leaves it alone; a poor inquiry says nothing certain; a companion dispatched with the lord's name through the real errand reports it and the player then holds it, on the lover too. Then ends it as a telling would, and asserts the fields are clear. Expose itself is driven by cr.test secret_exposure. Restores all borrowed state", TestHiddenAffairs),
          new SelfTest("lord_secret_lover", Severity.Light, "Mystery-lover (lord coverage): a MARRIED lord the player is secretly the lover of carries the SDK Status SecretLover (not the companion-only IsSecretLover flag). Mark a non-companion lord's profile Status SecretLover and assert the unified detection (PlayerSecretLoverSubjectIds) finds him, then record a second lord as knowing and drive the REAL EncounterContextBuilder.Build to assert the held-secret payoff names the lord subject (adult on) or is suppressed (gate off). Restores the status and forgets the ledger afterwards", TestLordSecretLover),
@@ -10442,6 +10443,54 @@ namespace CalradiaRemembers.Diagnostics
             int extra = roster.GetItemNumber(good) - heldBefore;
             if (extra != 0) roster.AddToCounts(good, -extra);
          }
+
+         return t.Line();
+      }
+
+      private static string TestCaptiveTradeContext(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("captive_trade_context");
+         if (t.Skip(behavior?.Store == null || Hero.MainHero == null, "no campaign")) return t.Line();
+         Hero captive = Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners().FirstOrDefault(h => h.Name != null);
+         if (t.Skip(captive == null, "the player holds no hero captive")) return t.Line();
+
+         string name = captive.Name.ToString();
+         var history = new List<LlmMessage> {
+            new LlmMessage(MessageRole.Assistant, "Ten thousand, and not a coin more."),
+            new LlmMessage(MessageRole.User, $"Then take {name} for that."),
+            new LlmMessage(MessageRole.Assistant, "Done. I'll take him.")
+         };
+         string block = Chat.ActionInterpreterComposer.TradeBackgroundFor(history, $"Then take {name} for that.", "Done. I'll take him.");
+         t.Note($"{name}; block {block?.Length ?? 0} chars");
+         // STAKE: RaveN017Mod's sales in a row: "him" and "for that" are readable only with the captives and the turn before.
+         t.Expect("theInterpreterReadsTheCaptivesHeld", block != null && block.Contains(name), true);
+         t.Expect("theInterpreterReadsThePlayersLine", block != null && block.Contains("PLAYER: Then take " + name), true);
+         t.Expect("theInterpreterReadsTheFigureSaidBefore", block != null && block.Contains("Ten thousand, and not a coin more."), true);
+
+         // STAKE: a talk about something else reads exactly what it read before.
+         var other = new List<LlmMessage> {new LlmMessage(MessageRole.User, "How fares your family?"), new LlmMessage(MessageRole.Assistant, "Well enough.")};
+         t.Expect("anotherTalkReadsNothingMore", Chat.ActionInterpreterComposer.TradeBackgroundFor(other, "How fares your family?", "Well enough."), (string) null);
+
+         Hero buyer = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && h.Clan != Clan.PlayerClan && h.Gold > 0
+                                                            && Mapping.HeroPresence.IsInTheWorld(h));
+         if (buyer == null || captive.Clan == null)
+         {
+            t.Note("no lord with a purse, or the captive has no house: token check left out");
+
+            return t.Line();
+         }
+
+         IReadOnlyDictionary<string, int> table = GameState.ExchangeService.MoneyTokensFor(buyer, behavior.Store.Get(buyer.StringId), null, false);
+         string bare = NpcMemoryService.Core.Parsing.MoneyTokens.Fill("{most:" + name + "}", table);
+         if (bare == NpcMemoryService.Core.Parsing.MoneyTokens.NoFigure)
+         {
+            t.Note($"{buyer.Name} could not pay a fair price for {name}: token check left out");
+
+            return t.Line();
+         }
+
+         // STAKE: a token written with the house used to read "a fair sum", and the sale paid the floor instead of the agreed figure.
+         t.Expect("aTokenWithTheHouseFillsTheSameSum", NpcMemoryService.Core.Parsing.MoneyTokens.Fill("{most:" + name + " of " + captive.Clan.Name + "}", table), bare);
 
          return t.Line();
       }

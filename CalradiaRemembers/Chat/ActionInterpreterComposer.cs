@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -55,7 +56,7 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       public static async Task<ParsedResponse> InterpretAsync(
          ParsedResponse proseResponse, EncounterContext context, NpcProfile profile,
-         string playerLabel, LlmServices services, CancellationToken ct, bool conversationInProgress)
+         string playerLabel, LlmServices services, CancellationToken ct, bool conversationInProgress, string tradeBackground = null)
       {
          string prose = CombineProseForInterpretation(proseResponse.Dialogue, proseResponse.Narration);
          if (string.IsNullOrWhiteSpace(prose))
@@ -68,6 +69,8 @@ namespace CalradiaRemembers.Chat
          try
          {
             string contextFacts = ActionInterpreterContextBuilder.Project(context, profile, playerLabel, conversationInProgress);
+            // On a turn about captives only: the names a buy_prisoner target is one of, and the exchange before this reply.
+            if (!string.IsNullOrWhiteSpace(tradeBackground)) contextFacts += Environment.NewLine + Environment.NewLine + tradeBackground;
             // Compact reaches the interpreter too, at last. This prompt had no notion of a prompt level: at
             // ~17.6k tokens it is more than twice the whole context of the 8,192-token models the setting is
             // named for, so for those players this call could never once succeed - and the failure below is
@@ -250,6 +253,41 @@ namespace CalradiaRemembers.Chat
       ///   feed the interpreter identically.
       /// </summary>
       internal static string CombineProseForInterpretation(string dialogue, string narration)
+         => CombineProse(dialogue, narration);
+
+      /// <summary>
+      ///   What the interpreter reads about a trade in captives this turn (RaveN017Mod, Nexus, 05/11/2026: several sales in a row
+      ///   were misread, the interpreter seeing one reply alone): the captives the player holds and the exchange just before the
+      ///   reply, or null when the turn is not about captives. <paramref name="history" /> is the session after this turn was
+      ///   added (its last messages are the player's line and the reply).
+      /// </summary>
+      internal static string TradeBackgroundFor(IReadOnlyList<LlmMessage> history, string playerLine, string reply)
+      {
+         List<Hero> held = Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners();
+         if (held.Count == 0) return null;
+
+         return Logic.Prisoners.InterpreterTradeBackground.Block(new Logic.Prisoners.InterpreterTradeFacts {
+            HeldCaptives = held.Select(h => h.Name?.ToString()).ToList(), PlayerLine = playerLine,
+            PreviousReply = PreviousReplyOf(history), Reply = reply
+         });
+      }
+
+      /// <summary>The character's reply before the player's last line, or null on a first turn.</summary>
+      internal static string PreviousReplyOf(IReadOnlyList<LlmMessage> history)
+      {
+         if (history == null) return null;
+
+         int lastPlayer = -1;
+         for (int i = history.Count - 1; i >= 0; i--)
+            if (history[i]?.Role == MessageRole.User) { lastPlayer = i; break; }
+
+         for (int i = lastPlayer - 1; i >= 0; i--)
+            if (history[i]?.Role == MessageRole.Assistant) return history[i].Content;
+
+         return null;
+      }
+
+      private static string CombineProse(string dialogue, string narration)
       {
          var sb = new StringBuilder();
          if (!string.IsNullOrWhiteSpace(narration)) sb.AppendLine(narration.Trim());

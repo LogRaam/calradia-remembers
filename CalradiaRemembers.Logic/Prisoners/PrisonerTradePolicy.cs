@@ -85,6 +85,12 @@ namespace CalradiaRemembers.Logic.Prisoners
           : npcClanHoldsTarget ? TradeDirection.NpcSellsToPlayer
           : TradeDirection.NoTrade;
 
+      /// <summary>
+      ///   TUNE: the captives a buyer is taught a price for and offered money tokens for. Was 3 (RaveN017Mod, Nexus, 05/11/2026:
+      ///   from the fourth captive on the character had no figure and improvised); one short line each.
+      /// </summary>
+      public const int CaptivesPriced = 8;
+
       /// <summary>TUNE: no captive ever trades for less than this, whatever the ransom model says.</summary>
       public const int MinPrice = 50;
 

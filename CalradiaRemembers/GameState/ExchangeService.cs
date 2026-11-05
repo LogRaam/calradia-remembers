@@ -29,9 +29,6 @@ namespace CalradiaRemembers.GameState
    /// <summary>Says what may change hands with a character, moves it, and writes it down.</summary>
    public static class ExchangeService
    {
-      /// <summary>TUNE: captives named in the sums taught, as the buy_prisoner teaching lists them: a turn's tail pays for each.</summary>
-      private const int TokenCaptives = 3;
-
       /// <summary>What this character would give the player now with nothing in return: the prompt and give_gold both read this.</summary>
       public static int GiftCeilingFor(Hero giver, NpcProfile profile) => GiftCeilingPolicy.Ceiling(GiftFactsFor(giver, profile));
 
@@ -59,7 +56,7 @@ namespace CalradiaRemembers.GameState
       public static IReadOnlyDictionary<string, int> MoneyTokensFor(Hero hero, NpcProfile profile, ItemObject offeredItem, bool offeredItemOfALovedKind)
       {
          // The bond lifts only what this character would pay; when they sell, the player meets the ordinary band.
-         IReadOnlyList<PricedCaptive> Priced(IEnumerable<Hero> captives, bool theyBuy) => captives.Take(TokenCaptives)
+         IReadOnlyList<PricedCaptive> Priced(IEnumerable<Hero> captives, bool theyBuy) => captives.Take(Logic.Prisoners.PrisonerTradePolicy.CaptivesPriced)
             .Select(c => new PricedCaptive {
                Name = c.Name?.ToString(), RansomAnchor = CourtActionResolver.RansomAnchor(c),
                BondToBuyer = theyBuy ? BuyPrisonerVerb.BondTo(hero, c) : Logic.Prisoners.CaptiveBond.None

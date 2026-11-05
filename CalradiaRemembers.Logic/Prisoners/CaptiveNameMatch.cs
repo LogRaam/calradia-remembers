@@ -8,6 +8,7 @@
 #region
 
 using System;
+using System.Collections.Generic;
 
 #endregion
 
@@ -38,6 +39,40 @@ namespace CalradiaRemembers.Logic.Prisoners
          }
 
          return false;
+      }
+
+      /// <summary>
+      ///   Which of <paramref name="heroNames" /> a name written in conversation points at: the one it spells exactly, else the
+      ///   only one it <see cref="Matches" />; -1 when none, or when it could be two of them (RaveN017Mod, Nexus, 05/11/2026:
+      ///   several captives sold in a row; the first loose match sold whoever came first in the roster). Refusing a name that
+      ///   could be two captives costs a line; selling the wrong one costs a captive.
+      /// </summary>
+      public static int Best(IReadOnlyList<string> heroNames, string written)
+      {
+         if (heroNames == null || string.IsNullOrWhiteSpace(written)) return -1;
+
+         string query = written.Trim();
+         int exact = -1, loose = -1, looseCount = 0;
+         for (int i = 0; i < heroNames.Count; i++)
+         {
+            string name = heroNames[i]?.Trim();
+            if (string.IsNullOrEmpty(name)) continue;
+
+            if (string.Equals(name, query, StringComparison.OrdinalIgnoreCase))
+            {
+               if (exact >= 0) return -1; // two captives of one name: no way to tell them apart
+               exact = i;
+            }
+            else if (Matches(name, query))
+            {
+               loose = i;
+               looseCount++;
+            }
+         }
+
+         if (exact >= 0) return exact;
+
+         return looseCount == 1 ? loose : -1;
       }
    }
 }

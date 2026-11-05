@@ -56,7 +56,7 @@ namespace CalradiaRemembers.Verbs
             sb.AppendLine("kin to ransom home, leverage over a rival house):");
             // The most this buyer can really pay, stated BEFORE they name a figure (tashmetu, 27/09/2026: a lord
             // offered fifteen thousand she did not have, and the game paid 5098).
-            foreach (Hero captive in held.Take(3))
+            foreach (Hero captive in held.Take(PrisonerTradePolicy.CaptivesPriced))
             {
                 int anchor = RansomAnchor(captive);
                 int most = PrisonerTradePolicy.MostABuyerCanPay(anchor, ctx.Npc.Gold, BondTo(ctx.Npc, captive));
@@ -136,7 +136,10 @@ namespace CalradiaRemembers.Verbs
                 }
 
                 action.Parameters.TryGetValue("price", out string priceStr);
-                int.TryParse(priceStr?.Trim(), out int proposed);
+                // A price that is no figure pays the floor (PrisonerTradePolicy.ClampPrice). Said in the log, because a money
+                // token the table missed reads "a fair sum" here (RaveN017Mod, Nexus, 05/11/2026: an agreed price lost on the way).
+                if (!int.TryParse(priceStr?.Trim(), out int proposed))
+                    ModLog.Info($"[EXCHANGE] buy_prisoner: the price \"{priceStr}\" is no figure; {npcHero.Name} pays the floor for {captive.Name}.");
                 int anchor = RansomAnchor(captive);
                 int price = PrisonerTradePolicy.ClampPrice(proposed, anchor, BondTo(npcHero, captive));
 
@@ -337,10 +340,12 @@ namespace CalradiaRemembers.Verbs
         {
             if (string.IsNullOrWhiteSpace(name)) return null;
 
-            string query = name.Trim();
+            // froggyluv 04/11/2026: "Elthild of dey Tihr" is Elthild. RaveN017Mod 05/11/2026: the exact name first, and a name
+            // that could be two captives sells neither (the first in the roster used to go).
+            List<Hero> held = PlayerHeldHeroPrisoners();
+            int at = CaptiveNameMatch.Best(held.Select(h => h.Name?.ToString()).ToList(), name);
 
-            return PlayerHeldHeroPrisoners().FirstOrDefault(h =>
-                h.Name != null && CaptiveNameMatch.Matches(h.Name.ToString(), query)); // froggyluv 04/11/2026: "Elthild of dey Tihr" is Elthild
+            return at >= 0 ? held[at] : null;
         }
 
         /// <summary>The game's own ransom valuation of the captive, or the policy fallback when unreadable.</summary>

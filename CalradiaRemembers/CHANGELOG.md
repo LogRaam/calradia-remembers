@@ -8,6 +8,15 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 - **Folk tales for every people** (Gabriel 05/11/2026: "go pour les contes des autres peuples"). Five tales each in `ModuleData/folklore/` for empire, aserai, sturgia, vlandia, khuzait and the War Sails peoples nord, vakken and darshi, beside the Battanian pilot. Grounded in the game's own texts (spclans, kingdoms, settlement descriptions: the Darshi levees and the Calsean Gates graffiti, the Vakken burned-forest fields, the Nord burial pits on the Jumne); no real-world myth retold, no named Calradian figure. Data only: `FolkTalePolicy` and the loader are unchanged. Not reviewed by Gabriel; cr.test folk_tales.
 
+### Fixed
+
+- **Prisoner sales read the right captive and the agreed price** (RaveN017Mod, Nexus 05/11/2026: sales "still don't work every single time; I think it sometimes misinterprets things, especially when I perform several prisoner exchanges in a row"). Gabriel (05/11/2026) approved giving the interpreter the captives and the figures named, then a sale panel as a second step. Four causes found in the code, none proven by a log yet:
+  - The action interpreter read the one reply alone, so "I'll take him at the same price" named nobody it could see. On a turn about captives (a held captive named, or prisoners, captives or ransom spoken of) it now also reads the captives the player holds, the player's line and the reply before (`InterpreterTradeBackground`, through the existing CONVERSATION SO FAR block). Every other turn reads exactly what it read before.
+  - A money token naming the captive with his house or a title (`{most:Monchug of the Arkits}`) was not found, read "a fair sum", and the sale paid the floor. The one subject it can be is now found; two candidates give no figure (SDK `MoneyTokens.Fill`). A price that is no figure is now said in the log (`[EXCHANGE] buy_prisoner: the price ... is no figure`).
+  - A name two captives could answer to sold whoever came first in the roster. The exact name wins, and a name that could be two captives sells neither (`CaptiveNameMatch.Best`).
+  - Only the first three captives had a price and a token; now eight (`PrisonerTradePolicy.CaptivesPriced`).
+  NOT done: the sell_prisoner direction (the player buying from a lord) keeps its own resolver; the sale panel is the next step. `cr.test captive_trade_context`. Not play-verified.
+
 ## v2.8.3.. 2026-11-04
 
 ### New

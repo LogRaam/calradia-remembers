@@ -40,5 +40,34 @@ namespace CalradiaRemembers.Tests.Prisoners
       {
          CaptiveNameMatch.Matches(hero, written).Should().BeFalse();
       }
+
+      // STAKE: RaveN017Mod (Nexus, 05/11/2026), several sales in a row: the name spelled exactly is that captive, even when it
+      // is also part of another captive's name.
+      [Test]
+      public void GIVEN_one_captive_spelled_exactly_and_another_containing_it_WHEN_the_best_is_chosen_THEN_it_is_the_exact_one()
+      {
+         CaptiveNameMatch.Best(new[] {"Irana", "Ira"}, "ira").Should().Be(1);
+      }
+
+      // STAKE: the house around the name still finds the one captive it can be (froggyluv's sale keeps working).
+      [Test]
+      public void GIVEN_the_name_with_a_house_WHEN_the_best_is_chosen_THEN_it_is_that_captive()
+      {
+         CaptiveNameMatch.Best(new[] {"Monchug", "Elthild"}, "Elthild of dey Tihr").Should().Be(1);
+      }
+
+      // STAKE: a name that could be two captives must sell neither: the old first-in-the-roster pick sold the wrong man.
+      [Test]
+      public void GIVEN_a_name_two_captives_could_be_WHEN_the_best_is_chosen_THEN_none_is()
+      {
+         CaptiveNameMatch.Best(new[] {"Irana", "Iranel"}, "Iran").Should().Be(-1);
+      }
+
+      // STAKE: a name nobody holds is refused, not matched to whoever comes first.
+      [Test]
+      public void GIVEN_a_name_nobody_holds_WHEN_the_best_is_chosen_THEN_none_is()
+      {
+         CaptiveNameMatch.Best(new[] {"Monchug"}, "Gareth").Should().Be(-1);
+      }
    }
 }

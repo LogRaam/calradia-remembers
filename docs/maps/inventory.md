@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 629 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1523 types in 55 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1525 types in 55 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2409,7 +2409,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NemesisRosterPolicy` | public static class | Pure roster lookup: which (if any) living nemesis of a given band culture already claims a given region. |
 | `NemesisRumorLine` | public static class | Pure text for the tavern-keeper's nemesis rumour line: takes the nemesis's display label and his region's display string (both already resolved by the caller, exactly like the lord bounty announcement resolves them) and... |
 
-### CalradiaRemembers.Logic.Prisoners (19)
+### CalradiaRemembers.Logic.Prisoners (21)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2419,6 +2419,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EnvoyVisitFacts` | public class | What decides whether an envoy may come about a captive the player holds (PrisonerExchangePolicy.EnvoyMayCome). |
 | `ExchangeCaptiveFacts` | public class | What an exchange needs to know about one captive. |
 | `ExchangeHandover` | public enum | What happens to a captive once the other side has them. |
+| `InterpreterTradeBackground` | public static class | The background the interpreter reads before naming a captive or a price. |
+| `InterpreterTradeFacts` | public class | What the interpreter could be told about a trade in captives on this turn. |
 | `NotHisToSellFacts` | public class | What the refusal of a sale by a lord who does not hold the captive is told from. |
 | `PrisonHolding` | public struct | One prison the game holds captives in, reduced to the plain facts custody scoring needs. |
 | `PrisonerBuyerCandidate` | public class | One lord who might want the captive. |

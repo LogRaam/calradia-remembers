@@ -560,11 +560,12 @@ namespace CalradiaRemembers.Chat
       ///   Everything after this is one path for both compositions.
       /// </summary>
       private async Task<ParsedResponse> ReadActionsAsync(ActionReader reader, ParsedResponse response, EncounterContext context,
-                                                          NpcProfile profile, NpcMemoryCampaignBehavior behavior, bool conversationInProgress)
+                                                          NpcProfile profile, NpcMemoryCampaignBehavior behavior, bool conversationInProgress,
+                                                          string tradeBackground = null)
       {
          if (reader != ActionReader.Interpreter) return response;
 
-         return await ComposeByInterpretationAsync(response, context, profile, behavior, conversationInProgress);
+         return await ComposeByInterpretationAsync(response, context, profile, behavior, conversationInProgress, tradeBackground);
       }
 
       /// <summary>
@@ -579,7 +580,7 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private async Task<ParsedResponse> ComposeByInterpretationAsync(
          ParsedResponse proseResponse, EncounterContext context, NpcProfile profile,
-         NpcMemoryCampaignBehavior behavior, bool conversationInProgress)
+         NpcMemoryCampaignBehavior behavior, bool conversationInProgress, string tradeBackground)
       {
          // Always in-turn: the player waits the interpreter call. fkasad (15/10/2026) found the MCM "Actions Interpreter
          // Timing" dropdown offered an Asynchronous choice that silently ran this same path; the dropdown was removed
@@ -589,7 +590,7 @@ namespace CalradiaRemembers.Chat
          // exactly as this method always did, before the caller touches any UI / game state.
          ParsedResponse result = await ActionInterpreterComposer.InterpretAsync(
             proseResponse, context, profile, ActionInterpreterComposer.ResolveDefaultPlayerLabel(),
-            behavior.LlmServices, CancellationToken.None, conversationInProgress);
+            behavior.LlmServices, CancellationToken.None, conversationInProgress, tradeBackground);
          await MainThreadDispatcher.SwitchToMainThread();
 
          return result;
@@ -1262,7 +1263,11 @@ namespace CalradiaRemembers.Chat
             // (prose + tags together) on the fallback model, so `response` already carries real tags: running the
             // interpreter over them again would be redundant (and would target the wrong prose, the fallback's).
             ActionReader reader = ActionReaderPolicy.ReaderFor(readingFacts, usedProseFallback);
-            response = await ReadActionsAsync(reader, response, context, profile, behavior, conversationInProgress);
+            string tradeBackground = reader == ActionReader.Interpreter
+               ? ActionInterpreterComposer.TradeBackgroundFor(session.Messages, playerMessage,
+                                                              ActionInterpreterComposer.CombineProseForInterpretation(response.Dialogue, response.Narration))
+               : null;
+            response = await ReadActionsAsync(reader, response, context, profile, behavior, conversationInProgress, tradeBackground);
 
             // The interpreter call added an await: the chat may have closed or been replaced meanwhile, so run the same
             // stale-VM guard the main call uses before any game state is touched below.
