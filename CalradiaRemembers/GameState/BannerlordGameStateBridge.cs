@@ -5810,6 +5810,47 @@ namespace CalradiaRemembers.GameState
       }
 
       /// <summary>
+      ///   give_prisoner with no bargain to settle: the player gives a captive he holds, asking nothing (3chmidt, Nexus,
+      ///   05/11/2026). The one named, or the only one held (CaptiveNameMatch.ForGift); into the receiver's own party or
+      ///   holding, as a delivery goes. The receiver remembers a gift worth the captive's ransom; the captive resents being
+      ///   handed on, as for a delivery; the same trade named again the same day is refused (the echo guard).
+      /// </summary>
+      private static ActionOutcome GiveCaptiveAsGift(GameAction action, Hero npcHero, NpcProfile profile)
+      {
+         List<Hero> held = BuyPrisonerVerb.PlayerHeldHeroPrisoners();
+         if (held.Count == 0) return ActionOutcome.Refused(SilentRefusalMessages.GivePrisonerNoBargain());
+
+         string named = null;
+         action?.Parameters?.TryGetValue("target", out named);
+         int at = Logic.Prisoners.CaptiveNameMatch.ForGift(held.Select(h => h.Name?.ToString() ?? "").ToList(), named);
+         if (at < 0)
+            return ActionOutcome.Refused(string.IsNullOrWhiteSpace(named)
+               ? "(You hold several captives; name the one you give.)"
+               : $"(You hold no captive named {named.Trim()}, or the name fits more than one.)");
+
+         Hero captive = held[at];
+         if (BuyPrisonerVerb.IsEchoOfLastTrade(captive, npcHero)) return ActionOutcome.Refused(BuyPrisonerVerb.EchoRefusal(npcHero, captive));
+
+         PartyBase dest = BuyPrisonerVerb.ResolveCaptorPrison(npcHero);
+         if (dest == null) return ActionOutcome.Refused($"({npcHero.Name} has no party or holding to keep {captive.Name} in.)");
+
+         int captiveRegardForPlayer = Mapping.PairBondReader.Points(captive, Hero.MainHero);
+         PartyBase source = captive.PartyBelongedToAsPrisoner ?? MobileParty.MainParty.Party;
+         TransferPrisonerAction.Apply(captive.CharacterObject, source, dest);
+         BuyPrisonerVerb.RecordTrade(captive, npcHero);
+
+         var today = (int) CampaignTime.Now.ToDays;
+         int worth = BuyPrisonerVerb.RansomAnchor(captive);
+         profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration, $"The player gave me the captive {captive.Name}, asking nothing."));
+         StanceService.OnGiftReceived(npcHero);
+         TryPlantValueAppreciation(npcHero, AppreciationSource.GiftReceived, worth, $"The player gave me the captive {captive.Name}, asking nothing.");
+         CaptiveHandedOnward(captive, npcHero, captiveRegardForPlayer, today);
+         ModLog.Info($"[ACTION] give_prisoner: player gave {captive.Name} to {npcHero.Name} as a gift (worth {worth}).");
+
+         return new ActionOutcome($"You give {captive.Name} into {npcHero.Name}'s keeping, asking nothing.", true);
+      }
+
+      /// <summary>
       ///   give_prisoner: the player hands over the captive an outstanding deliver_prisoner bargain named.
       ///   The deed names the target, so the bridge resolves which held prisoner satisfies it (no picker),
       ///   transfers them to the lord, and settles the bargain — reward, favour, journal close — in one
@@ -5841,9 +5882,10 @@ namespace CalradiaRemembers.GameState
             InformalQuest anyBargain = profile.ActiveQuests.FirstOrDefault(q =>
                (q.Type == QuestType.DeliverPrisoner && q.IsOutstanding) || EscapedTargetPolicy.MaySettleByVictory(q));
 
-            // Was a silent no-op: the model had already narrated the captive as handed over while the
-            // prisoner roster (and any bargain) never moved. No such bargain, so surface the refusal.
-            if (anyBargain == null) return ActionOutcome.Refused(SilentRefusalMessages.GivePrisonerNoBargain());
+            // 3chmidt (Nexus, 05/11/2026): "It would be useful if you could give your prisoners with *action* too... NPC's don't
+            // understand why you would say that if you already agreed to giving your prisoners to them." With no bargain to
+            // settle, the captive handed over is a gift.
+            if (anyBargain == null) return GiveCaptiveAsGift(action, npcHero, profile);
 
             // THE WHOLE OF THE PLAYER'S CUSTODY, and every outstanding bargain rather than only the first. This
             // read only the main party's prison and only the first open bargain, while the offer bag and
@@ -5918,10 +5960,43 @@ namespace CalradiaRemembers.GameState
             QuestJournalBridge.CloseAsCompleted(quest, npcHero);
             ModLog.Info($"[ACTION] give_prisoner: player delivered {prisonerHero.Name} to {npcHero.Name} ({quest.Reward}).");
 
-            // Grudges pillar (Tier 2, DeliveredPrisoner): the captive ALWAYS resents being handed onward
-            // (a betrayal of the custody the player held over them), heavier when handed to their own foe.
-            // Guarded in its own try/catch so a plant failure never claws back the transfer that already
-            // succeeded above.
+            CaptiveHandedOnward(prisonerHero, npcHero, captiveRegardForPlayer, today);
+
+            // Chronicle: a third, independent channel alongside the reward/grant and the grudge above.
+            try
+            {
+               WorldEventStore.Instance?.Record(new WorldEvent {
+                  Type = WorldEventType.PlayerFeat,
+                  Day = today,
+                  Magnitude = 40,
+                  InvolvesPlayer = true,
+                  Summary = $"{Hero.MainHero.Name} delivered {prisonerHero.Name} to {npcHero.Name}.",
+                  ActorIds = new List<string> {Hero.MainHero.StringId, prisonerHero.StringId, npcHero.StringId},
+                  FactionIds = npcHero.MapFaction != null
+                     ? new List<string> {npcHero.MapFaction.StringId}
+                     : new List<string>(),
+                  ChronicleLine = $"{Hero.MainHero.Name} delivered {prisonerHero.Name} in chains to {npcHero.Name}"
+               });
+            }
+            catch (Exception ex) { ModLog.Error($"[ACTION] give_prisoner chronicle record failed: {ex.GetType().Name}: {ex.Message}"); }
+
+            return grant ?? reward ?? new ActionOutcome($"{npcHero.Name} takes custody of {prisonerHero.Name}.", true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] give_prisoner failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   Grudges pillar (Tier 2, DeliveredPrisoner): the captive ALWAYS resents being handed onward (a betrayal of the
+      ///   custody the player held over them), heavier when handed to their own foe. Shared by a bargain's delivery and a
+      ///   gift. Guarded in its own try/catch so a plant failure never claws back the transfer that already succeeded.
+      /// </summary>
+      private static void CaptiveHandedOnward(Hero prisonerHero, Hero npcHero, int captiveRegardForPlayer, int today)
+      {
             try
             {
                bool toEnemy = prisonerHero.MapFaction != null &&
@@ -5950,33 +6025,6 @@ namespace CalradiaRemembers.GameState
             {
                ModLog.Error($"[ACTION] give_prisoner grudge plant failed: {ex.GetType().Name}: {ex.Message}");
             }
-
-            // Chronicle: a third, independent channel alongside the reward/grant and the grudge above.
-            try
-            {
-               WorldEventStore.Instance?.Record(new WorldEvent {
-                  Type = WorldEventType.PlayerFeat,
-                  Day = today,
-                  Magnitude = 40,
-                  InvolvesPlayer = true,
-                  Summary = $"{Hero.MainHero.Name} delivered {prisonerHero.Name} to {npcHero.Name}.",
-                  ActorIds = new List<string> {Hero.MainHero.StringId, prisonerHero.StringId, npcHero.StringId},
-                  FactionIds = npcHero.MapFaction != null
-                     ? new List<string> {npcHero.MapFaction.StringId}
-                     : new List<string>(),
-                  ChronicleLine = $"{Hero.MainHero.Name} delivered {prisonerHero.Name} in chains to {npcHero.Name}"
-               });
-            }
-            catch (Exception ex) { ModLog.Error($"[ACTION] give_prisoner chronicle record failed: {ex.GetType().Name}: {ex.Message}"); }
-
-            return grant ?? reward ?? new ActionOutcome($"{npcHero.Name} takes custody of {prisonerHero.Name}.", true);
-         }
-         catch (Exception ex)
-         {
-            ModLog.Error($"[ACTION] give_prisoner failed: {ex.GetType().Name}: {ex.Message}");
-
-            return null;
-         }
       }
 
       #endregion

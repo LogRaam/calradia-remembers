@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-747 rules read 555 facts.
+748 rules read 555 facts.
 
 ## Facts read by more than one rule
 
@@ -127,6 +127,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `OwnerClan.Leader` (5) | `EdictDecreeFacts`, `EdictStandingFacts`, `HeroNaming`, `NotHisToSellFacts`, `RescueCaptorFacts` |
 | `Party.LeaderHero` (5) | `BattleRecordText.Summary`, `BattleWorthFacts`, `LiberationFacts`, `SkirmishFacts`, `SkirmishFoe` |
 | `PartyBelongedTo.Army` (5) | `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate`, `ReturnFacts` |
+| `Profile.ReputationWithPlayer` (5) | `DelegatedRiskFacts`, `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion`, `PeaceMediationPolicy.Evaluate`, `PrisonerTradePolicy.MayGiveFreely` |
 | `Result.Killed` (5) | `KillAftermathFacts`, `KillAttemptPolicy.FallbackNarration`, `KillAttemptPolicy.NarratorTask`, `KillAttemptPolicy.ReactionHint`, `KillNarrationFacts` |
 | `Romantic.IsCompatibleWith` (5) | `CaptiveOfferFacts`, `JealousyTriggerPolicy.IsPlausibleCourtship`, `LoverCandidateFacts`, `SecretAffectionFacts`, `SecretBondEligibility.IsEligible` |
 | `Settlement.IsCastle` (5) | `CommonerChatContext`, `CourierHirePlacePolicy.OfferedInTheMenu`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts` |
@@ -158,7 +159,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Party.EstimatedStrength` (4) | `InterceptionFacts`, `InterceptionPolicy.Choose`, `InterceptionPolicy.IsOutnumbered`, `InterceptionPolicy.IsRoadValid` |
 | `PartyBelongedToAsPrisoner.MobileParty` (4) | `CaptiveEncounterPolicy.BanditCollectiveParticipantCap`, `CaptiveEncounterPolicy.BanditWitnessCount`, `CaptiveEncounterPolicy.ShouldBanditSceneBeCollective`, `CompanionScenePolicy.ShouldTargetCompanion` |
 | `PlayerEncounter.InsideSettlement` (4) | `DuelStagingSupport.CanHoldATownDuel`, `DuelVenuePolicy.Choose`, `LandfallFacts`, `MapEncounterCloseFacts` |
-| `Profile.ReputationWithPlayer` (4) | `DelegatedRiskFacts`, `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion`, `PeaceMediationPolicy.Evaluate` |
 | `Provider.SelectedValue` (4) | `ProviderRolePolicy.ParseKind`, `ProviderRolePolicy.ResolveRoleKind`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `Requires.Village` (4) | `AuthoredCulturePolicy.Describe`, `AuthoredCulturePolicy.Matches`, `TaleVillagePolicy.Pick`, `TaleVillagePolicy.WhyNoneQuiet` |
 | `SocialStationReader.StationOf` (4) | `BrawlInitiativeFacts`, `BrawlPolicy.KindFor`, `DuelChallengeContext`, `DuelChallengePolicy.Evaluate` |
@@ -892,6 +892,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `PrisonerRecruitmentPolicy.Evaluate`: `Clan.Leader`, `Hero.IsPrisoner`, `Hero.PartyBelongedToAsPrisoner`, `LeaderHero.Clan`, `Settlement.OwnerClan`
 - `PrisonerTradePolicy.CaptivesPricedFor`: `ModSettings.LeanPromptChosen`
 - `PrisonerTradePolicy.ClampPrice`: `Clan.Settlements`, `Hero.Father`, `Hero.Mother`, `Hero.Spouse`, `MobileParty.PrisonRoster`, `PairBondReader.Points`, `Party.PrisonRoster`
+- `PrisonerTradePolicy.MayGiveFreely`: `Profile.ReputationWithPlayer`
 - `PrisonerTradePolicy.MostABuyerCanPay`: `Hero.Father`, `Hero.Mother`, `Hero.Spouse`, `Npc.Gold`, `PairBondReader.Points`
 - `PrisonerTradePolicy.PriceDifferenceNote`: `Hero.Father`, `Hero.Gold`, `Hero.Mother`, `Hero.Spouse`, `PairBondReader.Points`
 - `PrivateAudienceFacts`: `PartyBelongedToAsPrisoner.LeaderHero`

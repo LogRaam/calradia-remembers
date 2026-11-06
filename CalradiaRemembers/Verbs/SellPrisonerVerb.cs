@@ -54,6 +54,9 @@ namespace CalradiaRemembers.Verbs
                 sb.AppendLine($"- {captive.Name} (a fair price would be around {anchor} denars; the price can be no less than "
                               + $"{PrisonerTradePolicy.MinAcceptablePayment(anchor)} nor more than {PrisonerTradePolicy.MaxPrice(anchor)})");
             }
+            // 3chmidt (Nexus, 05/11/2026) asked to be given captives. Said before any word, only to one bound deeply enough.
+            if (ctx.Profile != null && PrisonerTradePolicy.MayGiveFreely(ctx.Profile.ReputationWithPlayer))
+                sb.AppendLine("You hold the player dear enough to give one of them for nothing, if you choose: then write price: 0.");
             sb.AppendLine("Sell only if it serves you; a captive of value to your realm is not parted with");
             sb.AppendLine("lightly, and never below what they are worth. When you and the player have AGREED");
             sb.AppendLine("on the sale, and only then, emit:");
@@ -99,7 +102,11 @@ namespace CalradiaRemembers.Verbs
 
                 action.Parameters.TryGetValue("price", out string priceStr);
                 int.TryParse(priceStr?.Trim(), out int proposed);
-                int price = PrisonerTradePolicy.ClampPrice(proposed, BuyPrisonerVerb.RansomAnchor(captive));
+                // Given for nothing, by one bound deeply enough to the player (3chmidt, 05/11/2026); else a price is owed.
+                bool given = PrisonerTradePolicy.AsksNothing(priceStr);
+                if (given && !PrisonerTradePolicy.MayGiveFreely(profile.ReputationWithPlayer))
+                    return ActionOutcome.Refused($"({npcHero.Name} will not part with {captive.Name} for nothing; a price must be agreed.)");
+                int price = given ? 0 : PrisonerTradePolicy.ClampPrice(proposed, BuyPrisonerVerb.RansomAnchor(captive));
 
                 if (Hero.MainHero.Gold < price)
                     return ActionOutcome.Refused($"(You cannot pay the {price} denars {npcHero.Name} asks for {captive.Name}.)");
@@ -113,7 +120,7 @@ namespace CalradiaRemembers.Verbs
                 // The gold, then the man, ATOMICALLY: the player pays, then the captive changes custody into
                 // the player's own prison roster. If the transfer still throws, the payment is refunded and the
                 // sale refused, never a silent half-trade (gold gone, no captive, player told nothing).
-                GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, price);
+                if (price > 0) GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, npcHero, price);
                 try
                 {
                     if (from != null) TransferPrisonerAction.Apply(captiveChar, from, MobileParty.MainParty.Party);
@@ -121,7 +128,7 @@ namespace CalradiaRemembers.Verbs
                 }
                 catch (Exception transferEx)
                 {
-                    GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, price); // refund the failed purchase
+                    if (price > 0) GiveGoldAction.ApplyBetweenCharacters(npcHero, Hero.MainHero, price); // refund the failed purchase
                     ModLog.Error($"[ACTION] sell_prisoner transfer failed, payment refunded: {transferEx.GetType().Name}: {transferEx.Message}");
 
                     return ActionOutcome.Refused($"({captive.Name} could not be delivered into your custody. Your {price} denars are returned.)");
@@ -137,10 +144,12 @@ namespace CalradiaRemembers.Verbs
 
                 var today = (int) CampaignTime.Now.ToDays;
                 profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
-                    $"Sold the captive {captive.Name} to the player for {price} denars."));
+                    given ? $"Gave the captive {captive.Name} to the player, asking nothing." : $"Sold the captive {captive.Name} to the player for {price} denars."));
 
-                ModLog.Info($"[ACTION] sell_prisoner: {npcHero.Name} sold {captive.Name} to the player for {price} denars.");
+                ModLog.Info($"[ACTION] sell_prisoner: {npcHero.Name} {(given ? "gave" : "sold")} {captive.Name} to the player{(given ? " for nothing" : $" for {price} denars")}.");
                 BuyPrisonerVerb.RecordTrade(captive, npcHero);
+
+                if (given) return new ActionOutcome($"{npcHero.Name} gives {captive.Name} into your custody, asking nothing.", true);
 
                 return new ActionOutcome($"You pay {price} denars{PrisonerTradePolicy.PriceDifferenceNote(proposed, price, false, "you")}, "
                                          + $"and {captive.Name} is delivered into your custody.", true);

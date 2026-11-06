@@ -209,5 +209,31 @@ namespace CalradiaRemembers.Tests
         {
             PrisonerTradePolicy.IsEchoOfLastTrade(null, 0, "lord_rhagaea", 100.6).Should().BeFalse();
         }
+
+        // STAKE: 3chmidt (05/11/2026) wanted to ask a captive of a friend. A friend bound deeply enough gives one for nothing.
+        [Test]
+        public void GIVEN_a_holder_deeply_bound_to_the_player_WHEN_asked_for_a_captive_for_nothing_THEN_he_may_give_it()
+        {
+            PrisonerTradePolicy.MayGiveFreely(PrisonerTradePolicy.FreeCaptiveRegard).Should().BeTrue();
+        }
+
+        // STAKE: a captive is a ransom to his holder: a mere friend does not hand one over unpaid, or every lord is a free shop.
+        [Test]
+        public void GIVEN_a_holder_who_only_likes_the_player_WHEN_asked_for_a_captive_for_nothing_THEN_he_will_not()
+        {
+            PrisonerTradePolicy.MayGiveFreely(PrisonerTradePolicy.FreeCaptiveRegard - 1).Should().BeFalse();
+        }
+
+        // STAKE: "for nothing" is read however the model writes it, and a real figure is never mistaken for a gift.
+        [Test]
+        public void GIVEN_prices_written_WHEN_read_THEN_only_nothing_at_all_is_a_gift()
+        {
+            PrisonerTradePolicy.AsksNothing("0").Should().BeTrue();
+            PrisonerTradePolicy.AsksNothing("Free").Should().BeTrue();
+            PrisonerTradePolicy.AsksNothing("nothing").Should().BeTrue();
+            PrisonerTradePolicy.AsksNothing("500").Should().BeFalse();
+            PrisonerTradePolicy.AsksNothing("").Should().BeFalse();
+            PrisonerTradePolicy.AsksNothing(null).Should().BeFalse();
+        }
     }
 }

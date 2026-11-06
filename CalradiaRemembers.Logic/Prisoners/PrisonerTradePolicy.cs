@@ -97,6 +97,25 @@ namespace CalradiaRemembers.Logic.Prisoners
       /// <summary>How many captives are priced this turn.</summary>
       public static int CaptivesPricedFor(bool compactPrompt) => compactPrompt ? CaptivesPricedCompact : CaptivesPriced;
 
+      /// <summary>
+      ///   The regard (the mod's own ledger) from which a character may hand the player a captive for nothing. 3chmidt (Nexus,
+      ///   05/11/2026) asked for captives from NPCs, e.g. an enemy lord a quest wants but a lord of his own realm already holds.
+      ///   A captive is worth a ransom to his holder, so only a bond deep enough to uproot a life parts with one unpaid.
+      /// </summary>
+      public const int FreeCaptiveRegard = Regard.DeepBondTier;
+
+      /// <summary>True when the holder holds the player dear enough to give a captive away (<see cref="FreeCaptiveRegard" />).</summary>
+      public static bool MayGiveFreely(int holderRegardForPlayer) => holderRegardForPlayer >= FreeCaptiveRegard;
+
+      /// <summary>True when the price agreed is nothing at all: "0", "free", "nothing", "none" (any case), as the model writes it.</summary>
+      public static bool AsksNothing(string priceText)
+      {
+         string p = priceText?.Trim().ToLowerInvariant();
+         if (string.IsNullOrEmpty(p)) return false;
+
+         return p == "0" || p == "free" || p == "nothing" || p == "none" || p == "0 denars";
+      }
+
       /// <summary>TUNE: within this many days, a trade of the same captive with the same character echoes the one just made.</summary>
       public const double EchoWindowDays = 1.0;
 

@@ -49,6 +49,24 @@ namespace CalradiaRemembers.Logic.Prisoners
       /// </summary>
       public static int Best(IReadOnlyList<string> heroNames, string written)
       {
+         return BestOf(heroNames, written);
+      }
+
+      /// <summary>
+      ///   The captive a GIFT means (3chmidt, Nexus, 05/11/2026: "give your prisoners with *action* too"): the one named, as
+      ///   <see cref="Best" /> reads it; with no name, the only captive held; -1 when no name is given and several are held,
+      ///   so a gift never picks a man the player did not mean.
+      /// </summary>
+      public static int ForGift(IReadOnlyList<string> heroNames, string written)
+      {
+         if (heroNames == null || heroNames.Count == 0) return -1;
+         if (string.IsNullOrWhiteSpace(written)) return heroNames.Count == 1 ? 0 : -1;
+
+         return BestOf(heroNames, written);
+      }
+
+      private static int BestOf(IReadOnlyList<string> heroNames, string written)
+      {
          if (heroNames == null || string.IsNullOrWhiteSpace(written)) return -1;
 
          string query = written.Trim();

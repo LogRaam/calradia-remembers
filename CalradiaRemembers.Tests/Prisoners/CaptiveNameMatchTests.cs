@@ -69,5 +69,26 @@ namespace CalradiaRemembers.Tests.Prisoners
       {
          CaptiveNameMatch.Best(new[] {"Monchug"}, "Gareth").Should().Be(-1);
       }
+
+      // STAKE: 3chmidt (05/11/2026): "I have this captive, I want to give him to you". With one captive held, the gift needs no name.
+      [Test]
+      public void GIVEN_one_captive_held_WHEN_a_gift_names_no_one_THEN_that_captive_is_given()
+      {
+         CaptiveNameMatch.ForGift(new[] {"Monchug"}, null).Should().Be(0);
+      }
+
+      // STAKE: with several held and no name, a gift never picks a man the player did not mean.
+      [Test]
+      public void GIVEN_several_captives_held_WHEN_a_gift_names_no_one_THEN_none_is_given()
+      {
+         CaptiveNameMatch.ForGift(new[] {"Monchug", "Ira"}, "").Should().Be(-1);
+      }
+
+      // STAKE: a named gift reads the name as a sale does, house and all.
+      [Test]
+      public void GIVEN_several_captives_held_WHEN_a_gift_names_one_with_his_house_THEN_that_one_is_given()
+      {
+         CaptiveNameMatch.ForGift(new[] {"Ira", "Monchug"}, "Monchug of the Arkits").Should().Be(1);
+      }
    }
 }
