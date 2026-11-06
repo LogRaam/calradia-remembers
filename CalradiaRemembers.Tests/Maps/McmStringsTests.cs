@@ -8,6 +8,10 @@
 // If these fail: a new setting shows only in English in every language (no id), one id carries two texts and a
 // translator can render only one of them, a hint runs off the screen once its id is set aside, or the shipped template
 // no longer matches the page (regenerate with Tools/Update-Maps.ps1 and commit it with the change).
+//
+// sekiz5 (Nexus, 06/11/2026): a Turkish copy of the template stayed English. The game reads a strings file as
+// ChildNodes[1] of the document (LocalizedTextManager.LoadLanguage, 1.4.8), so it must be <base>; the template
+// carried two comments before <base>, and every copy of it loaded nothing, silently. Its notes now sit inside <base>.
 
 #region
 
@@ -61,6 +65,19 @@ namespace CalradiaRemembers.Tests.Maps
       [Test]
       public void GIVEN_the_mcm_page_as_it_stands_WHEN_the_english_template_is_regenerated_THEN_it_matches_the_shipped_one()
          => ApprovedMap.Verify(TemplatePath, Template());
+
+      // STAKE (sekiz5): a translator's copy of the template loads nothing unless <base> is the node right after the
+      // declaration, which is the only place the game looks.
+      [Test]
+      public void GIVEN_the_english_template_WHEN_read_as_the_game_reads_it_THEN_its_second_node_holds_the_strings()
+      {
+         var doc = new System.Xml.XmlDocument();
+         doc.LoadXml(Template());
+
+         doc.ChildNodes[1].Name.Should().Be("base");
+         doc.ChildNodes[1].ChildNodes.Cast<System.Xml.XmlNode>().Where(n => n.Name == "strings").Single().ChildNodes
+            .Cast<System.Xml.XmlNode>().Count(n => n.Name == "string").Should().BeGreaterThan(0);
+      }
 
       #region private
 
@@ -135,9 +152,10 @@ namespace CalradiaRemembers.Tests.Maps
       {
          var sb = new StringBuilder();
          sb.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n");
-         sb.Append("<!-- GENERATED from CalradiaRemembers/Foundation/CrSettings.cs by McmStringsTests: do not edit by hand. -->\n");
-         sb.Append("<!-- To translate: see ../README.txt. Keep every id; translate only the text. -->\n");
+         // The notes go INSIDE <base>: the game reads the document's second node and nothing else (sekiz5, 06/11/2026).
          sb.Append("<base xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" type=\"string\">\n");
+         sb.Append("  <!-- GENERATED from CalradiaRemembers/Foundation/CrSettings.cs by McmStringsTests: do not edit by hand. -->\n");
+         sb.Append("  <!-- To translate: see ../README.txt. Keep every id; translate only the text. -->\n");
          sb.Append("  <tags>\n    <tag language=\"English\" />\n  </tags>\n  <strings>\n");
          foreach ((string id, string text) in Strings().GroupBy(s => s.Id).Select(g => g.First()))
             sb.Append($"    <string id=\"{id}\" text=\"{Escape(text)}\" />\n");

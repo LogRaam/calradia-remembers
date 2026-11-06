@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- GENERATED from CalradiaRemembers/Foundation/CrSettings.cs by McmStringsTests: do not edit by hand. -->
-<!-- To translate: see ../README.txt. Keep every id; translate only the text. -->
 <base xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" type="string">
+  <!-- GENERATED from CalradiaRemembers/Foundation/CrSettings.cs by McmStringsTests: do not edit by hand. -->
+  <!-- To translate: see ../README.txt. Keep every id; translate only the text. -->
   <tags>
     <tag language="English" />
   </tags>
