@@ -238,7 +238,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("courtship_lapse_past", Severity.Light, "avalanche24 04/11: Rhagaea was already wed to another when the lapse came, so no wedding would ever fire for her again. Takes a hero married to someone other than the player, sets their bond with the player to Courting from before a wedding day CR records, runs the daily reconcile, and asserts the bond falls to Estranged; a courtship begun after the wedding is left alone. Restores the bond, its dates, the memories and the wedding day", TestCourtshipLapsePast),
          new SelfTest("bag_sale", Severity.Light, "froggyluv 04/11: food chosen in the bag to sell moved one unit or left as a gift. Holds three of a trade good in the bag with an asking price, asserts give_item refuses them (no gift), then that sell_item moves all three and the buyer pays. Restores the goods and the coin", TestBagSale),
          new SelfTest("captive_name", Severity.Light, "froggyluv 04/11: a buyer named the captive with her house ('Elthild of dey Tihr') and the sale failed: no captive by that name. Takes a hero captive the player holds and asserts the real resolver finds them by name with the house appended. Skips when the player holds no hero captive; changes nothing", TestCaptiveName),
-         new SelfTest("captive_trade_context", Severity.Light, "RaveN017Mod 05/11: prisoner sales 'still don't work every single time ... especially when I perform several prisoner exchanges in a row'. Takes a hero captive the player holds and a lord who could buy: on a turn naming the captive, the live builder hands the interpreter the captives held, the player's line and the reply before; on a turn about something else it hands nothing; the same captive traded again with the same lord that day is refused as an echo (so a re-read sale never sells him back), another buyer is not; a money token naming the captive with his house fills the same sum as his bare name. Skips when the player holds no hero captive; changes nothing", TestCaptiveTradeContext),
+         new SelfTest("captive_trade_context", Severity.Light, "RaveN017Mod 05/11: prisoner sales 'still don't work every single time ... especially when I perform several prisoner exchanges in a row'. Takes a hero captive the player holds and a lord who could buy: on a turn naming the captive, the live builder hands the interpreter the captives held, the player's line and the reply before; on a turn about something else it hands nothing; the same captive traded again with the same lord that day is refused as an echo (so a re-read sale never sells him back), another buyer is not; a money token naming the captive with his house fills the same sum as his bare name. With no hero captive held, a free lord with no party is taken into the player's party for the test and released after (skips only when there is none); otherwise changes nothing", TestCaptiveTradeContext),
          new SelfTest("pair_bond", Severity.Light, "tashmetu 04/11: the game's starting draw gave strangers of far realms -100, and a change with a younger son landed on his father. Takes two lords of realms neither neighbours nor at war, no kin, writes a -80 start on their own slot, and asserts CR does not believe it (vague unease, 0 points); then changes it through CR and asserts only the change counts, on their own slot, and the clan leaders' relation is untouched. Restores both values and forgets the ledger rows", TestPairBond),
          new SelfTest("hidden_affairs", Severity.Light, "Gabriel's go 01/11/2026: a married lord may take a hidden lover, found by a companion sent to spy on them. Begins an affair between two lords and asserts both carry it in their prompt, told to evade and never lie; the player holds nothing yet; end_affair refuses it and the partner path leaves it alone; a poor inquiry says nothing certain; a companion dispatched with the lord's name through the real errand reports it and the player then holds it, on the lover too. Then ends it as a telling would, and asserts the fields are clear. Expose itself is driven by cr.test secret_exposure. Restores all borrowed state", TestHiddenAffairs),
          new SelfTest("lord_secret_lover", Severity.Light, "Mystery-lover (lord coverage): a MARRIED lord the player is secretly the lover of carries the SDK Status SecretLover (not the companion-only IsSecretLover flag). Mark a non-companion lord's profile Status SecretLover and assert the unified detection (PlayerSecretLoverSubjectIds) finds him, then record a second lord as knowing and drive the REAL EncounterContextBuilder.Build to assert the held-secret payoff names the lord subject (adult on) or is suppressed (gate off). Restores the status and forgets the ledger afterwards", TestLordSecretLover),
@@ -10525,15 +10525,41 @@ namespace CalradiaRemembers.Diagnostics
       {
          var t = new TestRun("captive_trade_context");
          if (t.Skip(behavior?.Store == null || Hero.MainHero == null, "no campaign")) return t.Line();
-         Hero captive = Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners().FirstOrDefault(h => h.Name != null);
-         if (t.Skip(captive == null, "the player holds no hero captive")) return t.Line();
+         Hero captive = Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners().FirstOrDefault(h => h.Name != null && h.Clan != null);
 
+         // Arranged per GABRIEL'S RULE (05/11/2026: "injecte un captif et fait le test automatiquement"): with no hero
+         // captive held, a free lord with no party of his own is taken into the player's party and released after.
+         Hero arranged = null;
+         if (captive == null)
+         {
+            arranged = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && !h.IsPrisoner && h.Clan != Clan.PlayerClan && !h.IsChild
+                                                              && h.PartyBelongedTo == null && h.Clan != null && h.Clan.IsBanditFaction != true
+                                                              && Mapping.HeroPresence.IsInTheWorld(h));
+            if (t.Skip(arranged == null, "no hero captive held, and no free partyless lord to take")) return t.Line();
+            TakePrisonerAction.Apply(PartyBase.MainParty, arranged);
+            captive = arranged;
+            t.Note($"arranged: {arranged.Name} taken into the player's party for the test");
+         }
+
+         try
+         {
+            return CaptiveTradeContextChecks(t, behavior, captive);
+         }
+         finally
+         {
+            if (arranged != null && arranged.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(arranged);
+         }
+      }
+
+      private static string CaptiveTradeContextChecks(TestRun t, NpcMemoryCampaignBehavior behavior, Hero captive)
+      {
          string name = captive.Name.ToString();
          var history = new List<LlmMessage> {
             new LlmMessage(MessageRole.Assistant, "Ten thousand, and not a coin more."),
             new LlmMessage(MessageRole.User, $"Then take {name} for that."),
             new LlmMessage(MessageRole.Assistant, "Done. I'll take him.")
          };
+         t.Expect("theCaptiveIsHeldByThePlayer", Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners().Contains(captive), true);
          string block = Chat.ActionInterpreterComposer.TradeBackgroundFor(history, $"Then take {name} for that.", "Done. I'll take him.");
          t.Note($"{name}; block {block?.Length ?? 0} chars");
          // STAKE: RaveN017Mod's sales in a row: "him" and "for that" are readable only with the captives and the turn before.
