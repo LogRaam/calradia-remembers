@@ -423,6 +423,7 @@ namespace CalradiaRemembers.Mapping
                : ContextualNameResolver.Resolve(hero, playerMessage, bridge),
             KnownWanderers = ResolveKnownWanderers(hero, playerMessage),
             NpcCurrentActivity = bridge.GetCurrentActivity(hero),
+            ForcesInSight = ForcesInSightReader.Read(hero),
             CurrentLocationNote = BuildLocationNote(hero),
             CurrentLocationName = Hero.MainHero?.CurrentSettlement?.Name?.ToString() ?? "",
             GeographyNote = SettlementContextResolver.Resolve(hero, playerMessage),

@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 632 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1527 types in 55 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 633 types in 65 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1530 types in 55 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -589,7 +589,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterBoxNavigationItemVM` | internal class | A genuine nav-bar item that opens the letter box, its badge counting the letters waiting. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (54)
+### CalradiaRemembers.Mapping (55)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -607,6 +607,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EncounterContextBuilder` | public static class | Constructs an EncounterContext for a given NPC, using the game state bridge for live data and the stored profile for historical data (last-meeting computation). |
 | `ExecutionDetail` | internal static class | Reads the game's kill detail as an execution or not. |
 | `FirstImpressionResolver` | public static class | Builds the ready-to-inject "first impression" line for a barely-known noble, or null. |
+| `ForcesInSightReader` | public static class | The forces in sight of a conversation held on the open map. |
 | `GameRelations` | public static class | Reads a character's own relation with the player and, when there is another to read, their clan leader's. |
 | `HeartPageReader` | internal static class | Reads a hero's bond with the player for the Heart section. |
 | `HeroPresence` | public static class | Whether a hero is in the world at all: alive, and not taken out of it by the game. |
@@ -2710,12 +2711,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ViolenceVerdict` | public enum | How an attempt ended. |
 | `ViolentAct` | public enum | What the player is attempting against an NPC, from least to most severe. |
 
-### CalradiaRemembers.Logic.War (7)
+### CalradiaRemembers.Logic.War (10)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `ForcesInSight` | public static class | What forces in sight are told to the character, and in what words. |
 | `KeepPeaceBreachPolicy` | public static class | Decides whether a freshly declared war breaches a promisor's "keep the peace" oath. |
 | `RetirementKind` | public enum | What a spent companion asks for when they retire: decided by whether they hold land. |
+| `SightedForce` | public class | One force the speaker can see: an army (its whole host) or a single party. |
+| `SightedSide` | public enum | Whose side a force in sight stands on, seen from the character speaking. |
 | `WarDeedMatcher` | public static class | Decides whether a war declaration satisfies a deliver-war-on-faction deed. |
 | `WarLoomingPolicy` | public static class | Pure threshold and cadence gate for the "war looming" world condition. |
 | `WarSides` | public struct | The two sides of one war declaration, as faction ids. |

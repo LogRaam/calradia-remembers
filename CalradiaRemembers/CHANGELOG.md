@@ -2,6 +2,12 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.8.5.. open
+
+### New
+
+- **Armies in sight on the open map** (3chmidt, Nexus 05/11/2026: "when you speak with an NPC on the open map, they don't notice friendly and enemy armies on the map that are nearby... even if it is a enemy army with 1800 soldiers, and they act surprised if you mention a nearby army"). A talk held on the open map now tells the character the forces the player's party can see (the engine's spotting range and fog): up to five, nearest first, an army as one host under its leader, each as the eye reads it ("an enemy army of Vlandia under Lord Derthert, some 1,800 men"; "a band of Sea Raiders, some 30 men"), never the speaker's own party or army nor the player's. Logic `ForcesInSight` (tested), host `Mapping.ForcesInSightReader`, SDK `EncounterContext.ForcesInSight` below the cache marker, Lean included. Inside a settlement nothing is said. Villagers, caravans, militia and garrisons are left out. `cr.test forces_in_sight`. Not play-verified.
+
 ## v2.8.4.. 2026-11-05
 
 ### New

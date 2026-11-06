@@ -239,6 +239,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("bag_sale", Severity.Light, "froggyluv 04/11: food chosen in the bag to sell moved one unit or left as a gift. Holds three of a trade good in the bag with an asking price, asserts give_item refuses them (no gift), then that sell_item moves all three and the buyer pays. Restores the goods and the coin", TestBagSale),
          new SelfTest("captive_name", Severity.Light, "froggyluv 04/11: a buyer named the captive with her house ('Elthild of dey Tihr') and the sale failed: no captive by that name. Takes a hero captive the player holds and asserts the real resolver finds them by name with the house appended. Skips when the player holds no hero captive; changes nothing", TestCaptiveName),
          new SelfTest("captive_trade_context", Severity.Light, "RaveN017Mod 05/11: prisoner sales 'still don't work every single time ... especially when I perform several prisoner exchanges in a row'. Takes a hero captive the player holds and a lord who could buy: on a turn naming the captive, the live builder hands the interpreter the captives held, the player's line and the reply before; on a turn about something else it hands nothing; the same captive traded again with the same lord that day is refused as an echo (so a re-read sale never sells him back), another buyer is not; a money token naming the captive with his house fills the same sum as his bare name. With no hero captive held, a free lord with no party is taken into the player's party for the test and released after (skips only when there is none); otherwise changes nothing", TestCaptiveTradeContext),
+         new SelfTest("forces_in_sight", Severity.Light, "3chmidt (Nexus, 05/11/2026): 'when you speak with an NPC on the open map, they don't notice friendly and enemy armies on the map that are nearby... even if it is a enemy army with 1800 soldiers'. On the open map, with a lord's party or a band in the player's sight: the reader names the nearest of them (by its leader, or as a band), never the speaker's own party, and the prompt built for a lord carries the FORCES IN SIGHT heading. Inside a settlement nothing is said. Reads only; changes nothing", TestForcesInSight),
          new SelfTest("pair_bond", Severity.Light, "tashmetu 04/11: the game's starting draw gave strangers of far realms -100, and a change with a younger son landed on his father. Takes two lords of realms neither neighbours nor at war, no kin, writes a -80 start on their own slot, and asserts CR does not believe it (vague unease, 0 points); then changes it through CR and asserts only the change counts, on their own slot, and the clan leaders' relation is untouched. Restores both values and forgets the ledger rows", TestPairBond),
          new SelfTest("hidden_affairs", Severity.Light, "Gabriel's go 01/11/2026: a married lord may take a hidden lover, found by a companion sent to spy on them. Begins an affair between two lords and asserts both carry it in their prompt, told to evade and never lie; the player holds nothing yet; end_affair refuses it and the partner path leaves it alone; a poor inquiry says nothing certain; a companion dispatched with the lord's name through the real errand reports it and the player then holds it, on the lover too. Then ends it as a telling would, and asserts the fields are clear. Expose itself is driven by cr.test secret_exposure. Restores all borrowed state", TestHiddenAffairs),
          new SelfTest("lord_secret_lover", Severity.Light, "Mystery-lover (lord coverage): a MARRIED lord the player is secretly the lover of carries the SDK Status SecretLover (not the companion-only IsSecretLover flag). Mark a non-companion lord's profile Status SecretLover and assert the unified detection (PlayerSecretLoverSubjectIds) finds him, then record a second lord as knowing and drive the REAL EncounterContextBuilder.Build to assert the held-secret payoff names the lord subject (adult on) or is suppressed (gate off). Restores the status and forgets the ledger afterwards", TestLordSecretLover),
@@ -10604,6 +10605,50 @@ namespace CalradiaRemembers.Diagnostics
 
          // STAKE: a token written with the house used to read "a fair sum", and the sale paid the floor instead of the agreed figure.
          t.Expect("aTokenWithTheHouseFillsTheSameSum", NpcMemoryService.Core.Parsing.MoneyTokens.Fill("{most:" + name + " of " + captive.Clan.Name + "}", table), bare);
+
+         return t.Line();
+      }
+
+      private static string TestForcesInSight(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("forces_in_sight");
+         MobileParty main = MobileParty.MainParty;
+         if (t.Skip(main == null || Hero.MainHero == null || Hero.MainHero.IsPrisoner, "no free player party")) return t.Line();
+         if (main.CurrentSettlement != null)
+         {
+            // STAKE: inside walls the map's armies are not before the speaker's eyes.
+            t.Expect("insideASettlementNothingIsSaid", Mapping.ForcesInSightReader.Read(null), (IReadOnlyList<string>) null);
+
+            return t.Line();
+         }
+
+         List<Logic.War.SightedForce> sighted = Mapping.ForcesInSightReader.Sighted(null, main);
+         MobileParty nearest = MobileParty.All.Where(p => p != null && p.IsActive && !p.IsMainParty && p.CurrentSettlement == null && p.IsVisible
+                                                          && (p.IsBandit || p.LeaderHero != null && !p.IsCaravan && !p.IsVillager) && (p.Army == null || p.Army.LeaderParty == p) && p.Army != main.Army
+                                                          && p.GetPosition2D.Distance(main.GetPosition2D) <= main.SeeingRange)
+                                              .OrderBy(p => p.GetPosition2D.Distance(main.GetPosition2D)).FirstOrDefault();
+         if (t.Skip(nearest == null, "nothing in the player's sight on the map right now (ride near a lord or a band and run again)")) return t.Line();
+
+         string leader = nearest.IsBandit ? "" : nearest.LeaderHero.Name.ToString();
+         t.Note($"nearest: {nearest.Name} ({(nearest.IsBandit ? "band" : leader)}), {sighted.Count} in sight, range {main.SeeingRange:0.0}");
+         // STAKE: 3chmidt's army at the door is among what the speaker is told.
+         t.Expect("theNearestForceIsSeen", sighted.Any(f => nearest.IsBandit ? f.Side == Logic.War.SightedSide.Outlaws : f.Leader == leader), true);
+
+         Hero speaker = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h.PartyBelongedTo != null && h.PartyBelongedTo != main && !h.IsPrisoner
+                                                                && h.PartyBelongedTo != nearest && (nearest.Army == null || h.PartyBelongedTo.Army != nearest.Army));
+         if (nearest.LeaderHero != null)
+         {
+            // STAKE: a lord is never told of his own party as a force in sight.
+            List<Logic.War.SightedForce> fromHim = Mapping.ForcesInSightReader.Sighted(nearest.LeaderHero, main);
+            t.Expect("theSpeakersOwnPartyIsNotNews", fromHim.Any(f => f.Leader == leader && !f.IsArmy), false);
+         }
+
+         if (speaker != null)
+         {
+            NpcProfile profile = behavior.Store.Get(speaker.StringId) ?? Mapping.HeroProfileMapper.FromHero(speaker);
+            NpcMemoryService.Core.Models.EncounterContext ctx = Mapping.EncounterContextBuilder.Build(speaker, profile, behavior.GameStateBridge, "");
+            t.Expect("theLordsTurnCarriesWhatIsInSight", ctx?.ForcesInSight is {Count: > 0}, true);
+         }
 
          return t.Line();
       }
