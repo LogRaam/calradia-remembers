@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 633 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1532 types in 55 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1534 types in 55 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1004,7 +1004,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (466)
+### CalradiaRemembers.Logic (468)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1130,6 +1130,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ExternalMissionRules` | public static class | The normalisation rules every externally-registered player mission passes through. |
 | `EyeColorBands` | public static class | The words for Bannerlord's eye-colour gradient, banded from the slider offset. |
 | `FactionGuidelinesPolicy` | public static class | Narrows the FACTION BEHAVIOR section of a behaviour-guidelines text to the headings that could apply to one character. |
+| `FallenHeroFacts` | public class | Who died, and how, for the news of it. |
+| `FallenHeroNews` | public static class | The weight and the words of the news of a lord's death. |
 | `FedEventReach` | public static class | How far and how long a fed event carries, in the three observer situations the tags create: a stranger far away, a member of a tagged realm, and someone at the event's place. |
 | `FeudRelationOutcome` | public class | The relation deltas a resolved scheme turns into: how hard the plotter/target bond sours, how much the target's close allies cool toward the plotter, and how many allies feel it. |
 | `FeudRelationPolicy` | public static class | Turns a resolved scheme (its kind and how it ended) into the relation deltas that make the feud VISIBLE and let vanilla diplomacy escalate on its own. |

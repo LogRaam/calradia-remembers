@@ -38,6 +38,11 @@ namespace CalradiaRemembers.WorldEvents
 
       private const int RivalryCooldownDays = 40; // don't re-gossip the same feud too soon
 
+      // Who a hero was the instant before the engine killed him (ruler, clan head, the player's foe in the field): by the
+      // time HeroKilledEvent fires, KillCharacterAction has already passed his clan to an heir and disbanded his party.
+      // Filled by BeforeHeroKilledEvent and taken by HeroKilledEvent in the same call; never saved.
+      private readonly Dictionary<string, FallenHeroFacts> _beforeDeath = new Dictionary<string, FallenHeroFacts>();
+
       // ── Rivalry gossip (feeder #3) ────────────────────────────────────────
       private const int RivalryThreshold = -30; // mutual relation at/below = bitter rivals
 
@@ -95,6 +100,7 @@ namespace CalradiaRemembers.WorldEvents
       {
          CampaignEvents.MapEventEnded.AddNonSerializedListener(this, OnMapEventEnded);
          CampaignEvents.BeforeHeroesMarried.AddNonSerializedListener(this, OnHeroesMarried);
+         CampaignEvents.BeforeHeroKilledEvent.AddNonSerializedListener(this, OnBeforeHeroKilled);
          CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
          CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this, OnSettlementOwnerChanged);
          CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
@@ -582,12 +588,63 @@ namespace CalradiaRemembers.WorldEvents
 
       // ── Executions ────────────────────────────────────────────────────────
 
+      /// <summary>
+      ///   3chmidt (Nexus, 05/11/2026): killing Monchug "barely makes waves in the world". Reads who the victim is while he
+      ///   still is it: the realm he rules, the clan he heads, and whether he fell fighting the player's own host.
+      /// </summary>
+      private void OnBeforeHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)
+      {
+         try
+         {
+            if (victim == null || victim == Hero.MainHero) return;
+            _beforeDeath[victim.StringId] = FallenFactsOf(victim, detail == KillCharacterAction.KillCharacterActionDetail.DiedInBattle && FellToPlayersHost(victim));
+         }
+         catch (Exception ex) { ModLog.Error($"[WORLD] could not read {victim?.Name} before death: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      internal static FallenHeroFacts FallenFactsOf(Hero victim, bool fellToPlayer)
+      {
+         Kingdom realm = victim.Clan?.Kingdom;
+         bool rules = realm != null && realm.Leader == victim;
+         bool heads = victim.Clan != null && victim.Clan.Leader == victim;
+
+         return new FallenHeroFacts {
+            Name = Named(victim),
+            RuledRealm = rules ? realm.Name?.ToString() ?? "" : "",
+            LedClan = heads && !rules ? victim.Clan.Name?.ToString() ?? "" : "",
+            Near = victim.LastKnownClosestSettlement?.Name?.ToString() ?? "",
+            FellToPlayer = fellToPlayer ? PlayerName : ""
+         };
+      }
+
+      // The engine passes no killer for a death in the field; the victim's party standing in the player's own battle, on
+      // the other side, is what says it was the player's host.
+      private static bool FellToPlayersHost(Hero victim)
+      {
+         MapEvent battle = MobileParty.MainParty?.MapEvent;
+         PartyBase his = victim.PartyBelongedTo?.Party;
+         if (battle == null || his == null) return false;
+         BattleSideEnum playerSide = battle.AttackerSide?.IsMainPartyAmongParties() == true ? BattleSideEnum.Attacker : BattleSideEnum.Defender;
+         BattleSideEnum other = playerSide == BattleSideEnum.Attacker ? BattleSideEnum.Defender : BattleSideEnum.Attacker;
+
+         return battle.GetMapEventSide(other)?.Parties?.Any(p => p.Party == his) == true;
+      }
+
+      private FallenHeroFacts TakeBeforeDeath(Hero victim)
+      {
+         if (victim == null || !_beforeDeath.TryGetValue(victim.StringId, out FallenHeroFacts facts)) return null;
+         _beforeDeath.Remove(victim.StringId);
+
+         return facts;
+      }
+
       private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)
       {
+         FallenHeroFacts before = TakeBeforeDeath(victim);
          if (victim == null || Store == null) return;
          if (detail == KillCharacterAction.KillCharacterActionDetail.DiedInBattle)
          {
-            RecordFellInBattle(victim);
+            RecordFellInBattle(victim, before);
 
             return;
          }
@@ -595,16 +652,17 @@ namespace CalradiaRemembers.WorldEvents
          try
          {
             bool playerIn = killer == Hero.MainHero;
+            FallenHeroFacts facts = before ?? FallenFactsOf(victim, false);
+            facts = new FallenHeroFacts {Name = facts.Name, RuledRealm = facts.RuledRealm, LedClan = facts.LedClan, Near = facts.Near, Executed = true, ExecutedBy = killer != null ? Named(killer) : ""};
             var e = new WorldEvent {
                Type = playerIn
                   ? WorldEventType.PlayerFeat
                   : WorldEventType.Execution,
                Day = Today,
-               Magnitude = 65,
+               // A ruler's or a clan head's execution is louder than a lord's (3chmidt, 05/11/2026).
+               Magnitude = FallenHeroNews.Magnitude(facts),
                InvolvesPlayer = playerIn,
-               Summary = killer != null
-                  ? $"{Named(killer)} had {Named(victim)} executed."
-                  : $"{Named(victim)} was executed.",
+               Summary = FallenHeroNews.Summary(facts),
                ActorIds = Ids(victim, killer),
                FactionIds = FactionIds(victim, killer),
                // Influence loop: an execution by the player wounds the victim's own faction deeply.
@@ -628,17 +686,22 @@ namespace CalradiaRemembers.WorldEvents
       ///   place is the last settlement he was near. The player's own house is left to the battle memory, which knows
       ///   the fight. Recorded as news, so it reaches the long-term memory after 42 days.
       /// </summary>
-      private void RecordFellInBattle(Hero victim)
+      private void RecordFellInBattle(Hero victim, FallenHeroFacts before = null)
       {
          try
          {
             if (victim == Hero.MainHero || !victim.IsLord || IsBandit(victim) || victim.Clan == null || victim.Clan == Clan.PlayerClan) return;
 
             Settlement near = victim.LastKnownClosestSettlement;
+            // 3chmidt (05/11/2026): a ruler's or a clan head's fall is louder than a lord's, and the player's host is named
+            // when it struck him (read before the engine handed his clan on, see OnBeforeHeroKilled).
+            FallenHeroFacts facts = before ?? FallenFactsOf(victim, false);
+            bool byPlayer = !string.IsNullOrWhiteSpace(facts.FellToPlayer);
             Store.Record(new WorldEvent {
-               Type = WorldEventType.Other, Day = Today, Magnitude = LongTermHistoryPolicy.FellInBattleMagnitude,
+               Type = WorldEventType.Other, Day = Today, Magnitude = FallenHeroNews.Magnitude(facts),
                Status = LongTermHistoryPolicy.FellInBattleStatus,
-               Summary = near != null ? $"{Named(victim)} fell in battle near {near.Name}." : $"{Named(victim)} fell in battle.",
+               InvolvesPlayer = byPlayer,
+               Summary = FallenHeroNews.Summary(facts),
                ActorIds = Ids(victim),
                FactionIds = FactionIds(victim),
                PlaceId = near?.StringId

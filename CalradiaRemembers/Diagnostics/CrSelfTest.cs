@@ -240,6 +240,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("captive_name", Severity.Light, "froggyluv 04/11: a buyer named the captive with her house ('Elthild of dey Tihr') and the sale failed: no captive by that name. Takes a hero captive the player holds and asserts the real resolver finds them by name with the house appended. Skips when the player holds no hero captive; changes nothing", TestCaptiveName),
          new SelfTest("captive_trade_context", Severity.Light, "RaveN017Mod 05/11: prisoner sales 'still don't work every single time ... especially when I perform several prisoner exchanges in a row'. Takes a hero captive the player holds and a lord who could buy: on a turn naming the captive, the live builder hands the interpreter the captives held, the player's line and the reply before; on a turn about something else it hands nothing; the same captive traded again with the same lord that day is refused as an echo (so a re-read sale never sells him back), another buyer is not; a money token naming the captive with his house fills the same sum as his bare name. With no hero captive held, a free lord with no party is taken into the player's party for the test and released after (skips only when there is none); otherwise changes nothing", TestCaptiveTradeContext),
          new SelfTest("forces_in_sight", Severity.Light, "3chmidt (Nexus, 05/11/2026): 'when you speak with an NPC on the open map, they don't notice friendly and enemy armies on the map that are nearby... even if it is a enemy army with 1800 soldiers'. On the open map, with a lord's party or a band in the player's sight: the reader names the nearest of them (by its leader, or as a band), never the speaker's own party, and the prompt built for a lord carries the FORCES IN SIGHT heading. Inside a settlement nothing is said. Reads only; changes nothing", TestForcesInSight),
+         new SelfTest("fallen_news", Severity.Light, "3chmidt (Nexus, 05/11/2026): killing Monchug 'barely makes waves in the world, and only few know of it... At least the people of the realm should know if an important person of theirs is dead.' Reads a living ruler and a clan head who is not a ruler the way OnBeforeHeroKilled reads a victim before the engine hands his clan on: the ruler is read as ruling his realm, the head as heading his clan, and the news of their fall weighs more than a lord's (a ruler's clears the rumour bar with no tie of realm) and names their rank. Kills no one; changes nothing", TestFallenNews),
          new SelfTest("pair_bond", Severity.Light, "tashmetu 04/11: the game's starting draw gave strangers of far realms -100, and a change with a younger son landed on his father. Takes two lords of realms neither neighbours nor at war, no kin, writes a -80 start on their own slot, and asserts CR does not believe it (vague unease, 0 points); then changes it through CR and asserts only the change counts, on their own slot, and the clan leaders' relation is untouched. Restores both values and forgets the ledger rows", TestPairBond),
          new SelfTest("hidden_affairs", Severity.Light, "Gabriel's go 01/11/2026: a married lord may take a hidden lover, found by a companion sent to spy on them. Begins an affair between two lords and asserts both carry it in their prompt, told to evade and never lie; the player holds nothing yet; end_affair refuses it and the partner path leaves it alone; a poor inquiry says nothing certain; a companion dispatched with the lord's name through the real errand reports it and the player then holds it, on the lover too. Then ends it as a telling would, and asserts the fields are clear. Expose itself is driven by cr.test secret_exposure. Restores all borrowed state", TestHiddenAffairs),
          new SelfTest("lord_secret_lover", Severity.Light, "Mystery-lover (lord coverage): a MARRIED lord the player is secretly the lover of carries the SDK Status SecretLover (not the companion-only IsSecretLover flag). Mark a non-companion lord's profile Status SecretLover and assert the unified detection (PlayerSecretLoverSubjectIds) finds him, then record a second lord as knowing and drive the REAL EncounterContextBuilder.Build to assert the held-secret payoff names the lord subject (adult on) or is suppressed (gate off). Restores the status and forgets the ledger afterwards", TestLordSecretLover),
@@ -10605,6 +10606,28 @@ namespace CalradiaRemembers.Diagnostics
 
          // STAKE: a token written with the house used to read "a fair sum", and the sale paid the floor instead of the agreed figure.
          t.Expect("aTokenWithTheHouseFillsTheSameSum", NpcMemoryService.Core.Parsing.MoneyTokens.Fill("{most:" + name + " of " + captive.Clan.Name + "}", table), bare);
+
+         return t.Line();
+      }
+
+      private static string TestFallenNews(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("fallen_news");
+         Hero ruler = Kingdom.All.Where(k => !k.IsEliminated && k.Leader != null && k.Leader != Hero.MainHero).Select(k => k.Leader).FirstOrDefault();
+         Hero head = Clan.All.Where(c => !c.IsEliminated && c.Leader != null && c.Leader != Hero.MainHero && c.Leader.IsLord && c.Kingdom != null && c.Kingdom.Leader != c.Leader)
+                             .Select(c => c.Leader).FirstOrDefault();
+         if (t.Skip(ruler == null || head == null, "no ruler, or no clan head who is not a ruler")) return t.Line();
+
+         Logic.FallenHeroFacts r = WorldEventFeeders.FallenFactsOf(ruler, false);
+         Logic.FallenHeroFacts h = WorldEventFeeders.FallenFactsOf(head, false);
+         t.Note($"{ruler.Name}: '{Logic.FallenHeroNews.Summary(r)}' ({Logic.FallenHeroNews.Magnitude(r)}); {head.Name}: '{Logic.FallenHeroNews.Summary(h)}' ({Logic.FallenHeroNews.Magnitude(h)})");
+         // STAKE: Monchug's fall reads as a ruler's, is heard across realms, and his realm is named.
+         t.Expect("theRulerIsReadAsRuler", r.RuledRealm, ruler.Clan.Kingdom.Name.ToString());
+         t.Expect("aRulersFallClearsTheRumourBarAlone", Logic.FallenHeroNews.Magnitude(r) >= Logic.RumorAwareness.Threshold, true);
+         t.Expect("theNewsNamesHisRealm", Logic.FallenHeroNews.Summary(r).Contains("ruler of " + ruler.Clan.Kingdom.Name), true);
+         // STAKE: the head of a house weighs more than a lord, and is named as head of his clan.
+         t.Expect("theHeadIsReadAsHead", h.LedClan, head.Clan.Name.ToString());
+         t.Expect("aHeadsFallIsLouderThanALords", Logic.FallenHeroNews.Magnitude(h) > Logic.LongTermHistoryPolicy.FellInBattleMagnitude, true);
 
          return t.Line();
       }
