@@ -60,11 +60,36 @@ namespace CalradiaRemembers.Tests.Witnesses
             WitnessStandingText.Describe(new WitnessStandingFacts {IsFemale = true, SpeakerRelation = -15}).Should().Be("you distrust her");
         }
 
-        // Stranger or mild acquaintance: saying "neutral" would only add tokens, so the line stays as it was.
+        // froggyluv (Nexus, 05/11/2026), after the 2.8.2 fix: "NPC's are still constantly deferring and over-agreeing with my
+        // companions". Most lords barely know the companion; a silent line left the model to its own courtesy, so he is
+        // told he owes the companion nothing.
         [Test]
-        public void GIVEN_a_companion_the_speaker_barely_knows_WHEN_described_THEN_nothing_is_added()
+        public void GIVEN_a_companion_the_speaker_barely_knows_WHEN_described_THEN_he_is_told_he_owes_them_nothing()
         {
-            WitnessStandingText.Describe(new WitnessStandingFacts {SpeakerRelation = 4}).Should().BeNull();
+            WitnessStandingText.Describe(new WitnessStandingFacts {SpeakerRelation = 4}).Should().Be("you know him little and owe him nothing");
+        }
+
+        // froggyluv (05/11/2026): "Even ill tempered NPC's seem to always want to agree and praise them." A harsh lord is
+        // told his patience is short with a companion who speaks up.
+        [Test]
+        public void GIVEN_a_harsh_speaker_and_a_companion_he_barely_knows_WHEN_described_THEN_his_short_patience_is_said()
+        {
+            WitnessStandingText.Describe(new WitnessStandingFacts {IsFemale = true, SpeakerRelation = 0, SpeakerIsHarsh = true})
+                               .Should().Be("you know her little and owe her nothing, and you have little patience for forward words from those beneath you");
+        }
+
+        // Deep trust is not soured by a harsh nature: a cruel lord who trusts a companion deeply is not told to scorn her.
+        [Test]
+        public void GIVEN_a_harsh_speaker_who_trusts_the_companion_deeply_WHEN_described_THEN_no_impatience_is_added()
+        {
+            WitnessStandingText.Describe(new WitnessStandingFacts {SpeakerRelation = 40, SpeakerIsHarsh = true}).Should().Be("you trust him deeply");
+        }
+
+        // Only a player's companion is measured: a witness with no regard read (another lord, kin) gets no clause at all.
+        [Test]
+        public void GIVEN_no_regard_measured_WHEN_described_THEN_no_regard_clause_is_added()
+        {
+            WitnessStandingText.Describe(new WitnessStandingFacts {SpeakerIsHarsh = true}).Should().BeNull();
         }
 
         // The regard sits after kin and rank: a lord's own daughter who is also a companion keeps "your daughter" first.

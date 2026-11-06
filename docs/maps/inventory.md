@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 631 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1525 types in 55 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 632 types in 65 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1527 types in 55 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,9 +17,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 25500+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 26000+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 9000+ | Sdk | `Prompts/PromptBuilder.cs` |
-| 6000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
+| 5500+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
 | 4000+ | Mod | `Chat/ChatViewModel.cs` |
 | 2500+ | Mod | `Chat/ChatViewModel.Exchanges.cs` |
@@ -509,11 +509,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FiefAudienceBehavior` | public class | On the player's party ENTERING A SETTLEMENT (driven by CompanionAudienceTopicBehavior, see the class header), offers an Accept/Decline "may I have a word" audience for the strongest partyless NPC standing there with a li... |
 | `InterceptionBehavior` | public class | Once a day, at most one nearby lord may be sent to intercept the player when InterceptionPolicy says a trigger fires (a hostile territorial challenge, or a reaction to fresh news of the player). |
 
-### CalradiaRemembers.Items (2)
+### CalradiaRemembers.Items (3)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ItemPickerService` | public static class | Shows the player's party items (excluding quest items) so goods can be chosen by hand rather than named: the gift bag (several goods, each in a chosen amount), a bargain paid in goods, and a supply task's goods. |
+| `RosterGoods` | public static class | Keys, names, values and lookups of the party's goods with their quality. |
 | `SupplyItemMatcher` | internal static class | Whether a party item counts toward a ProvideGoods supply category. |
 
 ### CalradiaRemembers.Jealousy (5)
@@ -1857,7 +1858,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RansomOfferFacts` | public class | Who holds the player when the game is about to offer a ransom. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 
-### CalradiaRemembers.Logic.Character (15)
+### CalradiaRemembers.Logic.Character (17)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1869,6 +1870,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GiftTastePolicy` | public static class | Rolls gift tastes, reads an item's kind, sizes a gift's regard and words what was learned. |
 | `GiftTastes` | public class | A character's gift tastes, as rolled. |
 | `GiftWelcome` | public enum | How a gift is met. |
+| `HeldGoods` | public class | One stack the party holds, as the key reads it. |
 | `MattersMostFacts` | public class | What is true of a character, as what matters most to them is chosen from it. |
 | `MattersMostPageFacts` | public class | What the encyclopedia says of what matters most to a character. |
 | `MattersMostPolicy` | public static class | Chooses, keeps and words what matters most to a character. |
@@ -1876,6 +1878,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NaturePageFacts` | public class | What the encyclopedia says of a character's fear and superstition. |
 | `NaturePolicy` | public static class | Rolls and words a character's fear and superstition. |
 | `NatureRoll` | public class | A character's fear and superstition, as rolled. |
+| `RosterItemKey` | public static class | Names one stack of goods by item and quality, and finds it again among what the party holds. |
 
 ### CalradiaRemembers.Logic.Chat (29)
 

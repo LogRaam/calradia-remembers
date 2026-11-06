@@ -68,6 +68,13 @@ namespace CalradiaRemembers.Logic.Witnesses
         ///   lord always praised the companion who spoke up; he was never told what he thought of her.
         /// </summary>
         public int? SpeakerRelation { get; init; }
+
+        /// <summary>
+        ///   The speaker is harsh by nature (the game marks him cruel or closefisted; it has no trait for temper), read
+        ///   only for a player's companion like <see cref="SpeakerRelation" />. froggyluv (Nexus, 05/11/2026): "Even ill
+        ///   tempered NPC's seem to always want to agree and praise them."
+        /// </summary>
+        public bool SpeakerIsHarsh { get; init; }
     }
 
     /// <summary>One tie between a council seat and someone else at the table (or the player): the seat IS their Kin.</summary>
@@ -119,19 +126,22 @@ namespace CalradiaRemembers.Logic.Witnesses
             return parts.Count == 0 ? null : string.Join(", ", parts);
         }
 
-        // Same cut-offs as the lord-to-lord witness line (DescribeWitnessRelation): between -10 and 10 is silence,
-        // because a stranger and a mild acquaintance read the same, and the vanilla value cannot tell "never met".
+        // Same cut-offs as the lord-to-lord witness line (DescribeWitnessRelation). Between -10 and 10 was silence until
+        // froggyluv wrote again (Nexus, 05/11/2026: "NPC's are still constantly deferring and over-agreeing with my
+        // companions"): most lords barely know the player's companion, so silence left the model to its own courtesy. A
+        // stranger and a mild acquaintance still read the same, which is why the words claim no acquaintance.
         private static string RegardClause(WitnessStandingFacts f)
         {
             if (f.SpeakerRelation is not int rel) return null;
             string them = f.IsFemale ? "her" : "him";
+            string temper = f.SpeakerIsHarsh ? ", and you have little patience for forward words from those beneath you" : "";
 
             if (rel >= 30) return $"you trust {them} deeply";
-            if (rel >= 10) return $"you regard {them} favorably";
-            if (rel <= -30) return $"you hold {them} in deep enmity";
-            if (rel <= -10) return $"you distrust {them}";
+            if (rel >= 10) return $"you regard {them} favorably{temper}";
+            if (rel <= -30) return $"you hold {them} in deep enmity{temper}";
+            if (rel <= -10) return $"you distrust {them}{temper}";
 
-            return null;
+            return $"you know {them} little and owe {them} nothing{temper}";
         }
 
         /// <summary>

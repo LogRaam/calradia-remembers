@@ -174,14 +174,15 @@ namespace CalradiaRemembers.Chat
          ItemPickerService.ShowGiftPicker(
             offers =>
             {
-               List<(ItemObject Item, int Count)> goods = offers
-                  .Select(o => (Item: MBObjectManager.Instance?.GetObject<ItemObject>(o.ItemId), o.Count))
-                  .Where(g => g.Item != null)
+               // The very stack picked, quality included (avalanche24, 05/11/2026: "Masterwork Noble Bow", not "Noble Bow").
+               List<(EquipmentElement Goods, int Count)> goods = offers
+                  .Select(o => (Goods: Items.RosterGoods.Find(TaleWorlds.CampaignSystem.Party.MobileParty.MainParty?.ItemRoster, o.ItemId).EquipmentElement, o.Count))
+                  .Where(g => g.Goods.Item != null)
                   .ToList();
                if (goods.Count == 0) return;
 
-               string named = GiftBundlePolicy.Describe(goods.Select(g => new GiftLine {Name = g.Item.Name.ToString(), Count = g.Count}).ToList());
-               int value = goods.Sum(g => g.Item.Value * g.Count);
+               string named = GiftBundlePolicy.Describe(goods.Select(g => new GiftLine {Name = Items.RosterGoods.NameOf(g.Goods), Count = g.Count}).ToList());
+               int value = goods.Sum(g => Items.RosterGoods.ValueOf(g.Goods) * g.Count);
 
                // froggyluv (Nexus, 04/11/2026): "ill hit the Bag icon and choose the amount of Food to sell but... they dont
                // register the money that was demanded and think its a gift": the bag only ever wrote a gift. One kind of

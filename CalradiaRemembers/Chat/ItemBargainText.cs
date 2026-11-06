@@ -41,17 +41,12 @@ namespace CalradiaRemembers.Chat
          var names = new List<string>(offers.Count);
          foreach (ItemOffer offer in offers)
          {
-            foreach (ItemRosterElement el in roster)
-            {
-               ItemObject item = el.EquipmentElement.Item;
-
-               if (item == null || item.StringId != offer.ItemId) continue;
-               names.Add(offer.Count > 1
-                  ? $"{item.Name} (×{offer.Count})"
-                  : item.Name.ToString());
-
-               break;
-            }
+            ItemRosterElement el = Items.RosterGoods.Find(roster, offer.ItemId);
+            if (el.EquipmentElement.Item == null) continue;
+            string name = Items.RosterGoods.NameOf(el.EquipmentElement);
+            names.Add(offer.Count > 1
+               ? $"{name} (×{offer.Count})"
+               : name);
          }
 
          if (names.Count == 0) return "the agreed goods";

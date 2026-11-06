@@ -706,7 +706,8 @@ namespace CalradiaRemembers.Witnesses
             HeadsSpeakersClan = heads && observer.Clan == subject.Clan,
             Governs = subject.GovernorOf?.Settlement?.Name?.ToString() ?? "",
             // A companion's line says only "the player's companion": give the speaker his own regard for her.
-            SpeakerRelation = withRegard ? Mapping.PairBondReader.Points(subject, observer) : null
+            SpeakerRelation = withRegard ? Mapping.PairBondReader.Points(subject, observer) : null,
+            SpeakerIsHarsh = withRegard && (observer.GetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Mercy) < 0 || observer.GetTraitLevel(TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultTraits.Generosity) < 0)
          });
       }
 

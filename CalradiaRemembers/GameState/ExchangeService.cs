@@ -82,10 +82,10 @@ namespace CalradiaRemembers.GameState
       public static void TakeFromPlayer(ExchangeKind kind, EquipmentElement goods, int count, Hero receiver)
       {
          MobileParty.MainParty.ItemRoster.AddToCounts(goods, -count);
-         string name = goods.Item?.Name?.ToString();
+         string name = Items.RosterGoods.NameOf(goods);
          ModLog.Info(new ExchangeRecord {
             Kind = kind, From = Hero.MainHero?.Name?.ToString(), To = receiver?.Name?.ToString(),
-            Denars = ExchangeRecord.WorthOf(goods.Item?.Value ?? 0, count), Goods = count > 1 ? $"{count} {name}" : name
+            Denars = ExchangeRecord.WorthOf(Items.RosterGoods.ValueOf(goods), count), Goods = count > 1 ? $"{count} {name}" : name
          }.Line());
       }
 

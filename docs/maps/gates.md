@@ -460,6 +460,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 - taught when: `context!.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} does not belong to a kingdom.)"
+  - $"(You rule {playerClan.Kingdom.Name} and swear fealty to no one. {npcHero.Name} bringing {(npcHero.IsFemale ? "her" : "his")} house into your realm i...
   - $"({npcHero.Name} does not rule {kingdom.Name}; only the ruler's word can swear your clan to their banner.)"
   - $"(You are at war with {kingdom.Name}; you cannot swear fealty to a realm you are fighting.)"
   - $"(Your clan is already sworn to {playerClan.Kingdom.Name}. Settle that obligation first.)"

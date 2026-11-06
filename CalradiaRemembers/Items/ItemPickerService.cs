@@ -42,7 +42,7 @@ namespace CalradiaRemembers.Items
          {
             if (MobileParty.MainParty?.ItemRoster == null) return;
 
-            List<(ItemObject item, int amount)> eligible = BuildEligibleItems();
+            List<(EquipmentElement goods, int amount)> eligible = BuildEligibleItems();
             if (eligible.Count == 0)
             {
                MBInformationManager.AddQuickInformation(
@@ -53,14 +53,14 @@ namespace CalradiaRemembers.Items
 
             eligible.Sort(CompareItems);
             var elements = new List<InquiryElement>(eligible.Count);
-            foreach ((ItemObject item, int amount) in eligible)
+            foreach ((EquipmentElement goods, int amount) in eligible)
             {
-               int stackValue = item.Value * amount;
+               int stackValue = RosterGoods.ValueOf(goods) * amount;
                string count = amount > 1
                   ? $" ×{amount}"
                   : "";
-               var label = $"{item.Name}{count} — {stackValue:N0} denars";
-               elements.Add(new InquiryElement(item.StringId, label, null));
+               var label = $"{RosterGoods.NameOf(goods)}{count}: {stackValue:N0} denars";
+               elements.Add(new InquiryElement(RosterGoods.KeyOf(goods), label, null));
             }
 
             MBInformationManager.ShowMultiSelectionInquiry(
@@ -110,10 +110,10 @@ namespace CalradiaRemembers.Items
             if (MobileParty.MainParty?.ItemRoster == null) return;
 
             string label = SupplyItemMatcher.Label(categoryKey);
-            var eligible = new List<(ItemObject item, int amount)>();
-            foreach ((ItemObject item, int amount) in BuildEligibleItems())
-               if (SupplyItemMatcher.Matches(item, categoryKey))
-                  eligible.Add((item, amount));
+            var eligible = new List<(EquipmentElement goods, int amount)>();
+            foreach ((EquipmentElement goods, int amount) in BuildEligibleItems())
+               if (SupplyItemMatcher.Matches(goods.Item, categoryKey))
+                  eligible.Add((goods, amount));
 
             if (eligible.Count == 0)
             {
@@ -124,10 +124,10 @@ namespace CalradiaRemembers.Items
 
             eligible.Sort(CompareItems);
             var elements = new List<InquiryElement>(eligible.Count);
-            foreach ((ItemObject item, int amount) in eligible)
+            foreach ((EquipmentElement goods, int amount) in eligible)
             {
                string count = amount > 1 ? $" ×{amount}" : "";
-               elements.Add(new InquiryElement(item.StringId, $"{item.Name}{count}", null));
+               elements.Add(new InquiryElement(RosterGoods.KeyOf(goods), $"{RosterGoods.NameOf(goods)}{count}", null));
             }
 
             MBInformationManager.ShowMultiSelectionInquiry(
@@ -178,7 +178,7 @@ namespace CalradiaRemembers.Items
          {
             if (MobileParty.MainParty?.ItemRoster == null) return;
 
-            List<(ItemObject item, int amount)> eligible = BuildEligibleItems();
+            List<(EquipmentElement goods, int amount)> eligible = BuildEligibleItems();
             if (eligible.Count == 0 && onGoldSelected == null)
             {
                MBInformationManager.AddQuickInformation(new TextObject("Your party carries no items available to offer."));
@@ -284,42 +284,41 @@ namespace CalradiaRemembers.Items
             false);
       }
 
-      /// <summary>An item's display name from the party roster, or its id when it cannot be read.</summary>
-      private static string NameOf(string itemId)
+      /// <summary>A stack's display name from the party roster, quality included, or its key when it cannot be read.</summary>
+      private static string NameOf(string key)
       {
-         foreach (ItemRosterElement el in MobileParty.MainParty.ItemRoster)
-            if (el.EquipmentElement.Item?.StringId == itemId)
-               return el.EquipmentElement.Item.Name.ToString();
+         ItemRosterElement el = RosterGoods.Find(MobileParty.MainParty.ItemRoster, key);
 
-         return itemId;
+         return el.EquipmentElement.Item == null ? key : RosterGoods.NameOf(el.EquipmentElement);
       }
 
-      private static List<(ItemObject item, int amount)> BuildEligibleItems()
+      // One entry per stack, so a Masterwork piece is listed apart from a plain one (avalanche24, 05/11/2026).
+      private static List<(EquipmentElement goods, int amount)> BuildEligibleItems()
       {
-         var list = new List<(ItemObject, int)>();
+         var list = new List<(EquipmentElement, int)>();
          foreach (ItemRosterElement el in MobileParty.MainParty.ItemRoster)
          {
             if (el.Amount <= 0) continue;
             ItemObject item = el.EquipmentElement.Item;
 
             if (item is not {Value: > 0}) continue;
-            list.Add((item, el.Amount));
+            list.Add((el.EquipmentElement, el.Amount));
          }
 
          return list;
       }
 
       private static List<InquiryElement> BuildInquiryElements(
-         List<(ItemObject item, int amount)> eligible)
+         List<(EquipmentElement goods, int amount)> eligible)
       {
          var elements = new List<InquiryElement>(eligible.Count);
-         foreach ((ItemObject item, int amount) in eligible)
+         foreach ((EquipmentElement goods, int amount) in eligible)
          {
             string count = amount > 1
                ? $" ×{amount}"
                : "";
-            var label = $"{item.Name}{count} — {item.Value:N0} denars";
-            elements.Add(new InquiryElement(item.StringId, label, null));
+            var label = $"{RosterGoods.NameOf(goods)}{count}: {RosterGoods.ValueOf(goods):N0} denars";
+            elements.Add(new InquiryElement(RosterGoods.KeyOf(goods), label, null));
          }
 
          return elements;
@@ -358,28 +357,22 @@ namespace CalradiaRemembers.Items
       }
 
       private static int CompareItems(
-         (ItemObject item, int amount) a,
-         (ItemObject item, int amount) b)
+         (EquipmentElement goods, int amount) a,
+         (EquipmentElement goods, int amount) b)
       {
-         int catDiff = CategoryOrder(a.item.ItemType) - CategoryOrder(b.item.ItemType);
+         int catDiff = CategoryOrder(a.goods.Item.ItemType) - CategoryOrder(b.goods.Item.ItemType);
 
          if (catDiff != 0) return catDiff;
 
-         return b.item.Value - a.item.Value; // value descending within category
+         return RosterGoods.ValueOf(b.goods) - RosterGoods.ValueOf(a.goods); // value descending within category
       }
 
-      /// <summary>How many of the given item the player currently holds (0 if none).</summary>
-      private static int CountInRoster(string itemId)
+      /// <summary>How many of the given stack (item and quality) the player currently holds (0 if none).</summary>
+      private static int CountInRoster(string key)
       {
          if (MobileParty.MainParty?.ItemRoster == null) return 0;
-         foreach (ItemRosterElement el in MobileParty.MainParty.ItemRoster)
-         {
-            ItemObject item = el.EquipmentElement.Item;
 
-            if (item != null && item.StringId == itemId) return el.Amount;
-         }
-
-         return 0;
+         return RosterGoods.Find(MobileParty.MainParty.ItemRoster, key).Amount;
       }
 
       #endregion

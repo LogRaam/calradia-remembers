@@ -824,17 +824,18 @@ namespace CalradiaRemembers.GameState
 
             // Tally only what the player genuinely still holds; the bridge trusts the roster,
             // not the caller's value claim.
-            var toRemove = new List<(ItemObject item, int count)>();
+            var toRemove = new List<(EquipmentElement item, int count)>();
             var total = 0;
             foreach (ItemOffer offer in offered)
             {
                if (string.IsNullOrEmpty(offer.ItemId) || offer.Count <= 0) continue;
-               ItemObject item = FindRosterItem(roster, offer.ItemId, out int available);
+               ItemRosterElement held = Items.RosterGoods.Find(roster, offer.ItemId);
+               int available = held.Amount;
 
-               if (item == null || available <= 0) continue;
+               if (held.EquipmentElement.Item == null || available <= 0) continue;
                int take = Math.Min(offer.Count, available);
-               total += item.Value * take;
-               toRemove.Add((item, take));
+               total += Items.RosterGoods.ValueOf(held.EquipmentElement) * take;
+               toRemove.Add((held.EquipmentElement, take));
             }
 
             if (total < quest.RequiredItemValue)
@@ -842,7 +843,7 @@ namespace CalradiaRemembers.GameState
                   $"({giverHero?.Name}: these goods are worth about {total} denars — I asked for " + $"{quest.RequiredItemValue}. Bring more.)");
 
             // Value met: hand the goods over, then honor the favor.
-            foreach ((ItemObject item, int count) in toRemove)
+            foreach ((EquipmentElement item, int count) in toRemove)
                roster.AddToCounts(item, -count);
 
             ModLog.Info($"[BARGAIN] {giverHero?.Name}: accepted goods worth {total} denars " + $"(required {quest.RequiredItemValue}) for {quest.Reward}.");
@@ -857,7 +858,7 @@ namespace CalradiaRemembers.GameState
             bool grantFailed = quest.Reward != RewardGrant.None && (grant == null || !grant.IsPositive);
             if (grantFailed)
             {
-               foreach ((ItemObject item, int count) in toRemove)
+               foreach ((EquipmentElement item, int count) in toRemove)
                   roster.AddToCounts(item, count);
 
                ModLog.Info($"[BARGAIN] {giverHero?.Name}: reward '{quest.Reward}' refused after tally; goods returned to the player.");
@@ -936,17 +937,18 @@ namespace CalradiaRemembers.GameState
             string categoryKey = quest.RequiredItemCategory;
             string label = SupplyItemMatcher.Label(categoryKey);
 
-            var toRemove = new List<(ItemObject item, int count)>();
+            var toRemove = new List<(EquipmentElement item, int count)>();
             var count = 0;
             foreach (ItemOffer offer in offered)
             {
                if (string.IsNullOrEmpty(offer.ItemId) || offer.Count <= 0) continue;
-               ItemObject item = FindRosterItem(roster, offer.ItemId, out int available);
+               ItemRosterElement held = Items.RosterGoods.Find(roster, offer.ItemId);
+               int available = held.Amount;
 
-               if (item == null || available <= 0 || !SupplyItemMatcher.Matches(item, categoryKey)) continue;
+               if (held.EquipmentElement.Item == null || available <= 0 || !SupplyItemMatcher.Matches(held.EquipmentElement.Item, categoryKey)) continue;
                int take = Math.Min(offer.Count, available);
                count += take;
-               toRemove.Add((item, take));
+               toRemove.Add((held.EquipmentElement, take));
             }
 
             if (count < quest.RequiredItemCount)
@@ -959,7 +961,7 @@ namespace CalradiaRemembers.GameState
 
             // Count met: hand over exactly the required number (never take more than asked).
             int remaining = quest.RequiredItemCount;
-            foreach ((ItemObject item, int c) in toRemove)
+            foreach ((EquipmentElement item, int c) in toRemove)
             {
                if (remaining <= 0) break;
                int take = Math.Min(c, remaining);
@@ -1975,13 +1977,13 @@ namespace CalradiaRemembers.GameState
       {
          fuzzy = false;
          bool byName = string.IsNullOrWhiteSpace(itemId);
-         ItemRosterElement found = !byName ? FindRosterElementById(itemId) : FindItemInRoster(itemName);
+         ItemRosterElement found = !byName ? Items.RosterGoods.Find(MobileParty.MainParty?.ItemRoster, itemId) : FindItemInRoster(itemName);
          if (byName && found.EquipmentElement.Item == null && !string.IsNullOrWhiteSpace(itemName))
          {
             GiftCandidate? match = GiftNameResolver.Resolve(itemName, BuildGiftCandidates());
             if (match.HasValue)
             {
-               found = FindRosterElementById(match.Value.Id);
+               found = Items.RosterGoods.Find(MobileParty.MainParty?.ItemRoster, match.Value.Id);
                fuzzy = true;
             }
          }
@@ -2002,7 +2004,7 @@ namespace CalradiaRemembers.GameState
          string table = context?.ItemOnTheTableId;
          if (string.IsNullOrWhiteSpace(table)) return byName;
 
-         ItemRosterElement onTable = FindRosterElementById(table);
+         ItemRosterElement onTable = Items.RosterGoods.Find(MobileParty.MainParty?.ItemRoster, table);
          if (onTable.EquipmentElement.Item == null) return byName;
          if (byName.EquipmentElement.Item == null || string.IsNullOrWhiteSpace(itemName)) return onTable;
 
@@ -2032,11 +2034,14 @@ namespace CalradiaRemembers.GameState
             // A sale from the bag moves the amount set there (froggyluv, 04/11/2026): the confirmation names it and its worth.
             GiftBundle bundle = context?.OfferedBundle;
             int count = string.Equals(action.Type, "sell_item", StringComparison.OrdinalIgnoreCase) && bundle?.Items is {Count: 1}
-                        && bundle.Items[0].ItemId == item.StringId && !bundle.Handed
+                        && Items.RosterGoods.Means(bundle.Items[0].ItemId, found.EquipmentElement) && !bundle.Handed
                ? Math.Max(1, Math.Min(bundle.Items[0].Count, found.Amount))
                : 1;
 
-            return new ItemPreview {Id = item.StringId, Name = count > 1 ? $"{count} {item.Name}" : item.Name?.ToString(), Value = item.Value * count};
+            // The very piece, quality included (avalanche24, 05/11/2026): the confirmation names it and carries its key.
+            string name = Items.RosterGoods.NameOf(found.EquipmentElement);
+
+            return new ItemPreview {Id = Items.RosterGoods.KeyOf(found.EquipmentElement), Name = count > 1 ? $"{count} {name}" : name, Value = Items.RosterGoods.ValueOf(found.EquipmentElement) * count};
          }
          catch (Exception ex)
          {
@@ -2067,14 +2072,14 @@ namespace CalradiaRemembers.GameState
             // one unit whatever was agreed. The amount set in the bag for this very good decides; a sale in words stays one
             // (the Compact interpreter prompt has no room to teach sell_item a count).
             GiftBundle bundle = context?.OfferedBundle;
-            bool fromBag = item != null && bundle?.Items is {Count: 1} && bundle.Items[0].ItemId == item.StringId && !bundle.Handed;
+            bool fromBag = item != null && bundle?.Items is {Count: 1} && Items.RosterGoods.Means(bundle.Items[0].ItemId, found.EquipmentElement) && !bundle.Handed;
             int requested = fromBag ? bundle.Items[0].Count : 1;
 
             int count = Math.Max(1, GiftQuantityPolicy.Resolve(requested, found.Amount));
 
             ItemSaleDecision deal = ItemSalePolicy.Settle(new ItemSaleFacts {
                AgreedPrice = CoinAmount.Parse(priceText), BuyerPurse = npcHero.Gold, PlayerStillHolds = item != null && found.Amount > 0,
-               ItemValue = (item?.Value ?? 0) * count, BuyerLovesItsKind = Mapping.NatureReader.LovesKindOf(item, npcHero, context?.Profile)
+               ItemValue = Items.RosterGoods.ValueOf(found.EquipmentElement) * count, BuyerLovesItsKind = Mapping.NatureReader.LovesKindOf(item, npcHero, context?.Profile)
             });
             switch (deal.Refusal)
             {
@@ -2095,9 +2100,10 @@ namespace CalradiaRemembers.GameState
             }
 
             if (fromBag) bundle.Handed = true; // the bag's goods are sold: a give_item of the same turn moves nothing more
-            string name = count > 1 ? $"{count} {item.Name}" : item.Name.ToString();
-            ModLog.Info($"[ACTION] sell_item: player sold '{name}' (value {item.Value}) to {npcHero.Name} for {deal.Price}{(deal.ClampedToPurse ? " (all they had)" : "")}");
-            string equipTail = TryEquipGift(npcHero, item);
+            string pieceName = Items.RosterGoods.NameOf(found.EquipmentElement);
+            string name = count > 1 ? $"{count} {pieceName}" : pieceName;
+            ModLog.Info($"[ACTION] sell_item: player sold '{name}' (value {Items.RosterGoods.ValueOf(found.EquipmentElement)}) to {npcHero.Name} for {deal.Price}{(deal.ClampedToPurse ? " (all they had)" : "")}");
+            string equipTail = TryEquipGift(npcHero, found.EquipmentElement);
 
             return new ActionOutcome($"You sell {name} to {npcHero.Name} for {deal.Price} denars{ItemSalePolicy.DifferenceNote(deal, CoinAmount.Parse(priceText))} (purse: {Hero.MainHero.Gold}).{equipTail}", true,
                appliedGoldAmount: deal.Price);
@@ -2183,8 +2189,8 @@ namespace CalradiaRemembers.GameState
             if (count <= 0) return ActionOutcome.Refused("(You don't seem to have any of that left to give.)");
 
             ExchangeService.TakeFromPlayer(ExchangeKind.ItemGift, found.EquipmentElement, count, npcHero);
-            var actualName = found.EquipmentElement.Item.Name.ToString();
-            int unitValue = found.EquipmentElement.Item.Value;
+            string actualName = Items.RosterGoods.NameOf(found.EquipmentElement);
+            int unitValue = Items.RosterGoods.ValueOf(found.EquipmentElement);
             int totalValue = unitValue * count;
             string gaveDesc = count > 1 ? $"{count} {actualName}" : actualName;
 
@@ -2201,7 +2207,7 @@ namespace CalradiaRemembers.GameState
                return new ActionOutcome($"You hand {gaveDesc} to {npcHero?.Name} toward the levy; {credit} denars of it are counted.{WarLevyDesk.AfterPayment(stillOwed)}", false);
             }
 
-            return GiftEffects(npcHero, context, new List<(ItemObject Item, int Count)> {(found.EquipmentElement.Item, count)});
+            return GiftEffects(npcHero, context, new List<(EquipmentElement Goods, int Count)> {(found.EquipmentElement, count)});
          }
          catch (Exception ex)
          {
@@ -2251,14 +2257,14 @@ namespace CalradiaRemembers.GameState
       {
          ItemRoster roster = MobileParty.MainParty.ItemRoster;
          var notes = new List<string>();
-         var gifts = new List<(ItemObject Item, int Count)>();
-         var levyGoods = new List<(ItemObject Item, int Count)>();
+         var gifts = new List<(EquipmentElement Goods, int Count)>();
+         var levyGoods = new List<(EquipmentElement Goods, int Count)>();
          int levyOwed = WarLevyDesk.Owed(npcHero);
          var refusedOnly = true;
 
          foreach (ItemOffer offer in bundle.Items)
          {
-            ItemRosterElement found = FindRosterElementById(offer.ItemId);
+            ItemRosterElement found = Items.RosterGoods.Find(roster, offer.ItemId);
             ItemObject item = found.EquipmentElement.Item;
             if (item == null || found.Amount <= 0) continue;
 
@@ -2276,16 +2282,16 @@ namespace CalradiaRemembers.GameState
 
             roster.AddToCounts(found.EquipmentElement, -count);
             refusedOnly = false;
-            if (levyOwed > 0 && WarLevyPayment.Counts(LevyGoodsKindOf(item))) levyGoods.Add((item, count));
-            else gifts.Add((item, count));
+            if (levyOwed > 0 && WarLevyPayment.Counts(LevyGoodsKindOf(item))) levyGoods.Add((found.EquipmentElement, count));
+            else gifts.Add((found.EquipmentElement, count));
          }
 
          if (levyGoods.Count > 0)
          {
-            int levyValue = levyGoods.Sum(g => g.Item.Value * g.Count);
+            int levyValue = levyGoods.Sum(g => Items.RosterGoods.ValueOf(g.Goods) * g.Count);
             int credit = WarLevyPayment.GoodsCredit(levyValue, levyOwed);
             int stillOwed = WarLevyDesk.Pay?.Invoke(npcHero, credit) ?? levyOwed;
-            string levyDesc = GiftBundlePolicy.Describe(levyGoods.Select(g => new GiftLine {Name = g.Item.Name.ToString(), Count = g.Count}).ToList());
+            string levyDesc = GiftBundlePolicy.Describe(levyGoods.Select(g => new GiftLine {Name = Items.RosterGoods.NameOf(g.Goods), Count = g.Count}).ToList());
             ModLog.Info($"[ACTION] give_item: '{levyDesc}' (value {levyValue}) handed to {npcHero?.Name} toward the levy, {credit} counted.");
             notes.Add($"You hand {levyDesc} to {npcHero?.Name} toward the levy; {credit} denars of it are counted.{WarLevyDesk.AfterPayment(stillOwed)}");
          }
@@ -2301,10 +2307,10 @@ namespace CalradiaRemembers.GameState
       ///   What a freely given gift does, once for the whole of it: a little trust, a remembered kindness weighed on its
       ///   whole value and on how welcome it is, a grudge it may ease, and anything they can wear put on.
       /// </summary>
-      private static ActionOutcome GiftEffects(Hero npcHero, ActionContext context, List<(ItemObject Item, int Count)> gifts)
+      private static ActionOutcome GiftEffects(Hero npcHero, ActionContext context, List<(EquipmentElement Goods, int Count)> gifts)
       {
-         int totalValue = gifts.Sum(g => g.Item.Value * g.Count);
-         string gaveDesc = GiftBundlePolicy.Describe(gifts.Select(g => new GiftLine {Name = g.Item.Name.ToString(), Count = g.Count}).ToList());
+         int totalValue = gifts.Sum(g => Items.RosterGoods.ValueOf(g.Goods) * g.Count);
+         string gaveDesc = GiftBundlePolicy.Describe(gifts.Select(g => new GiftLine {Name = Items.RosterGoods.NameOf(g.Goods), Count = g.Count}).ToList());
 
          StanceService.OnGiftReceived(npcHero); // a freely given gift builds a little trust
          ModLog.Info($"[ACTION] give_item: player gave '{gaveDesc}' (value {totalValue}) to {npcHero?.Name}");
@@ -2315,7 +2321,7 @@ namespace CalradiaRemembers.GameState
          // earns twice the regard, a cold one half, and the player learns that taste by giving it.
          if (npcHero != null)
          {
-            Logic.Character.GiftWelcome welcome = GiftBundlePolicy.Welcome(gifts.Select(g => Mapping.NatureReader.WelcomeOf(g.Item, npcHero, context?.Profile)).ToList());
+            Logic.Character.GiftWelcome welcome = GiftBundlePolicy.Welcome(gifts.Select(g => Mapping.NatureReader.WelcomeOf(g.Goods.Item, npcHero, context?.Profile)).ToList());
             string cause = welcome == Logic.Character.GiftWelcome.Loved ? $"The player gave me {gaveDesc}, a gift after my own heart." : $"The player gave me {gaveDesc}.";
             TryPlantValueAppreciation(npcHero, AppreciationSource.GiftReceived, totalValue, cause, welcome);
          }
@@ -2330,7 +2336,7 @@ namespace CalradiaRemembers.GameState
          // or a real upgrade always, a lateral gift only if they are fond of you (the wife wears the gifted
          // gown; a rival keeps his own blade). The bridge is the law, so this note claims it only when the
          // equip actually happened.
-         string equipTail = string.Concat(gifts.Select(g => TryEquipGift(npcHero, g.Item)));
+         string equipTail = string.Concat(gifts.Select(g => TryEquipGift(npcHero, g.Goods)));
 
          return new ActionOutcome($"You give {gaveDesc} to {npcHero?.Name}.{grudgeTail}{equipTail}", false);
       }
@@ -2349,10 +2355,11 @@ namespace CalradiaRemembers.GameState
       ///   short note when they equipped it (appended to the gift outcome so the model narrates the reaction),
       ///   or "" when they merely accepted it. Gender-locked items are never forced on.
       /// </summary>
-      private static string TryEquipGift(Hero hero, ItemObject item)
+      private static string TryEquipGift(Hero hero, EquipmentElement goods)
       {
          try
          {
+            ItemObject item = goods.Item;
             if (hero == null || item == null) return "";
 
             // Respect the item's own gender lock: never force a man's harness onto a lady, or a gown onto a lord.
@@ -2378,12 +2385,13 @@ namespace CalradiaRemembers.GameState
             int relation = NpcMemoryCampaignBehavior.Instance?.Store?.Get(hero.StringId)?.ReputationWithPlayer ?? 0;
             bool sentimental = hero.Spouse == Hero.MainHero || hero.IsPlayerCompanion;
 
-            GiftEquipDecision decision = GiftEquipPolicy.Decide(new GiftEquipFacts {IsEquippable = true, SlotEmpty = current.Item == null, GiftValue = item.Value, CurrentSlotValue = current.Item?.Value ?? 0, Relation = relation, IsSentimental = sentimental, IsCaptiveDressing = isCaptiveDressing});
+            GiftEquipDecision decision = GiftEquipPolicy.Decide(new GiftEquipFacts {IsEquippable = true, SlotEmpty = current.Item == null, GiftValue = Items.RosterGoods.ValueOf(goods), CurrentSlotValue = current.Item == null ? 0 : Items.RosterGoods.ValueOf(current), Relation = relation, IsSentimental = sentimental, IsCaptiveDressing = isCaptiveDressing});
 
             if (!decision.ShouldEquip) return "";
 
-            equipment[slot] = new EquipmentElement(item);
-            ModLog.Info($"[ACTION] give_item: {hero.Name} equipped '{item.Name}' ({decision.Reason}) in " +
+            // The very piece, its quality kept (avalanche24, 05/11/2026: a Masterwork Noble Bow was worn as a plain one).
+            equipment[slot] = new EquipmentElement(item, goods.ItemModifier);
+            ModLog.Info($"[ACTION] give_item: {hero.Name} equipped '{Items.RosterGoods.NameOf(goods)}' ({decision.Reason}) in " +
                         $"{(onBattle ? "battle" : "civilian")} slot {slot}.");
 
             return " " + DescribeEquip(hero, item, decision.Reason);
@@ -3484,6 +3492,13 @@ namespace CalradiaRemembers.GameState
             // being the law.
             bool playerAtWarWithKingdom = Hero.MainHero?.MapFaction != null
                && FactionManager.IsAtWarAgainstFaction(Hero.MainHero.MapFaction, kingdom);
+
+            // SgtAlexGreen (Nexus, 05/11/2026): "I have a kingdom but when I try and persuade a lord into joining it, it fails
+            // saying he isn't the sovereign". The lord was to bring his house into the PLAYER's realm; this verb is the
+            // opposite road, and no chat verb takes that one. Said as it is, before the sovereign refusal that read as nonsense.
+            if (playerClan.Kingdom != null && playerClan.Kingdom.Leader == Hero.MainHero && playerClan.Kingdom != kingdom)
+               return ActionOutcome.Refused(
+                  $"(You rule {playerClan.Kingdom.Name} and swear fealty to no one. {npcHero.Name} bringing {(npcHero.IsFemale ? "her" : "his")} house into your realm is not settled in this talk: the game's own conversation, asking {(npcHero.IsFemale ? "her" : "him")} to join your kingdom, is the way.)");
 
             if (!VassalageOfferPolicy.CanJoin(new VassalageOfferPolicy.VassalageFacts {NpcIsKingdomRuler = npcIsKingdomRuler, PlayerAlreadyVassal = playerAlreadyVassal, PlayerAtWarWithKingdom = playerAtWarWithKingdom}))
             {
@@ -5209,7 +5224,7 @@ namespace CalradiaRemembers.GameState
             if (item == null || item.Value <= 0) continue;
 
             string category = item.ItemCategory?.StringId?.ToLowerInvariant();
-            list.Add(new GiftCandidate {Id = item.StringId, Name = item.Name.ToString(), Category = category, Value = item.Value});
+            list.Add(new GiftCandidate {Id = Items.RosterGoods.KeyOf(el.EquipmentElement), Name = Items.RosterGoods.NameOf(el.EquipmentElement), Category = category, Value = Items.RosterGoods.ValueOf(el.EquipmentElement)});
          }
 
          return list;
@@ -5218,50 +5233,17 @@ namespace CalradiaRemembers.GameState
       private static ItemRosterElement FindItemInRoster(string itemName)
       {
          if (MobileParty.MainParty?.ItemRoster == null) return default;
-         foreach (ItemRosterElement el in MobileParty.MainParty.ItemRoster)
-         {
-            if (el.Amount <= 0) continue;
-            ItemObject item = el.EquipmentElement.Item;
-
-            if (item == null) continue;
-
-            if (string.Equals(item.Name.ToString(), itemName, StringComparison.OrdinalIgnoreCase))
+         List<ItemRosterElement> held = MobileParty.MainParty.ItemRoster.Where(e => e.Amount > 0 && e.EquipmentElement.Item != null).ToList();
+         foreach (ItemRosterElement el in held)
+            if (string.Equals(Items.RosterGoods.NameOf(el.EquipmentElement), itemName, StringComparison.OrdinalIgnoreCase))
                return el;
-         }
+
+         // The bare item name ("Noble Bow" when the party holds a Masterwork one): the plain piece first.
+         foreach (ItemRosterElement el in held.OrderBy(e => e.EquipmentElement.ItemModifier == null ? 0 : 1))
+            if (string.Equals(el.EquipmentElement.Item.Name.ToString(), itemName, StringComparison.OrdinalIgnoreCase))
+               return el;
 
          return default;
-      }
-
-      /// <summary>Finds a roster element by the item's StringId (the bag-picked gift path).</summary>
-      private static ItemRosterElement FindRosterElementById(string itemId)
-      {
-         if (MobileParty.MainParty?.ItemRoster == null) return default;
-         foreach (ItemRosterElement el in MobileParty.MainParty.ItemRoster)
-         {
-            if (el.Amount <= 0) continue;
-            ItemObject item = el.EquipmentElement.Item;
-
-            if (item != null && item.StringId == itemId) return el;
-         }
-
-         return default;
-      }
-
-      /// <summary>Finds an item in the roster by its StringId, reporting how many the player holds.</summary>
-      private static ItemObject FindRosterItem(ItemRoster roster, string itemId, out int available)
-      {
-         available = 0;
-         foreach (ItemRosterElement el in roster)
-         {
-            ItemObject item = el.EquipmentElement.Item;
-
-            if (item == null || item.StringId != itemId || el.Amount <= 0) continue;
-            available = el.Amount;
-
-            return item;
-         }
-
-         return null;
       }
 
       /// <summary>

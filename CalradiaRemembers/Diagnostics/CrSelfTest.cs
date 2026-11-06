@@ -276,6 +276,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("captive_terms", Severity.Heavy, "A captive bargains for her freedom (Maifailun, 14/10/2026: Adrichea, Honor -1, answered 'kill me if you must'; Gabriel: the captive proposes terms herself, intimacy in Mature and above for the honorless). Takes a free lord of another realm captive, gives them Adrichea's Honor -1 for the test, builds the REAL context and prompt, and expects the captive to be told she offers first, with the ransom her house can pay and intimacy only when the content level, age and orientation allow. Releases the lord and restores their traits.", TestCaptiveTerms),
          new SelfTest("sell_item", Severity.Light, "Selling an item in chat (3chmidt, 13/10/2026: a sale became a gift plus a payment the wrong way, 'Give Poison Menja 9000 coins?', and a second sword left). Seeds a trade good, sells it to a lord with coin through the real bridge and expects the item gone, the player paid and the lord's purse lighter by the same sum; then a gift written in words (no bag pick) is queued for confirmation naming the real item. Puts the coin back and removes the seeded goods.", TestSellItem),
          new SelfTest("gift_equip", Severity.Light, "gift an equippable weapon to a companion/spouse -> assert they equipped it", TestGiftEquip),
+         new SelfTest("gift_keeps_quality", Severity.Light, "avalanche24 (Nexus, 05/11/2026): a Masterwork Noble Bow showed as a plain 'Noble Bow' in the gift bag and was worn as a plain one. With a plain and a fine copy of one weapon in the party (a quality with a price factor above 1 laid on one), the bag's key finds the fine copy and names it with its quality and its higher worth; give_item by that key takes the fine copy and leaves the plain one; the companion or spouse wears it with its quality. Plain copy removed and the receiver's equipment put back", TestGiftKeepsQuality),
          new SelfTest("style_reload", Severity.Light, "select a style, edit its file -> assert the next message picks the edit up", TestStyleReload),
          new SelfTest("presence", Severity.Light, "Mechanical: a companion riding in your party is told they travel at your side and is NEVER told how long since they last saw you, even with a 60-day-stale memory (the 'crew acts abandoned between two ports' report); a lord genuinely away STILL hears the time apart. BORROWS a companion into your party if none is riding along, and puts them back", TestPresence),
          new SelfTest("presence_gate", Severity.Light, "Mechanical: the ONE behaviour v1.30.14 changed, guarded across the WHOLE living roster with no preconditions. The letter system's facade and the single presence authority must give the same answer for every hero alive (before this, letters asked a wide question and jealousy a party-only one), and beside/away must be exact opposites. If they ever disagree again, the systems have drifted apart and this fires", TestPresenceGate),
@@ -6683,6 +6684,79 @@ namespace CalradiaRemembers.Diagnostics
       }
 
       /// <summary>True when the hero carries the given item in any weapon slot of either equipment set.</summary>
+      private static string TestGiftKeepsQuality(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("gift_keeps_quality");
+
+         Hero receiver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsAlive && (h.IsPlayerCompanion || h.Spouse == Hero.MainHero));
+         using var arranged = receiver == null ? ArrangedCompanion.Get(behavior) : null;
+         receiver ??= arranged?.Companion;
+         if (t.Skip(receiver == null, "no companion or spouse (a sentimental receiver), and no wanderer template to arrange one")) return t.Line();
+
+         ItemRoster roster = MobileParty.MainParty?.ItemRoster;
+         if (t.Abort(roster == null, "no player item roster")) return t.Line();
+
+         ItemObject weapon = MBObjectManager.Instance?.GetObjectTypeList<ItemObject>()
+                                            ?.FirstOrDefault(it => it != null && it.HasWeaponComponent && it.Value > 0
+                                                                && !it.ItemFlags.HasFlag(ItemFlags.NotUsableByFemale)
+                                                                && !it.ItemFlags.HasFlag(ItemFlags.NotUsableByMale));
+         ItemModifier fine = MBObjectManager.Instance?.GetObjectTypeList<ItemModifier>()?.FirstOrDefault(m => m != null && m.PriceMultiplier > 1.1f);
+         if (t.Skip(weapon == null || fine == null, "no gender-neutral weapon or no quality with a price factor above 1 in the game data")) return t.Line();
+
+         var plain = new EquipmentElement(weapon);
+         var masterwork = new EquipmentElement(weapon, fine);
+         int PlainHeld()
+         {
+            int at = roster.FindIndexOfElement(plain);
+
+            return at < 0 ? 0 : roster.GetElementNumber(at);
+         }
+
+         Equipment battleBefore = receiver.BattleEquipment?.Clone();
+         Equipment civilianBefore = receiver.CivilianEquipment?.Clone();
+         int plainBefore = PlainHeld();
+         roster.AddToCounts(plain, 1);
+         roster.AddToCounts(masterwork, 1);
+
+         try
+         {
+            string key = Items.RosterGoods.KeyOf(masterwork);
+            ItemRosterElement found = Items.RosterGoods.Find(roster, key);
+            t.Note($"receiver={receiver.Name}, item={weapon.Name}, quality={fine.StringId}, shown as '{Items.RosterGoods.NameOf(found.EquipmentElement)}'");
+            t.Expect("theBagFindsTheFineCopy", found.EquipmentElement.ItemModifier == fine, true);
+            t.Expect("theBagNamesItsQuality", Items.RosterGoods.NameOf(found.EquipmentElement) != weapon.Name.ToString(), true);
+            t.Expect("itIsWorthMore", Items.RosterGoods.ValueOf(found.EquipmentElement) > weapon.Value, true);
+
+            var ctx = new ActionContext(GetOrCreate(behavior, receiver), null) {OfferedItemId = key};
+            behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "give_item"}, receiver, ctx);
+
+            t.Expect("theFineCopyLeft", Items.RosterGoods.Find(roster, key).Amount, 0);
+            t.Expect("thePlainCopyStays", PlainHeld(), plainBefore + 1);
+
+            bool WornFine(Equipment eq)
+            {
+               if (eq == null) return false;
+               for (EquipmentIndex i = EquipmentIndex.Weapon0; i <= EquipmentIndex.ExtraWeaponSlot; i++)
+                  if (eq[i].Item == weapon && eq[i].ItemModifier == fine) return true;
+
+               return false;
+            }
+
+            t.Expect("theyWearItWithItsQuality", WornFine(receiver.BattleEquipment) || WornFine(receiver.CivilianEquipment), true);
+         }
+         finally
+         {
+            int plainNow = PlainHeld();
+            if (plainNow > plainBefore) roster.AddToCounts(plain, plainBefore - plainNow);
+            int fineLeft = Items.RosterGoods.Find(roster, Items.RosterGoods.KeyOf(masterwork)).Amount;
+            if (fineLeft > 0) roster.AddToCounts(masterwork, -fineLeft);
+            if (battleBefore != null) receiver.BattleEquipment.FillFrom(battleBefore);
+            if (civilianBefore != null) receiver.CivilianEquipment.FillFrom(civilianBefore);
+         }
+
+         return t.Line();
+      }
+
       private static bool HeroHasWeaponEquipped(Hero hero, ItemObject item)
       {
          bool InSet(Equipment eq)

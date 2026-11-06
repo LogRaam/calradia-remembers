@@ -2344,13 +2344,13 @@ namespace CalradiaRemembers.Quests
          if (roster == null || !TryDeliveryFor(hero, out string key, out int asked) || !_quests.TryGetValue(_run.QuestId, out AuthoredQuest q)) return false;
 
          string label = Items.SupplyItemMatcher.Label(key);
-         var held = new List<(ItemObject item, int count)>();
+         var held = new List<(EquipmentElement item, int count)>();
          foreach (GameState.ItemOffer offer in offers ?? new List<GameState.ItemOffer>())
          {
-            ItemRosterElement el = roster.FirstOrDefault(e => e.EquipmentElement.Item?.StringId == offer.ItemId && e.Amount > 0);
+            ItemRosterElement el = Items.RosterGoods.Find(roster, offer.ItemId);
             ItemObject item = el.EquipmentElement.Item;
-            if (item == null || offer.Count <= 0 || !Items.SupplyItemMatcher.Matches(item, key) || held.Any(h => h.item == item)) continue;
-            held.Add((item, Math.Min(offer.Count, el.Amount)));
+            if (item == null || offer.Count <= 0 || !Items.SupplyItemMatcher.Matches(item, key) || held.Any(h => h.item.IsEqualTo(el.EquipmentElement))) continue;
+            held.Add((el.EquipmentElement, Math.Min(offer.Count, el.Amount)));
          }
 
          int offered = held.Sum(h => h.count);
@@ -2362,7 +2362,7 @@ namespace CalradiaRemembers.Quests
          }
 
          int remaining = asked;
-         foreach ((ItemObject item, int c) in held)
+         foreach ((EquipmentElement item, int c) in held)
          {
             if (remaining <= 0) break;
             int take = Math.Min(c, remaining);
@@ -2385,7 +2385,7 @@ namespace CalradiaRemembers.Quests
       {
          held = 0;
          label = null;
-         ItemObject item = string.IsNullOrEmpty(itemId) ? null : MBObjectManager.Instance?.GetObject<ItemObject>(itemId);
+         ItemObject item = Items.RosterGoods.ItemOf(itemId);
          if (item == null || !TryDeliveryFor(hero, out string key, out int asked) || !Items.SupplyItemMatcher.Matches(item, key)) return 0;
          held = PartyHolds(key);
          label = Items.SupplyItemMatcher.Label(key);
@@ -2400,8 +2400,8 @@ namespace CalradiaRemembers.Quests
          if (!TryDeliveryFor(hero, out string key, out _)) return false;
          List<GameState.ItemOffer> offers = MobileParty.MainParty?.ItemRoster?
                                                        .Where(e => e.EquipmentElement.Item != null && e.Amount > 0 && Items.SupplyItemMatcher.Matches(e.EquipmentElement.Item, key))
-                                                       .OrderByDescending(e => e.EquipmentElement.Item.StringId == itemId)
-                                                       .Select(e => new GameState.ItemOffer(e.EquipmentElement.Item.StringId, e.Amount)).ToList();
+                                                       .OrderByDescending(e => e.EquipmentElement.Item.StringId == Logic.Character.RosterItemKey.ItemIdOf(itemId))
+                                                       .Select(e => new GameState.ItemOffer(Items.RosterGoods.KeyOf(e.EquipmentElement), e.Amount)).ToList();
 
          return HandOver(hero, offers, out message);
       }
