@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 633 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1534 types in 55 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 634 types in 65 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1536 types in 55 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -589,7 +589,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterBoxNavigationItemVM` | internal class | A genuine nav-bar item that opens the letter box, its badge counting the letters waiting. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (55)
+### CalradiaRemembers.Mapping (56)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -643,6 +643,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SocialStationReader` | public static class | A character's station, and what its definition says. |
 | `StatureReader` | public static class | Reads a Stature from the live game. |
 | `StoryModeTutorial` | internal static class | Whether the game's Story Mode tutorial restricts the player's interactions right now. |
+| `TournamentsHeardReader` | public static class | The tournaments under way a character would know of. |
 | `TownNeeds` | public static class | What the towns a character answers for are short of. |
 | `Traits` | public class | (no summary) |
 | `TraumaLedgerBehavior` | public class | The ledger of aggressions the player witnessed or committed, one record per aggression. |
@@ -2646,10 +2647,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StyleCatalogPolicy` | public static class | Resolves which narrative style NAME applies, given the player's request and the set of style files that currently exist on disk (one .txt per style under ModuleData/Styles). |
 | `StylePersistencePolicy` | public static class | Pure rules for persisting and restoring the chat-picked narrative style SELECTION (a single global name). |
 
-### CalradiaRemembers.Logic.Tournaments (12)
+### CalradiaRemembers.Logic.Tournaments (14)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `HeldTournament` | public class | A tournament being held, as a character might hear of it. |
 | `TournamentAftermath` | public enum | What the encounter leaves behind between the hero and the player. |
 | `TournamentAudiencePolicy` | public static class | Pure: who watched, and the spectator's memory line. |
 | `TournamentBout` | public class | One match the PLAYER fought in a tournament: which round, the heroes they faced, and whether they advanced. |
@@ -2662,6 +2664,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TournamentRivalryPolicy` | public static class | Decides when repeated arena meetings become a rivalry, and of which flavor. |
 | `TournamentStanding` | public class | A hero's standing in one tournament relative to the player: the decisive relation, whether they took the crown, and the round it turned on. |
 | `TournamentTraitFacts` | public class | The hero's own character traits that colour how they carry a tournament result (Bannerlord trait levels, roughly -2..2). |
+| `TournamentsHeard` | public static class | The tournaments a character knows are being held, and the words for them. |
 
 ### CalradiaRemembers.Logic.Trauma (8)
 

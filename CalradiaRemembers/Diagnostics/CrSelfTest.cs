@@ -242,6 +242,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("forces_in_sight", Severity.Light, "3chmidt (Nexus, 05/11/2026): 'when you speak with an NPC on the open map, they don't notice friendly and enemy armies on the map that are nearby... even if it is a enemy army with 1800 soldiers'. On the open map, with a lord's party or a band in the player's sight: the reader names the nearest of them (by its leader, or as a band), never the speaker's own party, and the prompt built for a lord carries the FORCES IN SIGHT heading. Inside a settlement nothing is said. Reads only; changes nothing", TestForcesInSight),
          new SelfTest("fallen_news", Severity.Light, "3chmidt (Nexus, 05/11/2026): killing Monchug 'barely makes waves in the world, and only few know of it... At least the people of the realm should know if an important person of theirs is dead.' Reads a living ruler and a clan head who is not a ruler the way OnBeforeHeroKilled reads a victim before the engine hands his clan on: the ruler is read as ruling his realm, the head as heading his clan, and the news of their fall weighs more than a lord's (a ruler's clears the rumour bar with no tie of realm) and names their rank. Kills no one; changes nothing", TestFallenNews),
          new SelfTest("captive_gift", Severity.Light, "3chmidt (Nexus, 05/11/2026): 'It would be useful if you could give your prisoners with *action* too'. A free partyless lord is taken into the player's party, then give_prisoner runs through the real bridge with no bargain open, to a lord who leads a party: the captive leaves the player's custody into that lord's, and the lord remembers being given him. Then sell_prisoner for nothing is refused below the deep-bond bar. The captive is released after; the gift's gratitude and the captive's resentment are left, as rescue_from_foe leaves its gratitude", TestCaptiveGift),
+         new SelfTest("tournaments_heard", Severity.Light, "3chmidt (Nexus, 05/11/2026): 'lords know in what town currently tournaments happen, at least in the same kingdom or a neighbouring one'. With a tournament under way in some town: the reader finds it, a lord of that town's realm is told of it (as in his own realm), and the prompt built for him carries the TOURNAMENTS BEING HELD heading. Reads only", TestTournamentsHeard),
          new SelfTest("pair_bond", Severity.Light, "tashmetu 04/11: the game's starting draw gave strangers of far realms -100, and a change with a younger son landed on his father. Takes two lords of realms neither neighbours nor at war, no kin, writes a -80 start on their own slot, and asserts CR does not believe it (vague unease, 0 points); then changes it through CR and asserts only the change counts, on their own slot, and the clan leaders' relation is untouched. Restores both values and forgets the ledger rows", TestPairBond),
          new SelfTest("hidden_affairs", Severity.Light, "Gabriel's go 01/11/2026: a married lord may take a hidden lover, found by a companion sent to spy on them. Begins an affair between two lords and asserts both carry it in their prompt, told to evade and never lie; the player holds nothing yet; end_affair refuses it and the partner path leaves it alone; a poor inquiry says nothing certain; a companion dispatched with the lord's name through the real errand reports it and the player then holds it, on the lover too. Then ends it as a telling would, and asserts the fields are clear. Expose itself is driven by cr.test secret_exposure. Restores all borrowed state", TestHiddenAffairs),
          new SelfTest("lord_secret_lover", Severity.Light, "Mystery-lover (lord coverage): a MARRIED lord the player is secretly the lover of carries the SDK Status SecretLover (not the companion-only IsSecretLover flag). Mark a non-companion lord's profile Status SecretLover and assert the unified detection (PlayerSecretLoverSubjectIds) finds him, then record a second lord as knowing and drive the REAL EncounterContextBuilder.Build to assert the held-secret payoff names the lord subject (adult on) or is suppressed (gate off). Restores the status and forgets the ledger afterwards", TestLordSecretLover),
@@ -10607,6 +10608,31 @@ namespace CalradiaRemembers.Diagnostics
 
          // STAKE: a token written with the house used to read "a fair sum", and the sale paid the floor instead of the agreed figure.
          t.Expect("aTokenWithTheHouseFillsTheSameSum", NpcMemoryService.Core.Parsing.MoneyTokens.Fill("{most:" + name + " of " + captive.Clan.Name + "}", table), bare);
+
+         return t.Line();
+      }
+
+      private static string TestTournamentsHeard(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tournaments_heard");
+         var manager = Campaign.Current?.TournamentManager;
+         Town town = manager == null ? null : Town.AllTowns.FirstOrDefault(x => x?.Settlement != null && manager.GetTournamentGame(x) != null);
+         if (t.Skip(town == null, "no tournament under way anywhere right now")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && !h.IsPrisoner && h.MapFaction != null
+                                                            && h.MapFaction == town.Settlement.MapFaction && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(lord == null, $"no lord of {town.Settlement.MapFaction?.Name} to tell")) return t.Line();
+
+         List<Logic.Tournaments.HeldTournament> held = Mapping.TournamentsHeardReader.Held(lord);
+         t.Note($"{town.Name} ({town.Settlement.MapFaction?.Name}); {held.Count} under way; told to {lord.Name}");
+         // STAKE: a lord of the realm knows of the games in his own realm.
+         t.Expect("theTournamentIsFound", held.Any(h => h.Town == town.Name.ToString() && h.InOwnRealm), true);
+         IReadOnlyList<string> lines = Mapping.TournamentsHeardReader.Read(lord);
+         t.Expect("theLordIsToldOfIt", lines != null && lines.Any(l => l.StartsWith("at " + town.Name)), true);
+
+         NpcProfile profile = behavior.Store.Get(lord.StringId) ?? Mapping.HeroProfileMapper.FromHero(lord);
+         NpcMemoryService.Core.Models.EncounterContext ctx = Mapping.EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "");
+         t.Expect("theLordsTurnCarriesIt", ctx?.TournamentsHeld is {Count: > 0}, true);
 
          return t.Line();
       }

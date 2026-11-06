@@ -12,7 +12,7 @@ the scale alone, and would need its own table.
 each column below says which one its rule was written for. `?` means the rule's own doc never says, which is
 the thing worth fixing.
 
-12 rules. A CHANGED CELL in this file is a changed behaviour: that is what makes this the safety
+13 rules. A CHANGED CELL in this file is a changed behaviour: that is what makes this the safety
 net for giving regard a type and its tiers one home (see `ROADMAP.md`).
 
 ## The rules in this table
@@ -28,57 +28,58 @@ net for giving regard a type and its tiers one home (see `ROADMAP.md`).
 | 7 | `ForcedMarriagePolicy.IsForcedUnion` | vanilla (doc) | True when sealing this marriage now would be a POLITICAL union rather than a love match: the spouse's best regard for the player (their personal ledger OR the live vanilla relation, the same two-sided read every marriage... |
 | 8 | `GiftCeilingPolicy.ShareFor` | ? | TUNE: the share of the purse a character would give away at this regard. |
 | 9 | `GrudgeToneArbiter.RegardTempering` | mod (doc) | The number of points by which both TemperThreshold and DominanceThreshold rise for a given personal regard: zero at or below WarmthTemperingFloor (including all negative regard), then rising point for point above it. |
-| 10 | `RescueGratitudePolicy.QualifiesAsFriend` | vanilla (type) | True when relationToRescued is high enough to count as a friendship. |
-| 11 | `SecretPropagationPolicy.IsFriend` | vanilla (type) | True when this relation is warm enough that the teller would confide the secret to that hero. |
-| 12 | `SpouseDivorceDemandPolicy.IsReconciled` | mod (type) | True when a spouse's ACTIVE estrangement should be called off: their relation with the player has risen to a genuine warmth, not merely climbed out of misery. |
+| 10 | `PrisonerTradePolicy.MayGiveFreely` | ? | True when the holder holds the player dear enough to give a captive away (FreeCaptiveRegard). |
+| 11 | `RescueGratitudePolicy.QualifiesAsFriend` | vanilla (type) | True when relationToRescued is high enough to count as a friendship. |
+| 12 | `SecretPropagationPolicy.IsFriend` | vanilla (type) | True when this relation is warm enough that the teller would confide the secret to that hero. |
+| 13 | `SpouseDivorceDemandPolicy.IsReconciled` | mod (type) | True when a spouse's ACTIVE estrangement should be called off: their relation with the player has risen to a genuine warmth, not merely climbed out of misery. |
 
 ## The scale
 
 Columns are numbered as in the table above.
 
-| Regard | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| **-100** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no |
-| **-95** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no |
-| **-90** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no |
-| **-85** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no |
-| **-80** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no |
-| **-75** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no |
-| **-70** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no |
-| **-65** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no |
-| **-60** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no |
-| **-55** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no |
-| **-50** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no |
-| **-45** | Feud | yes | 5 | 0 | 3 | 75 | yes | 0 | 0 | no | no | no |
-| **-40** | Feud | yes | 5 | 0 | 7 | 75 | yes | 0 | 0 | no | no | no |
-| **-35** | Feud | yes | 5 | 0 | 10 | 75 | yes | 0 | 0 | no | no | no |
-| **-30** | Feud | yes | 5 | 0 | 13 | 75 | yes | 0 | 0 | no | no | no |
-| **-25** | Tense | yes | 5 | 0 | 17 | 75 | yes | 0 | 0 | no | no | no |
-| **-20** | Tense | no | 5 | 0 | 20 | 75 | yes | 0.01 | 0 | no | no | no |
-| **-15** | Tense | no | 5 | 0 | 23 | 75 | yes | 0.01 | 0 | no | no | no |
-| **-10** | Tense | no | 5 | 0 | 27 | 72 | yes | 0.01 | 0 | no | no | no |
-| **-5** | Neutral | no | 5 | 0 | 30 | 67 | yes | 0.01 | 0 | no | no | no |
-| **0** | Neutral | no | 5 | 0 | 30 | 62 | yes | 0.01 | 0 | no | no | no |
-| **+5** | Neutral | no | 5 | 5 | 30 | 57 | yes | 0.01 | 0 | no | no | no |
-| **+10** | Cordial | no | 5 | 6 | 30 | 52 | yes | 0.01 | 0 | no | no | yes |
-| **+15** | Cordial | no | 5 | 6 | 30 | 47 | yes | 0.01 | 0 | no | no | yes |
-| **+20** | Cordial | no | 5 | 7 | 30 | 42 | yes | 0.03 | 0 | yes | yes | yes |
-| **+25** | Cordial | yes | 5 | 7 | 30 | 37 | yes | 0.03 | 5 | yes | yes | yes |
-| **+30** | Close | yes | 5 | 8 | 30 | 32 | yes | 0.05 | 10 | yes | yes | yes |
-| **+35** | Close | yes | 5 | 8 | 30 | 27 | yes | 0.05 | 15 | yes | yes | yes |
-| **+40** | Close | yes | 5 | 9 | 30 | 22 | yes | 0.05 | 20 | yes | yes | yes |
-| **+45** | Close | yes | 5 | 9 | 30 | 17 | yes | 0.05 | 25 | yes | yes | yes |
-| **+50** | Close | yes | 5 | 10 | 30 | 0 | no | 0.1 | 30 | yes | yes | yes |
-| **+55** | Close | yes | 15 | 10 | 30 | 0 | no | 0.1 | 35 | yes | yes | yes |
-| **+60** | Close | yes | 25 | 11 | 30 | 0 | no | 0.2 | 40 | yes | yes | yes |
-| **+65** | Close | yes | 35 | 11 | 30 | 0 | no | 0.2 | 45 | yes | yes | yes |
-| **+70** | Close | yes | 40 | 12 | 30 | 0 | no | 0.2 | 50 | yes | yes | yes |
-| **+75** | Close | yes | 40 | 12 | 30 | 0 | no | 0.2 | 55 | yes | yes | yes |
-| **+80** | Close | yes | 40 | 13 | 30 | 0 | no | 0.2 | 60 | yes | yes | yes |
-| **+85** | Close | yes | 40 | 13 | 30 | 0 | no | 0.2 | 65 | yes | yes | yes |
-| **+90** | Close | yes | 40 | 14 | 30 | 0 | no | 0.2 | 70 | yes | yes | yes |
-| **+95** | Close | yes | 40 | 14 | 30 | 0 | no | 0.2 | 75 | yes | yes | yes |
-| **+100** | Close | yes | 40 | 15 | 30 | 0 | no | 0.2 | 80 | yes | yes | yes |
+| Regard | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **-100** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no | no |
+| **-95** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no | no |
+| **-90** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no | no |
+| **-85** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no | no |
+| **-80** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no | no |
+| **-75** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no | no |
+| **-70** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no | no |
+| **-65** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no | no |
+| **-60** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no | no |
+| **-55** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no | no |
+| **-50** | Feud | yes | 5 | 0 | 0 | 75 | yes | 0 | 0 | no | no | no | no |
+| **-45** | Feud | yes | 5 | 0 | 3 | 75 | yes | 0 | 0 | no | no | no | no |
+| **-40** | Feud | yes | 5 | 0 | 7 | 75 | yes | 0 | 0 | no | no | no | no |
+| **-35** | Feud | yes | 5 | 0 | 10 | 75 | yes | 0 | 0 | no | no | no | no |
+| **-30** | Feud | yes | 5 | 0 | 13 | 75 | yes | 0 | 0 | no | no | no | no |
+| **-25** | Tense | yes | 5 | 0 | 17 | 75 | yes | 0 | 0 | no | no | no | no |
+| **-20** | Tense | no | 5 | 0 | 20 | 75 | yes | 0.01 | 0 | no | no | no | no |
+| **-15** | Tense | no | 5 | 0 | 23 | 75 | yes | 0.01 | 0 | no | no | no | no |
+| **-10** | Tense | no | 5 | 0 | 27 | 72 | yes | 0.01 | 0 | no | no | no | no |
+| **-5** | Neutral | no | 5 | 0 | 30 | 67 | yes | 0.01 | 0 | no | no | no | no |
+| **0** | Neutral | no | 5 | 0 | 30 | 62 | yes | 0.01 | 0 | no | no | no | no |
+| **+5** | Neutral | no | 5 | 5 | 30 | 57 | yes | 0.01 | 0 | no | no | no | no |
+| **+10** | Cordial | no | 5 | 6 | 30 | 52 | yes | 0.01 | 0 | no | no | no | yes |
+| **+15** | Cordial | no | 5 | 6 | 30 | 47 | yes | 0.01 | 0 | no | no | no | yes |
+| **+20** | Cordial | no | 5 | 7 | 30 | 42 | yes | 0.03 | 0 | no | yes | yes | yes |
+| **+25** | Cordial | yes | 5 | 7 | 30 | 37 | yes | 0.03 | 5 | no | yes | yes | yes |
+| **+30** | Close | yes | 5 | 8 | 30 | 32 | yes | 0.05 | 10 | no | yes | yes | yes |
+| **+35** | Close | yes | 5 | 8 | 30 | 27 | yes | 0.05 | 15 | no | yes | yes | yes |
+| **+40** | Close | yes | 5 | 9 | 30 | 22 | yes | 0.05 | 20 | no | yes | yes | yes |
+| **+45** | Close | yes | 5 | 9 | 30 | 17 | yes | 0.05 | 25 | no | yes | yes | yes |
+| **+50** | Close | yes | 5 | 10 | 30 | 0 | no | 0.1 | 30 | no | yes | yes | yes |
+| **+55** | Close | yes | 15 | 10 | 30 | 0 | no | 0.1 | 35 | no | yes | yes | yes |
+| **+60** | Close | yes | 25 | 11 | 30 | 0 | no | 0.2 | 40 | yes | yes | yes | yes |
+| **+65** | Close | yes | 35 | 11 | 30 | 0 | no | 0.2 | 45 | yes | yes | yes | yes |
+| **+70** | Close | yes | 40 | 12 | 30 | 0 | no | 0.2 | 50 | yes | yes | yes | yes |
+| **+75** | Close | yes | 40 | 12 | 30 | 0 | no | 0.2 | 55 | yes | yes | yes | yes |
+| **+80** | Close | yes | 40 | 13 | 30 | 0 | no | 0.2 | 60 | yes | yes | yes | yes |
+| **+85** | Close | yes | 40 | 13 | 30 | 0 | no | 0.2 | 65 | yes | yes | yes | yes |
+| **+90** | Close | yes | 40 | 14 | 30 | 0 | no | 0.2 | 70 | yes | yes | yes | yes |
+| **+95** | Close | yes | 40 | 14 | 30 | 0 | no | 0.2 | 75 | yes | yes | yes | yes |
+| **+100** | Close | yes | 40 | 15 | 30 | 0 | no | 0.2 | 80 | yes | yes | yes | yes |
 
 ## Where each rule turns
 
@@ -97,13 +98,14 @@ narrow is rarely a decision anybody made.
 | `ForcedMarriagePolicy.IsForcedUnion` | +50 (yes to no) |
 | `GiftCeilingPolicy.ShareFor` | -20 (0 to 0.01); +20 (0.01 to 0.03); +30 (0.03 to 0.05); +50 (0.05 to 0.1); +60 (0.1 to 0.2) |
 | `GrudgeToneArbiter.RegardTempering` | +21 (0 to 1); +22 (1 to 2); +23 (2 to 3); +24 (3 to 4); +25 (4 to 5); +26 (5 to 6); +27 (6 to 7); +28 (7 to 8); +29 (8 to 9); +30 (9 to 10); +31 (10 to 11); +32 (11 to 12); +33 (12 to 13); +34 (13 to 14); +35 (14 to 15); +36 (15 to 16); +37 (16 to 17); +38 (17 to 18); +39 (18 to 19); +40 (19 to 20); +41 (20 to 21); +42 (21 to 22); +43 (22 to 23); +44 (23 to 24); +45 (24 to 25); +46 (25 to 26); +47 (26 to 27); +48 (27 to 28); +49 (28 to 29); +50 (29 to 30); +51 (30 to 31); +52 (31 to 32); +53 (32 to 33); +54 (33 to 34); +55 (34 to 35); +56 (35 to 36); +57 (36 to 37); +58 (37 to 38); +59 (38 to 39); +60 (39 to 40); +61 (40 to 41); +62 (41 to 42); +63 (42 to 43); +64 (43 to 44); +65 (44 to 45); +66 (45 to 46); +67 (46 to 47); +68 (47 to 48); +69 (48 to 49); +70 (49 to 50); +71 (50 to 51); +72 (51 to 52); +73 (52 to 53); +74 (53 to 54); +75 (54 to 55); +76 (55 to 56); +77 (56 to 57); +78 (57 to 58); +79 (58 to 59); +80 (59 to 60); +81 (60 to 61); +82 (61 to 62); +83 (62 to 63); +84 (63 to 64); +85 (64 to 65); +86 (65 to 66); +87 (66 to 67); +88 (67 to 68); +89 (68 to 69); +90 (69 to 70); +91 (70 to 71); +92 (71 to 72); +93 (72 to 73); +94 (73 to 74); +95 (74 to 75); +96 (75 to 76); +97 (76 to 77); +98 (77 to 78); +99 (78 to 79); +100 (79 to 80) |
+| `PrisonerTradePolicy.MayGiveFreely` | +60 (no to yes) |
 | `RescueGratitudePolicy.QualifiesAsFriend` | +20 (no to yes) |
 | `SecretPropagationPolicy.IsFriend` | +20 (no to yes) |
 | `SpouseDivorceDemandPolicy.IsReconciled` | +10 (no to yes) |
 
 ## What this table does not show yet, and why
 
-12 rules can be swept here. Against that, the code declares **97 regard-named thresholds**
+13 rules can be swept here. Against that, the code declares **98 regard-named thresholds**
 (constants whose name carries regard, relation or reputation). The difference is the gap: those thresholds are
 compared INLINE, at the place that wants the answer, so there is no function to call and nothing to sweep.
 
@@ -181,6 +183,7 @@ cannot. Each one moved into a rule adds a column here.
 - `OpenPartnerLoverBehavior.TrystRelationCap = 30`
 - `PeaceMediationPolicy.RegardFloor = 30`
 - `PrisonerRecruitmentPolicy.RegardFloor = Regard.DeepBondTier`
+- `PrisonerTradePolicy.FreeCaptiveRegard = Regard.DeepBondTier`
 - `ProfileMutator.EstrangedReconcileRelation = 30`
 - `QuestFactory.MaxRewardRelation = 10`
 - `QuestFailureLeniencyPolicy.BanditFailureRegardPenalty = 1`
