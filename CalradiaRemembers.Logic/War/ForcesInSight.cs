@@ -63,6 +63,21 @@ namespace CalradiaRemembers.Logic.War
         public const int HandfulBelow = 20;
 
         /// <summary>
+        ///   TUNE: how close (map units) the speaker's own party must stand to the player's for the two to be talking face to
+        ///   face on the map. The forces told are those around the PLAYER, so a speaker anywhere else would be told of armies
+        ///   he cannot see.
+        /// </summary>
+        public const float FaceToFaceWithin = 3f;
+
+        /// <summary>
+        ///   True when the speaker stands where the player does, so the player's sight is his: riding in the player's party or
+        ///   army, or his own party within <see cref="FaceToFaceWithin" /> of the player's. A letter, a far speaker, a lord with no
+        ///   party on the map: false, and nothing is told.
+        /// </summary>
+        public static bool SpeakerSeesWhatThePlayerSees(bool ridesWithPlayer, float? speakerPartyDistance)
+            => ridesWithPlayer || speakerPartyDistance is float d && d <= FaceToFaceWithin;
+
+        /// <summary>
         ///   The lines to tell, nearest first (an army before a party at the same distance), at most <see cref="MaxNamed" />;
         ///   empty when nothing is in sight. A force of no men is not one.
         /// </summary>

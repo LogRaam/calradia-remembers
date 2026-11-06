@@ -48,7 +48,10 @@ namespace CalradiaRemembers.Mapping
          if (manager == null) return held;
 
          IFaction own = speaker?.MapFaction ?? Hero.MainHero?.MapFaction;
-         Vec2 here = MobileParty.MainParty?.GetPosition2D ?? Vec2.Zero;
+         // Measured from where the SPEAKER is (his party, else his settlement), the player's party only when neither is known:
+         // a lord writing from afar hears of the games near him, not near the player.
+         Vec2 here = speaker?.PartyBelongedTo?.GetPosition2D ?? speaker?.CurrentSettlement?.GetPosition2D
+                     ?? MobileParty.MainParty?.GetPosition2D ?? Vec2.Zero;
          foreach (Town town in Town.AllTowns)
          {
             TournamentGame game = town == null ? null : manager.GetTournamentGame(town);

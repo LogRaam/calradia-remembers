@@ -75,6 +75,22 @@ namespace CalradiaRemembers.Tests
             ForcesInSight.Lines(new[] {new SightedForce {Leader = "Lord Empty", Men = 0, Distance = 1f}}).Should().BeEmpty();
         }
 
+        // STAKE: the forces told are the player's surroundings; a lord met on the road, or riding with him, sees them too.
+        [Test]
+        public void GIVEN_a_speaker_beside_the_player_WHEN_asked_whether_he_sees_THEN_he_does()
+        {
+            ForcesInSight.SpeakerSeesWhatThePlayerSees(true, null).Should().BeTrue();
+            ForcesInSight.SpeakerSeesWhatThePlayerSees(false, 1f).Should().BeTrue();
+        }
+
+        // STAKE: a speaker elsewhere (a letter, a far lord) would be told of armies he cannot see: he is told none.
+        [Test]
+        public void GIVEN_a_speaker_away_from_the_player_WHEN_asked_whether_he_sees_THEN_he_does_not()
+        {
+            ForcesInSight.SpeakerSeesWhatThePlayerSees(false, ForcesInSight.FaceToFaceWithin + 20f).Should().BeFalse();
+            ForcesInSight.SpeakerSeesWhatThePlayerSees(false, null).Should().BeFalse();
+        }
+
         // STAKE: outlaws fly no realm's banner: they are a band, never "an enemy army of" anyone.
         [Test]
         public void GIVEN_sea_raiders_in_sight_WHEN_told_THEN_they_read_as_a_band()

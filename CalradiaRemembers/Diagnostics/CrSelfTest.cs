@@ -239,9 +239,9 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("bag_sale", Severity.Light, "froggyluv 04/11: food chosen in the bag to sell moved one unit or left as a gift. Holds three of a trade good in the bag with an asking price, asserts give_item refuses them (no gift), then that sell_item moves all three and the buyer pays. Restores the goods and the coin", TestBagSale),
          new SelfTest("captive_name", Severity.Light, "froggyluv 04/11: a buyer named the captive with her house ('Elthild of dey Tihr') and the sale failed: no captive by that name. Takes a hero captive the player holds and asserts the real resolver finds them by name with the house appended. Skips when the player holds no hero captive; changes nothing", TestCaptiveName),
          new SelfTest("captive_trade_context", Severity.Light, "RaveN017Mod 05/11: prisoner sales 'still don't work every single time ... especially when I perform several prisoner exchanges in a row'. Takes a hero captive the player holds and a lord who could buy: on a turn naming the captive, the live builder hands the interpreter the captives held, the player's line and the reply before; on a turn about something else it hands nothing; the same captive traded again with the same lord that day is refused as an echo (so a re-read sale never sells him back), another buyer is not; a money token naming the captive with his house fills the same sum as his bare name. With no hero captive held, a free lord with no party is taken into the player's party for the test and released after (skips only when there is none); otherwise changes nothing", TestCaptiveTradeContext),
-         new SelfTest("forces_in_sight", Severity.Light, "3chmidt (Nexus, 05/11/2026): 'when you speak with an NPC on the open map, they don't notice friendly and enemy armies on the map that are nearby... even if it is a enemy army with 1800 soldiers'. On the open map, with a lord's party or a band in the player's sight: the reader names the nearest of them (by its leader, or as a band), never the speaker's own party, and the prompt built for a lord carries the FORCES IN SIGHT heading. Inside a settlement nothing is said. Reads only; changes nothing", TestForcesInSight),
+         new SelfTest("forces_in_sight", Severity.Light, "3chmidt (Nexus, 05/11/2026): 'when you speak with an NPC on the open map, they don't notice friendly and enemy armies on the map that are nearby... even if it is a enemy army with 1800 soldiers'. On the open map, with a lord's party or a band in the player's sight: the reader names the nearest of them (by its leader, or as a band), never the speaker's own party; a companion riding with the player is told them, a lord far off is told nothing. Inside a settlement nothing is said. Reads only; changes nothing", TestForcesInSight),
          new SelfTest("fallen_news", Severity.Light, "3chmidt (Nexus, 05/11/2026): killing Monchug 'barely makes waves in the world, and only few know of it... At least the people of the realm should know if an important person of theirs is dead.' Reads a living ruler and a clan head who is not a ruler the way OnBeforeHeroKilled reads a victim before the engine hands his clan on: the ruler is read as ruling his realm, the head as heading his clan, and the news of their fall weighs more than a lord's (a ruler's clears the rumour bar with no tie of realm) and names their rank. Kills no one; changes nothing", TestFallenNews),
-         new SelfTest("captive_gift", Severity.Light, "3chmidt (Nexus, 05/11/2026): 'It would be useful if you could give your prisoners with *action* too'. A free partyless lord is taken into the player's party, then give_prisoner runs through the real bridge with no bargain open, to a lord who leads a party: the captive leaves the player's custody into that lord's, and the lord remembers being given him. Then sell_prisoner for nothing is refused below the deep-bond bar. The captive is released after; the gift's gratitude and the captive's resentment are left, as rescue_from_foe leaves its gratitude", TestCaptiveGift),
+         new SelfTest("captive_gift", Severity.Light, "3chmidt (Nexus, 05/11/2026): 'It would be useful if you could give your prisoners with *action* too'. A free partyless lord is taken into the player's party, then give_prisoner runs through the real bridge with no bargain open, to a lord who leads a party: the captive leaves the player's custody into that lord's, and the lord remembers being given him. Then sell_prisoner for nothing is refused below the deep-bond bar. The pair is at peace (no misdeed) and the captive held no grudge; after, he is released, the grudge the gift planted is cleared and his and his kin's regard are put back. Left: the receiver's gratitude, as rescue_from_foe leaves its own", TestCaptiveGift),
          new SelfTest("tournaments_heard", Severity.Light, "3chmidt (Nexus, 05/11/2026): 'lords know in what town currently tournaments happen, at least in the same kingdom or a neighbouring one'. With a tournament under way in some town: the reader finds it, a lord of that town's realm is told of it (as in his own realm), and the prompt built for him carries the TOURNAMENTS BEING HELD heading. Reads only", TestTournamentsHeard),
          new SelfTest("pair_bond", Severity.Light, "tashmetu 04/11: the game's starting draw gave strangers of far realms -100, and a change with a younger son landed on his father. Takes two lords of realms neither neighbours nor at war, no kin, writes a -80 start on their own slot, and asserts CR does not believe it (vague unease, 0 points); then changes it through CR and asserts only the change counts, on their own slot, and the clan leaders' relation is untouched. Restores both values and forgets the ledger rows", TestPairBond),
          new SelfTest("hidden_affairs", Severity.Light, "Gabriel's go 01/11/2026: a married lord may take a hidden lover, found by a companion sent to spy on them. Begins an affair between two lords and asserts both carry it in their prompt, told to evade and never lie; the player holds nothing yet; end_affair refuses it and the partner path leaves it alone; a poor inquiry says nothing certain; a companion dispatched with the lord's name through the real errand reports it and the player then holds it, on the lover too. Then ends it as a telling would, and asserts the fields are clear. Expose itself is driven by cr.test secret_exposure. Restores all borrowed state", TestHiddenAffairs),
@@ -10643,13 +10643,21 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(behavior?.Store == null || Hero.MainHero == null || MobileParty.MainParty == null, "no campaign")) return t.Line();
          Hero receiver = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && h.Clan != Clan.PlayerClan && !h.IsPrisoner
                                                                  && h.PartyBelongedTo != null && h.PartyBelongedTo.LeaderHero == h && Mapping.HeroPresence.IsInTheWorld(h));
-         Hero captive = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h != receiver && !h.IsPrisoner && h.Clan != Clan.PlayerClan && !h.IsChild
-                                                                && h.PartyBelongedTo == null && h.Clan != null && h.Clan.IsBanditFaction != true && Mapping.HeroPresence.IsInTheWorld(h));
-         if (t.Skip(receiver == null || captive == null, "no lord leading a party to receive, or no free partyless lord to give")) return t.Line();
+         // Not at war with the receiver (a captive handed to his foe is a misdeed on the Misdeeds page, which cannot be
+         // taken back) and holding no grudge yet (the one this gift plants is cleared after).
+         Hero captive = receiver == null ? null : Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h != receiver && !h.IsPrisoner && h.Clan != Clan.PlayerClan && !h.IsChild
+                                                                && h.PartyBelongedTo == null && h.Clan != null && h.Clan.IsBanditFaction != true && Mapping.HeroPresence.IsInTheWorld(h)
+                                                                && h.MapFaction != null && receiver.MapFaction != null && !FactionManager.IsAtWarAgainstFaction(h.MapFaction, receiver.MapFaction)
+                                                                && (Grudges.GrudgeBehavior.Instance?.GrudgesFor(h.StringId)?.Count ?? 0) == 0);
+         if (t.Skip(receiver == null || captive == null, "no lord leading a party to receive, or no free partyless lord at peace with him and holding no grudge to give")) return t.Line();
          if (t.Skip(Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners().Count > 0, "the player already holds captives (the gift would need a name among them; run on a save without)")) return t.Line();
 
          NpcProfile profile = behavior.Store.Get(receiver.StringId) ?? Mapping.HeroProfileMapper.FromHero(receiver);
          var noted = Verbs.BuyPrisonerVerb.NotedTradeOf(captive);
+         // The regard the gift moves (the captive's, and his close kin's: DeedRegardApplier), put back after.
+         var regardBefore = new Dictionary<string, int?>();
+         foreach (Hero h in new[] {captive}.Concat(Mapping.DeedRegardApplier.CloseLivingKinOf(captive)))
+            regardBefore[h.StringId] = behavior.Store.Get(h.StringId)?.ReputationWithPlayer;
          TakePrisonerAction.Apply(PartyBase.MainParty, captive);
          try
          {
@@ -10677,6 +10685,18 @@ namespace CalradiaRemembers.Diagnostics
             profile.Events.RemoveAll(e => e.summary != null && e.summary.Contains("gave me the captive " + captive.Name));
             if (captive.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(captive);
             Verbs.BuyPrisonerVerb.PutNotedTrade(captive, noted);
+            Grudges.GrudgeBehavior.Instance?.ClearGrudgesFor(captive.StringId);
+            foreach (KeyValuePair<string, int?> kv in regardBefore)
+            {
+               NpcProfile p = behavior.Store.Get(kv.Key);
+               if (p == null) continue;
+               if (kv.Value == null) behavior.Store.Remove(kv.Key);
+               else
+               {
+                  p.ReputationWithPlayer = kv.Value.Value;
+                  behavior.Store.Set(p);
+               }
+            }
          }
 
          return t.Line();
@@ -10700,6 +10720,8 @@ namespace CalradiaRemembers.Diagnostics
          // STAKE: the head of a house weighs more than a lord, and is named as head of his clan.
          t.Expect("theHeadIsReadAsHead", h.LedClan, head.Clan.Name.ToString());
          t.Expect("aHeadsFallIsLouderThanALords", Logic.FallenHeroNews.Magnitude(h) > Logic.LongTermHistoryPolicy.FellInBattleMagnitude, true);
+         // STAKE: struck by the player's host, the news names him (3chmidt's Monchug).
+         t.Expect("theNewsNamesThePlayersHost", Logic.FallenHeroNews.Summary(WorldEventFeeders.FallenFactsOf(ruler, true)).Contains($"against {Hero.MainHero?.Name}'s host"), true);
 
          return t.Line();
       }
@@ -10729,8 +10751,6 @@ namespace CalradiaRemembers.Diagnostics
          // STAKE: 3chmidt's army at the door is among what the speaker is told.
          t.Expect("theNearestForceIsSeen", sighted.Any(f => nearest.IsBandit ? f.Side == Logic.War.SightedSide.Outlaws : f.Leader == leader), true);
 
-         Hero speaker = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h.PartyBelongedTo != null && h.PartyBelongedTo != main && !h.IsPrisoner
-                                                                && h.PartyBelongedTo != nearest && (nearest.Army == null || h.PartyBelongedTo.Army != nearest.Army));
          if (nearest.LeaderHero != null)
          {
             // STAKE: a lord is never told of his own party as a force in sight.
@@ -10738,12 +10758,20 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("theSpeakersOwnPartyIsNotNews", fromHim.Any(f => f.Leader == leader && !f.IsArmy), false);
          }
 
-         if (speaker != null)
+         // A companion riding with the player sees what the player sees; a lord far off is told nothing of it.
+         Hero beside = main.MemberRoster?.GetTroopRoster().Select(e => e.Character?.HeroObject).FirstOrDefault(h => h != null && h != Hero.MainHero);
+         if (beside != null)
          {
-            NpcProfile profile = behavior.Store.Get(speaker.StringId) ?? Mapping.HeroProfileMapper.FromHero(speaker);
-            NpcMemoryService.Core.Models.EncounterContext ctx = Mapping.EncounterContextBuilder.Build(speaker, profile, behavior.GameStateBridge, "");
-            t.Expect("theLordsTurnCarriesWhatIsInSight", ctx?.ForcesInSight is {Count: > 0}, true);
+            NpcProfile profile = behavior.Store.Get(beside.StringId) ?? Mapping.HeroProfileMapper.FromHero(beside);
+            NpcMemoryService.Core.Models.EncounterContext ctx = Mapping.EncounterContextBuilder.Build(beside, profile, behavior.GameStateBridge, "");
+            t.Expect("aCompanionAtHisSideIsToldWhatIsInSight", ctx?.ForcesInSight is {Count: > 0}, true);
          }
+         else t.Note("no companion rides with the player: the turn check is left out");
+
+         Hero far = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h.PartyBelongedTo != null && h.PartyBelongedTo != main && !h.IsPrisoner
+                                                           && h.PartyBelongedTo.GetPosition2D.Distance(main.GetPosition2D) > main.SeeingRange * 2);
+         // STAKE: a letter, or any speaker elsewhere, would otherwise be told of armies around the player he cannot see.
+         if (far != null) t.Expect("aLordFarOffIsToldNothing", Mapping.ForcesInSightReader.Read(far), (IReadOnlyList<string>) null);
 
          return t.Line();
       }

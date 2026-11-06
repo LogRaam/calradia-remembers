@@ -174,6 +174,7 @@ namespace CalradiaRemembers.WorldEvents
          (int Fallen, int Wounded) playerSideLoss = LossesOf(mapEvent, playerSide);
          (int Fallen, int Wounded) otherSideLoss = LossesOf(mapEvent, playerSide == BattleSideEnum.Attacker ? BattleSideEnum.Defender : BattleSideEnum.Attacker);
          string lossesForPlayerSide = BattleLossesText.Line(new BattleLossFacts {OurFallen = playerSideLoss.Fallen, OurWounded = playerSideLoss.Wounded, TheirFallen = otherSideLoss.Fallen, TheirWounded = otherSideLoss.Wounded});
+         ModLog.Info($"[WORLD] battle losses: player's side {playerSideLoss.Fallen} fell, {playerSideLoss.Wounded} wounded; other side {otherSideLoss.Fallen} fell, {otherSideLoss.Wounded} wounded.");
          string lossesForOtherSide = BattleLossesText.Line(new BattleLossFacts {OurFallen = otherSideLoss.Fallen, OurWounded = otherSideLoss.Wounded, TheirFallen = playerSideLoss.Fallen, TheirWounded = playerSideLoss.Wounded});
 
          foreach (BattleSideEnum side in new[] {BattleSideEnum.Attacker, BattleSideEnum.Defender})
@@ -597,7 +598,14 @@ namespace CalradiaRemembers.WorldEvents
          try
          {
             if (victim == null || victim == Hero.MainHero) return;
-            _beforeDeath[victim.StringId] = FallenFactsOf(victim, detail == KillCharacterAction.KillCharacterActionDetail.DiedInBattle && FellToPlayersHost(victim));
+            // Two roads to a death in battle (decompiled 1.4.8): an agent killed in the mission dies at once, killer null, his
+            // party still standing in the battle; a hero marked for death dies at the battle's end
+            // (MapEventSide.HandleMapEventEndForPartyInternal), his party already taken off its side, the killer then being
+            // the other side's leader.
+            bool inBattle = detail == KillCharacterAction.KillCharacterActionDetail.DiedInBattle;
+            bool byPlayer = inBattle && (KillerFightsForPlayer(killer) || FellToPlayersHost(victim));
+            _beforeDeath[victim.StringId] = FallenFactsOf(victim, byPlayer);
+            if (inBattle) ModLog.Info($"[WORLD] {victim.Name} dies in battle (killer {killer?.Name?.ToString() ?? "none"}): fell to the player's host = {byPlayer}.");
          }
          catch (Exception ex) { ModLog.Error($"[WORLD] could not read {victim?.Name} before death: {ex.GetType().Name}: {ex.Message}"); }
       }
@@ -617,7 +625,17 @@ namespace CalradiaRemembers.WorldEvents
          };
       }
 
-      // The engine passes no killer for a death in the field; the victim's party standing in the player's own battle, on
+      // The killer the engine names at a battle's end is the other side's leader: the player, or a lord of his army.
+      private static bool KillerFightsForPlayer(Hero killer)
+      {
+         MobileParty main = MobileParty.MainParty;
+         MobileParty his = killer?.PartyBelongedTo;
+         if (killer == null || main == null) return false;
+
+         return killer == Hero.MainHero || his == main || his?.Army != null && his.Army == main.Army;
+      }
+
+      // An agent killed in the mission dies with no killer named; the victim's party standing in the player's own battle, on
       // the other side, is what says it was the player's host.
       private static bool FellToPlayersHost(Hero victim)
       {

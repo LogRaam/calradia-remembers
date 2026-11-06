@@ -138,6 +138,17 @@ namespace CalradiaRemembers.Verbs
                 }
 
                 action.Parameters.TryGetValue("price", out string priceStr);
+
+                // Given for nothing is a gift, not a sale at the floor (3chmidt, Nexus, 05/11/2026): the interpreter may read
+                // "I give him to you, I ask nothing" as this verb with price 0, and the floor would pay the player for a gift.
+                if (PrisonerTradePolicy.AsksNothing(priceStr) && bridge != null)
+                {
+                    ModLog.Info($"[ACTION] buy_prisoner for nothing: {captive.Name} is a gift to {npcHero.Name}; running it as give_prisoner.");
+                    var freeGift = new GameAction {Type = "give_prisoner", Parameters = new Dictionary<string, string> {["target"] = captive.Name?.ToString() ?? ""}};
+
+                    return bridge.ExecuteAction(freeGift, npcHero, new ActionContext(profile, null));
+                }
+
                 // A price that is no figure pays the floor (PrisonerTradePolicy.ClampPrice). Said in the log, because a money
                 // token the table missed reads "a fair sum" here (RaveN017Mod, Nexus, 05/11/2026: an agreed price lost on the way).
                 if (!int.TryParse(priceStr?.Trim(), out int proposed))

@@ -27,6 +27,7 @@ namespace CalradiaRemembers.Mapping
          {
             MobileParty main = MobileParty.MainParty;
             if (main == null || Hero.MainHero == null || Hero.MainHero.IsPrisoner || main.CurrentSettlement != null) return null;
+            if (!SeesWhatThePlayerSees(speaker, main)) return null;
 
             List<string> lines = ForcesInSight.Lines(Sighted(speaker, main));
 
@@ -38,6 +39,17 @@ namespace CalradiaRemembers.Mapping
 
             return null;
          }
+      }
+
+      /// <summary>The speaker stands where the player does: in his party or army, or his own party beside the player's.</summary>
+      internal static bool SeesWhatThePlayerSees(Hero speaker, MobileParty main)
+      {
+         if (speaker == null) return false;
+         MobileParty his = speaker.PartyBelongedTo;
+         bool rides = his == main || speaker.PartyBelongedToAsPrisoner == main.Party || his?.Army != null && his.Army == main.Army;
+         float? distance = his == null ? (float?) null : his.GetPosition2D.Distance(main.GetPosition2D);
+
+         return ForcesInSight.SpeakerSeesWhatThePlayerSees(rides, distance);
       }
 
       /// <summary>Every force the player's party can see now, as the speaker would read it.</summary>
