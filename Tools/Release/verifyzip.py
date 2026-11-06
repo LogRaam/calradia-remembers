@@ -653,6 +653,19 @@ MUST = [
     ("sdk",   b"IntimateActNames"),
     ("sdk",   b"LessFondActs"),
     ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
+    # 2.8.4
+    ("logic", b"InterpreterTradeBackground"),
+    ("logic", b"IsEchoOfLastTrade"),
+    ("logic", b"CaptivesPricedFor"),
+    ("logic", b"RosterItemKey"),
+    ("mod",   b"RosterGoods"),
+    ("mod",   b"TradeBackgroundFor"),
+    ("mod",   b"BarterScreenSpike"),
+    ("mod",   "gift_keeps_quality".encode("utf-16-le")),
+    ("mod",   "captive_trade_context".encode("utf-16-le")),
+    ("logic", " little and owe ".encode("utf-16-le")),
+    ("sdk",   b"TryLooseSubject"),
+    ("sdk",   "bring their OWN house into the PLAYER".encode("utf-16-le")),
     # 2.8.3
     ("logic", b"PairBondPolicy"),
     ("logic", b"RelationBaselineLedger"),
@@ -853,7 +866,16 @@ for path, needle in [("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf
                      ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersLetterBox.xml", "ScrollbarWidget"),
                      ("CalradiaRemembers/ModuleData/module_sounds.xml", "cr_letter_arrival"),
                      ("CalradiaRemembers/ModuleData/stations/gangleader.txt", "[who]"),
-                     ("CalradiaRemembers/ModuleData/folklore/battania.txt", "around the fire")]:
+                     ("CalradiaRemembers/ModuleData/folklore/battania.txt", "around the fire"),
+                     # 2.8.4
+                     ("CalradiaRemembers/ModuleData/folklore/aserai.txt", "The tales the Aserai tell"),
+                     ("CalradiaRemembers/ModuleData/folklore/darshi.txt", "The tales the Darshi tell"),
+                     ("CalradiaRemembers/ModuleData/folklore/empire.txt", "The tales the people of the Empire tell"),
+                     ("CalradiaRemembers/ModuleData/folklore/khuzait.txt", "The tales the Khuzaits tell"),
+                     ("CalradiaRemembers/ModuleData/folklore/nord.txt", "The tales the Nords tell"),
+                     ("CalradiaRemembers/ModuleData/folklore/sturgia.txt", "The tales the Sturgians tell"),
+                     ("CalradiaRemembers/ModuleData/folklore/vakken.txt", "The tales the Vakken tell"),
+                     ("CalradiaRemembers/ModuleData/folklore/vlandia.txt", "The tales the Vlandians tell")]:
     found = path in names and needle in zn.read(path).decode("utf-8", "ignore")
     ok &= found
     print("  %-70s %s" % (path[18:], "YES" if found else "*** MISSING ***"))
