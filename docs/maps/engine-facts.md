@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-743 rules read 551 facts.
+744 rules read 555 facts.
 
 ## Facts read by more than one rule
 
@@ -415,6 +415,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `BattleFacts`: `BattleTypes.Siege`, `MapEvent.EventType`, `MapEvent.IsFieldBattle`, `MapEvent.IsHideoutBattle`, `MapEvent.IsRaid`, `MapEvent.IsSiegeAssault`, `MapEvent.MapEventSettlement`, `MapFaction.IsBanditFaction`, `MobileParty.Army`, `MobileParty.GetPosition2D`, `MobileParty.IsCaravan`
 - `BattleFeatText.SubjectBestedByPlayer`: `BestFeat.Outcome`
 - `BattleFeatText.WitnessedFeat`: `BestFeat.FoeName`, `BestFeat.Outcome`
+- `BattleLossFacts`: `(int Fallen, int Wounded).Fallen`, `(int Fallen, int Wounded).Wounded`, `DiedInBattle.TotalManCount`, `WoundedInBattle.TotalManCount`
 - `BattleMemoryText.ChronicleEngagement`: `BattleTypes.Raid`, `BattleTypes.Siege`, `MapEvent.EventType`, `MapEvent.MapEventSettlement`
 - `BattleMemoryText.PlaceClause`: `BattleTypes.Raid`, `BattleTypes.Siege`, `MapEvent.EventType`, `MapEvent.MapEventSettlement`
 - `BattleRecordText.Magnitude`: `MapEvent.MapEventSettlement`

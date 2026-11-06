@@ -161,6 +161,15 @@ namespace CalradiaRemembers.WorldEvents
          // siege of Thorios Castle".
          BattleFeatReport deeds = BattleFeatReporter.ConsumeReport(mapEvent, engagement);
 
+         // 3chmidt (Nexus, 05/11/2026): "how many your army killed and how many of your army was wounded and killed... NPC's
+         // shrug it off as me lying when I tell them I killed 30 or 50 enemies, even when they fought on the same
+         // battlefield." What each side lost, from the engine's own rosters (auto-resolved battles fill them too), told from
+         // the side of whoever remembers it.
+         (int Fallen, int Wounded) playerSideLoss = LossesOf(mapEvent, playerSide);
+         (int Fallen, int Wounded) otherSideLoss = LossesOf(mapEvent, playerSide == BattleSideEnum.Attacker ? BattleSideEnum.Defender : BattleSideEnum.Attacker);
+         string lossesForPlayerSide = BattleLossesText.Line(new BattleLossFacts {OurFallen = playerSideLoss.Fallen, OurWounded = playerSideLoss.Wounded, TheirFallen = otherSideLoss.Fallen, TheirWounded = otherSideLoss.Wounded});
+         string lossesForOtherSide = BattleLossesText.Line(new BattleLossFacts {OurFallen = otherSideLoss.Fallen, OurWounded = otherSideLoss.Wounded, TheirFallen = playerSideLoss.Fallen, TheirWounded = playerSideLoss.Wounded});
+
          foreach (BattleSideEnum side in new[] {BattleSideEnum.Attacker, BattleSideEnum.Defender})
          {
             MBReadOnlyList<MapEventParty> parties = mapEvent.GetMapEventSide(side)?.Parties;
@@ -183,7 +192,15 @@ namespace CalradiaRemembers.WorldEvents
                if (!h.IsLord && !playerKin) continue;
                NpcProfile profile = behavior.Store.Get(h.StringId);
 
-               if (profile == null) continue; // only those the player has actually met
+               // 3chmidt (05/11/2026): lords who stood on the same field took the player's account for a lie. A lord who led
+               // a party in a battle the chronicle records has met the player there, so he remembers it even without a word
+               // spoken before.
+               if (profile == null)
+               {
+                  if (!h.IsLord) continue;
+                  profile = Mapping.HeroProfileMapper.FromHero(h);
+                  ModLog.Info($"[WORLD] {h.Name} fought in the player's battle with no profile yet; one is made so the field is remembered.");
+               }
 
                // NB: the enemy-lost phrase "put their host to flight" is also read by
                // EncounterContextBuilder.LostBattleToPlayerRecently to feed the POWER BALANCE
@@ -191,6 +208,8 @@ namespace CalradiaRemembers.WorldEvents
                string summary = ally
                   ? BattleMemoryText.AllySummary(playerWon, placeClause, sharedEffort, PlayerName)
                   : $"Faced {PlayerName} in battle and {(playerWon ? "saw them put my host to flight" : "held the field against them")}{placeClause}.";
+               string losses = ally ? lossesForPlayerSide : lossesForOtherSide;
+               if (losses != null) summary = $"{summary} {losses}";
                profile.Events.Add(new NotableEvent(day, NotableEventType.Other, WithOwnPart(summary, deeds, h)));
 
                // They were there, so they speak of the deeds first-hand (the LIVED register).
@@ -212,7 +231,16 @@ namespace CalradiaRemembers.WorldEvents
          // above (which reads each party's leader) never visits them. A player asked for the "fought
          // together" memory to reach them too, so this is its own seam a self-test can drive directly
          // (see DebugRecordCompanionBattleMemories) without staging a real battle.
-         RecordCompanionBattleMemories(day, playerWon, placeClause, sharedEffort, deeds);
+         RecordCompanionBattleMemories(day, playerWon, placeClause, sharedEffort, deeds, lossesForPlayerSide);
+      }
+
+      /// <summary>The men a side lost in a battle, killed and wounded, read off each party's own casualty rosters.</summary>
+      private static (int Fallen, int Wounded) LossesOf(MapEvent mapEvent, BattleSideEnum side)
+      {
+         MBReadOnlyList<MapEventParty> parties = mapEvent?.GetMapEventSide(side)?.Parties;
+         if (parties == null) return (0, 0);
+
+         return (parties.Sum(p => p.DiedInBattle?.TotalManCount ?? 0), parties.Sum(p => p.WoundedInBattle?.TotalManCount ?? 0));
       }
 
       /// <summary>
@@ -224,7 +252,7 @@ namespace CalradiaRemembers.WorldEvents
       ///   exactly this path against a real party without a staged <see cref="MapEvent" />.
       /// </summary>
       private static void RecordCompanionBattleMemories(int day, bool playerWon, string placeClause, bool sharedEffort,
-         BattleFeatReport deeds = null)
+         BattleFeatReport deeds = null, string losses = null)
       {
          var behavior = NpcMemoryCampaignBehavior.Instance;
 
@@ -243,7 +271,9 @@ namespace CalradiaRemembers.WorldEvents
 
             if (companion == null) continue; // only companions the player has actually met
 
-            companion.Events.Add(new NotableEvent(day, NotableEventType.Other, WithOwnPart(BattleMemoryText.AllySummary(playerWon, placeClause, sharedEffort, PlayerName), deeds, h)));
+            string fought = BattleMemoryText.AllySummary(playerWon, placeClause, sharedEffort, PlayerName);
+            if (losses != null) fought = $"{fought} {losses}";
+            companion.Events.Add(new NotableEvent(day, NotableEventType.Other, WithOwnPart(fought, deeds, h)));
 
             // A companion rode at the player's shoulder, so they witnessed the deeds too.
             if (deeds != null)
@@ -385,16 +415,16 @@ namespace CalradiaRemembers.WorldEvents
       ///   <see cref="RecordCompanionBattleMemories" /> path the battle feeder uses; no <see cref="MapEvent" /> is
       ///   staged, and <c>near</c> is empty (no settlement).
       /// </summary>
-      public static int DebugRecordCompanionBattleMemories(bool playerWon)
+      public static int DebugRecordCompanionBattleMemories(bool playerWon, string losses = null)
       {
          var behavior = NpcMemoryCampaignBehavior.Instance;
 
          if (behavior?.Store == null) return 0;
 
          int day = Today;
-         string expected = BattleMemoryText.AllySummary(playerWon, "", false, PlayerName);
+         string expected = BattleMemoryText.AllySummary(playerWon, "", false, PlayerName) + (losses != null ? $" {losses}" : "");
          int before = CountCompanionAllyMemories(behavior, day, expected);
-         RecordCompanionBattleMemories(day, playerWon, "", false);
+         RecordCompanionBattleMemories(day, playerWon, "", false, null, losses);
 
          return CountCompanionAllyMemories(behavior, day, expected) - before;
       }

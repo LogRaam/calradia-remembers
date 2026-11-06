@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 633 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1530 types in 55 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1532 types in 55 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1800,13 +1800,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BastardScandalPolicy` | public static class | Scales the cost of a discovered bastard scandal (the standing hit and how far it spreads) by the culture's outrage at infidelity — the same JealousyOutrage the jealousy system reads. |
 | `HushMoneyPolicy` | public static class | The numeric contract for hush money paid to a lord who holds the player's secret-lover identity. |
 
-### CalradiaRemembers.Logic.Battles (22)
+### CalradiaRemembers.Logic.Battles (24)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `BattleFeatDigest` | public class | The few facts worth remembering out of one battle, chosen from the whole ledger. |
 | `BattleFeatDistiller` | public static class | Chooses the few facts from a battle that an NPC would actually raise. |
 | `BattleFeatText` | public static class | The first-hand lines a battle's real deeds leave in the memory of those who were there. |
+| `BattleLossFacts` | public class | What a battle cost each side, seen from the one who remembers it. |
+| `BattleLossesText` | public static class | The sentence a battle's toll adds to a memory of it. |
 | `BattleMemoryText` | public static class | Builds the "fought beside you" memory line and the place/engagement phrasing. |
 | `BattleNotability` | public static class | Decides whether a battle is notable enough to record. |
 | `BattleSetting` | public enum | What kind of engagement a battle was, for naming it correctly (a siege is not a field battle). |
