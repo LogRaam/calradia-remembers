@@ -172,8 +172,10 @@ namespace CalradiaRemembers.Services
       }
 
       /// <summary>
-      ///   One-token-tests every configured model: the roleplay model, then the consensual model when
-      ///   it is set and different. Two model fields are two chances at a typo, and an explicit id
+      ///   One-token-tests every configured model: the roleplay model, then the NSFW model when
+      ///   it is set and different (sekiz5's translation, 07/11/2026, found the hint naming a 'consensual model' the
+      ///   menu no longer shows: that hidden legacy field now only feeds the NSFW model's fallback, so the NSFW
+      ///   model as scenes resolve it is what gets tested). Two model fields are two chances at a typo, and an explicit id
       ///   that only fails when a scene flips the mode is the worst place to find out — so the
       ///   Test button exercises both up front. Returns the popup title and body.
       /// </summary>
@@ -185,13 +187,13 @@ namespace CalradiaRemembers.Services
       {
          (bool rpOk, string rpErr) = await testModel(roleplayModel).ConfigureAwait(false);
 
-         string consensualModel = ModSettings.ConsensualModel;
+         string consensualModel = ModSettings.CncModel;
          bool hasDistinctConsensual = consensualModel.Length > 0 && !string.Equals(consensualModel, roleplayModel, StringComparison.Ordinal);
 
          if (!hasDistinctConsensual)
          {
             string note = consensualModel.Length > 0
-               ? " The consensual model is the same id, so it is covered."
+               ? " The NSFW model is the same id, so it is covered."
                : string.Empty;
 
             return rpOk
@@ -203,7 +205,7 @@ namespace CalradiaRemembers.Services
 
          if (rpOk && consensualOk)
             return ("Connection OK",
-               $"{successPrefix}. Roleplay model '{roleplayModel}' responded. Consensual model '{consensualModel}' responded. " +
+               $"{successPrefix}. Roleplay model '{roleplayModel}' responded. NSFW model '{consensualModel}' responded. " +
                "You're ready to play.");
 
          var sb = new StringBuilder();
@@ -211,8 +213,8 @@ namespace CalradiaRemembers.Services
             ? $"Roleplay model '{roleplayModel}': OK.\n"
             : $"Roleplay model '{roleplayModel}' FAILED:\n{rpErr}\n");
          sb.Append(consensualOk
-            ? $"Consensual model '{consensualModel}': OK.\n"
-            : $"Consensual model '{consensualModel}' FAILED:\n{consensualErr}\n");
+            ? $"NSFW model '{consensualModel}': OK.\n"
+            : $"NSFW model '{consensualModel}' FAILED:\n{consensualErr}\n");
          sb.Append('\n').Append(failureAdvice);
 
          return ("Model test failed", sb.ToString());

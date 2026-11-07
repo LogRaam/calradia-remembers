@@ -704,14 +704,14 @@ namespace CalradiaRemembers.Foundation
       public bool ReportUnsupportedActions { get; set; } = false;
 
       [SettingPropertyButton("{=CR_MCM_TestConnection}Test Connection", RequireRestart = false, Order = 3,
-         HintText = "{=CR_MCM_TestConnection_Hint}Validates your key, then sends a one-token test to the roleplay model and, if set, the consensual " +
+         HintText = "{=CR_MCM_TestConnection_Hint}Validates your key, then sends a one-token test to the roleplay model and, if set, the NSFW " +
                     "model, reporting any error. Costs a fraction of a cent.",
          Content = "{=CR_MCM_TestConnection_Button}Test")]
       [SettingPropertyGroup("{=CR_MCM_Group_OpenRouter}OpenRouter", GroupOrder = 1)]
       public Action TestConnection { get; set; } = () => ConnectionTest?.Invoke();
 
       [SettingPropertyButton("{=CR_MCM_TestCustomConnection}Test Endpoint", RequireRestart = false, Order = 5,
-         HintText = "{=CR_MCM_TestCustomConnection_Hint}Sends a one-token test to your endpoint with the roleplay model and, if set, the consensual model. " +
+         HintText = "{=CR_MCM_TestCustomConnection_Hint}Sends a one-token test to your endpoint with the roleplay model and, if set, the NSFW model. " +
                     "Your server must be running. OpenAI-Compatible only.",
          Content = "{=CR_MCM_TestCustomConnection_Button}Test")]
       [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 3)]

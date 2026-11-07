@@ -192,10 +192,10 @@
     <string id="CR_MCM_ReportUnsupportedActions" text="Report unsupported actions" />
     <string id="CR_MCM_ReportUnsupportedActions_Hint" text="Shows a note in chat when the AI attempts an action the mod does not support yet. Every attempt is logged to CalradiaRemembers_unknown_actions.log regardless of this setting. Send that log to LogRaam on Nexus to request support." />
     <string id="CR_MCM_TestConnection" text="Test Connection" />
-    <string id="CR_MCM_TestConnection_Hint" text="Validates your key, then sends a one-token test to the roleplay model and, if set, the consensual model, reporting any error. Costs a fraction of a cent." />
+    <string id="CR_MCM_TestConnection_Hint" text="Validates your key, then sends a one-token test to the roleplay model and, if set, the NSFW model, reporting any error. Costs a fraction of a cent." />
     <string id="CR_MCM_TestConnection_Button" text="Test" />
     <string id="CR_MCM_TestCustomConnection" text="Test Endpoint" />
-    <string id="CR_MCM_TestCustomConnection_Hint" text="Sends a one-token test to your endpoint with the roleplay model and, if set, the consensual model. Your server must be running. OpenAI-Compatible only." />
+    <string id="CR_MCM_TestCustomConnection_Hint" text="Sends a one-token test to your endpoint with the roleplay model and, if set, the NSFW model. Your server must be running. OpenAI-Compatible only." />
     <string id="CR_MCM_TestCustomConnection_Button" text="Test" />
     <string id="CR_MCM_TestNanoGptConnection" text="Test NanoGPT Connection" />
     <string id="CR_MCM_TestNanoGptConnection_Hint" text="Checks your NanoGPT key against nano-gpt.com without starting a conversation. No tokens spent." />
