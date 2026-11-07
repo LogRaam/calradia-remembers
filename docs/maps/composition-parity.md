@@ -164,3 +164,4 @@ others read their own reply's tags (the same call) whatever the composition, or 
 | `SettleEnvoyDeal` | `Chat/ChatViewModel.Envoy.cs` |  |
 | `RunCommonerExchangeAsync` | `Chat/ChatViewModel.Exchanges.cs` |  |
 | `RunLlmExchangeAsync` | `Chat/ChatViewModel.Exchanges.cs` | yes |
+| `MakePeace` | `Chat/RoundTableController.cs` |  |

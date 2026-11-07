@@ -76,11 +76,11 @@ namespace CalradiaRemembers.Mapping
          }
       }
 
-      /// <summary>The facts, for cr.test all.</summary>
-      internal static PairRegardFacts Facts(Hero speaker, Hero other, int today) => Facts(speaker, other, today, null);
-
-      // pardonable, when given, collects each wrong still weighing that a peace could lay to rest.
-      private static PairRegardFacts Facts(Hero speaker, Hero other, int today, List<PairWrongKind> pardonable)
+      /// <summary>
+      ///   The facts (cr.test all reads them too). <paramref name="pardonable" />, when given, collects each wrong still
+      ///   weighing that a peace could lay to rest.
+      /// </summary>
+      internal static PairRegardFacts Facts(Hero speaker, Hero other, int today, List<PairWrongKind> pardonable = null)
       {
          int? peaceDay = PairPeaceBehavior.Instance?.PeaceDay(speaker.StringId, other.StringId);
          int daysInYear = Math.Max(1, CampaignTime.DaysInSeason * CampaignTime.SeasonsInYear);

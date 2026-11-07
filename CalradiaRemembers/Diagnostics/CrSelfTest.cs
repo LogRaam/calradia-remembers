@@ -10115,6 +10115,11 @@ namespace CalradiaRemembers.Diagnostics
             string alone = VerbRegistry.Instance.ComposeTeachings(new VerbContext(a, pa, behavior.GameStateBridge, null, null), new[] {"reconcile_with"}) ?? "";
             // STAKE: alone with the player there is no one to make peace with, so nothing is spent teaching it.
             t.Expect("notTaughtAlone", alone.Contains("reconcile_with"), false);
+            EncounterContext real = EncounterContextBuilder.Build(a, pa, behavior.GameStateBridge, null,
+               new List<WitnessEntry> {new WitnessEntry {Name = b.Name.ToString(), HeroStringId = b.StringId, RelationToNpc = "a rival"}});
+            // STAKE: the prompt the game really builds for a speaker with the rival in the room carries the verb, not only a
+            // hand-built teaching (the round-table lap and the witness turns both come through here).
+            t.Expect("theRealPromptTeachesIt", real?.ExtraActionTeachings?.Contains("reconcile_with") == true, true);
 
             ActionOutcome nobody = VerbRegistry.Instance.Execute(new GameAction {Type = "reconcile_with", Parameters = new Dictionary<string, string> {{"target", "Someone Absent"}}},
                new VerbContext(a, pa, behavior.GameStateBridge, null, new ActionContext(pa, null) {PresentHeroIds = present}));

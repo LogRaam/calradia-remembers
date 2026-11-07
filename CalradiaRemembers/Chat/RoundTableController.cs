@@ -4,10 +4,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
+using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Mapping;
 using NpcMemoryService.Core.Models;
@@ -208,6 +210,11 @@ namespace CalradiaRemembers.Chat
                      break;
                   }
 
+               // kurushimi00 (06/11/2026): characters make their peace with each other here more than anywhere, and the lap
+               // teaches reconcile_with (the per-speaker witnesses reach EncounterContextBuilder), so it must carry it out too,
+               // as this speaker, with those still in the room.
+               MakePeace(result.Response, speaker, participants.Where(host.IsStillPresent).Select(p => p.Hero?.StringId).ToList(), behavior);
+
                host.HandleWitnessLeaves(result.Response);
 
                // Council audit C1: the lap teaches the [RESOLUTION] channel (isRoundTableTurn -> the RECORDING
@@ -225,6 +232,23 @@ namespace CalradiaRemembers.Chat
          {
             ModLog.Error($"[ROUNDTABLE] RunRoundTableAsync threw {ex.GetType().Name}: {ex.Message}");
          }
+      }
+
+      // reconcile_with emitted on a lap turn, run as the speaker of that turn among those present; nothing else is carried
+      // out here (the lap's own design, audit 15C), so this is the one verb between two people in the room.
+      private static void MakePeace(ParsedResponse response, ChatSpeaker speaker, List<string> presentIds, NpcMemoryCampaignBehavior behavior)
+      {
+         if (response?.Actions == null || speaker?.Hero == null || speaker.Profile == null || behavior?.GameStateBridge == null) return;
+
+         var acted = false;
+         foreach (GameAction action in response.Actions.Where(a => string.Equals(a?.Type, "reconcile_with", StringComparison.OrdinalIgnoreCase)))
+         {
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(action, speaker.Hero, new ActionContext(speaker.Profile, null) {PresentHeroIds = presentIds});
+            ModLog.Info($"[ROUNDTABLE] {speaker.Name} reconcile_with: {outcome?.Message ?? "nothing"}");
+            acted = true;
+         }
+
+         if (acted) behavior.Store?.Set(speaker.Profile);
       }
    }
 }

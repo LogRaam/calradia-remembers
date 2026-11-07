@@ -622,7 +622,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 #### `CalradiaRemembers.Chat` and `CalradiaRemembers.GameState`
 
-- `CalradiaRemembers.Chat` uses `CalradiaRemembers.GameState` in 8 files: `Chat/ActionConfirmationController.cs`, `Chat/ChatViewModel.Council.cs`, `Chat/ChatViewModel.Envoy.cs`, and 5 more
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.GameState` in 9 files: `Chat/ActionConfirmationController.cs`, `Chat/ChatViewModel.Council.cs`, `Chat/ChatViewModel.Envoy.cs`, and 6 more
 - `CalradiaRemembers.GameState` uses `CalradiaRemembers.Chat` in 2 file(s): `GameState/BannerlordGameStateBridge.cs`, `GameState/CourtActionResolver.cs`
 
 #### `CalradiaRemembers.Chat` and `CalradiaRemembers.Letters`

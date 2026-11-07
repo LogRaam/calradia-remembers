@@ -6,9 +6,10 @@
 // character holds against another.
 // Gabriel (07/11/2026) ruled for personal grudges, one per direction, over a shared rivalry score: each character makes
 // peace in their own voice, and that pardon cancels only what THEY held against the other, up to that day. Ira may forgive
-// while Adram still broods; the full reconciliation is both pardons. The past stays written; only its weight goes out. A
-// slain or executed kinsman is never pardoned in a conversation (Gabriel, 06/11: "effacer une vieille rivalite de tournoi
-// me semble juste, effacer un frere tue au combat, non"), nor a grudge only a deed or nothing at all can close.
+// while Adram still broods; the full reconciliation is both pardons. The past stays written; only its weight goes out.
+// Which wrongs a peace covers was proposed in the design discussion (06/11/2026: an old tourney rivalry, yes; a brother
+// slain in battle, no) and built under Gabriel's go on personal grudges: a slain or executed kinsman is never pardoned in a
+// conversation, nor a grudge its holder said only a deed, or nothing at all, could close.
 
 namespace CalradiaRemembers.Logic.Grudges
 {

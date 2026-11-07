@@ -2,8 +2,8 @@
 // PairPeacePolicy decides which wrongs one character's peace with another lays to rest. kurushimi00 (Nexus, 06/11/2026):
 // Ira and Adram, enemies since a tourney 8 years ago, made peace in the player's conversations, and the encyclopedia
 // still listed them as enemies "from the tourney". Gabriel (07/11/2026) ruled for personal grudges, one per direction:
-// each pardons in their own voice, the past stays written and only its weight goes out, and a slain kinsman is never
-// pardoned in a conversation. If this is wrong, a mediated peace changes nothing again, one character's pardon speaks for
+// each pardons in their own voice, and the past stays written while only its weight goes out. That a slain kinsman is
+// never pardoned in a conversation was proposed in the design discussion and built under that go. If this is wrong, a mediated peace changes nothing again, one character's pardon speaks for
 // the other, or a lord forgives the man who had his brother executed because a model wrote a warm line.
 
 #region
@@ -32,7 +32,7 @@ namespace CalradiaRemembers.Tests
                         .Should().BeTrue();
       }
 
-      // STAKE (Gabriel, 06/11): a brother slain or executed is not undone by a scene's warm words.
+      // STAKE (design discussion, 06/11, built under Gabriel's go): a brother slain or executed is not undone by a scene's warm words.
       [Test]
       public void GIVEN_a_kinsman_slain_or_executed_WHEN_his_kin_made_peace_THEN_the_killing_still_weighs()
       {
