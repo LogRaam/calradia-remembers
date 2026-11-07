@@ -528,7 +528,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 #### `CalradiaRemembers.Mapping` and `CalradiaRemembers.Verbs`
 
 - `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Verbs` in 1 file(s): `Mapping/EncounterContextBuilder.cs`
-- `CalradiaRemembers.Verbs` uses `CalradiaRemembers.Mapping` in 7 files: `Verbs/BuyPrisonerVerb.cs`, `Verbs/ExchangePrisonersVerb.cs`, `Verbs/ExternalVerbAdapter.cs`, and 4 more
+- `CalradiaRemembers.Verbs` uses `CalradiaRemembers.Mapping` in 8 files: `Verbs/BuyPrisonerVerb.cs`, `Verbs/ExchangePrisonersVerb.cs`, `Verbs/ExternalVerbAdapter.cs`, and 5 more
 
 #### `CalradiaRemembers.Stance` and `CalradiaRemembers.WorldEvents`
 
@@ -643,7 +643,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 #### `CalradiaRemembers.GameState` and `CalradiaRemembers.Verbs`
 
 - `CalradiaRemembers.GameState` uses `CalradiaRemembers.Verbs` in 2 file(s): `GameState/BannerlordGameStateBridge.cs`, `GameState/ExchangeService.cs`
-- `CalradiaRemembers.Verbs` uses `CalradiaRemembers.GameState` in 27 files: `Verbs/AdmitSecretLoverVerb.cs`, `Verbs/ArrangeMatchVerb.cs`, `Verbs/BuyPrisonerVerb.cs`, and 24 more
+- `CalradiaRemembers.Verbs` uses `CalradiaRemembers.GameState` in 28 files: `Verbs/AdmitSecretLoverVerb.cs`, `Verbs/ArrangeMatchVerb.cs`, `Verbs/BuyPrisonerVerb.cs`, and 25 more
 
 #### `CalradiaRemembers.Jealousy` and `CalradiaRemembers.Mapping`
 

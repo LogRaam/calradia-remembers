@@ -112,6 +112,7 @@ namespace CalradiaRemembers.Logic
             case "pay_bounty": return "A bounty paid off";
             case "extort": return "A threat for coin";
             case "expose_secret": return "A secret told";
+            case "reconcile_with": return "Peace made";
             case "grant_blessing": return "A blessing given";
             case "mediate_peace": return "Peace brokered";
 

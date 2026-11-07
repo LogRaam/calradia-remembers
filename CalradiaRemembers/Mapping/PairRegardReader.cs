@@ -5,6 +5,8 @@
 // engine's death mark), the speaker's own grudges and appreciations of the other, the campaign's written past (authored:
 // actors and those harmed), a capture and a defeat in battle recorded by the game (captive, then captor; winner, then
 // loser). A battle or a war naming both, with no side known, is left out.
+// kurushimi00 (Nexus, 06/11/2026): a peace made in conversation (PairPeaceBehavior, one per direction) lays to rest what
+// its holder held against the other up to that day, as PairPeacePolicy rules; a slain kinsman stays.
 
 #region
 
@@ -51,17 +53,44 @@ namespace CalradiaRemembers.Mapping
          }
       }
 
-      /// <summary>The facts, for cr.test all.</summary>
-      internal static PairRegardFacts Facts(Hero speaker, Hero other, int today)
+      /// <summary>
+      ///   True when <paramref name="speaker" /> still holds against <paramref name="other" /> something a peace made in
+      ///   conversation could lay to rest: what reconcile_with is taught for, and refused without. Never throws.
+      /// </summary>
+      public static bool HoldsPardonableAgainst(Hero speaker, Hero other)
       {
+         try
+         {
+            if (speaker == null || other == null || speaker == other || other == Hero.MainHero) return false;
+
+            var pardonable = new List<PairWrongKind>();
+            Facts(speaker, other, (int) CampaignTime.Now.ToDays, pardonable);
+
+            return pardonable.Count > 0;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[REGARD] could not read what {speaker?.Name} holds against {other?.Name}: {ex.Message}");
+
+            return false;
+         }
+      }
+
+      /// <summary>The facts, for cr.test all.</summary>
+      internal static PairRegardFacts Facts(Hero speaker, Hero other, int today) => Facts(speaker, other, today, null);
+
+      // pardonable, when given, collects each wrong still weighing that a peace could lay to rest.
+      private static PairRegardFacts Facts(Hero speaker, Hero other, int today, List<PairWrongKind> pardonable)
+      {
+         int? peaceDay = PairPeaceBehavior.Instance?.PeaceDay(speaker.StringId, other.StringId);
          int daysInYear = Math.Max(1, CampaignTime.DaysInSeason * CampaignTime.SeasonsInYear);
          var age = new PastMentionRequest {Today = today, DaysInYear = daysInYear};
          int YearsAgo(int day) => Math.Max(0, (today - day) / daysInYear);
 
          var traces = new List<PairRegardTrace>();
          AddKinKilled(traces, speaker, other, today, age);
-         AddGrudgesAndKindnesses(traces, speaker, other, today);
-         AddSharedPast(traces, speaker, other, age, YearsAgo);
+         AddGrudgesAndKindnesses(traces, speaker, other, today, peaceDay, pardonable);
+         AddSharedPast(traces, speaker, other, age, YearsAgo, peaceDay, pardonable);
 
          bool parentOrChild = speaker.Father == other || speaker.Mother == other || other.Father == speaker || other.Mother == speaker;
          bool sibling = speaker.Siblings != null && speaker.Siblings.Contains(other);
@@ -73,7 +102,8 @@ namespace CalradiaRemembers.Mapping
             SameClan = speaker.Clan != null && speaker.Clan == other.Clan,
             RealmsAtWar = speaker.MapFaction != null && other.MapFaction != null && FactionManager.IsAtWarAgainstFaction(speaker.MapFaction, other.MapFaction),
             Traces = traces,
-            OutsideTraces = CrPairRegard.TracesFor(speaker, other, today)
+            OutsideTraces = CrPairRegard.TracesFor(speaker, other, today),
+            MadePeace = peaceDay.HasValue
          };
       }
 
@@ -117,16 +147,22 @@ namespace CalradiaRemembers.Mapping
       }
 
       // The speaker's own grudges against the other and his appreciations of them, as the ledgers weigh them today.
-      private static void AddGrudgesAndKindnesses(List<PairRegardTrace> traces, Hero speaker, Hero other, int today)
+      private static void AddGrudgesAndKindnesses(List<PairRegardTrace> traces, Hero speaker, Hero other, int today, int? peaceDay, List<PairWrongKind> pardonable)
       {
          if (GrudgeBehavior.Instance != null)
          {
             Logic.Grudges.TraitFacts traits = GrudgeBridge.BuildTraitFacts(speaker);
             foreach (Grudge g in GrudgeBehavior.Instance.LiveGrudgesFor(speaker, today).Where(g => g.TargetId == other.StringId))
+            {
+               var wrong = new PairWrongFacts {Kind = PairWrongKind.Grudge, Day = g.EventDay, Resolution = g.ResolutionKind, PeaceDay = peaceDay};
+               if (PairPeacePolicy.Cancels(wrong)) continue;
+               if (PairPeacePolicy.Pardonable(wrong.Kind, wrong.Resolution)) pardonable?.Add(wrong.Kind);
+
                traces.Add(new PairRegardTrace {
                   Weight = -GrudgePolicy.EffectiveMagnitude(g, today, traits), Line = $"your grudge: {g.CauseSummary}", KnownToPlayer = g.KnownToPlayer,
                   PageLine = $"a grudge: {ShownText.Of(g.CauseSummary)}"
                });
+            }
          }
 
          if (AppreciationBehavior.Instance != null)
@@ -142,7 +178,8 @@ namespace CalradiaRemembers.Mapping
 
       // What the world remembers of the two: the campaign's written past by its actors and harmed, and the game's own
       // captures and battles by their order (captive then captor; winner then loser).
-      private static void AddSharedPast(List<PairRegardTrace> traces, Hero speaker, Hero other, PastMentionRequest age, Func<int, int> yearsAgo)
+      private static void AddSharedPast(List<PairRegardTrace> traces, Hero speaker, Hero other, PastMentionRequest age, Func<int, int> yearsAgo,
+                                        int? peaceDay, List<PairWrongKind> pardonable)
       {
          WorldEventStore store = WorldEventStore.Instance;
          if (store == null) return;
@@ -160,12 +197,14 @@ namespace CalradiaRemembers.Mapping
             List<string> harmed = e.AggrievedActorIds ?? new List<string>();
 
             int weight = 0;
+            PairWrongKind wrongKind = PairWrongKind.AuthoredWrong;
             SharedPastKind past = SharedPastPolicy.KindOf(e.Status);
             if (past != SharedPastKind.None)
             {
                // A generated past (SharedPastBehavior): the kind's own weight for this side, aged from today.
                if (actors.Count >= 2 && (actors[0] == me || actors[1] == me))
                   weight = SharedPastPolicy.WeightToward(past, actors[0] == me, years);
+               wrongKind = PairWrongKind.SharedPastGrievance;
             }
             else if (e.IsAuthored)
             {
@@ -178,9 +217,22 @@ namespace CalradiaRemembers.Mapping
                   weight = PairRegardPolicy.WrongedInThePast(years);
             }
             else if (e.Status == LongTermHistoryPolicy.CaptureStatus && actors.Count >= 2 && actors[0] == me && actors[1] == them)
+            {
                weight = PairRegardPolicy.TakenCaptive(years);
+               wrongKind = PairWrongKind.TakenCaptive;
+            }
             else if (e.Type == WorldEventType.Battle && actors.Count >= 2 && actors[0] == them && actors[1] == me)
+            {
                weight = PairRegardPolicy.BeatenInBattle(years);
+               wrongKind = PairWrongKind.BeatenInBattle;
+            }
+
+            if (weight < 0)
+            {
+               var wrong = new PairWrongFacts {Kind = wrongKind, Day = e.Day, PeaceDay = peaceDay};
+               if (PairPeacePolicy.Cancels(wrong)) continue;
+               pardonable?.Add(wrongKind);
+            }
 
             if (weight != 0) traces.Add(new PairRegardTrace {Weight = weight, Line = line, KnownToPlayer = known});
          }

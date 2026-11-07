@@ -1492,7 +1492,8 @@ namespace CalradiaRemembers.Chat
                   OfferedItemId = _offer.OfferedItemId,
                   OfferedBundle = _offer.OfferedBundle,
                   ItemOnTheTableId = _offer.ItemOnTheTable,
-                  PlayerWordsThisConversation = playerWords
+                  PlayerWordsThisConversation = playerWords,
+                  PresentHeroIds = SeatedMembers().HeroIds.Where(id => !string.IsNullOrEmpty(id)).ToList()
                };
                // B2 (quest audit): at most one change_relation applies per turn, so a weak model that emits
                // several negative blocks cannot pile the RelationGate's per-call -15 floor into -75.
@@ -1610,7 +1611,7 @@ namespace CalradiaRemembers.Chat
 
                   ActionContext actorActionContext = ReferenceEquals(actorProfile, profile)
                      ? actionContext
-                     : new ActionContext(actorProfile, emittedForGate) {OfferedItemId = _offer.OfferedItemId, OfferedBundle = _offer.OfferedBundle, ItemOnTheTableId = _offer.ItemOnTheTable, PlayerWordsThisConversation = playerWords};
+                     : new ActionContext(actorProfile, emittedForGate) {OfferedItemId = _offer.OfferedItemId, OfferedBundle = _offer.OfferedBundle, ItemOnTheTableId = _offer.ItemOnTheTable, PlayerWordsThisConversation = playerWords, PresentHeroIds = actionContext.PresentHeroIds};
 
                   // Coin/commit actions are preprocessed: a repeat of one already resolved this conversation is
                   // dropped (the LLM re-emitting the same transfer), and a player-outgoing spend (take_gold /

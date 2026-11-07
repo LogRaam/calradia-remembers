@@ -130,6 +130,9 @@ namespace CalradiaRemembers.Mapping
       /// <summary>extort (Gabriel, 23/10/2026): only to someone the player has a hold over that the game can verify; expose_secret: only while they hold an affair to tell.</summary>
       private static readonly string[] ExtortionVerbs = {"extort", "expose_secret"};
 
+      /// <summary>reconcile_with (kurushimi00, 06/11/2026): only while someone present is someone this character holds a pardonable wrong against.</summary>
+      private static readonly string[] PeaceVerbs = {"reconcile_with"};
+
       /// <summary>
       ///   CR's own verbs taught by another path, so they belong in no list here: pay_for_silence inline in the held-secret
       ///   section (its TeachingText is null), rob_npc, assault_npc and kill_npc by their catalogue line, in both compositions.
@@ -139,7 +142,7 @@ namespace CalradiaRemembers.Mapping
       /// <summary>Every verb name a teaching list here composes, for the coverage guard (cr.test every_verb_taught).</summary>
       internal static IEnumerable<string> VerbsInTeachingLists
          => CourtVerbsBeforePledge.Concat(ReciprocalCourtVerbs).Concat(CourtVerbsAfterPledge).Concat(TaskVerbs).Concat(PrisonerTradeVerbs)
-                                  .Concat(DivorceVerbs).Concat(HouseVerbs).Concat(GrudgeVerbs).Concat(ConfessionVerbs).Concat(LawVerbs).Concat(ExtortionVerbs);
+                                  .Concat(DivorceVerbs).Concat(HouseVerbs).Concat(GrudgeVerbs).Concat(ConfessionVerbs).Concat(LawVerbs).Concat(ExtortionVerbs).Concat(PeaceVerbs);
 
       // Prisoner trade (08/07/2026): the NPC may BUY a captive the player holds, or SELL one his clan holds.
       private static readonly string[] PrisonerTradeVerbs = {"buy_prisoner", "sell_prisoner", "exchange_prisoners"};
@@ -821,7 +824,7 @@ namespace CalradiaRemembers.Mapping
             // Fixes a player report: a pregnant NPC woman denied being with child in chat because her
             // pregnancy state was never injected into the prompt. See ResolvePregnancyNote.
             PregnancyNote = ResolvePregnancyNote(hero),
-            ExtraActionTeachings = ResolveExtraActionTeachings(hero, profile, playerStatus, bridge, playerMessage),
+            ExtraActionTeachings = ResolveExtraActionTeachings(hero, profile, playerStatus, bridge, playerMessage, witnesses),
             UnavailableDeeds = ResolveUnavailableDeeds(hero, profile, playerStatus, bridge, playerMessage)
             // PlayerPurseGold is deliberately NOT fed: an NPC cannot see the player's liquid
             // coin, and naming the exact sum broke immersion. Affordability is enforced by the
@@ -1778,13 +1781,16 @@ namespace CalradiaRemembers.Mapping
                                                         NpcProfile profile,
                                                         PlayerStatusVsNpc playerStatus,
                                                         IGameStateBridge bridge,
-                                                        string playerMessage)
+                                                        string playerMessage,
+                                                        IReadOnlyList<WitnessEntry> witnesses = null)
       {
          if (hero == null || profile == null) return null;
          if (playerStatus == PlayerStatusVsNpc.Captive) return null;
 
          var sb = new StringBuilder();
-         var verbCtx = new VerbContext(hero, profile, bridge, playerMessage, null);
+         var verbCtx = new VerbContext(hero, profile, bridge, playerMessage, null) {
+            OthersPresentIds = witnesses?.Select(w => w?.HeroStringId).Where(id => !string.IsNullOrEmpty(id) && id != hero.StringId).ToList()
+         };
 
          // give_influence, lend_troops, sway_opinion: migrated to the IConversationVerb contract
          // (CalradiaRemembers.Verbs); the pledge_against block below still sits between these and
@@ -1837,6 +1843,9 @@ namespace CalradiaRemembers.Mapping
 
          // extort and expose_secret, only while the player really holds what they would use.
          sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, ExtortionVerbs));
+
+         // reconcile_with, only while someone present is someone this character could make peace with.
+         sb.Append(VerbRegistry.Instance.ComposeTeachings(verbCtx, PeaceVerbs));
 
          // Their own hidden affair: theirs to keep, never to lie about (Gabriel, 01/11/2026). The bond pack refuses a secret by design.
          sb.Append(HiddenAffairBehavior.Instance?.PromptFor(hero));

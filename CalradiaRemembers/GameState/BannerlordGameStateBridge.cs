@@ -239,7 +239,7 @@ namespace CalradiaRemembers.GameState
          "part_ways", "give_influence", "lend_troops", "give_troops", "spend_influence", "sway_opinion",
          "release_prisoner", "buy_prisoner", "sell_prisoner", "exchange_prisoners", "end_marriage", "leave_house_to_wed", "make_amends", "grudge_terms", "hear_account", "pledge_against", "press_for_war",
          "accept_divorce", "decline_divorce", "end_own_marriage", "teach_skill", "admit_secret_lover", "pay_for_silence",
-         "rob_npc", "assault_npc", "kill_npc", "extort", "expose_secret", "reinforce_garrison", "share_intel", "deliver_recruits", "arrange_match", "enact_edict", "pay_bounty",
+         "rob_npc", "assault_npc", "kill_npc", "extort", "expose_secret", "reconcile_with", "reinforce_garrison", "share_intel", "deliver_recruits", "arrange_match", "enact_edict", "pay_bounty",
          // ChatViewModel chat-flow controls: real LLM-emittable actions, never dispatched by the switch below.
          "witness_leaves", "request_privacy", "retire"
       };
@@ -397,6 +397,8 @@ namespace CalradiaRemembers.GameState
             // Extortion (Gabriel, 23/10/2026): the verb reads the hold and the day's answer itself.
             case "extort":
             case "expose_secret":
+            // reconcile_with (kurushimi00, 06/11/2026): the verb finds the one it makes peace with among those present.
+            case "reconcile_with":
                return VerbRegistry.Instance.Execute(action, new VerbContext(npcHero, context?.Profile, this, null, context));
             case "sway_opinion":
                return ExecuteSwayOpinion(action, npcHero, context);

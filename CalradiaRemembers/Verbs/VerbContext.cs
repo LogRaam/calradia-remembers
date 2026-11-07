@@ -2,6 +2,7 @@
 
 #region
 
+using System.Collections.Generic;
 using CalradiaRemembers.GameState;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
@@ -42,5 +43,11 @@ namespace CalradiaRemembers.Verbs
 
         /// <summary>The per-exchange action context (emitted event, offered item id); null while merely teaching.</summary>
         public ActionContext ActionContext { get; }
+
+        /// <summary>
+        ///   While teaching, the StringIds of the others present in the scene (witnesses, the host); null when the speaker
+        ///   is alone with the player or the path knows no scene. At execution, read ActionContext.PresentHeroIds.
+        /// </summary>
+        public IReadOnlyList<string> OthersPresentIds { get; set; }
     }
 }

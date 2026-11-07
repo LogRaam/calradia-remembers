@@ -617,6 +617,13 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 - can be invalidated mid-turn by: `join_clan`, `recruit_prisoner`, `turn_nemesis`, each of which writes `Clan`
 - the bridge refuses: never
 
+### reconcile_with
+
+- executor: `Execute`
+- taught in: no prompt section names it
+- taught when: no gate found
+- the bridge refuses: never
+
 ### recruit_notable
 
 - executor: `ExecuteRecruitNotable`

@@ -72,6 +72,12 @@ namespace CalradiaRemembers.Logic
         ///   more than <see cref="PairRegardPolicy.OutsideCap" /> either way.
         /// </summary>
         public IReadOnlyList<PairRegardTrace> OutsideTraces { get; init; } = Array.Empty<PairRegardTrace>();
+
+        /// <summary>
+        ///   The speaker made peace with the other in a conversation (kurushimi00, 06/11/2026): the wrongs that peace laid to
+        ///   rest are already out of <see cref="Traces" />; this says the pair has a story even when nothing is left.
+        /// </summary>
+        public bool MadePeace { get; init; }
     }
 
     /// <summary>The speaker's regard for the other: points on the regard scale, the verdict, and the reasons, strongest first.</summary>
@@ -82,6 +88,12 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>The traces, the ones that agree with the verdict first, strongest first.</summary>
         public IReadOnlyList<PairRegardTrace> Reasons { get; init; } = Array.Empty<PairRegardTrace>();
+
+        /// <summary>
+        ///   The speaker made peace with the other and holds nothing that makes an enemy of them since: the page must not
+        ///   fall back on the game's own list and show them as enemies again (kurushimi00, 06/11/2026).
+        /// </summary>
+        public bool Reconciled { get; init; }
     }
 
     /// <summary>Weighs what lies between two characters into a verdict with its reason.</summary>
@@ -178,7 +190,7 @@ namespace CalradiaRemembers.Logic
                                                   .ThenByDescending(t => ownSet.Contains(t))
                                                   .ToList();
 
-            return new PairRegard {Points = points, Verdict = verdict, Reasons = reasons};
+            return new PairRegard {Points = points, Verdict = verdict, Reasons = reasons, Reconciled = f.MadePeace && verdict != PairRegardVerdict.Enemy};
         }
 
         /// <summary>

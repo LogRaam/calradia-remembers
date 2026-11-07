@@ -52,6 +52,13 @@ namespace CalradiaRemembers.GameState
         ///   the word was said (Maifailun, 01/10/2026: a bow turned a lady against someone nobody had named).
         /// </summary>
         public string PlayerWordsThisConversation { get; set; }
+
+        /// <summary>
+        ///   The StringIds of every character present in this conversation (the main one and each witness), or null on a
+        ///   path that carries no scene. A verb between two people in the room reads it (kurushimi00, 06/11/2026: peace is
+        ///   made with someone sitting there, never with a name).
+        /// </summary>
+        public IReadOnlyList<string> PresentHeroIds { get; set; }
     }
 
     /// <summary>Goods chosen in the bag for one gift, each with its amount, handed over once.</summary>

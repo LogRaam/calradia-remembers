@@ -297,7 +297,13 @@ namespace CalradiaRemembers.Encyclopedia
          foreach (Hero other in vanillaFriends.Concat(vanillaEnemies).Concat(PairRegardReader.TiedTo(hero)).Distinct())
          {
             PairRegard r = PairRegardReader.Assess(hero, other);
-            if (r.Verdict == PairRegardVerdict.Neither) continue;
+            if (r.Verdict == PairRegardVerdict.Neither)
+            {
+               // kurushimi00 (06/11/2026): made peace and holding nothing since, they leave the game's own list too.
+               if (r.Reconciled) turned.Add(other);
+
+               continue;
+            }
 
             turned.Add(other);
             string why = PairRegardPolicy.PageReason(r);

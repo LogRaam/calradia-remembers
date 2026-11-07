@@ -220,6 +220,8 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new Mapping.HiddenAffairBehavior());
          // Where each pair's history begins, and relations between NPCs written on their own slot (tashmetu, 04/11/2026).
          campaignStarter.AddBehavior(new Mapping.RelationLedgerBehavior());
+         // The peaces characters make with one another in a conversation, one per direction (kurushimi00, 06/11/2026).
+         campaignStarter.AddBehavior(new Mapping.PairPeaceBehavior());
          campaignStarter.AddBehavior(new Letters.VillagesSparedLetterBehavior());
          Letters.LetterIntentionResolver.WarDutyOpenFor = id =>
          {

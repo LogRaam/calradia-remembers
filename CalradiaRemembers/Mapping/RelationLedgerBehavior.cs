@@ -12,6 +12,7 @@ using System;
 using System.Text;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Relations;
+using NpcMemoryService.Core.Standing;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 
@@ -77,6 +78,19 @@ namespace CalradiaRemembers.Mapping
       ///   The heads of two houses, or two of one house, go through the game's action (the slot is theirs either way, and
       ///   the game hears of it); anyone else is written directly, so their clan leader is left out of it.
       /// </summary>
+      /// <summary>The game's own number between the two, as their slot holds it.</summary>
+      internal static int Between(Hero a, Hero b) => a == null || b == null || a == b ? 0 : CharacterRelationManager.GetHeroRelation(a, b);
+
+      /// <summary>
+      ///   Brings the pair's number back to even when it is below, never above: two who made their peace (kurushimi00,
+      ///   06/11/2026) should not stay on the game's own enemy lists.
+      /// </summary>
+      internal static void EvenOut(Hero a, Hero b)
+      {
+         int now = Between(a, b);
+         if (now < VanillaRelation.NeutralTier) Change(a, b, VanillaRelation.NeutralTier - now);
+      }
+
       internal static void Change(Hero a, Hero b, int delta)
       {
          if (a == null || b == null || a == b || delta == 0) return;

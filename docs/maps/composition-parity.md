@@ -23,7 +23,7 @@ those rows are not compared.
 - `Parity`: `same` when both readers are taught it (or neither) in Full; otherwise which one, and the reason it is
   allowed for now, from the list `CompositionParityTests` holds (it may only shrink).
 
-89 verbs: 60 the same for both readers, 1 taught to one reader only, 28 not compared (taught by the mod's own text).
+90 verbs: 60 the same for both readers, 1 taught to one reader only, 29 not compared (taught by the mod's own text).
 
 | Verb | Interpreter | Interpreter, Compact | Prose | Prose, Compact | Prose taught in | Prose, nothing open | Mod text | Bridge | Parity |
 |---|---|---|---|---|---|---|---|---|---|
@@ -89,6 +89,7 @@ those rows are not compared.
 | `press_for_war` | yes | yes |  |  |  |  | yes | yes | not compared |
 | `reassure_companion` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `recall_companion` | yes | yes | yes | yes | everything open |  |  | yes | same |
+| `reconcile_with` | yes | yes |  |  |  |  | yes | yes | not compared |
 | `recruit_notable` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `recruit_prisoner` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `reinforce_garrison` | yes | yes |  |  |  |  | yes | yes | not compared |

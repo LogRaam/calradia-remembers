@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 634 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1536 types in 55 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 636 types in 65 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1539 types in 55 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -589,7 +589,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterBoxNavigationItemVM` | internal class | A genuine nav-bar item that opens the letter box, its badge counting the letters waiting. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (56)
+### CalradiaRemembers.Mapping (57)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -624,6 +624,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NarrativeLoader` | public static class | Loads narrative text files from the mod's ModuleData folder at session launch. |
 | `NatureReader` | internal static class | Rolls and reads a character's fear, superstition and gift tastes. |
 | `PairBondReader` | internal static class | Reads how two NPCs stand with each other, personally and between their houses. |
+| `PairPeaceBehavior` | public class | The day each character made peace with another, by direction. |
 | `PairRegardReader` | internal static class | Reads what lies between two characters into PairRegardFacts, and assesses it. |
 | `PlayerDressResolver` | public static class | Resolves the player's live PlayerDressBand from Hero.MainHero's equipment. |
 | `PlayerDungeons` | public static class | Where the player left each prisoner, by hero id. |
@@ -886,7 +887,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrSpikeState` | public class | The spike's game state: deliberately empty, it exists only to be pushed so a screen binds to it. |
 | `SpikeCaptiveBarterable` | internal class | A captive the player holds, offered to a buyer at the price our policy lets that buyer pay. |
 
-### CalradiaRemembers.Verbs (30)
+### CalradiaRemembers.Verbs (31)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -912,6 +913,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PressForWarBehavior` | public class | The pressings under way: a persuaded lord's house files the game's own war proposal when he reaches court, if the game still allows it then (a peace made meanwhile, another proposal, an emptied treasury of influence each... |
 | `PressForWarVerb` | public class | press_for_war: a lord, truly persuaded by the player, resolves to press his realm's court toward war against a named realm. |
 | `PrisonerRansomExecutor` | internal static class | Settles a prisoner ransom (a lord buys a captive the player holds) outside the chat verb path. |
+| `ReconcileWithVerb` | public class | reconcile_with: the speaker lays to rest what they held against someone present. |
 | `ReinforceGarrisonVerb` | public class | reinforce_garrison (fkasad, Nexus, 01/10/2026: "Works for garrison reinforcement too"): the player hands over the men a governor or lord asked for, and they go straight onto the walls of the place named in the task. |
 | `ReleasePrisonerVerb` | public class | release_prisoner (RP with teeth, increment 1): the player intercedes for a THIRD-PARTY hero prisoner the NPC's own clan holds (not the player's own captive, that is free_prisoner). |
 | `SellPrisonerVerb` | public class | sell_prisoner: the NPC hands the player a hero captive their clan holds, for the player's gold. |
@@ -2163,7 +2165,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FolkTale` | public class | One tale as written in a folklore file. |
 | `FolkTalePolicy` | public static class | Reads folklore files and decides which tales a character carries. |
 
-### CalradiaRemembers.Logic.Grudges (33)
+### CalradiaRemembers.Logic.Grudges (36)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2192,6 +2194,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GrudgeSource` | public enum | Where a Grudge came from. |
 | `GrudgeToneArbiter` | public static class | Pure precedence rule: whether a dominant live grudge outranks the NPC's overall regard for the player's tone this turn, and the directive line to voice when it does. |
 | `MigrationCandidate` | public class | One backfill candidate: a persisted marker the engine-side scan recognized, plus every fact GrudgePolicy needs to decide whether (and how) it becomes a Grudge. |
+| `PairPeacePolicy` | public static class | Which wrongs a peace made in conversation lays to rest. |
+| `PairWrongFacts` | public class | One thing held against the other, and whether a peace made since covers it. |
+| `PairWrongKind` | public enum | What one character may hold against another, as the pair's regard reads it. |
 | `ProfileEventFacts` | public class | A persisted NotableEvent on some NPC's profile, as read by the engine-side scan. |
 | `QuestOutcomeFacts` | public class | A terminated InformalQuest (Expired/Abandoned), as read by the engine-side scan. |
 | `SwayExposedFacts` | public class | Facts for Tier2GrudgeRules.SwayExposedGrudge: the player turned X's opinion against this target, and the target heard of it. |

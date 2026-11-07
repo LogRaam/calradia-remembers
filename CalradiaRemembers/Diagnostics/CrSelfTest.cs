@@ -218,6 +218,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("secret_propagation", Severity.Light, "Mystery-lover (phase 3b-2): record a live lord (forced to neutral regard so he is not the player's confidant) as KNOWING the secret, then drive the REAL propagation (DebugSpreadOnce, bypassing only the daily chance) and assert the secret reaches one of his friends who then knows it too, never the player. Forgets both ledger entries and restores the teller's regard afterwards", TestSecretPropagation),
          new SelfTest("pay_for_silence", Severity.Light, "Mystery-lover (phase 3b-3): mark a companion the player's secret lover and record a live lord as KNOWING it, then drive the REAL bridge dispatch of pay_for_silence with a price and assert the gold moves player->lord, the hush is stamped as recently paid (easing the leverage prompt), and a memory is kept. Restores both purses, the flag, the ledger, and trims the memory afterwards", TestPayForSilence),
          new SelfTest("player_violence", Severity.Light, "Player violence (player request, Inc 2): drives the REAL bridge dispatch of kill_npc against a live lord and asserts THE guarantee, that with the MCM lethal toggle off (its default) the attempt is refused and the victim is still alive. Also checks the scene reader measures both fighters and that robbery is never barred by the lethal toggle. Mutates nothing while the toggle is off", TestPlayerViolence),
+         new SelfTest("reconcile_with", Severity.Light, "kurushimi00 (Nexus, 06/11/2026): Ira and Adram, enemies since a tourney 8 years ago, made peace at the player's table and the encyclopedia still listed them as enemies. Gabriel 07/11: personal grudges, one per direction. On two lords of one realm with nothing between them, records a tourney rivalry 8 years old; asserts each is the other's enemy, the verb is taught to the first with the second present and not when alone, a name not in the room is refused, then the first's real pardon takes the rivalry out of HIS regard only (the second still holds it, and the game's number for the pair waits), then the second's takes it out of hers: neither is an enemy, both are reconciled, the game's number is no longer negative and each remembers the peace. Restores the event, the peaces, the memories and the relation", TestReconcileWith),
          new SelfTest("secret_exposure", Severity.Light, "Gabriel's go 01/11/2026 on expose_secret, the player's own affair included. On a married lord who is the player's secret lover, told to a third lord: the verb is taught saying the listener does not know it, words that name nobody are refused with nothing moved, then the real path records a named Scandal involving the player, the house loses renown and influence, the lover keeps a grudge and a Misdeeds line, their spouse's relation falls and their reaction to the player is queued, the secret is spent and a coin paid for silence reads as a broken bargain. Restores all borrowed state", TestSecretExposure),
          new SelfTest("extortion", Severity.Light, "Gabriel (23/10/2026): extortion on the Misdeeds page; his go 01/11/2026 on a hold the game verifies. On a lord given a hidden affair the player knows of: the verb is taught with the day's answer; a yes moves at most a fifth of the purse, writes the page and a grudge, and closes that lord for a month; a no moves no coin and writes no page; a raid on lands sold a bargain breaks it once, in the real listener. No threat of exposure can be carried out yet. Restores gold, regard, grudges, the page and the ledger", TestExtortion),
          new SelfTest("folk_tales", Severity.Light, "Gabriel (03/11/2026): the tales each people tells around the fire, known as tales, that a character may allude to or tell when asked. For a lord of each people with a folklore file: the context he is built from carries its tales with the one he loves best first and its parts, the same favourite on a second build, and the prompt frames them as stories, not history. A lord of a people with no file carries none. Changes nothing, except giving a lord with no profile yet the one any conversation would", TestFolkTales),
@@ -10055,6 +10056,102 @@ namespace CalradiaRemembers.Diagnostics
             if (backToThePlayer != 0) GiveGoldAction.ApplyBetweenCharacters(null, Hero.MainHero, backToThePlayer, true);
             int backToTheLord = lordGold - lord.Gold;
             if (backToTheLord != 0) GiveGoldAction.ApplyBetweenCharacters(null, lord, backToTheLord, true);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestReconcileWith(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("reconcile_with");
+         WorldEventStore store = WorldEventStore.Instance;
+         PairPeaceBehavior peace = PairPeaceBehavior.Instance;
+         if (t.Skip(store == null || peace == null || behavior.Store == null || Hero.MainHero == null, "no campaign")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         int daysInYear = Math.Max(1, CampaignTime.DaysInSeason * CampaignTime.SeasonsInYear);
+         const string eventId = "selftest_reconcile_with";
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h.IsLord && !h.IsChild && !h.IsPrisoner && h.Clan != null && h.Clan != Clan.PlayerClan && HeroPresence.IsInTheWorld(h)).Take(60).ToList();
+         Hero a = null, b = null;
+         foreach (Hero x in lords)
+         {
+            b = lords.FirstOrDefault(y => y != x && y.Clan != x.Clan && y.MapFaction == x.MapFaction && store.EventsNamingBoth(x.StringId, y.StringId).Count == 0
+                                          && PairRegardReader.Facts(x, y, today).Traces.Count == 0 && PairRegardReader.Facts(y, x, today).Traces.Count == 0
+                                          && !peace.PeaceDay(x.StringId, y.StringId).HasValue && !peace.PeaceDay(y.StringId, x.StringId).HasValue);
+            if (b == null) continue;
+
+            a = x;
+            break;
+         }
+
+         if (t.Skip(a == null, "no two lords of one realm with nothing between them")) return t.Line();
+
+         NpcProfile pa = behavior.Store.Get(a.StringId) ?? HeroProfileMapper.FromHero(a);
+         NpcProfile pb = behavior.Store.Get(b.StringId) ?? HeroProfileMapper.FromHero(b);
+         behavior.Store.Set(pa);
+         behavior.Store.Set(pb);
+         int eventsA = pa.Events.Count, eventsB = pb.Events.Count;
+         int relationBefore = RelationLedgerBehavior.Between(a, b);
+         try
+         {
+            store.RecordHistory(new WorldEvent {
+               Id = eventId, Type = WorldEventType.Other, Status = SharedPastPolicy.StatusPrefix + SharedPastKind.TourneyRivalry,
+               Day = today - 8 * daysInYear, Magnitude = SharedPastPolicy.Magnitude,
+               Summary = SharedPastPolicy.Summary(SharedPastKind.TourneyRivalry, a.Name.ToString(), b.Name.ToString(), null),
+               ActorIds = new List<string> {a.StringId, b.StringId}, SourceMod = "CalradiaRemembers.SelfTest"
+            });
+            // Below zero, as a rivalry leaves it, so the evening-out can be seen.
+            if (relationBefore >= VanillaRelation.NeutralTier) RelationLedgerBehavior.Change(a, b, VanillaRelation.EnemyTier - relationBefore);
+
+            t.Note($"{a.Name} and {b.Name}; before: {PairRegardReader.Assess(a, b).Verdict} / {PairRegardReader.Assess(b, a).Verdict}");
+            // STAKE (kurushimi00): the case itself: a tourney 8 years old still makes enemies of them.
+            t.Expect("theRivalryMakesEnemies", PairRegardReader.Assess(a, b).Verdict == PairRegardVerdict.Enemy && PairRegardReader.Assess(b, a).Verdict == PairRegardVerdict.Enemy, true);
+
+            var present = new List<string> {a.StringId, b.StringId};
+            var teach = new VerbContext(a, pa, behavior.GameStateBridge, null, null) {OthersPresentIds = new List<string> {b.StringId}};
+            string taught = VerbRegistry.Instance.ComposeTeachings(teach, new[] {"reconcile_with"}) ?? "";
+            // STAKE: the speaker is offered the peace only with someone in the room they hold something against.
+            t.Expect("taughtWithTheRivalPresent", taught.Contains("reconcile_with") && taught.Contains(b.Name.ToString()), true);
+            string alone = VerbRegistry.Instance.ComposeTeachings(new VerbContext(a, pa, behavior.GameStateBridge, null, null), new[] {"reconcile_with"}) ?? "";
+            // STAKE: alone with the player there is no one to make peace with, so nothing is spent teaching it.
+            t.Expect("notTaughtAlone", alone.Contains("reconcile_with"), false);
+
+            ActionOutcome nobody = VerbRegistry.Instance.Execute(new GameAction {Type = "reconcile_with", Parameters = new Dictionary<string, string> {{"target", "Someone Absent"}}},
+               new VerbContext(a, pa, behavior.GameStateBridge, null, new ActionContext(pa, null) {PresentHeroIds = present}));
+            t.Note(nobody?.Message);
+            // STAKE: peace is made with a person in the room, never with a name the model reaches for.
+            t.Expect("aNameNotInTheRoomIsRefused", peace.PeaceDay(a.StringId, b.StringId).HasValue, false);
+
+            ActionOutcome first = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "reconcile_with", Parameters = new Dictionary<string, string> {{"target", b.Name.ToString()}}},
+               a, new ActionContext(pa, null) {PresentHeroIds = present});
+            t.Note(first?.Message);
+            PairRegard aToB = PairRegardReader.Assess(a, b), bToA = PairRegardReader.Assess(b, a);
+            // STAKE (Gabriel's ruling): his pardon lays HIS grudge to rest, and speaks for no one else.
+            t.Expect("hisPardonEndsHisEnmity", aToB.Verdict != PairRegardVerdict.Enemy && aToB.Reconciled, true);
+            t.Expect("sheStillHoldsTheRivalry", bToA.Verdict, PairRegardVerdict.Enemy);
+            // STAKE: the game keeps one number for the pair, so it waits for both pardons.
+            t.Expect("theGamesNumberWaitsForBoth", RelationLedgerBehavior.Between(a, b) < VanillaRelation.NeutralTier, true);
+
+            behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "reconcile_with", Parameters = new Dictionary<string, string> {{"target", a.Name.ToString()}}},
+               b, new ActionContext(pb, null) {PresentHeroIds = present});
+            bToA = PairRegardReader.Assess(b, a);
+            // STAKE (kurushimi00): both have made their peace: the page no longer calls them enemies.
+            t.Expect("bothReconciled", bToA.Verdict != PairRegardVerdict.Enemy && bToA.Reconciled, true);
+            t.Expect("theGamesNumberEvensOut", RelationLedgerBehavior.Between(a, b) >= VanillaRelation.NeutralTier, true);
+            // STAKE: each keeps the memory of the peace, so they can speak of it.
+            t.Expect("eachRemembersThePeace", pa.Events.Count > eventsA && pb.Events.Count > eventsB, true);
+         }
+         finally
+         {
+            store.RemoveHistory(eventId);
+            peace.Forget(a.StringId, b.StringId);
+            peace.Forget(b.StringId, a.StringId);
+            if (pa.Events.Count > eventsA) pa.Events.RemoveRange(eventsA, pa.Events.Count - eventsA);
+            if (pb.Events.Count > eventsB) pb.Events.RemoveRange(eventsB, pb.Events.Count - eventsB);
+            behavior.Store.Set(pa);
+            behavior.Store.Set(pb);
+            int now = RelationLedgerBehavior.Between(a, b);
+            if (now != relationBefore) RelationLedgerBehavior.Change(a, b, relationBefore - now);
          }
 
          return t.Line();
