@@ -338,7 +338,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 - the bridge refuses:
   - SilentRefusalMessages.GiveGoldNoValidSum()
   - SilentRefusalMessages.GiveGoldGiverInsolvent(npcHero.Name.ToString())
-  - GiftCeilingPolicy.WillNotGiveNote(npcHero.Name.ToString())
+  - GiftCeilingPolicy.WillNotGiveNote(npcHero.Name.ToString(), awaits)
 
 ### give_influence
 

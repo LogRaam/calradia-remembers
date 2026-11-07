@@ -569,6 +569,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("quest_menu", Severity.Light, "viable-quest referential: scan a live lord's grounded quest menu -> assert it is non-empty (there is always something to do), every line carries a known type token, and a named settlement target truly resolves (so QuestFactory will ground the offer by construction)", TestQuestMenu),
          new SelfTest("bandit_clear_gate", Severity.Light, "increment 2b (player report: a village sent me after bandits that were not there, then turned hostile when I reported none): read the LIVE world, count bandit parties within the completion radius of a lord's anchor via the scanner's own counter, build the grounded menu, and assert bandit_clear is offered IFF at least one bandit party roams nearby. Seeds nothing", TestBanditClearGate),
          new SelfTest("provide_gold", Severity.Heavy, "child-support fix: seed a ProvideGold quest -> real take_gold via the bridge (player pays the giver) -> assert the quest is CLOSED (Completed, not stuck 'awaiting reward') and the goodwill regard was paid, since the payment IS the completion (no [QUEST_COMPLETE] needed). Restores gold so the economy is unchanged", TestProvideGoldCompletes),
+         new SelfTest("reward_as_gift", Severity.Heavy, "Cabinaw (Nexus, 06/11/2026): 'NPCs give less than the agreed amount and it says this is all they are willing to part with, even if they have the money.' A cold giver (regard below wary, so no free gift) owes 300 for a task the game VERIFIED done; the model pays it through the REAL give_gold 300, then the REAL QuestService.ApplyResponse settles the turn -> assert the player gained exactly 300 (not 0: the ceiling no longer holds an owed reward back; not 600: the settlement does not pay it twice) and the task is Completed. Then a task NOT yet seen done: give_gold of its reward is held to the ceiling and the notice says the reward comes once the task is recorded done; the task stays Active. Restores gold, regard and the quests", TestRewardAsGift),
          new SelfTest("reward_net", Severity.Heavy, "quest audit B1: the reward SAFETY NET. Seed a quest the game already VERIFIED as done (IsAwaitingReward, as if a lair was cleared days ago) but that the LLM never closed with [QUEST_COMPLETE] -> run the REAL QuestService.ApplyResponse with NO completion claim -> assert the net settles it anyway (Completed, no longer awaiting) and pays the owed reward (gold or regard moves), so the player's 'Done' quest never pays out never. Restores the seed + gold", TestRewardNet),
          new SelfTest("kin_identity", Severity.Light, "DepaHN (Nexus, 26/10/2026): children, grandchildren, siblings and relatives felt cold, told they were family only while they shared no memory with the player. Through the REAL EncounterContextBuilder: a kinsman of the player (a child, a sibling, a parent, else any kin in the player's house) is named by his bond, and a lord of another house who is no blood of the player is named nothing. Read-only", TestKinIdentity),
          new SelfTest("companion_identity", Severity.Light, "fearente (Nexus, 26/10/2026): a companion hired a week before spoke of a childhood shared with the player, and the story the game had the wanderer tell at the first meeting was never remembered. Borrows one of the player's companions: drives the REAL hire listener (CompanionHireBehavior.OnHired) and asserts the REAL EncounterContextBuilder says hired companion, joined today; drives the REAL story keeper twice with the same line and asserts ONE OwnLife memory that keeps it, closed by the line saying the story's people belong to the past (fearente, 29/10/2026: Brave sought the creditor of his backstory), and that the REAL prompt carries that line. Restores the profile's memories and hire day", TestCompanionIdentity),
@@ -11970,6 +11971,80 @@ namespace CalradiaRemembers.Diagnostics
          behavior.Store.Set(clean);
          int goldMoved = Hero.MainHero.Gold - playerGoldBefore;
          if (goldMoved > 0) Hero.MainHero.ChangeHeroGold(-goldMoved);
+
+         return t.Line();
+      }
+
+      private static string TestRewardAsGift(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("reward_as_gift");
+
+         if (t.Abort(Hero.MainHero == null, "no player hero")) return t.Line();
+
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.Gold >= 2000
+                                                              && !h.Clan?.Equals(Clan.PlayerClan) == true);
+
+         if (t.Skip(giver == null, "no live lord with 2000 gold to stand as the giver")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, giver);
+         var today = (int) CampaignTime.Now.ToDays;
+         int regardBefore = profile.ReputationWithPlayer;
+         int? windowDayBefore = profile.GiftWindowStartDay;
+         int giftedBefore = profile.GiftedInWindow;
+         int playerGoldBefore = Hero.MainHero.Gold;
+         int giverGoldBefore = giver.Gold;
+         const string verifiedTag = "[SELFTEST] reward_as_gift verified";
+         const string pendingTag = "[SELFTEST] reward_as_gift pending";
+
+         try
+         {
+            profile.ReputationWithPlayer = -100; // no free gift at this regard: only what is owed can pass
+            var verified = new InformalQuest {
+               Type = QuestType.BanditClear, Description = verifiedTag, IssuedOnDay = today, SatisfiedOnDay = today,
+               RewardGold = 300, Status = QuestStatus.Active
+            };
+            profile.ActiveQuests.Add(verified);
+            behavior.Store.Set(profile);
+
+            ActionOutcome paid = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "give_gold", Parameters = new Dictionary<string, string> {{"amount", "300"}}}, giver, new ActionContext(profile, null));
+            QuestService.ApplyResponse(profile, giver, new ParsedResponse {Dialogue = ""}, today, behavior.GameStateBridge, behavior.Store, (_, _) => { });
+
+            int gained = Hero.MainHero.Gold - playerGoldBefore;
+            InformalQuest after = behavior.Store.Get(giver.StringId)?.ActiveQuests.FirstOrDefault(q => q.Description == verifiedTag);
+            t.Note($"giver={giver.Name}: give_gold said '{paid?.Message}', gained {gained}, status={after?.Status}");
+            t.Expect("ownedRewardPaidOnceInFull", gained, 300);
+            t.Expect("taskCompleted", after?.Status, QuestStatus.Completed);
+
+            // A task not yet seen done: its reward is no debt; give_gold of it is held to the (zero) ceiling and says why.
+            profile = behavior.Store.Get(giver.StringId);
+            var pending = new InformalQuest {Type = QuestType.BanditClear, Description = pendingTag, IssuedOnDay = today, RewardGold = 500, Status = QuestStatus.Active};
+            profile.ActiveQuests.Add(pending);
+            behavior.Store.Set(profile);
+            int goldMid = Hero.MainHero.Gold;
+
+            ActionOutcome held = behavior.GameStateBridge.ExecuteAction(
+               new GameAction {Type = "give_gold", Parameters = new Dictionary<string, string> {{"amount", "500"}}}, giver, new ActionContext(profile, null));
+            InformalQuest stillOpen = behavior.Store.Get(giver.StringId)?.ActiveQuests.FirstOrDefault(q => q.Description == pendingTag);
+            t.Note($"pending: give_gold said '{held?.Message}'");
+            t.Expect("unverifiedRewardNotPaid", Hero.MainHero.Gold - goldMid, 0);
+            t.Expect("noticeSaysItComesOnceDone", held?.Message?.Contains("recorded done") == true, true);
+            t.Expect("pendingTaskStaysActive", stillOpen?.Status, QuestStatus.Active);
+         }
+         finally
+         {
+            NpcProfile clean = behavior.Store.Get(giver.StringId) ?? profile;
+            foreach (InformalQuest q in clean.ActiveQuests.Where(q => q.Description == verifiedTag || q.Description == pendingTag).ToList())
+               QuestJournalBridge.CloseAsCancelled(q, giver, "self-test");
+            clean.ActiveQuests.RemoveAll(q => q.Description == verifiedTag || q.Description == pendingTag);
+            clean.ReputationWithPlayer = regardBefore;
+            clean.GiftWindowStartDay = windowDayBefore;
+            clean.GiftedInWindow = giftedBefore;
+            behavior.Store.Set(clean);
+            int moved = Hero.MainHero.Gold - playerGoldBefore;
+            if (moved != 0) Hero.MainHero.ChangeHeroGold(-moved);
+            if (giver.Gold != giverGoldBefore) giver.ChangeHeroGold(giverGoldBefore - giver.Gold);
+         }
 
          return t.Line();
       }

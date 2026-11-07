@@ -117,6 +117,41 @@ namespace CalradiaRemembers.Tests
                           .Should().Contain("all Rhagaea holds");
       }
 
+      // STAKE (Cabinaw): a reward for a task the game has seen done is owed, not given; a cold giver pays it in full.
+      [Test]
+      public void GIVEN_a_verified_task_reward_owed_WHEN_regard_allows_no_gift_THEN_the_reward_is_still_payable()
+      {
+         GiftCeilingPolicy.Ceiling(new GiftFacts {Purse = 10000, Regard = -100, OwedForTask = 2000}).Should().Be(2000);
+      }
+
+      // STAKE (Cabinaw): an owed reward never goes beyond what the purse holds.
+      [Test]
+      public void GIVEN_a_verified_task_reward_beyond_the_purse_WHEN_weighed_THEN_the_purse_bounds_it()
+      {
+         GiftCeilingPolicy.Ceiling(new GiftFacts {Purse = 800, Regard = -100, OwedForTask = 2000}).Should().Be(800);
+      }
+
+      // STAKE (Cabinaw): paying a reward does not use up the giver's goodwill for real gifts later.
+      [Test]
+      public void GIVEN_a_sum_handed_over_WHEN_a_task_reward_is_owed_THEN_the_owed_part_goes_to_the_task_first()
+      {
+         var facts = new GiftFacts {Purse = 10000, OwedForTask = 300, OwedByOath = 500};
+
+         GiftCeilingPolicy.TowardTasks(facts, 1000).Should().Be(300);
+         GiftCeilingPolicy.Owed(facts).Should().Be(800);
+      }
+
+      // STAKE (Cabinaw): when a task is not yet seen done, the player is told the agreed reward will come, not left
+      // thinking the giver cheats them.
+      [Test]
+      public void GIVEN_a_task_reward_not_yet_verified_WHEN_less_is_given_THEN_the_notice_says_it_comes_once_the_task_is_done()
+      {
+         GiftCeilingPolicy.ReducedNote(new GiftOutcome {Asked = 2000, Given = 100, GiverName = "Rhagaea", TaskRewardAwaitsTheDeed = true})
+                          .Should().Contain("paid in full once the task is recorded done");
+         GiftCeilingPolicy.WillNotGiveNote("Rhagaea", true).Should().Contain("paid in full once the task is recorded done");
+         GiftCeilingPolicy.WillNotGiveNote("Rhagaea").Should().NotContain("task");
+      }
+
       // STAKE: when the sum named is the sum paid there is nothing to explain.
       [Test]
       public void GIVEN_the_sum_named_was_given_WHEN_the_notice_is_written_THEN_nothing_is_added()

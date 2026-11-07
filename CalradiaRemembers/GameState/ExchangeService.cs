@@ -36,13 +36,37 @@ namespace CalradiaRemembers.GameState
       public static GiftFacts GiftFactsFor(Hero giver, NpcProfile profile) => new() {
          Purse = giver?.Gold ?? 0, Regard = profile?.ReputationWithPlayer ?? 0,
          GivenInWindow = GiftCeilingPolicy.GivenStill(profile?.GiftWindowStartDay, profile?.GiftedInWindow ?? 0, (int) CampaignTime.Now.ToDays),
-         OwedByOath = CommitmentBehavior.Instance?.OwedBy(giver?.StringId) ?? 0
+         OwedByOath = CommitmentBehavior.Instance?.OwedBy(giver?.StringId) ?? 0,
+         // Cabinaw (06/11/2026): a reward for a task the game has seen done is owed, so the prompt's ceiling and the
+         // action both let it through in full.
+         OwedForTask = profile?.ActiveQuests?.Where(q => q != null && q.IsAwaitingReward).Sum(q => Math.Max(0, q.RewardGold)) ?? 0
       };
 
-      /// <summary>Counts what was freely given against the window. What paid a sworn debt was owed, not given.</summary>
+      /// <summary>
+      ///   Takes what was handed over off the rewards still owed for verified tasks, oldest first, so the settlement that
+      ///   closes those tasks later in the same turn pays only what is left, never the reward a second time (Cabinaw).
+      /// </summary>
+      public static void PayTowardTasks(NpcProfile profile, int amount)
+      {
+         if (profile?.ActiveQuests == null || amount <= 0) return;
+
+         foreach (InformalQuest q in profile.ActiveQuests.Where(q => q != null && q.IsAwaitingReward && q.RewardGold > 0).OrderBy(q => q.IssuedOnDay))
+         {
+            if (amount <= 0) break;
+            int paid = Math.Min(amount, q.RewardGold);
+            q.RewardGold -= paid;
+            amount -= paid;
+         }
+      }
+
+      /// <summary>The giver set the player a task with a gold reward the game has not yet seen done.</summary>
+      public static bool TaskRewardAwaitsTheDeed(NpcProfile profile)
+         => profile?.ActiveQuests?.Any(q => q != null && q.Status == QuestStatus.Active && !q.IsAwaitingReward && q.RewardGold > 0) ?? false;
+
+      /// <summary>Counts what was freely given against the window. What paid a sworn debt or a verified task was owed, not given.</summary>
       public static void RecordGift(NpcProfile profile, GiftFacts gift, int amount)
       {
-         int free = amount - Math.Min(amount, Math.Max(0, gift.OwedByOath));
+         int free = amount - Math.Min(amount, GiftCeilingPolicy.Owed(gift));
          if (profile == null || free <= 0) return;
 
          if (gift.GivenInWindow == 0) profile.GiftWindowStartDay = (int) CampaignTime.Now.ToDays;

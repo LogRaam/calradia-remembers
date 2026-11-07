@@ -1909,6 +1909,10 @@ namespace CalradiaRemembers.GameState
          }
       }
 
+      // Cabinaw (06/11/2026): the model paid a task's reward as a gift before the game saw the task done.
+      private const string TaskRewardNotYetDueNote =
+         "You tried to pay a task's reward as a gift, but the game has not yet recorded that task done. The agreed reward is paid in full, by itself, once it is; do not pay it as a gift before then.";
+
       private static ActionOutcome ExecuteGiveGold(GameAction action, Hero npcHero, ActionContext context)
       {
          if (!TryGetInt(action.Parameters, "amount", out int amount))
@@ -1944,7 +1948,10 @@ namespace CalradiaRemembers.GameState
          {
             ModLog.Info($"[ACTION] give_gold: {npcHero.Name} will give no more (regard {gift.Regard}, given {gift.GivenInWindow} in the window): ignored.");
 
-            return ActionOutcome.Refused(GiftCeilingPolicy.WillNotGiveNote(npcHero.Name.ToString()));
+            bool awaits = ExchangeService.TaskRewardAwaitsTheDeed(profile);
+            if (awaits) LlmFeedbackNotes.Set(profile.Id, TaskRewardNotYetDueNote);
+
+            return ActionOutcome.Refused(GiftCeilingPolicy.WillNotGiveNote(npcHero.Name.ToString(), awaits));
          }
 
          int asked = amount;
@@ -1952,6 +1959,13 @@ namespace CalradiaRemembers.GameState
          amount = ClampInt(amount, 1, payable);
          ExchangeService.Pay(ExchangeKind.Gift, npcHero, Hero.MainHero, amount);
          ExchangeService.RecordGift(profile, gift, amount);
+         // Cabinaw: what paid a verified task's reward comes off it, so the settlement later this turn pays only the rest.
+         int towardTasks = GiftCeilingPolicy.TowardTasks(gift, amount);
+         if (towardTasks > 0)
+         {
+            ExchangeService.PayTowardTasks(profile, towardTasks);
+            ModLog.Info($"[QUEST] give_gold: {towardTasks} of it pays {npcHero.Name}'s verified task reward.");
+         }
          // R7-light (swear_oath): this is ALSO the pay_gold oath's own verification hook, whichever channel
          // the gold actually moved through (this 1:1 action, or the council's own give_gold resolution).
          CalradiaRemembers.Commitments.CommitmentBehavior.Instance?.OnGoldGivenToPlayer(npcHero.StringId, amount);
@@ -1959,7 +1973,11 @@ namespace CalradiaRemembers.GameState
 
          // The map bar does not refresh while campaign time is frozen under the chat
          // overlay — showing the balance here is the player's only live confirmation.
-         string reduced = GiftCeilingPolicy.ReducedNote(new GiftOutcome {Asked = asked, Given = amount, LimitedByPurse = purseHolds, GiverName = npcHero.Name.ToString()});
+         bool rewardAwaits = asked > amount && !purseHolds && ExchangeService.TaskRewardAwaitsTheDeed(profile);
+         if (rewardAwaits) LlmFeedbackNotes.Set(profile.Id, TaskRewardNotYetDueNote);
+         string reduced = GiftCeilingPolicy.ReducedNote(new GiftOutcome {
+            Asked = asked, Given = amount, LimitedByPurse = purseHolds, GiverName = npcHero.Name.ToString(), TaskRewardAwaitsTheDeed = rewardAwaits
+         });
 
          return new ActionOutcome($"{npcHero.Name} gives you {amount} denars{reduced} (purse: {Hero.MainHero.Gold}).", true,
             appliedGoldAmount: amount);
