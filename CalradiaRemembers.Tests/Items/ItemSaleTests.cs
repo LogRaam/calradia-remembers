@@ -8,6 +8,10 @@
 // gift plus a payment the model had to guess the direction of. Gabriel (13/10/2026): a sell_item deal, confirmed by
 // the player. If these fail, the player pays for their own sword, loses a second one, or is promised coin the buyer
 // does not have.
+//
+// 3chmidt again (Nexus, 06/11/2026): the price of an axe came as a give_gold beside the give_item, was judged a gift and
+// cut from 9,600 to 100. Gabriel's go (08/11/2026): coin and item crossing in one turn are one sale. If PartsOfASale is
+// wrong, a purchase is paid as a gift again, or coin is drawn for an item that never moves.
 
 #region
 
@@ -152,6 +156,93 @@ namespace CalradiaRemembers.Tests.Items
       public void GIVEN_no_sale_WHEN_settled_THEN_nothing_is_dropped()
       {
          TradeBatchPolicy.Superseded(new TradeBatchFacts {Actions = new List<TradeBatchAction> {new() {Type = "give_item", Item = "sword"}}}).Should().BeEmpty();
+      }
+
+      // ── Coin and item crossing in one turn ──
+
+      // THE REPORTED CASE (3chmidt, 06/11): Yfinja's coin came as a give_gold and the axe as a give_item. Read as one sale
+      // at the coin handed over, it is paid as a sale, not cut to 100 as a gift.
+      [Test]
+      public void GIVEN_coin_from_the_character_and_an_item_from_the_player_in_one_turn_WHEN_settled_THEN_it_is_one_sale_at_that_coin()
+      {
+         var batch = new List<TradeBatchAction> {
+            new() {Type = "give_gold", Amount = "9600"},
+            new() {Type = "change_relation"},
+            new() {Type = "give_item", Item = "Ancient Trophy Axe"}
+         };
+
+         SaleFromParts sale = TradeBatchPolicy.PartsOfASale(new TradeBatchFacts {Actions = batch});
+
+         sale.Should().NotBeNull();
+         sale.GoldIndex.Should().Be(0);
+         sale.ItemIndex.Should().Be(2);
+         sale.Item.Should().Be("Ancient Trophy Axe");
+         sale.Price.Should().Be(9600);
+      }
+
+      // Coin alone is a gift, and stays one: without an item crossing in the same turn nothing is bought, so the gift
+      // ceiling still holds (a sale cannot be claimed to draw coin for nothing).
+      [Test]
+      public void GIVEN_coin_with_no_item_crossing_WHEN_settled_THEN_it_is_no_sale()
+      {
+         TradeBatchPolicy.PartsOfASale(new TradeBatchFacts {Actions = new List<TradeBatchAction> {new() {Type = "give_gold", Amount = "9600"}}})
+                         .Should().BeNull();
+         TradeBatchPolicy.PartsOfASale(new TradeBatchFacts {Actions = new List<TradeBatchAction> {new() {Type = "give_item", Item = "axe"}}})
+                         .Should().BeNull();
+      }
+
+      // A sell_item already in the turn is the sale: its own rules drop the parts, nothing is built from them.
+      [Test]
+      public void GIVEN_a_sale_already_written_WHEN_settled_THEN_no_second_sale_is_built_from_the_parts()
+      {
+         var batch = new List<TradeBatchAction> {
+            new() {Type = "sell_item", Item = "axe"}, new() {Type = "give_gold", Amount = "9600"}, new() {Type = "give_item", Item = "axe"}
+         };
+
+         TradeBatchPolicy.PartsOfASale(new TradeBatchFacts {Actions = batch}).Should().BeNull();
+      }
+
+      // Two purses or two items cannot be paired with certainty: which coin paid for which thing is a guess, so nothing
+      // is merged and each runs as written.
+      [Test]
+      public void GIVEN_two_payments_or_two_items_WHEN_settled_THEN_nothing_is_paired()
+      {
+         var twoCoins = new List<TradeBatchAction> {new() {Type = "give_gold", Amount = "100"}, new() {Type = "give_gold", Amount = "200"}, new() {Type = "give_item", Item = "axe"}};
+         var twoItems = new List<TradeBatchAction> {new() {Type = "give_gold", Amount = "100"}, new() {Type = "give_item", Item = "axe"}, new() {Type = "give_item", Item = "ring"}};
+
+         TradeBatchPolicy.PartsOfASale(new TradeBatchFacts {Actions = twoCoins}).Should().BeNull();
+         TradeBatchPolicy.PartsOfASale(new TradeBatchFacts {Actions = twoItems}).Should().BeNull();
+      }
+
+      // A sale named in words moves one item: the price written for ten would buy one, so ten in words is left as written.
+      // From the bag the amount set there decides, as in any sale.
+      [Test]
+      public void GIVEN_several_of_an_item_named_in_words_WHEN_settled_THEN_no_sale_is_built_unless_the_bag_set_the_amount()
+      {
+         var batch = new List<TradeBatchAction> {new() {Type = "give_gold", Amount = "900"}, new() {Type = "give_item", Item = "ingot", Count = "10"}};
+
+         TradeBatchPolicy.PartsOfASale(new TradeBatchFacts {Actions = batch}).Should().BeNull();
+         TradeBatchPolicy.PartsOfASale(new TradeBatchFacts {Actions = batch, ItemPickedFromBag = true}).Should().NotBeNull();
+      }
+
+      // At a council table a part carrying another member's name is theirs: pairing it with the speaker's would sell to
+      // the wrong buyer.
+      [Test]
+      public void GIVEN_a_part_belonging_to_another_member_WHEN_settled_THEN_nothing_is_paired()
+      {
+         var batch = new List<TradeBatchAction> {new() {Type = "give_gold", Amount = "900", Actor = "Ira"}, new() {Type = "give_item", Item = "axe"}};
+
+         TradeBatchPolicy.PartsOfASale(new TradeBatchFacts {Actions = batch}).Should().BeNull();
+      }
+
+      // No sum or a sum of nothing is no price.
+      [Test]
+      public void GIVEN_coin_with_no_clear_sum_WHEN_settled_THEN_it_is_no_sale()
+      {
+         TradeBatchPolicy.PartsOfASale(new TradeBatchFacts {Actions = new List<TradeBatchAction> {new() {Type = "give_gold", Amount = "a fair sum"}, new() {Type = "give_item", Item = "axe"}}})
+                         .Should().BeNull();
+         TradeBatchPolicy.PartsOfASale(new TradeBatchFacts {Actions = new List<TradeBatchAction> {new() {Type = "give_gold", Amount = "0"}, new() {Type = "give_item", Item = "axe"}}})
+                         .Should().BeNull();
       }
 
       // ── What the player is asked ──

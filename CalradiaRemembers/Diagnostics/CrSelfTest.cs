@@ -279,6 +279,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("give_bundle", Severity.Light, "Several goods given at once, each in a chosen amount (fearente, Nexus, 29/10/2026: grain, fish and meat had to go one by one, one unit each). Arranges grain and fish in the party, hands a bundle of 3 grain and 2 fish through the REAL give_item executor, and asserts both left in exactly those amounts with ONE give_item, that a second give_item the model writes in the same turn moves nothing more, and that the outcome line names both goods. Restores the party's goods", TestGiveBundle),
          new SelfTest("captive_counter_offer", Severity.Heavy, "Maifailun (Nexus, 14/10/2026): he held Adrichea (Honor -1, a clan leader), asked her to swear fealty or share his bed, she answered 'kill me if you must', and nothing in CR could hold a counter-offer anyway. Takes a free lord of another realm captive, tops up the payer's purse, and drives the REAL counter_offer verb three ways: a fresh ActionConfirmationController queues a 300-denar ransom naming it, the real bridge settles it (player paid, payer charged, lord freed), and a term not open to her (service, regard 0) is refused and moves nothing. A fourth part (fealty actually swearing a house to a real realm) only runs under 'cr.test full', since CR records a realm change as world news; otherwise it notes why. Restores gold, regard, traits and captivity.", TestCaptiveCounterOffer),
          new SelfTest("captive_terms", Severity.Heavy, "A captive bargains for her freedom (Maifailun, 14/10/2026: Adrichea, Honor -1, answered 'kill me if you must'; Gabriel: the captive proposes terms herself, intimacy in Mature and above for the honorless). Takes a free lord of another realm captive, gives them Adrichea's Honor -1 for the test, builds the REAL context and prompt, and expects the captive to be told she offers first, with the ransom her house can pay and intimacy only when the content level, age and orientation allow. Releases the lord and restores their traits.", TestCaptiveTerms),
+         new SelfTest("sale_from_parts", Severity.Light, "3chmidt (Nexus, 06/11/2026): Yfinja agreed 9,600 for an axe and paid 100, the price having come as a give_gold judged as a gift; a stray 'cannot swear a peace' showed beside it. Seeds a trade good and a lord with coin: a give_gold of a price above the gift floor plus a give_item of the good, read through the REAL ChatViewModel.ReadPartsAsASale, must come out as ONE sell_item at that price with no give_gold left; the REAL confirmation queues it naming the item; the REAL bridge then sells it: item gone, player paid the price, not the gift floor. Then a keep_peace oath from a lord who leads no faction is ignored with nothing shown (null outcome). Puts the coin back and removes the seeded goods.", TestSaleFromParts),
          new SelfTest("sell_item", Severity.Light, "Selling an item in chat (3chmidt, 13/10/2026: a sale became a gift plus a payment the wrong way, 'Give Poison Menja 9000 coins?', and a second sword left). Seeds a trade good, sells it to a lord with coin through the real bridge and expects the item gone, the player paid and the lord's purse lighter by the same sum; then a gift written in words (no bag pick) is queued for confirmation naming the real item. Puts the coin back and removes the seeded goods.", TestSellItem),
          new SelfTest("gift_equip", Severity.Light, "gift an equippable weapon to a companion/spouse -> assert they equipped it", TestGiftEquip),
          new SelfTest("gift_keeps_quality", Severity.Light, "avalanche24 (Nexus, 05/11/2026): a Masterwork Noble Bow showed as a plain 'Noble Bow' in the gift bag and was worn as a plain one. With a plain and a fine copy of one weapon in the party (a quality with a price factor above 1 laid on one), the bag's key finds the fine copy and names it with its quality and its higher worth; give_item by that key takes the fine copy and leaves the plain one; the companion or spouse wears it with its quality. Plain copy removed and the receiver's equipment put back", TestGiftKeepsQuality),
@@ -6509,6 +6510,76 @@ namespace CalradiaRemembers.Diagnostics
             int extra = roster.GetItemNumber(good) - heldBefore;
             if (extra > 0) roster.AddToCounts(good, -extra);
          }
+
+         return t.Line();
+      }
+
+      private static string TestSaleFromParts(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("sale_from_parts");
+         ItemRoster roster = MobileParty.MainParty?.ItemRoster;
+         if (t.Abort(roster == null || Hero.MainHero == null, "no player item roster")) return t.Line();
+
+         // A trade good worth enough that its price clears the gift floor, so a gift cap would show.
+         ItemObject good = MBObjectManager.Instance?.GetObjectTypeList<ItemObject>()?.FirstOrDefault(it => it != null && it.IsTradeGood && ItemSalePolicy.MostFor(it.Value) >= 300);
+         if (t.Skip(good == null, "no trade good worth 100 denars in the game data")) return t.Line();
+
+         const int price = 300;
+         Hero buyer = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && h.Gold >= price * 2 && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(buyer == null, "no lord in the world with 600 denars")) return t.Line();
+
+         int heldBefore = roster.GetItemNumber(good);
+         int playerGold = Hero.MainHero.Gold;
+         roster.AddToCounts(good, 1);
+         var paid = 0;
+         try
+         {
+            var parts = new List<GameAction> {
+               new() {Type = "give_gold", Parameters = new Dictionary<string, string> {["amount"] = price.ToString()}},
+               new() {Type = "give_item", Parameters = new Dictionary<string, string> {["item"] = good.Name.ToString()}}
+            };
+            IReadOnlyList<GameAction> read = ChatViewModel.ReadPartsAsASale(parts, null);
+            GameAction sale = read.FirstOrDefault(a => a.Type == "sell_item");
+            // STAKE: the coin and the item crossing in one turn are the sale, so the coin is not judged as a gift.
+            t.Expect("oneSaleNoGift", read.Count == 1 && sale != null && !read.Any(a => a.Type == "give_gold"), true);
+            t.Expect("atTheCoinHandedOver", sale?.Parameters["price"], price.ToString());
+            if (sale == null) return t.Line();
+
+            NpcProfile profile = GetOrCreate(behavior, buyer);
+            var confirmation = new ActionConfirmationController();
+            // STAKE: a sale is the player's to accept, naming the real item.
+            t.Expect("theSaleIsAskedFirst", confirmation.Preprocess(sale, buyer, profile, new ActionContext(profile, null)), ActionDisposition.Queued);
+            t.Expect("theQuestionNamesTheItem", confirmation.DebugNextQuestion?.Contains(good.Name.ToString()) == true, true);
+
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(sale, buyer, new ActionContext(profile, null));
+            paid = Hero.MainHero.Gold - playerGold;
+            t.Note($"{good.Name} to {buyer.Name}: {outcome?.Message}");
+            // STAKE (the report): the price agreed is paid, not cut to the gift floor of 100.
+            t.Expect("thePlayerIsPaidThePrice", paid, price);
+            t.Expect("theItemIsGone", roster.GetItemNumber(good), heldBefore);
+         }
+         finally
+         {
+            if (paid > 0) GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, buyer, paid);
+            int extra = roster.GetItemNumber(good) - heldBefore;
+            if (extra > 0) roster.AddToCounts(good, -extra);
+         }
+
+         Hero vassal = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.Clan?.Kingdom != null && h.Clan.Kingdom.Leader != h
+                                                              && CommitmentBehavior.Instance?.HasActive(h.StringId) == false);
+         if (vassal == null)
+         {
+            t.Note("no vassal without an oath: the stray peace oath is not checked");
+
+            return t.Line();
+         }
+
+         IFaction other = Kingdom.All.FirstOrDefault(k => k != vassal.MapFaction);
+         var peace = new GameAction {Type = "swear_oath", Parameters = new Dictionary<string, string> {["oath_kind"] = "keep_peace", ["target_faction"] = other?.Name?.ToString() ?? ""}};
+         ActionOutcome stray = behavior.GameStateBridge.ExecuteAction(peace, vassal, new ActionContext(GetOrCreate(behavior, vassal), null));
+         // STAKE: a peace sworn by someone who leads no faction is a misreading; the player is shown nothing.
+         t.Expect("aStrayPeaceShowsNothing", stray == null, true);
+         t.Expect("andRecordsNoOath", CommitmentBehavior.Instance.HasActive(vassal.StringId), false);
 
          return t.Line();
       }

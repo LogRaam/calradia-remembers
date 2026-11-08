@@ -768,7 +768,6 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - $"({npcHero.Name} has already given their word on another matter, and will swear no second oath until it is settled.)"
   - SilentRefusalMessages.SwearOathUnknownKind()
   - $"({npcHero.Name} named no clear sum to swear to pay.)"
-  - $"({npcHero.Name} leads no faction of their own, and cannot swear a peace.)"
   - "(No faction by that name could be found to swear peace with.)"
   - $"({npcHero.Name} cannot swear to keep the peace with their own house.)"
   - $"({npcHero.Name} gave their word, but on terms the chronicle " + "cannot set down.)"

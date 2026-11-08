@@ -3198,8 +3198,12 @@ namespace CalradiaRemembers.GameState
                   return ActionOutcome.Refused(SilentRefusalMessages.SwearOathUnknownKind());
                case SwearOathResult.InvalidAmount:
                   return ActionOutcome.Refused($"({npcHero.Name} named no clear sum to swear to pay.)");
+               // 3chmidt (Nexus, 06/11/2026): "cannot swear a peace" showed up in a haggle over an axe. A peace sworn by someone
+               // who leads no faction is the interpreter's misreading, not a vow the player asked for: logged, never shown.
                case SwearOathResult.CannotSwearPeace:
-                  return ActionOutcome.Refused($"({npcHero.Name} leads no faction of their own, and cannot swear a peace.)");
+                  ModLog.Info($"[ACTION] swear_oath keep_peace by {npcHero.Name} ignored: they lead no faction (not shown to the player).");
+
+                  return null;
                case SwearOathResult.NoSuchFaction:
                   return ActionOutcome.Refused("(No faction by that name could be found to swear peace with.)");
                case SwearOathResult.OwnFaction:

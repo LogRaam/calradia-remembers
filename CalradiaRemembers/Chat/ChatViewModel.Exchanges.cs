@@ -681,6 +681,32 @@ namespace CalradiaRemembers.Chat
       ///   reports on. Never throws, never refuses, never alters control flow. A null set (a council turn or a
       ///   build fault) simply skips the check, and every path is wrapped so the audit can never disturb the turn.
       /// </summary>
+      /// <summary>
+      ///   The turn's actions with a sale written in parts read as the sale (3chmidt, 06/11/2026): when the character
+      ///   hands coin over and the player hands an item over in the same turn, the give_gold goes and the give_item becomes
+      ///   a sell_item at that coin, which the player confirms and <c>ItemSalePolicy</c> prices. The list as it came
+      ///   otherwise.
+      /// </summary>
+      internal static IReadOnlyList<GameAction> ReadPartsAsASale(IReadOnlyList<GameAction> actions, string offeredItemId)
+      {
+         SaleFromParts parts = TradeBatchPolicy.PartsOfASale(new TradeBatchFacts {
+            ItemPickedFromBag = !string.IsNullOrWhiteSpace(offeredItemId),
+            Actions = actions.Select(a => new TradeBatchAction {Type = a?.Type, Item = Param(a, "item"), Amount = Param(a, "amount"), Count = Param(a, "count"), Actor = Param(a, "actor")}).ToList()
+         });
+         if (parts == null) return actions;
+
+         var sale = new GameAction {
+            Type = "sell_item",
+            Context = actions[parts.ItemIndex].Context,
+            Parameters = new Dictionary<string, string> {["item"] = parts.Item ?? "", ["price"] = parts.Price.ToString()}
+         };
+         ModLog.Info($"[ACTION] give_gold {parts.Price} and give_item '{parts.Item}' in one turn read as one sell_item.");
+
+         return actions.Where((_, i) => i != parts.GoldIndex).Select(a => ReferenceEquals(a, actions[parts.ItemIndex]) ? sale : a).ToList();
+
+         static string Param(GameAction a, string key) => a?.Parameters != null && a.Parameters.TryGetValue(key, out string v) ? v : null;
+      }
+
       private void AuditActionTaught(GameAction action, ISet<string> taughtThisTurn, NpcProfile profile)
       {
          try
@@ -1452,33 +1478,37 @@ namespace CalradiaRemembers.Chat
             var nemesisTurned = false;
             if (response.Actions is {Count: > 0})
             {
+               // A sale written in parts (3chmidt, 06/11/2026): the character's coin and the player's item crossing in this
+               // turn are one sale, paid and confirmed as one, not a gift capped by regard plus a free hand-over.
+               IReadOnlyList<GameAction> turnActions = ReadPartsAsASale(response.Actions, _offer.OfferedItemId);
+
                // Double-payment guard: when the LLM emits join_party it sometimes ALSO
                // emits take_gold for the same payment (the player mimed handing coins
                // over) — join_party already transfers the settled price, so honoring
                // both charges the player twice (observed in testing: 550 + 546).
-               bool hasJoinParty = response.Actions.Any(a =>
+               bool hasJoinParty = turnActions.Any(a =>
                   string.Equals(a.Type, "join_party", StringComparison.OrdinalIgnoreCase));
 
                // Same shape for every deal that moves its own coin (tashmetu, 27/09/2026: a captive ransomed): a
                // give_gold or take_gold beside it ("I will pay it now") is the same payment written twice.
-               List<string> actionTypesThisTurn = response.Actions.Select(a => a?.Type).ToList();
+               List<string> actionTypesThisTurn = turnActions.Select(a => a?.Type).ToList();
                var saleContext = new ActionContext(profile, null) {OfferedItemId = _offer.OfferedItemId, ItemOnTheTableId = _offer.ItemOnTheTable};
-               bool saleThisTurn = response.Actions.Any(a => string.Equals(a?.Type, "sell_item", StringComparison.OrdinalIgnoreCase));
+               bool saleThisTurn = turnActions.Any(a => string.Equals(a?.Type, "sell_item", StringComparison.OrdinalIgnoreCase));
                var supersededBySale = new HashSet<GameAction>(TradeBatchPolicy.Superseded(new TradeBatchFacts {
                      ItemPickedFromBag = !string.IsNullOrWhiteSpace(_offer.OfferedItemId),
-                     Actions = response.Actions.Select(a => new TradeBatchAction {
+                     Actions = turnActions.Select(a => new TradeBatchAction {
                         Type = a?.Type,
                         Item = a?.Parameters != null && a.Parameters.TryGetValue("item", out string it) ? it : null,
                         // Only worth resolving when a sale is in the turn: the roster item each names decides, not words.
                         ResolvedId = saleThisTurn ? BannerlordGameStateBridge.PreviewItem(a, saleContext)?.Id : null
                      }).ToList()
                   })
-                  .Select(i => response.Actions[i]));
+                  .Select(i => turnActions[i]));
 
                // counter_offer settles its own terms (14/10/2026): fealty rides its own "fealty" term, and its
                // executor frees her itself, so a free_prisoner or join_clan beside it is the same deed read twice.
                var supersededByCounterOffer = new HashSet<GameAction>(
-                  TradeBatchPolicy.SupersededByCounterOffer(actionTypesThisTurn).Select(i => response.Actions[i]));
+                  TradeBatchPolicy.SupersededByCounterOffer(actionTypesThisTurn).Select(i => turnActions[i]));
 
                // M-R3: at content Off an intimacy [EVENT] is a hallucination (the romance system is disabled), so
                // it must not grant the RelationGate's intimacy-tier boost (+3, cooldown bypassed). Downgrade it so
@@ -1503,7 +1533,7 @@ namespace CalradiaRemembers.Chat
                // turn actually taught, so an [ACTION] that runs yet was never taught can be LOGGED (never
                // refused, no control-flow change). Null on a mapping fault, which disables the audit for the turn.
                ISet<string> taughtThisTurn = TryBuildTaughtActionSet(context);
-               foreach (GameAction action in response.Actions)
+               foreach (GameAction action in turnActions)
                {
                   // request_privacy, end_conversation and witness_leaves are
                   // chat-flow controls, handled below — not bridge actions.
