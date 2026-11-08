@@ -34,7 +34,7 @@ The prompt decides alone. Fine for an action that cannot fail, and the shape of 
 - `recall_companion` <- `join_clan`, `recruit_prisoner`, `turn_nemesis` (via Clan)
 - `release_prisoner`
 
-### Refused by the bridge, taught with no gate of its own (10)
+### Refused by the bridge, taught with no gate of its own (9)
 
 The model is taught this every turn the section is written and the bridge turns it away on the facts. Fine when the refusal is rare; an empty promise when it is not (the join_party rule).
 
@@ -44,7 +44,6 @@ The model is taught this every turn the section is written and the bridge turns 
 - `execute_player`
 - `execute_prisoner`
 - `gather_news`
-- `harm_prisoner`
 - `pay_blackmail`
 - `take_gold`
 - `turn_nemesis`
@@ -425,8 +424,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 - executor: `ExecuteHarmPrisoner`
 - taught in: `AppendHarmPrisonerAction`
 - taught when: no gate found
-- the bridge refuses:
-  - "(The game does not allow real harm here, so none was done.)"
+- the bridge refuses: never
 
 ### hear_account
 

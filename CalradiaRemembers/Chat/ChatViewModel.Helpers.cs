@@ -1193,14 +1193,9 @@ namespace CalradiaRemembers.Chat
                   // The player called them out, so the NPC's answer is the policy's, not the model's. An NPC who balks
          // does not simply go quiet: the refusal is a deed, it costs them (contempt, and renown to the player
          // who called a bluff), and the conversation carries on from there.
-         if (playerIssued && !forceAccept
-             && DuelAcceptancePolicy.Decide(new DuelAcceptanceContext {
-                Traits = GrudgeBridge.BuildTraitFacts(opponent),
-                Stance = StanceService.ToStance(profile),
-                AGrudgeDrivesIt = HasLiveGrudge(opponent),
-                ChallengedBeforeWitnesses = _witnesses.Count > 0,
-                ChallengerStationBelowNpc = DuelStationGap(opponent)
-             }) == DuelResponse.Refuse)
+         // fearente (07/11/2026): the same verdict the prompt told the character before they spoke, so their words and
+         // this agree.
+         if (playerIssued && !forceAccept && DuelEligibilityResolver.WouldRefusePlayer(opponent, profile, _witnesses.Count))
          {
             // Recorded as scene narration rather than a bare system line, so it enters the transcript and the
             // NPC's very next reply is spoken by someone who knows they refused.
@@ -1240,9 +1235,6 @@ namespace CalradiaRemembers.Chat
       }
 
       /// <summary>How many coarse steps of station the PLAYER stands beneath <paramref name="npc" /> (0 when a peer or above), for DuelAcceptancePolicy's station-gap refusal.</summary>
-      private static int DuelStationGap(Hero npc)
-         => Logic.Stature.StationsBelow(Mapping.StatureReader.Of(npc), Mapping.StatureReader.Player);
-
       /// <summary>
       ///   Who called for the duel, read from the action's "challenger" field. A missing or unrecognised value
       ///   must fail SAFE, and the safe side is the NPC: treating an unknown challenger as the NPC's own demand
@@ -1303,20 +1295,6 @@ namespace CalradiaRemembers.Chat
          }
 
          return false;
-      }
-
-      /// <summary>
-      ///   True when this hero carries a live grudge against the player, the single strongest pull toward the
-      ///   field in <see cref="DuelAcceptancePolicy" /> (an honourable outlet for a grievance words have not
-      ///   settled). Same ranked source the prompt's own grudge note reads.
-      /// </summary>
-      private static bool HasLiveGrudge(Hero hero)
-      {
-         if (hero == null) return false;
-
-         var today = (int) CampaignTime.Now.ToDays;
-
-         return (GrudgeBehavior.Instance?.LiveGrudgesFor(hero, today)?.Count ?? 0) > 0;
       }
 
       /// <summary>

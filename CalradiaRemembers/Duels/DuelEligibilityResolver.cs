@@ -11,8 +11,10 @@
 
 using System;
 using CalradiaRemembers.Foundation;
+using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Social;
+using CalradiaRemembers.Stance;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Encounters;
@@ -26,6 +28,40 @@ namespace CalradiaRemembers.Duels
    /// <summary>Resolves whether a duel between the player and an NPC is admissible RIGHT NOW, and where it would be staged.</summary>
    public static class DuelEligibilityResolver
    {
+      /// <summary>
+      ///   Whether this character would refuse the PLAYER's challenge now (<see cref="DuelAcceptancePolicy" />): their
+      ///   honour and valour, their fear of the player, a live grudge, witnesses, and how far beneath them the player
+      ///   stands. Asked when the prompt is built, so the character answers in their own words what the game will do,
+      ///   and again when the challenge is armed. fearente (Nexus, 07/11/2026): "Lords accept the duel but it doesn't
+      ///   get initiated. It says '... lets the challenge hang, and will not take it up.' even if the npc says yeah lets
+      ///   do it": the answer was weighed only after the character had already said yes. Never throws: false (they
+      ///   would fight) on any failure, as before.
+      /// </summary>
+      public static bool WouldRefusePlayer(Hero npc, NpcProfile profile, int witnessCount)
+      {
+         try
+         {
+            if (npc == null) return false;
+
+            var today = (int) CampaignTime.Now.ToDays;
+
+            return DuelAcceptancePolicy.Decide(new DuelAcceptanceContext {
+               Traits = GrudgeBridge.BuildTraitFacts(npc),
+               Stance = StanceService.ToStance(profile),
+               AGrudgeDrivesIt = (GrudgeBehavior.Instance?.LiveGrudgesFor(npc, today)?.Count ?? 0) > 0,
+               ChallengedBeforeWitnesses = witnessCount > 0,
+               // How far the PLAYER stands beneath this character: a nobody who calls out a king is dismissed (2026-08-26).
+               ChallengerStationBelowNpc = Logic.Stature.StationsBelow(Mapping.StatureReader.Of(npc), Mapping.StatureReader.Player)
+            }) == DuelResponse.Refuse;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[DUEL] acceptance check failed: {ex.GetType().Name}: {ex.Message}");
+
+            return false;
+         }
+      }
+
       /// <summary>
       ///   True when a duel challenge between the player and <paramref name="npc" /> is admissible this instant
       ///   (<see cref="DuelChallengePolicy.Evaluate" />) AND a venue actually exists to stage it right now

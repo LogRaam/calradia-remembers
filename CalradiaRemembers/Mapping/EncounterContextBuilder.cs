@@ -552,6 +552,8 @@ namespace CalradiaRemembers.Mapping
             // Gabriel (28/10/2026): nobles duel, everyone else brawls; avalanche24: no brawl started without a grievance.
             DuelIsBrawl = duelChallengeAvailable && DuelEligibilityResolver.KindOf(hero) == Logic.Duels.DuelKind.Brawl,
             NpcMayNotCallOut = duelChallengeAvailable && !DuelEligibilityResolver.MayCallOut(hero, profile),
+            // fearente (07/11/2026): the answer to the player's challenge, weighed before the character speaks.
+            DuelRefusesPlayersChallenge = duelChallengeAvailable && DuelEligibilityResolver.WouldRefusePlayer(hero, profile, witnesses?.Count ?? 0),
             DuelVenueLabel = duelVenueLabel,
             // The grounded quest menu (viable-quest referential): the tasks this giver can TRULY hand out,
             // pre-validated against the live world so a spoken offer always registers. Skipped for a captor

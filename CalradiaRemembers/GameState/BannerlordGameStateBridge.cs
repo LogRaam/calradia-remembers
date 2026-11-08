@@ -3270,10 +3270,14 @@ namespace CalradiaRemembers.GameState
 
          if (!HarmPrisonerPolicy.CanHarm(new HarmPrisonerPolicy.HarmFacts {PlayerIsCaptiveOfCaptor = playerIsCaptiveOfCaptor, CaptiveSceneActive = _captiveSceneActive, Hardcore = hardcore}))
          {
+            // Alfkona (Nexus, 07/11/2026): "(the game does not allow real harm here, so none was done)" in every kind of
+            // conversation, even before their captor. The interpreter is taught this verb in every scene (its prompt is one
+            // cached prefix) and reads it out of any rough prose; where real harm cannot happen, the words stay the
+            // story's and nothing is announced. Logged with the three facts, so a log still says why.
             ModLog.Info($"[ACTION] harm_prisoner refused by HarmPrisonerPolicy (captive={playerIsCaptiveOfCaptor}, " +
-                        $"sceneActive={_captiveSceneActive}, hardcore={hardcore}).");
+                        $"sceneActive={_captiveSceneActive}, hardcore={hardcore}); nothing shown to the player.");
 
-            return ActionOutcome.Refused("(The game does not allow real harm here, so none was done.)");
+            return null;
          }
 
          action.Parameters.TryGetValue("severity", out string severity);
