@@ -63,7 +63,9 @@ namespace CalradiaRemembers.Quests
          // Say so plainly: the spoken offer and the registered state must never silently diverge.
          if (response.QuestBlockMalformed)
          {
-            ModLog.Info($"[QUEST] {giver.Name} emitted a [QUEST] block that could not be parsed; nothing recorded.");
+            // avalanche24 (08/11/2026): the block itself is logged, so a report shows what the model wrote.
+            ModLog.Info($"[QUEST] {giver.Name} emitted a [QUEST] block that could not be parsed; nothing recorded. Block: "
+                        + (response.QuestBlockRaw ?? "(an [ACTION] whose task kind could not be read)").Replace("\n", " | "));
             notify?.Invoke("No task was recorded: the offer came through garbled. Ask them to state it plainly again.", false);
             // C5 feedback loop: tell the MODEL next turn too, so it does not keep speaking of a task never recorded.
             LlmFeedbackNotes.Set(giver.Id, "Your last task offer could not be registered (it came through garbled, or named a target I could not place).");
