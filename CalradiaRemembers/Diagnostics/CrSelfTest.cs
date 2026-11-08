@@ -6525,8 +6525,11 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(good == null, "no trade good worth 100 denars in the game data")) return t.Line();
 
          const int price = 300;
-         Hero buyer = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && h.Gold >= price * 2 && Mapping.HeroPresence.IsInTheWorld(h));
-         if (t.Skip(buyer == null, "no lord in the world with 600 denars")) return t.Line();
+         // One who owes the player nothing and asks for no goods: coin from such a one may be a debt, not a price.
+         Hero buyer = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && h.Gold >= price * 2 && Mapping.HeroPresence.IsInTheWorld(h)
+                                                             && CommitmentBehavior.Instance?.OwedBy(h.StringId) is null or 0
+                                                             && behavior.Store.Get(h.StringId)?.ActiveQuests is not {Count: > 0});
+         if (t.Skip(buyer == null, "no lord in the world with 600 denars who owes the player nothing")) return t.Line();
 
          int heldBefore = roster.GetItemNumber(good);
          int playerGold = Hero.MainHero.Gold;
@@ -6538,7 +6541,7 @@ namespace CalradiaRemembers.Diagnostics
                new() {Type = "give_gold", Parameters = new Dictionary<string, string> {["amount"] = price.ToString()}},
                new() {Type = "give_item", Parameters = new Dictionary<string, string> {["item"] = good.Name.ToString()}}
             };
-            IReadOnlyList<GameAction> read = ChatViewModel.ReadPartsAsASale(parts, null);
+            IReadOnlyList<GameAction> read = ChatViewModel.ReadPartsAsASale(parts, null, buyer, GetOrCreate(behavior, buyer));
             GameAction sale = read.FirstOrDefault(a => a.Type == "sell_item");
             // STAKE: the coin and the item crossing in one turn are the sale, so the coin is not judged as a gift.
             t.Expect("oneSaleNoGift", read.Count == 1 && sale != null && !read.Any(a => a.Type == "give_gold"), true);

@@ -73,6 +73,18 @@ namespace CalradiaRemembers.Logic.Actions
       ///   that one item, whatever words the model used for it.
       /// </summary>
       public bool ItemPickedFromBag { get; init; }
+
+      /// <summary>
+      ///   The character owes the player coin now, by a sworn oath or for a task the game has seen done: then coin they
+      ///   hand over is that debt (Cabinaw, 06/11/2026), not the price of whatever crosses beside it.
+      /// </summary>
+      public bool CoinOwed { get; init; }
+
+      /// <summary>
+      ///   An outstanding task of the character's asks the player for goods: an item handed over may be what settles it,
+      ///   and the coin beside it the task's reward.
+      /// </summary>
+      public bool TaskAsksForGoods { get; init; }
    }
 
    /// <summary>Which actions of a turn a sale makes redundant. Pure.</summary>
@@ -108,12 +120,13 @@ namespace CalradiaRemembers.Logic.Actions
       ///   exactly one give_item (the player's item to the character) and no sell_item already. Null otherwise, and
       ///   null when either belongs to someone else at a council table, or when the give_item moves several of a thing
       ///   named in words (a sale from words moves one, so the price for many would buy one); from the bag the amount
-      ///   set there decides, as for any sale.
+      ///   set there decides, as for any sale. Null too while the character owes the player coin or a task of theirs
+      ///   asks for goods: the coin may be a debt or a reward, and read as a price it would be held to the item's worth.
       /// </summary>
       public static SaleFromParts PartsOfASale(TradeBatchFacts f)
       {
          IReadOnlyList<TradeBatchAction> batch = f?.Actions;
-         if (batch == null || batch.Any(a => Is(a, "sell_item"))) return null;
+         if (batch == null || f.CoinOwed || f.TaskAsksForGoods || batch.Any(a => Is(a, "sell_item"))) return null;
 
          List<int> gold = IndexesOf(batch, "give_gold");
          List<int> item = IndexesOf(batch, "give_item");

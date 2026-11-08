@@ -685,12 +685,15 @@ namespace CalradiaRemembers.Chat
       ///   The turn's actions with a sale written in parts read as the sale (3chmidt, 06/11/2026): when the character
       ///   hands coin over and the player hands an item over in the same turn, the give_gold goes and the give_item becomes
       ///   a sell_item at that coin, which the player confirms and <c>ItemSalePolicy</c> prices. The list as it came
-      ///   otherwise.
+      ///   otherwise, and while the character owes coin (an oath, a verified task) or a task of theirs asks for goods.
       /// </summary>
-      internal static IReadOnlyList<GameAction> ReadPartsAsASale(IReadOnlyList<GameAction> actions, string offeredItemId)
+      internal static IReadOnlyList<GameAction> ReadPartsAsASale(IReadOnlyList<GameAction> actions, string offeredItemId, Hero giver, NpcProfile profile)
       {
+         GiftFacts owed = ExchangeService.GiftFactsFor(giver, profile);
          SaleFromParts parts = TradeBatchPolicy.PartsOfASale(new TradeBatchFacts {
             ItemPickedFromBag = !string.IsNullOrWhiteSpace(offeredItemId),
+            CoinOwed = owed.OwedByOath + owed.OwedForTask > 0,
+            TaskAsksForGoods = profile?.ActiveQuests?.Any(q => q != null && (q.Type == QuestType.ProvideGoods || q.Type == QuestType.CraftWeapon) && q.IsOutstanding) == true,
             Actions = actions.Select(a => new TradeBatchAction {Type = a?.Type, Item = Param(a, "item"), Amount = Param(a, "amount"), Count = Param(a, "count"), Actor = Param(a, "actor")}).ToList()
          });
          if (parts == null) return actions;
@@ -1480,7 +1483,7 @@ namespace CalradiaRemembers.Chat
             {
                // A sale written in parts (3chmidt, 06/11/2026): the character's coin and the player's item crossing in this
                // turn are one sale, paid and confirmed as one, not a gift capped by regard plus a free hand-over.
-               IReadOnlyList<GameAction> turnActions = ReadPartsAsASale(response.Actions, _offer.OfferedItemId);
+               IReadOnlyList<GameAction> turnActions = ReadPartsAsASale(response.Actions, _offer.OfferedItemId, speaker.Hero, profile);
 
                // Double-payment guard: when the LLM emits join_party it sometimes ALSO
                // emits take_gold for the same payment (the player mimed handing coins

@@ -235,6 +235,26 @@ namespace CalradiaRemembers.Tests.Items
          TradeBatchPolicy.PartsOfASale(new TradeBatchFacts {Actions = batch}).Should().BeNull();
       }
 
+      // STAKE (Cabinaw, 06/11): coin a character owes, a sworn sum or a verified task's reward, is that debt. Read as the
+      // price of an item crossing beside it, it would be held to the item's worth and the debt never credited.
+      [Test]
+      public void GIVEN_a_character_who_owes_the_player_coin_WHEN_coin_and_an_item_cross_THEN_it_is_no_sale()
+      {
+         var batch = new List<TradeBatchAction> {new() {Type = "give_gold", Amount = "500"}, new() {Type = "give_item", Item = "axe"}};
+
+         TradeBatchPolicy.PartsOfASale(new TradeBatchFacts {Actions = batch, CoinOwed = true}).Should().BeNull();
+      }
+
+      // STAKE (froggyluv, 26/10, supply tasks): grain handed over for a task settles it, and the coin beside it is the
+      // reward. Read as a sale, the task would never close and the reward would be priced as grain.
+      [Test]
+      public void GIVEN_a_task_asking_for_goods_WHEN_coin_and_goods_cross_from_the_bag_THEN_it_is_no_sale()
+      {
+         var batch = new List<TradeBatchAction> {new() {Type = "give_gold", Amount = "300"}, new() {Type = "give_item", Item = "grain"}};
+
+         TradeBatchPolicy.PartsOfASale(new TradeBatchFacts {Actions = batch, ItemPickedFromBag = true, TaskAsksForGoods = true}).Should().BeNull();
+      }
+
       // No sum or a sum of nothing is no price.
       [Test]
       public void GIVEN_coin_with_no_clear_sum_WHEN_settled_THEN_it_is_no_sale()
