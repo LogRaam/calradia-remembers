@@ -10207,7 +10207,10 @@ namespace CalradiaRemembers.Diagnostics
          {
             store.RecordHistory(new WorldEvent {
                Id = eventId, Type = WorldEventType.Other, Status = SharedPastPolicy.StatusPrefix + SharedPastKind.TourneyRivalry,
-               Day = today - 8 * daysInYear, Magnitude = SharedPastPolicy.Magnitude,
+               // A rivalry still at full weight (SharedPastPolicy.FullWeightYears), so it alone makes enemies of them. An
+               // 8-year-old one has faded by its own half-life (first run 08/11/2026: 'Neither / Neither'); kurushimi00's
+               // pair was listed through the game's own number, which theGamesNumberEvensOut checks below.
+               Day = today - 30, Magnitude = SharedPastPolicy.Magnitude,
                Summary = SharedPastPolicy.Summary(SharedPastKind.TourneyRivalry, a.Name.ToString(), b.Name.ToString(), null),
                ActorIds = new List<string> {a.StringId, b.StringId}, SourceMod = "CalradiaRemembers.SelfTest"
             });
@@ -10215,7 +10218,7 @@ namespace CalradiaRemembers.Diagnostics
             if (relationBefore >= VanillaRelation.NeutralTier) RelationLedgerBehavior.Change(a, b, VanillaRelation.EnemyTier - relationBefore);
 
             t.Note($"{a.Name} and {b.Name}; before: {PairRegardReader.Assess(a, b).Verdict} / {PairRegardReader.Assess(b, a).Verdict}");
-            // STAKE (kurushimi00): the case itself: a tourney 8 years old still makes enemies of them.
+            // STAKE (kurushimi00): a tourney rivalry that still weighs makes enemies of them.
             t.Expect("theRivalryMakesEnemies", PairRegardReader.Assess(a, b).Verdict == PairRegardVerdict.Enemy && PairRegardReader.Assess(b, a).Verdict == PairRegardVerdict.Enemy, true);
 
             var present = new List<string> {a.StringId, b.StringId};
@@ -10862,7 +10865,9 @@ namespace CalradiaRemembers.Diagnostics
          Hero captive = receiver == null ? null : Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h != receiver && !h.IsPrisoner && h.Clan != Clan.PlayerClan && !h.IsChild
                                                                 && h.PartyBelongedTo == null && h.Clan != null && h.Clan.IsBanditFaction != true && Mapping.HeroPresence.IsInTheWorld(h)
                                                                 && h.MapFaction != null && receiver.MapFaction != null && !FactionManager.IsAtWarAgainstFaction(h.MapFaction, receiver.MapFaction)
-                                                                && (Grudges.GrudgeBehavior.Instance?.GrudgesFor(h.StringId)?.Count ?? 0) == 0);
+                                                                && (Grudges.GrudgeBehavior.Instance?.GrudgesFor(h.StringId)?.Count ?? 0) == 0
+                                                                // Of another house and realm: given to his own side he goes home free (prisoner_gift).
+                                                                && !Verbs.BuyPrisonerVerb.GoesHomeTo(h, receiver));
          if (t.Skip(receiver == null || captive == null, "no lord leading a party to receive, or no free partyless lord at peace with him and holding no grudge to give")) return t.Line();
          if (t.Skip(Verbs.BuyPrisonerVerb.PlayerHeldHeroPrisoners().Count > 0, "the player already holds captives (the gift would need a name among them; run on a save without)")) return t.Line();
 

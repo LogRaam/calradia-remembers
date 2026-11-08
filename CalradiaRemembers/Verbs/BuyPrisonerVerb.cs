@@ -164,8 +164,7 @@ namespace CalradiaRemembers.Verbs
                 // count ransomed him, and the game then reported him "escaped", because a lord held captive by his own
                 // side is let go by the engine). The ransom path, as the exchange takes, the one that keeps a player
                 // companion from turning fugitive. Bought by anyone else, he changes gaolers.
-                bool goesHome = (captive.Clan != null && captive.Clan == npcHero.Clan)
-                                || (captive.MapFaction != null && captive.MapFaction == npcHero.MapFaction);
+                bool goesHome = GoesHomeTo(captive, npcHero);
 
                 // Captured BEFORE the transfer (the grudge rule reads the captive's prior regard).
                 int captiveRegardForPlayer = captive.GetRelation(Hero.MainHero);
@@ -266,6 +265,14 @@ namespace CalradiaRemembers.Verbs
                 return ActionOutcome.Refused("(The sale could not be completed. Nothing happened.)");
             }
         }
+
+        /// <summary>
+        ///   Taken by his OWN side (his house, his realm), a captive goes home free (fkasad, 26/09/2026): a lord held captive
+        ///   by his own side is let go by the engine and reported "escaped". One rule for a sale and a gift alike.
+        /// </summary>
+        internal static bool GoesHomeTo(Hero captive, Hero receiver)
+            => captive != null && receiver != null
+               && ((captive.Clan != null && captive.Clan == receiver.Clan) || (captive.MapFaction != null && captive.MapFaction == receiver.MapFaction));
 
         /// <summary>
         ///   A prison-holding party that can actually RECEIVE a bought or handed-over captive, or null when

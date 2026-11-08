@@ -5859,12 +5859,24 @@ namespace CalradiaRemembers.GameState
          Hero captive = held[at];
          if (BuyPrisonerVerb.IsEchoOfLastTrade(captive, npcHero)) return ActionOutcome.Refused(BuyPrisonerVerb.EchoRefusal(npcHero, captive));
 
-         PartyBase dest = BuyPrisonerVerb.ResolveCaptorPrison(npcHero);
-         if (dest == null) return ActionOutcome.Refused($"({npcHero.Name} has no party or holding to keep {captive.Name} in.)");
+         // Given to his own side, he goes home free, as a sale to them already does (cr.test prisoner_gift, 08/11/2026:
+         // since the gift was routed here on 05/11, a lord given to his own clan leader was put in that leader's cells,
+         // fkasad's "escaped" of 26/09 again).
+         bool goesHome = BuyPrisonerVerb.GoesHomeTo(captive, npcHero);
+         PartyBase dest = goesHome ? null : BuyPrisonerVerb.ResolveCaptorPrison(npcHero);
+         if (!goesHome && dest == null) return ActionOutcome.Refused($"({npcHero.Name} has no party or holding to keep {captive.Name} in.)");
 
          int captiveRegardForPlayer = Mapping.PairBondReader.Points(captive, Hero.MainHero);
-         PartyBase source = captive.PartyBelongedToAsPrisoner ?? MobileParty.MainParty.Party;
-         TransferPrisonerAction.Apply(captive.CharacterObject, source, dest);
+         if (goesHome)
+         {
+            EndCaptivityAction.ApplyByRansom(captive, npcHero);
+         }
+         else
+         {
+            PartyBase source = captive.PartyBelongedToAsPrisoner ?? MobileParty.MainParty.Party;
+            TransferPrisonerAction.Apply(captive.CharacterObject, source, dest);
+         }
+
          BuyPrisonerVerb.RecordTrade(captive, npcHero);
 
          var today = (int) CampaignTime.Now.ToDays;
@@ -5872,10 +5884,13 @@ namespace CalradiaRemembers.GameState
          profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration, $"The player gave me the captive {captive.Name}, asking nothing."));
          StanceService.OnGiftReceived(npcHero);
          TryPlantValueAppreciation(npcHero, AppreciationSource.GiftReceived, worth, $"The player gave me the captive {captive.Name}, asking nothing.");
-         CaptiveHandedOnward(captive, npcHero, captiveRegardForPlayer, today);
-         ModLog.Info($"[ACTION] give_prisoner: player gave {captive.Name} to {npcHero.Name} as a gift (worth {worth}).");
+         // Sent home free, he has nothing to resent.
+         if (!goesHome) CaptiveHandedOnward(captive, npcHero, captiveRegardForPlayer, today);
+         ModLog.Info($"[ACTION] give_prisoner: player gave {captive.Name} to {npcHero.Name} as a gift (worth {worth}){(goesHome ? ", and he went home free" : "")}.");
 
-         return new ActionOutcome($"You give {captive.Name} into {npcHero.Name}'s keeping, asking nothing.", true);
+         return new ActionOutcome(goesHome
+            ? $"You give {captive.Name} to {npcHero.Name} for nothing, and {captive.Name} goes home free."
+            : $"You give {captive.Name} into {npcHero.Name}'s keeping, asking nothing.", true);
       }
 
       /// <summary>
