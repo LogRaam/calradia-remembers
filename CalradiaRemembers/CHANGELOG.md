@@ -4,6 +4,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.8.7.. unreleased
 
+### New
+
+- **The mod has a Discord** (Gabriel 09/11/2026: "juste au futur changelog"): https://discord.gg/Cs6cPTZTGs, for stories, model comparisons, help and suggestions. A line of its own in the Nexus changelog; also linked from the Nexus description (b3d0986).
+- **For modders: two doors** (tashmetu, Nexus 05/11/2026; Gabriel 09/11/2026: "oui aux deux portes pour tashmetu, go"). Built after 2.8.6 was cut, so it ships in 2.8.7 (first written under 2.8.4 by mistake, moved 09/11). `CrFolklore.RegisterTaleSource(source, hero => folklore text or null)`: tales beside a character's people's (a faith's saints and legends), parsed by `FolkTalePolicy.Parse`, sharing the six places by `FolkTalePolicy.Compose(id, people, outside)` (alternating, favourite from all tellable, a title carried once; no outside tale = exactly the old choice). `CrAppearance.RegisterLineSource(source, (heroId, seenByOther) => line or null)`: a line after CR's appearance, own body and as seen by another (`AppearanceComposer.WithOutsideLines`: CR's text first and unchanged, 2 lines at most, over 200 chars left out). Both mod-side only (the SDK already took the appearance as text). EXTENSION_API.md also says how to announce a later silent relation change. cr.test outside_tales_looks.
+
 ### Fixed
 
 - **A lord taking the recruits he asked for closes his task, whatever the reader called it** (cost bench 09/11/2026; Gabriel: "vas-y pour l'interprete, les refus et give_troops"). "Fresh men, as I asked. You have my thanks." was read as give_troops by both measured providers, which moves the player's lowest-tier men (or is refused for want of need) and leaves the recruit task open; in the game the interpreter's facts never carry the player's tasks, so it knows less than the bench. `TroopHandOverReadingPolicy`: a give_troops toward a lord with an open recruit task, while the player holds every recruit asked, is carried out as deliver_recruits (`DeliverRecruitsVerb.HandOverFacts`); short of recruits it stays a reinforcement. The interpreter catalog also teaches the difference (SDK, Full only: give_troops gains a not-when, deliver_recruits an emit-when). cr.test all `recruits_read_as_give_troops`. Not play-verified.
@@ -45,7 +50,6 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ### New
 
-- **For modders: two doors** (tashmetu, Nexus 05/11/2026; Gabriel 09/11/2026: "oui aux deux portes pour tashmetu, go"). `CrFolklore.RegisterTaleSource(source, hero => folklore text or null)`: tales beside a character's people's (a faith's saints and legends), parsed by `FolkTalePolicy.Parse`, sharing the six places by `FolkTalePolicy.Compose(id, people, outside)` (alternating, favourite from all tellable, a title carried once; no outside tale = exactly the old choice). `CrAppearance.RegisterLineSource(source, (heroId, seenByOther) => line or null)`: a line after CR's appearance, own body and as seen by another (`AppearanceComposer.WithOutsideLines`: CR's text first and unchanged, 2 lines at most, over 200 chars left out). Both mod-side only (the SDK already took the appearance as text). EXTENSION_API.md also says how to announce a later silent relation change. cr.test outside_tales_looks.
 - **Folk tales for every people** (Gabriel 05/11/2026: "go pour les contes des autres peuples"). Five tales each in `ModuleData/folklore/` for empire, aserai, sturgia, vlandia, khuzait and the War Sails peoples nord, vakken and darshi, beside the Battanian pilot. Grounded in the game's own texts (spclans, kingdoms, settlement descriptions: the Darshi levees and the Calsean Gates graffiti, the Vakken burned-forest fields, the Nord burial pits on the Jumne); no real-world myth retold, no named Calradian figure. Data only: `FolkTalePolicy` and the loader are unchanged. Not reviewed by Gabriel; cr.test folk_tales.
 
 ### Fixed
