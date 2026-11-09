@@ -24,25 +24,20 @@ namespace CalradiaRemembers.GameState
     public static class JsonCampaignState
     {
         /// <summary>
-        ///   Loads and deserializes the state stored under the byte[] <paramref name="key" />.
+        ///   Loads and deserializes the state stored compressed under <paramref name="key" /> (SaveBlob, since 2.8.6), or as
+        ///   plain byte[] under <paramref name="olderKey" /> in a save written before.
         ///   When that key is absent or empty (a save written before the behavior adopted this
         ///   helper), falls back to the legacy STRING key <paramref name="legacyKey" /> so the
         ///   old save still migrates. Returns <paramref name="fallback" />'s result when both are
         ///   missing, empty, or fail to deserialize; never throws.
         /// </summary>
-        public static T Load<T>(IDataStore dataStore, string key, string legacyKey, Func<T> fallback)
+        public static T Load<T>(IDataStore dataStore, string key, string olderKey, string legacyKey, Func<T> fallback)
             where T : class
         {
-            byte[] bytes = null;
-            try { dataStore.SyncData(key, ref bytes); }
-            catch
+            string json = SaveBlob.Read(dataStore, key, olderKey);
+            if (!string.IsNullOrEmpty(json))
             {
-                // key absent in older saves, fall through to the legacy string key
-            }
-
-            if (bytes is {Length: > 0})
-            {
-                try { return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(bytes)) ?? fallback(); }
+                try { return JsonConvert.DeserializeObject<T>(json) ?? fallback(); }
                 catch (Exception ex)
                 {
                     ModLog.Error($"[STATE] '{key}' load failed, reset for this load so the campaign can still open. {ex.GetType().Name}: {ex.Message}");
@@ -76,16 +71,16 @@ namespace CalradiaRemembers.GameState
         /// </summary>
         public static void Save<T>(IDataStore dataStore, string key, T state)
         {
-            byte[] bytes;
-            try { bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(state, Formatting.None)); }
+            string json;
+            try { json = JsonConvert.SerializeObject(state, Formatting.None); }
             catch (Exception ex)
             {
                 ModLog.Error($"[STATE] '{key}' serialize failed, persisting nothing this save. {ex.GetType().Name}: {ex.Message}");
-                bytes = Encoding.UTF8.GetBytes("null");
+                json = "null";
             }
 
-            try { dataStore.SyncData(key, ref bytes); }
-            catch (Exception ex) { ModLog.Error($"[STATE] '{key}' byte[] save failed: {ex.GetType().Name}: {ex.Message}"); }
+            // Compressed, under the engine's ceiling (SaveBlob, tashmetu 09/11/2026).
+            SaveBlob.Write(dataStore, key, json);
         }
     }
 }

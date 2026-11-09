@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 636 types in 65 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1540 types in 55 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 637 types in 65 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1542 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -405,7 +405,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `FollowMeBehavior` | public class | Persists active follow_me escorts (a lord's own party riding with the player) and advances/ends each daily. |
 
-### CalradiaRemembers.Foundation (8)
+### CalradiaRemembers.Foundation (9)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -416,6 +416,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ModLog` | internal static class | Writes timestamped log entries to a file in the Bannerlord Logs folder AND shows them in the in-game console. |
 | `ModSettings` | public static class | Mod-wide settings façade. |
 | `SafeRun` | public static class | Shared guard for campaign tick handlers. |
+| `SaveBlob` | internal static class | Saves and loads a CR store's JSON, compressed, kept under the size past which a save never loads. |
 | `StoryLog` | internal static class | Writes a clean, narrative-style transcript of conversations and letters to CalradiaRemembers_story.log. |
 
 ### CalradiaRemembers.GUI (4)
@@ -2591,6 +2592,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SecretReaction` | public class | What the reader does about it. |
 | `SecretReactionPolicy` | public static class | From the model's one-word reading to a severity, and from a severity to a reaction. |
 | `SecretSeverity` | public enum | How an intercepted letter touches the lord who read it. |
+
+### CalradiaRemembers.Logic.Saving (2)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `SaveBlobCodec` | public static class | Turns a store's JSON into the bytes a save holds, and back, and says whether those bytes are safe to save. |
+| `SaveBlobVerdict` | public enum | Whether a blob may go into the save. |
 
 ### CalradiaRemembers.Logic.Scenarios (10)
 

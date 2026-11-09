@@ -26,6 +26,10 @@ namespace CalradiaRemembers.Mapping
       // Additive: a save written before this has no such key and reads an empty ledger (save-migration rule).
       private const string SaveKey = "cr_relation_baselines";
 
+      // Compressed through SaveBlob since 2.8.6 (tashmetu, 09/11/2026: a byte[] past 16,777,215 bytes never loads). A new key, so
+      // an older CR finds none of its own here and starts this store empty rather than read GZip as text.
+      private const string SaveKeyGz = "cr_relation_baselines_gz";
+
       public RelationLedgerBehavior()
       {
          Instance = this;
@@ -44,32 +48,29 @@ namespace CalradiaRemembers.Mapping
 
       public override void SyncData(IDataStore dataStore)
       {
+         // Compressed through SaveBlob (tashmetu, 09/11/2026: this ledger reached 18.2 million bytes and the save never
+         // loaded again).
          if (dataStore.IsSaving)
          {
-            byte[] bytes;
-            try { bytes = Encoding.UTF8.GetBytes(Ledger.Serialize()); }
+            string json;
+            try { json = Ledger.Serialize(); }
             catch (Exception ex)
             {
                ModLog.Error($"[RELATION] serialize failed, saving an empty ledger: {ex.GetType().Name}: {ex.Message}");
-               bytes = Array.Empty<byte>();
+               json = null;
             }
 
-            try { dataStore.SyncData(SaveKey, ref bytes); }
-            catch (Exception ex)
-            {
-               ModLog.Error($"[RELATION] save failed: {ex.GetType().Name}: {ex.Message}");
-            }
+            SaveBlob.Write(dataStore, SaveKeyGz, json);
          }
          else
          {
-            byte[] bytes = null;
-            try { dataStore.SyncData(SaveKey, ref bytes); }
-            catch
+            string json = SaveBlob.Read(dataStore, SaveKeyGz, SaveKey);
+            try { Ledger = RelationBaselineLedger.Deserialize(json); }
+            catch (Exception ex)
             {
-               /* key absent in a save written before this feature */
+               ModLog.Error($"[RELATION] ledger could not be read, starting empty so the campaign still opens: {ex.GetType().Name}: {ex.Message}");
+               Ledger = RelationBaselineLedger.Deserialize(null);
             }
-
-            Ledger = RelationBaselineLedger.Deserialize(bytes is {Length: > 0} ? Encoding.UTF8.GetString(bytes) : null);
          }
       }
 

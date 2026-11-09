@@ -62,6 +62,10 @@ namespace CalradiaRemembers.Jealousy
       // the blob grows past roughly 65,535 characters).
       private const string SaveKey = "CalradiaRemembers_Jealousy_v2bytes";
 
+      // Compressed through SaveBlob since 2.8.6 (tashmetu, 09/11/2026: a byte[] past 16,777,215 bytes never loads). A new key, so
+      // an older CR finds none of its own here and starts this store empty rather than read GZip as text.
+      private const string SaveKeyGz = "CalradiaRemembers_Jealousy_gz";
+
       // A witnessed act is telegraphed — high chance the jealous party hears and reacts.
       private const float WitnessedReactionChance = 0.75f;
 
@@ -315,9 +319,9 @@ namespace CalradiaRemembers.Jealousy
       public override void SyncData(IDataStore dataStore)
       {
          if (dataStore.IsSaving)
-            JsonCampaignState.Save(dataStore, SaveKey, _state);
+            JsonCampaignState.Save(dataStore, SaveKeyGz, _state);
          else
-            _state = JsonCampaignState.Load(dataStore, SaveKey, LegacySaveKey, () => new JealousyState());
+            _state = JsonCampaignState.Load(dataStore, SaveKeyGz, SaveKey, LegacySaveKey, () => new JealousyState());
       }
 
       // ── Persisted state ───────────────────────────────────────────────────

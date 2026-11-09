@@ -61,6 +61,11 @@ namespace CalradiaRemembers.Marriage
       /// <summary>Additive save key for the per-marriage family-swing ledger (minor 3; old saves load with none).</summary>
       private const string AppliedSwingsSaveKey = "CalradiaRemembers_MarriageAppliedSwings_v1";
 
+      // Compressed through SaveBlob since 2.8.6 (tashmetu, 09/11/2026: a byte[] past 16,777,215 bytes never loads). A new key, so
+      // an older CR finds none of its own here and starts this store empty rather than read GZip as text.
+      private const string SaveKeyGz = "CalradiaRemembers_MarriageApprovals_gz";
+      private const string AppliedSwingsSaveKeyGz = "CalradiaRemembers_MarriageAppliedSwings_gz";
+
       // Minor 3: spouseId -> (family memberId -> the relation delta the marriage swing applied), so a divorce can
       // revert exactly what the wedding moved. Absent entry = nothing to revert (old save, or a swing already reverted).
       private Dictionary<string, Dictionary<string, int>> _appliedSwings = new();
@@ -220,13 +225,13 @@ namespace CalradiaRemembers.Marriage
          // blob, degrade to "no blessings this pass" instead.
          if (dataStore.IsSaving)
          {
-            JsonCampaignState.Save(dataStore, SaveKey, _approvals);
-            JsonCampaignState.Save(dataStore, AppliedSwingsSaveKey, _appliedSwings);
+            JsonCampaignState.Save(dataStore, SaveKeyGz, _approvals);
+            JsonCampaignState.Save(dataStore, AppliedSwingsSaveKeyGz, _appliedSwings);
          }
          else
          {
-            _approvals = JsonCampaignState.Load(dataStore, SaveKey, LegacySaveKey, () => new Dictionary<string, MarriageApprovalRecord>());
-            _appliedSwings = JsonCampaignState.Load(dataStore, AppliedSwingsSaveKey, AppliedSwingsSaveKey, () => new Dictionary<string, Dictionary<string, int>>());
+            _approvals = JsonCampaignState.Load(dataStore, SaveKeyGz, SaveKey, LegacySaveKey, () => new Dictionary<string, MarriageApprovalRecord>());
+            _appliedSwings = JsonCampaignState.Load(dataStore, AppliedSwingsSaveKeyGz, AppliedSwingsSaveKey, AppliedSwingsSaveKey, () => new Dictionary<string, Dictionary<string, int>>());
          }
       }
 

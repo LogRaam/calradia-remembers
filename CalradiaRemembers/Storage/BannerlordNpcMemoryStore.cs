@@ -11,6 +11,7 @@ using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Storage;
 using TaleWorlds.CampaignSystem;
 using CalradiaRemembers.Foundation;
+using System.Linq;
 
 #endregion
 
@@ -29,6 +30,10 @@ namespace CalradiaRemembers.Storage
 
       // Current key: the same JSON stored as a UTF-8 byte[], which has no such size limit.
       private const string SaveKeyBytes = "CalradiaRemembers_NpcProfiles_v2bytes";
+
+      // Compressed through SaveBlob since 2.8.6 (tashmetu, 09/11/2026: a byte[] past 16,777,215 bytes never loads). A new key, so
+      // an older CR finds none of its own here and starts this store empty rather than read GZip as text.
+      private const string SaveKeyGz = "CalradiaRemembers_NpcProfiles_gz";
 
       private readonly Dictionary<string, NpcProfile> _profiles = new();
 
@@ -85,16 +90,11 @@ namespace CalradiaRemembers.Storage
                json = "{}";
             }
 
-            byte[] bytes = Encoding.UTF8.GetBytes(json);
-            try { dataStore.SyncData(SaveKeyBytes, ref bytes); }
-            catch (Exception ex)
-            {
-               ModLog.Error($"[STORE] byte[] save failed: {ex.GetType().Name}: {ex.Message}");
-            }
-
-            // Blob size is logged so growth can be tracked: the legacy string path corrupted
-            // saves past ~65535 bytes; the byte[] path has no such ceiling.
-            ModLog.Info($"Saved {_profiles.Count} NPC profile(s) ({bytes.Length:N0} bytes in the memory blob).");
+            // Compressed through SaveBlob: a byte[] DOES have a ceiling (tashmetu, 09/11/2026: past 16,777,215 bytes the
+            // save never loads; this blob had reached 15.9 million in a long campaign).
+            SaveBlob.Write(dataStore, SaveKeyGz, json);
+            SaveBlob.SavedSize size = SaveBlob.LastSaved.FirstOrDefault(kv => kv.Key == SaveKeyGz).Value;
+            ModLog.Info($"Saved {_profiles.Count} NPC profile(s) ({size.Raw:N0} bytes of memory, {size.Stored:N0} in the save).");
          }
          else
          {
@@ -121,15 +121,9 @@ namespace CalradiaRemembers.Storage
       /// </summary>
       private static string LoadJson(IDataStore dataStore)
       {
-         byte[] bytes = null;
-         try { dataStore.SyncData(SaveKeyBytes, ref bytes); }
-         catch
-         {
-            /* key absent in older saves — fall through to legacy */
-         }
-
-         if (bytes is {Length: > 0})
-            return Encoding.UTF8.GetString(bytes);
+         string fromBytes = SaveBlob.Read(dataStore, SaveKeyGz, SaveKeyBytes);
+         if (!string.IsNullOrEmpty(fromBytes))
+            return fromBytes;
 
          string legacy = null;
          try { dataStore.SyncData(SaveKey, ref legacy); }
@@ -174,7 +168,7 @@ namespace CalradiaRemembers.Storage
       ///   (with a loud log naming it) so a single un-round-trippable profile can never make the
       ///   whole save unreadable — the mod's "your campaign always loads" guarantee.
       /// </summary>
-      private string SerializeProfiles()
+      internal string SerializeProfiles()
       {
          // Freeze the dictionary structure before serializing: an autosave can run while an async LLM continuation
          // is landing a Set on the thread pool, and a dictionary copied mid-mutation would throw and drop the
