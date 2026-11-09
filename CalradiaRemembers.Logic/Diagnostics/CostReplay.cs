@@ -292,10 +292,27 @@ namespace CalradiaRemembers.Logic.Diagnostics
             catch (Exception ex) when (!(ex is OperationCanceledException)) { }
 
             (bool right, bool invented) = InterpretCases.Score(difficulty, result);
-            outcomes.Add(new InterpretOutcome {ScenarioName = row.Name, Difficulty = difficulty, Right = right, Invented = invented});
+            outcomes.Add(new InterpretOutcome {ScenarioName = row.Name, Difficulty = difficulty, Right = right, Invented = invented,
+                                               Miss = right ? "" : DescribeMiss(test, result)});
          }
 
          return "";
+      }
+
+      // One line a reader can act on: the case id, the deed expected (or none), the deeds read, the prose itself.
+      private static string DescribeMiss(ActionBenchCase test, ActionBenchResult result)
+      {
+         string expected = test.Expected.Count == 0 ? "nothing" : string.Join(" + ", test.Expected.Select(e => e.Type));
+         string read = result == null ? "(call failed)"
+            : !result.CallSucceeded ? $"(call failed: {result.Error})"
+            : result.Emitted.Count == 0 ? "nothing"
+            : string.Join(" + ", result.Emitted.Select(a => a.Type + (a.Parameters == null || a.Parameters.Count == 0 ? ""
+                 : "(" + string.Join(", ", a.Parameters.Select(p => p.Key + "=" + p.Value)) + ")")));
+         string expectedParams = string.Join("; ", test.Expected.Where(e => e.Params.Count > 0)
+            .Select(e => e.Type + "(" + string.Join(", ", e.Params.Select(p => p.Key + "=" + p.Value)) + ")"));
+
+         return $"{test.Id} [{test.Verb}] expected {expected}{(expectedParams.Length > 0 ? " " + expectedParams : "")}, read {read}"
+                + (test.ForbiddenType != null ? $" (forbidden: {test.ForbiddenType})" : "") + $" | prose: {test.Prose}";
       }
 
       /// <summary>

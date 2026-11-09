@@ -116,7 +116,13 @@ namespace CalradiaRemembers.Tests
             results.Add(CostBenchReport.SummarizeInterpret(run.Row, run.Recorder.Calls, run.Outcomes));
          }
 
-         Write("interpret", "(outside the game)", new List<ProseRowResult>(), results, all, new StringBuilder(), new StringBuilder());
+         // Every wrong reading by name, so the same miss on every provider shows as a case to fix, not a model to blame.
+         var misses = new StringBuilder();
+         foreach (var run in runs)
+         foreach (InterpretOutcome o in run.Outcomes.Where(o => !o.Right))
+            misses.AppendLine($"  MISS {run.Row.Name} | {o.Difficulty} | {o.Miss}");
+
+         Write("interpret", "(outside the game)", new List<ProseRowResult>(), results, all, new StringBuilder(), misses);
       }
 
       // Free: the captured row replayed with its own model and its own replies, through a handler that answers with them.

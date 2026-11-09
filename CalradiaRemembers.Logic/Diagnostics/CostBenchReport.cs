@@ -172,6 +172,12 @@ namespace CalradiaRemembers.Logic.Diagnostics
 
       /// <summary>It emitted a deed the reply did not do: the game would act on something that never happened.</summary>
       public bool Invented { get; init; }
+
+      /// <summary>
+      ///   For a wrong reading, the case, what was expected and what was read; empty when right. Gabriel (09/11/2026): the
+      ///   same few misses on every provider point at the case, not the model, so the bench names them.
+      /// </summary>
+      public string Miss { get; init; } = "";
    }
 
    /// <summary>A prose (or standard) row's costs and signals.</summary>
