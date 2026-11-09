@@ -653,6 +653,15 @@ MUST = [
     ("sdk",   b"IntimateActNames"),
     ("sdk",   b"LessFondActs"),
     ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
+    # 2.8.6
+    ("logic", b"SaveBlobCodec"),
+    ("logic", b"IsBeyondCeiling"),
+    ("mod",   b"SaveBlob"),
+    ("mod",   b"SaveRescuePatch"),
+    ("mod",   b"SaveRescueProbe"),
+    ("mod",   "CalradiaRemembers_NpcProfiles_gz".encode("utf-16-le")),
+    ("mod",   "cr_relation_baselines_gz".encode("utf-16-le")),
+    ("mod",   "save_blobs".encode("utf-16-le")),
     # 2.8.5
     ("logic", b"ForcesInSight"),
     ("logic", b"TournamentsHeard"),
