@@ -46,6 +46,16 @@ namespace CalradiaRemembers.Tests
          EdictCatalog.Find("Edict of Free Gold").Should().BeNull();
       }
 
+      // STAKE (cost bench, 09/11/2026): the interpreter wrote "requisition_grain" and "muster_militia" for an edict the player
+      // plainly decreed, and the game refused it. The same words in another order are the same edict.
+      [Test]
+      public void GIVEN_an_edicts_words_in_another_order_WHEN_looked_up_THEN_it_is_found()
+      {
+         EdictCatalog.Find("requisition_grain").Kind.Should().Be(EdictKind.GrainRequisition);
+         EdictCatalog.Find("Muster militia").Kind.Should().Be(EdictKind.MilitiaMuster);
+         EdictCatalog.Find("relief_tax").Kind.Should().Be(EdictKind.TaxRelief);
+      }
+
       // STAKE: an edict is bounded in time: "forever" or "two days" are brought within the term, never past it.
       [Test]
       public void GIVEN_a_term_asked_WHEN_decreed_THEN_it_stays_within_the_bounds()

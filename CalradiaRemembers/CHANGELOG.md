@@ -2,6 +2,12 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.8.6.. open
+
+### Fixed
+
+- **An edict named with its words in another order is decreed** (cost bench, 09/11/2026: DeepSeek V4.1 Flash wrote `requisition_grain` and `muster_militia` for an edict the player plainly decreed, on every provider, and the game refused it). `EdictCatalog.Find` reads the words in any order. Not done: the interpreter still sees no list of edict keys ("lighter_taxes" for tax relief stays refused); the list in the action's description broke the Compact interpreter budget by 94 characters, so it waits for a per-turn list.
+
 ## v2.8.5.. 2026-11-08
 
 ### New

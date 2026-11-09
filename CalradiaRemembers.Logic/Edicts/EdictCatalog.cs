@@ -138,7 +138,9 @@ namespace CalradiaRemembers.Logic.Edicts
 
       /// <summary>
       ///   The edict a written name means: its key or its title, any case, spaces or underscores ("Tax relief",
-      ///   "tax_relief", "TAX RELIEF"); null for anything else, so a name the model invents decrees nothing.
+      ///   "tax_relief", "TAX RELIEF"), its words in any order ("requisition_grain"); null for anything else, so a name
+      ///   the model invents decrees nothing. The order (cost bench, 09/11/2026): the interpreter wrote "requisition_grain" and
+      ///   "muster_militia" for an edict the player plainly decreed, on every provider, and the edict was refused.
       /// </summary>
       public static EdictEffect Find(string written)
       {
@@ -154,6 +156,9 @@ namespace CalradiaRemembers.Logic.Edicts
       /// <summary>What decreeing costs in influence.</summary>
       public static int InfluenceCost(EdictScope scope) => scope == EdictScope.Realm ? RealmInfluenceCost : TownInfluenceCost;
 
-      private static string Normalize(string s) => new string(s.Trim().ToLowerInvariant().Where(char.IsLetter).ToArray());
+      // The words, lower case and sorted, joined: "Militia muster", "militia_muster" and "MUSTER MILITIA" all read alike.
+      private static string Normalize(string s)
+         => string.Join(" ", new string(s.Trim().ToLowerInvariant().Select(c => char.IsLetter(c) ? c : ' ').ToArray())
+                              .Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries).OrderBy(w => w, StringComparer.Ordinal));
    }
 }
