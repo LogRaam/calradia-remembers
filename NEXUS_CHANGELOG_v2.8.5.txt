@@ -1,0 +1,33 @@
+Version 2.8.5
+
+Characters who see the armies around them and know where tournaments are held, peace made between characters at your table, item sales paid at the agreed price, duels that are answered as the game will act, and two memory settings for small local models.
+
+New
+
+- Armies in sight. When you talk with someone riding with you on the open map, they now see the armies and bands your party can see, up to five, nearest first ("an enemy army of Vlandia under Lord Derthert, some 1,800 men"), so they no longer act surprised when you mention a host nearby. (Thank you, 3chmidt.)
+- Characters know where tournaments are held: those in their own realm, and those of other realms nearby, with the prize. (Thank you, 3chmidt.)
+- A battle is remembered with what it cost each side. The lords who led a party in it and the companions in your party remember how many fell and were wounded on each side, auto-resolved battles included, so your tally is no longer taken for a boast. (Thank you, 3chmidt.)
+- A ruler's death makes waves. The fall of a ruler or a clan head reaches every realm, and the news says who he was and, when your host struck him, that it was yours. (Thank you, 3chmidt.)
+- Captives can be given, both ways. Tell someone you give them a captive and it happens: they remember the gift, and the captive resents being handed on. A character who holds you dear may also give you one of theirs for nothing. (Thank you, 3chmidt.)
+- Characters can make their peace at your table. When two characters who hold something against each other are in the same conversation, one can make peace with the other. That is their own pardon: the encyclopedia stops calling them enemies once both have made theirs, and each remembers it. A slain kinsman is never pardoned this way. (Thank you, kurushimi00.)
+- Two memory settings for small local models, in Mod Options, LLM Provider: "Memories in the prompt" shows a character only their latest memories of you (0 = all, the default; every memory stays saved), and "Compress after (memories)" sets how soon old memories are folded into a short outline (default 24, as low as 8). (Thank you, avalanche24.)
+
+Fixed
+
+- An item sold for coin is paid as a sale. When a character agreed a price for an item and handed the coin over, the game read it as a gift and paid only the gift's ceiling, then let the item go as a free gift. The coin and the item crossing in the same turn are now one sale, at the price paid, which you confirm. A sale on credit (part now, the rest sworn) is understood too. (Thank you, 3chmidt.)
+- A character answers your duel the way the game will. A lord no longer says "yes, let's do it" and then "lets the challenge hang": whether they will fight is decided before they speak, and they accept or decline in their own words. (Thank you, fearente.)
+- No more "(the game does not allow real harm here, so none was done)" in ordinary conversations. (Thank you, Alfkona.)
+- A task's reward is paid in full. A reward owed for a task the game has seen done is no longer cut down as if it were a gift. (Thank you, Cabinaw.)
+- A task offered by a small local model in loose wording ("type: kill_bandits, target: Seonon, reward: 500 denars") is now recorded instead of reported as garbled. (Thank you, avalanche24.)
+- A translation of the settings page now loads. The English template had notes the game would not read past; translators can copy it as it is now. (Thank you, sekiz5.)
+- A captive given for nothing to his own lord or realm goes home free, instead of ending up in his own lord's cells and being reported as escaped.
+- The Test Connection buttons now name and test the NSFW model.
+
+Developer tools
+
+- cr.test all gains forces_in_sight, tournaments_heard, fallen_news, captive_gift, reconcile_with, sale_from_parts, answers_before_speaking, reward_as_gift and memory_settings.
+- A task offer the game could not read is now written to the log as the model sent it.
+
+Notes
+
+- Existing saves load as they are.
