@@ -76,6 +76,15 @@ namespace CalradiaRemembers.Logic.Romance
       /// <summary>Her own lover was a hidden affair the player discovered, rather than one held openly.</summary>
       public bool AffairDiscovered { get; init; }
 
+      /// <summary>
+      ///   The name of the one she is wed to when it is not the player, or null. A lord's marriage is known to all, so the
+      ///   page may name it.
+      /// </summary>
+      public string WedToAnotherName { get; init; }
+
+      /// <summary>The day she wed that other, when the game recorded it.</summary>
+      public int? WedToAnotherOnDay { get; init; }
+
       /// <summary>The children she and the player have together, never a hidden one.</summary>
       public IReadOnlyList<HeartChild> Children { get; init; } = Array.Empty<HeartChild>();
    }
@@ -101,6 +110,10 @@ namespace CalradiaRemembers.Logic.Romance
          var p = new Pronouns(f.IsFemale);
          var lines = new List<string> {Bond(f, p, when)};
 
+         // A bond still alive while she is wed to another: her marriage is part of the story (a lapsed one leads with it).
+         if (WedToAnother(f) && !EndedByHerWedding(f) && f.Status != RomanticStatus.SecretLover)
+            lines.Add(f.WedToAnotherOnDay is int w ? $"{p.She} has been wed to {f.WedToAnotherName} since {when(w)}." : $"{p.She} is wed to {f.WedToAnotherName}.");
+
          // When they became lovers, if it is not already what the first line dates.
          if (f.LoversSinceDay is int lovers && Dates(f) != lovers && (f.IsSpouse || f.IsExSpouse || f.IsConsort || f.Status is RomanticStatus.Estranged or RomanticStatus.Broken))
             lines.Add($"You first became lovers in {when(lovers)}.");
@@ -125,7 +138,9 @@ namespace CalradiaRemembers.Logic.Romance
          int? day = Dates(f);
          string date = day is int d ? when(d) : null;
          string line = $"{f.Name}, {Role(f, p)}";
-         if (date != null)
+         if (EndedByHerWedding(f))
+            line += $", wed to {f.WedToAnotherName}{(date != null ? $" in {date}" : "")}";
+         else if (date != null)
             line += f.IsExSpouse ? $" (wed in {date})"
                   : !f.IsSpouse && !f.IsConsort && !f.IsSecretLover && f.Status == RomanticStatus.Broken ? $" (it ended in {date})"
                   : $" since {date}";
@@ -140,6 +155,7 @@ namespace CalradiaRemembers.Logic.Romance
       /// </summary>
       public static int? Dates(HeartFacts f)
       {
+         if (EndedByHerWedding(f)) return f.WedToAnotherOnDay ?? f.StatusSinceDay;
          if (f.IsSpouse || f.IsExSpouse) return f.WeddedOnDay;
          if (f.IsConsort) return f.StatusSinceDay;
          if (f.IsSecretLover) return f.SecretLoverSinceDay ?? f.StatusSinceDay;
@@ -158,6 +174,13 @@ namespace CalradiaRemembers.Logic.Romance
          if (f.IsConsort) return $"{p.She} is your consort{At(" since")}.";
          if (f.IsSecretLover) return $"{p.She} has been your secret lover{At(" since")}.";
 
+         // avalanche24 (Nexus, 04/11/2026): a courtship the game ended by marrying her to someone else read only "grown
+         // distant", naming no one. CourtshipLapseBehavior moves the bond to Estranged on that wedding.
+         if (EndedByHerWedding(f))
+            return f.Status == RomanticStatus.Estranged
+               ? $"{p.She} wed {f.WedToAnotherName}{At(" in")}, and has grown distant from you."
+               : $"{p.She} wed {f.WedToAnotherName}{At(" in")}. What was between you is over.";
+
          return f.Status switch
          {
             RomanticStatus.SecretLover => $"{p.She} has been your lover in secret{At(" since")}.",
@@ -168,6 +191,13 @@ namespace CalradiaRemembers.Logic.Romance
             _ => $"What was between you is over{At(". It ended in")}."
          };
       }
+
+      private static bool WedToAnother(HeartFacts f) => !f.IsSpouse && !string.IsNullOrWhiteSpace(f.WedToAnotherName);
+
+      // The bond soured or broke and she is wed to another: told as her wedding, whichever came first, since both are true
+      // and the wedding is what the player can see.
+      private static bool EndedByHerWedding(HeartFacts f)
+         => WedToAnother(f) && !f.IsExSpouse && !f.IsConsort && !f.IsSecretLover && f.Status is RomanticStatus.Estranged or RomanticStatus.Broken;
 
       private static string Role(HeartFacts f, Pronouns p)
       {

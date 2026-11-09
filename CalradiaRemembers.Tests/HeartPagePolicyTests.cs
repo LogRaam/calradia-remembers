@@ -122,5 +122,36 @@ namespace CalradiaRemembers.Tests
          HeartPagePolicy.RecapLine(f, When).Should().Be("Ylva, your wife since summer 1093; your children: Arven, Liena");
          HeartPagePolicy.Lines(f, When).Should().Contain("Your children together: Arven (1094), Liena (1096).");
       }
+
+      // STAKE: avalanche24 (Nexus, 04/11/2026): Rhagaea was wed to another while the player courted her, and her page said
+      // only "grown distant", naming no one. The wedding the whole realm saw is what ended it, so it is told, dated.
+      [Test]
+      public void GIVEN_a_courtship_ended_by_her_wedding_another_WHEN_her_page_opens_THEN_it_names_him_and_the_wedding()
+      {
+         var f = new HeartFacts {Name = "Rhagaea", IsFemale = true, Status = RomanticStatus.Estranged, StatusSinceDay = 300,
+                                 WedToAnotherName = "Garios", WedToAnotherOnDay = 200};
+
+         HeartPagePolicy.Lines(f, When).Should().Equal("She wed Garios in summer 1093, and has grown distant from you.");
+         HeartPagePolicy.RecapLine(f, When).Should().Be("Rhagaea, grown distant from you, wed to Garios in summer 1093");
+      }
+
+      // STAKE: a bond the player broke off is over, and her later marriage is told as such, never as a bond still alive.
+      [Test]
+      public void GIVEN_a_broken_bond_and_her_wedding_another_WHEN_her_page_opens_THEN_it_says_it_is_over()
+      {
+         var f = new HeartFacts {IsFemale = false, Status = RomanticStatus.Broken, WedToAnotherName = "Ira"};
+
+         HeartPagePolicy.Lines(f, When).Should().Equal("He wed Ira. What was between you is over.");
+      }
+
+      // STAKE: a lover still warm toward the player while wed to another: the page must not hide the marriage the player
+      // can see in the game, nor tell it as the end of the bond.
+      [Test]
+      public void GIVEN_a_lover_wed_to_another_WHEN_her_page_opens_THEN_the_bond_comes_first_and_her_marriage_follows()
+      {
+         var f = new HeartFacts {IsFemale = true, Status = RomanticStatus.Intimate, LoversSinceDay = 100, WedToAnotherName = "Garios", WedToAnotherOnDay = 200};
+
+         HeartPagePolicy.Lines(f, When).Should().Equal("She has been your lover since spring 1091.", "She has been wed to Garios since summer 1093.");
+      }
    }
 }

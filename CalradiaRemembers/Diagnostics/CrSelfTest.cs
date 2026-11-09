@@ -237,7 +237,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("personal_worth", Severity.Light, "Thoragoros1 03/11: a captive is worth more to their own kin than the game's ransom. Takes a lord whose clan leader is his parent, child, spouse or sibling, reads the most the leader may offer in the turn's sum tokens, has the leader buy him through the real buy_prisoner at an absurd price, and asserts the token, the payment and the policy agree and stand above the ordinary band. Restores both purses and frees the captive", TestPersonalWorth),
          new SelfTest("courtship_lapse", Severity.Light, "avalanche24 04/11: the game wed Queen Rhagaea to another while the player courted her, and CR kept the courtship running (Heart page, letters) while she denied it in chat. Takes a lord or lady of the other sex, sets their bond with the player to Courting, drives the real wedding hook as if they wed another hero, and asserts the bond falls to Estranged and they remember the wedding as their own life. Restores the bond and removes the memory", TestCourtshipLapse),
          new SelfTest("companion_grievance", Severity.Light, "froggyluv 04/11: unhappy companions invented a broken promise because the mood note named no cause. Lowers a companion's contentment through the real driver with a named cause, and asserts the cause is kept and the note names it and forbids inventing another. Restores the contentment and the causes", TestCompanionGrievance),
-         new SelfTest("courtship_lapse_past", Severity.Light, "avalanche24 04/11: Rhagaea was already wed to another when the lapse came, so no wedding would ever fire for her again. Takes a hero married to someone other than the player, sets their bond with the player to Courting from before a wedding day CR records, runs the daily reconcile, and asserts the bond falls to Estranged; a courtship begun after the wedding is left alone. Restores the bond, its dates, the memories and the wedding day", TestCourtshipLapsePast),
+         new SelfTest("courtship_lapse_past", Severity.Light, "avalanche24 04/11: Rhagaea was already wed to another when the lapse came, so no wedding would ever fire for her again. Also asserts her Heart page names the one she wed and the prompt dates the bond by its season. Takes a hero married to someone other than the player, sets their bond with the player to Courting from before a wedding day CR records, runs the daily reconcile, and asserts the bond falls to Estranged; a courtship begun after the wedding is left alone. Restores the bond, its dates, the memories and the wedding day", TestCourtshipLapsePast),
          new SelfTest("bag_sale", Severity.Light, "froggyluv 04/11: food chosen in the bag to sell moved one unit or left as a gift. Holds three of a trade good in the bag with an asking price, asserts give_item refuses them (no gift), then that sell_item moves all three and the buyer pays. Restores the goods and the coin", TestBagSale),
          new SelfTest("captive_name", Severity.Light, "froggyluv 04/11: a buyer named the captive with her house ('Elthild of dey Tihr') and the sale failed: no captive by that name. Takes a hero captive the player holds and asserts the real resolver finds them by name with the house appended. Skips when the player holds no hero captive; changes nothing", TestCaptiveName),
          new SelfTest("captive_trade_context", Severity.Light, "RaveN017Mod 05/11: prisoner sales 'still don't work every single time ... especially when I perform several prisoner exchanges in a row'. Takes a hero captive the player holds and a lord who could buy: on a turn naming the captive, the live builder hands the interpreter the captives held, the player's line and the reply before; on a turn about something else it hands nothing; the same captive traded again with the same lord that day is refused as an echo (so a re-read sale never sells him back), another buyer is not; a money token naming the captive with his house fills the same sum as his bare name. With no hero captive held, a free lord with no party is taken into the player's party for the test and released after (skips only when there is none); otherwise changes nothing", TestCaptiveTradeContext),
@@ -10760,6 +10760,19 @@ namespace CalradiaRemembers.Diagnostics
             Marriage.CourtshipLapseBehavior.Reconcile();
             t.Note($"{wed.Name}, wed to {wed.Spouse?.Name}: {store.Get(wed.StringId).Romantic.Status}");
             t.Expect("aCourtshipBeforeTheWeddingEnds", store.Get(wed.StringId).Romantic.Status, RomanticStatus.Estranged);
+
+            // STAKE: avalanche24: her page said only "grown distant"; it now names the one she wed.
+            string heart = string.Join(" | ", Mapping.HeartPageReader.LinesFor(wed));
+            t.Note($"Heart: {heart}");
+            t.Expect("herPageNamesTheOneSheWed", heart.Contains(wed.Spouse.Name.ToString()), true);
+
+            // STAKE: avalanche24: the bond reaches the model dated, as a fact she cannot disown.
+            NpcProfile lapsed = store.Get(wed.StringId);
+            lapsed.Romantic.Status = RomanticStatus.Courting;
+            t.Expect("theCourtshipIsDatedInThePrompt",
+               Mapping.EncounterContextBuilder.Build(wed, lapsed, behavior.GameStateBridge, "").RomanticBondSince,
+               lapsed.Romantic.StatusSinceDay is int bondDay ? Mapping.HeartPageReader.When(bondDay) : "(no day recorded)");
+            lapsed.Romantic.Status = RomanticStatus.Estranged;
          }
          finally
          {

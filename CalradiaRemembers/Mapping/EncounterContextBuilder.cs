@@ -764,6 +764,8 @@ namespace CalradiaRemembers.Mapping
             // companion afterward). Only meaningful when LoveMatchEligible is true.
             PartnerIsOwnCompanion = MarryCompanionResolver.IsEligibleCompanionMatch(hero),
             NpcSpouseIsPlayer = hero?.Spouse == Hero.MainHero && Hero.MainHero != null,
+            // avalanche24 (04/11/2026): the bond stated with its season, the same calendar the Heart page dates it by.
+            RomanticBondSince = profile?.Romantic?.StatusSinceDay is int bondDay ? HeartPageReader.When(bondDay) : null,
             // fearente (26/10/2026): the game counts a hired companion in the player's clan; identity says what they are.
             // A companion the player married is a spouse, never a hireling (CR's own wedding clears CompanionOf; another mod's may not).
             IsHiredCompanion = hero != null && hero.IsPlayerCompanion && hero.Spouse != Hero.MainHero,

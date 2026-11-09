@@ -156,6 +156,8 @@ namespace CalradiaRemembers.Mapping
                 IsConsort = r?.IsConsort == true, IsSecretLover = r?.IsSecretLover == true, SecretLoverSinceDay = r?.SecretLoverSinceDay,
                 IsOpenArrangement = r?.IsOpenArrangement == true, AcceptsPlayersOtherPartners = r?.AcceptsPlayersOtherPartners == true,
                 KnownLoverName = lover?.Name?.ToString(), AffairDiscovered = r?.AffairDiscovered == true,
+                WedToAnotherName = hero.Spouse != null && hero.Spouse != main ? hero.Spouse.Name?.ToString() : null,
+                WedToAnotherOnDay = hero.Spouse != null && hero.Spouse != main ? WeddingDayBehavior.WeddedOn(hero) : null,
                 Children = (main.Children ?? new List<Hero>())
                            .Where(c => c != null && (c.Mother == hero || c.Father == hero) && !IsHiddenBastard(c))
                            .OrderBy(c => c.BirthDay.ToDays)
