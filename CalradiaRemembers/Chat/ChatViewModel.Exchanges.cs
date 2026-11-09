@@ -1495,6 +1495,11 @@ namespace CalradiaRemembers.Chat
                // Same shape for every deal that moves its own coin (tashmetu, 27/09/2026: a captive ransomed): a
                // give_gold or take_gold beside it ("I will pay it now") is the same payment written twice.
                List<string> actionTypesThisTurn = turnActions.Select(a => a?.Type).ToList();
+               // One regard cost per deed (09/11/2026): an extort charges its own regard hit whether paid or refused, so
+               // the anger written beside it is the same cost. An extort the game will refuse (no hold) charges nothing.
+               List<string> deedsTheGameWillCarryOut = actionTypesThisTurn
+                  .Where(t => !string.Equals(t, "extort", StringComparison.OrdinalIgnoreCase) || Verbs.ExtortReadiness.WillRun(speaker.Hero))
+                  .ToList();
                var saleContext = new ActionContext(profile, null) {OfferedItemId = _offer.OfferedItemId, ItemOnTheTableId = _offer.ItemOnTheTable};
                bool saleThisTurn = turnActions.Any(a => string.Equals(a?.Type, "sell_item", StringComparison.OrdinalIgnoreCase));
                var supersededBySale = new HashSet<GameAction>(TradeBatchPolicy.Superseded(new TradeBatchFacts {
@@ -1657,6 +1662,14 @@ namespace CalradiaRemembers.Chat
                   // B2: the first regard change this turn wins; extras are dropped (see relationChangedThisTurn).
                   if (string.Equals(action.Type, "change_relation", StringComparison.OrdinalIgnoreCase))
                   {
+                     int? regardDelta = action.Parameters != null && action.Parameters.TryGetValue("delta", out string rds) && int.TryParse(rds, out int rdv) ? rdv : (int?) null;
+                     if (TurnRegardPolicy.IsSameCostAsADeedThisTurn(new TurnRegardFacts {ActionType = action.Type, Delta = regardDelta, DeedsTheGameWillCarryOut = deedsTheGameWillCarryOut}))
+                     {
+                        ModLog.Info("[ACTION] change_relation dropped: a deed in the same response already charges its own regard cost.");
+
+                        continue;
+                     }
+
                      // M-R3 (regard audit): a quest completed this turn already pays its fixed, verified
                      // RewardRelation. A POSITIVE change_relation the model also emits for "completing the task"
                      // would double-count the same deed, so drop it on a quest-completion turn. Negatives still

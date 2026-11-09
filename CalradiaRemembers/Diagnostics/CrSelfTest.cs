@@ -440,6 +440,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("match_asks_the_player", Severity.Light, "tashmetu (20/10/2026): when the bride is the player's daughter or sister, the player holds the say over her hand and the door refused. Takes an unwed woman of the player's house and a lawful groom of another house at peace, registers the match through the PUBLIC CrMatches.Register with the groom's side (the head of his house, or the groom) as the decider: it is taken as asking the player, the groom's side is taught to ask for her hand, and the chat's [Y/n] names her and the groom. Settles nothing (no daughter is wed by a test); withdraws the match. When the player's house holds no unwed woman with a lawful groom, mints one into the house (no parent named) and removes her after", TestMatchAsksThePlayer),
          new SelfTest("arrange_match_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): the matchmaker; Gabriel: a real marriage, her heart then her family's consent. Finds an unwed lord and a lawful match of another house at peace, issues the task through the real QuestFactory, and asks the real match check WITHOUT applying it: the law must pass, and the answer must be one of wed / not yet won over / family refuses, never a legal refusal. Weds nobody.", TestArrangeMatchQuest),
          new SelfTest("craft_weapon_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'a blacksmithing quest', the kind being part of the deal (Gabriel). Issues a craft_weapon task for a greatsword through the real QuestFactory, expects the forge key for a two-handed sword, and expects a two-handed sword the player did NOT forge (from the game's own items) to be refused at the hand-over, as a bought one would be. Moves nothing.", TestCraftWeaponQuest),
+         new SelfTest("recruits_read_as_give_troops", Severity.Light, "Cost bench (09/11/2026; Gabriel: 'vas-y pour l'interprete, les refus et give_troops'): a lord taking the fresh men he had asked for was read as give_troops, which closes no task. On a lord leading a party with room, a recruit task issued through the real QuestFactory: with too few of his recruits in the player's party a give_troops stays a reinforcement; with every recruit asked in hand, DeliverRecruitsVerb.HandOverFacts and TroopHandOverReadingPolicy carry it out as deliver_recruits. Moves no troops to him; the recruits added and the task are taken back.", TestRecruitsReadAsGiveTroops),
          new SelfTest("recruit_troops_quest", Severity.Light, "Lordfadooboo (Nexus, 01/10/2026): 'recruitment quests'. Finds a lord leading a party with room, issues a recruit_troops task through the real QuestFactory with an oversized ask, and expects it keyed to his own culture and clamped to the band and the room in his party. Moves no troops.", TestRecruitTroopsQuest),
          new SelfTest("scout_town_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Make contact with local gang leader, negotiate with him for intel.' Finds an enemy town with a gang leader for some lord at war, issues the task through the real QuestFactory, expects it bound to that town, and builds the report its gang leader would give from the town's true state: naming him and the town. Records nothing.", TestScoutTownQuest),
          new SelfTest("local_context", Severity.Light, "A local model's declared context window (fkasad, 13/10/2026: LM Studio cut CR's oversized request in its middle and the rules for a give were lost). On a real character with a CR memory, sends a long conversation through the real prompt builder to a capturing client (no model is called) with an 8,192-token window, and expects what would go out to fit, to still teach GAME ACTIONS, to keep the recap and the new line, to open the raw lines on a player's turn and to carry the compact reply budget; with no window, expects the whole conversation to go as built. Tells the player nothing and keeps nothing.", TestLocalContext),
@@ -15556,6 +15557,49 @@ namespace CalradiaRemembers.Diagnostics
          {
             t.Note($"a two-handed sword the player did not forge: {bought.Name}");
             t.Expect("aBoughtSwordIsRefused", CalradiaRemembers.Items.SupplyItemMatcher.Matches(bought, quest.RequiredItemCategory), false);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestRecruitsReadAsGiveTroops(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("recruits_read_as_give_troops");
+         MobileParty playerParty = MobileParty.MainParty;
+         if (t.Skip(playerParty == null || behavior.Store == null, "no campaign")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h.Culture?.BasicTroop != null && h.PartyBelongedTo?.LeaderHero == h
+                                                            && h.PartyBelongedTo.Party.PartySizeLimit - h.PartyBelongedTo.MemberRoster.TotalManCount >= ReinforceGarrisonPolicy.MinTroops);
+         if (t.Skip(lord == null, "no lord leading a party with room")) return t.Line();
+
+         NpcProfile stored = behavior.Store.Get(lord.StringId);
+         NpcProfile profile = stored ?? HeroProfileMapper.FromHero(lord);
+         InformalQuest quest = Quests.QuestFactory.Create(new QuestProposal {Type = QuestType.RecruitTroops, RequiredCount = ReinforceGarrisonPolicy.MinTroops}, lord, (int) CampaignTime.Now.ToDays);
+         if (t.Abort(quest == null, $"the factory refused recruits for {lord.Name}")) return t.Line();
+
+         CharacterObject recruit = lord.Culture.BasicTroop;
+         int added = 0;
+         profile.ActiveQuests.Add(quest);
+         try
+         {
+            var ctx = new VerbContext(lord, profile, behavior.GameStateBridge, null, null);
+            TroopHandOverFacts before = Verbs.DeliverRecruitsVerb.HandOverFacts(ctx);
+            t.Expect("theTaskIsSeen", before.RecruitTaskOutstanding, true);
+            if (!before.PlayerHoldsTheRecruitsAsked)
+               t.Expect("tooFewStaysAReinforcement", TroopHandOverReadingPolicy.IsTheRecruitTask(before), false);
+            else t.Note("the player already holds the recruits asked; the short case is not seen on this save");
+
+            added = quest.RequiredItemCount;
+            playerParty.MemberRoster.AddToCounts(recruit, added);
+            TroopHandOverFacts inHand = Verbs.DeliverRecruitsVerb.HandOverFacts(ctx);
+            t.Note($"{lord.Name} asks for {quest.RequiredItemCount} recruits of {quest.RequiredCultureName}; {added} x {recruit.Name} added");
+            t.Expect("thePlayerHoldsThem", inHand.PlayerHoldsTheRecruitsAsked, true);
+            t.Expect("readAsTheTask", TroopHandOverReadingPolicy.IsTheRecruitTask(inHand), true);
+         }
+         finally
+         {
+            if (added > 0) playerParty.MemberRoster.AddToCounts(recruit, -added);
+            profile.ActiveQuests.Remove(quest);
          }
 
          return t.Line();

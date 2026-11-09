@@ -2,6 +2,14 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.8.7.. unreleased
+
+### Fixed
+
+- **A lord taking the recruits he asked for closes his task, whatever the reader called it** (cost bench 09/11/2026; Gabriel: "vas-y pour l'interprete, les refus et give_troops"). "Fresh men, as I asked. You have my thanks." was read as give_troops by both measured providers, which moves the player's lowest-tier men (or is refused for want of need) and leaves the recruit task open; in the game the interpreter's facts never carry the player's tasks, so it knows less than the bench. `TroopHandOverReadingPolicy`: a give_troops toward a lord with an open recruit task, while the player holds every recruit asked, is carried out as deliver_recruits (`DeliverRecruitsVerb.HandOverFacts`); short of recruits it stays a reinforcement. The interpreter catalog also teaches the difference (SDK, Full only: give_troops gains a not-when, deliver_recruits an emit-when). cr.test all `recruits_read_as_give_troops`. Not play-verified.
+- **A refused demand for coin is recorded as the attempt it was, and costs regard once** (same bench: Orthes's "You will have nothing from me" was read as change_relation(-12) and no extort, so `ExtortionBehavior.Settle` never wrote the attempt, its grudge or its crime). The catalog teaches that a refusal is still extort, with no amount (SDK, Full only). Since extort charges its own regard hit, `TurnRegardPolicy` drops a negative change_relation in the same turn when the game will carry the extort out (`Verbs.ExtortReadiness`: the player holds something over that character today); an extort the game will refuse leaves the anger in place. extort also joins `TurnPaymentPolicy`'s deals moving their own coin, so a paid extortion beside a give_gold is paid once. Not play-verified.
+- Not changed: request_privacy refusals are still missed by the reader on the bench, and that changes nothing in the game (a refusal only writes a `[WITNESSES]` log line; the witnesses stay either way). Deliberately left as is.
+
 ## v2.8.6.. 2026-11-09
 
 ### Fixed

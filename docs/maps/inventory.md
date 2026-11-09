@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 639 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1542 types in 56 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 640 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1546 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -895,7 +895,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrSpikeState` | public class | The spike's game state: deliberately empty, it exists only to be pushed so a screen binds to it. |
 | `SpikeCaptiveBarterable` | internal class | A captive the player holds, offered to a buyer at the price our policy lets that buyer pay. |
 
-### CalradiaRemembers.Verbs (31)
+### CalradiaRemembers.Verbs (32)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -908,6 +908,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EndMarriageVerb` | public class | end_marriage: the player persuades the NPC to begin ending THEIR OWN marriage (never the player's own spouse — that is Phase 2, out of scope here). |
 | `ExchangePrisonersVerb` | public class | exchange_prisoners: the player gives a hero captive he holds and receives one the NPC's clan holds, with gold evening an uneven swap. |
 | `ExternalVerbAdapter` | public class | Wraps an externally-supplied ExternalVerbContract (an SDK-shaped, engine-agnostic verb defined by ANOTHER mod) as an IConversationVerb. |
+| `ExtortReadiness` | internal static class | Whether an extort toward a character would be carried out today. |
 | `GiveInfluenceVerb` | public class | give_influence (RP with teeth, increment 1): a lord lends the player some of their own political weight at court. |
 | `GiveTroopsVerb` | public class | give_troops: the reciprocal of LendTroopsVerb, 04/07/2026 — the PLAYER reinforces a needy NPC's own (genuinely under-strength) party with some of their own soldiers. |
 | `GrudgeTermsVerb` | public class | grudge_terms: the player asks what it would take to mend a grievance this NPC KNOWINGLY holds against them, whose resolution hint they have not yet learned. |
@@ -1488,7 +1489,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WorldFactRelevance` | public struct | The result of scoring one world-fact candidate against the player's message. |
 | `WorldFactRelevancePolicy` | public static class | Pure, engine-free scoring of how much a world fact bears on what the player just said. |
 
-### CalradiaRemembers.Logic.Actions (23)
+### CalradiaRemembers.Logic.Actions (27)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1515,6 +1516,10 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TradeBatchAction` | public class | One action of a turn, as far as a sale is concerned. |
 | `TradeBatchFacts` | public class | A turn's actions, and whether the player picked the item from the bag this turn. |
 | `TradeBatchPolicy` | public static class | Which actions of a turn a sale makes redundant. |
+| `TroopHandOverFacts` | public class | The facts about a give_troops toward a lord, as far as his recruit task is concerned. |
+| `TroopHandOverReadingPolicy` | public static class | Whether a give_troops is the hand-over of a lord's recruit task. |
+| `TurnRegardFacts` | public class | The facts about one action of a turn, as far as a regard cost is concerned. |
+| `TurnRegardPolicy` | public static class | Whether a change_relation is the same regard cost as a deed of the same turn. |
 
 ### CalradiaRemembers.Logic.Aims (14)
 

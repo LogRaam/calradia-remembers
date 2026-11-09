@@ -7,6 +7,7 @@ using System.Text;
 using CalradiaRemembers.Appreciations;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
+using CalradiaRemembers.Logic.Actions;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.WarDuty;
 using NpcMemoryService.Core.Models;
@@ -78,6 +79,15 @@ namespace CalradiaRemembers.Verbs
                 NpcProfile profile = ctx?.Profile;
 
                 if (npcHero == null || profile == null) return null;
+
+                // Men a lord asked for are his errand (cost bench, 09/11/2026): the reader called "fresh men, as I
+                // asked" give_troops, which moves them and leaves his task open. The game knows the task; it closes it.
+                if (TroopHandOverReadingPolicy.IsTheRecruitTask(DeliverRecruitsVerb.HandOverFacts(ctx)))
+                {
+                    ModLog.Info($"[ACTION] give_troops toward {npcHero.Name} carried out as deliver_recruits: his recruit task is open and the player holds the men.");
+
+                    return new DeliverRecruitsVerb().Execute(action, ctx);
+                }
 
                 // The vassal war duty (Gabriel, 15/10/2026): a liege the player owes a levy takes soldiers toward it,
                 // whatever his own party's need. A levy, not a kindness: no appreciation is planted.

@@ -235,7 +235,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 Where to cut a cycle. Each pair lists the files that create each direction, the pairs held up by the fewest
 files first: a side resting on ONE file is one file away from untangling the pair. `RatchetTests` pins the count.
 
-92 pair(s); 69 with a side resting on one file.
+92 pair(s); 68 with a side resting on one file.
 
 #### `CalradiaRemembers` and `CalradiaRemembers.Aims`
 
@@ -414,7 +414,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 #### `CalradiaRemembers.Chat` and `CalradiaRemembers.Verbs`
 
-- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Verbs` in 6 files: `Chat/ActionConfirmationController.cs`, `Chat/ActionInterpreterComposer.cs`, `Chat/ChatViewModel.Council.cs`, and 3 more
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Verbs` in 7 files: `Chat/ActionConfirmationController.cs`, `Chat/ActionInterpreterComposer.cs`, `Chat/ChatViewModel.Council.cs`, and 4 more
 - `CalradiaRemembers.Verbs` uses `CalradiaRemembers.Chat` in 1 file(s): `Verbs/ExternalVerbAdapter.cs`
 
 #### `CalradiaRemembers.Chat` and `CalradiaRemembers.WorldEvents`
@@ -536,11 +536,6 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 - `CalradiaRemembers.Stance` uses `CalradiaRemembers.WorldEvents` in 1 file(s): `Stance/StanceConsequenceBehavior.cs`
 - `CalradiaRemembers.WorldEvents` uses `CalradiaRemembers.Stance` in 2 file(s): `WorldEvents/SchemeStore.cs`, `WorldEvents/WorldEventFeeders.cs`
-
-#### `CalradiaRemembers.Verbs` and `CalradiaRemembers.Violence`
-
-- `CalradiaRemembers.Verbs` uses `CalradiaRemembers.Violence` in 1 file(s): `Verbs/VerbRegistry.cs`
-- `CalradiaRemembers.Violence` uses `CalradiaRemembers.Verbs` in 3 file(s): `Violence/ExposeSecretVerb.cs`, `Violence/ExtortVerb.cs`, `Violence/PlayerViolenceVerb.cs`
 
 #### `NpcMemoryService.Core.Actions` and `NpcMemoryService.Core.Parsing`
 
@@ -676,6 +671,11 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 - `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Standing` in 2 file(s): `Mapping/DayMoodReader.cs`, `Mapping/EncounterContextBuilder.cs`
 - `CalradiaRemembers.Standing` uses `CalradiaRemembers.Mapping` in 2 file(s): `Standing/PerceivedImageService.cs`, `Standing/SelfEsteemService.cs`
+
+#### `CalradiaRemembers.Verbs` and `CalradiaRemembers.Violence`
+
+- `CalradiaRemembers.Verbs` uses `CalradiaRemembers.Violence` in 2 file(s): `Verbs/ExtortReadiness.cs`, `Verbs/VerbRegistry.cs`
+- `CalradiaRemembers.Violence` uses `CalradiaRemembers.Verbs` in 3 file(s): `Violence/ExposeSecretVerb.cs`, `Violence/ExtortVerb.cs`, `Violence/PlayerViolenceVerb.cs`
 
 #### `CalradiaRemembers.Chat` and `CalradiaRemembers.Missions`
 

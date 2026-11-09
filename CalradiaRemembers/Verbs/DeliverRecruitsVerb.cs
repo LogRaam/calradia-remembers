@@ -8,6 +8,7 @@ using System.Text;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
+using CalradiaRemembers.Logic.Actions;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
@@ -53,11 +54,10 @@ namespace CalradiaRemembers.Verbs
                 if (!Pending(ctx, out InformalQuest quest, out MobileParty party))
                     return ActionOutcome.Refused("(No recruits were asked of you here; nothing is handed over.)");
 
-                Func<CharacterObject, bool> counts = c => c != null && RecruitTroopsPolicy.Counts(
-                    new TroopFacts {IsHero = c.IsHero, Tier = c.Tier, CultureId = c.Culture?.StringId}, quest.RequiredCultureId);
+                Func<CharacterObject, bool> counts = Counts(quest);
 
                 MobileParty playerParty = MobileParty.MainParty;
-                int have = playerParty?.MemberRoster?.GetTroopRoster().Where(el => counts(el.Character)).Sum(el => el.Number - el.WoundedNumber) ?? 0;
+                int have = FitRecruits(playerParty, counts);
 
                 if (!ReinforceGarrisonPolicy.CanHandOver(have, quest.RequiredItemCount))
                     return ActionOutcome.Refused($"(You have {have} fit recruits of {quest.RequiredCultureName ?? "that people"}; {ctx.Npc.Name} asked for {quest.RequiredItemCount}. Bring more.)");
@@ -80,6 +80,26 @@ namespace CalradiaRemembers.Verbs
                 return null;
             }
         }
+
+        /// <summary>
+        ///   What a give_troops toward this lord is, as far as his recruit task goes (TroopHandOverReadingPolicy): the
+        ///   reader calls men a lord asked for give_troops, and its facts never carry the player's open tasks.
+        /// </summary>
+        internal static TroopHandOverFacts HandOverFacts(VerbContext ctx)
+        {
+            if (!Pending(ctx, out InformalQuest quest, out _)) return new TroopHandOverFacts();
+
+            return new TroopHandOverFacts {
+                RecruitTaskOutstanding = true,
+                PlayerHoldsTheRecruitsAsked = ReinforceGarrisonPolicy.CanHandOver(FitRecruits(MobileParty.MainParty, Counts(quest)), quest.RequiredItemCount)
+            };
+        }
+
+        private static Func<CharacterObject, bool> Counts(InformalQuest quest)
+            => c => c != null && RecruitTroopsPolicy.Counts(new TroopFacts {IsHero = c.IsHero, Tier = c.Tier, CultureId = c.Culture?.StringId}, quest.RequiredCultureId);
+
+        private static int FitRecruits(MobileParty party, Func<CharacterObject, bool> counts)
+            => party?.MemberRoster?.GetTroopRoster().Where(el => counts(el.Character)).Sum(el => el.Number - el.WoundedNumber) ?? 0;
 
         /// <summary>This lord's outstanding recruit task, with the party he leads to take the men into.</summary>
         private static bool Pending(VerbContext ctx, out InformalQuest quest, out MobileParty party)
