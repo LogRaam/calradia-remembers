@@ -10229,9 +10229,17 @@ namespace CalradiaRemembers.Diagnostics
          const string eventId = "selftest_reconcile_with";
          List<Hero> lords = Hero.AllAliveHeroes.Where(h => h.IsLord && !h.IsChild && !h.IsPrisoner && h.Clan != null && h.Clan != Clan.PlayerClan && HeroPresence.IsInTheWorld(h)).Take(60).ToList();
          Hero a = null, b = null;
+         // No kin and no spouse: a tie weighs for them (PairRegardPolicy KinWeight, SpouseWeight) and evens out the -20 of the
+         // rivalry below, so they never start as enemies (second run 08/11/2026: Lucon and his kinswoman Zoana, 'Neither / Neither').
+         bool Tied(Hero x, Hero y)
+         {
+            PairRegardFacts f = PairRegardReader.Facts(x, y, today);
+            return f.IsSpouse || f.IsParentOrChild || f.IsSibling;
+         }
+
          foreach (Hero x in lords)
          {
-            b = lords.FirstOrDefault(y => y != x && y.Clan != x.Clan && y.MapFaction == x.MapFaction && store.EventsNamingBoth(x.StringId, y.StringId).Count == 0
+            b = lords.FirstOrDefault(y => y != x && y.Clan != x.Clan && y.MapFaction == x.MapFaction && !Tied(x, y) && store.EventsNamingBoth(x.StringId, y.StringId).Count == 0
                                           && PairRegardReader.Facts(x, y, today).Traces.Count == 0 && PairRegardReader.Facts(y, x, today).Traces.Count == 0
                                           && !peace.PeaceDay(x.StringId, y.StringId).HasValue && !peace.PeaceDay(y.StringId, x.StringId).HasValue);
             if (b == null) continue;
@@ -10240,7 +10248,7 @@ namespace CalradiaRemembers.Diagnostics
             break;
          }
 
-         if (t.Skip(a == null, "no two lords of one realm with nothing between them")) return t.Line();
+         if (t.Skip(a == null, "no two lords of one realm, not kin, with nothing between them")) return t.Line();
 
          NpcProfile pa = behavior.Store.Get(a.StringId) ?? HeroProfileMapper.FromHero(a);
          NpcProfile pb = behavior.Store.Get(b.StringId) ?? HeroProfileMapper.FromHero(b);
@@ -10252,9 +10260,7 @@ namespace CalradiaRemembers.Diagnostics
          {
             store.RecordHistory(new WorldEvent {
                Id = eventId, Type = WorldEventType.Other, Status = SharedPastPolicy.StatusPrefix + SharedPastKind.TourneyRivalry,
-               // A rivalry still at full weight (SharedPastPolicy.FullWeightYears), so it alone makes enemies of them. An
-               // 8-year-old one has faded by its own half-life (first run 08/11/2026: 'Neither / Neither'); kurushimi00's
-               // pair was listed through the game's own number, which theGamesNumberEvensOut checks below.
+               // A rivalry still at full weight (SharedPastPolicy.FullWeightYears), so it alone makes enemies of them.
                Day = today - 30, Magnitude = SharedPastPolicy.Magnitude,
                Summary = SharedPastPolicy.Summary(SharedPastKind.TourneyRivalry, a.Name.ToString(), b.Name.ToString(), null),
                ActorIds = new List<string> {a.StringId, b.StringId}, SourceMod = "CalradiaRemembers.SelfTest"
