@@ -163,8 +163,21 @@ namespace CalradiaRemembers.Tests
          TestContext.Out.WriteLine(sb.ToString());
       }
 
+      // A row's model may end in "@<provider>" (e.g. "deepseek/deepseek-v4.1-flash@deepinfra/fp8"): the request is then pinned
+      // to that provider, fallbacks off, as the MCM pin sends it. Gabriel (09/11/2026) asked whether quantized providers
+      // read the actions worse; this is how two providers of one model are scored side by side.
       private OpenRouterClient Client(string model, string reasoning, CostRecorder recorder)
-         => new OpenRouterClient(Http, Config(model, reasoning, _key)) {UsageObserver = recorder};
+      {
+         int at = model.IndexOf('@');
+         string? pin = at < 0 ? null : model.Substring(at + 1);
+         OpenRouterConfig config = Config(at < 0 ? model : model.Substring(0, at), reasoning, _key);
+
+         return new OpenRouterClient(Http, pin == null ? config : new OpenRouterConfig {
+            ApiKey = config.ApiKey, Model = config.Model, ReasoningProvider = config.ReasoningProvider, IsOpenRouterProvider = config.IsOpenRouterProvider,
+            AppTitle = config.AppTitle, TimeoutSecondsProvider = config.TimeoutSecondsProvider, ProviderSlugsProvider = () => pin,
+            AllowProviderFallbacksProvider = () => false
+         }) {UsageObserver = recorder};
+      }
 
       // The game's OpenRouter client, as LlmServices builds it for a role (the app headers aside, which never reach the body).
       private static OpenRouterConfig Config(string model, string reasoning, string key)
