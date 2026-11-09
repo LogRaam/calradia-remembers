@@ -221,6 +221,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("reconcile_with", Severity.Light, "kurushimi00 (Nexus, 06/11/2026): Ira and Adram, enemies since a tourney 8 years ago, made peace at the player's table and the encyclopedia still listed them as enemies. Gabriel 07/11: personal grudges, one per direction. On two lords of one realm with nothing between them, records a tourney rivalry 8 years old; asserts each is the other's enemy, the verb is taught to the first with the second present and not when alone, a name not in the room is refused, then the first's real pardon takes the rivalry out of HIS regard only (the second still holds it, and the game's number for the pair waits), then the second's takes it out of hers: neither is an enemy, both are reconciled, the game's number is no longer negative and each remembers the peace. Restores the event, the peaces, the memories and the relation", TestReconcileWith),
          new SelfTest("secret_exposure", Severity.Light, "Gabriel's go 01/11/2026 on expose_secret, the player's own affair included. On a married lord who is the player's secret lover, told to a third lord: the verb is taught saying the listener does not know it, words that name nobody are refused with nothing moved, then the real path records a named Scandal involving the player, the house loses renown and influence, the lover keeps a grudge and a Misdeeds line, their spouse's relation falls and their reaction to the player is queued, the secret is spent and a coin paid for silence reads as a broken bargain. Restores all borrowed state", TestSecretExposure),
          new SelfTest("extortion", Severity.Light, "Gabriel (23/10/2026): extortion on the Misdeeds page; his go 01/11/2026 on a hold the game verifies. On a lord given a hidden affair the player knows of: the verb is taught with the day's answer; a yes moves at most a fifth of the purse, writes the page and a grudge, and closes that lord for a month; a no moves no coin and writes no page; a raid on lands sold a bargain breaks it once, in the real listener. No threat of exposure can be carried out yet. Restores gold, regard, grudges, the page and the ledger", TestExtortion),
+         new SelfTest("outside_tales_looks", Severity.Light, "tashmetu (05/11/2026), Gabriel go 09/11: another mod gives a character tales beside their people's (a faith's legends) and adds a line to how they look (Traits of Calradia's looks and marks). Registers a test tale source and a test line source for one lord, asserts his context carries the tale and his own appearance and the appearance seen by another carry the line after CR's text, that another lord gets neither, and that a source which throws adds nothing and breaks nothing. Withdraws both sources", TestOutsideTalesLooks),
          new SelfTest("folk_tales", Severity.Light, "Gabriel (03/11/2026): the tales each people tells around the fire, known as tales, that a character may allude to or tell when asked. For a lord of each people with a folklore file: the context he is built from carries its tales with the one he loves best first and its parts, the same favourite on a second build, and the prompt frames them as stories, not history. A lord of a people with no file carries none. Changes nothing, except giving a lord with no profile yet the one any conversation would", TestFolkTales),
          new SelfTest("legends", Severity.Light, "DepaHN (Nexus, 27/10/2026): an extraordinary deed becomes a legend characters retell by their connection to it. On a legend entered by hand (no battle can be staged here, so the reading of a real MapEvent is NOT driven): the one it honours and a witness carry it at once, each in their own way; a stranger carries nothing on the day and the fixed deed after a month; the context a character is built from holds it. Restores the ledger, and raises no news", TestLegends),
          new SelfTest("raid_restraint", Severity.Light, "DepaHN (Nexus, 27/10/2026): a close friend was the first to burn his villages; Gabriel: a friend may hold back, by chance. Checks the game scores targets through our model (a mod that replaced it would silently end the feature), then on a lord and an enemy village: a failed draw leaves its score, a lord who drew to spare scores it at zero, a broken restraint gives the score back, and a lord who may write tells the player once per war with a letter dropped on the road once he breaks. Restores the ledger, sends no letter", TestRaidRestraint),
@@ -11189,6 +11190,49 @@ namespace CalradiaRemembers.Diagnostics
          Hero untold = lords.FirstOrDefault(h => Mapping.NarrativeLoader.FolkTales(h.Culture.StringId).Count == 0);
          if (untold != null)
             t.Expect("aPeopleWithNoFileCarriesNone", Mapping.EncounterContextBuilder.KnowledgeContextFor(untold, GetOrCreate(behavior, untold)).Folklore, null);
+
+         return t.Line();
+      }
+
+      private static string TestOutsideTalesLooks(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("outside_tales_looks");
+         if (t.Skip(Hero.MainHero == null, "no campaign")) return t.Line();
+
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h.IsLord && !h.IsChild && h.Clan != Clan.PlayerClan && Mapping.HeroPresence.IsInTheWorld(h)).Take(2).ToList();
+         if (t.Skip(lords.Count < 2, "fewer than two lords in the world")) return t.Line();
+
+         Hero lord = lords[0], other = lords[1];
+         const string source = "CR self-test", broken = "CR self-test (throws)";
+         const string title = "The Self-Test Saint";
+         const string selfLine = "A self-test scar crosses your brow.", seenLine = "A self-test scar crosses the brow.";
+         try
+         {
+            CrFolklore.RegisterTaleSource(source, h => h == lord ? $"[{title}]\ngist: a saint the self-test made up.\nbeat: The saint walked.\n" : null);
+            CrFolklore.RegisterTaleSource(broken, h => throw new InvalidOperationException("self-test"));
+            CrAppearance.RegisterLineSource(source, (id, seen) => id == lord.StringId ? (seen ? seenLine : selfLine) : null);
+            CrAppearance.RegisterLineSource(broken, (id, seen) => throw new InvalidOperationException("self-test"));
+
+            // STAKE: tashmetu: a faith's legend reaches the character who keeps that faith, beside their people's tales.
+            NpcMemoryService.Core.Knowledge.FolkloreFacts tales = Mapping.EncounterContextBuilder.BuildFolklore(lord);
+            t.Expect("theLordCarriesTheOutsideTale", tales?.Tales.Any(x => x.Title == title) == true, true);
+            t.Expect("anotherLordDoesNot", Mapping.EncounterContextBuilder.BuildFolklore(other)?.Tales.Any(x => x.Title == title) == true, false);
+
+            // STAKE: tashmetu: "we would only add a line, never replace yours": CR's face comes first, the line after it.
+            string own = Mapping.EncounterContextBuilder.ComposeAppearance(lord, AppearanceVoice.Self);
+            string seen = Mapping.EncounterContextBuilder.ComposeAppearance(lord, AppearanceVoice.Subject);
+            t.Note($"{lord.Name}: {own}");
+            t.Expect("hisOwnAppearanceEndsOnTheLine", own?.EndsWith(selfLine) == true, true);
+            t.Expect("asSeenByAnotherEndsOnTheLine", seen?.EndsWith(seenLine) == true, true);
+            t.Expect("anotherLordHasNoLine", Mapping.EncounterContextBuilder.ComposeAppearance(other, AppearanceVoice.Self)?.Contains("self-test scar") == true, false);
+         }
+         finally
+         {
+            CrFolklore.UnregisterTaleSource(source);
+            CrFolklore.UnregisterTaleSource(broken);
+            CrAppearance.UnregisterLineSource(source);
+            CrAppearance.UnregisterLineSource(broken);
+         }
 
          return t.Line();
       }

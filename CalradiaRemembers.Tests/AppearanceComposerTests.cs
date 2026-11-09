@@ -369,5 +369,35 @@ namespace CalradiaRemembers.Tests
             AppearanceComposer.Compose(facts, "").Should().Be(AppearanceComposer.Compose(facts, "", AppearanceVoice.Subject));
             AppearanceComposer.Compose(facts, "").Should().Be("A man in his prime.");
         }
+
+        // tashmetu (05/11/2026): Traits of Calradia's looks and marks (Beautiful, Scarred, One-eyed) "reach the chat only
+        // through the nature line"; another mod may add a line to the appearance, "only add a line, never replace yours".
+
+        // STAKE: what CR reads off the face stays first and untouched, so another mod can never contradict it by rewriting it.
+        [Test]
+        public void GIVEN_cr_appearance_and_an_outside_line_WHEN_joined_THEN_the_line_follows_and_crs_text_is_unchanged()
+        {
+            AppearanceComposer.WithOutsideLines("You are a man in your prime.", new[] {"  A scar runs across your left cheek. "})
+                .Should().Be("You are a man in your prime. A scar runs across your left cheek.");
+        }
+
+        // STAKE: a mod that returns nothing, blanks, or an essay never floods the block: a too-long line is left out whole
+        // rather than cut mid-sentence, and only the first lines are kept when several mods add one.
+        [Test]
+        public void GIVEN_blank_long_and_many_lines_WHEN_joined_THEN_only_short_ones_up_to_the_limit_are_kept()
+        {
+            string essay = new string('x', AppearanceComposer.MaxOutsideLineChars + 1);
+
+            AppearanceComposer.WithOutsideLines("Face.", new[] {null, " ", essay, "One.", "Two.", "Three."})
+                .Should().Be("Face. One. Two.");
+        }
+
+        // STAKE: with nothing from CR nor from another mod the block is left out, not rendered empty; a line alone still shows.
+        [Test]
+        public void GIVEN_no_cr_appearance_WHEN_joined_THEN_a_line_alone_shows_and_nothing_renders_nothing()
+        {
+            AppearanceComposer.WithOutsideLines(null, null).Should().BeNull();
+            AppearanceComposer.WithOutsideLines("", new[] {"Strikingly beautiful."}).Should().Be("Strikingly beautiful.");
+        }
     }
 }

@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 640 types in 66 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 642 types in 66 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1546 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
@@ -44,7 +44,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (56)
+### CalradiaRemembers (58)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -53,11 +53,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrActions` | public static class | The public facade a third-party mod calls to register (or unregister) one executable conversation action. |
 | `CrAimRaised` | public class | A lord was given the floor for an aim (CrAims.Raised). |
 | `CrAims` | public static class | The door through which other mods give lords aims of their own. |
+| `CrAppearance` | public static class | The door through which other mods add a line to how a character looks. |
 | `CrConception` | public static class | Lets another mod forbid the conceptions Calradia Remembers creates. |
 | `CrConversation` | public static class | The public conversation-lifecycle events other mods subscribe to. |
 | `CrConversationInfo` | public class | The identity of a conversation as it OPENS, delivered by CrConversation.Started. |
 | `CrConversationLog` | public class | A whole conversation as it CLOSES, delivered by CrConversation.Ended. |
 | `CrCultures` | public static class | Read-only readings of the cultures CR plays by (its ModuleData jealousy_cultures.json, or a Custom copy). |
+| `CrFolklore` | public static class | The door through which other mods give a character folk tales of their own. |
 | `CrHiddenAffair` | public class | A hidden affair between two lords (see CrRomance.GetHiddenAffair). |
 | `CrHiddenAffairChange` | public class | A hidden affair beginning or ending (see CrRomance.HiddenAffairChanged). |
 | `CrLetters` | public static class | Another mod's letters, delivered through CR's courier and letter window. |

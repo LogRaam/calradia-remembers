@@ -131,5 +131,60 @@ namespace CalradiaRemembers.Tests
             FolkTalePolicy.Compose("lord_x", Many(3, withBeats: false)).Tales
                 .Should().HaveCount(3).And.OnlyContain(t => t.Beats.Count == 0);
         }
+
+        // tashmetu (05/11/2026): "Faiths of Calradia has faiths that cross cultures, with their own saints and legends."
+        // Another mod may give a character tales of its own beside their people's.
+
+        private static List<FolkTale> Saints(int count) =>
+            Enumerable.Range(1, count).Select(i => new FolkTale {Title = $"Saint {i}", Gist = $"saint {i}.", Beats = new List<string> {$"saint beat {i}"}}).ToList();
+
+        // STAKE: every character already in a save keeps the very tales and favourite they had, so nothing shifts (and the
+        // prompt cache holds) for a player with no mod adding tales.
+        [Test]
+        public void GIVEN_no_outside_tales_WHEN_composed_THEN_the_choice_is_exactly_the_people_only_one()
+        {
+            List<FolkTale> people = Many(9);
+
+            foreach (string id in new[] {"lord_a", "lord_b", "lady_c"})
+            {
+                FolkTalePolicy.Compose(id, people, new List<FolkTale>()).Tales.Select(t => t.Title)
+                    .Should().Equal(FolkTalePolicy.Compose(id, people).Tales.Select(t => t.Title));
+                FolkTalePolicy.Compose(id, people, null).Tales.Select(t => t.Title)
+                    .Should().Equal(FolkTalePolicy.Compose(id, people).Tales.Select(t => t.Title));
+            }
+        }
+
+        // STAKE: a pious lord of a people with many tales still carries his faith's legends, and his people's are not
+        // pushed out by them either.
+        [Test]
+        public void GIVEN_many_tales_of_both_kinds_WHEN_composed_THEN_both_are_carried_within_the_limit()
+        {
+            FolkloreFacts facts = FolkTalePolicy.Compose("lord_x", Many(9), Saints(4));
+
+            facts.Tales.Should().HaveCount(FolkTalePolicy.MaxTalesKnown);
+            facts.Tales.Count(t => t.Title.StartsWith("Saint")).Should().BeGreaterThanOrEqualTo(2);
+            facts.Tales.Count(t => t.Title.StartsWith("Tale")).Should().BeGreaterThanOrEqualTo(2);
+        }
+
+        // STAKE: a character of a people with no file (a minor culture) can still carry the tales another mod gives him,
+        // and love one best.
+        [Test]
+        public void GIVEN_only_outside_tales_WHEN_composed_THEN_they_are_carried_and_one_can_be_told()
+        {
+            FolkloreFacts facts = FolkTalePolicy.Compose("lord_x", new List<FolkTale>(), Saints(2));
+
+            facts.Tales.Select(t => t.Title).Should().BeEquivalentTo("Saint 1", "Saint 2");
+            facts.Tales[0].Beats.Should().NotBeEmpty();
+        }
+
+        // STAKE: a tale both a file and a mod give is told once, never named twice in the prompt.
+        [Test]
+        public void GIVEN_an_outside_tale_their_people_already_tells_WHEN_composed_THEN_it_is_carried_once()
+        {
+            var twin = new List<FolkTale> {new FolkTale {Title = "tale 1", Gist = "the same tale.", Beats = new List<string> {"b"}}};
+
+            FolkTalePolicy.Compose("lord_x", Many(2), twin).Tales
+                .Count(t => t.Title.Equals("Tale 1", System.StringComparison.OrdinalIgnoreCase)).Should().Be(1);
+        }
     }
 }

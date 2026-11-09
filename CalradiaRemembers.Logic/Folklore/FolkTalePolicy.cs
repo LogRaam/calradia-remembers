@@ -119,22 +119,44 @@ namespace CalradiaRemembers.Logic.Folklore
       ///   others of their people up to <see cref="MaxTalesKnown" />, starting from a point their id also sets so that
       ///   not every character names the same few. Null when their people has no tales.
       /// </summary>
-      public static FolkloreFacts Compose(string characterId, IReadOnlyList<FolkTale> tales)
+      public static FolkloreFacts Compose(string characterId, IReadOnlyList<FolkTale> tales) => Compose(characterId, tales, null);
+
+      /// <summary>
+      ///   As <see cref="Compose(string, IReadOnlyList{FolkTale})" />, with tales another mod gives this very character
+      ///   beside their people's (tashmetu, 05/11/2026: a faith that crosses cultures, "with their own saints and legends").
+      ///   The favourite is drawn from every tale that has parts; the others alternate, one of their people's, one from
+      ///   outside, so neither crowds the other out, up to <see cref="MaxTalesKnown" />. An outside tale whose title their
+      ///   people already tells is not carried twice. With no outside tale this is exactly the people-only choice.
+      /// </summary>
+      public static FolkloreFacts Compose(string characterId, IReadOnlyList<FolkTale> peopleTales, IReadOnlyList<FolkTale> outsideTales)
       {
-         if (tales == null || tales.Count == 0) return null;
+         IReadOnlyList<FolkTale> people = peopleTales ?? new List<FolkTale>();
+         var titles = new HashSet<string>(people.Select(t => t.Title), StringComparer.OrdinalIgnoreCase);
+         List<FolkTale> outside = (outsideTales ?? new List<FolkTale>()).Where(t => t != null && titles.Add(t.Title)).ToList();
+         if (people.Count == 0 && outside.Count == 0) return null;
 
          uint seed = StableHash(characterId ?? "");
-         List<FolkTale> tellable = tales.Where(t => t.Beats.Count > 0).ToList();
+         List<FolkTale> tellable = people.Concat(outside).Where(t => t.Beats.Count > 0).ToList();
          FolkTale favourite = tellable.Count > 0 ? tellable[(int)(seed % (uint)tellable.Count)] : null;
 
          var known = new List<FolkTale>();
          if (favourite != null) known.Add(favourite);
 
-         int start = (int)((seed / 7) % (uint)tales.Count);
-         for (int i = 0; i < tales.Count && known.Count < MaxTalesKnown; i++)
+         int start = people.Count == 0 ? 0 : (int)((seed / 7) % (uint)people.Count);
+         int p = 0, o = 0;
+         while (known.Count < MaxTalesKnown && (p < people.Count || o < outside.Count))
          {
-            FolkTale tale = tales[(start + i) % tales.Count];
-            if (!ReferenceEquals(tale, favourite)) known.Add(tale);
+            if (p < people.Count)
+            {
+               FolkTale tale = people[(start + p++) % people.Count];
+               if (!ReferenceEquals(tale, favourite)) known.Add(tale);
+            }
+
+            if (known.Count < MaxTalesKnown && o < outside.Count)
+            {
+               FolkTale tale = outside[o++];
+               if (!ReferenceEquals(tale, favourite)) known.Add(tale);
+            }
          }
 
          return new FolkloreFacts {

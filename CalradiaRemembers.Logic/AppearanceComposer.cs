@@ -119,6 +119,38 @@ namespace CalradiaRemembers.Logic
             return derived + " " + authored;
         }
 
+        /// <summary>The most lines other mods may add to one appearance.</summary>
+        public const int MaxOutsideLines = 2;
+
+        /// <summary>The longest line another mod may add; a longer one is left out whole, never cut mid-sentence.</summary>
+        public const int MaxOutsideLineChars = 200;
+
+        /// <summary>
+        ///   Adds what other mods know of a hero's looks after CR's own appearance (tashmetu, 05/11/2026: Traits of Calradia's
+        ///   looks and marks, "we would only add a line, never replace yours"). Each line is trimmed; blank ones and ones
+        ///   longer than <see cref="MaxOutsideLineChars" /> are left out, and at most <see cref="MaxOutsideLines" /> are kept,
+        ///   in the order given. CR's own text always comes first and is never changed. Returns null when there is nothing.
+        /// </summary>
+        public static string WithOutsideLines(string composed, IEnumerable<string> outsideLines)
+        {
+            var parts = new List<string>();
+            if (!string.IsNullOrWhiteSpace(composed)) parts.Add(composed.Trim());
+
+            var added = 0;
+            foreach (string line in outsideLines ?? new List<string>())
+            {
+                if (added >= MaxOutsideLines) break;
+
+                string trimmed = (line ?? "").Trim();
+                if (trimmed.Length == 0 || trimmed.Length > MaxOutsideLineChars) continue;
+
+                parts.Add(trimmed);
+                added++;
+            }
+
+            return parts.Count == 0 ? null : string.Join(" ", parts);
+        }
+
         #region private
 
         private static string ComposeDerived(AppearanceFacts facts, AppearanceVoice voice)

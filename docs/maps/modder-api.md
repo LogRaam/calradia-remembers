@@ -56,6 +56,13 @@ _The door through which other mods give lords aims of their own._
 - `static bool Retract(string sourceMod, string id)`
 - `static event Action<CrAimRaised> Raised`
 
+### CrAppearance
+
+_The door through which other mods add a line to how a character looks._
+
+- `static bool UnregisterLineSource(string source)`
+- `static void RegisterLineSource(string source, Func<string, bool, string> line)`
+
 ### CrConception
 
 _Lets another mod forbid the conceptions Calradia Remembers creates._
@@ -98,6 +105,13 @@ _A whole conversation as it CLOSES, delivered by CrConversation.Ended._
 _Read-only readings of the cultures CR plays by (its ModuleData jealousy_cultures.json, or a Custom copy)._
 
 - `static MarriageCustomReading MarriageCustom(string cultureName, int clanTier)`
+
+### CrFolklore
+
+_The door through which other mods give a character folk tales of their own._
+
+- `static bool UnregisterTaleSource(string source)`
+- `static void RegisterTaleSource(string source, Func<Hero, string> tales)`
 
 ### CrHiddenAffair
 

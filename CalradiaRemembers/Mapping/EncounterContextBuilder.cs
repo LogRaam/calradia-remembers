@@ -942,9 +942,10 @@ namespace CalradiaRemembers.Mapping
 
       /// <summary>
       ///   Composes a hero's appearance block from derived body facts plus any authored prose, in the given
-      ///   voice. Returns null (renders nothing) for a null hero or when nothing stands out and no prose exists.
+      ///   voice, then what other mods add of their looks (CrAppearance, since 2.8.4), never changing CR's own. Returns
+      ///   null (renders nothing) for a null hero or when nothing stands out, no prose exists and no mod adds a line.
       /// </summary>
-      private static string ComposeAppearance(Hero hero, AppearanceVoice voice)
+      internal static string ComposeAppearance(Hero hero, AppearanceVoice voice)
       {
          if (hero == null) return null;
 
@@ -953,9 +954,7 @@ namespace CalradiaRemembers.Mapping
             AppearanceProseBehavior.Instance?.Get(hero.StringId),
             voice);
 
-         return string.IsNullOrWhiteSpace(composed)
-            ? null
-            : composed;
+         return AppearanceComposer.WithOutsideLines(composed, CrAppearance.LinesFor(hero.StringId, voice == AppearanceVoice.Subject));
       }
 
       /// <summary>
@@ -3640,10 +3639,13 @@ namespace CalradiaRemembers.Mapping
       /// </summary>
       /// <summary>
       ///   The tales of the hero's OWN people (their culture, not their realm's: a Battanian sworn to Vlandia grew up on
-      ///   Battanian tales), with the one they love best first. Null when their people has no tales on file.
+      ///   Battanian tales), with the one they love best first, and those another mod gives this very character
+      ///   (CrFolklore, since 2.8.4). Null when neither has any.
       /// </summary>
       internal static FolkloreFacts BuildFolklore(Hero hero)
-         => hero == null ? null : CalradiaRemembers.Logic.Folklore.FolkTalePolicy.Compose(hero.StringId, NarrativeLoader.FolkTales(hero.Culture?.StringId));
+         => hero == null
+            ? null
+            : CalradiaRemembers.Logic.Folklore.FolkTalePolicy.Compose(hero.StringId, NarrativeLoader.FolkTales(hero.Culture?.StringId), CrFolklore.TalesFor(hero));
 
       /// <summary>
       ///   A hero's KNOWLEDGE facts: the bearer that decides what a person like this would know, and every

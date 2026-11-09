@@ -426,10 +426,53 @@ CrPairRegard.UnregisterStartReason("My Mod");
 - `basis` is `"None"`, `"Earned"` (moved in play), `"Known"` (a reason) or `"Unexplained"` (start set aside).
 - Nothing CR keeps for good reads a start before day `CrPairRegard.StartGraceDays` (2) of a new campaign: no shared past
   is drawn and no plot launched, so ties your mod seeds in the first days are what CR reads.
+- A change your mod makes later, silently, would be read as part of the start. Announce it through the game's
+  `HeroRelationChanged` event (`CampaignEventDispatcher.Instance.OnHeroRelationChanged`) after you write the value, with
+  the exact change (CR reads the value before as the value now less the change) and no notification. After a pair's
+  first announced change, everything since counts as earned.
 - When CR changes a relation between two NPCs it writes their own slot, and goes through the game's action only for
   the heads of two houses or two of one house. A younger son's quarrel no longer moves his father's standing.
 - A character who does not lead their house is told their house's standing in a sentence of its own ("Between
   houses: your house, under Derthert, is at odds with ..."), apart from their own friends and enemies.
+
+### Tales a character carries beyond their people's (`CrFolklore.RegisterTaleSource`, since 2.8.4)
+
+Each character carries up to six folk tales of their own people (`ModuleData/folklore/<culture id>.txt`), loves one best
+and can tell that one in full. A faith, an order or a family that crosses cultures can give a character tales too:
+
+```csharp
+CrFolklore.RegisterTaleSource("My Mod", hero =>
+   MyFaithOf(hero) is { } faith ? faith.TalesText : null);   // the text of a folklore file, or null
+CrFolklore.UnregisterTaleSource("My Mod");
+```
+
+- Return the text of a folklore file, in the format of `ModuleData/folklore/battania.txt`: `[Title]`, `gist:` (required),
+  `beat:` lines in order. A tale with beats may become the favourite the character tells in full; one without can only
+  be named or alluded to.
+- Your tales share the six places with the character's people's, alternating one and one, so neither crowds the other
+  out. A tale whose title their people already tells is carried once.
+- Return the same text for the same hero from one day to the next: the tales sit in the cached part of the prompt. It is
+  called on every prompt built for that character, so keep it cheap (CR parses each distinct text once). One that throws
+  is logged once and passed over. Registering the same name again replaces it; register each time a game starts or loads.
+
+### A line on how a character looks (`CrAppearance.RegisterLineSource`, since 2.8.4)
+
+CR describes a character's body from their face (and the player's appearance prose): to the character themselves ("YOUR
+OWN APPEARANCE", in the second person) and to the character the player speaks with ("What you can SEE of them", in the
+third person). Your mod may add a line to either:
+
+```csharp
+CrAppearance.RegisterLineSource("My Mod", (heroId, seenByOther) =>
+   IsScarred(heroId) ? (seenByOther ? "A scar runs across her left cheek." : "A scar runs across your left cheek.") : null);
+CrAppearance.UnregisterLineSource("My Mod");
+```
+
+- `seenByOther` true is the third person (the player as a character sees them); false is the character's own body,
+  second person ("you"). Write the line to match.
+- CR's own text comes first and is never changed. At most two lines from all mods are kept, in the order of the mods'
+  names, and a line over 200 characters is left out whole (never cut).
+- Return the same line until the looks change (the character's own appearance sits in the cached part of the prompt),
+  and keep it cheap. One that throws is logged once and passed over.
 
 ### Cultures (`CrCultures.MarriageCustom`, since 2.7.5)
 
