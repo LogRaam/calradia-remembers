@@ -77,7 +77,8 @@ namespace CalradiaRemembers
             try
             {
                 var rows = Foundation.SaveBlob.LastSaved;
-                if (rows.Count == 0) return "No CR store has been saved in this session yet: save the game, then run cr.save_sizes again.";
+                string rescue = $"Save rescue: {(Saving.SaveRescuePatch.Attached ? "attached" : "NOT attached (see the log)")}.";
+                if (rows.Count == 0) return "No CR store has been saved in this session yet: save the game, then run cr.save_sizes again. " + rescue;
 
                 var sb = new System.Text.StringBuilder();
                 sb.AppendLine($"CR stores at the last save (the game cannot load one past {Logic.Saving.SaveBlobCodec.EngineCeiling:N0} bytes; "
@@ -86,9 +87,42 @@ namespace CalradiaRemembers
                     sb.AppendLine($"  {row.Key}: {row.Value.Stored:N0} bytes in the save ({row.Value.Raw:N0} raw, "
                                   + $"{100.0 * row.Value.Stored / Logic.Saving.SaveBlobCodec.EngineCeiling:0.0}% of the ceiling)");
 
+                sb.AppendLine(rescue);
+
                 return sb.ToString();
             }
             catch (Exception ex) { return $"cr.save_sizes failed: {ex.GetType().Name}: {ex.Message}"; }
+        }
+
+        /// <summary>
+        ///   cr.save_rescue_probe [arm|status]: proves the save rescue in game. "arm" makes the next save write one plain byte[]
+        ///   just past the engine's ceiling, the broken save tashmetu reported (09/11/2026); loading that save must then open,
+        ///   with the probe empty. ON A COPY of a campaign only: that save grows by about 320 MB.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("save_rescue_probe", "cr")]
+        public static string SaveRescueProbe(List<string> args)
+        {
+            string verb = args != null && args.Count > 0 ? args[0].Trim().ToLowerInvariant() : "status";
+            if (verb == "arm")
+            {
+                Saving.SaveRescueProbe.Armed = true;
+
+                return "Armed: the next save writes a block just past the engine's ceiling (about 320 MB more). Use a COPY of a campaign: "
+                       + "save under a new name, then load that save. It should open, with a yellow repair notice, and cr.save_rescue_probe status should say 0.";
+            }
+
+            if (verb == "disarm")
+            {
+                Saving.SaveRescueProbe.Armed = false;
+
+                return "Disarmed: the next save writes no probe.";
+            }
+
+            int? last = Saving.SaveRescueProbe.LastLoadedLength;
+            return $"Save rescue {(Saving.SaveRescuePatch.Attached ? "attached" : "NOT attached")}. Probe armed: {Saving.SaveRescueProbe.Armed}. "
+                   + (last == null ? "The last load held no probe."
+                      : last == 0 ? "The last load held the probe and the rescue emptied it: the rescue works."
+                      : $"The last load held a probe of {last:N0} bytes (not emptied).");
         }
 
         /// <summary>

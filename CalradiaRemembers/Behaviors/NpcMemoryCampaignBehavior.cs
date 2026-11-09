@@ -161,6 +161,8 @@ namespace CalradiaRemembers.Behaviors
          ConvResume.SyncData(dataStore);
          // B1: persisted subject/global correspondence-interest dampers. Same additive/graceful contract.
          LetterEvaluator.SyncData(dataStore);
+         // Writes the oversize test block once when cr.save_rescue_probe armed it; reads it back on load. Nothing otherwise.
+         Saving.SaveRescueProbe.SyncData(dataStore);
       }
 
       #region private
@@ -256,6 +258,8 @@ namespace CalradiaRemembers.Behaviors
       private void OnSessionLaunched(CampaignGameStarter campaignGameStarter)
       {
          ModLog.Info("Campaign session launched.");
+         // What the save rescue had to leave out of this load, told once (tashmetu, 09/11/2026).
+         SafeRun.Step("OnSessionLaunched.SaveRescueReport", Saving.SaveRescuePatch.ReportAfterLoad);
          // Each start-up step runs behind its own guard: a single loader/subscription throwing
          // must never prevent the rest of the session from wiring itself up.
          SafeRun.Step("OnSessionLaunched.CulturalTraditionsLoader.Load", CulturalTraditionsLoader.Load);

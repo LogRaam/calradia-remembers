@@ -81,6 +81,17 @@ namespace CalradiaRemembers.Tests
          SaveBlobCodec.Judge(1000).Should().Be(SaveBlobVerdict.Fine);
       }
 
+      // STAKE (tashmetu, 09/11/2026): a container saved past the ceiling has wrapped ids and cannot be rebuilt; the load
+      // rescue empties exactly those. One element fewer still loads whole, and must never be emptied.
+      [Test]
+      public void GIVEN_a_saved_container_WHEN_its_size_is_weighed_for_the_load_rescue_THEN_only_one_past_the_ceiling_is_emptied()
+      {
+         SaveBlobCodec.IsBeyondCeiling(SaveBlobCodec.EngineCeiling + 1).Should().BeTrue();
+         SaveBlobCodec.IsBeyondCeiling(18_200_000).Should().BeTrue();
+         SaveBlobCodec.IsBeyondCeiling(SaveBlobCodec.EngineCeiling).Should().BeFalse();
+         SaveBlobCodec.IsBeyondCeiling(0).Should().BeFalse();
+      }
+
       // STAKE: the codec's own output is recognised as compressed, so a new save is never read as plain text.
       [Test]
       public void GIVEN_encoded_json_WHEN_checked_THEN_it_is_known_as_compressed()

@@ -76,6 +76,13 @@ namespace CalradiaRemembers.Logic.Saving
       /// <summary>Whether a saved blob is GZip (opens with 1F 8B), as this codec writes it; plain JSON never opens so.</summary>
       public static bool IsCompressed(byte[] stored) => stored != null && stored.Length >= 2 && stored[0] == 0x1F && stored[1] == 0x8B;
 
+      /// <summary>
+      ///   Whether a saved container of this many elements is one the game cannot load: its ids wrapped, so its entries are
+      ///   mixed and cannot be put back. The load rescue (SaveRescuePatch) loads such a container EMPTY so the rest of the
+      ///   save opens (Gabriel, 09/11/2026: "est-ce qu'on peut implementer notre propre repair kit dans CR").
+      /// </summary>
+      public static bool IsBeyondCeiling(int elementCount) => elementCount > EngineCeiling;
+
       /// <summary>What to do with a blob of this many bytes at save time.</summary>
       public static SaveBlobVerdict Judge(int storedBytes)
          => storedBytes >= RefuseAt ? SaveBlobVerdict.Refuse : storedBytes >= WarnAt ? SaveBlobVerdict.Warn : SaveBlobVerdict.Fine;

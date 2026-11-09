@@ -544,6 +544,8 @@ namespace CalradiaRemembers
             var harmony = new Harmony(ModuleId);
             harmony.PatchAll();
             Log("Harmony patches applied.");
+            // Before any save is chosen: lets a save with a container past the engine's ceiling open (tashmetu, 09/11/2026).
+            Saving.SaveRescuePatch.Attach(harmony);
 
             // One patch is asked to prove itself by name: the map-bar button is the one players lose, and
             // "Harmony patches applied" covers the whole set, so a target that never resolved left no trace.

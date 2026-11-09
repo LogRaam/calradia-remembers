@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 637 types in 65 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 639 types in 66 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1542 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
@@ -778,6 +778,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | Type | Kind | What it is |
 |---|---|---|
 | `RetainerBehavior` | public class | Tracks foreign lords riding IN the player's party (the ride_with_me retainer), observes them daily, and releases on war. |
+
+### CalradiaRemembers.Saving (2)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `SaveRescuePatch` | internal static class | Lets the game open a save in which one container grew past the ceiling, that container empty. |
+| `SaveRescueProbe` | internal static class | Writes an oversize byte[] once, on request, and reports what came back from it at the last load. |
 
 ### CalradiaRemembers.Scenarios (6)
 
