@@ -52,10 +52,10 @@ namespace CalradiaRemembers
 
                 var sb = new StringBuilder();
                 sb.AppendLine($"Longest memories (compression {(ModSettings.MemoryCompression ? "ON" : "OFF")}, "
-                            + $"threshold {MemoryCompressionPolicy.DefaultThreshold} events):");
+                            + $"threshold {ModSettings.MemoryCompressionThreshold} events):");
 
                 foreach ((string _, string name, int count) in rows)
-                    sb.AppendLine(count >= MemoryCompressionPolicy.DefaultThreshold
+                    sb.AppendLine(count >= ModSettings.MemoryCompressionThreshold
                         ? $"  {name}: {count} events  <- due"
                         : $"  {name}: {count} events");
 

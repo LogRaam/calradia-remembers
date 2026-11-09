@@ -452,6 +452,7 @@ namespace CalradiaRemembers.Mapping
             IsWitnessExchangeTurn = isWitnessExchangeTurn,
             IsConversationOpening = isConversationOpening,
             HistoryKnownThrough = historyKnownThrough,
+            HistoryMemoryCap = ModSettings.PromptMemoryLimit > 0 ? ModSettings.PromptMemoryLimit : null,
             MemoriesDiscussedAtOpening = memoriesDiscussedAtOpening,
             QuestsKnownThrough = questsKnownThrough,
             IsLastWitnessExchange = isLastWitnessExchange,
@@ -3727,7 +3728,8 @@ namespace CalradiaRemembers.Mapping
                // A letter is built in full (its LeanLevel is left at the default), so its variables are too.
                ExternalPromptVariables = ResolveExternalPromptVariables(hero, profile, LeanPromptLevel.Full),
                // An envelope written when opened knows only what its sender knew the day he sent it (31/10/2026).
-               HistoryKnownThrough = historyKnownThrough
+               HistoryKnownThrough = historyKnownThrough,
+               HistoryMemoryCap = ModSettings.PromptMemoryLimit > 0 ? ModSettings.PromptMemoryLimit : null
             };
          }
          catch (Exception ex)

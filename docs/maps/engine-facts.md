@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-750 rules read 557 facts.
+750 rules read 558 facts.
 
 ## Facts read by more than one rule
 
@@ -785,7 +785,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `MattersMostPolicy.StillKnown`: `Clan.Leader`, `Father.IsDead`, `Hero.Clan`, `Hero.CompanionOf`, `Hero.GovernorOf`, `Hero.IsDead`, `Hero.IsLord`, `Hero.IsWanderer`, `Hero.Spouse`, `Kingdom.Leader`, `Mother.IsDead`, `Spouse.IsDead`
 - `MeetingGapDescriber.Describe`: `Hero.Father`, `Hero.Mother`, `Hero.Siblings`, `Hero.Spouse`
 - `MeetingLeaveFacts`: `ConversationManager.ConversationParty`, `FactionManager.IsAtWarAgainstFaction`, `MobileParty.IsActive`, `MobileParty.MapFaction`, `PartyBase.IsMobile`, `PartyBase.MapFaction`, `PartyBase.MobileParty`, `PlayerEncounter.EncounterSettlement`, `PlayerEncounter.EncounteredParty`, `Settlement.CurrentSettlement`
-- `MemoryFacts`: `StringComparer.Ordinal`
+- `MemoryFacts`: `ModSettings.MemoryCompressionThreshold`, `StringComparer.Ordinal`
 - `MemoryPanelFacts`: `ModSettings.ShowSecretMemories`
 - `MercenaryDeparturePolicy.IsAidOfKin`: `Hero.Culture`, `Kingdom.Culture`
 - `MercenaryDeparturePolicy.IsBetrayal`: `FactionManager.IsAtWarAgainstFaction`

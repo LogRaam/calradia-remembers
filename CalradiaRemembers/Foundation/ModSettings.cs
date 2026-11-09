@@ -627,6 +627,12 @@ namespace CalradiaRemembers.Foundation
       /// </summary>
       public static bool MemoryCompression => CrSettings.Instance?.MemoryCompression ?? true;
 
+      /// <summary>The most memories of the player a prompt shows (the latest); 0 when the player set none (avalanche24, 07/11/2026).</summary>
+      public static int PromptMemoryLimit => Math.Max(0, CrSettings.Instance?.PromptMemoryLimit ?? 0);
+
+      /// <summary>How many memories a character holds before compression folds the old ones; the shipped 24 when MCM has not loaded.</summary>
+      public static int MemoryCompressionThreshold => CrSettings.Instance?.MemoryCompressionThreshold ?? MemoryCompressionPolicy.DefaultThreshold;
+
       /// <summary>
       ///   How long (seconds) to wait for an LLM reply before timing out. Read live from the MCM
       ///   menu; falls back to 120 when MCM has not loaded. Drives the per-request timeout so a slow

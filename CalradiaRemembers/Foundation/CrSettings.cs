@@ -392,6 +392,21 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public bool MemoryCompression { get; set; } = true;
 
+      // avalanche24 (Nexus, 07/11/2026): "Can we have an option to limit the memories to a certain number", a local model
+      // drowning past 16k. Gabriel (08/11/2026): "met les réglages dans MCM". The prompt only: every memory stays saved.
+      [SettingPropertyInteger("{=CR_MCM_PromptMemoryLimit}Memories in the prompt", 0, 50, "0", RequireRestart = false, Order = 14,
+         HintText = "{=CR_MCM_PromptMemoryLimit_Hint}Most memories of you a character reads in each prompt, the latest kept. 0 = all " +
+                    "(Compact keeps 6 at most). Lower it if a small local model drowns in a long history. Every memory stays saved.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
+      public int PromptMemoryLimit { get; set; } = 0;
+
+      // The same report: the fold at 24 memories (MemoryCompressionPolicy.DefaultThreshold) came too late for his model.
+      [SettingPropertyInteger("{=CR_MCM_MemoryCompressionThreshold}Compress after (memories)", 8, 60, "0", RequireRestart = false, Order = 14,
+         HintText = "{=CR_MCM_MemoryCompressionThreshold_Hint}How many memories a character holds before old, superseded ones are folded " +
+                    "into an outline (default 24). Lower keeps prompts short on a local model; each fold costs one background call.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
+      public int MemoryCompressionThreshold { get; set; } = MemoryCompressionPolicy.DefaultThreshold;
+
       // Phase 2: the hard-failure fallback is the NSFW model, so this legacy field is no longer shown in MCM or
       // read anywhere. Kept as a plain (un-attributed) property so an old stored value loads without orphaning.
       public string ProseFallbackModel { get; set; } = "";

@@ -279,6 +279,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("give_bundle", Severity.Light, "Several goods given at once, each in a chosen amount (fearente, Nexus, 29/10/2026: grain, fish and meat had to go one by one, one unit each). Arranges grain and fish in the party, hands a bundle of 3 grain and 2 fish through the REAL give_item executor, and asserts both left in exactly those amounts with ONE give_item, that a second give_item the model writes in the same turn moves nothing more, and that the outcome line names both goods. Restores the party's goods", TestGiveBundle),
          new SelfTest("captive_counter_offer", Severity.Heavy, "Maifailun (Nexus, 14/10/2026): he held Adrichea (Honor -1, a clan leader), asked her to swear fealty or share his bed, she answered 'kill me if you must', and nothing in CR could hold a counter-offer anyway. Takes a free lord of another realm captive, tops up the payer's purse, and drives the REAL counter_offer verb three ways: a fresh ActionConfirmationController queues a 300-denar ransom naming it, the real bridge settles it (player paid, payer charged, lord freed), and a term not open to her (service, regard 0) is refused and moves nothing. A fourth part (fealty actually swearing a house to a real realm) only runs under 'cr.test full', since CR records a realm change as world news; otherwise it notes why. Restores gold, regard, traits and captivity.", TestCaptiveCounterOffer),
          new SelfTest("captive_terms", Severity.Heavy, "A captive bargains for her freedom (Maifailun, 14/10/2026: Adrichea, Honor -1, answered 'kill me if you must'; Gabriel: the captive proposes terms herself, intimacy in Mature and above for the honorless). Takes a free lord of another realm captive, gives them Adrichea's Honor -1 for the test, builds the REAL context and prompt, and expects the captive to be told she offers first, with the ransom her house can pay and intimacy only when the content level, age and orientation allow. Releases the lord and restores their traits.", TestCaptiveTerms),
+         new SelfTest("memory_settings", Severity.Light, "avalanche24 (Nexus, 07/11/2026): a local model drowned past 16k in a long history and asked for a cap on memories. For a lord holding 3 or more memories of the player: with MCM 'Memories in the prompt' at 2, the REAL EncounterContextBuilder.Build carries the cap and the REAL prompt is shorter than with 0, which carries none. 'Compress after' reaches ModSettings. Both settings are put back", TestMemorySettings),
          new SelfTest("answers_before_speaking", Severity.Light, "fearente (Nexus, 07/11/2026): a lord said 'yeah lets do it' to the player's duel, then the game wrote 'lets the challenge hang, and will not take it up'. Alfkona (07/11/2026): '(the game does not allow real harm here, so none was done)' in every kind of conversation. For a lord the player can duel now: the REAL EncounterContextBuilder.Build carries DuelRefusesPlayersChallenge equal to the REAL DuelEligibilityResolver.WouldRefusePlayer the arming site asks, and the REAL prompt tells the character that same answer. Then harm_prisoner through the REAL bridge outside any captive scene returns no outcome (nothing shown). Read-only", TestAnswersBeforeSpeaking),
          new SelfTest("sale_from_parts", Severity.Light, "3chmidt (Nexus, 06/11/2026): Yfinja agreed 9,600 for an axe and paid 100, the price having come as a give_gold judged as a gift; a stray 'cannot swear a peace' showed beside it. Seeds a trade good and a lord with coin: a give_gold of a price above the gift floor plus a give_item of the good, read through the REAL ChatViewModel.ReadPartsAsASale, must come out as ONE sell_item at that price with no give_gold left; the REAL confirmation queues it naming the item; the REAL bridge then sells it: item gone, player paid the price, not the gift floor. Then a keep_peace oath from a lord who leads no faction is ignored with nothing shown (null outcome). Puts the coin back and removes the seeded goods.", TestSaleFromParts),
          new SelfTest("sell_item", Severity.Light, "Selling an item in chat (3chmidt, 13/10/2026: a sale became a gift plus a payment the wrong way, 'Give Poison Menja 9000 coins?', and a second sword left). Seeds a trade good, sells it to a lord with coin through the real bridge and expects the item gone, the player paid and the lord's purse lighter by the same sum; then a gift written in words (no bag pick) is queued for confirmation naming the real item. Puts the coin back and removes the seeded goods.", TestSellItem),
@@ -6510,6 +6511,50 @@ namespace CalradiaRemembers.Diagnostics
             if (paid > 0) GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, buyer, paid);
             int extra = roster.GetItemNumber(good) - heldBefore;
             if (extra > 0) roster.AddToCounts(good, -extra);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestMemorySettings(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("memory_settings");
+         if (t.Skip(behavior.Store == null || Hero.MainHero == null || CrSettings.Instance == null, "no campaign or no MCM")) return t.Line();
+
+         // One with more lived memories than the cap below, so the cap has something to leave out.
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && Mapping.HeroPresence.IsInTheWorld(h)
+                                                            && behavior.Store.Get(h.StringId) is NpcProfile p
+                                                            && HistoryWindowPolicy.LatestLived(p.Events, int.MaxValue).Count >= 3);
+         if (t.Skip(lord == null, "no lord holds 3 memories of the player yet")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, lord);
+         var world = new WorldState {CurrentDay = behavior.GameStateBridge.GetCurrentGameDay()};
+         int limitBefore = CrSettings.Instance.PromptMemoryLimit;
+         int thresholdBefore = CrSettings.Instance.MemoryCompressionThreshold;
+         try
+         {
+            CrSettings.Instance.PromptMemoryLimit = 0;
+            EncounterContext open = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge);
+            string whole = behavior.LlmServices?.ChatService?.PromptBuilder?.BuildSystemPrompt(profile, world, open) ?? "";
+            // STAKE: the default leaves the history as it was before the setting existed.
+            t.Expect("noCapByDefault", open?.HistoryMemoryCap == null, true);
+
+            CrSettings.Instance.PromptMemoryLimit = 2;
+            EncounterContext capped = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge);
+            string shorter = behavior.LlmServices?.ChatService?.PromptBuilder?.BuildSystemPrompt(profile, world, capped) ?? "";
+            t.Note($"{lord.Name}: {whole.Length} chars with every memory, {shorter.Length} with 2");
+            // STAKE (avalanche24): the cap the player set reaches the prompt and makes it shorter.
+            t.Expect("theCapReachesThePrompt", capped?.HistoryMemoryCap == 2, true);
+            t.Expect("thePromptIsShorter", whole.Length > 0 && shorter.Length < whole.Length, true);
+
+            CrSettings.Instance.MemoryCompressionThreshold = 8;
+            // STAKE: the fold point the player set is the one compression reads.
+            t.Expect("theFoldPointIsRead", ModSettings.MemoryCompressionThreshold, 8);
+         }
+         finally
+         {
+            CrSettings.Instance.PromptMemoryLimit = limitBefore;
+            CrSettings.Instance.MemoryCompressionThreshold = thresholdBefore;
          }
 
          return t.Line();
@@ -16846,6 +16891,10 @@ namespace CalradiaRemembers.Diagnostics
                "0 must keep every gain whole, 4 must be the steepest climb the menu promises"),
             ["LocalContextTokens"] = ("LocalContextTokens", SettingShape.Honours,
                "the window the player declared is the window each local request is fitted to; 0 must mean off"),
+            ["PromptMemoryLimit"] = ("PromptMemoryLimit", SettingShape.Honours,
+               "the memories a prompt shows are the number the player set; 0 must mean all"),
+            ["MemoryCompressionThreshold"] = ("MemoryCompressionThreshold", SettingShape.Honours,
+               "the fold point the player set is the count compression waits for"),
             ["WarDutyWindowDays"] = ("WarDutyWindowDays", SettingShape.Honours,
                "the days of war a vassal may sit out are the days the duty waits; the policy's clamp matches the menu's ends"),
             ["WarLevyScalePercent"] = ("WarLevyScale", SettingShape.Reshapes,

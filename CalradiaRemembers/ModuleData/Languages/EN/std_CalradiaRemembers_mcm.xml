@@ -114,6 +114,10 @@
     <string id="CR_MCM_LocalContextTokens_Hint" text="0 = off (cloud models). For a local/custom server: the context length set there, per request. CR then trims each request to fit it (oldest lines first, then the compact prompt) instead of the server cutting it blind." />
     <string id="CR_MCM_MemoryCompression" text="Compress old memories" />
     <string id="CR_MCM_MemoryCompression_Hint" text="Lets characters fold old, superseded memories into a short outline, so a long campaign stops inflating every prompt (the usual cause of slow replies on a local model). First meetings, recent events and grave moments are never dropped." />
+    <string id="CR_MCM_PromptMemoryLimit" text="Memories in the prompt" />
+    <string id="CR_MCM_PromptMemoryLimit_Hint" text="Most memories of you a character reads in each prompt, the latest kept. 0 = all (Compact keeps 6 at most). Lower it if a small local model drowns in a long history. Every memory stays saved." />
+    <string id="CR_MCM_MemoryCompressionThreshold" text="Compress after (memories)" />
+    <string id="CR_MCM_MemoryCompressionThreshold_Hint" text="How many memories a character holds before old, superseded ones are folded into an outline (default 24). Lower keeps prompts short on a local model; each fold costs one background call." />
     <string id="CR_MCM_ChatTemperature" text="Chat Temperature" />
     <string id="CR_MCM_ChatTemperature_Hint" text="How varied conversation replies are (default 0.70). Lower is steadier and more repetitive, higher more surprising; above 1.0 a local model may lose its character. Reasoning models ignore it. Applies immediately." />
     <string id="CR_MCM_ReplyTokenBudget" text="Reply Token Budget" />
