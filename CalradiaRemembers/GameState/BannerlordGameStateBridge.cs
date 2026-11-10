@@ -2403,6 +2403,63 @@ namespace CalradiaRemembers.GameState
       /// </summary>
       private static ActionOutcome GiftEffects(Hero npcHero, ActionContext context, List<(EquipmentElement Goods, int Count)> gifts)
       {
+         // Someone riding in the player's own company draws on its stores (Aporo, Discord 10/11/2026: a companion
+         // "took item and never equipped it"): what they do not put on, and what they take off, goes back to the
+         // stores instead of vanishing, and only what they keep is a gift (CompanyGiftPolicy).
+         if (SharesTheStores(npcHero)) return CompanyGift(npcHero, context, gifts);
+
+         return GiftEffectsKept(npcHero, context, gifts, null);
+      }
+
+      /// <summary>Someone in the player's own party, not a prisoner: they draw on the same stores.</summary>
+      internal static bool SharesTheStores(Hero hero)
+         => hero != null && hero != Hero.MainHero && MobileParty.MainParty != null && hero.PartyBelongedTo == MobileParty.MainParty;
+
+      /// <summary>
+      ///   A hand-over to someone sharing the stores: each good's piece is put on if it suits them, the rest and any
+      ///   piece taken off go back to the stores, and only the kept pieces go on to the gift's effects.
+      /// </summary>
+      internal static ActionOutcome CompanyGift(Hero npcHero, ActionContext context, List<(EquipmentElement Goods, int Count)> gifts)
+      {
+         ItemRoster roster = MobileParty.MainParty.ItemRoster;
+         var kept = new List<(EquipmentElement Goods, int Count)>();
+         var backLines = new List<GiftLine>();
+         var wearTails = new System.Text.StringBuilder();
+
+         foreach ((EquipmentElement goods, int count) in gifts)
+         {
+            string tail = TryEquipGift(npcHero, goods, out EquipmentElement takenOff);
+            CompanyGiftOutcome o = CompanyGiftPolicy.Settle(new CompanyGiftFacts {Count = count, PutOn = tail.Length > 0, ReplacedAPiece = takenOff.Item != null});
+
+            if (o.BackToStores > 0)
+            {
+               roster.AddToCounts(goods, o.BackToStores);
+               backLines.Add(new GiftLine {Name = Items.RosterGoods.NameOf(goods), Count = o.BackToStores});
+            }
+
+            if (o.ReplacedPieceToStores) roster.AddToCounts(takenOff, 1);
+            if (o.KeptAsGift > 0)
+            {
+               kept.Add((goods, o.KeptAsGift));
+               wearTails.Append(tail);
+            }
+         }
+
+         string back = backLines.Count == 0 ? "" : $" {npcHero.Name} does not put on {GiftBundlePolicy.Describe(backLines)}: it stays in the company's stores.";
+         ModLog.Info($"[ACTION] give_item: to {npcHero.Name}, who shares the company's stores: {kept.Count} piece(s) worn and kept, "
+                     + $"{backLines.Sum(l => l.Count)} back to the stores.");
+
+         if (kept.Count == 0) return new ActionOutcome(back.Trim(), false);
+
+         return GiftEffectsKept(npcHero, context, kept, wearTails.ToString() + back);
+      }
+
+      /// <summary>
+      ///   The gift's effects on what was really given. <paramref name="alreadyWorn" /> is null when nothing was put on
+      ///   yet (each piece is then tried here), or the note of what was already put on.
+      /// </summary>
+      private static ActionOutcome GiftEffectsKept(Hero npcHero, ActionContext context, List<(EquipmentElement Goods, int Count)> gifts, string alreadyWorn)
+      {
          int totalValue = gifts.Sum(g => Items.RosterGoods.ValueOf(g.Goods) * g.Count);
          string gaveDesc = GiftBundlePolicy.Describe(gifts.Select(g => new GiftLine {Name = Items.RosterGoods.NameOf(g.Goods), Count = g.Count}).ToList());
 
@@ -2430,7 +2487,7 @@ namespace CalradiaRemembers.GameState
          // or a real upgrade always, a lateral gift only if they are fond of you (the wife wears the gifted
          // gown; a rival keeps his own blade). The bridge is the law, so this note claims it only when the
          // equip actually happened.
-         string equipTail = string.Concat(gifts.Select(g => TryEquipGift(npcHero, g.Goods)));
+         string equipTail = alreadyWorn ?? string.Concat(gifts.Select(g => TryEquipGift(npcHero, g.Goods)));
 
          return new ActionOutcome($"You give {gaveDesc} to {npcHero?.Name}.{grudgeTail}{equipTail}", false);
       }
@@ -2449,8 +2506,12 @@ namespace CalradiaRemembers.GameState
       ///   short note when they equipped it (appended to the gift outcome so the model narrates the reaction),
       ///   or "" when they merely accepted it. Gender-locked items are never forced on.
       /// </summary>
-      private static string TryEquipGift(Hero hero, EquipmentElement goods)
+      private static string TryEquipGift(Hero hero, EquipmentElement goods) => TryEquipGift(hero, goods, out _);
+
+      /// <summary>As <see cref="TryEquipGift(Hero, EquipmentElement)" />, also giving the piece it took off (empty when none).</summary>
+      private static string TryEquipGift(Hero hero, EquipmentElement goods, out EquipmentElement takenOff)
       {
+         takenOff = EquipmentElement.Invalid;
          try
          {
             ItemObject item = goods.Item;
@@ -2484,6 +2545,7 @@ namespace CalradiaRemembers.GameState
             if (!decision.ShouldEquip) return "";
 
             // The very piece, its quality kept (avalanche24, 05/11/2026: a Masterwork Noble Bow was worn as a plain one).
+            takenOff = current;
             equipment[slot] = new EquipmentElement(item, goods.ItemModifier);
             ModLog.Info($"[ACTION] give_item: {hero.Name} equipped '{Items.RosterGoods.NameOf(goods)}' ({decision.Reason}) in " +
                         $"{(onBattle ? "battle" : "civilian")} slot {slot}.");

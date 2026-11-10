@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 642 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1553 types in 56 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1556 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1020,7 +1020,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (469)
+### CalradiaRemembers.Logic (472)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1096,6 +1096,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CompanionBaseline` | public static class | The happiness a companion drifts toward, set by the prestige of the clan they serve. |
 | `CompanionHappiness` | public static class | Pure happiness arithmetic: clamp, banding, the "wants to leave" floor, the per-driver magnitudes, and a gentle drift back to baseline. |
 | `CompanionSecretAffectionPolicy` | public static class | Pure rules for a companion's secret affection confession (eligibility plus the weekly roll). |
+| `CompanyGiftFacts` | public class | One good handed over to someone who shares the player's stores. |
+| `CompanyGiftOutcome` | public class | Where the good ends up. |
+| `CompanyGiftPolicy` | public static class | Settles a good handed to someone who shares the player's stores. |
 | `CompanyMember` | public class | One person of the player's company. |
 | `CompanyRole` | public enum | How someone travels with the player. |
 | `CompetitionSelector` | public static class | Picks at most ONE partner to feel competition jealousy on a given pass. |
