@@ -18,6 +18,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using CalradiaRemembers.Logic.Saving;
 using TaleWorlds.CampaignSystem;
@@ -37,6 +38,32 @@ namespace CalradiaRemembers.Foundation
 
       private static readonly ConcurrentDictionary<string, string> Loaded = new ConcurrentDictionary<string, string>();
 
+      private static DateTime _dumpUntilUtc = DateTime.MinValue;
+
+      /// <summary>
+      ///   Where cr.dump_stores writes each store's JSON, exactly as the next save hands it to the codec, so codecs can be
+      ///   compared offline on real data (Gabriel, 10/11/2026: "est-ce qu'on aurait un gain si on utilisait une compression
+      ///   LZW, ZIP, PPM ou autre"). Under the game's Logs folder.
+      /// </summary>
+      internal static string DumpFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                                                        "Mount and Blade II Bannerlord", "Logs", "cr_stores");
+
+      /// <summary>Arms the dump for every store written within the next <paramref name="minutes" /> (the next save).</summary>
+      internal static void ArmDump(int minutes) => _dumpUntilUtc = DateTime.UtcNow.AddMinutes(minutes);
+
+      private static void DumpIfArmed(string key, string json)
+      {
+         if (DateTime.UtcNow > _dumpUntilUtc) return;
+
+         try
+         {
+            Directory.CreateDirectory(DumpFolder);
+            File.WriteAllText(Path.Combine(DumpFolder, key + ".json"), json ?? "", new System.Text.UTF8Encoding(false));
+            ModLog.Info($"[SAVE] dumped '{key}' ({System.Text.Encoding.UTF8.GetByteCount(json ?? ""):N0} bytes) to {DumpFolder}.");
+         }
+         catch (Exception ex) { ModLog.Error($"[SAVE] dump of '{key}' failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
       /// <summary>Where each store was read from at the last load of this session (cr.save_sizes): pieces, or an older form.</summary>
       internal static IReadOnlyList<KeyValuePair<string, string>> LastLoaded => Loaded.OrderBy(kv => kv.Key).ToList();
 
@@ -50,6 +77,7 @@ namespace CalradiaRemembers.Foundation
       /// </summary>
       internal static void Write(IDataStore dataStore, string key, string json)
       {
+         DumpIfArmed(key, json);
          byte[] stored;
          int raw = json == null ? 0 : System.Text.Encoding.UTF8.GetByteCount(json);
          try { stored = SaveBlobCodec.Encode(json); }

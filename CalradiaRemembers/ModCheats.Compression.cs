@@ -103,6 +103,24 @@ namespace CalradiaRemembers
         }
 
         /// <summary>
+        ///   cr.dump_stores: arms a dump of each compressed CR store's JSON, exactly as the next save writes it, into the
+        ///   Logs folder's cr_stores, so codecs can be compared outside the game (Tools/CodecBench). Armed for ten minutes;
+        ///   save the game to write them. Mutates nothing in the campaign.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("dump_stores", "cr")]
+        public static string DumpStores(List<string> args)
+        {
+            try
+            {
+                Foundation.SaveBlob.ArmDump(10);
+
+                return $"Armed for 10 minutes: save the game now, and each CR store's JSON is written to {Foundation.SaveBlob.DumpFolder}. "
+                       + "Those files hold the campaign's memories and relations: share them only where you mean to.";
+            }
+            catch (Exception ex) { return $"cr.dump_stores failed: {ex.GetType().Name}: {ex.Message}"; }
+        }
+
+        /// <summary>
         ///   cr.save_rescue_probe [arm|status]: proves the save rescue in game. "arm" makes the next save write one plain byte[]
         ///   just past the engine's ceiling, the broken save tashmetu reported (09/11/2026); loading that save must then open,
         ///   with the probe empty. ON A COPY of a campaign only: that save grows by about 320 MB.
