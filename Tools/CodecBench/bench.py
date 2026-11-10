@@ -59,6 +59,17 @@ def codecs():
             out.append((f"ppmd-H o{order} {mem}MB",
                         (lambda o, m: lambda b: pyppmd.compress(b, max_order=o, mem_size=m << 20))(order, mem),
                         (lambda o, m: lambda b: pyppmd.decompress(b, max_order=o, mem_size=m << 20))(order, mem)))
+        # Variant I (PPMd8), the one ZIP and the usual .NET libraries implement; the reader is told the length.
+        for order, mem in ((6, 64), (8, 256), (16, 256)):
+            def enc(b, o=order, m=mem):
+                e = pyppmd.Ppmd8Encoder(o, m << 20, pyppmd.PPMD8_RESTORE_METHOD_RESTART)
+                return len(b).to_bytes(4, "little") + e.encode(b) + e.flush()
+
+            def dec(b, o=order, m=mem):
+                d = pyppmd.Ppmd8Decoder(o, m << 20, pyppmd.PPMD8_RESTORE_METHOD_RESTART)
+                return d.decode(b[4:], int.from_bytes(b[:4], "little"))
+
+            out.append((f"ppmd-I o{order} {mem}MB", enc, dec))
     else:
         print("ppmd: module 'pyppmd' missing, skipped")
     return out
