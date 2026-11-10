@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 642 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1569 types in 56 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1570 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 287 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1861,7 +1861,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SkirmishMemoryText` | public static class | Pure: the folded "small fights" memory a companion keeps of the skirmishes shared with the player. |
 | `TalliedFoe` | public class | One foe a hero put out of the fight, with the campaign's verdict on them afterwards. |
 
-### CalradiaRemembers.Logic.Captivity (27)
+### CalradiaRemembers.Logic.Captivity (28)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1872,6 +1872,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptiveGearLossPolicy` | public static class | The single decision point for WHEN an escape encounter's outcome should transfer the player's equipment to their captor's holder. |
 | `CaptiveGearStockPolicy` | public static class | Pure decisions over an accumulated pool of HeldItems: what merges in across escapes, and which single item per slot the holder wears. |
 | `CaptiveIntentRules` | public static class | Classifies a CaptiveSceneIntent for the chat flow's scene handling. |
+| `CaptiveKeepingFacts` | public class | What the game knows of a captive the player took, as the hearer would know it. |
 | `CaptiveKinDescriber` | public static class | Builds the captivity clause for a kinsman named in an NPC's RELATIONSHIPS block. |
 | `CaptiveNotoriety` | public static class | Whose capture is talked of, and how far the news carries. |
 | `CaptiveOffer` | public class | What she may offer, and how readily. |

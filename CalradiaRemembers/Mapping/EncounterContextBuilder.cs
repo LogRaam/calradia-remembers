@@ -909,6 +909,7 @@ namespace CalradiaRemembers.Mapping
 
             var lines = new List<string>();
             CaptureStake? capture = null;
+            WorldEvent captureEvent = null;
             foreach ((WorldEvent e, RumorConfidence conf) in rated)
             {
                if (!e.InvolvesPlayer || string.IsNullOrWhiteSpace(e.Summary)) continue;
@@ -919,7 +920,11 @@ namespace CalradiaRemembers.Mapping
                if (e.Status == CaptureNorm.Status)
                {
                   CaptureStake stake = CaptureNorm.StakeOf(kinHarmed, aggrieved);
-                  if (capture == null || stake > capture) capture = stake;
+                  if (capture == null || stake > capture)
+                  {
+                     capture = stake;
+                     captureEvent = e;
+                  }
                }
                bool sharesPlayer = obsFactionId != null && obsFactionId == playerFactionId;
 
@@ -939,13 +944,39 @@ namespace CalradiaRemembers.Mapping
                if (lines.Count >= 3) break;
             }
 
-            if (lines.Count > 0 && capture is CaptureStake heardStake) lines.Add(CaptureNorm.Line(heardStake));
+            if (lines.Count > 0 && capture is CaptureStake heardStake) lines.Add(CaptureNorm.Line(CaptureFactsFor(hero, captureEvent, heardStake)));
 
             return lines.Count > 0
                ? string.Join("\n", lines)
                : null;
          }
          catch { return null; }
+      }
+
+      /// <summary>
+      ///   What the game knows of how the captive of a player's capture is kept, as the hearer would know it (Fakade,
+      ///   10/11/2026: with no fact of the keeping, the model invented a mistreatment). The captive is the event's second
+      ///   actor (WorldEventFeeders.RecordLordCaptured).
+      /// </summary>
+      internal static CaptiveKeepingFacts CaptureFactsFor(Hero hearer, WorldEvent e, CaptureStake stake)
+      {
+         string captiveId = e?.ActorIds != null && e.ActorIds.Count > 1 ? e.ActorIds[1] : null;
+         Hero captive = captiveId == null ? null : Hero.FindFirst(h => h.StringId == captiveId);
+         if (captive == null) return new CaptiveKeepingFacts {Stake = stake, StillHeld = true};
+
+         bool held = captive.IsPrisoner;
+         PartyBase keeper = held ? captive.PartyBelongedToAsPrisoner : null;
+         Settlement hold = keeper?.Settlement;
+
+         return new CaptiveKeepingFacts {
+            Stake = stake,
+            CaptiveIsFemale = captive.IsFemale,
+            StillHeld = held,
+            HeldAt = hold?.Name?.ToString(),
+            HeldInHearersHold = hold != null && hearer?.Clan != null && hold.OwnerClan == hearer.Clan,
+            HeldInPlayersParty = keeper != null && keeper == MobileParty.MainParty?.Party,
+            DaysHeld = held ? Math.Max(0, (int) (CampaignTime.Now - captive.CaptivityStartTime).ToDays) : 0
+         };
       }
 
       #region private

@@ -1166,7 +1166,8 @@ namespace CalradiaRemembers.Interception
          bool realm = npc?.MapFaction != null && e.AggrievedFactionIds?.Contains(npc.MapFaction.StringId) == true;
          bool kin = npc?.Clan != null && e.AggrievedActorIds?.Any(id => Hero.FindFirst(h => h.StringId == id)?.Clan == npc.Clan) == true;
 
-         return " " + CalradiaRemembers.Logic.Captivity.CaptureNorm.Line(CalradiaRemembers.Logic.Captivity.CaptureNorm.StakeOf(kin, realm));
+         CalradiaRemembers.Logic.Captivity.CaptureStake stake = CalradiaRemembers.Logic.Captivity.CaptureNorm.StakeOf(kin, realm);
+         return " " + CalradiaRemembers.Logic.Captivity.CaptureNorm.Line(CalradiaRemembers.Mapping.EncounterContextBuilder.CaptureFactsFor(npc, e, stake));
       }
 
       private void MarkMatterRaised(Hero npc, RecentMatter m)

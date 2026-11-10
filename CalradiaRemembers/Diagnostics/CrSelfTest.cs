@@ -426,6 +426,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("scene_close_gives_the_map_back", Severity.Light, "fkasad (Nexus, 07/10/2026): closing a tale's scene left a black screen with no way back. The close queued the backdrop's pop for the next frame, then wiped its own queue at the end. Opens a scene through the real door (its narration refused before any model call, so the log shows one [SCENE] error on purpose), closes it as the button does, runs one frame: the scene's own close must have run, what it queued must have run, and the map must be given back.", TestSceneCloseGivesTheMapBack),
          new SelfTest("scene_backdrop_suspends_the_map", Severity.Light, "Gabriel's play test (04/10/2026): closing a written tale's scene crashed the game natively; the scene had opened over the bare live map, which the hosting rule forbids. The scene's chat now sits on a pushed GameState. Opens that backdrop through the real host: the map must be suspended (a CrPanelState active, the settlement-visual tick suppressed), then given back exactly as it was, with the clock stopped. Opens no chat.", TestSceneBackdropSuspendsTheMap),
          new SelfTest("player_company", Severity.Light, "Gabriel's Invite / Request Private design (03/10/2026, after nerethi). Reads the player's real company (party, escorts, prison): never the player, every prisoner truly held, the one spoken to never offered for invitation, and a room made only of the company, seated as Invite seats them, is cleared at once. Arranges a disposable companion into the main party when nobody travels with the player (GABRIEL'S RULE, 13/10/2026), restored after via ArrangedCompanion.", TestPlayerCompany),
+         new SelfTest("capture_norm_facts", Severity.Light, "Fakade (Nexus, 10/11/2026): a lady left in a garrison dungeon after a plain capture, and her realm said she was 'kept like chattel'; the garrison's lord wrote the player had 'abandoned her'. The capture line named the keeping as the offence with no fact of it. Captures a real in-party lord into the player's party, reads the REAL CaptureFactsFor over a capture event naming them, asserts still held, held in the player's party, the right sex, and that the line forbids inventing ill treatment and no longer names the keeping as the offence. Frees the captive.", TestCaptureNormFacts),
          new SelfTest("captive_notoriety", Severity.Light, "Lordfadooboo (Nexus, 03/10/2026): an empress in an Aserai cell said few would trouble themselves with her. A real ruler must read as 'a ruler' whose capture is news; and when the game holds a captive of rank, her real prompt must tell her the world talks of her. Changes nothing.", TestCaptiveNotoriety),
          new SelfTest("memory_repair_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026) and Gabriel: one command to mend every memory the console mangled before the fix. Stores a mangled memory on a real lord, as an old save holds it, runs cr.memory_repair_accents through the engine's console: the memory must read as typed. Removes it after.", TestMemoryRepairAccents),
          new SelfTest("console_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026): accents typed into cr.memory_add / cr.memory_set came out as mojibake (the console reads UTF-8 back as Windows-1252). Sends cr.memory_add, through the engine's own console dispatch, a line mangled exactly as the console mangles it: the stored memory must read exactly as typed. Removes the memory after.", TestConsoleAccents),
@@ -15694,6 +15695,46 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("aRoomOfThePlayersOwnIsClearedAtOnce",
                   PrivateAudiencePolicy.Decide(new PrivateAudienceFacts {Allowed = true, AnyWitness = true, AllWitnessesAreThePlayers = allMine}),
                   PrivateAudienceVerdict.ClearAtOnce);
+
+         return t.Line();
+      }
+
+      /// <summary>
+      ///   Fakade (Nexus, 10/11/2026): with no fact of how a captive was kept, the model invented a mistreatment. Drives the
+      ///   real CaptureFactsFor on a really captured lord and the line built from it.
+      /// </summary>
+      private static string TestCaptureNormFacts(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("capture_norm_facts");
+
+         Hero captive = Hero.AllAliveHeroes.FirstOrDefault(h =>
+            h != Hero.MainHero && h.IsLord && !h.IsPrisoner && h.PartyBelongedTo != null && h.Clan?.Leader != h);
+         if (t.Skip(captive == null, "no free in-party lord to capture")) return t.Line();
+
+         Hero hearer = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h != captive && h.IsLord && h.Clan != null && h.Clan != captive.Clan);
+         if (t.Skip(hearer == null, "no other lord to hear of it")) return t.Line();
+
+         TakePrisonerAction.Apply(PartyBase.MainParty, captive);
+         try
+         {
+            if (t.Abort(!captive.IsPrisoner, $"capture failed for {captive.Name}")) return t.Line();
+
+            var e = new WorldEvent {Status = CaptureNorm.Status, ActorIds = new List<string> {Hero.MainHero.StringId, captive.StringId}};
+            CaptiveKeepingFacts facts = EncounterContextBuilder.CaptureFactsFor(hearer, e, CaptureStake.None);
+            string line = CaptureNorm.Line(facts);
+
+            t.Note($"{captive.Name} heard by {hearer.Name}");
+            t.Expect("still held", facts.StillHeld, true);
+            t.Expect("held in the player's party", facts.HeldInPlayersParty, true);
+            t.Expect("sex read", facts.CaptiveIsFemale, captive.IsFemale);
+            t.Expect("forbids inventing ill treatment", line.Contains("Nothing you know tells of ill treatment"), true);
+            t.Expect("keeping no longer named the offence", line.Contains("What would truly offend"), false);
+         }
+         finally
+         {
+            try { if (captive.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(captive); }
+            catch { }
+         }
 
          return t.Line();
       }
