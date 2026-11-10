@@ -404,6 +404,28 @@ To do:
   (a lord ordered to raid?), and whether Show Mercy deserves a line elsewhere (a kindness, not a misdeed).
 - **Old saves.** Nothing to backfill: the 7-day log is gone. The page tells raids from the version that ships it on.
 
+## WISHED 2026-11-10 (Lordfadooboo, Nexus), ROADMAPPED, NOT A PRIORITY: invited characters seen in the scene
+
+"so you can invite other people to a conversation, but is it possible to have that be visually present as well? in the
+same way that sometimes when you talk to your companion in the field, you see 2 of your companions or soldiers standing
+behind them. is it possible to do something like that with invited conversations or when you enter a keep and talk to a
+lord that already has another lord present?" Gabriel (10/11/2026): "met une note au roadmap mais c'est pas ma priorite."
+
+What the code shows (traced 10/11/2026):
+- **Witnesses are text only.** `WitnessResolver` builds `WitnessEntry` for the prompt; nothing places them in a scene.
+- **Map scene.** The two figures behind a speaker are vanilla: `ConversationMissionLogic.SpawnBodyguards` (SandBox) takes
+  at most 2 from the partner's `ConversationCharacterData.Party` roster (wounded heroes first, then highest level; needs
+  3 men), never for a player companion. No input names chosen characters, so showing witnesses means spawning them
+  ourselves at the `player_bodyguard_*` / `opponent_bodyguard_*` spawns when the mission starts.
+- **Keep or hall.** CR only teleports the partner next to the player (`ChatSceneStager.PlaceAudienceCompanionIfPending`,
+  mysticwolf92, 14/09/2026). The cheap first step: the same move for each witness whose agent the scene already holds.
+
+Open before any build: does vanilla spawn other lords in the lord's hall (LocationCharacter code not read)? Who is seen
+(only those physically present, or a companion invited from afar)? What a witness who leaves (`witness_leaves`) does on
+screen. Order if wanted: (1) read the hall spawning, (2) teleport present witnesses, (3) map-scene spawns.
+
+---
+
 ## WISHED 2026-10-23 (Lordfadooboo, Nexus), ROADMAPPED, NOT DESIGNED: the player rides in another character's train
 
 "could it be possible to do the reverse? to join another characters party without it needing to be an army? think
