@@ -48,6 +48,13 @@ namespace CalradiaRemembers.Missions
       /// </summary>
       public int AwaitingSinceDay { get; set; }
 
+      /// <summary>
+      ///   In-game day the companion set out for home (0 = not yet stamped; stamped lazily on the first returning tick,
+      ///   so an older save is covered). After ReturnHomePolicy.GraceDays they rejoin wherever they are (Aporo, Discord
+      ///   10/11/2026: a returning companion parked beside the player and never rejoined). Additive JSON field.
+      /// </summary>
+      public int ReturningSinceDay { get; set; }
+
       public string DestinationName { get; set; }
 
       /// <summary>The town they ride to for news (StringId + cached name).</summary>

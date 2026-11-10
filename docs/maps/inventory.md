@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 642 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1556 types in 56 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1559 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -39,6 +39,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 1000+ | Mod | `Chat/ChatViewModel.Helpers.cs` |
 | 1000+ | Mod | `Diagnostics/RoleplayBench.cs` |
 | 1000+ | Mod | `Letters/LetterTriggerEvaluator.cs` |
+| 1000+ | Mod | `Missions/CompanionMissionBehavior.cs` |
 | 1000+ | Sdk | `Parsing/SectionResponseParser.cs` |
 | 1000+ | Mod | `Quests/QuestService.cs` |
 | 1000+ | Mod | `Services/LlmServices.cs` |
@@ -1020,7 +1021,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (472)
+### CalradiaRemembers.Logic (475)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1380,6 +1381,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RescueEvidence` | public static class | The evidence line of a completed rescue task. |
 | `RetainerLeavePolicy` | public static class | Pure end-condition gate for an ACTIVE retainer arrangement (a foreign lord riding in the player's party). |
 | `RetiredArchetypes` | public static class | Persona archetypes no longer handed out, recognised in a stored profile. |
+| `ReturnHomeFacts` | public class | How a companion riding home stands this hour. |
+| `ReturnHomePolicy` | public static class | Decides when a companion riding home rejoins the party. |
+| `ReturnHomeStep` | public enum | What the companion does this hour. |
 | `RideWithMeEligibilityPolicy` | public static class | Pure eligibility gate for ride_with_me: the idle-lord retainer, the exact complement of EscortEligibilityPolicy.CanEscort. |
 | `RoadAudienceFacts` | public class | Everything that could make right now a bad moment to interrupt the player, read off the live campaign by the caller. |
 | `RoadAudienceSafetyPolicy` | public static class | Pure gate: is RIGHT NOW, on the open road, a moment where a travelling companion may ask the player for a private word? |

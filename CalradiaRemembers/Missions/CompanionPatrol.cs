@@ -45,6 +45,12 @@ namespace CalradiaRemembers.Missions
       /// <summary>In-game day a letter-borne order to come home takes effect; 0 when none is pending.</summary>
       public int RecallOrderDay { get; set; }
 
+      /// <summary>
+      ///   In-game day the patrol set out for home (0 = not yet stamped; stamped lazily on the first returning hour).
+      ///   After ReturnHomePolicy.GraceDays they rejoin wherever they are (Aporo, Discord 10/11/2026). Additive JSON field.
+      /// </summary>
+      public int ReturningSinceDay { get; set; }
+
       /// <summary>StringId of the settlement patrolled.</summary>
       public string SettlementId { get; set; }
 

@@ -382,10 +382,18 @@ namespace CalradiaRemembers.Missions
 
          if (p.State == CompanionPatrolState.Returning)
          {
-            if (party.MapEvent != null) return;
-            if (party.GetPosition2D.Distance(MobileParty.MainParty.GetPosition2D) < ArrivalDistance)
+            // Arrived, or long enough on the road home, they rejoin (Aporo, Discord 10/11/2026: a returning
+            // companion parked beside the player and never rejoined); never mid-battle.
+            if (p.ReturningSinceDay <= 0) p.ReturningSinceDay = Today;
+            bool arrived = party.GetPosition2D.Distance(MobileParty.MainParty.GetPosition2D) < ArrivalDistance;
+            ReturnHomeStep step = ReturnHomePolicy.Decide(new ReturnHomeFacts {Arrived = arrived, DaysOnTheRoad = Today - p.ReturningSinceDay, InBattle = party.MapEvent != null});
+
+            if (step == ReturnHomeStep.Rejoin)
+            {
+               if (!arrived) ModLog.Info($"[PATROL] {p.CompanionName} rejoins after {Today - p.ReturningSinceDay} day(s) on the road home without reaching you.");
                BringHome(p, companion, party);
-            else
+            }
+            else if (step == ReturnHomeStep.KeepRiding)
                TravelingParty.DirectToMovingPoint(party, MobileParty.MainParty.GetPosition2D);
 
             return;
@@ -643,6 +651,16 @@ namespace CalradiaRemembers.Missions
 
       /// <summary>Runs the hourly handler now.</summary>
       internal void DebugHour() => OnHourlyTick();
+
+      /// <summary>Turns a companion's patrol for home as of <paramref name="sinceDay" /> (cr.test companion_patrol).</summary>
+      internal void DebugSetReturningSince(Hero companion, int sinceDay)
+      {
+         CompanionPatrol p = _patrols.FirstOrDefault(x => x.CompanionId == companion?.StringId);
+         if (p == null) return;
+
+         p.State = CompanionPatrolState.Returning;
+         p.ReturningSinceDay = sinceDay;
+      }
 
       /// <summary>The patrol's state and the day of its last letter, for cr.test all.</summary>
       internal (CompanionPatrolState State, int LastReportDay)? DebugStateOf(Hero companion)

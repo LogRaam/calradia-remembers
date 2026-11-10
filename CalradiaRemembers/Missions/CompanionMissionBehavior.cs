@@ -309,6 +309,7 @@ namespace CalradiaRemembers.Missions
       public override void RegisterEvents()
       {
          CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+         CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, OnHourlyTick);
          CampaignEvents.HeroPrisonerTaken.AddNonSerializedListener(this, OnHeroPrisonerTaken);
          CampaignEvents.TickEvent.AddNonSerializedListener(this, _ => DisbandHeldPartiesOnceTheEncounterIsOver());
       }
@@ -615,36 +616,7 @@ namespace CalradiaRemembers.Missions
             }
 
             case CompanionMissionPhase.Returning:
-            {
-               if (companion.IsPrisoner)
-               {
-                  m.Phase = CompanionMissionPhase.AwaitingReunion;
-                  m.PartyId = null;
-                  CompanionErrandJournalBridge.UpdateMirror(m, companion);
-
-                  return false;
-               }
-
-               MobileParty party = FindParty(m.PartyId);
-               if (party == null)
-               {
-                  m.Phase = CompanionMissionPhase.AwaitingReunion;
-                  CompanionErrandJournalBridge.UpdateMirror(m, companion);
-
-                  return false;
-               }
-
-               if (NearPlayer(party))
-               {
-                  Reunite(m, companion, party);
-
-                  return true;
-               }
-
-               TravelingParty.DirectToMovingPoint(party, MobileParty.MainParty.GetPosition2D);
-
-               return false;
-            }
+               return AdvanceReturning(m, companion);
 
             case CompanionMissionPhase.AwaitingReunion:
             {
@@ -912,6 +884,62 @@ namespace CalradiaRemembers.Missions
          }
 
          m.NewsGathered = true;
+      }
+
+      /// <summary>
+      ///   One step of the ride home, daily and hourly (Aporo, Discord 10/11/2026: checked once a day toward where the
+      ///   player stood at that tick, a returning companion parked just out of reach and never rejoined). Rejoins when
+      ///   beside the player, or after ReturnHomePolicy.GraceDays on the road; true when the errand is over.
+      /// </summary>
+      private bool AdvanceReturning(CompanionMission m, Hero companion)
+      {
+         if (companion.IsPrisoner)
+         {
+            m.Phase = CompanionMissionPhase.AwaitingReunion;
+            m.PartyId = null;
+            CompanionErrandJournalBridge.UpdateMirror(m, companion);
+
+            return false;
+         }
+
+         MobileParty party = FindParty(m.PartyId);
+         if (party == null)
+         {
+            m.Phase = CompanionMissionPhase.AwaitingReunion;
+            CompanionErrandJournalBridge.UpdateMirror(m, companion);
+
+            return false;
+         }
+
+         if (m.ReturningSinceDay <= 0) m.ReturningSinceDay = Today;
+         ReturnHomeStep step = ReturnHomePolicy.Decide(new ReturnHomeFacts {
+            Arrived = NearPlayer(party), DaysOnTheRoad = Today - m.ReturningSinceDay, InBattle = party.MapEvent != null
+         });
+
+         if (step == ReturnHomeStep.Rejoin)
+         {
+            if (!NearPlayer(party)) ModLog.Info($"[MISSION] {m.CompanionName} rejoins after {Today - m.ReturningSinceDay} day(s) on the road home without reaching you.");
+            Reunite(m, companion, party);
+
+            return true;
+         }
+
+         if (step == ReturnHomeStep.KeepRiding) TravelingParty.DirectToMovingPoint(party, MobileParty.MainParty.GetPosition2D);
+
+         return false;
+      }
+
+      private void OnHourlyTick()
+      {
+         foreach (CompanionMission m in _active.Where(x => x.Phase == CompanionMissionPhase.Returning).ToList())
+         {
+            CompanionMission mission = m;
+            SafeRun.Step($"CompanionMissionBehavior.AdvanceReturning({mission.CompanionName})", () =>
+            {
+               Hero companion = HeroById(mission.CompanionId);
+               if (companion != null && !companion.IsDead && AdvanceReturning(mission, companion)) _active.Remove(mission);
+            });
+         }
       }
 
       private void ReturnHome(CompanionMission m, MobileParty party)
