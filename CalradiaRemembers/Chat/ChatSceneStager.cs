@@ -21,8 +21,10 @@ using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Conversation;
 using TaleWorlds.CampaignSystem.Encounters;
+using TaleWorlds.CampaignSystem.GameState;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements.Locations;
+using TaleWorlds.Core;
 using TaleWorlds.Engine;
 using TaleWorlds.Library;
 using TaleWorlds.MountAndBlade;
@@ -183,8 +185,23 @@ namespace CalradiaRemembers.Chat
          StagingRoute route = StagingHostPolicy.Route(new StagingHostFacts {
             MissionLive = Mission.Current != null,
             PartnerConversationLive = request.Partner != null && Hero.OneToOneConversationHero == request.Partner,
-            PlayerAtSea = MobileParty.MainParty?.IsCurrentlyAtSea == true
+            PlayerAtSea = MobileParty.MainParty?.IsCurrentlyAtSea == true,
+            Invited = IsInvitation(request.Kind),
+            OtherConversationLive = OtherConversationLive(request.Partner),
+            AnotherSceneStaging = _pending != null,
+            ScreenElsewhere = ScreenElsewhere()
          });
+
+         // AN ANSWERED INVITATION WAITS ITS TURN (Lordfadooboo, Nexus, 21/10/2026: Zorika's word accepted in Sibir while
+         // Radagos came up, "endless loading screen"; Maifailun, 22/10/2026: another mod's popup at the same time as
+         // ours). The only check for a live conversation ran when the popup was RAISED; by the time it was answered
+         // another conversation could be starting, and the door staged a second scene over it.
+         if (route == StagingRoute.WaitForTheScreen)
+         {
+            WaitForTheScreen(request);
+
+            return;
+         }
 
          // AT SEA, WAIT FOR LANDFALL (Windmolen, Nexus, 28/09/2026: "the chat window opens but flickers a few
          // seconds and then my game crashes. The last time it was a naval move."). No conversation scene can load
@@ -442,7 +459,9 @@ namespace CalradiaRemembers.Chat
 
          // Fallback: the conversation is live (scene loading/loaded) but our line never fired (another mod's
          // start line may have won the token). Open anyway after a grace period so the encounter is never lost.
-         bool conversationActive = Hero.OneToOneConversationHero != null || Mission.Current != null;
+         // A conversation with SOMEONE ELSE is not ours (Lordfadooboo, 21/10/2026): read as ours, it kept the bound
+         // below from ever firing, so the watchdog that exists to un-jam a staging was blind in the collision itself.
+         bool conversationActive = (Hero.OneToOneConversationHero != null || Mission.Current != null) && !OtherConversationLive(_pending.Partner);
 
          // The STATE that says the call failed, checked before the conversation-active guard below: a
          // successful OpenMapConversation registers its conversation immediately and only then loads a
@@ -559,6 +578,7 @@ namespace CalradiaRemembers.Chat
       public static void ForgetAwaitingLandfall()
       {
          _awaitingLandfall.Clear();
+         _awaitingTheScreen.Clear();
          _lastSeenAtSea = CampaignTime.Zero; // another campaign's clock means nothing here
       }
 
@@ -570,6 +590,24 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>Test seam (cr.test all): drops every held conversation, receiving none.</summary>
       internal static void DebugClearAwaitingLandfall() => ForgetAwaitingLandfall();
+
+      /// <summary>Test seam (cr.test all): how many answered invitations wait for the screen.</summary>
+      internal static int DebugAwaitingTheScreenCount => _awaitingTheScreen.Count;
+
+      /// <summary>Test seam (cr.test all): the route the door would take for <paramref name="request" /> right now.</summary>
+      internal static StagingRoute DebugRouteFor(ChatSceneRequest request, bool otherConversationLive)
+         => StagingHostPolicy.Route(new StagingHostFacts {
+            MissionLive = Mission.Current != null,
+            PartnerConversationLive = request.Partner != null && Hero.OneToOneConversationHero == request.Partner,
+            PlayerAtSea = MobileParty.MainParty?.IsCurrentlyAtSea == true,
+            Invited = IsInvitation(request.Kind),
+            OtherConversationLive = otherConversationLive || OtherConversationLive(request.Partner),
+            AnotherSceneStaging = _pending != null,
+            ScreenElsewhere = ScreenElsewhere()
+         });
+
+      /// <summary>Test seam (cr.test all): holds <paramref name="request" /> for the screen exactly as the door does.</summary>
+      internal static void DebugWaitForTheScreen(ChatSceneRequest request) => WaitForTheScreen(request);
 
       #region private
 
@@ -587,6 +625,89 @@ namespace CalradiaRemembers.Chat
          if (announce && !alreadyHeld) ModLog.Notice($"{who} will speak with you once you make landfall.");
       }
 
+      // An invitation answered while another conversation held the screen, with where and when it was answered.
+      private sealed class HeldForTheScreen
+      {
+         internal ChatSceneRequest Request;
+         internal CampaignTime HeldAt;
+         internal string SettlementId;
+      }
+
+      // Invitations answered while the screen was taken, received one at a time once it is free (Lordfadooboo). Not
+      // saved, like the landfall list: a save made in that moment simply misses the word, and the person asks again.
+      private static readonly List<HeldForTheScreen> _awaitingTheScreen = new List<HeldForTheScreen>();
+
+      /// <summary>The kinds the player was invited to and answered, which can wait their turn (StagingHostFacts.Invited).</summary>
+      private static bool IsInvitation(ChatSceneKind kind)
+         => kind is ChatSceneKind.PlainConversation or ChatSceneKind.CompanionAudience or ChatSceneKind.EnvoyAudience or ChatSceneKind.TaleMeeting;
+
+      /// <summary>A conversation with someone other than <paramref name="partner" /> is live or starting.</summary>
+      private static bool OtherConversationLive(Hero partner)
+      {
+         ConversationManager manager = Campaign.Current?.ConversationManager;
+         if (manager == null) return false;
+
+         bool anyLive = Hero.OneToOneConversationHero != null || manager.IsConversationFlowActive || manager.IsConversationInProgress;
+
+         return anyLive && (partner == null || Hero.OneToOneConversationHero != partner);
+      }
+
+      /// <summary>The screen is neither the campaign map (its menus included) nor a live scene: something else is on its way in.</summary>
+      private static bool ScreenElsewhere()
+         => Mission.Current == null && GameStateManager.Current?.ActiveState is not MapState && Campaign.Current != null;
+
+      private static string SettlementHere() => MobileParty.MainParty?.CurrentSettlement?.StringId ?? "";
+
+      /// <summary>Holds an answered invitation until the screen is free, once per kind and person, and says so in the log.</summary>
+      private static void WaitForTheScreen(ChatSceneRequest request)
+      {
+         bool alreadyHeld = _awaitingTheScreen.Exists(h => h.Request.Kind == request.Kind && h.Request.Partner == request.Partner && h.Request.EnvoyName == request.EnvoyName);
+         if (!alreadyHeld) _awaitingTheScreen.Add(new HeldForTheScreen {Request = request, HeldAt = CampaignTime.Now, SettlementId = SettlementHere()});
+
+         string who = request.Partner?.Name?.ToString() ?? request.EnvoyName ?? "Someone";
+         ModLog.Info($"[CHAT STAGE {request.Kind}] another conversation holds the screen (with {Hero.OneToOneConversationHero?.Name?.ToString() ?? "no hero"}, "
+                   + $"staging: {_pending != null}, state: {GameStateManager.Current?.ActiveState?.GetType().Name ?? "none"}): {who} waits for it{(alreadyHeld ? " (already waiting)" : "")}.");
+      }
+
+      /// <summary>Receives the oldest invitation held for the screen once it is free; lets it go when stale.</summary>
+      private static void ReceiveOneAwaitingTheScreen()
+      {
+         if (_awaitingTheScreen.Count == 0) return;
+
+         bool mayReceive = StagingHostPolicy.MayReceiveWaiting(new LandfallFacts {
+            PlayerAtSea = MobileParty.MainParty?.IsCurrentlyAtSea == true,
+            MissionLive = Mission.Current != null,
+            ConversationLive = Hero.OneToOneConversationHero != null || Campaign.Current?.ConversationManager?.IsConversationFlowActive == true,
+            ChatOpen = ChatManager.IsOpen,
+            AnotherSceneStaging = _pending != null,
+            HoursAshore = double.MaxValue, // on land: no landing to settle
+            EncounterStarting = PlayerEncounter.Current != null && !PlayerEncounter.InsideSettlement,
+            ScreenElsewhere = ScreenElsewhere()
+         });
+         if (!mayReceive) return;
+
+         HeldForTheScreen held = _awaitingTheScreen[0];
+         _awaitingTheScreen.RemoveAt(0);
+         ChatSceneRequest request = held.Request;
+         string who = request.Partner?.Name?.ToString() ?? request.EnvoyName ?? "Someone";
+
+         bool worth = StagingHostPolicy.StillWorthReceiving(new ScreenHoldFacts {
+            HoursHeld = (CampaignTime.Now - held.HeldAt).ToHours, StillWhereAnswered = held.SettlementId == SettlementHere()
+         });
+         bool able = request.Partner == null || Mapping.ActionGate.Allows(request.Partner, Logic.ActionKind.HeldScene);
+         if (!worth || !able)
+         {
+            ModLog.Info($"[CHAT STAGE {request.Kind}] the word {who} asked for is let go ({(able ? "the moment has passed" : "they can no longer meet")}).");
+            // Not heard: nothing the yes promised is spent, so they ask again (as when a staging is dropped).
+            ChatManager.AudiencePromises.Break(request.Partner?.StringId);
+
+            return;
+         }
+
+         ModLog.Info($"[CHAT STAGE {request.Kind}] the screen is free: receiving the word {who} asked for.");
+         Open(request);
+      }
+
       /// <summary>Receives the oldest conversation held for landfall once the player is ashore and the screen is free.</summary>
       private static void ReceiveOneAwaitingLandfall()
       {
@@ -596,6 +717,7 @@ namespace CalradiaRemembers.Chat
 
          bool atSea = MobileParty.MainParty?.IsCurrentlyAtSea == true;
          if (atSea) _lastSeenAtSea = CampaignTime.Now;
+         ReceiveOneAwaitingTheScreen();
          if (_awaitingLandfall.Count == 0) return;
 
          bool mayReceive = StagingHostPolicy.MayReceiveWaiting(new LandfallFacts {

@@ -492,6 +492,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("regard_changed", Severity.Light, "The public regard-change door (29/09/2026, for tashmetu's bridge): raises a real character's regard by 1 and lowers it back through the one place regard changes, and checks a CrNpcMemory.RegardChanged listener hears both with before and after, reported as self_test (a test's change, which a mirroring mod must not keep). Regard is restored and the listener removed.", TestRegardChanged),
          new SelfTest("correspondence_rank", Severity.Light, "Gabriel (28/09/2026): the Empress wrote in her own hand to a landless newcomer, and rode out herself to find him. Reads a real ruler against the player as they stand: far above an unbonded player, her letters come from her chancellery (a title, no invented clerk) and she does not ride out in person; a love letter is always her own. Writes nothing.", TestCorrespondenceRank),
          new SelfTest("balance_survey", Severity.Light, "The balance-of-power survey (Gabriel, 28/09/2026: measure before building a balancing lever). Reads every living realm as the weekly survey does: one row each, fief shares adding up to the whole map, and rows that survive the survey file's round trip. Writes nothing.", TestBalanceSurvey),
+         new SelfTest("screen_wait", Severity.Light, "Lordfadooboo (Nexus, 21/10/2026): Zorika's word accepted in Sibir while Radagos came up gave an endless loading screen; Maifailun (22/10/2026): the same with another mod's popup. An answered invitation now waits while another conversation holds the screen. Reads the door's real route for a fief audience with another conversation live (held) and for a captive scene (not held), holds a real request as the door does and checks it is held once. Opens nothing; the held request is dropped.", TestScreenWait),
          new SelfTest("landfall_wait", Severity.Light, "Windmolen (Nexus, 28/09/2026): accepting an envoy on a naval move opened the chat over the live naval map, which flickered and crashed. At sea a conversation now waits for landfall and an envoy does not arrive. Reads the door's route for where the player stands, holds a real request as the door does at sea and checks it is held once. Opens nothing; the held request is dropped.", TestLandfallWait),
          new SelfTest("clan_standing_seed", Severity.Light, "tashmetu (30/09/2026): a lord whose clan counted the player a friend (+54) met him as a near-stranger. Drives the real apply path on a real character's profile: a trusted friend's clan lifts regard from 0 to friendly regard once, a second meeting adds nothing, and a character the player offended keeps the offence. Regard and the seed are restored.", TestClanStandingSeed),
          new SelfTest("letter_regard", Severity.Light, "Lordfadooboo (Nexus, 28/09/2026): a dozen letters and the correspondent's regard had not moved. Drives the real apply path on a real character's profile: a warm letter earns +1, a second the same day earns nothing, a cold one costs 1, and the [LETTER_TONE] line is stripped from the letter. Regard and the letter clock are restored.", TestLetterRegard),
@@ -19636,6 +19637,42 @@ namespace CalradiaRemembers.Diagnostics
       ///   stands, then holds a real request exactly as the door does at sea and checks it is held once, not twice.
       ///   Nothing is opened; the held request is dropped at the end.
       /// </summary>
+      private static string TestScreenWait(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("screen_wait");
+
+         Hero someone = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(someone == null, "no living free lord to hold a meeting with")) return t.Line();
+         if (t.Skip(MobileParty.MainParty?.IsCurrentlyAtSea == true, "the player is at sea, where the landfall rule answers first")) return t.Line();
+
+         var audience = new ChatSceneRequest {Kind = ChatSceneKind.PlainConversation, Partner = someone};
+         var captive = new ChatSceneRequest {Kind = ChatSceneKind.CaptorScene, Partner = someone};
+
+         // STAKE: an answered word in town, with another conversation coming up, waits rather than staging over it.
+         StagingRoute audienceRoute = Chat.ChatSceneStager.DebugRouteFor(audience, otherConversationLive: true);
+         t.Note($"fief audience with another conversation live: {audienceRoute}");
+         t.Expect("anAnsweredWordWaits", audienceRoute, StagingRoute.WaitForTheScreen);
+
+         // STAKE: a scene that cannot be put off keeps the door's older answer.
+         StagingRoute captiveRoute = Chat.ChatSceneStager.DebugRouteFor(captive, otherConversationLive: true);
+         t.Note($"captor scene with another conversation live: {captiveRoute}");
+         t.Expect("aCaptiveSceneIsNotHeld", captiveRoute != StagingRoute.WaitForTheScreen, true);
+
+         int before = Chat.ChatSceneStager.DebugAwaitingTheScreenCount;
+         try
+         {
+            Chat.ChatSceneStager.DebugWaitForTheScreen(audience);
+            Chat.ChatSceneStager.DebugWaitForTheScreen(audience);
+            t.Expect("heldOnceNotTwice", Chat.ChatSceneStager.DebugAwaitingTheScreenCount, before + 1);
+         }
+         finally
+         {
+            Chat.ChatSceneStager.DebugClearAwaitingLandfall();
+         }
+
+         return t.Line();
+      }
+
       private static string TestLandfallWait(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("landfall_wait");

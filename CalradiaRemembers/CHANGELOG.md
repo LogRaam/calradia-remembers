@@ -2,6 +2,12 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.8.8.. unreleased
+
+### Fixed
+
+- **A word you accept while another conversation is coming up now waits its turn** (Lordfadooboo, Nexus 21/10/2026, 2.7.18: in Sibir "zorika tried to talk to me and so did radagos. this triggered an endless loading screen when i hit the button to talk to zorika"; Maifailun 22/10/2026: the same with Affairs of Calradia's popup; Gabriel 09/11/2026: "vas-y"). `ChatSceneStager.Open` checked for a live conversation only when the popup was raised (`CompanionAudienceTopicBehavior`, entry guard), never when it was answered, and staged its own scene (`CreateAndOpenMissionController` / `OpenMapConversation`) over the other one. `StagingHostPolicy.Route` now answers `WaitForTheScreen` for an invitation (`StagingHostFacts.Invited`: plain/fief audience, companion audience, envoy, tale meeting) while a conversation with someone else is live or starting, another CR scene is staging, or the screen is neither the map nor a live scene; it is received once the screen is free (`MayReceiveWaiting`, + `ScreenElsewhere`) if still within `ScreenHoldHours` (2) and where it was answered (`StillWorthReceiving`), else let go and asked again later (`AudiencePromises.Break`). Captive scenes, post-duel and briefed returns keep the older answer. The staging watchdog (`Tick`) no longer takes a conversation with someone else for its own, which kept its bound from ever firing in exactly this collision. The hang itself is not reproduced (no log); this closes the gap the code shows. cr.test screen_wait.
+
 ## v2.8.7.. 2026-11-09
 
 ### New

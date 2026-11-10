@@ -22,7 +22,7 @@ the subject of news, and the verbs a model emits in conversation have their own 
 | `EnterService` | `BannerlordGameStateBridge.HouseholdOfferableTo` |
 | `Escort` | `FollowMeBehavior.TryStart` |
 | `FiefAudience` | `FiefAudienceBehavior.EligibleHeroes` |
-| `HeldScene` | `ChatSceneStager.ReceiveOneAwaitingLandfall` |
+| `HeldScene` | `ChatSceneStager.ReceiveOneAwaitingLandfall`, `ChatSceneStager.ReceiveOneAwaitingTheScreen` |
 | `Hostage` | `CouncilHostageBehavior.TryStart`, `HostageCandidateResolver.IsEligible` |
 | `Letter` | `BastardBehavior.SendDemandLetter`, `BastardBehavior.SendMotherNote`, `CompanionHappinessBehavior.SendFarewell`, `CrLetters.DeliverWithId`, `HelpPleaBehavior.BestWriter`, `HelpPleaBehavior.SendReproaches`, `LetterGenerationService.QueueInitialLetter`, `LetterTriggerEvaluator.CanSendLetter`, `LetterTriggerEvaluator.CollectAimLetters`, `PrisonerEnvoyBehavior.OnHourlyTick`, `VillagesSparedLetterBehavior.RegardOfAWriter` |
 | `MarriageProspect` | `MarriageProspectResolver.Build`, `MarriageProspectResolver.ResolveCandidate` |

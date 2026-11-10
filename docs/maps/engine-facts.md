@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-754 rules read 561 facts.
+754 rules read 564 facts.
 
 ## Facts read by more than one rule
 
@@ -170,6 +170,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `AgeModel.HeroComesOfAge` (3) | `CaptiveOfferFacts`, `ChildrenListText.Part`, `SharedPastPairFacts` |
 | `CampaignOptions.IsLifeDeathCycleDisabled` (3) | `ExecutionFacts`, `PregnancyPolicy.MayConceive`, `PregnancyPolicy.ShouldEndStuckPregnancy` |
 | `Clan.Heroes` (3) | `CouncilTroopDelivery`, `HostageCandidateFacts`, `HostageEligibilityPolicy.IsEligible` |
+| `ConversationManager.IsConversationInProgress` (3) | `DuelStagingSupport.ReadyToOpenTheSquare`, `SquareReadinessFacts`, `StagingHostFacts` |
 | `Current.CurrentMenuContext` (3) | `DuelStagingSupport.ReadyToOpenTheSquare`, `RoadAudienceFacts`, `SquareReadinessFacts` |
 | `Current.MapSceneWrapper` (3) | `AuthoredQuestPrompt.Narrator`, `CouncilSceneImagePolicy.Resolve`, `SceneSurroundingsFacts` |
 | `DefaultItemCategories.Horse` (3) | `PriceFacts`, `PriceReference.Compact`, `PriceReference.Full` |
@@ -250,7 +251,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `CharacterRelationManager.GetHeroRelation` (2) | `PairBondFacts`, `PairBondPolicy.Assess` |
 | `CharacterStates.Disabled` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `CompanionHiringPriceCalculationModel.GetCompanionHiringPrice` (2) | `HireAgreementPolicy.AgreedPrice`, `HireAgreementPolicy.CanAfford` |
-| `ConversationManager.IsConversationInProgress` (2) | `DuelStagingSupport.ReadyToOpenTheSquare`, `SquareReadinessFacts` |
+| `ConversationManager.IsConversationFlowActive` (2) | `LandfallFacts`, `StagingHostFacts` |
+| `Current.ActiveState` (2) | `LandfallFacts`, `StagingHostFacts` |
 | `DialogFlow.Profile` (2) | `PendingSummaryJob`, `SpeakerProfileSelector.Select` |
 | `DiplomacyModel.GetInfluenceCostOfProposingWar` (2) | `PressForWarFacts`, `PressForWarPolicy.WhyNot` |
 | `DossierReader.WhyTowardThePlayer` (2) | `ClanRegardCandidate`, `NpcDossierText.RegardLine` |
@@ -728,7 +730,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `KinDeathFacts`: `Hero.IsFemale`
 - `KingdomPowerFacts`: `Clan.Influence`, `RulingClan.Influence`
 - `LaidOutGood`: `EquipmentElement.Item`, `Found.Amount`
-- `LandfallFacts`: `Hero.OneToOneConversationHero`, `MobileParty.IsCurrentlyAtSea`, `PlayerEncounter.InsideSettlement`
+- `LandfallFacts`: `ConversationManager.IsConversationFlowActive`, `Current.ActiveState`, `Hero.OneToOneConversationHero`, `MobileParty.IsCurrentlyAtSea`, `PlayerEncounter.InsideSettlement`
 - `LeaveHouseFacts`: `AccessTools.Method`, `Hero.CanMarry`, `Hero.Clan`, `Hero.IsFemale`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Spouse`, `MarriageModel.IsClanSuitableForMarriage`, `MethodInfo.Invoke`, `MobileParty.Army`, `MobileParty.MapEvent`, `Models.MarriageModel`, `Romance.GetCourtedHeroInOtherClan`
 - `LeaveHouseForRulerPolicy.SeasonOfWages`: `MobileParty.TotalWage`
 - `LeaveHouseForRulerPolicy.WhyNot`: `AccessTools.Method`, `Hero.CanMarry`, `Hero.Clan`, `Hero.IsFemale`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Spouse`, `MarriageModel.IsClanSuitableForMarriage`, `MethodInfo.Invoke`, `MobileParty.Army`, `MobileParty.MapEvent`, `Models.MarriageModel`, `Romance.GetCourtedHeroInOtherClan`
@@ -1018,7 +1020,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `SpouseTenurePolicy.LongStanding`: `Hero.Age`, `Hero.Spouse`
 - `SquareReadinessFacts`: `ConversationManager.IsConversationInProgress`, `Current.CurrentMenuContext`, `GameStateManager.ActiveState`
 - `StagedStartFacts`: `Current.Agents`, `Hero.OneToOneConversationHero`
-- `StagingHostFacts`: `Hero.OneToOneConversationHero`, `MobileParty.IsCurrentlyAtSea`
+- `StagingHostFacts`: `ConversationManager.IsConversationFlowActive`, `ConversationManager.IsConversationInProgress`, `Current.ActiveState`, `Current.ConversationManager`, `Hero.OneToOneConversationHero`, `MobileParty.IsCurrentlyAtSea`
 - `StagingHostPolicy.AnEnvoyCanReachThePlayer`: `MobileParty.IsCurrentlyAtSea`
 - `StandingAim`: `Clan.Tier`, `Ledger.OpenCase`, `ModSettings.WarLevyScale`
 - `StationGuidelinesPolicy.ResolveStationKey`: `Hero.CompanionOf`, `Hero.IsClanLeader`

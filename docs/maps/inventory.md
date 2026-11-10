@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 642 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1547 types in 56 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1548 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -34,6 +34,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 1500+ | Mod | `WorldEvents/WorldEventFeeders.cs` |
 | 1000+ | Sdk | `Actions/GameActionCatalog.cs` |
 | 1000+ | Logic | `Assemblies/ResolutionCatalog.cs` |
+| 1000+ | Mod | `Chat/ChatSceneStager.cs` |
 | 1000+ | Mod | `Chat/ChatViewModel.Council.cs` |
 | 1000+ | Mod | `Chat/ChatViewModel.Helpers.cs` |
 | 1000+ | Mod | `Diagnostics/RoleplayBench.cs` |
@@ -1018,7 +1019,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (468)
+### CalradiaRemembers.Logic (469)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1404,6 +1405,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SchemeState` | public enum | The lifecycle of a scheme. |
 | `ScoutTownFacts` | public class | Whether a town may be named for a scout_town task. |
 | `ScoutTownPolicy` | public static class | The rules of a scout_town task, and the report the gang leader gives. |
+| `ScreenHoldFacts` | public class | Whether a conversation held for the screen is still worth receiving. |
 | `SecretBondEligibility` | public static class | The single source of truth for whether a hidden bond may be taken up, and if not, why not. |
 | `SecretBondFacts` | public class | The plain facts the decision needs, read off the live campaign by whoever is asking. |
 | `SecretBondVerdict` | public enum | Why a hidden bond may or may not be taken up, in the order the doors are tried. |
