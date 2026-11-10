@@ -25,7 +25,8 @@
 // action pipeline, once granted in the conversation). Unlike the spend-once topics above, an ambition is not a
 // one-shot fact to consume: the SAME underlying condition (landless+high-standing, no party role, etc.) can
 // still be true after a refusal, so this is throttled by TIME instead, a per-companion "last asked" day
-// (_ambitionAskedDays), stamped ONLY on a real grant, exactly like the spend-once keys are only marked on grant.
+// (_ambitionAskedDays), stamped on a real grant, and since 10/11/2026 on a decline too (Aporo: a companion declined at
+// the popup asked again every two days; see Decline).
 // 03/09/2026: hostility gate on the entry (player report: the popup fired while entering a HOSTILE village or an
 // enemy castle, and answering inside that hostile flow closed the window and dumped the player into the
 // location's encounter). EntryIsPeaceful feeds SettlementAudienceSafetyPolicy — a private word waits for a
@@ -677,12 +678,37 @@ namespace CalradiaRemembers.Missions
          // A companion is known: no "Who:" line, but the "Who is this?" button to their page (Lordfadooboo, 13/10/2026).
          Interception.AudienceInquiry.Show(h, title.ToString(), body.ToString(), "Speak with them", "Not now",
             GrantAudience,
-            () =>
-            {
-               // News offered and declined is told: the same war is not offered again (Lufaine, 04/11/2026).
-               if (scan.Topic == CompanionAudienceReason.RumourReport && !string.IsNullOrEmpty(scan.Key)) _reportedRumourIds.Add(scan.Key);
-               ModLog.Info($"[AUDIENCE_TOPIC] {h.Name}'s private word was declined, no penalty, free refusal.");
-            }, sayWho: false);
+            () => Decline(h, scan.Topic, scan.Key), sayWho: false);
+      }
+
+      /// <summary>
+      ///   A private word declined at the popup. Free of any penalty, but remembered where asking again would nag:
+      ///   news already offered is not offered again (Lufaine, 04/11/2026), and an ambition waits the same
+      ///   <see cref="CompanionAmbitionPolicy.CooldownDays" /> as one heard (Aporo, Discord 10/11/2026: "My other companion
+      ///   asked me every two days almost to lead troops and when i told her that no ... she still came after some time";
+      ///   a decline stamped nothing, so the ask came back as soon as the pacing allowed). cr.test companion_ambition
+      ///   calls this same method.
+      /// </summary>
+      /// <summary>The day each companion last voiced (or had declined) an ambition, read by cr.test.</summary>
+      internal int? AmbitionAskedDay(string companionId)
+         => companionId != null && _ambitionAskedDays.TryGetValue(companionId, out int day) ? day : (int?) null;
+
+      /// <summary>Puts a companion's ambition day back as it was (cr.test cleaning up after itself).</summary>
+      internal void RestoreAmbitionAskedDay(string companionId, int? day)
+      {
+         if (companionId == null) return;
+         if (day.HasValue) _ambitionAskedDays[companionId] = day.Value;
+         else _ambitionAskedDays.Remove(companionId);
+      }
+
+      internal void Decline(Hero companion, CompanionAudienceReason topic, string key)
+      {
+         if (companion == null) return;
+
+         if (topic == CompanionAudienceReason.RumourReport && !string.IsNullOrEmpty(key)) _reportedRumourIds.Add(key);
+         if (topic == CompanionAudienceReason.Ambition) _ambitionAskedDays[companion.StringId] = Today;
+         ModLog.Info($"[AUDIENCE_TOPIC] {companion.Name}'s private word was declined, no penalty"
+                     + (topic == CompanionAudienceReason.Ambition ? $"; that ambition is not raised again for {CompanionAmbitionPolicy.CooldownDays} days." : "."));
       }
 
       /// <summary>Mirrors CompanionAudienceTopicPolicy.SelectTopic over a resolver scan.</summary>
