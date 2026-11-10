@@ -653,6 +653,18 @@ MUST = [
     ("sdk",   b"IntimateActNames"),
     ("sdk",   b"LessFondActs"),
     ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
+    # 2.8.7
+    ("logic", b"TroopHandOverReadingPolicy"),
+    ("logic", b"WholeLotHeld"),
+    ("logic", b"WithOutsideLines"),
+    ("logic", b"WedToAnotherName"),
+    ("mod",   b"CrFolklore"),
+    ("mod",   b"CrAppearance"),
+    ("mod",   b"SellBagLot"),
+    ("mod",   "bag_lot_sale".encode("utf-16-le")),
+    ("mod",   "outside_tales_looks".encode("utf-16-le")),
+    ("sdk",   b"RomanticBondSince"),
+    ("sdk",   "A WITNESS VOUCHES ONLY FOR WHAT THEY KNOW".encode("utf-16-le")),
     # 2.8.6
     ("logic", b"SaveBlobCodec"),
     ("logic", b"IsBeyondCeiling"),

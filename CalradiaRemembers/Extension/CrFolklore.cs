@@ -19,7 +19,7 @@ using TaleWorlds.CampaignSystem;
 
 namespace CalradiaRemembers
 {
-   /// <summary>The door through which other mods give a character folk tales of their own. Since 2.8.4.</summary>
+   /// <summary>The door through which other mods give a character folk tales of their own. Since 2.8.7.</summary>
    public static class CrFolklore
    {
       // A source's text is parsed once and kept, since the same few texts (one per faith) come back for many heroes.

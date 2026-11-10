@@ -19,7 +19,7 @@ using CalradiaRemembers.Logic;
 
 namespace CalradiaRemembers
 {
-   /// <summary>The door through which other mods add a line to how a character looks. Since 2.8.4.</summary>
+   /// <summary>The door through which other mods add a line to how a character looks. Since 2.8.7.</summary>
    public static class CrAppearance
    {
       private static readonly SortedDictionary<string, Func<string, bool, string>> Sources = new(StringComparer.Ordinal);

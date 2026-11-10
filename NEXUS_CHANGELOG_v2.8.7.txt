@@ -1,0 +1,30 @@
+Version 2.8.7
+
+A Discord for the mod, lots of goods sold from the bag for one price, companions who no longer vouch for what they never saw, and courtships that end with the name of the one she wed.
+
+New
+
+- Calradia Remembers has a Discord: https://discord.gg/Cs6cPTZTGs. Come share your stories, compare models, ask for help and suggest ideas.
+- Several kinds of goods laid out in the bag can now be sold together for one price. The bag asks "Give them / Sell them for one price", the confirmation names the whole lot and its worth, every good leaves in the amount you chose, and the buyer pays once. If you no longer hold all you laid out, nothing is sold. (Thank you, froggyluv.)
+
+Fixed
+
+- A sale from the bag that you confirm now moves the whole amount you chose in the bag. Since 2.8.3 a confirmed sale still moved a single item. (Thank you, froggyluv.)
+- Companions in the room no longer back up a wrong they never saw. When one accuses you of a broken promise, the others may look uneasy, doubtful or curious, but they do not join in to call you untrustworthy on another's word. (Thank you, froggyluv.)
+- A courtship ended because the game wed her to someone else now says so on her Heart page, with the name and the season ("She wed Garios in summer 1093, and has grown distant from you."), and a bond still alive tells whom she is wed to. A character also knows since when your bond has stood. (Thank you, avalanche24.)
+- A lord who asked you for recruits now closes that task when you bring them, even when he thanks you in words that read like a gift of troops.
+- A character who refuses to pay when you demand coin now remembers the demand as what it was, and it costs you their regard once, not twice.
+
+For modders
+
+- CrFolklore.RegisterTaleSource(source, hero => text or null) gives a character tales beside those of their people (a faith's saints and legends, for example), in the format of the folklore files. They share the six tales a character carries. (Thank you, tashmetu.)
+- CrAppearance.RegisterLineSource(source, (heroId, seenByOther) => line or null) adds a line after Calradia Remembers' own appearance, for a character's own body and as another sees them. At most two such lines are kept. (Thank you, tashmetu.)
+- EXTENSION_API.md also tells how to announce a relation change made silently, so Calradia Remembers counts it.
+
+Developer tools
+
+- cr.test all gains bag_lot_sale, outside_tales_looks and recruits_read_as_give_troops.
+
+Notes
+
+- Existing saves load as they are.

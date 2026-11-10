@@ -435,7 +435,7 @@ CrPairRegard.UnregisterStartReason("My Mod");
 - A character who does not lead their house is told their house's standing in a sentence of its own ("Between
   houses: your house, under Derthert, is at odds with ..."), apart from their own friends and enemies.
 
-### Tales a character carries beyond their people's (`CrFolklore.RegisterTaleSource`, since 2.8.4)
+### Tales a character carries beyond their people's (`CrFolklore.RegisterTaleSource`, since 2.8.7)
 
 Each character carries up to six folk tales of their own people (`ModuleData/folklore/<culture id>.txt`), loves one best
 and can tell that one in full. A faith, an order or a family that crosses cultures can give a character tales too:
@@ -455,7 +455,7 @@ CrFolklore.UnregisterTaleSource("My Mod");
   called on every prompt built for that character, so keep it cheap (CR parses each distinct text once). One that throws
   is logged once and passed over. Registering the same name again replaces it; register each time a game starts or loads.
 
-### A line on how a character looks (`CrAppearance.RegisterLineSource`, since 2.8.4)
+### A line on how a character looks (`CrAppearance.RegisterLineSource`, since 2.8.7)
 
 CR describes a character's body from their face (and the player's appearance prose): to the character themselves ("YOUR
 OWN APPEARANCE", in the second person) and to the character the player speaks with ("What you can SEE of them", in the
