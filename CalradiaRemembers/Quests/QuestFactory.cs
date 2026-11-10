@@ -737,14 +737,40 @@ namespace CalradiaRemembers.Quests
                return PleadCasePolicy.MayBePleadedTo(RegardTargetFacts(pleadBefore, giver), CourtActionResolver.HoldsCourt(pleadBefore));
 
             case QuestType.ScoutArmy:
-               // Prefer a named army leader; fall back to any army of the named faction;
-               // fall back to the giver's first enemy kingdom when neither is specified.
-               if (!string.IsNullOrWhiteSpace(proposal.TargetHero))
-                  return BindHero(quest, proposal.TargetHero, giver);
-               if (!string.IsNullOrWhiteSpace(proposal.TargetFaction))
-                  return BindFaction(quest, proposal.TargetFaction);
+               // A named army leader, then a named realm, then the named place's owner when at war with it (bdionysis80,
+               // 10/11/2026: Hvalvik, a Nord port, was set as "an army of Sturgia"); the first enemy only when nothing
+               // at all was named (ScoutArmyTargetPolicy).
+               {
+                  Settlement place = string.IsNullOrWhiteSpace(proposal.TargetSettlement) ? null : ResolveSettlement(proposal.TargetSettlement);
+                  ScoutArmyTarget target = ScoutArmyTargetPolicy.Decide(new ScoutArmyTargetFacts {
+                     NamesHero = !string.IsNullOrWhiteSpace(proposal.TargetHero),
+                     NamesFaction = !string.IsNullOrWhiteSpace(proposal.TargetFaction),
+                     NamesPlace = !string.IsNullOrWhiteSpace(proposal.TargetSettlement),
+                     PlaceFound = place?.MapFaction != null,
+                     PlaceOwnerAtWarWithGiver = place?.MapFaction != null && giver.MapFaction != null
+                                                && FactionManager.IsAtWarAgainstFaction(giver.MapFaction, place.MapFaction)
+                  });
 
-               return BindFirstEnemyFaction(quest, giver);
+                  switch (target)
+                  {
+                     case ScoutArmyTarget.NamedHero:
+                        return BindHero(quest, proposal.TargetHero, giver);
+                     case ScoutArmyTarget.NamedFaction:
+                        return BindFaction(quest, proposal.TargetFaction);
+                     case ScoutArmyTarget.PlaceOwner:
+                        quest.TargetFactionId = place.MapFaction.StringId;
+                        quest.TargetFactionName = place.MapFaction.Name?.ToString();
+
+                        return true;
+                     case ScoutArmyTarget.FirstEnemy:
+                        return BindFirstEnemyFaction(quest, giver);
+                     default:
+                        ModLog.Info($"[QUEST] scout_army near '{proposal.TargetSettlement}' from {giver.Name} refused: "
+                                    + (place == null ? "no such place." : $"it is held by {place.MapFaction?.Name}, not at war with {giver.MapFaction?.Name}."));
+
+                        return false;
+                  }
+               }
 
             case QuestType.ProvideGoods:
                // A personal supply task: bind a recognized goods category and a sane count. An unrecognized

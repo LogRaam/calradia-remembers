@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 642 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1548 types in 56 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1551 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2488,7 +2488,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SceneContentKind` | public enum | The kind of scene that is opening. |
 | `ServiceRole` | public enum | A model ROLE the player can route to its own provider. |
 
-### CalradiaRemembers.Logic.Quests (14)
+### CalradiaRemembers.Logic.Quests (17)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2506,6 +2506,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestRewardGatePolicy` | public static class | Pure eligibility/re-validation gate for RewardGrant.GrantFief and RewardGrant.MarriageReward. |
 | `QuestRewardPayoutVerdict` | public enum | The binary outcome of re-validating a heavy quest reward (fief or marriage) at payout. |
 | `QuestSaveBasePolicy` | public static class | Decides the quest definer's save-type base id, avoiding a known boot-crash collision with Europe1100. |
+| `ScoutArmyTarget` | public enum | The target a scout_army task is bound to. |
+| `ScoutArmyTargetFacts` | public class | What a scout_army proposal names, and how the named place stands. |
+| `ScoutArmyTargetPolicy` | public static class | Decides whose army a scout_army task concerns. |
 
 ### CalradiaRemembers.Logic.Raids (4)
 
