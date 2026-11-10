@@ -798,6 +798,8 @@ namespace CalradiaRemembers.Mapping
             NarrativeStyle = StyleService.CurrentRules(),
             // How THIS character speaks, drawn from who they are and never saved (Gabriel, 10/11/2026).
             CharacterVoice = ResolveCharacterVoice(hero),
+            // How readily they believe the player: their nature, or wariness after a broken faith (Gabriel, 10/11/2026).
+            CredulityNote = ResolveCredulityNote(hero),
             // The news now travels as FACTS rather than as a pre-formatted block: how much of it a character
             // carries is a rule about people, and RealmNewsPack owns it. The two older fields are left on
             // EncounterContext and still render if some other mod sets them - the host simply no longer does,
@@ -859,6 +861,37 @@ namespace CalradiaRemembers.Mapping
          });
 
          return Logic.Character.CharacterVoicePolicy.Render(voice);
+      }
+
+      /// <summary>How readily <paramref name="hero" /> believes the player (CredulityPolicy); null for the ordinary and the player.</summary>
+      internal static string ResolveCredulityNote(Hero hero)
+      {
+         try
+         {
+            if (hero == null || hero == Hero.MainHero) return null;
+
+            string playerId = Hero.MainHero?.StringId;
+            var today = (int) CampaignTime.Now.ToDays;
+            List<GrudgeSource> againstPlayer = (GrudgeBehavior.Instance?.LiveGrudgesFor(hero, today) ?? new List<Grudge>())
+                                               .Where(g => g != null && g.TargetId == playerId)
+                                               .Select(g => g.Source)
+                                               .ToList();
+            var facts = new Logic.Character.CredulityFacts {
+               HeroId = hero.StringId,
+               Traits = RomanticProfileBuilder.TraitsOf(hero),
+               Station = SocialStationReader.StationOf(hero),
+               Age = (int) hero.Age,
+               GrudgesAgainstPlayer = againstPlayer
+            };
+
+            return Logic.Character.CredulityPolicy.Render(Logic.Character.CredulityPolicy.Judge(facts), Logic.Character.CredulityPolicy.Burned(facts));
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[CREDULITY] {hero?.Name}: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
       }
 
       internal static string ResolvePlayerDeedsHeard(Hero hero)

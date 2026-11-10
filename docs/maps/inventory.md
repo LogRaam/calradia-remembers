@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 642 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1566 types in 56 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1569 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 287 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1893,7 +1893,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RansomOfferFacts` | public class | Who holds the player when the game is about to offer a ransom. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 
-### CalradiaRemembers.Logic.Character (23)
+### CalradiaRemembers.Logic.Character (26)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1902,6 +1902,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CharacterVoiceFacts` | public class | Who a voice is drawn for. |
 | `CharacterVoicePolicy` | public static class | Draws and words a character's voice. |
 | `Coarseness` | public enum | How freely a character curses. |
+| `Credulity` | public enum | How readily a character believes the player. |
+| `CredulityFacts` | public class | Who is judged. |
+| `CredulityPolicy` | public static class | Judges and words how readily a character believes the player. |
 | `GiftBundlePolicy` | public static class | Reads the amount typed for each good, names the bundle, and weighs how welcome it is. |
 | `GiftLine` | public class | One kind of good in a bundle: its name and how many. |
 | `GiftPageFacts` | public class | What the encyclopedia says of a character's gift tastes. |

@@ -65,6 +65,12 @@ namespace CalradiaRemembers.Grudges
          if (!string.IsNullOrEmpty(holderId)) _ledger.Grudges.RemoveAll(g => g.HolderId == holderId);
       }
 
+      /// <summary>Self-test support: records one grudge as given, past the formation guardrails; take it back with RemoveGrudge.</summary>
+      internal void AddGrudgeForTest(Grudge grudge)
+      {
+         if (grudge != null) _ledger.Grudges.Add(grudge);
+      }
+
       /// <summary>Self-test support: takes back one grudge a test planted, leaving the holder's others as they were.</summary>
       internal void RemoveGrudge(Grudge grudge)
       {
