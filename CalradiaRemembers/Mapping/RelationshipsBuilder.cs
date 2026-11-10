@@ -105,7 +105,7 @@ namespace CalradiaRemembers.Mapping
             enemies.Add(hero1);
 
          if (enemies.Count > 0)
-            sb.AppendLine($"Enemies: {string.Join(", ", enemies.Select(h => h.Name))}.");
+            sb.AppendLine($"Enemies: {string.Join(", ", enemies.Select(WithHouse))}.");
 
          AppendDeadRivals(sb, hero);
       }
@@ -243,8 +243,13 @@ namespace CalradiaRemembers.Mapping
                                     .Take(MaxEntries)) friends.Add(hero1);
 
          if (friends.Count > 0)
-            sb.AppendLine($"Friends: {string.Join(", ", friends.Select(h => h.Name))}.");
+            sb.AppendLine($"Friends: {string.Join(", ", friends.Select(WithHouse))}.");
       }
+
+      // A friend or enemy named with their house (Lordfadooboo, Nexus, 03/11/2026: asked about the people a character had
+      // opinions on, "they started listing names ive never seen to houses that ive never heard of"). A bare first name
+      // left the model to supply the house itself.
+      private static string WithHouse(Hero h) => HeroLabel.Describe(new HeroLabel.HeroNaming {Name = h.Name?.ToString(), ClanName = h.Clan?.Name?.ToString()});
 
       /// <summary>
       ///   How the speaker's house stands with others, said apart from the speaker's own friends and enemies, for someone

@@ -411,6 +411,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("scene_image_shown", Severity.Light, "Gabriel (08/10/2026): a tale's stage may carry a picture, opening by itself beside the chat when its scene opens. Writes a small picture to a temporary file, opens a scene with it through the real door (its narration refused before any model call), checks the left panel shows that very file and, in Dark Leather, that it steps aside when the chat yields to the pause menu, then closes the scene and deletes the file.", TestSceneImageShown),
          new SelfTest("intimate_acts", Severity.Light, "Gabriel (26/10/2026): 'chaque NPC avait des preferences pour certains gestes sexuels, et meme parfois des gestes qu'il n'aime pas', and 'un geste impose que le NPC n'aime pas devrait reduire le personal regard'. At Hardcore, with a lord arranged as the player's lover (regard 60, intimate; put back after) who loves oral given and dislikes anal received: the turn's reader is taught both from the real EncounterContextBuilder seam; the disliked gesture only asked for costs nothing and is learned; performed, it costs 4 personal regard and leaves a memory; performed again the same day, nothing more; the loved gesture found warms them by 1; one they are less fond of costs nothing; the Heart section names a taste only once it is learned; a profile rolled before the list widened (27/10/2026: 'd'en mettre beaucoup') is completed through the real load path, keeping what she loved and what the player learned. Skips below Hardcore", TestIntimateActs),
          new SelfTest("override_acts", Severity.Light, "Tene21 (Nexus, 03/11/2026): 'Setting a character's tastes in the file, then running cr.reload_lore followed by cr.acts Character Name still show what I assume are the character's generated tastes.' With custom traits on and a lock injected at runtime (loves kissing and beneath, less fond dirty talk, dislikes none; character_overrides.json untouched) on a lord whose roll had kissing as less loved: the reload's own ApplyAll lays the lock on the STORED profile (what the encyclopedia reads) with kissing in one list only and the empty dislike kept empty; the path cr.acts takes (UpgradeIfNeeded) lays it on a profile still carrying the roll, and a profile of an older taste revision is not padded past the lock; the Heart line reads the authored gesture once learned; custom traits off, RestoreAll gives back the character's own roll. Everything put back, the file reloaded", TestOverrideActs),
+         new SelfTest("friends_with_house", Severity.Light, "Lordfadooboo (Nexus, 03/11/2026): asked about the people a character had opinions on, 'they started listing names ive never seen to houses that ive never heard of'. Finds a lord whose real friends or enemies are listed, reads his RELATIONSHIPS block as the prompt gets it, and asserts every friend and enemy who belongs to a house is named with it, so the model never has to supply one. Reads only", TestFriendsWithHouse),
          new SelfTest("silver_taste", Severity.Light, "EvilPoptart1987 (Nexus, 09/11/2026): many characters loved 'silver', which only raw Silver Ore carried; the silverware is of category jewelry. Reads the game's own Silver Ore and silverware categories (ore is nothing special, silverware is jewelry), then gives a lord already met a taste for silver as an older save holds it, loved and learned, and asserts the next reading turns it into jewelry. The lord's tastes are put back", TestSilverTaste),
          new SelfTest("gift_tastes", Severity.Light, "Gabriel (27/10/2026): 'un NPC pourrait [...] preferer certains cadeaux [...] Une Dame pourrait aimer les fourrures'. With a lord already met, arranged to love furs (put back after): a fur handed over through the real give_item path (the bag-picked way) is read as furs from the item's own category, earns twice the regard its value would, is remembered as a gift after their own heart, and the player now knows the taste, which their What You Know section names. Characters met before 2.8.0 are rolled their tastes on the next reading. Picks a lord with no grudge against you; what stays behind in the save: the fur's remembered kindness and the small trust a gift builds with that lord", TestGiftTastes),
          new SelfTest("matters_most", Severity.Light, "Gabriel (27/10/2026): 'qu'est-ce qui compte le plus pour un NPC. Ses enfants? Sa richesse? Son amoureux?', and 'il faudra penser a les indiquer dans des sections de l'encyclopedia'. With a married lord (put back after): read through the real load path, what matters most to him is chosen and true of him; his page says nothing of it until he says it himself; the reserved discovery from his reply marks it learned without a free-text discovery beside it, and his What You Know section names it; an anchor whose ground is gone (a spouse he does not have) is moved at the next reading", TestMattersMost),
@@ -14837,6 +14838,31 @@ namespace CalradiaRemembers.Diagnostics
             Campaign.Current.TimeControlMode = timeBefore;
             try { System.IO.File.Delete(path); } catch { /* a temp file left behind harms nothing */ }
          }
+
+         return t.Line();
+      }
+
+      private static string TestFriendsWithHouse(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("friends_with_house");
+
+         foreach (Hero lord in Hero.AllAliveHeroes.Where(h => h.IsLord && h != Hero.MainHero && h.Clan != null).Take(200))
+         {
+            string block = Mapping.RelationshipsBuilder.Build(lord);
+            string line = block.Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.StartsWith("Friends: ") || l.StartsWith("Enemies: "));
+            if (line == null) continue;
+
+            t.Note($"{lord.Name}: {line}");
+            string[] names = line.Substring(line.IndexOf(':') + 1).TrimEnd('.').Split(',').Select(n => n.Trim()).ToArray();
+            // STAKE: a friend or enemy of a house reaches the prompt with that house, never as a bare first name.
+            bool everyHousedNameCarriesIt = names.All(n => n.Contains(" of ")
+                                                           || Hero.AllAliveHeroes.Any(h => h.Name?.ToString() == n && (h.Clan == null || h.Clan.Name?.ToString() == "No clan")));
+            t.Expect("everyHousedNameCarriesItsHouse", everyHousedNameCarriesIt, true);
+
+            return t.Line();
+         }
+
+         t.Skip(true, "no lord among the first 200 has a friend or enemy listed");
 
          return t.Line();
       }
