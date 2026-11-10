@@ -172,6 +172,24 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public static int MomentsRequiredForTier(int tier) => (tier < 0 ? 0 : tier) + 1;
 
+        /// <summary>
+        ///   The warmth a shared night adds when the conversation proposed no gain of its own (Gabriel, 23/10/2026: "every
+        ///   deed moves regard"), through the SAME door as the intimacy bonus: <see cref="DeedRegardPolicy.SharedNightVictim" />
+        ///   once per <see cref="IntimacyCooldownHours" />, stamped here like a granted intimacy bonus; 0 while that door is
+        ///   shut. Lordfadooboo (Nexus, 09/11/2026, 2.8.4): "i seem to being getting the +3 regard bonus with every message
+        ///   when im using a character override"; the shared night had no window of its own and reopened the C1 farm.
+        /// </summary>
+        public static int SharedNightWarmth(NpcProfile profile, double currentHour)
+        {
+            if (profile == null) return 0;
+            if (profile.LastIntimacyGainHour.HasValue && currentHour - profile.LastIntimacyGainHour.Value < IntimacyCooldownHours) return 0;
+
+            profile.LastIntimacyGainHour = currentHour;
+            profile.LastRelationGainHour = currentHour;
+
+            return DeedRegardPolicy.SharedNightVictim;
+        }
+
         #region private
 
         private static int ResolvePositive(

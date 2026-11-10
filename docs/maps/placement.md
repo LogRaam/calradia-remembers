@@ -44,7 +44,7 @@ count is what to read: a namespace of many unrelated parts is a folder of things
 
 | Namespace | Types | Parts | Types on their own | Density |
 |---|---|---|---|---|
-| `CalradiaRemembers.Logic` | 469 | 37 | 272 | loose |
+| `CalradiaRemembers.Logic` | 469 | 37 | 271 | loose |
 | `CalradiaRemembers.Logic.Assemblies` | 118 | 7 | 75 | loose |
 | `CalradiaRemembers.Logic.Conversation` | 34 | 4 | 20 | loose |
 | `NpcMemoryService.Core.Models` | 83 | 4 | 12 | loose |

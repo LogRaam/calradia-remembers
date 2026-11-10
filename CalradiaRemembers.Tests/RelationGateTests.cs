@@ -282,6 +282,45 @@ namespace CalradiaRemembers.Tests
 
       #region private
 
+      // ── The shared night shares the intimacy door (Lordfadooboo, Nexus 09/11/2026) ──
+
+      // STAKE (Lordfadooboo, 2.8.4: "+3 regard bonus with every message"): a love scene of many messages, each tagged
+      // intimate, warms the character once a day, not +3 a message up to the maximum.
+      [Test]
+      public void GIVEN_a_shared_night_already_counted_today_WHEN_the_next_message_is_intimate_too_THEN_it_adds_nothing()
+      {
+         NpcProfile p = Profile();
+
+         RelationGate.SharedNightWarmth(p, 100.0).Should().Be(DeedRegardPolicy.SharedNightVictim);
+         RelationGate.SharedNightWarmth(p, 100.0).Should().Be(0);
+         RelationGate.SharedNightWarmth(p, 100.0 + RelationGate.IntimacyCooldownHours - 1).Should().Be(0);
+      }
+
+      // STAKE: a night shared again the next day still counts; the door closes for a day, not for good.
+      [Test]
+      public void GIVEN_a_shared_night_a_day_ago_WHEN_another_is_shared_THEN_it_warms_again()
+      {
+         NpcProfile p = Profile(lastIntimacyHour: 100.0);
+
+         RelationGate.SharedNightWarmth(p, 100.0 + RelationGate.IntimacyCooldownHours).Should().Be(DeedRegardPolicy.SharedNightVictim);
+         p.LastIntimacyGainHour.Should().Be(100.0 + RelationGate.IntimacyCooldownHours);
+      }
+
+      // STAKE: the shared night and the intimacy bonus are one door; a model that alternates the two cannot take +3 each.
+      [Test]
+      public void GIVEN_an_intimacy_bonus_granted_this_hour_WHEN_a_shared_night_follows_THEN_it_adds_nothing_and_the_reverse_holds()
+      {
+         NpcProfile granted = Profile();
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 3, Profile = granted, CurrentHour = 100.0, EmittedEvent = NotableEventType.Intimacy, IntimacyAllowed = true})
+                     .Should().Be(3);
+         RelationGate.SharedNightWarmth(granted, 101.0).Should().Be(0);
+
+         NpcProfile night = Profile();
+         RelationGate.SharedNightWarmth(night, 100.0).Should().Be(DeedRegardPolicy.SharedNightVictim);
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 3, Profile = night, CurrentHour = 101.0, EmittedEvent = NotableEventType.Intimacy, IntimacyAllowed = true})
+                     .Should().BeLessThan(3, "the intimacy door is shut for the day, so it falls to the routine path");
+      }
+
       private static NpcProfile Profile(int tier = 0, double? stampHour = null, double? lastIntimacyHour = null)
          => new() {
             Id = "test_npc",

@@ -86,6 +86,22 @@ namespace CalradiaRemembers.Chat
       ///   Runs on every unknown-verb refusal regardless of the report MCM toggle. Best-effort: a file fault is
       ///   logged and swallowed, never surfacing to the player. Mirrors <see cref="Diagnostics.RoleplayBench" />.
       /// </summary>
+      /// <summary>
+      ///   A shared night's warmth on this turn's profile, once a day through the intimacy bonus's door
+      ///   (<see cref="Logic.RelationGate.SharedNightWarmth" />; Lordfadooboo, Nexus 09/11/2026). Returns what it added.
+      ///   cr.test shared_night_once calls this same method.
+      /// </summary>
+      internal static int ApplySharedNightWarmth(NpcProfile profile, double currentHour)
+      {
+         int warmth = Logic.RelationGate.SharedNightWarmth(profile, currentHour);
+         if (warmth <= 0) return 0;
+
+         ProfileMutator.ApplyReputationDelta(profile, warmth, NpcMemoryService.Core.Standing.RegardCause.Deed);
+         ModLog.Info($"[REGARD] {profile.Name}: a shared night warms by +{warmth} (regard now {profile.ReputationWithPlayer}); next in {Logic.RelationGate.IntimacyCooldownHours:0} hours at the earliest.");
+
+         return warmth;
+      }
+
       private static void LogUnknownAction(GameAction action, string npcLabel, string npcLine, string playerLine)
       {
          try
@@ -1466,9 +1482,10 @@ namespace CalradiaRemembers.Chat
                         bool relationRaisedThisTurn = response.Actions != null && response.Actions.Any(a =>
                            string.Equals(a.Type, "change_relation", StringComparison.OrdinalIgnoreCase)
                            && a.Parameters != null && a.Parameters.TryGetValue("delta", out string rs) && int.TryParse(rs, out int r) && r > 0);
-                        // On this turn's own profile, which the exchange saves after.
+                        // On this turn's own profile, which the exchange saves after. Once a day, through the intimacy
+                        // bonus's own door (Lordfadooboo, Nexus 09/11/2026: "+3 regard bonus with every message").
                         if (!relationRaisedThisTurn)
-                           ProfileMutator.ApplyReputationDelta(profile, Logic.DeedRegardPolicy.For(Logic.PlayerDeed.SharedNight).Victim, NpcMemoryService.Core.Standing.RegardCause.Deed);
+                           ApplySharedNightWarmth(profile, CampaignTime.Now.ToHours);
                      }
                   }
                }
