@@ -12,7 +12,8 @@ You can edit a style WHILE PLAYING: save the file and your next message uses the
 restart. Switching style in the picker takes effect on your next message too.
 
 IN GAME
-  cr.style_ui on      shows the style button in the chat window's header
+  The quill in the chat window's header opens the style picker; your pick is kept between sessions.
+  cr.style_ui off     hides that button until the game restarts (cr.style_ui on brings it back)
   cr.styles           lists every style found here, and which one is active
   cr.style <name>     picks one from the console
   cr.style_show       prints exactly what is being injected right now

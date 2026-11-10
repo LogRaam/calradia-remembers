@@ -69,9 +69,9 @@ namespace CalradiaRemembers
         }
 
         /// <summary>
-        ///   cr.style_ui [on|off]: shows or hides the style picker button in the chat window's header. Off by
-        ///   default while the feature is play-tested (the same posture as the round-table kill-switch). Takes
-        ///   effect immediately, even on a chat that is already open.
+        ///   cr.style_ui [on|off]: shows or hides the style picker button in the chat window's header. Shown by
+        ///   default since Gabriel validated the picker in play (StyleService.PickerEnabled, 2026-07-26); off is not
+        ///   saved, so it lasts until the game restarts. Takes effect immediately, even on a chat that is already open.
         /// </summary>
         [CommandLineFunctionality.CommandLineArgumentFunction("style_ui", "cr")]
         public static string StyleUi(List<string> args)
