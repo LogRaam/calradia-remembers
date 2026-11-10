@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 642 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1559 types in 56 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1560 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2623,10 +2623,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SecretReactionPolicy` | public static class | From the model's one-word reading to a severity, and from a severity to a reaction. |
 | `SecretSeverity` | public enum | How an intercepted letter touches the lord who read it. |
 
-### CalradiaRemembers.Logic.Saving (2)
+### CalradiaRemembers.Logic.Saving (3)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `MarkovText` | public class | A word chain of order two learned from sample sentences; writes new sentences in their manner. |
 | `SaveBlobCodec` | public static class | Turns a store's JSON into the bytes a save holds, and back, and says whether those bytes are safe to save. |
 | `SaveBlobVerdict` | public enum | Whether a blob may go into the save. |
 

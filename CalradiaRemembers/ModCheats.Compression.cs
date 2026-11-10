@@ -103,6 +103,104 @@ namespace CalradiaRemembers
         }
 
         /// <summary>
+        ///   cr.inflate_history &lt;megabytes&gt; confirm: adds that much invented history to the campaign in play, so a large save
+        ///   can be measured without a long campaign (Gabriel, 10/11/2026: "peux-tu faire une commande console qui ajoute
+        ///   beaucoup d'historique a la partie en cours pour gonfler la sauvegarde?"). About two thirds as memories, written
+        ///   by a word chain learned from the campaign's own memories and the shipped folklore (MarkovText, seeded so the
+        ///   same campaign inflates the same way), spread over the existing profiles; one third as relation-ledger pairs
+        ///   between living heroes, each with a start the prune keeps. For a COPY of a campaign: it cannot be undone.
+        /// </summary>
+        [CommandLineFunctionality.CommandLineArgumentFunction("inflate_history", "cr")]
+        public static string InflateHistory(List<string> args)
+        {
+            try
+            {
+                if (!TryContext(out NpcMemoryCampaignBehavior behavior, out string error)) return error;
+                if (args == null || args.Count < 2 || !int.TryParse(args[0], out int megabytes) || megabytes <= 0
+                    || !string.Equals(args[1], "confirm", StringComparison.OrdinalIgnoreCase))
+                    return "Usage: cr.inflate_history <megabytes> confirm. Adds that much invented history (memories and relation pairs) "
+                           + "to THIS campaign, for good: run it on a copy, and turn MCM Memory Compression off there first, or the daily "
+                           + "compaction will spend model calls summarising the invented memories.";
+
+                Mapping.RelationLedgerBehavior ledgerBehavior = Mapping.RelationLedgerBehavior.Instance;
+                List<string> ids = behavior.Store.ListIds().ToList();
+                if (ids.Count == 0) return "No character has a memory profile yet: talk to a few first, then inflate.";
+
+                // What the chain learns from: every memory the campaign holds, then the folklore's lines as a floor.
+                var samples = new List<string>();
+                foreach (string id in ids)
+                {
+                    NpcProfile p = behavior.Store.Get(id);
+                    if (p?.Events != null) samples.AddRange(p.Events.Where(e => !string.IsNullOrWhiteSpace(e?.summary)).Select(e => e.summary));
+                }
+
+                int fromCampaign = samples.Count;
+                string folklore = System.IO.Path.Combine(TaleWorlds.ModuleManager.ModuleHelper.GetModuleFullPath("CalradiaRemembers"), "ModuleData", "folklore");
+                if (System.IO.Directory.Exists(folklore))
+                    foreach (string file in System.IO.Directory.GetFiles(folklore, "*.txt"))
+                        samples.AddRange(System.IO.File.ReadAllLines(file)
+                                                .Where(l => l.StartsWith("gist:", StringComparison.Ordinal) || l.StartsWith("beat:", StringComparison.Ordinal))
+                                                .Select(l => l.Substring(5).Trim()));
+
+                var chain = new Logic.Saving.MarkovText(samples);
+                if (chain.IsEmpty) return "Nothing to learn the invented memories from (no memory in this campaign, no folklore files).";
+
+                var random = new Random(ids.Count * 7919 + fromCampaign);
+                int today = behavior.GameStateBridge.GetCurrentGameDay();
+                NotableEventType[] kinds = {NotableEventType.Other, NotableEventType.Agreement, NotableEventType.Collaboration, NotableEventType.Conflict, NotableEventType.Confrontation, NotableEventType.Flirt};
+
+                // Memories: about two thirds of the target, a sentence of 12 to 45 words at a time, round the profiles.
+                long memoryTarget = megabytes * 1024L * 1024L * 2 / 3, written = 0;
+                var touched = new HashSet<string>();
+                for (var i = 0; written < memoryTarget; i++)
+                {
+                    string id = ids[i % ids.Count];
+                    NpcProfile p = behavior.Store.Get(id);
+                    if (p?.Events == null) continue;
+
+                    string summary = chain.Sentence(random, 12 + random.Next(34));
+                    if (summary.Length == 0) continue;
+
+                    p.Events.Add(new NotableEvent(Math.Max(0, today - random.Next(Math.Max(1, today))), kinds[random.Next(kinds.Length)], summary));
+                    written += summary.Length + 60; // the JSON around each memory
+                    touched.Add(id);
+                }
+
+                foreach (string id in touched) behavior.Store.Set(behavior.Store.Get(id));
+
+                // Relation pairs: the other third, between living heroes, each start away from today's value so the prune keeps it.
+                var added = 0;
+                if (ledgerBehavior != null)
+                {
+                    List<Hero> heroes = Hero.AllAliveHeroes.Where(h => h != null && h.StringId != null).ToList();
+                    long ledgerTarget = megabytes * 1024L * 1024L / 3, ledgerWritten = 0;
+                    for (var tries = 0; ledgerWritten < ledgerTarget && heroes.Count > 1 && tries < 50_000_000; tries++)
+                    {
+                        Hero a = heroes[random.Next(heroes.Count)], b = heroes[random.Next(heroes.Count)];
+                        if (a == b) continue;
+
+                        int now = CharacterRelationManager.GetHeroRelation(a, b);
+                        int shift = (random.Next(2) == 0 ? -1 : 1) * (5 + random.Next(40));
+                        int start = Math.Max(-100, Math.Min(100, now + shift));
+                        if (start == now) start = now > 0 ? now - 5 : now + 5;
+                        if (!ledgerBehavior.Ledger.Saw(a.StringId, b.StringId, start)) continue;
+
+                        added++;
+                        ledgerWritten += a.StringId.Length + b.StringId.Length + 8;
+                    }
+                }
+
+                ModLog.Info($"[SAVE] cr.inflate_history: {megabytes} MB asked; ~{written:N0} bytes of memories on {touched.Count} profile(s), "
+                            + $"{added:N0} relation pair(s). Learned from {fromCampaign:N0} campaign memories and {samples.Count - fromCampaign:N0} folklore lines.");
+
+                return $"Inflated: about {written / 1024 / 1024} MB of invented memories over {touched.Count} profile(s) and {added:N0} relation pairs. "
+                       + "Save now (to a new slot), then cr.save_sizes; cr.dump_stores before saving writes the stores for Tools/CodecBench. "
+                       + "Invented text is not real text: codec numbers on it are indicative only.";
+            }
+            catch (Exception ex) { return $"cr.inflate_history failed: {ex.GetType().Name}: {ex.Message}"; }
+        }
+
+        /// <summary>
         ///   cr.dump_stores: arms a dump of each compressed CR store's JSON, exactly as the next save writes it, into the
         ///   Logs folder's cr_stores, so codecs can be compared outside the game (Tools/CodecBench). Armed for ten minutes;
         ///   save the game to write them. Mutates nothing in the campaign.
