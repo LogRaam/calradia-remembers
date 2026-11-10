@@ -210,6 +210,7 @@ namespace CalradiaRemembers.Lore
       {
          SettingProfileLoader.LoadAndApply(); // world name/adjective + patriarchal cultures → PromptLore
          CharacterOverrideLoader.Load();
+         Portraits.ChatPortraitResolver.CustomBaseFolder = NarrativeLoader.CustomBaseFolder; // portraits in Custom first (10/11/2026)
          Portraits.ChatPortraitResolver.EnsureFolder(); // ready place for the player to drop custom chat portraits
          SubscribeToToggle();
          if (ModSettings.UseCustomTraits) ApplyAll();

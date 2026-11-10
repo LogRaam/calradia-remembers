@@ -16430,8 +16430,8 @@ namespace CalradiaRemembers.Diagnostics
             t.Note($"{kingdom.StringId} portrait: {portrait ?? "none named"}");
             t.Expect("herPortraitIsHerRealms", b.PortraitFor(queen.StringId), portrait);
             string shown = Portraits.ChatPortraitResolver.ResolveForHero(queen.StringId, queen.Name?.ToString());
-            string playersOwn = Portraits.ChatPortraitResolver.PortraitDir();
-            t.Expect("theChatShowsIt", portrait == null || shown == portrait || (shown != null && shown.StartsWith(playersOwn, StringComparison.OrdinalIgnoreCase)), true);
+            bool fromPlayersOwn = shown != null && Portraits.ChatPortraitResolver.PortraitDirs().Any(d => shown.StartsWith(d, StringComparison.OrdinalIgnoreCase));
+            t.Expect("theChatShowsIt", portrait == null || shown == portrait || fromPlayersOwn, true);
             t.Expect("herFaceIsGivenBack", b.DebugGiveBack(queen), true);
             t.Expect("sheIsHerselfAgain", queen.StaticBodyProperties == before, true);
             t.Expect("herUsualPortraitIsBack", b.PortraitFor(queen.StringId), null);

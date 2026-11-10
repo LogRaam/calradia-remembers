@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 642 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1560 types in 56 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1561 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1021,7 +1021,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (475)
+### CalradiaRemembers.Logic (476)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1076,6 +1076,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CardinalDirectionPolicy` | public static class | Pure 8-point compass bearing from one campaign-map position to another, for phrasing a quest's direction ("the hideout lies to the north of Town X"). |
 | `CharacterOverride` | public class | One author's override for a single NPC: optional trait values (null = leave the vanilla value untouched) and an optional backstory. |
 | `CharacterOverrideSet` | public class | The authored overrides as a whole, with the rule for picking one for a hero. |
+| `ChatPortraitFolders` | public static class | The folders a player's chat portraits are read from, in the order a file is looked for. |
 | `ChildrenListText` | public static class | The children part of the family line. |
 | `ChronicleCalendar` | public static class | The shared calendar constants and year math for the player chronicle and letter archive. |
 | `ClanRegardCandidate` | public class | One other house, as the page's house sees it. |

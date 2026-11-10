@@ -3,6 +3,8 @@
 // named by the hero's StringId (rename-proof) or a friendly normalized name, and any chat line by that hero shows
 // the image instead of the vanilla 3D render. Resolution is a simple file lookup; loading + display is the
 // RuntimePortraitFactory path. Missing folder or file: returns null and the line falls back to the 3D render.
+// 10/11/2026: the player's Custom folder's ChatPortraits is looked in first (Logic.ChatPortraitFolders), the one folder of
+// the player's own files the Custom folder did not cover; ModuleData/ChatPortraits is still read.
 
 #region
 
@@ -29,7 +31,35 @@ namespace CalradiaRemembers.Portraits
 
         /// <summary>The folder the player drops images into (may not exist).</summary>
         public static string PortraitDir()
-            => Path.Combine(CalradiaRemembers.Paths.ModulePaths.Root, "ModuleData", "ChatPortraits");
+            => Path.Combine(CalradiaRemembers.Paths.ModulePaths.Root, "ModuleData", Logic.ChatPortraitFolders.FolderName);
+
+        /// <summary>
+        ///   The player's Custom folder (the MCM "Custom Folder Path" when set, else ModuleData/Custom), handed in by
+        ///   Lore.CharacterLoreBehavior at session launch as Mapping.NarrativeLoader.CustomBaseFolder. A hook rather than a
+        ///   call, like <see cref="ByHero" />, so this folder knows nothing of Mapping. Unset, only ModuleData is read.
+        /// </summary>
+        internal static System.Func<string> CustomBaseFolder { get; set; }
+
+        /// <summary>
+        ///   The player's Custom folder's ChatPortraits, looked in first since 2.8.8 so a clean reinstall no longer takes
+        ///   the pictures with it (may not exist); null before the Custom folder is known.
+        /// </summary>
+        public static string CustomPortraitDir()
+        {
+            string custom = SafeCustomBase();
+
+            return string.IsNullOrWhiteSpace(custom) ? null : Path.Combine(custom, Logic.ChatPortraitFolders.FolderName);
+        }
+
+        /// <summary>Every folder a portrait is looked for in, the player's Custom one first.</summary>
+        public static IReadOnlyList<string> PortraitDirs()
+            => Logic.ChatPortraitFolders.SearchOrder(SafeCustomBase(), Path.Combine(CalradiaRemembers.Paths.ModulePaths.Root, "ModuleData"));
+
+        private static string SafeCustomBase()
+        {
+            try { return CustomBaseFolder?.Invoke(); }
+            catch { return null; }
+        }
 
         /// <summary>
         ///   Creates the ChatPortraits folder with a short README on session launch, so the player has an obvious,
@@ -51,7 +81,10 @@ namespace CalradiaRemembers.Portraits
                         "  player.png         (YOUR OWN portrait)\r\n" +
                         "  lord_1_16.png      (an NPC's StringId; use the cr.portrait_id console command in a chat to see it)\r\n" +
                         "  rhagaea.png        (a friendlier lowercase name, spaces as underscores)\r\n\r\n" +
-                        "No image for a hero: their line keeps the normal 3D render. Around 512x512 or larger looks best.\r\n");
+                        "No image for a hero: their line keeps the normal 3D render. Around 512x512 or larger looks best.\r\n\r\n" +
+                        "Safer: put them in ChatPortraits inside your Custom folder instead (ModuleData/Custom/ChatPortraits, or the\r\n" +
+                        "MCM Custom Folder Path). It is looked in first, and deleting the mod folder for a clean reinstall no longer\r\n" +
+                        "takes your pictures with it when that path is outside the mod.\r\n");
             }
             catch
             {
@@ -67,14 +100,14 @@ namespace CalradiaRemembers.Portraits
         {
             try
             {
-                string dir = PortraitDir();
-                if (Directory.Exists(dir))
-                    foreach (string key in Keys(stringId, displayName))
-                        foreach (string ext in Extensions)
-                        {
-                            string path = Path.Combine(dir, key + ext);
-                            if (File.Exists(path)) return path;
-                        }
+                foreach (string dir in PortraitDirs())
+                    if (Directory.Exists(dir))
+                        foreach (string key in Keys(stringId, displayName))
+                            foreach (string ext in Extensions)
+                            {
+                                string path = Path.Combine(dir, key + ext);
+                                if (File.Exists(path)) return path;
+                            }
 
                 return ByHero?.Invoke(stringId);
             }

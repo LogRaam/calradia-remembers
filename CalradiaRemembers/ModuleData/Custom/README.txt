@@ -27,6 +27,19 @@ For example:
     pairs with commas between them; keyed by the culture's DISPLAY NAME, case-sensitive, so an overhaul
     mod's own culture, for example "Nord", goes in as its own entry)
   Custom\jealousy_cultures.json (same JSON rules and same DISPLAY NAME keying as cultural_traditions.json)
+  Custom\setting.json
+  Custom\character_overrides.json (your hand-written characters; needs MCM "Use custom traits"; cr.reload_lore)
+  Custom\stations\merchant.txt (who each social station is and how they meet you; same names as ModuleData\stations)
+  Custom\folklore\battania.txt (the tales a people tells; a file named after another mod's culture id adds that people)
+
+TO KEEP WHAT YOU MAKE
+
+These folders are read from here too, beside the mod's own:
+  Custom\Quests\          your written tales (Tale Editor), one folder per tale with its pictures
+  Custom\scenarios\       your scenario packs (Scenario Composer)
+  Custom\Prompts\         your prompt profiles (MCM "Prompt Profile"; cr.prompt_check; keys in Docs\PROMPT_SECTIONS.md)
+  Custom\ChatPortraits\   your chat portraits (player.png, an id such as lord_1_14.png, or a name); looked in before
+                          ModuleData\ChatPortraits, which is still read
 
 TO KEEP A CUSTOM STYLE
 
@@ -41,6 +54,24 @@ HOW THE LOOKUP WORKS
 For any given file name, the mod loads the one in Custom if it exists, otherwise it loads the standard
 one shipped in ModuleData. Nothing needs to be moved back and forth: keep only what you actually want to
 override in this folder, and everything else keeps using the mod's shipped defaults.
+
+Your copy replaces the whole file, so improvements the mod later makes to that file stop reaching you.
+cr.lore_status prints the Custom folder in use, the prompt files read from it, and flags a shipped file
+NEWER than your copy: compare the two, or delete your copy to go back to the mod's.
+
+APPLYING A CHANGE WITHOUT RESTARTING
+
+  cr.reload_prompts   the prompts, setting.json, the culture files, stations and folklore
+  cr.reload_lore      character_overrides.json
+  cr.story_check      the tales
+  Styles are read each time they are used; scenario packs when a save is loaded.
+
+KEEPING IT SAFE FROM A CLEAN REINSTALL
+
+Re-extracting the mod over your install leaves this folder alone, but deleting the mod folder deletes it
+too. Move its content to a folder outside the mod (same sub-folders) and enter that folder's full path in
+MCM -> Calradia Remembers -> Character -> "Custom Folder Path". A path that does not exist falls back to
+this folder without a word: cr.lore_status shows which one is in use.
 
 TEMPLATE VARIABLES
 

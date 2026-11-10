@@ -223,6 +223,10 @@
     <Copy SourceFiles="@(SoundFiles)"               DestinationFolder="$(BannerlordModuleDir)\Sounds\%(RecursiveDir)" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" />
     <Copy SourceFiles="@(ModuleSoundFiles)"         DestinationFolder="$(BannerlordModuleDir)\ModuleSounds"  SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" />
     <Copy SourceFiles="@(ModderGuideFiles)"         DestinationFolder="$(BannerlordModuleDir)\Docs"       SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" />
+    <!-- The prompt's sections by key, for whoever writes a prompt profile (Gabriel, 10/11/2026): the keys a layout and a
+         sections/<key>.txt name were listed nowhere a player could read. The map is generated and a test fails when it is
+         stale, so the shipped copy is as current as the build. -->
+    <Copy SourceFiles="$(ProjectDir)..\docs\maps\prompt-sections.md" DestinationFiles="$(BannerlordModuleDir)\Docs\PROMPT_SECTIONS.md" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" />
 
     <ReadLinesFromFile File="$(ProjectDir)..\SubModule.xml">
       <Output TaskParameter="Lines" ItemName="SubModuleXmlLine" />

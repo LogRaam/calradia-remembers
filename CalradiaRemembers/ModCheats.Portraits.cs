@@ -101,7 +101,7 @@ namespace CalradiaRemembers
             string existing = ChatPortraitResolver.ResolveForHero(hero.StringId, hero.Name?.ToString());
             string tail = existing != null ? $" Already found: {Path.GetFileName(existing)}." : " None dropped yet.";
 
-            return $"{hero.Name}: drop a square PNG/JPG named {hint} in ModuleData\\ChatPortraits\\.{tail}";
+            return $"{hero.Name}: drop a square PNG/JPG named {hint} in {ChatPortraitResolver.CustomPortraitDir() ?? "ModuleData\\Custom\\ChatPortraits"} (or ModuleData\\ChatPortraits\\).{tail}";
         }
     }
 }

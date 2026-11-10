@@ -862,7 +862,7 @@ for who, lit in LITERALS:
 
 print()
 print("=== modder guides (promised by the Nexus page since 2.4; missing until 2.5.23) ===")
-GUIDES = {"HOWTO_WorldEvents.md": "ActorHeroIds", "HOWTO_Actions.md": "IsFemale", "HOWTO_Voicing.md": "LineSpoken", "EXTENSION_API.md": "CrConversation", "HOWTO_Quests.md": "cr_quests", "TaleEditor.html": "From the werewolf", "ScenarioComposer.html": "IF_HERO_IS:lord_1_14", "HistoryEditor.html": "Campaign begins", "CrvidPlayer.html": "Recompress"}
+GUIDES = {"HOWTO_WorldEvents.md": "ActorHeroIds", "HOWTO_Actions.md": "IsFemale", "HOWTO_Voicing.md": "LineSpoken", "EXTENSION_API.md": "CrConversation", "HOWTO_Quests.md": "cr_quests", "TaleEditor.html": "From the werewolf", "ScenarioComposer.html": "IF_HERO_IS:lord_1_14", "HistoryEditor.html": "Campaign begins", "CrvidPlayer.html": "Recompress", "PROMPT_SECTIONS.md": "format_instructions"}
 names = set(zn.namelist())
 for g, needle in GUIDES.items():
     path = "CalradiaRemembers/Docs/" + g

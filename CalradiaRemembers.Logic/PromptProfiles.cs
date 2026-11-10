@@ -250,7 +250,7 @@ namespace CalradiaRemembers.Logic
                 string key = Path.GetFileNameWithoutExtension(file);
                 if (!known.Contains(key))
                 {
-                    p.Problems.Add($"sections/{Path.GetFileName(file)}: '{key}' is no section of the prompt: left out (cr.prompt_dump <name> lists them).");
+                    p.Problems.Add($"sections/{Path.GetFileName(file)}: '{key}' is no section of the prompt: left out (Docs/PROMPT_SECTIONS.md lists them).");
                     continue;
                 }
 
