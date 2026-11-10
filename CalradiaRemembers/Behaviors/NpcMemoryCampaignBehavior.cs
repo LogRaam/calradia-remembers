@@ -168,9 +168,11 @@ namespace CalradiaRemembers.Behaviors
       #region private
 
       /// <summary>
-      ///   Shows the contents of all stored profiles in the in-game console.
-      ///   On first run: shows the freshly created test profile.
-      ///   After save/load: shows the profile reloaded from the save file.
+      ///   Writes one line per stored profile to the log at load: who, how many memories, the regard. Never the memories
+      ///   themselves: Gabriel (10/11/2026), loading a save inflated to 128,000 memories: "le chargement de la sauvegarde est
+      ///   beaucoup plus longue". The log showed 17:25:05 to 17:28:19 spent writing every memory, about 700 lines a second,
+      ///   and a 21 MB log; the save's own decompression took well under a second. A long campaign paid the same, in
+      ///   proportion, at every load. A character's memories stay readable in game (cr.* commands, the encyclopedia).
       /// </summary>
       private void DisplayLoadedProfiles()
       {
@@ -182,16 +184,19 @@ namespace CalradiaRemembers.Behaviors
             return;
          }
 
+         var total = 0;
          foreach (string id in ids)
          {
             NpcProfile p = Store.Get(id);
 
             if (p == null) continue;
 
-            ModLog.Info($"  {p.Name} | {p.Events.Count} event(s) | rep:{p.ReputationWithPlayer}");
-            foreach (NotableEvent ev in p.Events)
-               ModLog.Info($"    [{ev.type}] Day {ev.gameDay}: {ev.summary}");
+            int count = p.Events?.Count ?? 0;
+            total += count;
+            ModLog.Info($"  {p.Name} | {count} event(s) | rep:{p.ReputationWithPlayer}");
          }
+
+         ModLog.Info($"Loaded {ids.Count} profile(s) holding {total:N0} memories.");
       }
 
       /// <summary>
