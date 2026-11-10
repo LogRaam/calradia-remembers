@@ -9,6 +9,8 @@
 #region
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Relations;
@@ -52,6 +54,9 @@ namespace CalradiaRemembers.Mapping
          // loaded again).
          if (dataStore.IsSaving)
          {
+            // What the ledger no longer needs is dropped first (RelationBaselineLedger.Prune; Gabriel, 09/11/2026).
+            PruneWithWorld(Ledger);
+
             string json;
             try { json = Ledger.Serialize(); }
             catch (Exception ex)
@@ -79,6 +84,41 @@ namespace CalradiaRemembers.Mapping
       ///   The heads of two houses, or two of one house, go through the game's action (the slot is theirs either way, and
       ///   the game hears of it); anyone else is written directly, so their clan leader is left out of it.
       /// </summary>
+      /// <summary>
+      ///   Prunes <paramref name="ledger" /> against the world as it stands: pairs back where they began, and pairs with
+      ///   someone dead or no longer known. Returns how many were dropped; logs the count. Never throws. cr.test
+      ///   relation_ledger_prune calls this same method.
+      /// </summary>
+      internal static int PruneWithWorld(RelationBaselineLedger ledger)
+      {
+         if (ledger == null || ledger.Baselines.Count == 0) return 0;
+
+         try
+         {
+            var clock = Stopwatch.StartNew();
+            var living = new Dictionary<string, Hero>();
+            foreach (Hero h in Hero.AllAliveHeroes)
+               if (h?.StringId != null) living[h.StringId] = h;
+            foreach (Hero h in Hero.DeadOrDisabledHeroes)
+               if (h?.StringId != null && !h.IsDead) living[h.StringId] = h; // a disabled hero may come back
+
+            int before = ledger.Baselines.Count;
+            int dropped = ledger.Prune((a, b) => living.TryGetValue(a, out Hero ha) && living.TryGetValue(b, out Hero hb)
+                                                    ? CharacterRelationManager.GetHeroRelation(ha, hb)
+                                                    : (int?) null);
+            if (dropped > 0)
+               ModLog.Info($"[RELATION] ledger pruned: {dropped:N0} of {before:N0} pairs no longer needed (back at their start, or someone gone), in {clock.ElapsedMilliseconds} ms.");
+
+            return dropped;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[RELATION] ledger prune failed, saving it whole: {ex.GetType().Name}: {ex.Message}");
+
+            return 0;
+         }
+      }
+
       /// <summary>The game's own number between the two, as their slot holds it.</summary>
       internal static int Between(Hero a, Hero b) => a == null || b == null || a == b ? 0 : CharacterRelationManager.GetHeroRelation(a, b);
 

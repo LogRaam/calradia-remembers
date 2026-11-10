@@ -281,6 +281,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("give_bundle", Severity.Light, "Several goods given at once, each in a chosen amount (fearente, Nexus, 29/10/2026: grain, fish and meat had to go one by one, one unit each). Arranges grain and fish in the party, hands a bundle of 3 grain and 2 fish through the REAL give_item executor, and asserts both left in exactly those amounts with ONE give_item, that a second give_item the model writes in the same turn moves nothing more, and that the outcome line names both goods. Restores the party's goods", TestGiveBundle),
          new SelfTest("captive_counter_offer", Severity.Heavy, "Maifailun (Nexus, 14/10/2026): he held Adrichea (Honor -1, a clan leader), asked her to swear fealty or share his bed, she answered 'kill me if you must', and nothing in CR could hold a counter-offer anyway. Takes a free lord of another realm captive, tops up the payer's purse, and drives the REAL counter_offer verb three ways: a fresh ActionConfirmationController queues a 300-denar ransom naming it, the real bridge settles it (player paid, payer charged, lord freed), and a term not open to her (service, regard 0) is refused and moves nothing. A fourth part (fealty actually swearing a house to a real realm) only runs under 'cr.test full', since CR records a realm change as world news; otherwise it notes why. Restores gold, regard, traits and captivity.", TestCaptiveCounterOffer),
          new SelfTest("captive_terms", Severity.Heavy, "A captive bargains for her freedom (Maifailun, 14/10/2026: Adrichea, Honor -1, answered 'kill me if you must'; Gabriel: the captive proposes terms herself, intimacy in Mature and above for the honorless). Takes a free lord of another realm captive, gives them Adrichea's Honor -1 for the test, builds the REAL context and prompt, and expects the captive to be told she offers first, with the ransom her house can pay and intimacy only when the content level, age and orientation allow. Releases the lord and restores their traits.", TestCaptiveTerms),
+         new SelfTest("relation_ledger_prune", Severity.Light, "tashmetu (Nexus, 09/11/2026): the relation ledger reached 18.2 million bytes and broke his save. The REAL prune the save runs, on a stand-in ledger of real lords: a pair back at its start is dropped and reads the same, a pair whose value moved is kept, a pair with an unknown hero is dropped; the size of this campaign's own ledger is noted", TestRelationLedgerPrune),
          new SelfTest("quest_repeat", Severity.Light, "bdionysis80 (Nexus, 10/11/2026): a second war council set 'Scout an army of Sturgia' (Vamina) a few days after the same scouting (Athina) was done, and the table was never told what the player carried. With a [SELFTEST] scouting marked done today on one lord: the REAL IssueQuest refuses the same scouting from another lord and says whose it is; the tasks a council reads list it as done; the company's men and food days are read", TestQuestRepeat),
          new SelfTest("scout_army_place", Severity.Light, "bdionysis80 (Nexus, 10/11/2026): a council pledged to scout Hvalvik, a Nord port the player was not at war with, and the game set 'Scout an army of Sturgia'. Through the REAL QuestFactory: scout_army near a place held by a realm the player is not at war with sets no task; near a place held by an enemy it binds that enemy; with nothing named it still binds an enemy", TestScoutArmyPlace),
          new SelfTest("shared_night_once", Severity.Light, "Lordfadooboo (Nexus, 09/11/2026, 2.8.4): \"+3 regard bonus with every message\" with an authored character. A shared night (an intimate turn with no gain proposed) warmed +3 on every message, bypassing the intimacy bonus's 24-hour door. The REAL turn method, on a stand-in profile: the first intimate turn warms, the next ones that day add nothing, a day later it warms again", TestSharedNightOnce),
@@ -6522,6 +6523,34 @@ namespace CalradiaRemembers.Diagnostics
             int extra = roster.GetItemNumber(good) - heldBefore;
             if (extra > 0) roster.AddToCounts(good, -extra);
          }
+
+         return t.Line();
+      }
+
+      private static string TestRelationLedgerPrune(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("relation_ledger_prune");
+         if (t.Skip(Campaign.Current == null || Mapping.RelationLedgerBehavior.Instance == null, "no campaign")) return t.Line();
+
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h != Hero.MainHero && h.IsLord && Mapping.HeroPresence.IsInTheWorld(h)).Take(3).ToList();
+         if (t.Skip(lords.Count < 3, "three lords are needed")) return t.Line();
+
+         int ab = CharacterRelationManager.GetHeroRelation(lords[0], lords[1]);
+         int ac = CharacterRelationManager.GetHeroRelation(lords[0], lords[2]);
+         var ledger = new Logic.Relations.RelationBaselineLedger();
+         ledger.Saw(lords[0].StringId, lords[1].StringId, ab);                  // back at its start
+         ledger.Saw(lords[0].StringId, lords[2].StringId, ac > 0 ? ac - 30 : ac + 30); // moved since
+         ledger.Saw(lords[0].StringId, "cr_selftest_nobody", 10);               // someone not in the world
+
+         int dropped = Mapping.RelationLedgerBehavior.PruneWithWorld(ledger);
+         // STAKE (tashmetu): what reads the same without it, or concerns no one alive, no longer weighs on the save.
+         t.Expect("droppedTheTwoNotNeeded", dropped, 2);
+         t.Expect("aPairBackAtItsStartIsDropped", ledger.BaselineOf(lords[0].StringId, lords[1].StringId) == null, true);
+         t.Expect("aPairWithSomeoneUnknownIsDropped", ledger.BaselineOf(lords[0].StringId, "cr_selftest_nobody") == null, true);
+         // STAKE: a history built in play is kept.
+         t.Expect("aPairThatMovedIsKept", ledger.BaselineOf(lords[0].StringId, lords[2].StringId) != null, true);
+
+         t.Note($"this campaign's ledger: {Mapping.RelationLedgerBehavior.Instance.Ledger.Baselines.Count:N0} pairs (pruned at each save)");
 
          return t.Line();
       }
