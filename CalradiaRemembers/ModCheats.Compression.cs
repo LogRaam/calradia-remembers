@@ -67,9 +67,9 @@ namespace CalradiaRemembers
         }
 
         /// <summary>
-        ///   cr.save_sizes: what each CR store weighed at the last save of this session, raw and in the save, against the
-        ///   engine's ceiling (tashmetu, 09/11/2026: a store past 16,777,215 bytes is saved without error and never loads).
-        ///   Mutates nothing.
+        ///   cr.save_sizes: what each CR store weighed at the last save of this session, raw, compressed and in pieces (tashmetu,
+        ///   09/11/2026: a byte[] store past 16,777,215 bytes is saved without error and never loads; since 2.8.8 stores are
+        ///   saved in Base64 pieces), and where each was read from at the last load. Mutates nothing.
         /// </summary>
         [CommandLineFunctionality.CommandLineArgumentFunction("save_sizes", "cr")]
         public static string SaveSizes(List<string> args)
@@ -77,15 +77,23 @@ namespace CalradiaRemembers
             try
             {
                 var rows = Foundation.SaveBlob.LastSaved;
+                var loads = Foundation.SaveBlob.LastLoaded;
                 string rescue = $"Save rescue: {(Saving.SaveRescuePatch.Attached ? "attached" : "NOT attached (see the log)")}.";
-                if (rows.Count == 0) return "No CR store has been saved in this session yet: save the game, then run cr.save_sizes again. " + rescue;
-
                 var sb = new System.Text.StringBuilder();
-                sb.AppendLine($"CR stores at the last save (the game cannot load one past {Logic.Saving.SaveBlobCodec.EngineCeiling:N0} bytes; "
-                              + $"CR refuses to write one at {Logic.Saving.SaveBlobCodec.RefuseAt:N0}):");
+                if (loads.Count > 0)
+                {
+                    sb.AppendLine("Read at the last load from:");
+                    foreach (var row in loads)
+                        sb.AppendLine($"  {row.Key}: {row.Value}");
+                }
+
+                if (rows.Count == 0)
+                    return sb + "No CR store has been saved in this session yet: save the game, then run cr.save_sizes again. " + rescue;
+
+                sb.AppendLine($"CR stores at the last save, in Base64 pieces of {Logic.Saving.SaveBlobCodec.PieceLength:N0} characters "
+                              + $"(CR refuses to write one past {Logic.Saving.SaveBlobCodec.RefuseAt:N0} bytes compressed):");
                 foreach (var row in rows)
-                    sb.AppendLine($"  {row.Key}: {row.Value.Stored:N0} bytes in the save ({row.Value.Raw:N0} raw, "
-                                  + $"{100.0 * row.Value.Stored / Logic.Saving.SaveBlobCodec.EngineCeiling:0.0}% of the ceiling)");
+                    sb.AppendLine($"  {row.Key}: {row.Value.Raw:N0} bytes raw, {row.Value.Stored:N0} compressed, {row.Value.Pieces:N0} piece(s)");
 
                 sb.AppendLine(rescue);
 

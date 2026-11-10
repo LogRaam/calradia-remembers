@@ -12,10 +12,18 @@
 // So CR's JSON is GZip-compressed before it reaches the save (tashmetu's first idea; such JSON shrinks ten times or
 // more), and a blob that would still come near the ceiling is not written at all: one store lost is far better than a
 // campaign that never loads. Plain JSON from an older save is still read: GZip opens with 1F 8B, JSON never does.
+//
+// Gabriel (09/11/2026), on how to weigh less in a save several mods share: "Ce que CR peut faire c'est de reduire le
+// poids de ses donnees." Since 2.8.8 the compressed bytes are saved as Base64 text in pieces (ToPieces), not as a byte[].
+// A string is written whole in the save's string table, about one byte per character, where a byte[] costs about 19
+// bytes per byte; but that table's entry length is read on a short (ArchiveDeserializer.LoadFrom, also for the strings,
+// LoadContext.Load), so one string can never pass EngineStringLimit, hence the pieces. Each piece is one entry of a
+// List<string>, so the 3-byte ceiling would take some 500 GB to reach.
 
 #region
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
@@ -33,10 +41,22 @@ namespace CalradiaRemembers.Logic.Saving
       /// </summary>
       public const int EngineCeiling = 16_777_215;
 
-      /// <summary>TUNE: a blob this big or bigger is not written (a margin under <see cref="EngineCeiling" />).</summary>
-      public const int RefuseAt = 15_000_000;
+      /// <summary>
+      ///   The longest UTF-8 text one saved string may hold: the entry's length is read on a short, and 4 of those bytes hold
+      ///   the text's own length (SaveContext.SaveStringTo, ArchiveDeserializer.LoadFrom, 1.4.8).
+      /// </summary>
+      public const int EngineStringLimit = short.MaxValue - 4;
 
-      /// <summary>TUNE: a blob this big or bigger is written, and the log warns that the store is growing toward the ceiling.</summary>
+      /// <summary>Base64 characters per saved piece: under <see cref="EngineStringLimit" /> with room, and a multiple of 4.</summary>
+      public const int PieceLength = 30_000;
+
+      /// <summary>
+      ///   TUNE: compressed bytes at which a store is not written. Saved in pieces it no longer nears <see cref="EngineCeiling" />
+      ///   (this is under 9,000 pieces); the bound is the save's string table, one buffer shared with every mod.
+      /// </summary>
+      public const int RefuseAt = 200_000_000;
+
+      /// <summary>TUNE: a blob this big or bigger is written, and the log notes a store grown large enough to be worth reporting.</summary>
       public const int WarnAt = 8_000_000;
 
       /// <summary>The JSON as GZip-compressed UTF-8; an empty array for null or empty JSON.</summary>
@@ -71,6 +91,33 @@ namespace CalradiaRemembers.Logic.Saving
 
             return Encoding.UTF8.GetString(output.ToArray());
          }
+      }
+
+      /// <summary>
+      ///   The saved bytes as Base64 text cut into pieces of <see cref="PieceLength" /> characters, each one savable as a string;
+      ///   none for no bytes.
+      /// </summary>
+      public static List<string> ToPieces(byte[] stored)
+      {
+         var pieces = new List<string>();
+         if (stored == null || stored.Length == 0) return pieces;
+
+         string text = Convert.ToBase64String(stored);
+         for (int at = 0; at < text.Length; at += PieceLength)
+            pieces.Add(text.Substring(at, Math.Min(PieceLength, text.Length - at)));
+
+         return pieces;
+      }
+
+      /// <summary>
+      ///   The bytes the pieces were cut from; an empty array for none. Throws on a damaged piece, like any unreadable store,
+      ///   for the caller's own fallback.
+      /// </summary>
+      public static byte[] FromPieces(IList<string> pieces)
+      {
+         if (pieces == null || pieces.Count == 0) return new byte[0];
+
+         return Convert.FromBase64String(string.Concat(pieces));
       }
 
       /// <summary>Whether a saved blob is GZip (opens with 1F 8B), as this codec writes it; plain JSON never opens so.</summary>

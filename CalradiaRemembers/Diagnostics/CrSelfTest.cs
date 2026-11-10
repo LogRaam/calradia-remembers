@@ -281,7 +281,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("give_bundle", Severity.Light, "Several goods given at once, each in a chosen amount (fearente, Nexus, 29/10/2026: grain, fish and meat had to go one by one, one unit each). Arranges grain and fish in the party, hands a bundle of 3 grain and 2 fish through the REAL give_item executor, and asserts both left in exactly those amounts with ONE give_item, that a second give_item the model writes in the same turn moves nothing more, and that the outcome line names both goods. Restores the party's goods", TestGiveBundle),
          new SelfTest("captive_counter_offer", Severity.Heavy, "Maifailun (Nexus, 14/10/2026): he held Adrichea (Honor -1, a clan leader), asked her to swear fealty or share his bed, she answered 'kill me if you must', and nothing in CR could hold a counter-offer anyway. Takes a free lord of another realm captive, tops up the payer's purse, and drives the REAL counter_offer verb three ways: a fresh ActionConfirmationController queues a 300-denar ransom naming it, the real bridge settles it (player paid, payer charged, lord freed), and a term not open to her (service, regard 0) is refused and moves nothing. A fourth part (fealty actually swearing a house to a real realm) only runs under 'cr.test full', since CR records a realm change as world news; otherwise it notes why. Restores gold, regard, traits and captivity.", TestCaptiveCounterOffer),
          new SelfTest("captive_terms", Severity.Heavy, "A captive bargains for her freedom (Maifailun, 14/10/2026: Adrichea, Honor -1, answered 'kill me if you must'; Gabriel: the captive proposes terms herself, intimacy in Mature and above for the honorless). Takes a free lord of another realm captive, gives them Adrichea's Honor -1 for the test, builds the REAL context and prompt, and expects the captive to be told she offers first, with the ransom her house can pay and intimacy only when the content level, age and orientation allow. Releases the lord and restores their traits.", TestCaptiveTerms),
-         new SelfTest("save_blobs", Severity.Light, "tashmetu (Nexus, 09/11/2026): long campaigns stopped loading, a CR store past 16,777,215 bytes in the save. The REAL memory store and relation ledger of this campaign, serialized as a save writes them, go through SaveBlobCodec and come back identical, stored under the ceiling; size, ratio and time are noted", TestSaveBlobs),
+         new SelfTest("save_blobs", Severity.Light, "tashmetu (Nexus, 09/11/2026): long campaigns stopped loading, a CR store past 16,777,215 bytes in the save. The REAL memory store and relation ledger of this campaign, serialized as a save writes them, go through SaveBlobCodec and its Base64 pieces (2.8.8) and come back identical, every piece a string the game saves whole; then SaveBlob itself, on a stand-in data store: a 2.8.6-2.8.7 save and an older plain one still load, a new save writes pieces only and reads them first; size, ratio and time are noted", TestSaveBlobs),
          new SelfTest("memory_settings", Severity.Light, "avalanche24 (Nexus, 07/11/2026): a local model drowned past 16k in a long history and asked for a cap on memories. For a lord holding 3 or more memories of the player: with MCM 'Memories in the prompt' at 2, the REAL EncounterContextBuilder.Build carries the cap and the REAL prompt is shorter than with 0, which carries none. 'Compress after' reaches ModSettings. Both settings are put back", TestMemorySettings),
          new SelfTest("answers_before_speaking", Severity.Light, "fearente (Nexus, 07/11/2026): a lord said 'yeah lets do it' to the player's duel, then the game wrote 'lets the challenge hang, and will not take it up'. Alfkona (07/11/2026): '(the game does not allow real harm here, so none was done)' in every kind of conversation. For a lord the player can duel now: the REAL EncounterContextBuilder.Build carries DuelRefusesPlayersChallenge equal to the REAL DuelEligibilityResolver.WouldRefusePlayer the arming site asks, and the REAL prompt tells the character that same answer. Then harm_prisoner through the REAL bridge outside any captive scene returns no outcome (nothing shown). Read-only", TestAnswersBeforeSpeaking),
          new SelfTest("sale_from_parts", Severity.Light, "3chmidt (Nexus, 06/11/2026): Yfinja agreed 9,600 for an axe and paid 100, the price having come as a give_gold judged as a gift; a stray 'cannot swear a peace' showed beside it. Seeds a trade good and a lord with coin: a give_gold of a price above the gift floor plus a give_item of the good, read through the REAL ChatViewModel.ReadPartsAsASale, must come out as ONE sell_item at that price with no give_gold left; the REAL confirmation queues it naming the item; the REAL bridge then sells it: item gone, player paid the price, not the gift floor. Then a keep_peace oath from a lord who leads no faction is ignored with nothing shown (null outcome). Puts the coin back and removes the seeded goods.", TestSaleFromParts),
@@ -6543,9 +6543,71 @@ namespace CalradiaRemembers.Diagnostics
             // STAKE (tashmetu): what the save holds is what loads, and the save stays loadable.
             t.Expect($"{name}ComesBackIdentical", string.IsNullOrEmpty(json) ? back == null : back == json, true);
             t.Expect($"{name}StaysUnderTheCeiling", stored.Length < Logic.Saving.SaveBlobCodec.RefuseAt, true);
+            // STAKE (2.8.8): every piece is a string the game saves whole, and the pieces join back into the same store.
+            List<string> pieces = Logic.Saving.SaveBlobCodec.ToPieces(stored);
+            t.Note($"{name}: {pieces.Count:N0} piece(s) in the save");
+            t.Expect($"{name}PiecesFitOneSavedString", pieces.All(p => Encoding.UTF8.GetByteCount(p) <= Logic.Saving.SaveBlobCodec.EngineStringLimit), true);
+            t.Expect($"{name}PiecesComeBackIdentical", Logic.Saving.SaveBlobCodec.Decode(Logic.Saving.SaveBlobCodec.FromPieces(pieces)) == back, true);
          }
 
+         // SaveBlob itself, the path every compressed store takes, on a stand-in data store holding what each save writes.
+         string memories = stores[0].Json ?? "";
+         const string probeKey = "cr_selftest_blob_gz";
+         const string olderKey = "cr_selftest_blob_bytes";
+         try
+         {
+            // STAKE (Gabriel, 09/11/2026: "continuer a supporter les anciennes sauvegardes"): a 2.8.6-2.8.7 save still loads.
+            var save287 = new StandInDataStore(false);
+            save287.Data[probeKey] = Logic.Saving.SaveBlobCodec.Encode(memories);
+            t.Expect("a287SaveStillLoads", (SaveBlob.Read(save287, probeKey, olderKey) ?? "") == memories, true);
+
+            // STAKE: a save older than 2.8.6, plain JSON in a byte[], still loads.
+            var saveOlder = new StandInDataStore(false);
+            saveOlder.Data[olderKey] = Encoding.UTF8.GetBytes(memories);
+            t.Expect("anOlderPlainSaveStillLoads", (SaveBlob.Read(saveOlder, probeKey, olderKey) ?? "") == memories, true);
+
+            // STAKE (2.8.8): a new save writes the pieces alone, never the byte[] that bricked tashmetu's campaign.
+            var saving = new StandInDataStore(true);
+            SaveBlob.Write(saving, probeKey, memories);
+            t.Expect("aNewSaveWritesPiecesOnly", string.Join(",", saving.Data.Keys), probeKey + SaveBlob.PiecesSuffix);
+
+            // STAKE: the pieces are read first, before any older form the save might also hold.
+            var reload = new StandInDataStore(false);
+            foreach (var kv in saving.Data) reload.Data[kv.Key] = kv.Value;
+            reload.Data[probeKey] = Logic.Saving.SaveBlobCodec.Encode("{\"stale\":1}");
+            t.Expect("thePiecesAreReadFirst", (SaveBlob.Read(reload, probeKey, olderKey) ?? "") == memories, true);
+         }
+         finally { SaveBlob.Forget(probeKey); }
+
          return t.Line();
+      }
+
+      /// <summary>A data store held in memory, saving or loading, for SaveBlob's own path (save_blobs).</summary>
+      private sealed class StandInDataStore : IDataStore
+      {
+         internal readonly Dictionary<string, object> Data = new Dictionary<string, object>();
+
+         internal StandInDataStore(bool saving) { IsSaving = saving; }
+
+         public bool IsSaving { get; }
+
+         public bool IsLoading => !IsSaving;
+
+         public bool SyncData<T>(string key, ref T data)
+         {
+            if (IsSaving)
+            {
+               Data[key] = data;
+
+               return true;
+            }
+
+            if (key == null || !Data.TryGetValue(key, out object held) || !(held is T typed)) return false;
+
+            data = typed;
+
+            return true;
+         }
       }
 
       private static string TestMemorySettings(NpcMemoryCampaignBehavior behavior)

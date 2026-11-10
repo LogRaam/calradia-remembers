@@ -77,9 +77,9 @@ namespace CalradiaRemembers.Storage
       public void SyncData(IDataStore dataStore)
       {
          // A roleplay-memory mod must NEVER prevent a campaign from saving or loading.
-         // We store the profile JSON as a byte[] (no native string-size limit) and isolate
-         // our own (de)serialization so a bad blob degrades gracefully instead of bricking
-         // the save (the Nexus guarantee).
+         // The profile JSON goes through SaveBlob (compressed, in Base64 pieces since 2.8.8) and our own
+         // (de)serialization is isolated so a bad blob degrades gracefully instead of bricking the save
+         // (the Nexus guarantee).
          if (dataStore.IsSaving)
          {
             string json;
@@ -94,7 +94,7 @@ namespace CalradiaRemembers.Storage
             // save never loads; this blob had reached 15.9 million in a long campaign).
             SaveBlob.Write(dataStore, SaveKeyGz, json);
             SaveBlob.SavedSize size = SaveBlob.LastSaved.FirstOrDefault(kv => kv.Key == SaveKeyGz).Value;
-            ModLog.Info($"Saved {_profiles.Count} NPC profile(s) ({size.Raw:N0} bytes of memory, {size.Stored:N0} in the save).");
+            ModLog.Info($"Saved {_profiles.Count} NPC profile(s) ({size.Raw:N0} bytes of memory, {size.Stored:N0} compressed, in {size.Pieces:N0} piece(s)).");
          }
          else
          {

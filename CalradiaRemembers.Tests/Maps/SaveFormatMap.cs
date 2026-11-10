@@ -91,16 +91,11 @@ namespace CalradiaRemembers.Tests.Maps
       private static List<SaveKey> KeysOf(List<SourceFile> files)
       {
          var found = new Dictionary<(string, string), SaveKey>();
-         Dictionary<(string Type, string Method), HashSet<int>> helpers = SyncHelpers(files);
+         Dictionary<(string Type, string Method), HashSet<(int Position, string Suffix)>> helpers = SyncHelpers(files);
 
          foreach (SourceFile file in files)
          {
-            Dictionary<string, string> constants = file.Root.DescendantNodes().OfType<FieldDeclarationSyntax>()
-                                                       .Where(f => f.Declaration.Type.ToString() == "string")
-                                                       .SelectMany(f => f.Declaration.Variables)
-                                                       .Where(v => StringOf(v.Initializer?.Value) != null)
-                                                       .GroupBy(v => v.Identifier.Text)
-                                                       .ToDictionary(g => g.Key, g => StringOf(g.First().Initializer!.Value)!);
+            Dictionary<string, string> constants = ConstantsOf(file);
 
             // TWO DETECTION MODES, AND EACH LINE SAYS WHICH (Gabriel, 26/09/2026: "toute carte qui melange deux modes de
             // detection devrait dire, pour chaque ligne, lequel l'a produite"). The SyncData call is the FACT; a constant
@@ -126,14 +121,15 @@ namespace CalradiaRemembers.Tests.Maps
                if (HelperCalled(call, helpers) is not { } helper) continue;
 
                string owner = call.Ancestors().OfType<BaseTypeDeclarationSyntax>().LastOrDefault()?.Identifier.Text ?? "(none)";
-               foreach (int index in helpers[helper])
+               foreach ((int index, string suffix) in helpers[helper])
                {
                   ExpressionSyntax? argument = call.ArgumentList.Arguments.ElementAtOrDefault(index)?.Expression;
+                  string reaches = suffix.Length == 0 ? "which reaches SyncData (fact)" : $"which reaches SyncData with `{suffix}` appended (fact)";
 
                   if (StringOf(argument) is { } literal)
-                     Add(found, literal, owner, $"literal passed to `{helper.Method}`, which reaches SyncData (fact)");
+                     Add(found, literal + suffix, owner, $"literal passed to `{helper.Method}`, {reaches}");
                   else if (argument is IdentifierNameSyntax id && constants.TryGetValue(id.Identifier.Text, out string? value))
-                     Add(found, value, owner, $"constant `{id.Identifier.Text}` passed to `{helper.Method}`, which reaches SyncData (fact)");
+                     Add(found, value + suffix, owner, $"constant `{id.Identifier.Text}` passed to `{helper.Method}`, {reaches}");
                }
             }
 
@@ -145,38 +141,45 @@ namespace CalradiaRemembers.Tests.Maps
       }
 
       /// <summary>
-      ///   Every method one of whose parameters reaches SyncData as its key, with the parameter positions: first the
-      ///   methods that pass a parameter straight to SyncData, then, until nothing changes, those that pass one on to
-      ///   such a method.
+      ///   Every method one of whose parameters reaches SyncData as its key, with the parameter positions and the text
+      ///   appended on the way (SaveBlob saves a store's pieces under key + PiecesSuffix, 2.8.8; without the suffix those keys
+      ///   would be missing from the contract): first the methods that pass a parameter straight to SyncData, then, until
+      ///   nothing changes, those that pass one on to such a method.
       /// </summary>
-      private static Dictionary<(string Type, string Method), HashSet<int>> SyncHelpers(List<SourceFile> files)
+      private static Dictionary<(string Type, string Method), HashSet<(int Position, string Suffix)>> SyncHelpers(List<SourceFile> files)
       {
-         var helpers = new Dictionary<(string Type, string Method), HashSet<int>>();
-         List<InvocationExpressionSyntax> calls = files.SelectMany(f => f.Root.DescendantNodes().OfType<InvocationExpressionSyntax>()).ToList();
+         var helpers = new Dictionary<(string Type, string Method), HashSet<(int Position, string Suffix)>>();
+         var calls = files.SelectMany(f =>
+                          {
+                             Dictionary<string, string> constants = ConstantsOf(f);
+
+                             return f.Root.DescendantNodes().OfType<InvocationExpressionSyntax>().Select(c => (Call: c, Constants: constants));
+                          })
+                          .ToList();
 
          bool changed = true;
          while (changed)
          {
             changed = false;
-            foreach (InvocationExpressionSyntax call in calls)
+            foreach ((InvocationExpressionSyntax call, Dictionary<string, string> constants) in calls)
             {
                bool direct = call.Expression is MemberAccessExpressionSyntax {Name.Identifier.Text: "SyncData"};
                (string Type, string Method)? viaHelper = direct ? null : HelperCalled(call, helpers);
                if (!direct && viaHelper == null) continue;
 
-               IEnumerable<int> keyPositions = direct ? new[] {0} : helpers[viaHelper!.Value].ToList();
+               IEnumerable<(int Position, string Suffix)> keyPositions = direct ? new[] {(0, "")} : helpers[viaHelper!.Value].ToList();
                if (call.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault() is not { } method) continue;
 
                (string, string) enclosing = (TypeOf(method), method.Identifier.Text);
-               foreach (int position in keyPositions)
+               foreach ((int position, string inner) in keyPositions)
                {
-                  if (call.ArgumentList.Arguments.ElementAtOrDefault(position)?.Expression is not IdentifierNameSyntax id) continue;
+                  if (KeyCarried(call.ArgumentList.Arguments.ElementAtOrDefault(position)?.Expression, constants) is not { } carried) continue;
 
-                  int parameter = method.ParameterList.Parameters.IndexOf(p => p.Identifier.Text == id.Identifier.Text);
+                  int parameter = method.ParameterList.Parameters.IndexOf(p => p.Identifier.Text == carried.Parameter);
                   if (parameter < 0) continue;
 
-                  if (!helpers.TryGetValue(enclosing, out HashSet<int>? set)) helpers[enclosing] = set = new HashSet<int>();
-                  if (set.Add(parameter)) changed = true;
+                  if (!helpers.TryGetValue(enclosing, out HashSet<(int Position, string Suffix)>? set)) helpers[enclosing] = set = new HashSet<(int Position, string Suffix)>();
+                  if (set.Add((parameter, carried.Suffix + inner))) changed = true;
                }
             }
          }
@@ -184,12 +187,36 @@ namespace CalradiaRemembers.Tests.Maps
          return helpers;
       }
 
+      /// <summary>The file's string constants with a literal value, by name.</summary>
+      private static Dictionary<string, string> ConstantsOf(SourceFile file)
+         => file.Root.DescendantNodes().OfType<FieldDeclarationSyntax>()
+                .Where(f => f.Declaration.Type.ToString() == "string")
+                .SelectMany(f => f.Declaration.Variables)
+                .Where(v => StringOf(v.Initializer?.Value) != null)
+                .GroupBy(v => v.Identifier.Text)
+                .ToDictionary(g => g.Key, g => StringOf(g.First().Initializer!.Value)!);
+
+      /// <summary>
+      ///   The parameter an argument carries a key from, and the text appended to it: a bare name, or name + a string literal
+      ///   or constant of the same file. Null for anything else.
+      /// </summary>
+      private static (string Parameter, string Suffix)? KeyCarried(ExpressionSyntax? argument, Dictionary<string, string> constants)
+      {
+         if (argument is IdentifierNameSyntax id) return (id.Identifier.Text, "");
+         if (argument is not BinaryExpressionSyntax {Left: IdentifierNameSyntax left} add || !add.IsKind(SyntaxKind.AddExpression)) return null;
+
+         string? suffix = StringOf(add.Right)
+                          ?? (add.Right is IdentifierNameSyntax right && constants.TryGetValue(right.Identifier.Text, out string? value) ? value : null);
+
+         return suffix == null ? null : (left.Identifier.Text, suffix);
+      }
+
       /// <summary>
       ///   The helper a call names, if any. Named with no receiver, only a helper of the caller's own type; named as
       ///   Type.Method, only that type's. Never by the method name alone, so an unrelated Save or Load elsewhere is
       ///   not taken for one.
       /// </summary>
-      private static (string Type, string Method)? HelperCalled(InvocationExpressionSyntax call, Dictionary<(string Type, string Method), HashSet<int>> helpers)
+      private static (string Type, string Method)? HelperCalled<TPosition>(InvocationExpressionSyntax call, Dictionary<(string Type, string Method), HashSet<TPosition>> helpers)
       {
          (string Type, string Method)? key = call.Expression switch
          {

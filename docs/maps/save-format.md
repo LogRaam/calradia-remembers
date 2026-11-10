@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (123)
+## Keys (128)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -70,19 +70,23 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_InterceptMatters_v1bytes` | `InterceptionBehavior` | constant `MatterSaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_InterceptPursuit_v1bytes` | `InterceptionBehavior` | constant `PursuitSaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_Intercept_v1bytes` | `InterceptionBehavior` | constant `CooldownSaveKey` passed to SyncData (fact) |
-| `CalradiaRemembers_Jealousy_gz` | `JealousyBehavior` | constant `SaveKeyGz` passed to `Save`, which reaches SyncData (fact) |
+| `CalradiaRemembers_Jealousy_gz` | `JealousyBehavior` | constant `SaveKeyGz` passed to `Load`, which reaches SyncData (fact) |
+| `CalradiaRemembers_Jealousy_gz_pieces` | `JealousyBehavior` | constant `SaveKeyGz` passed to `Save`, which reaches SyncData with `_pieces` appended (fact) |
 | `CalradiaRemembers_Jealousy_v1` | `JealousyBehavior` | constant `LegacySaveKey` passed to `Load`, which reaches SyncData (fact) |
 | `CalradiaRemembers_Jealousy_v2bytes` | `JealousyBehavior` | constant `SaveKey` passed to `Load`, which reaches SyncData (fact) |
 | `CalradiaRemembers_LetterPacing_v1bytes` | `LetterTriggerEvaluator` | constant `LetterPacingSaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_LordStrategy_v1bytes` | `LordStrategyBehavior` | constant `SaveKey` passed to SyncData (fact) |
-| `CalradiaRemembers_MarriageAppliedSwings_gz` | `MarriageApprovalBehavior` | constant `AppliedSwingsSaveKeyGz` passed to `Save`, which reaches SyncData (fact) |
+| `CalradiaRemembers_MarriageAppliedSwings_gz` | `MarriageApprovalBehavior` | constant `AppliedSwingsSaveKeyGz` passed to `Load`, which reaches SyncData (fact) |
+| `CalradiaRemembers_MarriageAppliedSwings_gz_pieces` | `MarriageApprovalBehavior` | constant `AppliedSwingsSaveKeyGz` passed to `Save`, which reaches SyncData with `_pieces` appended (fact) |
 | `CalradiaRemembers_MarriageAppliedSwings_v1` | `MarriageApprovalBehavior` | constant `AppliedSwingsSaveKey` passed to `Load`, which reaches SyncData (fact) |
-| `CalradiaRemembers_MarriageApprovals_gz` | `MarriageApprovalBehavior` | constant `SaveKeyGz` passed to `Save`, which reaches SyncData (fact) |
+| `CalradiaRemembers_MarriageApprovals_gz` | `MarriageApprovalBehavior` | constant `SaveKeyGz` passed to `Load`, which reaches SyncData (fact) |
+| `CalradiaRemembers_MarriageApprovals_gz_pieces` | `MarriageApprovalBehavior` | constant `SaveKeyGz` passed to `Save`, which reaches SyncData with `_pieces` appended (fact) |
 | `CalradiaRemembers_MarriageApprovals_v1` | `MarriageApprovalBehavior` | constant `LegacySaveKey` passed to `Load`, which reaches SyncData (fact) |
 | `CalradiaRemembers_MarriageApprovals_v2bytes` | `MarriageApprovalBehavior` | constant `SaveKey` passed to `Load`, which reaches SyncData (fact) |
 | `CalradiaRemembers_MisdeedLedger_v1` | `MisdeedLedgerBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_Nemesis_v1bytes` | `NemesisBehavior` | constant `SaveKey` passed to SyncData (fact) |
-| `CalradiaRemembers_NpcProfiles_gz` | `BannerlordNpcMemoryStore` | constant `SaveKeyGz` passed to `Write`, which reaches SyncData (fact) |
+| `CalradiaRemembers_NpcProfiles_gz` | `BannerlordNpcMemoryStore` | constant `SaveKeyGz` passed to `Read`, which reaches SyncData (fact) |
+| `CalradiaRemembers_NpcProfiles_gz_pieces` | `BannerlordNpcMemoryStore` | constant `SaveKeyGz` passed to `Write`, which reaches SyncData with `_pieces` appended (fact) |
 | `CalradiaRemembers_NpcProfiles_v1` | `BannerlordNpcMemoryStore` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_NpcProfiles_v2bytes` | `BannerlordNpcMemoryStore` | constant `SaveKeyBytes` passed to `Read`, which reaches SyncData (fact) |
 | `CalradiaRemembers_PairPeace_v1bytes` | `PairPeaceBehavior` | constant `SaveKey` passed to SyncData (fact) |
@@ -129,7 +133,8 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `cr_legends` | `LegendBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `cr_raid_restraint` | `RaidRestraintBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `cr_relation_baselines` | `RelationLedgerBehavior` | constant `SaveKey` passed to `Read`, which reaches SyncData (fact) |
-| `cr_relation_baselines_gz` | `RelationLedgerBehavior` | constant `SaveKeyGz` passed to `Write`, which reaches SyncData (fact) |
+| `cr_relation_baselines_gz` | `RelationLedgerBehavior` | constant `SaveKeyGz` passed to `Read`, which reaches SyncData (fact) |
+| `cr_relation_baselines_gz_pieces` | `RelationLedgerBehavior` | constant `SaveKeyGz` passed to `Write`, which reaches SyncData with `_pieces` appended (fact) |
 | `cr_rescue_probe` | `SaveRescueProbe` | constant `ProbeKey` passed to SyncData (fact) |
 | `cr_standing_aims` | `AimsBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `cr_war_duty` | `WarDutyBehavior` | constant `SaveKey` passed to SyncData (fact) |
