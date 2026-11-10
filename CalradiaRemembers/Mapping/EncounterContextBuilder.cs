@@ -516,6 +516,8 @@ namespace CalradiaRemembers.Mapping
             // RaveN017Mod (01/11/2026): what the character holds and would give, before they name a sum.
             Purse = hero?.Gold,
             GiftCeiling = hero == null ? null : ExchangeService.GiftCeilingFor(hero, profile),
+            // Aporo (10/11/2026): the model tells a debt it pays from a gift it makes.
+            GiftOwed = hero == null ? null : ExchangeService.GiftOwedBy(hero, profile),
             PriceReference = PriceReferenceReader.Full,
             PriceReferenceCompact = PriceReferenceReader.Compact,
             MoneyTokens = offerMoneyTokens && hero != null ? ExchangeService.MoneyTokensFor(hero, profile, OfferedItem(offeredItemId), NatureReader.LovesKindOf(OfferedItem(offeredItemId), hero, profile)) : null,
@@ -794,10 +796,10 @@ namespace CalradiaRemembers.Mapping
             MatchmakerPlayerKin = MatchmakerResolver.BuildPlayerKin(),
             // The player's chosen writing voice, served from memory unless the pick or the file changed.
             NarrativeStyle = StyleService.CurrentRules(),
-            // The news now travels as FACTS rather than as a pre-formatted block: how much of it a character
-            // carries is a rule about people, and RealmNewsPack owns it. The two older fields are left on
             // How THIS character speaks, drawn from who they are and never saved (Gabriel, 10/11/2026).
             CharacterVoice = ResolveCharacterVoice(hero),
+            // The news now travels as FACTS rather than as a pre-formatted block: how much of it a character
+            // carries is a rule about people, and RealmNewsPack owns it. The two older fields are left on
             // EncounterContext and still render if some other mod sets them - the host simply no longer does,
             // so nothing is said twice.
             RealmNews = knowledge.RealmNews,
@@ -845,8 +847,6 @@ namespace CalradiaRemembers.Mapping
       ///   via the pure <see cref="PlayerDeedValence" />. The influence loop — the world reflecting the
       ///   player's acts back. Null when none have reached them, so the section is skipped entirely.
       /// </summary>
-      internal static string ResolvePlayerDeedsHeard(Hero hero)
-      {
       internal static string ResolveCharacterVoice(Hero hero)
       {
          if (hero == null || hero == Hero.MainHero) return null;
@@ -861,6 +861,8 @@ namespace CalradiaRemembers.Mapping
          return Logic.Character.CharacterVoicePolicy.Render(voice);
       }
 
+      internal static string ResolvePlayerDeedsHeard(Hero hero)
+      {
          try
          {
             IReadOnlyList<(WorldEvent Event, RumorConfidence Confidence)> rated = WorldEventStore.Instance?.GetKnownEventsRated(

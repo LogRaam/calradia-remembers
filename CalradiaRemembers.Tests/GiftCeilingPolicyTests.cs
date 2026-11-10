@@ -109,6 +109,22 @@ namespace CalradiaRemembers.Tests
                           .Should().Contain("not the 20000 named").And.Contain("will part with freely");
       }
 
+      // STAKE: Aporo (Discord, 10/11/2026): 400 named, 5 given. The character must not go on as if the 400 was paid.
+      [Test]
+      public void GIVEN_a_sum_cut_down_WHEN_the_model_is_told_THEN_it_reads_what_moved_and_why()
+      {
+         GiftCeilingPolicy.ShortfallFeedback(400, 5, false)
+                          .Should().Contain("named 400 denars").And.Contain("only 5 changed hands").And.Contain("all you would part with freely")
+                          .And.Contain("Never speak as if the rest was paid");
+      }
+
+      // STAKE: a refusal is no payment either: the model reads that nothing moved, and an empty purse is said as such.
+      [Test]
+      public void GIVEN_nothing_moved_WHEN_the_model_is_told_THEN_it_reads_that_none_changed_hands()
+      {
+         GiftCeilingPolicy.ShortfallFeedback(400, 0, true).Should().Contain("none changed hands").And.Contain("all your purse held");
+      }
+
       // STAKE: the two reasons differ for the player: an empty purse is no slight.
       [Test]
       public void GIVEN_less_was_given_than_named_WHEN_the_purse_held_it_back_THEN_the_notice_says_that_instead()

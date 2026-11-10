@@ -108,6 +108,20 @@ namespace CalradiaRemembers.Logic
             : $" (not the {o.Asked} named: that is all {o.GiverName} will part with freely{AwaitsTheDeed(o.TaskRewardAwaitsTheDeed)})";
       }
 
+      /// <summary>
+      ///   What the model reads on its next turn when a sum it named was cut down or refused, so the character does not go on
+      ///   as if the rest was paid (Aporo, Discord, 10/11/2026: 400 named, 5 given). The prompt states the ceiling first; this
+      ///   only catches the turn the model overstepped it.
+      /// </summary>
+      public static string ShortfallFeedback(int asked, int given, bool limitedByPurse)
+      {
+         string why = limitedByPurse ? "that is all your purse held" : "that is all you would part with freely";
+         string moved = given > 0 ? $"only {given} changed hands" : "none changed hands";
+
+         return $"Last turn you named {asked} denars for the player, but {moved}: {why}. Never speak as if the rest was paid; "
+                + "if it comes up, own it in character, and from now on name no more than YOUR COIN allows.";
+      }
+
       /// <summary>The refusal when a character will give nothing more away for now, whatever their purse holds.</summary>
       public static string WillNotGiveNote(string giverName, bool taskRewardAwaitsTheDeed = false)
          => $"({giverName} will part with no more coin freely for now, so none changed hands{AwaitsTheDeed(taskRewardAwaitsTheDeed)}.)";

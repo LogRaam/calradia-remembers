@@ -463,6 +463,8 @@ _Player report (Nexus, Santiago755, 2026-07-26): with Reply Language forced to S
 _that a character knows what things are worth and what it can pay BEFORE it names a sum._
 
 - GIVEN a character with a purse, WHEN the prompt is built, THEN it knows what it holds and would give
+- GIVEN a ceiling, WHEN the prompt is built, THEN payments and rewards count against it too
+- GIVEN a debt to the player, WHEN the prompt is built, THEN the character knows what part is owed
 - GIVEN a character who would give nothing, WHEN the prompt is built, THEN it is told so
 - GIVEN a gift during the talk, WHEN the next turn is built, THEN the cached prefix is unchanged
 - GIVEN a purse, WHEN the prompt is built, THEN a captive goes for its worth and not as a gift

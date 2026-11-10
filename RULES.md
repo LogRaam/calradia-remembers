@@ -4657,6 +4657,8 @@ _What this decides: the most a character hands the player for nothing in return,
 - GIVEN a sworn debt, WHEN they pay, THEN the debt is not held back as a gift
 - GIVEN a debt beyond the purse, WHEN they pay, THEN it stops at the purse
 - GIVEN less was given than named, WHEN willingness held it back, THEN the notice says so
+- GIVEN a sum cut down, WHEN the model is told, THEN it reads what moved and why
+- GIVEN nothing moved, WHEN the model is told, THEN it reads that none changed hands
 - GIVEN less was given than named, WHEN the purse held it back, THEN the notice says that instead
 - GIVEN a verified task reward owed, WHEN regard allows no gift, THEN the reward is still payable
 - GIVEN a verified task reward beyond the purse, WHEN weighed, THEN the purse bounds it

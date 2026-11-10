@@ -32,6 +32,9 @@ namespace CalradiaRemembers.GameState
       /// <summary>What this character would give the player now with nothing in return: the prompt and give_gold both read this.</summary>
       public static int GiftCeilingFor(Hero giver, NpcProfile profile) => GiftCeilingPolicy.Ceiling(GiftFactsFor(giver, profile));
 
+      /// <summary>The part of the gift ceiling this character owes the player (verified task rewards, sworn payments): the prompt names it.</summary>
+      public static int GiftOwedBy(Hero giver, NpcProfile profile) => GiftCeilingPolicy.Owed(GiftFactsFor(giver, profile));
+
       /// <summary>What a gift from this character is weighed on.</summary>
       public static GiftFacts GiftFactsFor(Hero giver, NpcProfile profile) => new() {
          Purse = giver?.Gold ?? 0, Regard = profile?.ReputationWithPlayer ?? 0,

@@ -1940,6 +1940,7 @@ namespace CalradiaRemembers.GameState
          if (npcHero.Gold < 1)
          {
             ModLog.Info($"[ACTION] give_gold: {npcHero.Name} has no gold to give: ignored.");
+            LlmFeedbackNotes.Set(npcHero.StringId, GiftCeilingPolicy.ShortfallFeedback(amount, 0, true));
 
             // Was a silent no-op: the model had already told the player gold was coming, so the player was
             // left checking an unchanged purse with no explanation.
@@ -1951,7 +1952,8 @@ namespace CalradiaRemembers.GameState
             ModLog.Info($"[ACTION] give_gold: {npcHero.Name} will give no more (regard {gift.Regard}, given {gift.GivenInWindow} in the window): ignored.");
 
             bool awaits = ExchangeService.TaskRewardAwaitsTheDeed(profile);
-            if (awaits) LlmFeedbackNotes.Set(profile.Id, TaskRewardNotYetDueNote);
+            // Aporo (10/11/2026): the model reads next turn that nothing moved, so the character does not act as if it had.
+            LlmFeedbackNotes.Set(npcHero.StringId, awaits ? TaskRewardNotYetDueNote : GiftCeilingPolicy.ShortfallFeedback(amount, 0, false));
 
             return ActionOutcome.Refused(GiftCeilingPolicy.WillNotGiveNote(npcHero.Name.ToString(), awaits));
          }
@@ -1977,6 +1979,7 @@ namespace CalradiaRemembers.GameState
          // overlay — showing the balance here is the player's only live confirmation.
          bool rewardAwaits = asked > amount && !purseHolds && ExchangeService.TaskRewardAwaitsTheDeed(profile);
          if (rewardAwaits) LlmFeedbackNotes.Set(profile.Id, TaskRewardNotYetDueNote);
+         else if (asked > amount) LlmFeedbackNotes.Set(npcHero.StringId, GiftCeilingPolicy.ShortfallFeedback(asked, amount, purseHolds));
          string reduced = GiftCeilingPolicy.ReducedNote(new GiftOutcome {
             Asked = asked, Given = amount, LimitedByPurse = purseHolds, GiverName = npcHero.Name.ToString(), TaskRewardAwaitsTheDeed = rewardAwaits
          });
