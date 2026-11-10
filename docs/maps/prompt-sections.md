@@ -130,13 +130,12 @@ shipped). `sealed`: cannot be turned off, moved or reworded; `required`: cannot 
 | 113 | `narration_frequency` | `AppendNarrationFrequency` | tail | sealed |  |  | Replaces standard consent rules when the player is this NPC's captive at Hardcore level. |
 | 114 | `power_balance` | `AppendPowerBalance` | tail |  |  |  | Injects a power-balance note when the game-side resolver detected a meaningful asymmetry between the player's realm and the NPC's position. |
 | 115 | `player_gender_context` | `AppendPlayerGenderContext` | tail |  |  |  | Injects the [DISCOVERY] section format when romantic content is enabled. |
-| 116 | `worn_phrases` | `AppendWornPhrases` | tail |  |  |  | The words this character has already worn out in this conversation (WornPhrasePolicy), per turn, so the reply finds new ones. |
-| 117 | `stay_within_what_you_know` | `AppendStayWithinWhatYouKnow` | tail | required | aware |  | Anti-confabulation guard: the primary fix for invented parent names and made-up troop movements. |
-| 118 | `player_action_narration` | `AppendPlayerActionNarration` | tail | required | aware |  | Teaches that a captive's escape attempt is resolved by fate, not by the captor's narration: the single biggest reason the LLM otherwise "always wins". |
-| 119 | `claims_are_not_proof` | `AppendClaimsAreNotProof` | tail | required | aware |  | The general form of a rule this prompt already stated in three separate silos, and therefore never applied where it was actually needed. |
-| 120 | `language_mirror` | `AppendLanguageMirror` | tail |  | aware |  | Which language the reply is written in. |
-| 121 | `player_description` | `AppendPlayerDescription` | tail |  | aware |  | (no summary) |
-| 122 | `heard_now` | `AppendHeardNow` | tail |  |  |  | heard_now.txt, expanded with this build's variables; nothing when it is empty or expands to nothing. |
-| 123 | `role_anchor` | `AppendRoleAnchor` | tail | required | aware |  | A short, forceful restatement of the machine-read output contract, emitted at the very end of the prompt (highest recency). |
-| 124 | `format_reminder` | `AppendFormatReminder` | tail | required | aware |  | (no summary) |
-| 125 | `post_history_instructions` | `AppendPostHistoryInstructions` | tail |  |  |  | Appends the modder's post_history_instructions.txt verbatim (aside from {{token}} expansion, see PromptVariableExpander) at the very end of the system prompt: the highest-recency position, read immediately before the con... |
+| 116 | `stay_within_what_you_know` | `AppendStayWithinWhatYouKnow` | tail | required | aware |  | Anti-confabulation guard: the primary fix for invented parent names and made-up troop movements. |
+| 117 | `player_action_narration` | `AppendPlayerActionNarration` | tail | required | aware |  | Teaches that a captive's escape attempt is resolved by fate, not by the captor's narration: the single biggest reason the LLM otherwise "always wins". |
+| 118 | `claims_are_not_proof` | `AppendClaimsAreNotProof` | tail | required | aware |  | The general form of a rule this prompt already stated in three separate silos, and therefore never applied where it was actually needed. |
+| 119 | `language_mirror` | `AppendLanguageMirror` | tail |  | aware |  | Which language the reply is written in. |
+| 120 | `player_description` | `AppendPlayerDescription` | tail |  | aware |  | (no summary) |
+| 121 | `heard_now` | `AppendHeardNow` | tail |  |  |  | heard_now.txt, expanded with this build's variables; nothing when it is empty or expands to nothing. |
+| 122 | `role_anchor` | `AppendRoleAnchor` | tail | required | aware |  | A short, forceful restatement of the machine-read output contract, emitted at the very end of the prompt (highest recency). |
+| 123 | `format_reminder` | `AppendFormatReminder` | tail | required | aware |  | (no summary) |
+| 124 | `post_history_instructions` | `AppendPostHistoryInstructions` | tail |  |  |  | Appends the modder's post_history_instructions.txt verbatim (aside from {{token}} expansion, see PromptVariableExpander) at the very end of the system prompt: the highest-recency position, read immediately before the con... |

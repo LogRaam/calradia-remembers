@@ -565,7 +565,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 #### `NpcMemoryService.Core.Models` and `NpcMemoryService.Core.Prompts`
 
 - `NpcMemoryService.Core.Models` uses `NpcMemoryService.Core.Prompts` in 1 file(s): `Models/EncounterContext.cs`
-- `NpcMemoryService.Core.Prompts` uses `NpcMemoryService.Core.Models` in 7 files: `Prompts/ActionInterpreterContextBuilder.cs`, `Prompts/IPromptBuilder.cs`, `Prompts/LetterPromptBuilder.cs`, and 4 more
+- `NpcMemoryService.Core.Prompts` uses `NpcMemoryService.Core.Models` in 8 files: `Prompts/ActionInterpreterContextBuilder.cs`, `Prompts/IPromptBuilder.cs`, `Prompts/LetterPromptBuilder.cs`, and 5 more
 
 #### `NpcMemoryService.Core.Models` and `NpcMemoryService.Core.Services`
 

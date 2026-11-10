@@ -52,7 +52,7 @@ count is what to read: a namespace of many unrelated parts is a folder of things
 | `CalradiaRemembers.Logic.Marriage` | 46 | 3 | 34 | loose |
 | `CalradiaRemembers.Logic.Romance` | 46 | 3 | 27 | loose |
 | `CalradiaRemembers` | 58 | 3 | 25 | loose |
-| `NpcMemoryService.Core.Prompts` | 47 | 3 | 13 | loose |
+| `NpcMemoryService.Core.Prompts` | 47 | 3 | 14 | loose |
 | `CalradiaRemembers.Diagnostics` | 16 | 3 | 8 | loose |
 | `CalradiaRemembers.Logic.Items` | 18 | 3 | 6 | loose |
 | `NpcMemoryService.Core.Actions` | 18 | 3 | 5 | medium |
