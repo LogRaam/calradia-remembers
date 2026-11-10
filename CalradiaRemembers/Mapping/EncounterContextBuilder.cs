@@ -796,6 +796,8 @@ namespace CalradiaRemembers.Mapping
             NarrativeStyle = StyleService.CurrentRules(),
             // The news now travels as FACTS rather than as a pre-formatted block: how much of it a character
             // carries is a rule about people, and RealmNewsPack owns it. The two older fields are left on
+            // How THIS character speaks, drawn from who they are and never saved (Gabriel, 10/11/2026).
+            CharacterVoice = ResolveCharacterVoice(hero),
             // EncounterContext and still render if some other mod sets them - the host simply no longer does,
             // so nothing is said twice.
             RealmNews = knowledge.RealmNews,
@@ -845,6 +847,20 @@ namespace CalradiaRemembers.Mapping
       /// </summary>
       internal static string ResolvePlayerDeedsHeard(Hero hero)
       {
+      internal static string ResolveCharacterVoice(Hero hero)
+      {
+         if (hero == null || hero == Hero.MainHero) return null;
+
+         Logic.Character.CharacterVoice voice = Logic.Character.CharacterVoicePolicy.Draw(new Logic.Character.CharacterVoiceFacts {
+            HeroId = hero.StringId,
+            Traits = RomanticProfileBuilder.TraitsOf(hero),
+            Station = SocialStationReader.StationOf(hero),
+            Age = (int) hero.Age
+         });
+
+         return Logic.Character.CharacterVoicePolicy.Render(voice);
+      }
+
          try
          {
             IReadOnlyList<(WorldEvent Event, RumorConfidence Confidence)> rated = WorldEventStore.Instance?.GetKnownEventsRated(

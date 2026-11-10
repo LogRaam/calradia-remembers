@@ -153,6 +153,7 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic.Items` | 4 | 8 |
 | `NpcMemoryService.Core.Actions` | 4 | 8 |
 | `CalradiaRemembers.Escort` | 4 | 6 |
+| `CalradiaRemembers.Logic.Character` | 4 | 6 |
 | `CalradiaRemembers.Logic.Duels` | 4 | 5 |
 | `CalradiaRemembers.Items` | 4 | 4 |
 | `CalradiaRemembers.Logic.Actions` | 4 | 4 |
@@ -163,7 +164,6 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `CalradiaRemembers.Logic.Trauma` | 3 | 11 |
 | `CalradiaRemembers.Logic.Letters` | 3 | 8 |
 | `CalradiaRemembers.Appearance` | 3 | 6 |
-| `CalradiaRemembers.Logic.Character` | 3 | 6 |
 | `CalradiaRemembers.Logic.AuthoredQuests` | 3 | 5 |
 | `CalradiaRemembers.Edicts` | 3 | 4 |
 | `CalradiaRemembers.Strategy` | 3 | 3 |
@@ -172,8 +172,8 @@ foundation, which is fine as long as it is stable and uses little itself.
 | `NpcMemoryService.Core.Parsing` | 2 | 10 |
 | `CalradiaRemembers.Logic.Prisoners` | 2 | 8 |
 | `CalradiaRemembers.Travel` | 2 | 8 |
+| `CalradiaRemembers.Logic.Social` | 2 | 7 |
 | `CalradiaRemembers.Retainer` | 2 | 7 |
-| `CalradiaRemembers.Logic.Social` | 2 | 6 |
 | `CalradiaRemembers.UI` | 2 | 6 |
 | `CalradiaRemembers.Logic.Conversation` | 2 | 5 |
 | `CalradiaRemembers.GUI` | 2 | 4 |
@@ -911,7 +911,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### CalradiaRemembers.Logic.Character
 
-- uses: `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Romance`, `NpcMemoryService.Core.Models`
+- uses: `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Romance`, `CalradiaRemembers.Logic.Social`, `NpcMemoryService.Core.Models`
 - used by: `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Items`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Quests`
 
 ### CalradiaRemembers.Logic.Chat
@@ -1087,7 +1087,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### CalradiaRemembers.Logic.Social
 
 - uses: `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Battles`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Duels`, `CalradiaRemembers.Logic.Duels`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Social`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Duels`, `CalradiaRemembers.Logic.Character`, `CalradiaRemembers.Logic.Duels`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Social`
 
 ### CalradiaRemembers.Logic.Strategy
 

@@ -416,6 +416,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("scene_image_shown", Severity.Light, "Gabriel (08/10/2026): a tale's stage may carry a picture, opening by itself beside the chat when its scene opens. Writes a small picture to a temporary file, opens a scene with it through the real door (its narration refused before any model call), checks the left panel shows that very file and, in Dark Leather, that it steps aside when the chat yields to the pause menu, then closes the scene and deletes the file.", TestSceneImageShown),
          new SelfTest("intimate_acts", Severity.Light, "Gabriel (26/10/2026): 'chaque NPC avait des preferences pour certains gestes sexuels, et meme parfois des gestes qu'il n'aime pas', and 'un geste impose que le NPC n'aime pas devrait reduire le personal regard'. At Hardcore, with a lord arranged as the player's lover (regard 60, intimate; put back after) who loves oral given and dislikes anal received: the turn's reader is taught both from the real EncounterContextBuilder seam; the disliked gesture only asked for costs nothing and is learned; performed, it costs 4 personal regard and leaves a memory; performed again the same day, nothing more; the loved gesture found warms them by 1; one they are less fond of costs nothing; the Heart section names a taste only once it is learned; a profile rolled before the list widened (27/10/2026: 'd'en mettre beaucoup') is completed through the real load path, keeping what she loved and what the player learned. Skips below Hardcore", TestIntimateActs),
          new SelfTest("override_acts", Severity.Light, "Tene21 (Nexus, 03/11/2026): 'Setting a character's tastes in the file, then running cr.reload_lore followed by cr.acts Character Name still show what I assume are the character's generated tastes.' With custom traits on and a lock injected at runtime (loves kissing and beneath, less fond dirty talk, dislikes none; character_overrides.json untouched) on a lord whose roll had kissing as less loved: the reload's own ApplyAll lays the lock on the STORED profile (what the encyclopedia reads) with kissing in one list only and the empty dislike kept empty; the path cr.acts takes (UpgradeIfNeeded) lays it on a profile still carrying the roll, and a profile of an older taste revision is not padded past the lock; the Heart line reads the authored gesture once learned; custom traits off, RestoreAll gives back the character's own roll. Everything put back, the file reloaded", TestOverrideActs),
+         new SelfTest("character_voice", Severity.Light, "Gabriel (10/11/2026), after AI Influence 7.0.0: a voice of their own for every character; kurushimi00 (Nexus, 01/11/2026) heard characters recite alike. Reads YOUR VOICE as the prompt gets it for up to 40 living characters with a station, and asserts it is there, the same when read twice (nothing is saved), opens on a habit of that character's own station and age, that the habits are not all one, and that a preacher never curses. Reads only", TestCharacterVoice),
          new SelfTest("friends_with_house", Severity.Light, "Lordfadooboo (Nexus, 03/11/2026): asked about the people a character had opinions on, 'they started listing names ive never seen to houses that ive never heard of'. Finds a lord whose real friends or enemies are listed, reads his RELATIONSHIPS block as the prompt gets it, and asserts every friend and enemy who belongs to a house is named with it, so the model never has to supply one. Reads only", TestFriendsWithHouse),
          new SelfTest("silver_taste", Severity.Light, "EvilPoptart1987 (Nexus, 09/11/2026): many characters loved 'silver', which only raw Silver Ore carried; the silverware is of category jewelry. Reads the game's own Silver Ore and silverware categories (ore is nothing special, silverware is jewelry), then gives a lord already met a taste for silver as an older save holds it, loved and learned, and asserts the next reading turns it into jewelry. The lord's tastes are put back", TestSilverTaste),
          new SelfTest("gift_tastes", Severity.Light, "Gabriel (27/10/2026): 'un NPC pourrait [...] preferer certains cadeaux [...] Une Dame pourrait aimer les fourrures'. With a lord already met, arranged to love furs (put back after): a fur handed over through the real give_item path (the bag-picked way) is read as furs from the item's own category, earns twice the regard its value would, is remembered as a gift after their own heart, and the player now knows the taste, which their What You Know section names. Characters met before 2.8.0 are rolled their tastes on the next reading. Picks a lord with no grudge against you; what stays behind in the save: the fur's remembered kindness and the small trust a gift builds with that lord", TestGiftTastes),
@@ -15146,6 +15147,34 @@ namespace CalradiaRemembers.Diagnostics
 
          foreach (Hero lord in Hero.AllAliveHeroes.Where(h => h.IsLord && h != Hero.MainHero && h.Clan != null).Take(200))
          {
+      private static string TestCharacterVoice(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("character_voice");
+         List<Hero> people = Hero.AllAliveHeroes.Where(h => h != Hero.MainHero && !h.IsChild && Mapping.SocialStationReader.StationOf(h) != null).Take(40).ToList();
+         if (t.Skip(people.Count == 0, "no living character with a station")) return t.Line();
+
+         var habits = new HashSet<string>();
+         foreach (Hero someone in people)
+         {
+            string voice = Mapping.EncounterContextBuilder.ResolveCharacterVoice(someone);
+            string station = Mapping.SocialStationReader.StationOf(someone);
+            // STAKE: a character with no voice, or one that changes between two reads, has no voice at all.
+            t.Expect($"{someone.StringId}:hasAVoice", !string.IsNullOrWhiteSpace(voice), true);
+            t.Expect($"{someone.StringId}:sameWhenReadAgain", Mapping.EncounterContextBuilder.ResolveCharacterVoice(someone) == voice, true);
+            string habit = Logic.Character.CharacterVoicePolicy.HabitsFor(station, (int) someone.Age).FirstOrDefault(h => voice?.StartsWith(h) == true);
+            // STAKE: a merchant speaking of his forebears, or a girl calling a grown lord "child", breaks who they are.
+            t.Expect($"{someone.StringId}:habitOfTheirStation", habit != null, true);
+            if (habit != null) habits.Add(habit);
+            if (station == "preacher") t.Expect($"{someone.StringId}:preacherNeverCurses", voice?.Contains("You never curse") == true, true);
+         }
+
+         t.Note($"{people.Count} characters, {habits.Count} habits; first: {Mapping.EncounterContextBuilder.ResolveCharacterVoice(people[0])}");
+         // STAKE: the whole point: a hall of lords must not share one habit.
+         if (people.Count >= 10) t.Expect("habitsAreNotAllOne", habits.Count > 1, true);
+
+         return t.Line();
+      }
+
             string block = Mapping.RelationshipsBuilder.Build(lord);
             string line = block.Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.StartsWith("Friends: ") || l.StartsWith("Enemies: "));
             if (line == null) continue;

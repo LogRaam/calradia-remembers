@@ -7,8 +7,8 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 642 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1561 types in 56 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1566 types in 56 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 287 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -1893,11 +1893,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RansomOfferFacts` | public class | Who holds the player when the game is about to offer a ransom. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 
-### CalradiaRemembers.Logic.Character (18)
+### CalradiaRemembers.Logic.Character (23)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ArchetypeWording` | public static class | Words an archetype for the station of the one who carries it. |
+| `CharacterVoice` | public class | A character's voice, as drawn. |
+| `CharacterVoiceFacts` | public class | Who a voice is drawn for. |
+| `CharacterVoicePolicy` | public static class | Draws and words a character's voice. |
+| `Coarseness` | public enum | How freely a character curses. |
 | `GiftBundlePolicy` | public static class | Reads the amount typed for each good, names the bundle, and weighs how welcome it is. |
 | `GiftLine` | public class | One kind of good in a bundle: its name and how many. |
 | `GiftPageFacts` | public class | What the encyclopedia says of a character's gift tastes. |
@@ -1914,6 +1918,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NaturePageFacts` | public class | What the encyclopedia says of a character's fear and superstition. |
 | `NaturePolicy` | public static class | Rolls and words a character's fear and superstition. |
 | `NatureRoll` | public class | A character's fear and superstition, as rolled. |
+| `Piety` | public enum | How a character's piety shows. |
 | `RosterItemKey` | public static class | Names one stack of goods by item and quality, and finds it again among what the party holds. |
 
 ### CalradiaRemembers.Logic.Chat (29)
@@ -3142,7 +3147,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpeakerScriptVerdict` | public class | What a reply had to have removed from it, if anything. |
 | `StageDirectionDedupe` | public static class | Drops the second and later copies of the same *stage direction* in a reply. |
 
-### NpcMemoryService.Core.Prompts (45)
+### NpcMemoryService.Core.Prompts (47)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -3191,6 +3196,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ReplyLengthPolicy` | public static class | The length lines DIALOGUE STYLE teaches for each ReplyLength. |
 | `SingleCallExtractionPromptBuilder` | public static class | Builds the single-call composer+extractor system prompt used by the spike (cr.single_call_probe). |
 | `VerbCatalogPolicy` | public static class | Decides which verbs the GAME ACTIONS catalogue lists, by reading back what the finished prompt already taught. |
+| `WornPhrasePolicy` | public static class | Finds the openings and phrases a character has worn out. |
+| `WornPhrases` | public class | What a character has already worn out in this conversation. |
 
 ### NpcMemoryService.Core.Services (11)
 
