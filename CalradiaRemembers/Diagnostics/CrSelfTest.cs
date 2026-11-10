@@ -238,6 +238,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("courtship_lapse", Severity.Light, "avalanche24 04/11: the game wed Queen Rhagaea to another while the player courted her, and CR kept the courtship running (Heart page, letters) while she denied it in chat. Takes a lord or lady of the other sex, sets their bond with the player to Courting, drives the real wedding hook as if they wed another hero, and asserts the bond falls to Estranged and they remember the wedding as their own life. Restores the bond and removes the memory", TestCourtshipLapse),
          new SelfTest("companion_grievance", Severity.Light, "froggyluv 04/11: unhappy companions invented a broken promise because the mood note named no cause. Lowers a companion's contentment through the real driver with a named cause, and asserts the cause is kept and the note names it and forbids inventing another. Restores the contentment and the causes", TestCompanionGrievance),
          new SelfTest("courtship_lapse_past", Severity.Light, "avalanche24 04/11: Rhagaea was already wed to another when the lapse came, so no wedding would ever fire for her again. Also asserts her Heart page names the one she wed and the prompt dates the bond by its season. Takes a hero married to someone other than the player, sets their bond with the player to Courting from before a wedding day CR records, runs the daily reconcile, and asserts the bond falls to Estranged; a courtship begun after the wedding is left alone. Restores the bond, its dates, the memories and the wedding day", TestCourtshipLapsePast),
+         new SelfTest("bag_lot_sale", Severity.Light, "Gabriel 09/11/2026 (after froggyluv 04/11): several kinds of goods laid out in the bag for one price. Holds two trade goods in the bag at one asking price, asserts the confirmation preview names the whole lot and its worth, that sell_item moves every good in the amount set out and the buyer pays once; then lays out more than is held and asserts nothing leaves. Restores the goods and the coin", TestBagLotSale),
          new SelfTest("bag_sale", Severity.Light, "froggyluv 04/11: food chosen in the bag to sell moved one unit or left as a gift. Holds three of a trade good in the bag with an asking price, asserts give_item refuses them (no gift), then that sell_item moves all three and the buyer pays. Restores the goods and the coin", TestBagSale),
          new SelfTest("captive_name", Severity.Light, "froggyluv 04/11: a buyer named the captive with her house ('Elthild of dey Tihr') and the sale failed: no captive by that name. Takes a hero captive the player holds and asserts the real resolver finds them by name with the house appended. Skips when the player holds no hero captive; changes nothing", TestCaptiveName),
          new SelfTest("captive_trade_context", Severity.Light, "RaveN017Mod 05/11: prisoner sales 'still don't work every single time ... especially when I perform several prisoner exchanges in a row'. Takes a hero captive the player holds and a lord who could buy: on a turn naming the captive, the live builder hands the interpreter the captives held, the player's line and the reply before; on a turn about something else it hands nothing; the same captive traded again with the same lord that day is refused as an echo (so a re-read sale never sells him back), another buyer is not; a money token naming the captive with his house fills the same sum as his bare name. With no hero captive held, a free lord with no party is taken into the player's party for the test and released after (skips only when there is none); otherwise changes nothing", TestCaptiveTradeContext),
@@ -10783,6 +10784,63 @@ namespace CalradiaRemembers.Diagnostics
             while (back.Events.Count > events0) back.Events.RemoveAt(back.Events.Count - 1);
             store.Set(back);
             Mapping.WeddingDayBehavior.DebugSet(wed, wedding0);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestBagLotSale(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("bag_lot_sale");
+         ItemRoster roster = MobileParty.MainParty?.ItemRoster;
+         if (t.Abort(roster == null || Hero.MainHero == null, "no player item roster")) return t.Line();
+
+         Hero buyer = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && h.Gold >= 5000 && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(buyer == null, "no lord in the world with 5000 denars")) return t.Line();
+
+         List<ItemObject> goods = MBObjectManager.Instance?.GetObjectTypeList<ItemObject>()?.Where(it => it != null && it.IsTradeGood && it.Value > 0).Take(2).ToList();
+         if (t.Skip(goods == null || goods.Count < 2, "fewer than two trade goods in the game data")) return t.Line();
+
+         ItemObject a = goods[0], b = goods[1];
+         int heldA = roster.GetItemNumber(a), heldB = roster.GetItemNumber(b);
+         int playerGold = Hero.MainHero.Gold, buyerGold = buyer.Gold;
+         int worth = 3 * a.Value + 2 * b.Value;
+         int price = Math.Min(worth, ItemSalePolicy.MostFor(worth));
+         roster.AddToCounts(a, 3);
+         roster.AddToCounts(b, 2);
+         var paid = 0;
+         try
+         {
+            var lot = new GiftBundle {Items = new List<ItemOffer> {new ItemOffer(a.StringId, 3), new ItemOffer(b.StringId, 2)}, AskingPrice = price};
+            var ctx = new ActionContext(GetOrCreate(behavior, buyer), null) {OfferedItemId = a.StringId, OfferedBundle = lot};
+            var sale = new GameAction {Type = "sell_item", Parameters = new Dictionary<string, string> {["item"] = a.Name.ToString(), ["price"] = price.ToString()}};
+
+            // STAKE: the player is asked about the whole lot, at its worth, not about one good of it.
+            ItemPreview preview = BannerlordGameStateBridge.PreviewItem(sale, ctx);
+            t.Note($"preview: {preview?.Name} ({preview?.Value})");
+            t.Expect("thePreviewIsTheLot", preview?.IsLot == true && preview.Value == worth, true);
+
+            // STAKE: every good laid out leaves, in its amount, paid once.
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(sale, buyer, ctx);
+            paid = Hero.MainHero.Gold - playerGold;
+            t.Note($"sell_item: {outcome?.Message}");
+            t.Expect("bothGoodsAreSold", roster.GetItemNumber(a) == heldA && roster.GetItemNumber(b) == heldB, true);
+            t.Expect("thePlayerIsPaidOnce", paid > 0 && buyerGold - buyer.Gold == paid, true);
+
+            // STAKE: a lot no longer held in full is not sold short for the same price.
+            roster.AddToCounts(a, 3);
+            var tooMuch = new GiftBundle {Items = new List<ItemOffer> {new ItemOffer(a.StringId, 3), new ItemOffer(b.StringId, heldB + 5)}, AskingPrice = price};
+            int goldBefore = Hero.MainHero.Gold;
+            ActionOutcome refused = behavior.GameStateBridge.ExecuteAction(sale, buyer, new ActionContext(GetOrCreate(behavior, buyer), null) {OfferedItemId = a.StringId, OfferedBundle = tooMuch});
+            t.Note($"short lot: {refused?.Message}");
+            t.Expect("aShortLotSellsNothing", roster.GetItemNumber(a) == heldA + 3 && Hero.MainHero.Gold == goldBefore, true);
+         }
+         finally
+         {
+            if (paid > 0) GiveGoldAction.ApplyBetweenCharacters(Hero.MainHero, buyer, paid);
+            int extraA = roster.GetItemNumber(a) - heldA, extraB = roster.GetItemNumber(b) - heldB;
+            if (extraA != 0) roster.AddToCounts(a, -extraA);
+            if (extraB != 0) roster.AddToCounts(b, -extraB);
          }
 
          return t.Line();

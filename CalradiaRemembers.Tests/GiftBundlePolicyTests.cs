@@ -86,5 +86,30 @@ namespace CalradiaRemembers.Tests
          GiftBundlePolicy.Welcome(new[] {GiftWelcome.Cold, GiftWelcome.Ordinary}).Should().Be(GiftWelcome.Ordinary);
          GiftBundlePolicy.Welcome(new[] {GiftWelcome.Cold, GiftWelcome.Cold}).Should().Be(GiftWelcome.Cold);
       }
+
+      // Several goods laid out in the bag for one price (froggyluv, 04/11/2026; Gabriel 09/11/2026): the lot is sold whole.
+
+      // STAKE: grain, fish and meat laid out for 900 denars all leave together, paid once.
+      [Test]
+      public void GIVEN_every_good_of_the_lot_still_held_WHEN_the_sale_is_struck_THEN_the_lot_can_be_sold()
+      {
+         GiftBundlePolicy.WholeLotHeld(new[] {new LaidOutGood {Count = 20, Held = 35}, new LaidOutGood {Count = 10, Held = 10}}).Should().BeTrue();
+      }
+
+      // STAKE: the fish went to someone else since the price was named; the buyer must not pay 900 for the grain alone.
+      [Test]
+      public void GIVEN_one_good_no_longer_held_in_full_WHEN_the_sale_is_struck_THEN_nothing_of_the_lot_is_sold()
+      {
+         GiftBundlePolicy.WholeLotHeld(new[] {new LaidOutGood {Count = 20, Held = 35}, new LaidOutGood {Count = 10, Held = 4}}).Should().BeFalse();
+         GiftBundlePolicy.WholeLotHeld(new[] {new LaidOutGood {Count = 20, Held = 35}, new LaidOutGood {Count = 10, Held = 0}}).Should().BeFalse();
+      }
+
+      // STAKE: an empty bag sells nothing, whatever price was agreed.
+      [Test]
+      public void GIVEN_an_empty_lot_WHEN_the_sale_is_struck_THEN_nothing_is_sold()
+      {
+         GiftBundlePolicy.WholeLotHeld(new LaidOutGood[0]).Should().BeFalse();
+         GiftBundlePolicy.WholeLotHeld(null).Should().BeFalse();
+      }
    }
 }

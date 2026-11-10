@@ -180,7 +180,7 @@ namespace CalradiaRemembers.Chat
          ItemSaleDecision deal = sale
             ? ItemSalePolicy.Settle(new ItemSaleFacts {
                AgreedPrice = agreed, BuyerPurse = npc?.Gold ?? 0, PlayerStillHolds = true, ItemValue = item.Value,
-               BuyerLovesItsKind = Mapping.NatureReader.LovesKindOf(TaleWorlds.ObjectSystem.MBObjectManager.Instance?.GetObject<TaleWorlds.Core.ItemObject>(item.Id), npc, profile)
+               BuyerLovesItsKind = !item.IsLot && Mapping.NatureReader.LovesKindOf(TaleWorlds.ObjectSystem.MBObjectManager.Instance?.GetObject<TaleWorlds.Core.ItemObject>(item.Id), npc, profile)
             })
             : null;
          if (sale && deal.Refusal != ItemSaleRefusal.None) return ActionDisposition.ExecuteInline; // the bridge refuses it, saying why
@@ -196,7 +196,11 @@ namespace CalradiaRemembers.Chat
          _resolvedKeys.Add(key);
 
          var pinned = new ActionContext(context?.Profile ?? profile, context?.EmittedEvent) {
-            OfferedItemId = item.Id, PlayerWordsThisConversation = context?.PlayerWordsThisConversation
+            OfferedItemId = item.Id, PlayerWordsThisConversation = context?.PlayerWordsThisConversation,
+            // The goods laid out in the bag for this sale, with their amounts: without them the confirmed sale moved one
+            // unit, whatever the bag said (found 09/11/2026 while building the lot sale; cr.test bag_sale called the action
+            // directly and never went through this confirmation).
+            OfferedBundle = sale ? context?.OfferedBundle : null
          };
          _pending.Enqueue(new PendingConfirmation
          {

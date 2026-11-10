@@ -2044,6 +2044,17 @@ namespace CalradiaRemembers.GameState
          {
             if (MobileParty.MainParty?.ItemRoster == null || action?.Parameters == null) return null;
 
+            // A lot laid out for one price: the confirmation names the whole lot and its worth (null when none of it is held).
+            if (string.Equals(action.Type, "sell_item", StringComparison.OrdinalIgnoreCase)
+                && context?.OfferedBundle is {Items.Count: > 1, AskingPrice: not null, Handed: false} lot)
+            {
+               List<(ItemOffer Offer, ItemRosterElement Found)> goods = LotGoods(lot);
+               (ItemOffer Offer, ItemRosterElement Found) first = goods.FirstOrDefault(g => g.Found.EquipmentElement.Item != null);
+               if (first.Found.EquipmentElement.Item == null) return null;
+
+               return new ItemPreview {Id = Items.RosterGoods.KeyOf(first.Found.EquipmentElement), Name = LotName(goods), Value = LotValue(goods), IsLot = true};
+            }
+
             action.Parameters.TryGetValue("item", out string itemName);
             ItemRosterElement found = string.Equals(action.Type, "sell_item", StringComparison.OrdinalIgnoreCase)
                ? ResolveSaleItem(itemName, context)
@@ -2082,6 +2093,10 @@ namespace CalradiaRemembers.GameState
          {
             if (MobileParty.MainParty?.ItemRoster == null || Hero.MainHero == null) return null;
             if (npcHero == null) return ActionOutcome.Refused("(No one here has a purse of their own to buy it with.)");
+
+            // Several kinds laid out in the bag for one price (Gabriel, 09/11/2026): the lot is sold whole, whatever good
+            // the model named.
+            if (context?.OfferedBundle is {Items.Count: > 1, AskingPrice: not null, Handed: false} lot) return SellBagLot(action, npcHero, lot);
 
             action.Parameters.TryGetValue("item", out string itemName);
             action.Parameters.TryGetValue("price", out string priceText);
@@ -2134,6 +2149,65 @@ namespace CalradiaRemembers.GameState
 
             return null;
          }
+      }
+
+      // The goods of a lot as the roster holds them now, each with the amount set out in the bag.
+      private static List<(ItemOffer Offer, ItemRosterElement Found)> LotGoods(GiftBundle lot)
+         => lot.Items.Select(o => (Offer: o, Found: Items.RosterGoods.Find(MobileParty.MainParty?.ItemRoster, o.ItemId))).ToList();
+
+      private static int LotValue(List<(ItemOffer Offer, ItemRosterElement Found)> goods)
+         => goods.Sum(g => g.Found.EquipmentElement.Item == null ? 0 : Items.RosterGoods.ValueOf(g.Found.EquipmentElement) * g.Offer.Count);
+
+      private static string LotName(List<(ItemOffer Offer, ItemRosterElement Found)> goods)
+         => GiftBundlePolicy.Describe(goods.Where(g => g.Found.EquipmentElement.Item != null)
+                                           .Select(g => new GiftLine {Name = Items.RosterGoods.NameOf(g.Found.EquipmentElement), Count = g.Offer.Count}).ToList());
+
+      /// <summary>
+      ///   sell_item for several goods laid out in the bag at one price: every good in the amount set out, paid once, or
+      ///   nothing when the player no longer holds all of it (GiftBundlePolicy.WholeLotHeld). Priced at the lot's worth.
+      /// </summary>
+      private static ActionOutcome SellBagLot(GameAction action, Hero npcHero, GiftBundle lot)
+      {
+         List<(ItemOffer Offer, ItemRosterElement Found)> goods = LotGoods(lot);
+         bool whole = GiftBundlePolicy.WholeLotHeld(goods.Select(g => new LaidOutGood {Count = g.Offer.Count, Held = g.Found.EquipmentElement.Item == null ? 0 : g.Found.Amount}).ToList());
+         action.Parameters.TryGetValue("price", out string priceText);
+
+         ItemSaleDecision deal = ItemSalePolicy.Settle(new ItemSaleFacts {
+            AgreedPrice = CoinAmount.Parse(priceText), BuyerPurse = npcHero.Gold, PlayerStillHolds = whole, ItemValue = LotValue(goods)
+         });
+         switch (deal.Refusal)
+         {
+            case ItemSaleRefusal.NoPrice:
+               return ActionOutcome.Refused("(No price was settled, so nothing was sold.)");
+            case ItemSaleRefusal.ItemGone:
+               return ActionOutcome.Refused("(You no longer hold all you laid out, so nothing was sold.)");
+            case ItemSaleRefusal.BuyerCannotPay:
+               return ActionOutcome.Refused($"({npcHero.Name} has no coin to pay for it, so nothing was sold.)");
+         }
+
+         var taken = new List<(EquipmentElement Goods, int Count)>();
+         try
+         {
+            foreach ((ItemOffer offer, ItemRosterElement found) in goods)
+            {
+               ExchangeService.TakeFromPlayer(ExchangeKind.ItemSale, found.EquipmentElement, offer.Count, npcHero);
+               taken.Add((found.EquipmentElement, offer.Count));
+            }
+
+            ExchangeService.Pay(ExchangeKind.ItemSale, npcHero, Hero.MainHero, deal.Price);
+         }
+         catch
+         {
+            foreach ((EquipmentElement back, int count) in taken) ExchangeService.ReturnToPlayer(back, count);
+            throw;
+         }
+
+         lot.Handed = true; // the lot is sold: a give_item of the same turn moves nothing more
+         string name = LotName(goods);
+         ModLog.Info($"[ACTION] sell_item: player sold the lot '{name}' (value {LotValue(goods)}) to {npcHero.Name} for {deal.Price}{(deal.ClampedToPurse ? " (all they had)" : "")}");
+
+         return new ActionOutcome($"You sell {name} to {npcHero.Name} for {deal.Price} denars{ItemSalePolicy.DifferenceNote(deal, CoinAmount.Parse(priceText))} (purse: {Hero.MainHero.Gold}).", true,
+            appliedGoldAmount: deal.Price);
       }
 
       /// <summary>

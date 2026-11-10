@@ -24,6 +24,16 @@ namespace CalradiaRemembers.Logic.Character
       public int Count { get; init; }
    }
 
+   /// <summary>One good laid out in the bag for a sale: how many were set out, and how many the player holds now.</summary>
+   public sealed class LaidOutGood
+   {
+      /// <summary>The amount set out in the bag.</summary>
+      public int Count { get; init; }
+
+      /// <summary>The amount the player still holds when the sale is struck; 0 when the good is gone.</summary>
+      public int Held { get; init; }
+   }
+
    /// <summary>Reads the amount typed for each good, names the bundle, and weighs how welcome it is. Pure.</summary>
    public static class GiftBundlePolicy
    {
@@ -60,6 +70,15 @@ namespace CalradiaRemembers.Logic.Character
 
          return $"{string.Join(", ", parts.Take(parts.Count - 1))} and {parts[parts.Count - 1]}";
       }
+
+      /// <summary>
+      ///   Whether a lot laid out for one price can still be sold: every good in it, each in the amount set out (froggyluv,
+      ///   Nexus, 04/11/2026: food chosen in the bag to sell; Gabriel 09/11/2026: several kinds at once). The price was named
+      ///   for the whole lot, so a lot the player no longer holds in full is not sold short for the same price: nothing
+      ///   leaves, and the bridge says why.
+      /// </summary>
+      public static bool WholeLotHeld(IReadOnlyList<LaidOutGood> lot)
+         => lot != null && lot.Count > 0 && lot.All(g => g != null && g.Count > 0 && g.Held >= g.Count);
 
       /// <summary>
       ///   How welcome a bundle is: loved when it holds something they love (the gesture carries it), cold only when

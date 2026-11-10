@@ -185,25 +185,9 @@ namespace CalradiaRemembers.Chat
                int value = goods.Sum(g => Items.RosterGoods.ValueOf(g.Goods) * g.Count);
 
                // froggyluv (Nexus, 04/11/2026): "ill hit the Bag icon and choose the amount of Food to sell but... they dont
-               // register the money that was demanded and think its a gift": the bag only ever wrote a gift. One kind of
-               // good may now be held out for a price the player names; several kinds stay a gift.
-               if (goods.Count == 1)
-               {
-                  AskGiveOrSell(host, offers, named, value);
-
-                  return;
-               }
-
-               _offeredBundle = new GiftBundle {Items = offers};
-               _offeredItemId = offers[0].ItemId;
-               _itemOnTheTable = offers[0].ItemId;
-               // Frame it as a COMPLETED handover (a stage direction), not a tentative "I would like to offer":
-               // the offer wording read as a proposal, so the NPC reacted to the OFFER and the gift needed a
-               // second turn to land (player report: two reactions for one gift). Handing it over now makes the
-               // NPC react ONCE, to receiving it, and the give_item action fires in the same turn.
-               _bundleLine = $"*I hand you {named} (worth {value:N0} denars).*";
-               host.SetInputText(_bundleLine);
-               ModLog.Info($"[OFFER] player pre-filled gift: {named} ({value} denars, {offers.Count} kind(s)).");
+               // register the money that was demanded and think its a gift": the bag only ever wrote a gift. The goods,
+               // one kind or several (Gabriel, 09/11/2026), may now be held out for one price the player names.
+               AskGiveOrSell(host, offers, named, value);
             },
             () => PromptGoldOffer(host));
       }
@@ -211,7 +195,10 @@ namespace CalradiaRemembers.Chat
       /// <summary>Asks whether one kind of good is given or sold, and for a sale the price asked; pre-fills the line.</summary>
       private void AskGiveOrSell(IOfferHost host, IReadOnlyList<ItemOffer> offers, string named, int value)
       {
-         var choices = new List<InquiryElement> {new InquiryElement("give", "Give it", null), new InquiryElement("sell", "Sell it for a price", null)};
+         bool several = offers.Count > 1;
+         var choices = new List<InquiryElement> {
+            new InquiryElement("give", several ? "Give them" : "Give it", null), new InquiryElement("sell", several ? "Sell them for one price" : "Sell it for a price", null)
+         };
          MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
             "Give or sell?",
             $"{named} (worth {value:N0} denars)",
@@ -220,8 +207,9 @@ namespace CalradiaRemembers.Chat
             {
                if ((picked?.FirstOrDefault()?.Identifier as string) != "sell")
                {
+                  // Framed as a COMPLETED handover, so the character reacts once, to receiving it, and give_item fires the same turn.
                   HoldTheBag(host, new GiftBundle {Items = offers}, $"*I hand you {named} (worth {value:N0} denars).*");
-                  ModLog.Info($"[OFFER] player pre-filled gift: {named} ({value} denars).");
+                  ModLog.Info($"[OFFER] player pre-filled gift: {named} ({value} denars, {offers.Count} kind(s)).");
 
                   return;
                }
@@ -235,7 +223,7 @@ namespace CalradiaRemembers.Chat
                   {
                      if (!int.TryParse(priceText?.Trim().Replace(",", ""), out int price) || price <= 0) return;
                      HoldTheBag(host, new GiftBundle {Items = offers, AskingPrice = price},
-                        $"*I lay out {named} (worth {value:N0} denars).* I will sell you this for {price:N0} denars.");
+                        $"*I lay out {named} (worth {value:N0} denars).* I will sell you {(several ? "these" : "this")} for {price:N0} denars.");
                      ModLog.Info($"[OFFER] player pre-filled a sale: {named} for {price} denars (worth {value}).");
                   },
                   null));

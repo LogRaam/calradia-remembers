@@ -85,6 +85,12 @@ namespace CalradiaRemembers.GameState
 
         /// <summary>Its market value in denars.</summary>
         public int Value { get; set; }
+
+        /// <summary>
+        ///   Several goods laid out in the bag for one price: Name and Value are the whole lot's, Id its first good's. A lot
+        ///   is priced at its worth, never at a loved kind's premium (one kind's love does not lift the whole lot).
+        /// </summary>
+        public bool IsLot { get; set; }
     }
 
     /// <summary>
