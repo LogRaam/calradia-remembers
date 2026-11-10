@@ -282,9 +282,12 @@ back (`"unique": false` with a `repeat_cooldown_days`).
 **A picture that moves** (since 2.7.9): the image may be a video, a `.crvid` (CR's own format: the frames as JPEG in a
 zip, with a small manifest). Its first frame IS its picture. It plays once where the picture would show, then rests on its
 first frame; PLAY, STOP and LOOP (on/off) sit at its bottom-right corner. On the Classic skin the first frame shows still.
-Make one from any video with `python Tools/Video/make_crvid.py clip.mp4 clip.crvid` (it needs ffmpeg): the frame is
-fitted within 768x1152 (the largest the game plays), at 30 frames a second by default. Keep clips short: a few seconds
-at full size is tens of megabytes. For a slow zoom over a still picture, do not use ffmpeg's `zoompan` filter as is: it
+Make one with `Docs/CrvidPlayer.html`, beside this guide: open it in a browser (offline, nothing sent anywhere) and drop
+a video on it (`.mp4`, `.webm`, `.mov`). Each frame is fitted within 768x1152 (the largest the game plays, never
+enlarged), at 30 frames a second, and saved as the smallest JPEG that keeps the SSIM level set beside the buttons
+(0.960 by default: higher is closer to the source and heavier, lower is lighter). The same page plays `.crvid` files
+frame by frame, and Recompress saves a lighter copy of one. Keep clips short: a few seconds at full size is several
+megabytes, often tens. For a slow zoom over a still picture, do not use ffmpeg's `zoompan` filter as is: it
 rounds the frame to whole pixels and the picture trembles; zoom with sub-pixel precision instead.
 
 ## 6. Objectives

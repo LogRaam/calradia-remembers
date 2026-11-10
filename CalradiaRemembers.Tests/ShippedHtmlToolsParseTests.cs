@@ -25,6 +25,7 @@ namespace CalradiaRemembers.Tests
       [TestCase("TaleEditor.html")]
       [TestCase("ScenarioComposer.html")]
       [TestCase("HistoryEditor.html")]
+      [TestCase("CrvidPlayer.html")]
       public void GIVEN_a_page_shipped_in_Docs_WHEN_a_browser_reads_its_scripts_THEN_none_has_a_syntax_error(string page)
       {
          if (!SourceTree.IsReachable) Assert.Ignore($"source tree not reachable: {SourceTree.MissingAnchor}");

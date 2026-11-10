@@ -201,7 +201,7 @@
       <ModuleSoundFiles Include="$(ProjectDir)ModuleSounds\*.*" />
       <!-- The modder guides. The Nexus page and the changelogs said they "ship with the mod" for months while
            nothing copied them (found cutting 2.5.23): a bridge author had no way to read them but the repo. -->
-      <ModderGuideFiles Include="$(ProjectDir)Extension\HOWTO_*.md;$(ProjectDir)Extension\TaleEditor.html;$(ProjectDir)Extension\HistoryEditor.html;$(ProjectDir)Extension\ScenarioComposer.html;$(ProjectDir)..\EXTENSION_API.md" />
+      <ModderGuideFiles Include="$(ProjectDir)Extension\HOWTO_*.md;$(ProjectDir)Extension\TaleEditor.html;$(ProjectDir)Extension\HistoryEditor.html;$(ProjectDir)Extension\ScenarioComposer.html;$(ProjectDir)Extension\CrvidPlayer.html;$(ProjectDir)..\EXTENSION_API.md" />
     </ItemGroup>
 
     <MakeDir Directories="$(BannerlordBinaryDir)" />
