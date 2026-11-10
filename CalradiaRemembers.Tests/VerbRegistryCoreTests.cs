@@ -302,6 +302,20 @@ namespace CalradiaRemembers.Tests
          seen.Should().BeOfType<InvalidOperationException>();
       }
 
+      // STAKE (superdeeplearningaibot, Discord 10/11/2026, 2.8.7): "a conversation option failed: NullReferenceException"
+      // on every turn with one notable, and nothing said which option; the fault now names the verb that threw.
+      [Test]
+      public void GIVEN_a_verb_that_throws_WHEN_its_fault_is_reported_THEN_the_report_names_that_verb()
+      {
+         var registry = new VerbRegistryCore<string, string, string>();
+         registry.Register(new FakeThrowingStatingVerb());
+
+         Exception seen = null!;
+         registry.ComposeUnavailability("ctx", ex => seen = ex);
+
+         VerbRegistryCore<string, string, string>.VerbNameOf(seen).Should().Be("explodes");
+      }
+
       // Registration order is what the rendered block reads in, so it must be preserved here rather than left to
       // whatever order the registry happens to enumerate.
       [Test]

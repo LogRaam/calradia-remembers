@@ -6,6 +6,7 @@
 #region
 
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
@@ -170,7 +171,9 @@ namespace CalradiaRemembers.Chat
          }
          catch (Exception ex)
          {
-            ModLog.Error($"[CLAIM] harvest failed: {ex.GetType().Name}: {ex.Message}");
+            // Where it threw (superdeeplearningaibot, Discord 10/11/2026: a bare NullReferenceException said nothing).
+            string where = ex.StackTrace?.Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.Length > 0);
+            ModLog.Error($"[CLAIM] harvest failed: {ex.GetType().Name}: {ex.Message}" + (string.IsNullOrEmpty(where) ? "" : $" ({where})"));
          }
       }
 

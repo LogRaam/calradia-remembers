@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic.Verbs;
@@ -27,7 +28,17 @@ namespace CalradiaRemembers.Verbs
    {
       // Routes a verb that faults while being composed (e.g. one touching a game API this build lacks) to
       // the always-on compat trace, so a missing-API failure on the conversation path is never silent.
-      private static readonly Action<Exception> FaultSink = ex => ModLog.Fault("a conversation option", ex);
+      // Names the option and where it threw (superdeeplearningaibot, Discord 10/11/2026, 2.8.7: "a conversation option
+      // failed: NullReferenceException" every turn with one notable, and nothing said which option or where).
+      private static readonly Action<Exception> FaultSink = ex => ModLog.Fault(FaultLabel(ex), ex);
+
+      private static string FaultLabel(Exception ex)
+      {
+         string name = VerbRegistryCore<VerbContext, GameAction, ActionOutcome>.VerbNameOf(ex);
+         string where = ex?.StackTrace?.Split('\n').Select(l => l.Trim()).FirstOrDefault(l => l.Length > 0);
+
+         return $"the conversation option '{name ?? "?"}'" + (string.IsNullOrEmpty(where) ? "" : $" ({where})");
+      }
       private readonly VerbRegistryCore<VerbContext, GameAction, ActionOutcome> _core = new();
 
       /// <summary>The one instance shared by the whole mod. Not a CampaignBehaviorBase: nothing here is persisted or per-save.</summary>

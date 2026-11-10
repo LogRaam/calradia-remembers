@@ -166,7 +166,7 @@ namespace CalradiaRemembers.Logic.Verbs
          {
             // A verb that faults (e.g. touches a game API absent on this build) is treated as simply
             // unavailable this turn, rather than crashing the whole conversation.
-            onFault?.Invoke(ex);
+            onFault?.Invoke(Tagged(ex, verb.Name));
 
             return null;
          }
@@ -184,7 +184,7 @@ namespace CalradiaRemembers.Logic.Verbs
          }
          catch (Exception ex)
          {
-            onFault?.Invoke(ex);
+            onFault?.Invoke(Tagged(ex, NameOf(provider)));
 
             return null;
          }
@@ -203,11 +203,37 @@ namespace CalradiaRemembers.Logic.Verbs
          }
          catch (Exception ex)
          {
-            onFault?.Invoke(ex);
+            onFault?.Invoke(Tagged(ex, NameOf(stater)));
 
             return null;
          }
       }
+
+      /// <summary>
+      ///   The key under which a faulting verb's name rides on the exception handed to the fault sink
+      ///   (<see cref="Exception.Data" />). superdeeplearningaibot (Discord, 10/11/2026, 2.8.7): "a conversation option
+      ///   failed: NullReferenceException" on every turn with one notable, and nothing said which option.
+      /// </summary>
+      public const string VerbNameKey = "CalradiaRemembers.VerbName";
+
+      /// <summary>The faulting verb's name, read back by the host (null when the exception carries none).</summary>
+      public static string VerbNameOf(Exception ex) => ex?.Data[VerbNameKey] as string;
+
+      private static Exception Tagged(Exception ex, string name)
+      {
+         try
+         {
+            if (ex != null && !string.IsNullOrEmpty(name) && !ex.Data.Contains(VerbNameKey)) ex.Data[VerbNameKey] = name;
+         }
+         catch
+         {
+            /* a read-only Data dictionary: the name is lost, the fault is still reported */
+         }
+
+         return ex;
+      }
+
+      private static string NameOf(object provider) => (provider as IVerb<TContext, TAction, TResult>)?.Name ?? provider?.GetType().Name;
 
       private IVerb<TContext, TAction, TResult> FindByName(string name)
          => string.IsNullOrEmpty(name)
