@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 642 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1551 types in 56 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1553 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 285 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 26500+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 27000+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 9000+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 6000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -40,6 +40,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 1000+ | Mod | `Diagnostics/RoleplayBench.cs` |
 | 1000+ | Mod | `Letters/LetterTriggerEvaluator.cs` |
 | 1000+ | Sdk | `Parsing/SectionResponseParser.cs` |
+| 1000+ | Mod | `Quests/QuestService.cs` |
 | 1000+ | Mod | `Services/LlmServices.cs` |
 | 1000+ | Mod | `Witnesses/WitnessResolver.cs` |
 
@@ -2488,11 +2489,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SceneContentKind` | public enum | The kind of scene that is opening. |
 | `ServiceRole` | public enum | A model ROLE the player can route to its own provider. |
 
-### CalradiaRemembers.Logic.Quests (17)
+### CalradiaRemembers.Logic.Quests (19)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `CaptureQuestPolicy` | public static class | Decides what a proposed capture really is, from whether the giver is at war with the target. |
+| `HeldQuest` | public class | A task the game already holds for the player, as the repeat check and the council read it. |
 | `MirrorReconcileDecision` | public enum | What to do with one quest-journal mirror at session launch. |
 | `QuestFailureLeniency` | public class | How a failed or abandoned quest is charged: whether it grudges, remembers a broken word, spends trust, and by how much regard. |
 | `QuestFailureLeniencyPolicy` | public static class | Decides the leniency of a quest failure by kind: hard-to-find bandit deeds are forgiven, all else keeps full consequence. |
@@ -2503,6 +2505,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestMenuEntry` | public class | One task a giver can truly offer right now: its type token, its REAL target, and a short cue. |
 | `QuestReconcilePolicy` | public static class | Pure decision for the session-launch quest-mirror reconciler. |
 | `QuestRecoveryPolicy` | public static class | Resolves the 1-based quest number a player typed into a 0-based index, or an error to show. |
+| `QuestRepeatPolicy` | public static class | Decides whether a task offered repeats one the player holds, and lists those a council should know. |
 | `QuestRewardGatePolicy` | public static class | Pure eligibility/re-validation gate for RewardGrant.GrantFief and RewardGrant.MarriageReward. |
 | `QuestRewardPayoutVerdict` | public enum | The binary outcome of re-validating a heavy quest reward (fief or marriage) at payout. |
 | `QuestSaveBasePolicy` | public static class | Decides the quest definer's save-type base id, avoiding a known boot-crash collision with Europe1100. |

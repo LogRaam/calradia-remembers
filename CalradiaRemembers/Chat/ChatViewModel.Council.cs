@@ -1264,7 +1264,12 @@ namespace CalradiaRemembers.Chat
             TranscriptSoFar = CouncilTranscriptLines(),
             OfferedResolutionKinds = CurrentOfferedResolutionKinds(),
             TrialCharges = _councilScope == CouncilScope.Trial ? Logic.ArrestPolicy.Describe(Arrests.ArrestBehavior.Instance?.Case?.Charges) : null,
-            TrialPresiding = _councilScope == CouncilScope.Trial ? TrialPresidingName() : null
+            TrialPresiding = _councilScope == CouncilScope.Trial ? TrialPresidingName() : null,
+            // bdionysis80 (Nexus, 10/11/2026): the table insisted the army was starving with full stores, and set a
+            // scouting already done. The game's own count of the company, and the tasks held, for every seat.
+            CompanyMen = MobileParty.MainParty?.MemberRoster?.TotalManCount,
+            CompanyFoodDays = MobileParty.MainParty?.GetNumDaysForFoodToLast(),
+            TasksAtHand = Logic.Quests.QuestRepeatPolicy.CouncilLines(Quests.QuestService.HeldQuests(behavior?.Store), bridge?.GetCurrentGameDay() ?? 0)
          };
       }
 

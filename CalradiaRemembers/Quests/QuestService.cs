@@ -11,6 +11,7 @@ using CalradiaRemembers.GameState;
 using CalradiaRemembers.Grudges;
 using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Grudges;
+using CalradiaRemembers.Logic.Quests;
 using CalradiaRemembers.Storage;
 using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Services;
@@ -716,6 +717,51 @@ namespace CalradiaRemembers.Quests
          }
       }
 
+      /// <summary>What a task is against, as the repeat check reads it (QuestRepeatPolicy.KeyOf).</summary>
+      private static string KeyOf(InformalQuest q) => QuestRepeatPolicy.KeyOf(q.TargetFactionId, q.TargetHeroId, q.TargetSettlement);
+
+      /// <summary>
+      ///   Every task the game holds for the player, open or carried out, across every giver, for the repeat check and
+      ///   the war council (bdionysis80, 10/11/2026). Failed, expired and given-up tasks are left out. Never throws.
+      /// </summary>
+      internal static List<HeldQuest> HeldQuests(BannerlordNpcMemoryStore store)
+      {
+         var held = new List<HeldQuest>();
+         if (store == null) return held;
+
+         try
+         {
+            foreach (string id in store.ListIds())
+            {
+               NpcProfile p = store.Get(id);
+               if (p?.ActiveQuests == null) continue;
+
+               foreach (InformalQuest q in p.ActiveQuests)
+               {
+                  bool done = q.Status == QuestStatus.Completed || q.IsAwaitingReward;
+                  if (!q.IsOutstanding && !done) continue;
+
+                  string deed;
+                  try { deed = QuestJournalText.Title(CalradiaRemembersQuest.FactsOf(q, null, true)); }
+                  catch { deed = null; }
+
+                  held.Add(new HeldQuest {
+                     Type = q.Type,
+                     TargetKey = KeyOf(q),
+                     GiverName = p.Name,
+                     Deed = deed,
+                     Open = q.IsOutstanding,
+                     DoneOnDay = done ? q.SatisfiedOnDay ?? q.IssuedOnDay : (int?) null,
+                     Evidence = q.Evidence
+                  });
+               }
+            }
+         }
+         catch (Exception ex) { ModLog.Error($"[QUEST] reading the tasks held failed: {ex.GetType().Name}: {ex.Message}"); }
+
+         return held;
+      }
+
       /// <summary>One short clause describing the task, for chat lines and memory events.</summary>
       private static string Describe(InformalQuest q)
       {
@@ -808,6 +854,19 @@ namespace CalradiaRemembers.Quests
          {
             ModLog.Info($"[QUEST] {giver.Name} offered a task that could not be grounded (type {proposal.Type}) — ignored.");
             notify?.Invoke("No task was recorded: what they offered could not be matched to the world. Ask them to restate it.", false);
+
+            return;
+         }
+
+         // The same deed against the same target is not set twice, by anyone, while one is open or within a week of one
+         // done (bdionysis80, Nexus 10/11/2026: "Scout an army of Sturgia" set by Athina, done, then by Vamina).
+         HeldQuest repeat = QuestRepeatPolicy.RepeatOf(quest.Type, KeyOf(quest), gameDay, HeldQuests(store));
+         if (repeat != null)
+         {
+            string deed = repeat.Deed ?? Describe(quest);
+            string state = repeat.Open ? "still open" : $"done on day {repeat.DoneOnDay}";
+            ModLog.Info($"[QUEST] {giver.Name} offered '{deed}', a repeat of {repeat.GiverName}'s ({state}), ignored.");
+            notify?.Invoke($"No task was recorded: you already carry this task for {repeat.GiverName} ({deed}, {state}).", false);
 
             return;
          }
