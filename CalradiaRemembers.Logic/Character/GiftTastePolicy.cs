@@ -7,6 +7,10 @@
 // loves furs is a Sturgian or a proud one, not every woman. The kind is read from the item's own category, so the game,
 // not the model, knows what was given. A loved gift earns twice the regard its value would; a cold one half, and never
 // costs any (my default, awaiting Gabriel's ruling). The player learns the taste by giving such a gift.
+// Silver retired (EvilPoptart1987, Nexus, 09/11/2026): "Many characters are rolling a preference for "silver" in gifts.
+// The problem is, there is no such item. There is silver ore, which they don't want and jewelry which is what silver is
+// processed into." The game's only item of category "silver" is Silver Ore; its silverware is of category "jewelry".
+// No new roll draws Silver; one already rolled reads as Jewelry (GiftTastePolicy.WithoutSilver). Gabriel: "vas-y".
 
 #region
 
@@ -94,7 +98,6 @@ namespace CalradiaRemembers.Logic.Character
             "horse" or "war_horse" or "noble_horse" => GiftKind.Horses,
             "garment" or "light_armor" or "medium_armor" or "heavy_armor" or "ultra_armor" => GiftKind.Armor,
             "cheese" or "date_fruit" or "olives" or "grape" or "butter" or "meat" => GiftKind.Delicacies,
-            "silver" => GiftKind.Silver,
             _ => GiftKind.None
          };
       }
@@ -106,12 +109,28 @@ namespace CalradiaRemembers.Logic.Character
          int loved = rng.Next(100) < 70 ? 1 : 2;
          int cold = rng.Next(100) < 50 ? 1 : 0;
          Dictionary<GiftKind, int> boost = Boosts(f);
-         List<GiftKind> open = ((GiftKind[]) Enum.GetValues(typeof(GiftKind))).Where(k => k != GiftKind.None).ToList();
+         List<GiftKind> open = ((GiftKind[]) Enum.GetValues(typeof(GiftKind))).Where(k => k != GiftKind.None && k != GiftKind.Silver).ToList();
 
          List<GiftKind> lovedKinds = Draw(open, loved, rng, k => 3 + boost[k]);
          List<GiftKind> coldKinds = Draw(open, cold, rng, k => boost[k] > 0 ? 1 : 3);
 
          return new GiftTastes {Loved = lovedKinds, Cold = coldKinds};
+      }
+
+      /// <summary>
+      ///   Tastes rolled before Silver was retired, mended: a loved Silver becomes Jewelry (the game's silverware), or
+      ///   goes when Jewelry is already loved; a cold Silver becomes Jewelry unless Jewelry is loved or already cold; a
+      ///   learned Silver is learned Jewelry. Tastes without Silver come back unchanged.
+      /// </summary>
+      public static GiftTastes WithoutSilver(GiftTastes rolled, IReadOnlyList<GiftKind> known, out List<GiftKind> knownAfter)
+      {
+         List<GiftKind> loved = rolled?.Loved ?? new List<GiftKind>();
+         List<GiftKind> cold = rolled?.Cold ?? new List<GiftKind>();
+         var lovedAfter = loved.Select(k => k == GiftKind.Silver ? GiftKind.Jewelry : k).Distinct().ToList();
+         var coldAfter = cold.Select(k => k == GiftKind.Silver ? GiftKind.Jewelry : k).Where(k => !lovedAfter.Contains(k)).Distinct().ToList();
+         knownAfter = known?.Select(k => k == GiftKind.Silver ? GiftKind.Jewelry : k).Distinct().ToList();
+
+         return new GiftTastes {Loved = lovedAfter, Cold = coldAfter};
       }
 
       /// <summary>How a gift of <paramref name="kind" /> is met by one with these tastes.</summary>
@@ -201,11 +220,9 @@ namespace CalradiaRemembers.Logic.Character
          if (t.Honor >= 1) Add(GiftKind.Weapons, 2);
          if (t.Calculating >= 1)
          {
-            Add(GiftKind.Silver, 3);
             Add(GiftKind.Jewelry, 2);
          }
 
-         if (t.Generosity <= -1) Add(GiftKind.Silver, 3);
          if (f?.IsNoble == true)
          {
             Add(GiftKind.Velvet, 2);
@@ -216,7 +233,6 @@ namespace CalradiaRemembers.Logic.Character
          {
             Add(GiftKind.Ale, 3);
             Add(GiftKind.Delicacies, 3);
-            Add(GiftKind.Silver, 2);
          }
 
          return b;
@@ -257,7 +273,6 @@ namespace CalradiaRemembers.Logic.Character
          GiftKind.Weapons => "weapons",
          GiftKind.Armor => "armour",
          GiftKind.Delicacies => "delicacies",
-         GiftKind.Silver => "silver",
          _ => null
       };
 

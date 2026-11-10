@@ -43,6 +43,16 @@ namespace CalradiaRemembers.Mapping
                profile.LovedGifts ??= tastes.Loved;
                profile.ColdGifts ??= tastes.Cold;
             }
+
+            // Silver retired (EvilPoptart1987, 09/11/2026): only Silver Ore carried it. A taste rolled before reads as Jewelry.
+            if (profile.LovedGifts.Contains(GiftKind.Silver) || profile.ColdGifts.Contains(GiftKind.Silver) || profile.KnownGifts?.Contains(GiftKind.Silver) == true)
+            {
+               GiftTastes mended = GiftTastePolicy.WithoutSilver(new GiftTastes {Loved = profile.LovedGifts, Cold = profile.ColdGifts}, profile.KnownGifts, out List<GiftKind> known);
+               profile.LovedGifts = mended.Loved;
+               profile.ColdGifts = mended.Cold;
+               profile.KnownGifts = known;
+               ModLog.Info($"[NATURE] {hero.Name}'s taste for silver now reads as jewelry (silverware).");
+            }
          }
          catch (Exception ex)
          {

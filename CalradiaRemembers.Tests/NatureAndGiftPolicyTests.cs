@@ -5,6 +5,9 @@
 // pourrions aussi ajouter certaines superstitions et phobies"). If it is wrong, every character fears something, a
 // Nord sailor dreads the sea, a character's tastes change from one game to the next, a fur cloak is read as nothing,
 // a gift they love earns no more than any other, a cold one costs regard, or the page tells what was never learned.
+// EvilPoptart1987 (Nexus, 09/11/2026): "Many characters are rolling a preference for "silver" in gifts. The problem is,
+// there is no such item. There is silver ore, which they don't want and jewelry which is what silver is processed into."
+// If the silver rules break, characters again love a gift the player can only meet with raw ore.
 
 #region
 
@@ -118,6 +121,47 @@ namespace CalradiaRemembers.Tests
          GiftTastePolicy.Welcome(GiftKind.Furs, new[] {GiftKind.Furs}, new[] {GiftKind.Weapons}).Should().Be(GiftWelcome.Loved);
          GiftTastePolicy.Welcome(GiftKind.Weapons, new[] {GiftKind.Furs}, new[] {GiftKind.Weapons}).Should().Be(GiftWelcome.Cold);
          GiftTastePolicy.Welcome(GiftKind.None, new[] {GiftKind.Furs}, null).Should().Be(GiftWelcome.Ordinary);
+      }
+
+      // STAKE: EvilPoptart1987's report: no character newly rolled loves or shuns "silver", which only raw ore carried.
+      [Test]
+      public void GIVEN_many_characters_of_every_kind_WHEN_their_gift_tastes_are_rolled_THEN_none_is_given_silver()
+      {
+         var traits = new RomanticTraits {Calculating = 2, Generosity = -2};
+         foreach (string id in Heroes)
+         {
+            GiftTastes t = GiftTastePolicy.Roll(new GiftTasteFacts {HeroId = id, Traits = traits, IsNoble = false});
+            t.Loved.Should().NotContain(GiftKind.Silver);
+            t.Cold.Should().NotContain(GiftKind.Silver);
+         }
+      }
+
+      // STAKE: the game's silverware (category "jewelry") pleases one who loves jewelry; a load of silver ore is an
+      // ordinary gift, not the one a character was said to treasure.
+      [Test]
+      public void GIVEN_silverware_and_silver_ore_WHEN_their_kind_is_read_THEN_silverware_is_jewelry_and_ore_is_nothing_special()
+      {
+         GiftTastePolicy.KindOf("jewelry").Should().Be(GiftKind.Jewelry);
+         GiftTastePolicy.KindOf("silver").Should().Be(GiftKind.None);
+      }
+
+      // STAKE: a save from before keeps its characters' tastes, mended: a love of silver becomes a love of jewelry (what
+      // silver is made into), learned as such if the player had learned it, and never both loved and shunned.
+      [Test]
+      public void GIVEN_a_taste_for_silver_rolled_in_an_older_save_WHEN_it_is_mended_THEN_it_reads_as_jewelry()
+      {
+         GiftTastes lovedSilver = GiftTastePolicy.WithoutSilver(new GiftTastes {Loved = new List<GiftKind> {GiftKind.Silver}, Cold = new List<GiftKind> {GiftKind.Weapons}},
+            new[] {GiftKind.Silver}, out List<GiftKind> known);
+         lovedSilver.Loved.Should().Equal(GiftKind.Jewelry);
+         lovedSilver.Cold.Should().Equal(GiftKind.Weapons);
+         known.Should().Equal(GiftKind.Jewelry);
+
+         GiftTastePolicy.WithoutSilver(new GiftTastes {Loved = new List<GiftKind> {GiftKind.Jewelry, GiftKind.Silver}, Cold = new List<GiftKind>()}, null, out _)
+                        .Loved.Should().Equal(GiftKind.Jewelry);
+
+         GiftTastes coldSilver = GiftTastePolicy.WithoutSilver(new GiftTastes {Loved = new List<GiftKind> {GiftKind.Jewelry}, Cold = new List<GiftKind> {GiftKind.Silver}}, null, out _);
+         coldSilver.Loved.Should().Equal(GiftKind.Jewelry);
+         coldSilver.Cold.Should().BeEmpty();
       }
 
       // STAKE: only the tastes learned by giving reach the page.
