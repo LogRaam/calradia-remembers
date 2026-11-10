@@ -7147,6 +7147,16 @@ namespace CalradiaRemembers.Diagnostics
             return at < 0 ? 0 : roster.GetElementNumber(at);
          }
 
+         int PlainWorn(Equipment eq)
+         {
+            if (eq == null) return 0;
+            var n = 0;
+            for (EquipmentIndex i = EquipmentIndex.Weapon0; i <= EquipmentIndex.ExtraWeaponSlot; i++)
+               if (eq[i].Item == weapon && eq[i].ItemModifier == null) n++;
+
+            return n;
+         }
+
          Equipment battleBefore = receiver.BattleEquipment?.Clone();
          Equipment civilianBefore = receiver.CivilianEquipment?.Clone();
          int plainBefore = PlainHeld();
@@ -7166,7 +7176,10 @@ namespace CalradiaRemembers.Diagnostics
             behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "give_item"}, receiver, ctx);
 
             t.Expect("theFineCopyLeft", Items.RosterGoods.Find(roster, key).Amount, 0);
-            t.Expect("thePlainCopyStays", PlainHeld(), plainBefore + 1);
+            // Someone riding in the company hands back the plain copy they took off to wear the fine one (Aporo,
+            // Discord 10/11/2026, CompanyGiftPolicy); that copy is the company's again.
+            int plainTakenOff = BannerlordGameStateBridge.SharesTheStores(receiver) ? PlainWorn(battleBefore) + PlainWorn(civilianBefore) - PlainWorn(receiver.BattleEquipment) - PlainWorn(receiver.CivilianEquipment) : 0;
+            t.Expect("thePlainCopyStays", PlainHeld(), plainBefore + 1 + plainTakenOff);
 
             bool WornFine(Equipment eq)
             {
@@ -12777,7 +12790,13 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Skip(town == null, "no town has an infested hideout in range; the quest is correctly refusable only")) return t.Line();
 
+         // Earlier runs left their lair task open (this test never cleaned up until 10/11/2026), and an open task is
+         // now never set twice (QuestRepeatPolicy): sweep them first.
+         int swept = SweepSelfTestHideoutQuests(behavior);
+         if (swept > 0) t.Note($"swept {swept} lair task(s) left open by earlier runs");
+
          NpcProfile profile = GetOrCreate(behavior, giver);
+         string desc = $"[SELFTEST] {giver.Name} asks you to clear a lair.";
          QuestService.ApplyResponse(
             profile, giver,
             new ParsedResponse {
@@ -12785,7 +12804,7 @@ namespace CalradiaRemembers.Diagnostics
                QuestGiven = new QuestProposal {
                   Type = QuestType.BanditHideout,
                   TargetSettlement = town.Name?.ToString(),
-                  Description = $"[SELFTEST] {giver.Name} asks you to clear a lair.",
+                  Description = desc,
                   RewardGold = 200
                }
             },
@@ -12793,17 +12812,54 @@ namespace CalradiaRemembers.Diagnostics
             behavior.GameStateBridge, behavior.Store, null);
 
          profile = behavior.Store.Get(giver.StringId);
-         InformalQuest quest = profile.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.BanditHideout && q.IsOutstanding);
+         InformalQuest quest = profile.ActiveQuests.FirstOrDefault(q => q.Type == QuestType.BanditHideout && q.Description == desc);
 
          if (t.Abort(quest == null, $"the pipeline seeded no hideout quest for {giver.Name} despite an in-range lair")) return t.Line();
 
-         Settlement lair = Settlement.All.FirstOrDefault(s => s.StringId == quest.TargetHideoutId);
-         t.Note($"giver={giver.Name} anchor={quest.TargetSettlement} dir='{quest.DirectionHint}'");
-         t.Expect("boundRealLair", !string.IsNullOrEmpty(quest.TargetHideoutId), true);
-         t.Expect("hasBearing", !string.IsNullOrWhiteSpace(quest.DirectionHint), true);
-         t.Expect("lairIsRealHideout", lair != null && lair.IsHideout, true);
+         try
+         {
+            Settlement lair = Settlement.All.FirstOrDefault(s => s.StringId == quest.TargetHideoutId);
+            t.Note($"giver={giver.Name} anchor={quest.TargetSettlement} dir='{quest.DirectionHint}'");
+            t.Expect("boundRealLair", !string.IsNullOrEmpty(quest.TargetHideoutId), true);
+            t.Expect("hasBearing", !string.IsNullOrWhiteSpace(quest.DirectionHint), true);
+            t.Expect("lairIsRealHideout", lair != null && lair.IsHideout, true);
+         }
+         finally { SweepSelfTestHideoutQuests(behavior); }
 
          return t.Line();
+      }
+
+      /// <summary>
+      ///   Closes and removes every lair task a self-test set ("[SELFTEST]" description), on every profile; returns how
+      ///   many. quest_hideout left its task open on every run until 10/11/2026.
+      /// </summary>
+      private static int SweepSelfTestHideoutQuests(NpcMemoryCampaignBehavior behavior)
+      {
+         var swept = 0;
+         foreach (string id in behavior.Store.ListIds())
+         {
+            NpcProfile p = behavior.Store.Get(id);
+            List<InformalQuest> left = p?.ActiveQuests?.Where(q => q.Type == QuestType.BanditHideout && q.Description != null
+                                                                  && q.Description.StartsWith("[SELFTEST]", StringComparison.Ordinal)).ToList();
+            if (left == null || left.Count == 0) continue;
+
+            Hero holder = Hero.FindFirst(h => h.StringId == id);
+            foreach (InformalQuest q in left)
+            {
+               try { QuestJournalBridge.CloseAsCancelled(q, holder, "[SELFTEST] cleanup."); }
+               catch
+               {
+                  /* no journal mirror to close */
+               }
+
+               p.ActiveQuests.Remove(q);
+               swept++;
+            }
+
+            behavior.Store.Set(p);
+         }
+
+         return swept;
       }
 
       /// <summary>
@@ -12834,6 +12890,7 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Skip(town == null, "no town has an infested hideout in range; the marker fix is only meaningful with a bound lair")) return t.Line();
 
+         SweepSelfTestHideoutQuests(behavior); // an open lair task left by an earlier run is never set twice (QuestRepeatPolicy)
          NpcProfile profile = GetOrCreate(behavior, giver);
          const string desc = "[SELFTEST] a lair to clear (marker).";
          QuestService.ApplyResponse(
