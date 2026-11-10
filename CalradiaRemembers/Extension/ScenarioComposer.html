@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <!-- Calradia Remembers — Scenario Composer.
      A standalone authoring tool for scripted-scenario packs. Pick keywords from dropdowns to build rules in
-     the engine's DSL, then export the JSON to Modules/CalradiaRemembers/ModuleData/scenarios/ and test in
+     the engine's DSL, then export the JSON to Modules/CalradiaRemembers/ModuleData/Custom/scenarios/ (a mod:
+     its own ModuleData/cr_scenarios/; ModuleData/scenarios/ is CR's own and an update replaces it) and test in
      game with cr.scenarios / cr.scenario_fire. Self-contained: no install, no internet, no build. Open in a
      browser. To extend the vocabulary, edit the VOCAB block below to mirror the engine. -->
 <html lang="en">
@@ -173,7 +174,7 @@ function ruleToObject(r){
 }
 function packObject(){
   return {
-    _comment:"Built with the Calradia Remembers Scenario Composer. Drop into ModuleData/scenarios/. Test: cr.scenarios / cr.scenario_fire.",
+    _comment:"Built with the Calradia Remembers Scenario Composer. Drop into ModuleData/Custom/scenarios/ (kept across CR updates; a mod ships it in its own ModuleData/cr_scenarios/). Test: cr.scenarios / cr.scenario_fire.",
     rules: rules.map(ruleToObject)
   };
 }
@@ -312,11 +313,14 @@ function downloadPack(){
   const blob=new Blob([packJson()],{type:"application/json"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name.endsWith(".json")?name:name+".json"; a.click(); URL.revokeObjectURL(a.href);
 }
+// The example's id must not be one CR already ships: CR's own pack is read first, so a player's rule reusing
+// rhagaea_death_eagles_turn (the shipped ModuleData/scenarios/example.json) was dropped without a word. Its effect is
+// not CR's wars either: those already play on her death, and a war that cannot be declared twice keeps a rule silent.
 function loadExample(){
   loadPack({ rules:[{
-    id:"rhagaea_death_eagles_turn", trigger:"ON_DEATH", guards:["IF_HERO_IS:lord_1_14"],
-    consequences:["DECLARE_WAR:empire,empire_s","DECLARE_WAR:empire_w,empire_s"],
-    message:"With the empress Rhagaea fallen, the eagles of the North and West turn upon a leaderless South.",
+    id:"my_rhagaea_court", trigger:"ON_DEATH", guards:["IF_HERO_IS:lord_1_14","IF_PLAYER_AT_WAR:empire_s"],
+    consequences:["CHANGE_INFLUENCE:PLAYER:+50"],
+    message:"With the empress fallen, those who fought her are heard louder at court.",
     fireOnce:true, weight:1 }]});
 }
 
