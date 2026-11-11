@@ -102,6 +102,7 @@ namespace CalradiaRemembers.Chat
                Season = behavior.GameStateBridge.GetSeasonName(),
                TimeOfDay = behavior.GameStateBridge.GetTimeOfDay(),
                ActiveConflicts = behavior.GameStateBridge.GetActiveConflicts(),
+               Realms = behavior.GameStateBridge.GetRealmStanding(),
                Rumors = ""
             };
 

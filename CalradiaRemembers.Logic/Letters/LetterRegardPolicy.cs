@@ -110,6 +110,20 @@ namespace CalradiaRemembers.Logic.Letters
             }
         }
 
+        /// <summary>
+        ///   The banner the player reads when a letter moved its reader's regard, as a word said face to face shows one
+        ///   (Schmidt, Discord 11/11/2026: "when NPC's get a letter for example, and it is an insult, that the game tells you
+        ///   that they lost opinion of you"). Null when nothing moved.
+        /// </summary>
+        public static string Notice(string readerName, int shift)
+        {
+            if (shift == 0) return null;
+
+            string how = shift > 0 ? "more warmly" : "more coldly";
+
+            return $"{readerName} read your letter and regards you {how}. ({shift:+#;-#;0})";
+        }
+
         /// <summary>The letter without its <see cref="Marker" /> line, so the player never reads the mod's metadata.</summary>
         public static string StripToneLine(string text)
         {

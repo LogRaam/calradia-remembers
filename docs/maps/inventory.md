@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 642 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1575 types in 56 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 643 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1580 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 287 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -596,12 +596,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterBoxNavigationItemVM` | internal class | A genuine nav-bar item that opens the letter box, its badge counting the letters waiting. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (57)
+### CalradiaRemembers.Mapping (58)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ActionGate` | public static class | The live-game side of the one initiative gate. |
 | `AffairFinding` | internal class | What a companion's inquiry brought back. |
+| `ArmyRosterReader` | public static class | The army a character marches in, for the prompt. |
 | `BattleFeatFacts` | public static class | Reads a live hero's fighting facts for CombatProwessPolicy. |
 | `ContextualNameResolver` | public static class | Scans the player's message for hero names and produces a ready-to-inject hint block for the LLM system prompt. |
 | `CouncilSeatNoteResolver` | internal static class | Resolves one council seat's modder note from council_seat.txt and that seat's own variables. |
@@ -1022,7 +1023,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (476)
+### CalradiaRemembers.Logic (478)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1366,6 +1367,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestVoidReason` | public enum | Why QuestTargetVoidPolicy.ReasonToVoid would cancel a hero-bound quest, or None when it stands. |
 | `RansomEnvoyFacts` | public class | Who a giver may send the player to buy back. |
 | `RansomEnvoyPolicy` | public static class | The rules of a ransom_envoy task. |
+| `RealmStanding` | public class | One realm as the world-state line tells it. |
+| `RealmStandingFormatter` | public static class | Renders the realms line of the world state. |
 | `RebellionFacts` | public class | A house's rebellion, and its return to the fold. |
 | `RebellionWording` | public static class | How a house's members remember a rebellion, and how the world tells it. |
 | `RecruitIntentDetector` | public static class | Detects a "where can I find / hire a companion?" intent in a free-text player message. |
@@ -2779,10 +2782,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ViolenceVerdict` | public enum | How an attempt ended. |
 | `ViolentAct` | public enum | What the player is attempting against an NPC, from least to most severe. |
 
-### CalradiaRemembers.Logic.War (10)
+### CalradiaRemembers.Logic.War (13)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `ArmyRoster` | public static class | Renders what a lord knows of his own army. |
+| `ArmyRosterFacts` | public class | The army a character marches in, as the host read it. |
+| `ArmyRosterParty` | public class | One party in an army. |
 | `ForcesInSight` | public static class | What forces in sight are told to the character, and in what words. |
 | `KeepPeaceBreachPolicy` | public static class | Decides whether a freshly declared war breaches a promisor's "keep the peace" oath. |
 | `RetirementKind` | public enum | What a spent companion asks for when they retire: decided by whether they hold land. |

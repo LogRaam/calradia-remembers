@@ -427,6 +427,7 @@ namespace CalradiaRemembers.Mapping
             KnownWanderers = ResolveKnownWanderers(hero, playerMessage),
             NpcCurrentActivity = bridge.GetCurrentActivity(hero),
             ForcesInSight = ForcesInSightReader.Read(hero),
+            NpcArmyRoster = ArmyRosterReader.Read(hero),
             TournamentsHeld = TournamentsHeardReader.Read(hero),
             CurrentLocationNote = BuildLocationNote(hero),
             CurrentLocationName = Hero.MainHero?.CurrentSettlement?.Name?.ToString() ?? "",

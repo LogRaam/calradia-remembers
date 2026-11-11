@@ -852,10 +852,13 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>
       ///   The "Invite" button: always offered in a conversation (Gabriel, 03/10/2026, after nerethi's request), to
-      ///   bring in a companion, a lord riding with the player, or one of the player's prisoners.
+      ///   bring in a companion, a lord riding with the player, or one of the player's prisoners. Not in an envoy's
+      ///   audience (Schmidt, Discord 11/11/2026: "if you invite the prisoner, they don't reply at all"): that audience
+      ///   has no character at its centre, so no road gives an invited guest a turn, and the button promised a voice
+      ///   that never came.
       /// </summary>
       [DataSourceProperty]
-      public bool IsInviteVisible => _mode == ChatMode.Conversation && !_conversationEnded;
+      public bool IsInviteVisible => _mode == ChatMode.Conversation && !_conversationEnded && _envoy == null;
 
       /// <summary>
       ///   True in plain Conversation mode while the exchange is still open: shows the manual action-injection

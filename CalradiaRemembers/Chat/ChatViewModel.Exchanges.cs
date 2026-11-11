@@ -153,6 +153,7 @@ namespace CalradiaRemembers.Chat
                Season = behavior.GameStateBridge.GetSeasonName(),
                TimeOfDay = behavior.GameStateBridge.GetTimeOfDay(),
                ActiveConflicts = behavior.GameStateBridge.GetActiveConflicts(),
+               Realms = behavior.GameStateBridge.GetRealmStanding(),
                Rumors = ""
             };
             EncounterContext context = EncounterContextBuilder.Build(
@@ -456,6 +457,7 @@ namespace CalradiaRemembers.Chat
                Season = behavior.GameStateBridge.GetSeasonName(),
                TimeOfDay = behavior.GameStateBridge.GetTimeOfDay(),
                ActiveConflicts = behavior.GameStateBridge.GetActiveConflicts(),
+               Realms = behavior.GameStateBridge.GetRealmStanding(),
                Rumors = ""
             };
             EncounterContext context = EncounterContextBuilder.Build(
@@ -943,6 +945,7 @@ namespace CalradiaRemembers.Chat
                Season = behavior.GameStateBridge.GetSeasonName(),
                TimeOfDay = behavior.GameStateBridge.GetTimeOfDay(),
                ActiveConflicts = behavior.GameStateBridge.GetActiveConflicts(),
+               Realms = behavior.GameStateBridge.GetRealmStanding(),
                Rumors = ""
             };
 
@@ -2500,6 +2503,7 @@ namespace CalradiaRemembers.Chat
                Season = behavior.GameStateBridge.GetSeasonName(),
                TimeOfDay = behavior.GameStateBridge.GetTimeOfDay(),
                ActiveConflicts = behavior.GameStateBridge.GetActiveConflicts(),
+               Realms = behavior.GameStateBridge.GetRealmStanding(),
                Rumors = ""
             };
 

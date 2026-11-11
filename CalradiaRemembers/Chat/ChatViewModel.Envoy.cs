@@ -81,6 +81,7 @@ namespace CalradiaRemembers.Chat
 
          _mode = ChatMode.Conversation;
          _envoy = envoy;
+         OnPropertyChanged(nameof(IsInviteVisible));
 
          ChatMessageViewModel placeholder = MakeSpeakerMessage(EnvoySpeaker(), PlaceholderText);
          _messages.Add(placeholder);

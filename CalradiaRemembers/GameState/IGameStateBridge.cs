@@ -107,6 +107,12 @@ namespace CalradiaRemembers.GameState
         string GetActiveConflicts();
 
         /// <summary>
+        ///   The towns and castles each realm holds and the realms that have fallen, for the world state (Schmidt, Discord
+        ///   11/11/2026). Empty when there is nothing to tell.
+        /// </summary>
+        string GetRealmStanding();
+
+        /// <summary>
         ///   The live game relation between the player and <paramref name="npc"/>
         ///   ([-100, 100]). This is the single authoritative relationship score;
         ///   it is synced into the prompt's CURRENT STANCE each turn. Returns 0 if

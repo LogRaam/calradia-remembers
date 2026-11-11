@@ -506,6 +506,26 @@ namespace CalradiaRemembers.GameState
          return ActiveConflictsFormatter.Describe(wars, (Hero.MainHero?.MapFaction as Kingdom)?.Name?.ToString());
       }
 
+      public string GetRealmStanding()
+      {
+         if (Kingdom.All == null) return "";
+
+         List<Settlement> fiefs = Settlement.All?.Where(s => s != null && (s.IsTown || s.IsCastle)).ToList() ?? new List<Settlement>();
+         var realms = new List<RealmStanding>();
+         foreach (Kingdom k in Kingdom.All)
+         {
+            if (k == null) continue;
+            realms.Add(new RealmStanding {
+               Name = k.Name?.ToString(),
+               Towns = k.IsEliminated ? 0 : fiefs.Count(s => s.IsTown && s.MapFaction == k),
+               Castles = k.IsEliminated ? 0 : fiefs.Count(s => s.IsCastle && s.MapFaction == k),
+               HasFallen = k.IsEliminated
+            });
+         }
+
+         return RealmStandingFormatter.Describe(realms);
+      }
+
       public string GetCurrentActivity(Hero npc)
       {
          try

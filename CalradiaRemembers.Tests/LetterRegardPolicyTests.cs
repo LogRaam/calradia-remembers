@@ -107,6 +107,22 @@ namespace CalradiaRemembers.Tests
                 .Should().Contain(LetterRegardPolicy.Marker + " warmer");
         }
 
+        // Schmidt (Discord, 11/11/2026): an insulting letter cost regard and the game never said so, where the same word face
+        // to face shows a banner. The player must learn that a letter cost or earned regard, and by how much.
+        [Test]
+        public void GIVEN_a_letter_that_cost_regard_WHEN_the_player_is_told_THEN_the_banner_names_the_reader_and_the_loss()
+        {
+            LetterRegardPolicy.Notice("Lady Idrun", -1).Should().Be("Lady Idrun read your letter and regards you more coldly. (-1)");
+            LetterRegardPolicy.Notice("Lady Idrun", 1).Should().Be("Lady Idrun read your letter and regards you more warmly. (+1)");
+        }
+
+        // A letter that moved nothing (the cooldown, the ceiling, a neutral one) raises no banner, or every letter would.
+        [Test]
+        public void GIVEN_a_letter_that_moved_nothing_WHEN_the_player_is_told_THEN_no_banner_is_raised()
+        {
+            LetterRegardPolicy.Notice("Lady Idrun", 0).Should().BeNull();
+        }
+
         // The line is for the mod: the player must never read "[LETTER_TONE] warmer" at the foot of a love letter.
         [Test]
         public void GIVEN_a_reply_carrying_its_tone_line_WHEN_the_letter_is_kept_THEN_the_line_is_gone()
