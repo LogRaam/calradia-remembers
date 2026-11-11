@@ -2897,7 +2897,7 @@ namespace CalradiaRemembers.Chat
       ///   ever-growing raw transcript. A no-op below the policy threshold; never throws (a failed fold just keeps
       ///   the raw history). LLM off-thread, then the state mutation back on the main thread.
       /// </summary>
-      private async Task EnsureTranscriptCompressedAsync()
+      private async Task EnsureTranscriptCompressedAsync(Func<int, int, ConversationFoldPlan> planFor = null)
       {
          try
          {
@@ -2906,12 +2906,14 @@ namespace CalradiaRemembers.Chat
 
             // Compact folds sooner. The raw transcript was the one growing part of a Compact prompt that
             // nothing had ever shrunk, which is why a small model's FIRST message could fit and its followups
-            // could not (DuskSymphony, Nexus).
-            ConversationFoldPlan plan = ConversationCompressionPolicy.Plan(new ConversationCompressionPolicy.TranscriptFold {
-               TotalLines = _transcript.Count,
-               SummarizedThrough = _transcript.SummarizedThrough,
-               Threshold = ConversationCompressionPolicy.ThresholdFor(ModSettings.LeanPrompt)
-            });
+            // could not (DuskSymphony, Nexus). A council brings its own pacing (CouncilSittingPolicy.Plan).
+            ConversationFoldPlan plan = planFor != null
+               ? planFor(_transcript.Count, _transcript.SummarizedThrough)
+               : ConversationCompressionPolicy.Plan(new ConversationCompressionPolicy.TranscriptFold {
+                  TotalLines = _transcript.Count,
+                  SummarizedThrough = _transcript.SummarizedThrough,
+                  Threshold = ConversationCompressionPolicy.ThresholdFor(ModSettings.LeanPrompt)
+               });
             if (!plan.ShouldFold) return;
 
             string newLines = _transcript.RenderRange(plan.FoldFrom, plan.FoldTo, PlayerTranscriptLabel());

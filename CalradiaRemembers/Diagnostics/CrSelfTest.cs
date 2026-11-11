@@ -284,6 +284,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("company_gift", Severity.Light, "Aporo (Discord, 10/11/2026): an item handed to a companion was never equipped and was gone from the stores. Through the REAL hand-over a companion riding in the player's party gets: grain (nothing to wear) handed over comes back to the company's stores, whole, and buys no regard", TestCompanyGift),
          new SelfTest("relation_ledger_prune", Severity.Light, "tashmetu (Nexus, 09/11/2026): the relation ledger reached 18.2 million bytes and broke his save. The REAL prune the save runs, on a stand-in ledger of real lords: a pair back at its start is dropped and reads the same, a pair whose value moved is kept, a pair with an unknown hero is dropped; the size of this campaign's own ledger is noted", TestRelationLedgerPrune),
          new SelfTest("quest_repeat", Severity.Light, "bdionysis80 (Nexus, 10/11/2026): a second war council set 'Scout an army of Sturgia' (Vamina) a few days after the same scouting (Athina) was done, and the table was never told what the player carried. With a [SELFTEST] scouting marked done today on one lord: the REAL IssueQuest refuses the same scouting from another lord and says whose it is; the tasks a council reads list it as done; the company's men and food days are read", TestQuestRepeat),
+         new SelfTest("council_sitting_memory", Severity.Light, "Gabriel (10/11/2026): \"la memoire du conseil\". The council showed the last 24 lines of a sitting and dropped the rest, and never recorded the player's own lines. With a 40-line sitting holding the player's words, folded at the council's own pacing: the REAL CouncilPromptBuilder carries the recap first, the player's recent words under 'You', and no line older than the fold; unfolded, the window stays at most the old 24 lines. Builds no world state", TestCouncilSittingMemory),
          new SelfTest("scout_army_place", Severity.Light, "bdionysis80 (Nexus, 10/11/2026): a council pledged to scout Hvalvik, a Nord port the player was not at war with, and the game set 'Scout an army of Sturgia'. Through the REAL QuestFactory: scout_army near a place held by a realm the player is not at war with sets no task; near a place held by an enemy it binds that enemy; with nothing named it still binds an enemy", TestScoutArmyPlace),
          new SelfTest("shared_night_once", Severity.Light, "Lordfadooboo (Nexus, 09/11/2026, 2.8.4): \"+3 regard bonus with every message\" with an authored character. A shared night (an intimate turn with no gain proposed) warmed +3 on every message, bypassing the intimacy bonus's 24-hour door. The REAL turn method, on a stand-in profile: the first intimate turn warms, the next ones that day add nothing, a day later it warms again", TestSharedNightOnce),
          new SelfTest("save_blobs", Severity.Light, "tashmetu (Nexus, 09/11/2026): long campaigns stopped loading, a CR store past 16,777,215 bytes in the save. The REAL memory store and relation ledger of this campaign, serialized as a save writes them, go through SaveBlobCodec and its Base64 pieces (2.8.8) and come back identical, every piece a string the game saves whole; then SaveBlob itself, on a stand-in data store: a 2.8.6-2.8.7 save (GZip), the first 2.8.8 builds' GZip pieces and an older plain one still load, a new save writes PPMd pieces only and reads them first; size, ratio and time are noted", TestSaveBlobs),
@@ -6701,6 +6702,38 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("regardRoseOnce", profile.ReputationWithPlayer - before, Logic.DeedRegardPolicy.SharedNightVictim);
          // STAKE: a night shared the next day still counts.
          t.Expect("aDayLaterItWarmsAgain", ChatViewModel.ApplySharedNightWarmth(profile, now + Logic.RelationGate.IntimacyCooldownHours), Logic.DeedRegardPolicy.SharedNightVictim);
+
+         return t.Line();
+      }
+
+      private static string TestCouncilSittingMemory(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("council_sitting_memory");
+         var sitting = new Logic.Conversation.ConversationTranscript();
+         for (var i = 0; i < 40; i++)
+            sitting.Record(i % 5 == 0
+               ? new Logic.TranscriptLine {IsPlayer = true, Text = $"CRSELFTEST my word {i}"}
+               : new Logic.TranscriptLine {SpeakerName = "Ira", Text = $"CRSELFTEST seat line {i}"});
+
+         // Unfolded, a failed recap keeps the old window.
+         t.Expect("unfoldedKeepsTheOldWindow", Logic.Conversation.CouncilSittingPolicy.ShownLines(sitting).Count, Logic.Conversation.CouncilSittingPolicy.MaxShown);
+
+         Logic.Conversation.ConversationFoldPlan plan = Logic.Conversation.CouncilSittingPolicy.Plan(sitting.Count, sitting.SummarizedThrough);
+         t.Expect("aLongSittingFolds", plan.ShouldFold, true);
+         sitting.ApplySummary("CRSELFTEST recap: the player vowed to take Hvalvik.", plan.FoldTo);
+
+         string prompt = CouncilPromptBuilder.Build(new CouncilPromptInput {
+            Roster = new List<CouncilMemberInput> {new CouncilMemberInput {Name = "Ira"}},
+            PlayerLine = "CRSELFTEST so?",
+            TranscriptSoFar = Logic.Conversation.CouncilSittingPolicy.ShownLines(sitting),
+            SittingRecap = Logic.Conversation.CouncilSittingPolicy.Recap(sitting)
+         });
+         // STAKE: what the player said before the fold reaches the table through the recap, before the recent lines.
+         t.Expect("theRecapReachesTheTable", prompt.Contains("CRSELFTEST recap: the player vowed to take Hvalvik."), true);
+         // STAKE: the player's recent words are shown under "You".
+         t.Expect("thePlayersRecentWordsAreShown", prompt.Contains("You: CRSELFTEST my word 35"), true);
+         // STAKE: nothing folded is shown twice.
+         t.Expect("foldedLinesAreNotShownWhole", prompt.Contains("CRSELFTEST my word 0") || prompt.Contains("CRSELFTEST seat line 1" + Environment.NewLine), false);
 
          return t.Line();
       }

@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 642 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1571 types in 56 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1572 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 287 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2017,7 +2017,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RetentionStep` | public enum | What the engine should do this tick for an unhappy companion. |
 | `WandererBackstoryPolicy` | public static class | Which of the game's lines are a wanderer's own story, and the one memory that keeps it. |
 
-### CalradiaRemembers.Logic.Conversation (34)
+### CalradiaRemembers.Logic.Conversation (35)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2043,6 +2043,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ConversationResumeVerdict` | public enum | Why a kept conversation was or was not picked up again. |
 | `ConversationSummaryQueue` | public class | A pure, ordered (FIFO) queue of PendingSummaryJob. |
 | `ConversationTranscript` | public class | Accumulates the conversation's attributed lines and answers the two questions asked of it: what session one participant should receive, and how the whole thing reads as plain text. |
+| `CouncilSittingPolicy` | public static class | When a council sitting folds its older lines into a recap, and which lines it still shows whole. |
 | `EnsembleFloorPolicy` | public static class | Decides whether an ensemble beat left a question hanging, and who in the room should answer it. |
 | `MapEncounterCloseFacts` | public class | What the close knows of the player's encounter. |
 | `MapEncounterClosePolicy` | public static class | Whether the close may finish the encounter. |

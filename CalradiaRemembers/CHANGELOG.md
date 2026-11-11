@@ -4,6 +4,10 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.8.9.. unreleased
 
+### Fixed
+
+- **A war council remembers what you said earlier in the sitting** (Gabriel, 10/11/2026: "on fait ... la memoire du conseil"). Traced: the council showed the model the last 24 lines of the sitting and dropped the rest silently, so a table of four forgot everything older than about five turns; and the player's own lines never reached those 24 at all, since the council turn displayed the player's words without recording them (`AppendPlayerMessage(text, false)`) and nothing recorded them after, so the table only ever knew the line of the turn in hand. Now the player's line enters the sitting's record before the table's answer to it, and a long sitting folds its older lines into a running recap, the 1:1 chat's own fold (`ConversationHistoryCompressor`, the background model) at the council's pacing (`CouncilSittingPolicy`: fold past 24 lines, keep the last 10 whole, show at most 24 whatever happens, so a failed recap call leaves the sitting as it was). The recap reaches the table under EARLIER IN THIS SITTING, before the recent lines (SDK `CouncilPromptInput.SittingRecap`). The seats' memories written at the close read the same record, so they now hold the player's words too. `cr.test council_sitting_memory`. Not play-verified (the recording inside a live council has no self-test; the fold and the prompt do).
+
 ## v2.8.8.. 2026-11-10
 
 ### New

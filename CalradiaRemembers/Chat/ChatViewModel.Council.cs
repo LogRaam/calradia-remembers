@@ -21,6 +21,7 @@ using CalradiaRemembers.GameState;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Mapping;
 using CalradiaRemembers.Logic.Assemblies;
+using CalradiaRemembers.Logic.Conversation;
 using CalradiaRemembers.Logic.Witnesses;
 using CalradiaRemembers.Witnesses;
 using NpcMemoryService.Core.Knowledge;
@@ -1054,6 +1055,10 @@ namespace CalradiaRemembers.Chat
                return;
             }
 
+            // A long sitting folds its older lines into a recap first, the player's words with them (Gabriel, 10/11/2026:
+            // "la memoire du conseil"); the 1:1 chat's fold, with the council's own pacing.
+            if (!isOpener) await EnsureTranscriptCompressedAsync(CouncilSittingPolicy.Plan);
+
             CouncilPromptInput input = BuildCouncilPromptInput(playerMessage, isOpener);
             if (input.Roster.Count == 0)
             {
@@ -1110,6 +1115,10 @@ namespace CalradiaRemembers.Chat
             CouncilParsedResponse parsed = new CouncilResponseParser().Parse(raw, names);
 
             _messages.Remove(placeholder); // drop the "weighs your words" tile; the parsed scene replaces it
+
+            // The player's line enters the sitting's record before the table's answer to it. It was shown and never recorded,
+            // so the next turn's prompt never held what the player had said (Gabriel, 10/11/2026: "la memoire du conseil").
+            if (!isOpener) RecordTranscript(true, "You", Hero.MainHero?.StringId, playerMessage);
 
             // Walk the contributions in the model's own order: a scene beat is a narrator hand-off/reaction
             // (no speaker), everything else is a member's turn under their own bubble. This is what gives the
@@ -1262,6 +1271,7 @@ namespace CalradiaRemembers.Chat
             Season = bridge?.GetSeasonName(),
             Place = Hero.MainHero?.CurrentSettlement?.Name?.ToString(),
             TranscriptSoFar = CouncilTranscriptLines(),
+            SittingRecap = CouncilSittingPolicy.Recap(_transcript),
             OfferedResolutionKinds = CurrentOfferedResolutionKinds(),
             TrialCharges = _councilScope == CouncilScope.Trial ? Logic.ArrestPolicy.Describe(Arrests.ArrestBehavior.Instance?.Case?.Charges) : null,
             TrialPresiding = _councilScope == CouncilScope.Trial ? TrialPresidingName() : null,
@@ -1282,20 +1292,11 @@ namespace CalradiaRemembers.Chat
          return liege?.Name?.ToString() ?? "the presiding lord";
       }
 
-      /// <summary>The recent conversation as Discord-style "Name: line" strings (the player is "You"), bounded to the last several turns to keep the prompt lean.</summary>
-      private IReadOnlyList<string> CouncilTranscriptLines()
-      {
-         const int maxLines = 24;
-         var lines = new List<string>();
-         foreach (var l in _transcript.Lines)
-         {
-            if (l == null || string.IsNullOrWhiteSpace(l.Text)) continue;
-            string who = l.IsNarration ? "(scene)" : l.IsPlayer ? "You" : l.SpeakerName ?? "Someone";
-            lines.Add($"{who}: {l.Text}");
-         }
-
-         return lines.Count > maxLines ? lines.GetRange(lines.Count - maxLines, maxLines) : lines;
-      }
+      /// <summary>
+      ///   The sitting's lines still shown whole, as "Name: line" strings (the player is "You"), after any recap
+      ///   (CouncilSittingPolicy; Gabriel, 10/11/2026: "la memoire du conseil").
+      /// </summary>
+      private IReadOnlyList<string> CouncilTranscriptLines() => CouncilSittingPolicy.ShownLines(_transcript);
 
       /// <summary>The [RESOLUTION] kinds offerable at this council right now (same gate the old chat-flag path used).</summary>
       private IReadOnlyList<string> CurrentOfferedResolutionKinds()
