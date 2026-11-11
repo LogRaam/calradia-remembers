@@ -201,7 +201,7 @@ namespace CalradiaRemembers.Quests
 
       // ── Helpers ───────────────────────────────────────────────────────────
 
-      private static CalradiaRemembersQuest FindMirror(InformalQuest quest, Hero giver)
+      internal static CalradiaRemembersQuest FindMirror(InformalQuest quest, Hero giver)
       {
          if (quest == null || giver == null || Campaign.Current?.QuestManager == null)
             return null;

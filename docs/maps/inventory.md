@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 643 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1580 types in 56 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1582 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 287 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 27000+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 27500+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 9000+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 6000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -2511,7 +2511,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SceneContentKind` | public enum | The kind of scene that is opening. |
 | `ServiceRole` | public enum | A model ROLE the player can route to its own provider. |
 
-### CalradiaRemembers.Logic.Quests (22)
+### CalradiaRemembers.Logic.Quests (24)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2525,6 +2525,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestKillCreditPolicy` | public static class | Decides whether a hero's death satisfies a kill-target quest, given who struck the blow. |
 | `QuestMenuComposer` | public static class | Formats the grounded quest menu into compact prompt lines. |
 | `QuestMenuEntry` | public class | One task a giver can truly offer right now: its type token, its REAL target, and a short cue. |
+| `QuestOfferFacts` | public class | A task put to the player, as the offer shows it. |
+| `QuestOfferText` | public static class | Composes the offer a character puts to the player. |
 | `QuestReconcilePolicy` | public static class | Pure decision for the session-launch quest-mirror reconciler. |
 | `QuestRecoveryPolicy` | public static class | Resolves the 1-based quest number a player typed into a 0-based index, or an error to show. |
 | `QuestRepeatPolicy` | public static class | Decides whether a task offered repeats one the player holds, and lists those a council should know. |

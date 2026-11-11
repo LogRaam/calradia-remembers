@@ -72,8 +72,10 @@ namespace CalradiaRemembers.Quests
             LlmFeedbackNotes.Set(giver.Id, "Your last task offer could not be registered (it came through garbled, or named a target I could not place).");
          }
 
+         // Schmidt (Discord, 11/11/2026): a task the player never agreed to. A [QUEST] from a conversation is put to the
+         // player as an offer; it becomes theirs only when they accept it.
          if (response.QuestGiven != null)
-            IssueQuest(giver, giverHero, response.QuestGiven, gameDay, store, notify);
+            IssueQuest(giver, giverHero, response.QuestGiven, gameDay, store, notify, askThePlayer: true);
 
          if (response.QuestCompleted != null)
             CompleteQuest(giver, giverHero, response.QuestCompleted, gameDay, bridge, store, notify);
@@ -838,7 +840,8 @@ namespace CalradiaRemembers.Quests
                                      QuestProposal proposal,
                                      int gameDay,
                                      BannerlordNpcMemoryStore store,
-                                     Action<string, bool> notify)
+                                     Action<string, bool> notify,
+                                     bool askThePlayer = false)
       {
          // One task at a time: never stack a new quest on an unfinished one. Say so (the NPC just SPOKE
          // the offer, so silence here reads as a broken promise).
@@ -884,6 +887,98 @@ namespace CalradiaRemembers.Quests
             return;
          }
 
+         if (askThePlayer)
+         {
+            PutToThePlayer(giver, giverHero, quest, store, notify);
+
+            return;
+         }
+
+         Activate(giver, giverHero, quest, gameDay, store, notify);
+      }
+
+      /// <summary>
+      ///   The player's answer to a task put to them, for the self-test only: when set, it answers at once in place of the
+      ///   Accept/Decline window (true accepts, false declines). Null in play.
+      /// </summary>
+      internal static Func<InformalQuest, bool> ConsentForTest;
+
+      /// <summary>
+      ///   Schmidt (Discord, 11/11/2026): "NPC's give you quests that you didn't agree to". Gabriel: "Tu peux faire 11." A
+      ///   task that passed every check is put to the player in an Accept/Decline window; nothing is recorded, no journal
+      ///   entry opened and no coin advanced until they accept. Declining costs nothing: no word was given.
+      /// </summary>
+      private static void PutToThePlayer(NpcProfile giver, Hero giverHero, InformalQuest quest, BannerlordNpcMemoryStore store, Action<string, bool> notify)
+      {
+         var offer = new QuestOfferFacts {
+            GiverName = giver.Name,
+            Deed = Describe(quest),
+            RewardGold = quest.RewardGold,
+            RewardRelation = quest.RewardRelation,
+            Grant = quest.Reward,
+            DeadlineDays = quest.DeadlineDay.HasValue ? quest.DeadlineDay - quest.IssuedOnDay : null
+         };
+         string giverId = giver.Id;
+         ModLog.Info($"[QUEST] {giver.Name} put a task to the player, awaiting the answer: {offer.Deed}.");
+         notify?.Invoke(QuestOfferText.Pending(offer), true);
+
+         void Answer(bool accepted)
+         {
+            try
+            {
+               NpcProfile current = store.Get(giverId) ?? giver;
+               var today = (int) CampaignTime.Now.ToDays;
+               if (!accepted)
+               {
+                  AddEvent(current, today, NotableEventType.Other, $"Offered the player a task ({offer.Deed}); they declined it.");
+                  store.Set(current);
+                  LlmFeedbackNotes.Set(giverId, $"The player DECLINED the task you offered ({offer.Deed}). It is not theirs: never speak as if they agreed to it.");
+                  ModLog.Info($"[QUEST] the player declined {current.Name}'s task: {offer.Deed}.");
+                  notify?.Invoke($"You decline {current.Name}'s task.", false);
+
+                  return;
+               }
+
+               // The window may have stayed open while the world moved: the checks that refuse a task run again.
+               if (current.ActiveQuests.Any(q => q.IsOutstanding))
+               {
+                  notify?.Invoke($"No new task was recorded: you already carry one for {current.Name}.", false);
+
+                  return;
+               }
+
+               HeldQuest repeat = QuestRepeatPolicy.RepeatOf(quest.Type, KeyOf(quest), today, HeldQuests(store));
+               if (repeat != null)
+               {
+                  notify?.Invoke($"No task was recorded: you already carry this task for {repeat.GiverName}.", false);
+
+                  return;
+               }
+
+               Activate(current, giverHero, quest, today, store, notify);
+               LlmFeedbackNotes.Set(giverId, $"The player ACCEPTED the task you offered ({offer.Deed}). It is now theirs.");
+            }
+            catch (Exception ex)
+            {
+               ModLog.Error($"[QUEST] answering {giver.Name}'s task offer failed: {ex.GetType().Name}: {ex.Message}");
+            }
+         }
+
+         if (ConsentForTest != null)
+         {
+            Answer(ConsentForTest(quest));
+
+            return;
+         }
+
+         TaleWorlds.Library.InformationManager.ShowInquiry(new TaleWorlds.Library.InquiryData(
+            QuestOfferText.Title(offer), QuestOfferText.Body(offer), true, true, "Accept", "Decline",
+            () => Answer(true), () => Answer(false)), true);
+      }
+
+      /// <summary>Makes <paramref name="quest" /> the player's: recorded, its journal entry opened, an envoy's purse handed over.</summary>
+      private static void Activate(NpcProfile giver, Hero giverHero, InformalQuest quest, int gameDay, BannerlordNpcMemoryStore store, Action<string, bool> notify)
+      {
          giver.ActiveQuests.Add(quest);
          AddEvent(giver, gameDay, NotableEventType.Agreement, $"Asked the player to {Describe(quest)}.");
          store.Set(giver);

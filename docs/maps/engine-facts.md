@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-768 rules read 570 facts.
+772 rules read 571 facts.
 
 ## Facts read by more than one rule
 
@@ -139,6 +139,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Army.EstimatedStrength` (4) | `InterceptionFacts`, `InterceptionPolicy.Choose`, `InterceptionPolicy.IsOutnumbered`, `InterceptionPolicy.IsRoadValid` |
 | `BattleTypes.Raid` (4) | `BattleMemoryText.ChronicleEngagement`, `BattleMemoryText.PlaceClause`, `BattleRecordText.Summary`, `SkirmishFacts` |
 | `BattleTypes.Siege` (4) | `BattleFacts`, `BattleMemoryText.ChronicleEngagement`, `BattleMemoryText.PlaceClause`, `BattleRecordText.Summary` |
+| `Description.TrimEnd` (4) | `QuestOfferFacts`, `QuestOfferText.Body`, `QuestOfferText.Pending`, `QuestOfferText.Title` |
 | `EndCaptivityDetail.ReleasedAfterBattle` (4) | `EnvoyReleaseFacts`, `PrisonerMemoryText.Released`, `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
 | `EndCaptivityDetail.ReleasedByChoice` (4) | `CustodyReleaseFacts`, `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
 | `Event.Day` (4) | `PastCandidateFacts`, `PastOnMentionPolicy.Block`, `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
@@ -931,6 +932,10 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `ProviderRolePolicy.ResolveRoleKind`: `Provider.SelectedValue`
 - `QuestJournalText.Title`: `ActiveQuests.Find`
 - `QuestMenuEntry`: `Book.ForNpc`, `Clan.Name`, `Culture.Name`, `FactionManager.IsAtWarAgainstFaction`, `Good.Name`, `Hero.Clan`, `Hero.CurrentSettlement`, `Hero.MapFaction`, `Hero.Name`, `Kingdom.Leader`, `MarriageModel.IsCoupleSuitableForMarriage`, `Place.Name`, `Settlement.GetPosition2D`, `Settlement.Name`, `Vec2.Clan`, `Vec2.IsPrisoner`, `Vec2.MapFaction`, `Vec2.Spouse`, `Vec2.x`, `Vec2.y`
+- `QuestOfferFacts`: `Description.TrimEnd`
+- `QuestOfferText.Body`: `Description.TrimEnd`
+- `QuestOfferText.Pending`: `Description.TrimEnd`
+- `QuestOfferText.Title`: `Description.TrimEnd`
 - `QuestRescueCreditPolicy.CreditsPlayerRescue`: `EndCaptivityDetail.Death`, `EndCaptivityDetail.Ransom`, `EndCaptivityDetail.ReleasedAfterBattle`, `EndCaptivityDetail.ReleasedAfterEscape`, `EndCaptivityDetail.ReleasedAfterPeace`, `EndCaptivityDetail.ReleasedByChoice`, `EndCaptivityDetail.ReleasedByCompensation`
 - `RaidRestraintPolicy.ChanceToSpare`: `Hero.Father`, `Hero.Mother`, `Hero.Spouse`
 - `RaidRestraintPolicy.Spares`: `Hero.Father`, `Hero.Mother`, `Hero.Spouse`
