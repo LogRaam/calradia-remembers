@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 643 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1582 types in 56 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1585 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 287 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2511,7 +2511,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SceneContentKind` | public enum | The kind of scene that is opening. |
 | `ServiceRole` | public enum | A model ROLE the player can route to its own provider. |
 
-### CalradiaRemembers.Logic.Quests (24)
+### CalradiaRemembers.Logic.Quests (27)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2529,6 +2529,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestOfferText` | public static class | Composes the offer a character puts to the player. |
 | `QuestReconcilePolicy` | public static class | Pure decision for the session-launch quest-mirror reconciler. |
 | `QuestRecoveryPolicy` | public static class | Resolves the 1-based quest number a player typed into a 0-based index, or an error to show. |
+| `QuestRefusal` | public enum | Why a task offer could not be recorded. |
+| `QuestRefusalFacts` | public class | A refused task offer, as the refusal names it. |
+| `QuestRefusalText` | public static class | What a refused task offer says, to the player in the chat and to the character on its next turn. |
 | `QuestRepeatPolicy` | public static class | Decides whether a task offered repeats one the player holds, and lists those a council should know. |
 | `QuestRewardGatePolicy` | public static class | Pure eligibility/re-validation gate for RewardGrant.GrantFief and RewardGrant.MarriageReward. |
 | `QuestRewardPayoutVerdict` | public enum | The binary outcome of re-validating a heavy quest reward (fief or marriage) at payout. |

@@ -285,6 +285,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("relation_ledger_prune", Severity.Light, "tashmetu (Nexus, 09/11/2026): the relation ledger reached 18.2 million bytes and broke his save. The REAL prune the save runs, on a stand-in ledger of real lords: a pair back at its start is dropped and reads the same, a pair whose value moved is kept, a pair with an unknown hero is dropped; the size of this campaign's own ledger is noted", TestRelationLedgerPrune),
          new SelfTest("quest_repeat", Severity.Light, "bdionysis80 (Nexus, 10/11/2026): a second war council set 'Scout an army of Sturgia' (Vamina) a few days after the same scouting (Athina) was done, and the table was never told what the player carried. With a [SELFTEST] scouting marked done today on one lord: the REAL IssueQuest refuses the same scouting from another lord and says whose it is; the tasks a council reads list it as done; the company's men and food days are read", TestQuestRepeat),
          new SelfTest("council_sitting_memory", Severity.Light, "Gabriel (10/11/2026): \"la memoire du conseil\". The council showed the last 24 lines of a sitting and dropped the rest, and never recorded the player's own lines. With a 40-line sitting holding the player's words, folded at the council's own pacing: the REAL CouncilPromptBuilder carries the recap first, the player's recent words under 'You', and no line older than the fold; unfolded, the window stays at most the old 24 lines. Builds no world state", TestCouncilSittingMemory),
+         new SelfTest("quest_refusal_reason", Severity.Light, "Aporo (Discord, 11/11/2026): Grand Prince Raganvad offered Mazhadan Castle for a captured lord three times, and each refusal said only 'could not be matched to the world', so he restated the same castle. Through the REAL QuestService.ApplyResponse, a clan leader offers a task priced with a castle his clan does not hold: with fief rewards off the player is told fiefs are not quest rewards in the settings, with them on that the castle is not his to give; either way the character's next-turn note says the offer was NOT recorded, and no task is recorded. The giver's outstanding tasks are set aside and restored", TestQuestRefusalReason),
          new SelfTest("quest_consent", Severity.Light, "Schmidt (Discord, 11/11/2026): \"NPC's give you quests that you didn't agree to ... Same with asking NPC's to do something but it shows up for you as a quest.\" Gabriel: \"Tu peux faire 11.\" Through the REAL QuestService.ApplyResponse with a [QUEST] a lord of another realm puts to the player (scout a castle of a third realm), the Accept/Decline window answered through its test seam: while the offer waits nothing is recorded; declined, no task and no journal entry, the giver remembers the refusal and the model is told; accepted, the task is the player's with its journal entry. The giver's outstanding tasks are set aside first and restored, and the accepted task is cancelled and removed", TestQuestConsent),
          new SelfTest("realms_and_armies", Severity.Light, "Schmidt (Discord, 11/11/2026): \"everyone acts surprised when I tell them that Sturgia is no more\", and lords did not know which lords marched in their army. Through the REAL bridge and reader: the realms line names every standing realm with its fiefs and a realm the game counts destroyed as fallen (with none fallen, one realm's own destroyed flag is set for the read and restored at once); a lord marching in an army of two parties or more is told the other lords and the total (with none in the field, an army is raised from two lords of one realm and disbanded at once); a lord in no army is told none", TestRealmsAndArmies),
          new SelfTest("scout_place", Severity.Light, "bdionysis80 (Nexus, 10/11/2026): a council pledged to scout Hvalvik's garrison and no task could hold it; Gabriel (10/11/2026): \"on fait le type de quete eclairer un lieu\". Through the REAL QuestFactory, with a lord of another realm as giver: a castle (or town) of a third realm becomes a scout_place task on that place, with no war faction bound; a place of the giver's own realm sets none; the council grounds the token; the hourly tick's sight check finds the place from its own position and not from 40 units off; a lord at war is offered an enemy place in the grounded menu; then what the deed tracker reads of that place is a report naming it, its holder and its garrison. Sets nothing in the world", TestScoutPlace),
@@ -6651,6 +6652,47 @@ namespace CalradiaRemembers.Diagnostics
          int? days = MobileParty.MainParty?.GetNumDaysForFoodToLast();
          t.Note($"company: {MobileParty.MainParty?.MemberRoster?.TotalManCount} men, food for {days} days");
          t.Expect("theFoodDaysAreRead", days.HasValue, true);
+
+         return t.Line();
+      }
+
+      private static string TestQuestRefusalReason(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("quest_refusal_reason");
+         if (t.Skip(Campaign.Current == null || Hero.MainHero == null || behavior?.Store == null, "no campaign")) return t.Line();
+
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && Mapping.HeroPresence.IsInTheWorld(h) && h.Clan != null && h.Clan.Leader == h && h.Clan != Clan.PlayerClan);
+         if (t.Skip(giver == null, "no clan leader alive")) return t.Line();
+         Settlement castle = Settlement.All.FirstOrDefault(s => (s.IsCastle || s.IsTown) && s.OwnerClan != null && s.OwnerClan != giver.Clan);
+         if (t.Skip(castle == null, "no fief held by another clan")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, giver);
+         List<InformalQuest> setAside = profile.ActiveQuests.Where(q => q.IsOutstanding).ToList();
+         var notes = new List<string>();
+         var response = new ParsedResponse {
+            Dialogue = "",
+            QuestGiven = new QuestProposal {Type = QuestType.ProvideGold, Reward = RewardGrant.GrantFief, RewardSettlement = castle.Name.ToString(), Description = "[SELFTEST] a castle for a deed"}
+         };
+         try
+         {
+            foreach (InformalQuest q in setAside) profile.ActiveQuests.Remove(q);
+            LlmFeedbackNotes.ConsumeFor(giver.StringId);
+
+            Quests.QuestService.ApplyResponse(profile, giver, response, (int) CampaignTime.Now.ToDays, behavior.GameStateBridge, behavior.Store, (text, _) => notes.Add(text));
+
+            // STAKE (Aporo): the refusal names the reward that was refused, not "could not be matched to the world".
+            string expected = ModSettings.AllowFiefAndMarriageQuestRewards ? "which is not theirs to give" : "fiefs are not quest rewards in your settings";
+            t.Expect("thePlayerIsToldWhy", notes.Any(n => n.Contains(expected)), true);
+            t.Expect("notTheOldVagueLine", notes.Any(n => n.Contains("could not be matched to the world")), false);
+            t.Expect("theCharacterIsTold", LlmFeedbackNotes.ConsumeFor(giver.StringId)?.Contains("NOT recorded") == true, true);
+            t.Expect("noTaskIsRecorded", profile.ActiveQuests.Any(q => q.IsOutstanding), false);
+         }
+         finally
+         {
+            foreach (InformalQuest q in setAside) profile.ActiveQuests.Add(q);
+            behavior.Store.Set(profile);
+            LlmFeedbackNotes.ConsumeFor(giver.StringId);
+         }
 
          return t.Line();
       }

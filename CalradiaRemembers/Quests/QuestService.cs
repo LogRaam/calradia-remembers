@@ -853,11 +853,15 @@ namespace CalradiaRemembers.Quests
             return;
          }
 
-         InformalQuest quest = QuestFactory.Create(proposal, giverHero, gameDay);
+         InformalQuest quest = QuestFactory.Create(proposal, giverHero, gameDay, out QuestRefusal why);
          if (quest == null)
          {
-            ModLog.Info($"[QUEST] {giver.Name} offered a task that could not be grounded (type {proposal.Type}) — ignored.");
-            notify?.Invoke("No task was recorded: what they offered could not be matched to the world. Ask them to restate it.", false);
+            // Aporo (Discord, 11/11/2026): the same castle offered three times, each refusal naming no reason. Say why, to
+            // the player and to the giver, so the giver can offer it again with a reward the game can pay.
+            var refusal = new QuestRefusalFacts {Reason = why, GiverName = giver.Name, Fief = proposal.RewardSettlement, Grant = proposal.Reward};
+            ModLog.Info($"[QUEST] {giver.Name} offered a task that could not be grounded (type {proposal.Type}, reward {proposal.Reward}, refused: {why}), ignored.");
+            notify?.Invoke(QuestRefusalText.ForThePlayer(refusal), false);
+            LlmFeedbackNotes.Set(giver.Id, QuestRefusalText.ForTheCharacter(refusal));
 
             return;
          }

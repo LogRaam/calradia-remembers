@@ -56,8 +56,15 @@ namespace CalradiaRemembers.Quests
       ///   Builds the quest, or returns null when the proposal cannot be grounded in
       ///   the current game world (no such settlement/hero/faction for its type).
       /// </summary>
-      public static InformalQuest Create(QuestProposal proposal, Hero giver, int gameDay)
+      public static InformalQuest Create(QuestProposal proposal, Hero giver, int gameDay) => Create(proposal, giver, gameDay, out _);
+
+      /// <summary>
+      ///   As <see cref="Create(QuestProposal, Hero, int)" />, and says why a refused proposal was refused (Aporo, Discord
+      ///   11/11/2026: three refusals naming no reason, so the giver restated the same castle three times).
+      /// </summary>
+      public static InformalQuest Create(QuestProposal proposal, Hero giver, int gameDay, out QuestRefusal why)
       {
+         why = QuestRefusal.NotPlaced;
          if (proposal == null || giver == null) return null;
 
          var quest = new InformalQuest {
@@ -74,7 +81,8 @@ namespace CalradiaRemembers.Quests
             Status = QuestStatus.Active
          };
 
-         if (!ResolveReward(quest, proposal, giver)) return null;
+         if (!ResolveReward(quest, proposal, giver, ref why)) return null;
+         why = QuestRefusal.NotPlaced;
          if (!ResolveTargets(quest, proposal, giver)) return null;
 
          // A capture asked in PEACE is a rival wanted in the giver's own hands (blackmail, vengeance, a scheme), not a
@@ -98,6 +106,7 @@ namespace CalradiaRemembers.Quests
          if (IsBlockedByNonAggressionPact(quest))
          {
             ModLog.Info($"[QUEST] '{quest.Type}' from {giver.Name} refused - the target faction is bound by a non-aggression pact right now.");
+            why = QuestRefusal.PactProtects;
 
             return null;
          }
@@ -470,8 +479,9 @@ namespace CalradiaRemembers.Quests
       ///   when the grant cannot be honored, so the NPC never promises a favor the game
       ///   would refuse (the anti-empty-promise rule applied to bargains).
       /// </summary>
-      private static bool ResolveReward(InformalQuest quest, QuestProposal proposal, Hero giver)
+      private static bool ResolveReward(InformalQuest quest, QuestProposal proposal, Hero giver, ref QuestRefusal why)
       {
+         why = quest.Reward == RewardGrant.JoinParty ? QuestRefusal.NotHireable : QuestRefusal.GrantNotPayable;
          switch (quest.Reward)
          {
             case RewardGrant.None:
@@ -487,6 +497,7 @@ namespace CalradiaRemembers.Quests
                int? required = RecruitmentPricing.GetInKindRequiredValue(giver);
 
                if (required == null) return false; // not recruitable — no such bargain
+               why = QuestRefusal.GrantNotPayable;
                if (quest.Type == QuestType.DeliverItems)
                {
                   // Goods must be worth a premium over the cash hiring price.
@@ -509,6 +520,7 @@ namespace CalradiaRemembers.Quests
                if (spouse == null)
                {
                   ModLog.Info($"[QUEST] marriage_consent refused — no eligible '{proposal.MarriageSpouse}' in {giver.Name}'s house.");
+                  why = QuestRefusal.HandNotTheirs;
 
                   return false;
                }
@@ -516,6 +528,7 @@ namespace CalradiaRemembers.Quests
                if (!MarriageProspectResolver.HasAuthority(giver, spouse) || !MarriageProspectResolver.IsMarriageable(Hero.MainHero, spouse))
                {
                   ModLog.Info($"[QUEST] marriage_consent refused — {giver.Name} cannot bless a match with {spouse.Name}.");
+                  why = QuestRefusal.HandNotTheirs;
 
                   return false;
                }
@@ -536,6 +549,7 @@ namespace CalradiaRemembers.Quests
                if (!ModSettings.AllowFiefAndMarriageQuestRewards)
                {
                   ModLog.Info("[QUEST] grant_fief refused, the heavy-reward toggle is off.");
+                  why = QuestRefusal.FiefRewardsOff;
 
                   return false;
                }
@@ -547,6 +561,7 @@ namespace CalradiaRemembers.Quests
                if (!QuestRewardGatePolicy.CanPromiseFief(new QuestRewardGatePolicy.FiefRewardFacts {ToggleOn = true, GiverLeadsOwnClan = giverLeadsOwnClan, FiefStillOwnedByGiverClan = fiefOwnedByGiverClan}))
                {
                   ModLog.Info($"[QUEST] grant_fief refused, {giver.Name} cannot truly give '{proposal.RewardSettlement}' away.");
+                  why = QuestRefusal.FiefNotTheirs;
 
                   return false;
                }
@@ -565,6 +580,7 @@ namespace CalradiaRemembers.Quests
                if (!ModSettings.AllowFiefAndMarriageQuestRewards)
                {
                   ModLog.Info("[QUEST] marriage_reward refused, the heavy-reward toggle is off.");
+                  why = QuestRefusal.MarriageRewardsOff;
 
                   return false;
                }
@@ -577,6 +593,7 @@ namespace CalradiaRemembers.Quests
                if (!QuestRewardGatePolicy.CanPromiseMarriageReward(new QuestRewardGatePolicy.MarriageRewardFacts {ToggleOn = true, SpouseResolved = spouse != null, GiverHasAuthorityOverSpouse = hasAuthority, SpouseStillMarriageable = marriageable, PlayerIsReigningSovereign = playerReigns}))
                {
                   ModLog.Info($"[QUEST] marriage_reward refused, {giver.Name} cannot truly wed/give '{proposal.MarriageSpouse}'.");
+                  why = QuestRefusal.HandNotTheirs;
 
                   return false;
                }
