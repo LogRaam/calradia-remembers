@@ -63,7 +63,8 @@ namespace CalradiaRemembers.Quests
 
       #region private
 
-      private static List<QuestMenuEntry> ScanEntries(Hero giver)
+      /// <summary>Every task this giver could offer now, before the menu's cap (the self-tests read it).</summary>
+      internal static List<QuestMenuEntry> ScanEntries(Hero giver)
       {
          var entries = new List<QuestMenuEntry>();
 

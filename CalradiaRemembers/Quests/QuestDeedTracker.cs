@@ -179,6 +179,16 @@ namespace CalradiaRemembers.Quests
          return null;
       }
 
+      /// <summary>The place a scout_place task names when the party at <paramref name="playerPos" /> has it in sight, else null.</summary>
+      internal static Settlement ScoutPlaceInSight(InformalQuest quest, Vec2 playerPos)
+      {
+         if (quest?.Type != QuestType.ScoutPlace) return null;
+
+         Settlement place = ResolveSettlementByName(quest.TargetSettlement);
+
+         return place != null && place.GetPosition2D.Distance(playerPos) <= ScoutPlacePolicy.SightRange ? place : null;
+      }
+
       /// <summary>What a scout riding by sees of <paramref name="place" />, read from the game now.</summary>
       internal static ScoutPlaceSighting SightingOf(Settlement place, int day)
       {
@@ -581,10 +591,8 @@ namespace CalradiaRemembers.Quests
             // Gabriel (10/11/2026): "eclairer un lieu". The place in sight is the deed; the report is what the game shows of it.
             if (quest.Type == QuestType.ScoutPlace)
             {
-               Settlement place = ResolveSettlementByName(quest.TargetSettlement);
-               if (place == null || place.GetPosition2D.Distance(playerPos) > ScoutPlacePolicy.SightRange) return;
-
-               Stamp(profile, quest, ScoutPlacePolicy.Report(SightingOf(place, day)), day);
+               Settlement place = ScoutPlaceInSight(quest, playerPos);
+               if (place != null) Stamp(profile, quest, ScoutPlacePolicy.Report(SightingOf(place, day)), day);
 
                return;
             }
