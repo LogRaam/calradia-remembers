@@ -330,6 +330,13 @@ namespace CalradiaRemembers.Quests
                    .Where(p => ReinforceGarrisonPolicy.MayAsk(GarrisonStrength.BandOf(p.Town.GarrisonParty.Party.NumberOfHealthyMembers, p.Town.GarrisonParty.Party.PartySizeLimit)));
 
       /// <summary>The facts ScoutTownPolicy judges a town on.</summary>
+      /// <summary>How a place stands for a scout_place task asked by <paramref name="giver" />.</summary>
+      internal static ScoutPlaceFacts ScoutPlaceFactsOf(Settlement place, Hero giver) => new ScoutPlaceFacts {
+         IsTownCastleOrVillage = place != null && (place.IsTown || place.IsCastle || place.IsVillage),
+         HeldByGiversRealm = place?.MapFaction != null && place.MapFaction == giver?.MapFaction,
+         HeldByPlayersRealm = place?.MapFaction != null && place.MapFaction == Hero.MainHero?.MapFaction
+      };
+
       internal static ScoutTownFacts ScoutFacts(Settlement town, Hero giver)
          => new ScoutTownFacts {
             IsTown = town != null && town.IsTown,
@@ -716,6 +723,26 @@ namespace CalradiaRemembers.Quests
                quest.TargetFactionName = town.MapFaction?.Name?.ToString();
 
                return true;
+
+            case QuestType.ScoutPlace:
+               // bdionysis80 (10/11/2026): Hvalvik's garrison; Gabriel: "on fait le type de quete eclairer un lieu". A real town,
+               // castle or village of a realm neither the giver's nor the player's. No TargetFactionId: scouting is no war
+               // deed, so a peace must not void it.
+               {
+                  Settlement seen = ResolveSettlement(proposal.TargetSettlement);
+                  if (!ScoutPlacePolicy.MayAsk(ScoutPlaceFactsOf(seen, giver)))
+                  {
+                     ModLog.Info($"[QUEST] scout_place '{proposal.TargetSettlement}' from {giver.Name} refused: "
+                                 + (seen == null ? "no such place." : $"held by {seen.MapFaction?.Name}, the giver's or the player's own realm, or not a town, castle or village."));
+
+                     return false;
+                  }
+
+                  quest.TargetSettlement = seen.Name?.ToString();
+                  quest.TargetFactionName = seen.MapFaction?.Name?.ToString();
+
+                  return true;
+               }
 
             case QuestType.RansomEnvoy:
                // fkasad (01/10/2026): one of his own men, held where the player can walk in and he cannot; the purse is

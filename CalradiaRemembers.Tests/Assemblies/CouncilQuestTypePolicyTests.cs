@@ -35,7 +35,7 @@ namespace CalradiaRemembers.Tests.Assemblies
         [Test]
         public void GIVEN_the_teachable_list_WHEN_resolved_THEN_every_token_grounds_as_its_own_deed()
         {
-            CouncilQuestTypePolicy.TeachableTokens.Should().HaveCount(5);
+            CouncilQuestTypePolicy.TeachableTokens.Should().HaveCount(6);
 
             foreach (string token in CouncilQuestTypePolicy.TeachableTokens)
             {

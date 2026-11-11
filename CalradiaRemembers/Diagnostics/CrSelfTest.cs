@@ -285,6 +285,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("relation_ledger_prune", Severity.Light, "tashmetu (Nexus, 09/11/2026): the relation ledger reached 18.2 million bytes and broke his save. The REAL prune the save runs, on a stand-in ledger of real lords: a pair back at its start is dropped and reads the same, a pair whose value moved is kept, a pair with an unknown hero is dropped; the size of this campaign's own ledger is noted", TestRelationLedgerPrune),
          new SelfTest("quest_repeat", Severity.Light, "bdionysis80 (Nexus, 10/11/2026): a second war council set 'Scout an army of Sturgia' (Vamina) a few days after the same scouting (Athina) was done, and the table was never told what the player carried. With a [SELFTEST] scouting marked done today on one lord: the REAL IssueQuest refuses the same scouting from another lord and says whose it is; the tasks a council reads list it as done; the company's men and food days are read", TestQuestRepeat),
          new SelfTest("council_sitting_memory", Severity.Light, "Gabriel (10/11/2026): \"la memoire du conseil\". The council showed the last 24 lines of a sitting and dropped the rest, and never recorded the player's own lines. With a 40-line sitting holding the player's words, folded at the council's own pacing: the REAL CouncilPromptBuilder carries the recap first, the player's recent words under 'You', and no line older than the fold; unfolded, the window stays at most the old 24 lines. Builds no world state", TestCouncilSittingMemory),
+         new SelfTest("scout_place", Severity.Light, "bdionysis80 (Nexus, 10/11/2026): a council pledged to scout Hvalvik's garrison and no task could hold it; Gabriel (10/11/2026): \"on fait le type de quete eclairer un lieu\". Through the REAL QuestFactory, with a lord of another realm as giver: a castle (or town) of a third realm becomes a scout_place task on that place, with no war faction bound; a place of the giver's own realm sets none; the council grounds the token; then what the deed tracker reads of that place when it comes in sight is a report naming it, its holder and its garrison. Sets nothing in the world", TestScoutPlace),
          new SelfTest("scout_army_place", Severity.Light, "bdionysis80 (Nexus, 10/11/2026): a council pledged to scout Hvalvik, a Nord port the player was not at war with, and the game set 'Scout an army of Sturgia'. Through the REAL QuestFactory: scout_army near a place held by a realm the player is not at war with sets no task; near a place held by an enemy it binds that enemy; with nothing named it still binds an enemy", TestScoutArmyPlace),
          new SelfTest("shared_night_once", Severity.Light, "Lordfadooboo (Nexus, 09/11/2026, 2.8.4): \"+3 regard bonus with every message\" with an authored character. A shared night (an intimate turn with no gain proposed) warmed +3 on every message, bypassing the intimacy bonus's 24-hour door. The REAL turn method, on a stand-in profile: the first intimate turn warms, the next ones that day add nothing, a day later it warms again", TestSharedNightOnce),
          new SelfTest("save_blobs", Severity.Light, "tashmetu (Nexus, 09/11/2026): long campaigns stopped loading, a CR store past 16,777,215 bytes in the save. The REAL memory store and relation ledger of this campaign, serialized as a save writes them, go through SaveBlobCodec and its Base64 pieces (2.8.8) and come back identical, every piece a string the game saves whole; then SaveBlob itself, on a stand-in data store: a 2.8.6-2.8.7 save (GZip), the first 2.8.8 builds' GZip pieces and an older plain one still load, a new save writes PPMd pieces only and reads them first; size, ratio and time are noted", TestSaveBlobs),
@@ -6648,6 +6649,45 @@ namespace CalradiaRemembers.Diagnostics
          int? days = MobileParty.MainParty?.GetNumDaysForFoodToLast();
          t.Note($"company: {MobileParty.MainParty?.MemberRoster?.TotalManCount} men, food for {days} days");
          t.Expect("theFoodDaysAreRead", days.HasValue, true);
+
+         return t.Line();
+      }
+
+      private static string TestScoutPlace(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("scout_place");
+         if (t.Skip(Campaign.Current == null || Hero.MainHero == null, "no campaign")) return t.Line();
+
+         IFaction mine = Hero.MainHero.MapFaction;
+         Hero giver = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && Mapping.HeroPresence.IsInTheWorld(h) && h.MapFaction is Kingdom && h.MapFaction != mine);
+         if (t.Skip(giver == null, "no lord of another realm alive")) return t.Line();
+
+         Settlement third = Settlement.All.FirstOrDefault(s => s.IsCastle && s.MapFaction != null && s.MapFaction != giver.MapFaction && s.MapFaction != mine)
+                            ?? Settlement.All.FirstOrDefault(s => s.IsTown && s.MapFaction != null && s.MapFaction != giver.MapFaction && s.MapFaction != mine);
+         Settlement own = Settlement.All.FirstOrDefault(s => (s.IsTown || s.IsCastle) && s.MapFaction == giver.MapFaction);
+         if (t.Skip(third == null, "no town or castle held by a realm other than the giver's and the player's")) return t.Line();
+
+         int today = (int) CampaignTime.Now.ToDays;
+         // STAKE (bdionysis80): a place of another realm, at war or not, becomes a task on that very place.
+         InformalQuest quest = Quests.QuestFactory.Create(new QuestProposal {Type = QuestType.ScoutPlace, TargetSettlement = third.Name.ToString()}, giver, today);
+         t.Expect("aPlaceOfAnotherRealmIsTheTask", quest?.TargetSettlement, third.Name.ToString());
+         // STAKE: scouting is no war deed: a peace must not void it, so no war faction is bound.
+         t.Expect("noWarFactionIsBound", quest?.TargetFactionId == null, true);
+         if (own != null)
+         {
+            // STAKE: no lord sends the player to look at his own walls.
+            InformalQuest none = Quests.QuestFactory.Create(new QuestProposal {Type = QuestType.ScoutPlace, TargetSettlement = own.Name.ToString()}, giver, today);
+            t.Expect("aPlaceOfTheGiversRealmSetsNoTask", none == null, true);
+         }
+
+         // STAKE: the council's pledge grounds as this deed, not as an army somewhere else.
+         t.Expect("theCouncilGroundsIt", Logic.Assemblies.CouncilQuestTypePolicy.TryResolve("scout_place", out QuestType grounded) && grounded == QuestType.ScoutPlace, true);
+
+         // STAKE: what the giver reads is what the game shows of the place, not a report the model invents.
+         string report = Logic.Quests.ScoutPlacePolicy.Report(Quests.QuestDeedTracker.SightingOf(third, today));
+         t.Note(report);
+         t.Expect("theReportNamesThePlaceAndItsHolder", report.Contains(third.Name.ToString()) && report.Contains("held by"), true);
+         t.Expect("theReportCountsTheGarrison", report.Contains("garrison of about"), true);
 
          return t.Line();
       }

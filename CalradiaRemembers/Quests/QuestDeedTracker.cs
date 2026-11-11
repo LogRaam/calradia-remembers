@@ -179,6 +179,31 @@ namespace CalradiaRemembers.Quests
          return null;
       }
 
+      /// <summary>What a scout riding by sees of <paramref name="place" />, read from the game now.</summary>
+      internal static ScoutPlaceSighting SightingOf(Settlement place, int day)
+      {
+         Town fief = place.Town;
+         int? foodDays = null;
+         if (fief != null)
+         {
+            float change = fief.FoodChange;
+            if (change < -0.01f) foodDays = (int) Math.Max(0f, fief.FoodStocks / -change);
+         }
+
+         return new ScoutPlaceSighting {
+            Place = place.Name?.ToString(),
+            Kind = place.IsTown ? "town" : place.IsCastle ? "castle" : "village",
+            OwnerClan = place.OwnerClan?.Name?.ToString(),
+            Realm = place.MapFaction?.Name?.ToString(),
+            Garrison = fief == null ? (int?) null : fief.GarrisonParty?.MemberRoster?.TotalManCount ?? 0,
+            Militia = (int) place.Militia,
+            WallLevel = fief?.GetWallLevel(),
+            FoodDays = foodDays,
+            Hearths = place.IsVillage ? (int?) (int) (place.Village?.Hearth ?? 0f) : null,
+            Day = day
+         };
+      }
+
       private static Settlement FindNearestTownOrCastle(Vec2 pos)
       {
          Settlement best = null;
@@ -553,6 +578,17 @@ namespace CalradiaRemembers.Quests
 
          ForEachOutstandingQuest((profile, quest) =>
          {
+            // Gabriel (10/11/2026): "eclairer un lieu". The place in sight is the deed; the report is what the game shows of it.
+            if (quest.Type == QuestType.ScoutPlace)
+            {
+               Settlement place = ResolveSettlementByName(quest.TargetSettlement);
+               if (place == null || place.GetPosition2D.Distance(playerPos) > ScoutPlacePolicy.SightRange) return;
+
+               Stamp(profile, quest, ScoutPlacePolicy.Report(SightingOf(place, day)), day);
+
+               return;
+            }
+
             if (quest.Type != QuestType.ScoutArmy) return;
 
             Hero giverHero = Hero.FindFirst(h => h.StringId == profile.Id);

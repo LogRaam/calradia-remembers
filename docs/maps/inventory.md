@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 642 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1572 types in 56 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1575 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 287 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2508,7 +2508,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SceneContentKind` | public enum | The kind of scene that is opening. |
 | `ServiceRole` | public enum | A model ROLE the player can route to its own provider. |
 
-### CalradiaRemembers.Logic.Quests (19)
+### CalradiaRemembers.Logic.Quests (22)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2531,6 +2531,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ScoutArmyTarget` | public enum | The target a scout_army task is bound to. |
 | `ScoutArmyTargetFacts` | public class | What a scout_army proposal names, and how the named place stands. |
 | `ScoutArmyTargetPolicy` | public static class | Decides whose army a scout_army task concerns. |
+| `ScoutPlaceFacts` | public class | The place a scout_place task names, and how it stands. |
+| `ScoutPlacePolicy` | public static class | Decides whether a scout_place task may be set, and words what the scout saw. |
+| `ScoutPlaceSighting` | public class | What the player's scout saw of the place. |
 
 ### CalradiaRemembers.Logic.Raids (4)
 

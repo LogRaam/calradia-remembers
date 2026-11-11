@@ -211,6 +211,13 @@ namespace CalradiaRemembers.Quests
          if (scoutable != null)
             entries.Add(new QuestMenuEntry {TypeToken = "scout_town", TargetField = "target_settlement", TargetName = scoutable.Name?.ToString(), Cue = $"slip into {scoutable.Name} and buy what its gang leader knows of its walls and stores"});
 
+         // A place of theirs to look at from outside (Gabriel, 10/11/2026: "eclairer un lieu"): a castle first, the walls a
+         // war turns on, else a town.
+         Settlement toScout = Settlement.All?.FirstOrDefault(s => s?.IsCastle == true && s.MapFaction == enemy && ScoutPlacePolicy.MayAsk(QuestFactory.ScoutPlaceFactsOf(s, giver)))
+                              ?? Settlement.All?.FirstOrDefault(s => s?.IsTown == true && s.MapFaction == enemy && ScoutPlacePolicy.MayAsk(QuestFactory.ScoutPlaceFactsOf(s, giver)));
+         if (toScout != null)
+            entries.Add(new QuestMenuEntry {TypeToken = "scout_place", TargetField = "target_settlement", TargetName = toScout.Name?.ToString(), Cue = $"ride close to {toScout.Name} and tell me what you see of its walls and garrison"});
+
          // The bounty-hunting loop: any enemy lord brought to the giver in chains, for a promised price.
          entries.Add(new QuestMenuEntry {TypeToken = "deliver_prisoner", TargetField = "target_faction", TargetName = enemyName, Cue = "bring me any of their lords in chains and be paid for the man"});
 

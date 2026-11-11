@@ -799,6 +799,7 @@ namespace CalradiaRemembers.Quests
             case QuestType.CraftWeapon: return $"forge them a {CalradiaRemembers.Logic.CraftWeaponPolicy.Label(CalradiaRemembers.Logic.CraftWeaponPolicy.KindOfKey(q.RequiredItemCategory))}";
             case QuestType.RecruitTroops: return $"bring {q.RequiredItemCount} fresh recruits of {q.RequiredCultureName ?? "their people"}";
             case QuestType.ScoutTown: return $"scout {q.TargetSettlement} from inside, through its gang leader";
+            case QuestType.ScoutPlace: return $"ride close to {q.TargetSettlement} and report what it holds";
             case QuestType.RansomEnvoy: return $"buy back {q.TargetHeroName} from their captors, with the {q.AdvanceGold} denars advanced";
             default: return "carry out a task";
          }

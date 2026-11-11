@@ -25,12 +25,13 @@ namespace CalradiaRemembers.Logic.Assemblies
         ///   Every one grounds on the settlement the pledge already names (target_settlement): siege and
         ///   raid_village bind it directly, bandit_clear/bandit_hideout hunt around it, and scout_army with no
         ///   named hero or faction falls back to the giver's first enemy kingdom at binding time (QuestFactory's
-        ///   own ScoutArmy fallback). Hero-bound deeds (capture, execute, rescue, deliver) are deliberately NOT
+        ///   own ScoutArmy fallback), and scout_place (Gabriel, 10/11/2026) is the named place itself. Hero-bound deeds (capture, execute, rescue, deliver) are deliberately NOT
         ///   here: the [RESOLUTION] block teaches no target_hero field, so they could never ground.
         /// </summary>
         public static IReadOnlyList<string> TeachableTokens { get; } = new[] {
             "siege",
             "scout_army",
+            "scout_place",
             "raid_village",
             "bandit_hideout",
             "bandit_clear"
@@ -39,6 +40,7 @@ namespace CalradiaRemembers.Logic.Assemblies
         private static readonly HashSet<QuestType> Supported = new() {
             QuestType.Siege,
             QuestType.ScoutArmy,
+            QuestType.ScoutPlace,
             QuestType.RaidVillage,
             QuestType.BanditHideout,
             QuestType.BanditClear

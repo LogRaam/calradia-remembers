@@ -133,6 +133,7 @@ namespace CalradiaRemembers.Logic.Quests
                 case QuestType.ReinforceGarrison: return s == null || f.RequiredCount <= 0 ? null : $"Bring {f.RequiredCount} soldiers to {s}";
                 case QuestType.RansomEnvoy: return h == null ? null : $"Buy back {h}";
                 case QuestType.ScoutTown: return s == null ? null : $"Scout {s} from inside";
+                case QuestType.ScoutPlace: return s == null ? null : $"Scout {s}";
                 case QuestType.RecruitTroops: return f.RequiredCount <= 0 ? null : $"Bring {f.RequiredCount} {Recruits(f)}";
                 case QuestType.CraftWeapon: return $"Forge a {Weapon(f)}";
                 case QuestType.ArrangeMatch: return h == null ? null : $"Win {h} as a bride";
@@ -209,6 +210,9 @@ namespace CalradiaRemembers.Logic.Quests
                 case QuestType.ScoutTown:
                     return s == null ? null
                         : $"Get inside {s}, find its gang leader (one of the town's notables) and, in the Calradia Remembers chat, persuade them to tell you what they know of the town. They may ask a price." + report;
+                case QuestType.ScoutPlace:
+                    return s == null ? null
+                        : $"Ride close enough to {s} to see it (you need not go in); what you see is noted for {giver}." + report;
                 case QuestType.RecruitTroops:
                     return f.RequiredCount <= 0 ? null
                         : $"Have {f.RequiredCount} {Recruits(f)} (tier 2 or lower) in your party, then tell {giver} in the Calradia Remembers chat that you hand them over." + onTheSpot;
