@@ -1,0 +1,38 @@
+Version 2.8.8
+
+Much lighter saves for long campaigns, characters with a voice of their own, coin that matches what was said, and a round of fixes from your reports on Nexus and Discord.
+
+New
+
+- Every character speaks with a voice of their own: a habit of speech that fits their station and age, how freely they curse, and how their faith shows. The same character keeps that voice in every conversation. Characters also notice the phrases they have already worn out in a conversation and find new ones, so long talks no longer sound like a checklist. A backstory you wrote for a character keeps its own voice first. (Thank you, kurushimi00.)
+- Some characters are hard to fool and some too trusting. Schemers, liars, merchants, gang leaders and rulers weigh your words carefully; the honourable, the generous and the young believe more readily. Someone you broke faith with (a broken oath, a manipulation exposed, a task you took and failed) stays wary of everything you say. Being believed never pays a reward for a deed nobody saw.
+
+Fixed
+
+- Saves of long campaigns are much smaller. Calradia Remembers' memories and relations now take about a quarter of the space they took in 2.8.7, and they are stored in a form the game can always load back, so a long campaign can no longer grow a save that stops loading. Saving and loading a very large campaign takes about a second more. (Thank you, tashmetu.)
+- Loading a save is faster on a long campaign: the mod no longer writes every memory to its log at each load.
+- A character no longer promises a sum of coin and then hands over a few denars. Before speaking, they now know that every coin they give you counts, whether they call it a gift, a reward, a payment or a loan, and they offer only what they will really give. What they owe you (a reward for a task done, a sworn payment) is still paid in full. (Thank you, Aporo.)
+- A companion riding back from an errand or a patrol no longer stops beside you and never rejoins. They now rejoin wherever they are after two days on the road home. (Thank you, Aporo.)
+- An item handed to a companion riding with you is no longer lost when they do not put it on: it goes back to your party's inventory, and so does the piece they took off to wear it. (Thank you, Aporo.)
+- A companion who asks to lead troops and hears "Not now" no longer asks again a few days later: they wait 30 days. (Thank you, Aporo.)
+- A love scene no longer adds +3 regard with every message. (Thank you, Lordfadooboo.)
+- A character no longer makes up lords and houses when asked whom they like or dislike. (Thank you, Lordfadooboo.)
+- Accepting a character's request to talk while another conversation is about to open no longer leaves you on an endless loading screen. (Thank you, Lordfadooboo and Maifailun.)
+- A war council now knows how much food your company carries and which tasks you already hold, so it no longer insists the army is starving with full wagons, and it no longer sets the same task twice. A pledge to scout a place no longer becomes a task against another realm's army. (Thank you, bdionysis80.)
+- A lord no longer accuses you of mistreating a captive you only took and left in a dungeon. (Thank you, Fakade.)
+- A character asking you to escort goods or secure a safe passage no longer records it in the journal as "bring me goods". (Thank you, superdeeplearningaibot.)
+- No character asks for "silver" as a gift any more, since only raw ore matched it. (Thank you, EvilPoptart1987.)
+- Chat portraits can live in your Custom folder, so a clean reinstall of the mod no longer takes your pictures with it.
+- The Scenario Composer's example now works when you save it into your Custom folder.
+- The CRVID Player, which turns a video into a picture for your tales, now ships with the mod in the Docs folder.
+- The Docs folder lists every section of the prompt, for anyone writing a prompt profile, and the Custom folder's README lists everything it can hold.
+
+Developer tools
+
+- cr.inflate_history adds invented history to a copy of a campaign to test a large save; cr.dump_stores writes the mod's stores as the next save holds them; cr.save_sizes shows each store's size and how it was read.
+- A conversation option that fails now names itself in the log.
+- cr.test all gains capture_norm_facts, character_voice, coin_matches_words, companion_ambition, company_gift, credulity, friends_with_house, quest_repeat, relation_ledger_prune, scout_army_place, screen_wait, shared_night_once and silver_taste, and save_blobs and companion_patrol check more.
+
+Notes
+
+- A save made with this version and then opened with an older version of Calradia Remembers loses its largest records there (memories, relations between characters, jealousy and marriage approvals), and saving it with the older version makes that loss permanent. Do not go back to an older version with a save made in this one. Saves from older versions load as they are.
