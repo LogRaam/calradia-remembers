@@ -285,7 +285,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("relation_ledger_prune", Severity.Light, "tashmetu (Nexus, 09/11/2026): the relation ledger reached 18.2 million bytes and broke his save. The REAL prune the save runs, on a stand-in ledger of real lords: a pair back at its start is dropped and reads the same, a pair whose value moved is kept, a pair with an unknown hero is dropped; the size of this campaign's own ledger is noted", TestRelationLedgerPrune),
          new SelfTest("quest_repeat", Severity.Light, "bdionysis80 (Nexus, 10/11/2026): a second war council set 'Scout an army of Sturgia' (Vamina) a few days after the same scouting (Athina) was done, and the table was never told what the player carried. With a [SELFTEST] scouting marked done today on one lord: the REAL IssueQuest refuses the same scouting from another lord and says whose it is; the tasks a council reads list it as done; the company's men and food days are read", TestQuestRepeat),
          new SelfTest("council_sitting_memory", Severity.Light, "Gabriel (10/11/2026): \"la memoire du conseil\". The council showed the last 24 lines of a sitting and dropped the rest, and never recorded the player's own lines. With a 40-line sitting holding the player's words, folded at the council's own pacing: the REAL CouncilPromptBuilder carries the recap first, the player's recent words under 'You', and no line older than the fold; unfolded, the window stays at most the old 24 lines. Builds no world state", TestCouncilSittingMemory),
-         new SelfTest("realms_and_armies", Severity.Light, "Schmidt (Discord, 11/11/2026): \"everyone acts surprised when I tell them that Sturgia is no more\", and lords did not know which lords marched in their army. Through the REAL bridge and reader: the realms line names every standing realm with its fiefs and every realm the game counts destroyed as fallen; a lord marching in an army of two parties or more is told the other lords and the total, and a lord in no army is told none. Sets nothing in the world", TestRealmsAndArmies),
+         new SelfTest("realms_and_armies", Severity.Light, "Schmidt (Discord, 11/11/2026): \"everyone acts surprised when I tell them that Sturgia is no more\", and lords did not know which lords marched in their army. Through the REAL bridge and reader: the realms line names every standing realm with its fiefs and a realm the game counts destroyed as fallen (with none fallen, one realm's own destroyed flag is set for the read and restored at once); a lord marching in an army of two parties or more is told the other lords and the total (with none in the field, an army is raised from two lords of one realm and disbanded at once); a lord in no army is told none", TestRealmsAndArmies),
          new SelfTest("scout_place", Severity.Light, "bdionysis80 (Nexus, 10/11/2026): a council pledged to scout Hvalvik's garrison and no task could hold it; Gabriel (10/11/2026): \"on fait le type de quete eclairer un lieu\". Through the REAL QuestFactory, with a lord of another realm as giver: a castle (or town) of a third realm becomes a scout_place task on that place, with no war faction bound; a place of the giver's own realm sets none; the council grounds the token; the hourly tick's sight check finds the place from its own position and not from 40 units off; a lord at war is offered an enemy place in the grounded menu; then what the deed tracker reads of that place is a report naming it, its holder and its garrison. Sets nothing in the world", TestScoutPlace),
          new SelfTest("scout_army_place", Severity.Light, "bdionysis80 (Nexus, 10/11/2026): a council pledged to scout Hvalvik, a Nord port the player was not at war with, and the game set 'Scout an army of Sturgia'. Through the REAL QuestFactory: scout_army near a place held by a realm the player is not at war with sets no task; near a place held by an enemy it binds that enemy; with nothing named it still binds an enemy", TestScoutArmyPlace),
          new SelfTest("shared_night_once", Severity.Light, "Lordfadooboo (Nexus, 09/11/2026, 2.8.4): \"+3 regard bonus with every message\" with an authored character. A shared night (an intimate turn with no gain proposed) warmed +3 on every message, bypassing the intimacy bonus's 24-hour door. The REAL turn method, on a stand-in profile: the first intimate turn warms, the next ones that day add nothing, a day later it warms again", TestSharedNightOnce),
@@ -6659,28 +6659,63 @@ namespace CalradiaRemembers.Diagnostics
          var t = new TestRun("realms_and_armies");
          if (t.Skip(Campaign.Current == null || behavior?.GameStateBridge == null, "no campaign")) return t.Line();
 
-         // STAKE (Schmidt): every realm standing is named with what it holds, and a destroyed one is told as fallen.
+         // STAKE (Schmidt): every realm standing is named with what it holds.
          string realms = behavior.GameStateBridge.GetRealmStanding();
          t.Note(realms);
          Kingdom standing = Kingdom.All.FirstOrDefault(k => !k.IsEliminated);
-         if (standing != null) t.Expect("aStandingRealmIsNamedWithItsFiefs", realms.Contains($"{standing.Name} holds"), true);
-         Kingdom fallen = Kingdom.All.FirstOrDefault(k => k.IsEliminated);
-         if (fallen != null) t.Expect("aFallenRealmIsToldAsFallen", realms.Contains("Fallen") && realms.Contains(fallen.Name.ToString()), true);
-         else t.Note("no realm has fallen in this campaign: the fallen line is not exercised");
+         if (t.Skip(standing == null, "no realm stands in this world")) return t.Line();
+         t.Expect("aStandingRealmIsNamedWithItsFiefs", realms.Contains($"{standing.Name} holds"), true);
 
-         // STAKE (Schmidt): a lord in an army knows the other lords in it and the whole.
-         MobileParty member = MobileParty.All.FirstOrDefault(p => p?.Army != null && p.Army.Parties.Count >= 2 && p.LeaderHero != null && p != MobileParty.MainParty && !p.LeaderHero.IsPrisoner);
-         if (member != null)
+         // STAKE (Schmidt): a destroyed realm is told as fallen. With none fallen in this campaign, one realm is counted
+         // destroyed for the read only (the game's own flag, restored at once), so the fallen line is always exercised.
+         Kingdom fallen = Kingdom.All.FirstOrDefault(k => k.IsEliminated);
+         FieldInfo eliminated = fallen == null ? typeof(Kingdom).GetField("_isEliminated", BindingFlags.Instance | BindingFlags.NonPublic) : null;
+         Kingdom felled = fallen ?? Kingdom.All.LastOrDefault(k => !k.IsEliminated && k != standing && k != Hero.MainHero?.MapFaction);
+         if (t.Skip(felled == null || (fallen == null && eliminated == null), "no realm can be counted fallen (Kingdom._isEliminated not found)")) return t.Line();
+         try
          {
+            eliminated?.SetValue(felled, true);
+            string withFallen = behavior.GameStateBridge.GetRealmStanding();
+            t.Note(withFallen);
+            t.Expect("aFallenRealmIsToldAsFallen", withFallen.Contains($"no longer a power: ") && withFallen.Contains(felled.Name.ToString()), true);
+            t.Expect("aFallenRealmIsNotToldAsHoldingFiefs", withFallen.Contains($"{felled.Name} holds"), false);
+         }
+         finally
+         {
+            eliminated?.SetValue(felled, false);
+         }
+
+         // STAKE (Schmidt): a lord in an army knows the other lords in it and the whole. With no army of two parties in the
+         // field, one is raised from two lords of one realm for the read and disbanded at once.
+         Army raised = null;
+         MobileParty member = MobileParty.All.FirstOrDefault(p => p?.Army != null && p.Army.Parties.Count >= 2 && p.LeaderHero != null && p != MobileParty.MainParty && !p.LeaderHero.IsPrisoner);
+         try
+         {
+            if (member == null)
+            {
+               List<MobileParty> idle = MobileParty.All.Where(p => p != null && p.IsLordParty && p != MobileParty.MainParty && p.Army == null && p.LeaderHero != null
+                                                                   && !p.LeaderHero.IsPrisoner && p.MapFaction is Kingdom && p.MemberRoster.TotalManCount > 0).ToList();
+               MobileParty leader = idle.FirstOrDefault(p => idle.Any(o => o != p && o.MapFaction == p.MapFaction));
+               MobileParty second = leader == null ? null : idle.First(o => o != leader && o.MapFaction == leader.MapFaction);
+               if (t.Skip(leader == null, "no two idle lord parties of one realm to raise an army from")) return t.Line();
+
+               raised = new Army((Kingdom) leader.MapFaction, leader, Army.ArmyTypes.Patrolling);
+               second.Army = raised;
+               member = second;
+            }
+
             IReadOnlyList<string> roster = Mapping.ArmyRosterReader.Read(member.LeaderHero);
             MobileParty other = member.Army.Parties.FirstOrDefault(p => p != member && p.LeaderHero != null);
             t.Note(roster == null ? "no roster" : string.Join(" | ", roster));
             t.Expect("theArmyIsTold", roster != null && roster.Any(l => l.StartsWith("In all,")), true);
-            if (other != null) t.Expect("anotherLordOfTheArmyIsNamed", roster != null && roster.Any(l => l.Contains(other.LeaderHero.Name.ToString())), true);
+            t.Expect("anotherLordOfTheArmyIsNamed", other != null && roster != null && roster.Any(l => l.Contains(other.LeaderHero.Name.ToString())), true);
          }
-         else t.Note("no army of two parties is in the field: the roster is not exercised");
+         finally
+         {
+            if (raised != null) DisbandArmyAction.ApplyByUnknownReason(raised);
+         }
 
-         Hero alone = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.PartyBelongedTo != null && h.PartyBelongedTo.Army == null && h != Hero.MainHero);
+         Hero alone = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.PartyBelongedTo != null && h.PartyBelongedTo.Army == null && h != Hero.MainHero && !h.IsPrisoner);
          if (alone != null) t.Expect("aLordInNoArmyIsToldNone", Mapping.ArmyRosterReader.Read(alone) == null, true);
 
          return t.Line();
