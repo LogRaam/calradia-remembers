@@ -55,10 +55,11 @@ def codecs():
     else:
         print("brotli: module missing, skipped")
     if pyppmd:
-        for order, mem in ((6, 64), (8, 256), (16, 256)):
+        # Variant H (PPMd7, the 7z one CR ships since 2.8.8); pyppmd.compress defaults to variant I, so it is named.
+        for order, mem in ((6, 16), (8, 16), (16, 256)):
             out.append((f"ppmd-H o{order} {mem}MB",
-                        (lambda o, m: lambda b: pyppmd.compress(b, max_order=o, mem_size=m << 20))(order, mem),
-                        (lambda o, m: lambda b: pyppmd.decompress(b, max_order=o, mem_size=m << 20))(order, mem)))
+                        (lambda o, m: lambda b: pyppmd.compress(b, max_order=o, mem_size=m << 20, variant="H"))(order, mem),
+                        (lambda o, m: lambda b: pyppmd.decompress(b, max_order=o, mem_size=m << 20, variant="H"))(order, mem)))
         # Variant I (PPMd8), the one ZIP and the usual .NET libraries implement; the reader is told the length.
         for order, mem in ((6, 64), (8, 256), (16, 256)):
             def enc(b, o=order, m=mem):

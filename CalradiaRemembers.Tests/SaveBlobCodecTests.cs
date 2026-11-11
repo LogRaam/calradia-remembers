@@ -9,6 +9,9 @@
 // Since 2.8.8 (Gabriel, 09/11/2026: "Ce que CR peut faire c'est de reduire le poids de ses donnees") the compressed bytes
 // go into the save as Base64 pieces (ToPieces), each a string the game can save whole. If the pieces fail, one string
 // passes the length the game reads on a short and the save cannot be read, or a store comes back damaged.
+//
+// Since 2.8.8 the stores are PPMd (Gabriel, 10/11/2026: "je crois que ppmd est le bon choix"). If those fail, a save
+// grows back toward what GZip weighed, or a 2.8.6-2.8.7 save (GZip) stops loading its memories.
 
 #region
 
@@ -133,6 +136,55 @@ namespace CalradiaRemembers.Tests
          SaveBlobCodec.EngineStringLimit.Should().Be(32_763);
          SaveBlobCodec.PieceLength.Should().BeLessThan(SaveBlobCodec.EngineStringLimit);
          (SaveBlobCodec.PieceLength % 4).Should().Be(0);
+      }
+
+      // STAKE (Gabriel, 10/11/2026): a new save holds PPMd, and its header names the order and memory it was written with,
+      // so a later CR can change them and still read this save.
+      [Test]
+      public void GIVEN_json_WHEN_encoded_THEN_it_is_ppmd_and_the_header_names_how_it_was_written()
+      {
+         byte[] stored = SaveBlobCodec.Encode("{\"a\":\"Zo\u00eb\"}");
+
+         SaveBlobCodec.IsPpmd(stored).Should().BeTrue();
+         SaveBlobCodec.IsGzip(stored).Should().BeFalse();
+         stored[5].Should().Be(SaveBlobCodec.PpmdOrder);
+         (stored[6] | (stored[7] << 8)).Should().Be(SaveBlobCodec.PpmdMemoryMb);
+         (stored[8] | (stored[9] << 8) | (stored[10] << 16) | (stored[11] << 24)).Should().Be(Encoding.UTF8.GetByteCount("{\"a\":\"Zo\u00eb\"}"));
+      }
+
+      // STAKE (Gabriel, 09/11/2026: "continuer a supporter les anciennes sauvegardes"): a 2.8.6-2.8.7 save, GZip, still loads.
+      [Test]
+      public void GIVEN_gzip_from_a_2_8_7_save_WHEN_decoded_THEN_it_comes_back_unchanged()
+      {
+         const string json = "{\"lord_1\":{\"Name\":\"Zo\u00eb of \u00c6rlaug\"}}";
+         byte[] old = SaveBlobCodec.EncodeGzip(json);
+
+         SaveBlobCodec.IsGzip(old).Should().BeTrue();
+         SaveBlobCodec.Decode(old).Should().Be(json);
+      }
+
+      // STAKE: the point of the change: CR's share of a save shrinks against what GZip wrote, on JSON shaped like its stores.
+      [Test]
+      public void GIVEN_store_shaped_json_WHEN_encoded_THEN_it_is_smaller_than_gzip_was()
+      {
+         var sb = new StringBuilder("{");
+         for (int i = 0; sb.Length < 2_000_000; i++)
+            sb.Append($"\"lord_{i % 900}|lord_{i * 7 % 997}\":{{\"Day\":{i % 4000},\"Baseline\":{i % 200 - 100}}},");
+         sb.Append("\"end\":0}");
+         string json = sb.ToString();
+
+         SaveBlobCodec.Encode(json).Length.Should().BeLessThan(SaveBlobCodec.EncodeGzip(json).Length);
+      }
+
+      // STAKE: a save written by a later CR in a format this one does not know fails loudly (the caller's fallback), never
+      // read as garbage memories.
+      [Test]
+      public void GIVEN_a_ppmd_store_of_a_newer_format_WHEN_decoded_THEN_it_throws()
+      {
+         byte[] stored = SaveBlobCodec.Encode("{}");
+         stored[4] = 99;
+
+         ((System.Action) (() => SaveBlobCodec.Decode(stored))).Should().Throw<System.IO.InvalidDataException>();
       }
 
       // STAKE: the codec's own output is recognised as compressed, so a new save is never read as plain text.

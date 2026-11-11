@@ -19,6 +19,12 @@
 // bytes per byte; but that table's entry length is read on a short (ArchiveDeserializer.LoadFrom, also for the strings,
 // LoadContext.Load), so one string can never pass EngineStringLimit, hence the pieces. Each piece is one entry of a
 // List<string>, so the 3-byte ceiling would take some 500 GB to reach.
+//
+// Gabriel (10/11/2026), after the codec bench on a campaign inflated to 41.5 MB of store JSON (cr.inflate_history): "je
+// crois que ppmd est le bon choix", then "go". Since 2.8.8 a store is PPMd var.H (Ppmd7), order PpmdOrder with PpmdMemoryMb
+// of model, behind a 12-byte header that names both, so a later version can change them without breaking a save. The
+// bench: relations at 53% of the GZip CR shipped, memories far below; reading 41 MB back in about a second. GZip (1F 8B)
+// and plain JSON are still read, for every save written before.
 
 #region
 
@@ -59,8 +65,50 @@ namespace CalradiaRemembers.Logic.Saving
       /// <summary>TUNE: a blob this big or bigger is written, and the log notes a store grown large enough to be worth reporting.</summary>
       public const int WarnAt = 8_000_000;
 
-      /// <summary>The JSON as GZip-compressed UTF-8; an empty array for null or empty JSON.</summary>
+      /// <summary>
+      ///   TUNE: the PPMd model order a store is written with. On the bench, order 6 to 8 gave the relation ledger its best and
+      ///   order 8 halved the memories again against order 6; higher orders gained mostly on invented text. Saved in the header.
+      /// </summary>
+      public const int PpmdOrder = 8;
+
+      /// <summary>TUNE: the PPMd model memory, in MB, a store is written with: 16 compressed as well as 64 on the bench. Saved in the header.</summary>
+      public const int PpmdMemoryMb = 16;
+
+      /// <summary>The bytes a PPMd blob opens with: "CRP7", then the format version.</summary>
+      private static readonly byte[] PpmdMagic = {(byte) 'C', (byte) 'R', (byte) 'P', (byte) '7'};
+
+      private const byte PpmdVersion = 1;
+
+      /// <summary>
+      ///   Header: magic (4), version (1), order (1), memory in MB (2), JSON length in bytes (4), all little-endian; then the
+      ///   PPMd stream.
+      /// </summary>
+      public const int PpmdHeaderLength = 12;
+
+      /// <summary>The JSON as PPMd-compressed UTF-8 behind its header; an empty array for null or empty JSON.</summary>
       public static byte[] Encode(string json)
+      {
+         if (string.IsNullOrEmpty(json)) return new byte[0];
+
+         byte[] raw = Encoding.UTF8.GetBytes(json);
+         byte[] packed = Ppmd7.Encode(raw, PpmdOrder, PpmdMemoryMb << 20);
+         var stored = new byte[PpmdHeaderLength + packed.Length];
+         Buffer.BlockCopy(PpmdMagic, 0, stored, 0, 4);
+         stored[4] = PpmdVersion;
+         stored[5] = PpmdOrder;
+         stored[6] = (byte) PpmdMemoryMb;
+         stored[7] = (byte) (PpmdMemoryMb >> 8);
+         for (var i = 0; i < 4; i++) stored[8 + i] = (byte) (raw.Length >> (8 * i));
+         Buffer.BlockCopy(packed, 0, stored, PpmdHeaderLength, packed.Length);
+
+         return stored;
+      }
+
+      /// <summary>
+      ///   The JSON as GZip-compressed UTF-8, as CR 2.8.6 to 2.8.7 wrote it (and the first 2.8.8 builds); an empty array for
+      ///   null or empty JSON. Kept so the self-tests can stand for an older save; CR no longer writes it.
+      /// </summary>
+      public static byte[] EncodeGzip(string json)
       {
          if (string.IsNullOrEmpty(json)) return new byte[0];
 
@@ -75,13 +123,14 @@ namespace CalradiaRemembers.Logic.Saving
       }
 
       /// <summary>
-      ///   The JSON a saved blob holds: unzipped when it is GZip, read as plain UTF-8 when an older save wrote it so; null for
-      ///   no bytes. Throws on a GZip blob that is damaged, like any unreadable store, for the caller's own fallback.
+      ///   The JSON a saved blob holds: PPMd as CR writes it since 2.8.8, GZip as 2.8.6 to 2.8.7 wrote it, plain UTF-8 as older
+      ///   saves did; null for no bytes. Throws on a damaged blob, like any unreadable store, for the caller's own fallback.
       /// </summary>
       public static string Decode(byte[] stored)
       {
          if (stored == null || stored.Length == 0) return null;
-         if (!IsCompressed(stored)) return Encoding.UTF8.GetString(stored);
+         if (IsPpmd(stored)) return DecodePpmd(stored);
+         if (!IsGzip(stored)) return Encoding.UTF8.GetString(stored);
 
          using (var input = new MemoryStream(stored))
          using (var gzip = new GZipStream(input, CompressionMode.Decompress))
@@ -120,8 +169,30 @@ namespace CalradiaRemembers.Logic.Saving
          return Convert.FromBase64String(string.Concat(pieces));
       }
 
-      /// <summary>Whether a saved blob is GZip (opens with 1F 8B), as this codec writes it; plain JSON never opens so.</summary>
-      public static bool IsCompressed(byte[] stored) => stored != null && stored.Length >= 2 && stored[0] == 0x1F && stored[1] == 0x8B;
+      private static string DecodePpmd(byte[] stored)
+      {
+         if (stored[4] != PpmdVersion) throw new InvalidDataException($"PPMd store of format {stored[4]}, newer than this CR reads ({PpmdVersion}).");
+
+         int order = stored[5];
+         int memoryMb = stored[6] | (stored[7] << 8);
+         int length = stored[8] | (stored[9] << 8) | (stored[10] << 16) | (stored[11] << 24);
+         if (length < 0) throw new InvalidDataException("PPMd store with a length past what CR writes.");
+
+         var packed = new byte[stored.Length - PpmdHeaderLength];
+         Buffer.BlockCopy(stored, PpmdHeaderLength, packed, 0, packed.Length);
+
+         return Encoding.UTF8.GetString(Ppmd7.Decode(packed, length, order, memoryMb << 20));
+      }
+
+      /// <summary>Whether a saved blob is compressed by CR, PPMd or GZip; plain JSON never opens like either.</summary>
+      public static bool IsCompressed(byte[] stored) => IsPpmd(stored) || IsGzip(stored);
+
+      /// <summary>Whether a saved blob is PPMd as CR writes it since 2.8.8 (opens with "CRP7" and holds a whole header).</summary>
+      public static bool IsPpmd(byte[] stored)
+         => stored != null && stored.Length >= PpmdHeaderLength && stored[0] == PpmdMagic[0] && stored[1] == PpmdMagic[1] && stored[2] == PpmdMagic[2] && stored[3] == PpmdMagic[3];
+
+      /// <summary>Whether a saved blob is GZip (opens with 1F 8B), as CR 2.8.6 to 2.8.7 wrote it; plain JSON never opens so.</summary>
+      public static bool IsGzip(byte[] stored) => stored != null && stored.Length >= 2 && stored[0] == 0x1F && stored[1] == 0x8B;
 
       /// <summary>
       ///   Whether a saved container of this many elements is one the game cannot load: its ids wrapped, so its entries are

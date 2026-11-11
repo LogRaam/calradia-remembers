@@ -12,6 +12,10 @@
 // bytes of save per byte instead of 19, and no longer near the 3-byte ceiling. Read in order: the pieces, then the "_gz"
 // byte[] a 2.8.6 or 2.8.7 save holds, then the older plain byte[]; the next save writes pieces. A CR older than 2.8.8 that
 // opens a 2.8.8 save finds none of its keys and starts the store empty, as 2.8.6 did with 2.8.5's.
+//
+// Since 2.8.8 too (Gabriel, 10/11/2026: "je crois que ppmd est le bon choix"), the bytes inside the pieces are PPMd, not
+// GZip (SaveBlobCodec.Encode); SaveBlobCodec.Decode tells the two apart by their opening bytes, so the GZip pieces of the
+// first 2.8.8 builds and the GZip byte[] of 2.8.6-2.8.7 still load.
 
 #region
 

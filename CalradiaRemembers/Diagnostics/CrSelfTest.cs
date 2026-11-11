@@ -286,7 +286,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("quest_repeat", Severity.Light, "bdionysis80 (Nexus, 10/11/2026): a second war council set 'Scout an army of Sturgia' (Vamina) a few days after the same scouting (Athina) was done, and the table was never told what the player carried. With a [SELFTEST] scouting marked done today on one lord: the REAL IssueQuest refuses the same scouting from another lord and says whose it is; the tasks a council reads list it as done; the company's men and food days are read", TestQuestRepeat),
          new SelfTest("scout_army_place", Severity.Light, "bdionysis80 (Nexus, 10/11/2026): a council pledged to scout Hvalvik, a Nord port the player was not at war with, and the game set 'Scout an army of Sturgia'. Through the REAL QuestFactory: scout_army near a place held by a realm the player is not at war with sets no task; near a place held by an enemy it binds that enemy; with nothing named it still binds an enemy", TestScoutArmyPlace),
          new SelfTest("shared_night_once", Severity.Light, "Lordfadooboo (Nexus, 09/11/2026, 2.8.4): \"+3 regard bonus with every message\" with an authored character. A shared night (an intimate turn with no gain proposed) warmed +3 on every message, bypassing the intimacy bonus's 24-hour door. The REAL turn method, on a stand-in profile: the first intimate turn warms, the next ones that day add nothing, a day later it warms again", TestSharedNightOnce),
-         new SelfTest("save_blobs", Severity.Light, "tashmetu (Nexus, 09/11/2026): long campaigns stopped loading, a CR store past 16,777,215 bytes in the save. The REAL memory store and relation ledger of this campaign, serialized as a save writes them, go through SaveBlobCodec and its Base64 pieces (2.8.8) and come back identical, every piece a string the game saves whole; then SaveBlob itself, on a stand-in data store: a 2.8.6-2.8.7 save and an older plain one still load, a new save writes pieces only and reads them first; size, ratio and time are noted", TestSaveBlobs),
+         new SelfTest("save_blobs", Severity.Light, "tashmetu (Nexus, 09/11/2026): long campaigns stopped loading, a CR store past 16,777,215 bytes in the save. The REAL memory store and relation ledger of this campaign, serialized as a save writes them, go through SaveBlobCodec and its Base64 pieces (2.8.8) and come back identical, every piece a string the game saves whole; then SaveBlob itself, on a stand-in data store: a 2.8.6-2.8.7 save (GZip), the first 2.8.8 builds' GZip pieces and an older plain one still load, a new save writes PPMd pieces only and reads them first; size, ratio and time are noted", TestSaveBlobs),
          new SelfTest("memory_settings", Severity.Light, "avalanche24 (Nexus, 07/11/2026): a local model drowned past 16k in a long history and asked for a cap on memories. For a lord holding 3 or more memories of the player: with MCM 'Memories in the prompt' at 2, the REAL EncounterContextBuilder.Build carries the cap and the REAL prompt is shorter than with 0, which carries none. 'Compress after' reaches ModSettings. Both settings are put back", TestMemorySettings),
          new SelfTest("answers_before_speaking", Severity.Light, "fearente (Nexus, 07/11/2026): a lord said 'yeah lets do it' to the player's duel, then the game wrote 'lets the challenge hang, and will not take it up'. Alfkona (07/11/2026): '(the game does not allow real harm here, so none was done)' in every kind of conversation. For a lord the player can duel now: the REAL EncounterContextBuilder.Build carries DuelRefusesPlayersChallenge equal to the REAL DuelEligibilityResolver.WouldRefusePlayer the arming site asks, and the REAL prompt tells the character that same answer. Then harm_prisoner through the REAL bridge outside any captive scene returns no outcome (nothing shown). Read-only", TestAnswersBeforeSpeaking),
          new SelfTest("sale_from_parts", Severity.Light, "3chmidt (Nexus, 06/11/2026): Yfinja agreed 9,600 for an axe and paid 100, the price having come as a give_gold judged as a gift; a stray 'cannot swear a peace' showed beside it. Seeds a trade good and a lord with coin: a give_gold of a price above the gift floor plus a give_item of the good, read through the REAL ChatViewModel.ReadPartsAsASale, must come out as ONE sell_item at that price with no give_gold left; the REAL confirmation queues it naming the item; the REAL bridge then sells it: item gone, player paid the price, not the gift floor. Then a keep_peace oath from a lord who leads no faction is ignored with nothing shown (null outcome). Puts the coin back and removes the seeded goods.", TestSaleFromParts),
@@ -6740,8 +6740,13 @@ namespace CalradiaRemembers.Diagnostics
          {
             // STAKE (Gabriel, 09/11/2026: "continuer a supporter les anciennes sauvegardes"): a 2.8.6-2.8.7 save still loads.
             var save287 = new StandInDataStore(false);
-            save287.Data[probeKey] = Logic.Saving.SaveBlobCodec.Encode(memories);
+            save287.Data[probeKey] = Logic.Saving.SaveBlobCodec.EncodeGzip(memories);
             t.Expect("a287SaveStillLoads", (SaveBlob.Read(save287, probeKey, olderKey) ?? "") == memories, true);
+
+            // STAKE (10/11/2026): the first 2.8.8 builds wrote GZip pieces; those saves still load now the pieces are PPMd.
+            var saveGzipPieces = new StandInDataStore(false);
+            saveGzipPieces.Data[probeKey + SaveBlob.PiecesSuffix] = Logic.Saving.SaveBlobCodec.ToPieces(Logic.Saving.SaveBlobCodec.EncodeGzip(memories));
+            t.Expect("gzipPiecesStillLoad", (SaveBlob.Read(saveGzipPieces, probeKey, olderKey) ?? "") == memories, true);
 
             // STAKE: a save older than 2.8.6, plain JSON in a byte[], still loads.
             var saveOlder = new StandInDataStore(false);
@@ -6752,11 +6757,14 @@ namespace CalradiaRemembers.Diagnostics
             var saving = new StandInDataStore(true);
             SaveBlob.Write(saving, probeKey, memories);
             t.Expect("aNewSaveWritesPiecesOnly", string.Join(",", saving.Data.Keys), probeKey + SaveBlob.PiecesSuffix);
+            // STAKE (Gabriel, 10/11/2026: "ppmd est le bon choix"): what a new save holds is PPMd, the smaller form.
+            t.Expect("aNewSaveIsPpmd", string.IsNullOrEmpty(memories)
+               || Logic.Saving.SaveBlobCodec.IsPpmd(Logic.Saving.SaveBlobCodec.FromPieces((IList<string>) saving.Data[probeKey + SaveBlob.PiecesSuffix])), true);
 
             // STAKE: the pieces are read first, before any older form the save might also hold.
             var reload = new StandInDataStore(false);
             foreach (var kv in saving.Data) reload.Data[kv.Key] = kv.Value;
-            reload.Data[probeKey] = Logic.Saving.SaveBlobCodec.Encode("{\"stale\":1}");
+            reload.Data[probeKey] = Logic.Saving.SaveBlobCodec.EncodeGzip("{\"stale\":1}");
             t.Expect("thePiecesAreReadFirst", (SaveBlob.Read(reload, probeKey, olderKey) ?? "") == memories, true);
          }
          finally { SaveBlob.Forget(probeKey); }

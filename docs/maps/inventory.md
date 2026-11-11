@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 642 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1570 types in 56 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1571 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 287 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -42,6 +42,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 1000+ | Mod | `Missions/CompanionMissionBehavior.cs` |
 | 1000+ | Sdk | `Parsing/SectionResponseParser.cs` |
 | 1000+ | Mod | `Quests/QuestService.cs` |
+| 1000+ | Logic | `Saving/Ppmd7.cs` |
 | 1000+ | Mod | `Services/LlmServices.cs` |
 | 1000+ | Mod | `Witnesses/WitnessResolver.cs` |
 
@@ -2633,11 +2634,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SecretReactionPolicy` | public static class | From the model's one-word reading to a severity, and from a severity to a reaction. |
 | `SecretSeverity` | public enum | How an intercepted letter touches the lord who read it. |
 
-### CalradiaRemembers.Logic.Saving (3)
+### CalradiaRemembers.Logic.Saving (4)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `MarkovText` | public class | A word chain of order two learned from sample sentences; writes new sentences in their manner. |
+| `Ppmd7` | public static class | PPMd variant H (7z range coder): encodes and decodes one block whose length the caller keeps. |
 | `SaveBlobCodec` | public static class | Turns a store's JSON into the bytes a save holds, and back, and says whether those bytes are safe to save. |
 | `SaveBlobVerdict` | public enum | Whether a blob may go into the save. |
 
