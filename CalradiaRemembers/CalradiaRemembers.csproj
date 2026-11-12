@@ -227,6 +227,9 @@
          sections/<key>.txt name were listed nowhere a player could read. The map is generated and a test fails when it is
          stale, so the shipped copy is as current as the build. -->
     <Copy SourceFiles="$(ProjectDir)..\docs\maps\prompt-sections.md" DestinationFiles="$(BannerlordModuleDir)\Docs\PROMPT_SECTIONS.md" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" />
+    <!-- Every call to the model and where each editable file goes (CatWithFourEyes, Discord 12/11/2026: "can we have
+         something like manual with prompt pipelines for different things?"). Generated and test-checked like the above. -->
+    <Copy SourceFiles="$(ProjectDir)..\docs\maps\prompt-pipelines.md" DestinationFiles="$(BannerlordModuleDir)\Docs\PROMPT_PIPELINES.md" SkipUnchangedFiles="false" OverwriteReadOnlyFiles="true" />
 
     <ReadLinesFromFile File="$(ProjectDir)..\SubModule.xml">
       <Output TaskParameter="Lines" ItemName="SubModuleXmlLine" />

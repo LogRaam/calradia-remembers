@@ -65,6 +65,7 @@ A section you do not list **keeps its stock place**, so a layout made for an old
 - `cr.prompt_check` lists the profiles found, the one in use, what each section reworded does, the layout each kind of character gets, and every **problem**: an unknown key, a locked section kept in place, a per-reply section put above the cache. Run it after every change.
 - `cr.prompt_dump Name`: the prompt as it now comes out, to compare before and after.
 - Picking another profile in MCM applies it at once; after editing files, pick it again or reload your save.
+- A profile changes the **character** prompt: conversations, letters and the round table. Envoys, the council, memory summaries and strategic reports have prompts of their own: `Docs/PROMPT_PIPELINES.md` in the mod folder lists every one, and which of your text files (`world.txt`, `post_history_instructions.txt`...) reaches each.
 
 ## For modders
 Ship profiles in your module's `ModuleData/cr_prompts/<profile id>/`. They appear in every player's list. A player who wants to change one line copies yours into Custom, or makes a small profile with yours as its `parent`.

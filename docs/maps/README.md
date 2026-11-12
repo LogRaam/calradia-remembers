@@ -29,6 +29,7 @@ project internals.
 | [`actions.md`](actions.md) | Where does a character act toward the player (a letter, an audience, an interception, a threat), and does each path ask the one gate (alive, of age, free, not the player)? Also every letter written straight into the post. |
 | [`event-listeners.md`](event-listeners.md) | What does the mod hear from the engine, and which of an event's reasons does each listener name? |
 | [`prompt-sections.md`](prompt-sections.md) | In what order is the prompt written, what is cached, what is per-turn, what does Compact drop? |
+| [`prompt-pipelines.md`](prompt-pipelines.md) | Where is the model called (letters, envoys, the council, summaries, strategic reports), what writes each prompt, and which editable `ModuleData` file reaches which? Shipped to players as `Docs/PROMPT_PIPELINES.md`. |
 | [`verbs.md`](verbs.md) | Is this action declared everywhere it has to be? |
 | [`gates.md`](gates.md) | What OPENS this verb, what the bridge DEMANDS of it, and which other verbs can change the answer between the two? The pairing lens: a teaching gate is resolved when the context is built, a bridge guard runs when the action is dispatched, and the turn's other actions run in between. |
 | [`composition-parity.md`](composition-parity.md) | Is each action taught to BOTH readers of a conversation, the prose model (Standard) and the interpreter (Enhanced)? Both prompts rendered by the real builders over four scenarios; a verb taught to one reader only is refused unless written down with its reason (`CompositionParityTests`). |
@@ -62,7 +63,7 @@ the player report it answers.
 They are not all the same kind of test, and treating them as one kind is how this stops working.
 
 **Informing.** `inventory`, `dependencies`, the two rules files, `constants`, `event-listeners`, `prompt-sections`,
-`verbs`, `gates`, `shared-state`. These fail, you regenerate, you read the diff, you commit. Whatever the code now says
+`prompt-pipelines`, `verbs`, `gates`, `shared-state`. These fail, you regenerate, you read the diff, you commit. Whatever the code now says
 becomes the new truth. Their whole value is the two seconds of attention the diff buys, and that value decays: the
 real risk here is not a wrong map, it is a reflex. Regenerate-and-commit becomes muscle memory within weeks, and then
 these are green paperwork.

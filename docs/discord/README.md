@@ -20,7 +20,7 @@ a default), update the tutorial in the same commit, as for the CHANGELOG. The ta
 | `tale.md` | Tale Editor | `Extension/TaleEditor.html`, `Extension/HOWTO_Quests.md`, MCM "Authored Quests (experimental)" (off by default), `cr.story_*` |
 | `crvid.md` | Making a .crvid | `Extension/CrvidPlayer.html` (SSIM default 0.960, 768x1152, 30 fps), `HOWTO_Quests.md` "A picture that moves", `cr.video show` |
 | `stations-folklore.md` | Stations and folklore | `ModuleData/stations/`, `ModuleData/folklore/`, `Logic/Folklore/FolkTalePolicy.cs` (`MaxTalesKnown` 6), `cr.station` |
-| `prompt-profiles.md` | Prompt Composer | `Logic/PromptProfiles.cs` (profile.json, layouts, sections), `docs/maps/prompt-sections.md` (locks, shipped as `Docs/PROMPT_SECTIONS.md`), `cr.prompt_check` |
+| `prompt-profiles.md` | Prompt Composer | `Logic/PromptProfiles.cs` (profile.json, layouts, sections), `docs/maps/prompt-sections.md` (locks, shipped as `Docs/PROMPT_SECTIONS.md`), `docs/maps/prompt-pipelines.md` (shipped as `Docs/PROMPT_PIPELINES.md`), `cr.prompt_check` |
 | `translation.md` | Translating the mod | `ModuleData/Languages/` (README, EN template), what is translatable today (the MCM page only) |
 | `modders.md` | Plugging a mod into CR | `EXTENSION_API.md`, `Extension/HOWTO_*.md`, the `cr_*` data folders, `cr.api_probe`, `cr.heard` |
 
@@ -30,6 +30,6 @@ Some lines say "from 2.8.8" for what that version brings: the Scenario Composer'
 `Docs/`, portraits in `Custom/ChatPortraits`, `Docs/PROMPT_SECTIONS.md`. Posted earlier, they describe what players do
 not have yet:
 
-- `prompt-profiles.md` needs `Docs/PROMPT_SECTIONS.md`: post it once 2.8.8 is live.
+- `prompt-profiles.md` needs `Docs/PROMPT_SECTIONS.md`: post it once 2.8.8 is live. Its line on `Docs/PROMPT_PIPELINES.md` needs 2.8.9.
 - `crvid.md`: until then, attach `CalradiaRemembers/Extension/CrvidPlayer.html` to the post.
 - Once 2.8.8 is live, the "from 2.8.8" mentions can go.

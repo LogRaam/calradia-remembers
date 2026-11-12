@@ -71,6 +71,12 @@ namespace CalradiaRemembers.Tests.Maps
       public void GIVEN_the_source_as_it_stands_WHEN_the_prompt_sections_are_regenerated_THEN_they_match_the_committed_map()
          => ApprovedMap.Verify(PromptSectionsMap.Path, Generated(PromptSectionsMap.Generate));
 
+      // CatWithFourEyes (Discord, 12/11/2026): "can we have something like manual with prompt pipelines for different
+      // things?" Every call to the model, what writes its prompt, and where each editable file goes.
+      [Test]
+      public void GIVEN_the_source_as_it_stands_WHEN_the_prompt_pipelines_are_regenerated_THEN_they_match_the_committed_map()
+         => ApprovedMap.Verify(PromptPipelinesMap.Path, Generated(PromptPipelinesMap.Generate));
+
       [Test]
       public void GIVEN_the_source_as_it_stands_WHEN_the_verbs_are_regenerated_THEN_they_match_the_committed_map()
          => ApprovedMap.Verify(VerbsMap.Path, Generated(VerbsMap.Generate));
