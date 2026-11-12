@@ -76,6 +76,29 @@ namespace CalradiaRemembers.Tests
                                       .RegardPenalty.Should().Be(callerPenalty);
         }
 
+        // EvilPoptart1987 (Nexus, 11/11/2026): "It forces you to abandon and incur a massive grudge for no reason." STAKE:
+        // giving up a task the player could only do by starting a war leaves no grudge, no broken word, no trust spent.
+        [Test]
+        public void GIVEN_a_task_that_means_attacking_a_realm_at_peace_WHEN_given_up_THEN_it_is_forgiven_like_an_unfindable_bandit()
+        {
+            QuestFailureLeniency leniency = QuestFailureLeniencyPolicy.Resolve(QuestType.CapturePrisoner, 15, meansAttackingARealmAtPeace: true);
+
+            leniency.PlantGrudge.Should().BeFalse();
+            leniency.RecordBrokenWordMemory.Should().BeFalse();
+            leniency.SpendPromiseTrust.Should().BeFalse();
+            leniency.RegardPenalty.Should().Be(QuestFailureLeniencyPolicy.BanditFailureRegardPenalty);
+        }
+
+        // STAKE: the same capture in a war the player is fighting stays a word given, and dropping it still breaks it.
+        [Test]
+        public void GIVEN_the_same_capture_in_a_war_the_player_fights_WHEN_given_up_THEN_it_keeps_the_full_consequence()
+        {
+            QuestFailureLeniency leniency = QuestFailureLeniencyPolicy.Resolve(QuestType.CapturePrisoner, 15, meansAttackingARealmAtPeace: false);
+
+            leniency.PlantGrudge.Should().BeTrue();
+            leniency.RegardPenalty.Should().Be(15);
+        }
+
         // Pins the exact set of forgiven kinds, so a future quest type added to the enum does not silently start
         // (or stop) being forgiven without a deliberate choice recorded here. Only the two bandit deeds qualify.
         [TestCase(QuestType.BanditClear, true)]

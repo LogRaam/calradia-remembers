@@ -285,6 +285,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("relation_ledger_prune", Severity.Light, "tashmetu (Nexus, 09/11/2026): the relation ledger reached 18.2 million bytes and broke his save. The REAL prune the save runs, on a stand-in ledger of real lords: a pair back at its start is dropped and reads the same, a pair whose value moved is kept, a pair with an unknown hero is dropped; the size of this campaign's own ledger is noted", TestRelationLedgerPrune),
          new SelfTest("quest_repeat", Severity.Light, "bdionysis80 (Nexus, 10/11/2026): a second war council set 'Scout an army of Sturgia' (Vamina) a few days after the same scouting (Athina) was done, and the table was never told what the player carried. With a [SELFTEST] scouting marked done today on one lord: the REAL IssueQuest refuses the same scouting from another lord and says whose it is; the tasks a council reads list it as done; the company's men and food days are read", TestQuestRepeat),
          new SelfTest("council_sitting_memory", Severity.Light, "Gabriel (10/11/2026): \"la memoire du conseil\". The council showed the last 24 lines of a sitting and dropped the rest, and never recorded the player's own lines. With a 40-line sitting holding the player's words, folded at the council's own pacing: the REAL CouncilPromptBuilder carries the recap first, the player's recent words under 'You', and no line older than the fold; unfolded, the window stays at most the old 24 lines. Builds no world state", TestCouncilSittingMemory),
+         new SelfTest("quest_peace_warning", Severity.Light, "EvilPoptart1987 (Nexus, 11/11/2026): 'capturing a noble you are not at war with. You cannot complete that quest without starting a war ... It forces you to abandon and incur a massive grudge for no reason.' A capture of a lord of a realm the player is at peace with (not held, not of the player's realm) is built in memory only: the offer window must say the player is at peace with that realm, and giving it up must plant no grudge, record no broken word and spend no trust. Nothing is recorded or offered", TestQuestPeaceWarning),
          new SelfTest("letter_date_real", Severity.Light, "bdionysis80 (Nexus, 12/11/2026): 'current date Summer 9 1084 while receiving letters with timestamp summer 1085'. Prompts were given the absolute day count and no date. Asserts the date the prompts now carry (ChronicleCalendar.GameDateOf, through the bridge) is today's date as the game itself reads it: season, day of the season and year from CampaignTime.Now. Changes nothing", TestLetterDateReal),
          new SelfTest("hire_price_shown", Severity.Light, "Енот Василий (Discord, 11/11/2026): 'Let Lulya the Spicevendor take service in your party for 0 coins? [Y/n]', then the hire charged the full price. A fresh ActionConfirmationController is handed a join_party with price 0 for a free wanderer: the question must name the game's own hiring price, never 0 coins, and the confirmed action must carry that same price. Nothing is hired", TestHirePriceShown),
          new SelfTest("quest_refusal_reason", Severity.Light, "Aporo (Discord, 11/11/2026): Grand Prince Raganvad offered Mazhadan Castle for a captured lord three times, and each refusal said only 'could not be matched to the world', so he restated the same castle. Through the REAL QuestService.ApplyResponse, a clan leader offers a task priced with a castle his clan does not hold: with fief rewards off the player is told fiefs are not quest rewards in the settings, with them on that the castle is not his to give; either way the character's next-turn note says the offer was NOT recorded, and no task is recorded. The giver's outstanding tasks are set aside and restored", TestQuestRefusalReason),
@@ -6654,6 +6655,32 @@ namespace CalradiaRemembers.Diagnostics
          int? days = MobileParty.MainParty?.GetNumDaysForFoodToLast();
          t.Note($"company: {MobileParty.MainParty?.MemberRoster?.TotalManCount} men, food for {days} days");
          t.Expect("theFoodDaysAreRead", days.HasValue, true);
+
+         return t.Line();
+      }
+
+      private static string TestQuestPeaceWarning(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("quest_peace_warning");
+         if (t.Skip(Campaign.Current == null || Hero.MainHero?.MapFaction == null, "no campaign")) return t.Line();
+
+         IFaction mine = Hero.MainHero.MapFaction;
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && Mapping.HeroPresence.IsInTheWorld(h) && !h.IsPrisoner && h.MapFaction is Kingdom
+                                                             && h.MapFaction != mine && !FactionManager.IsAtWarAgainstFaction(mine, h.MapFaction));
+         if (t.Skip(lord == null, "every realm is at war with the player")) return t.Line();
+
+         var quest = new InformalQuest {Type = QuestType.CapturePrisoner, TargetHeroId = lord.StringId, TargetHeroName = lord.Name.ToString(), Status = QuestStatus.Active};
+         Logic.Quests.QuestOfferFacts offer = Quests.QuestService.OfferFor(new NpcProfile {Id = "cr_selftest_giver", Name = "[SELFTEST] giver", Faction = "", Clan = ""}, quest);
+
+         // STAKE (EvilPoptart1987): the player sees the war before accepting it.
+         t.Expect("theOfferNamesTheRealmAtPeace", offer.PeacefulRealm, lord.MapFaction.Name.ToString());
+         t.Expect("theOfferSaysItMeansAttacking", Logic.Quests.QuestOfferText.Body(offer).Contains($"You are at peace with {lord.MapFaction.Name}"), true);
+
+         // STAKE: giving such a task up is no broken word.
+         Logic.Quests.QuestFailureLeniency leniency = Quests.QuestService.LeniencyFor(quest, 15);
+         t.Expect("noGrudge", leniency.PlantGrudge, false);
+         t.Expect("noBrokenWord", leniency.RecordBrokenWordMemory, false);
+         t.Expect("noTrustSpent", leniency.SpendPromiseTrust, false);
 
          return t.Line();
       }

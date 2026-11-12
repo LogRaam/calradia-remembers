@@ -309,8 +309,7 @@ namespace CalradiaRemembers.Quests
                // No-fault forgiveness (same rule as AbandonQuest): a lapsed deadline on a hard-to-find bandit
                // deed is a mild disappointment, not a broken word, since the target can hide until scouted. Every
                // other quest keeps the full consequence with this path's own DeadlineFailurePenalty.
-               CalradiaRemembers.Logic.Quests.QuestFailureLeniency leniency =
-                  CalradiaRemembers.Logic.Quests.QuestFailureLeniencyPolicy.Resolve(quest.Type, DeadlineFailurePenalty);
+               CalradiaRemembers.Logic.Quests.QuestFailureLeniency leniency = LeniencyFor(quest, DeadlineFailurePenalty);
 
                ProfileMutator.ApplyReputationDelta(profile, -leniency.RegardPenalty, NpcMemoryService.Core.Standing.RegardCause.Quest); // 5.1: single clamp path.
 
@@ -552,8 +551,7 @@ namespace CalradiaRemembers.Quests
          // giver disgusted and hostile). A bandit deed whose target hides until scouted is a mild disappointment,
          // not a broken word: no grudge, no broken-word memory, no trust spent, only a token regard nick. Every
          // other quest keeps the full broken-word consequence with this path's own AbandonPenalty.
-         CalradiaRemembers.Logic.Quests.QuestFailureLeniency leniency =
-            CalradiaRemembers.Logic.Quests.QuestFailureLeniencyPolicy.Resolve(quest.Type, AbandonPenalty);
+         CalradiaRemembers.Logic.Quests.QuestFailureLeniency leniency = LeniencyFor(quest, AbandonPenalty);
 
          ProfileMutator.ApplyReputationDelta(giver, -leniency.RegardPenalty, NpcMemoryService.Core.Standing.RegardCause.Quest); // 5.1: single clamp path.
          Hero giverHero = FindGiverHero(giver);
@@ -576,7 +574,7 @@ namespace CalradiaRemembers.Quests
                $"The player gave up the task to {Describe(quest)}.", AbandonedQuestGrudgeMagnitude,
                knownToPlayer: true, quest.DeadlineDay ?? quest.IssuedOnDay);
 
-         ModLog.Info($"[QUEST] {giver.Name}: player abandoned '{quest.Type}' (-{leniency.RegardPenalty} regard{(leniency.PlantGrudge ? "" : ", no-fault bandit forgiveness")}).");
+         ModLog.Info($"[QUEST] {giver.Name}: player abandoned '{quest.Type}' (-{leniency.RegardPenalty} regard{(leniency.PlantGrudge ? "" : ", no-fault forgiveness")}).");
          notify?.Invoke($"You abandoned {giver.Name}'s task ({Describe(quest)}). -{leniency.RegardPenalty} regard.", false);
       }
 
@@ -914,14 +912,7 @@ namespace CalradiaRemembers.Quests
       /// </summary>
       private static void PutToThePlayer(NpcProfile giver, Hero giverHero, InformalQuest quest, BannerlordNpcMemoryStore store, Action<string, bool> notify)
       {
-         var offer = new QuestOfferFacts {
-            GiverName = giver.Name,
-            Deed = Describe(quest),
-            RewardGold = quest.RewardGold,
-            RewardRelation = quest.RewardRelation,
-            Grant = quest.Reward,
-            DeadlineDays = quest.DeadlineDay.HasValue ? quest.DeadlineDay - quest.IssuedOnDay : null
-         };
+         QuestOfferFacts offer = OfferFor(giver, quest);
          string giverId = giver.Id;
          ModLog.Info($"[QUEST] {giver.Name} put a task to the player, awaiting the answer: {offer.Deed}.");
          notify?.Invoke(QuestOfferText.Pending(offer), true);
@@ -979,6 +970,58 @@ namespace CalradiaRemembers.Quests
             QuestOfferText.Title(offer), QuestOfferText.Body(offer), true, true, "Accept", "Decline",
             () => Answer(true), () => Answer(false)), true);
       }
+
+      /// <summary>What the Accept/Decline window shows for <paramref name="quest" />, a war it would start included.</summary>
+      internal static QuestOfferFacts OfferFor(NpcProfile giver, InformalQuest quest)
+      {
+         IFaction peaceful = PeacefulRealmToAttack(quest);
+
+         return new QuestOfferFacts {
+            GiverName = giver?.Name,
+            Deed = Describe(quest),
+            RewardGold = quest.RewardGold,
+            RewardRelation = quest.RewardRelation,
+            Grant = quest.Reward,
+            DeadlineDays = quest.DeadlineDay.HasValue ? quest.DeadlineDay - quest.IssuedOnDay : null,
+            PeacefulRealm = peaceful?.Name?.ToString(),
+            PeacefulRealmIsYours = peaceful != null && peaceful == Hero.MainHero?.MapFaction
+         };
+      }
+
+      /// <summary>
+      ///   The realm carrying out <paramref name="quest" /> means attacking although the player is at peace with it, or
+      ///   null (PeaceAttackPolicy). EvilPoptart1987 (Nexus, 11/11/2026): "capturing a noble you are not at war with. You
+      ///   cannot complete that quest without starting a war." Judged from the PLAYER's realm, never the giver's: a lord at
+      ///   war with someone may still ask it of a player whose realm is at peace with them.
+      /// </summary>
+      internal static IFaction PeacefulRealmToAttack(InformalQuest quest)
+      {
+         IFaction playerFaction = Hero.MainHero?.MapFaction;
+         if (quest == null || playerFaction == null) return null;
+
+         Hero targetHero = string.IsNullOrEmpty(quest.TargetHeroId) ? null : Hero.FindFirst(h => h.StringId == quest.TargetHeroId);
+         bool heroBound = quest.Type == QuestType.CapturePrisoner || quest.Type == QuestType.DeliverPrisoner || quest.Type == QuestType.ExecuteEnemy
+                          || quest.Type == QuestType.AttackLord;
+         IFaction target = heroBound ? targetHero?.MapFaction : QuestFactory.ResolveHostileTargetFaction(quest);
+         if (target == null) return null;
+
+         var facts = new PeaceAttackFacts {
+            Type = quest.Type,
+            TargetRealmKnown = true,
+            PlayerAtWarWithTarget = FactionManager.IsAtWarAgainstFaction(playerFaction, target),
+            TargetHeroHeldByPlayer = targetHero != null && BannerlordGameStateBridge.IsHeldByPlayer(targetHero)
+         };
+
+         return PeaceAttackPolicy.MeansAttackingARealmAtPeace(facts) ? target : null;
+      }
+
+      /// <summary>
+      ///   How giving up or letting lapse <paramref name="quest" /> is charged: an unfindable bandit, or a task that still
+      ///   means attacking a realm the player is at peace with, is a disappointment (Gabriel, 12/11/2026, C); anything else
+      ///   costs <paramref name="defaultRegardPenalty" /> and the word given.
+      /// </summary>
+      internal static QuestFailureLeniency LeniencyFor(InformalQuest quest, int defaultRegardPenalty)
+         => QuestFailureLeniencyPolicy.Resolve(quest.Type, defaultRegardPenalty, PeacefulRealmToAttack(quest) != null);
 
       /// <summary>Makes <paramref name="quest" /> the player's: recorded, its journal entry opened, an envoy's purse handed over.</summary>
       private static void Activate(NpcProfile giver, Hero giverHero, InformalQuest quest, int gameDay, BannerlordNpcMemoryStore store, Action<string, bool> notify)

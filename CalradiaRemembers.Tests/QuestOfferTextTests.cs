@@ -52,6 +52,33 @@ namespace CalradiaRemembers.Tests
             body.Should().Contain("No reward is promised.").And.NotContain("day");
         }
 
+        // EvilPoptart1987 (Nexus, 11/11/2026): "capturing a noble you are not at war with. You cannot complete that quest
+        // without starting a war." STAKE: the player accepts a war without knowing it.
+        [Test]
+        public void GIVEN_a_task_against_a_realm_at_peace_WHEN_shown_THEN_the_offer_says_it_means_attacking_them()
+        {
+            var facts = new QuestOfferFacts {GiverName = "Lord Aldric", Deed = "capture Lord Erwin", PeacefulRealm = "Vlandia"};
+
+            QuestOfferText.Body(facts).Should().Contain("You are at peace with Vlandia: carrying this out means attacking them.")
+                .And.EndWith(" It becomes your task only if you accept; declining breaks no word.");
+        }
+
+        // STAKE: a lord of the player's own realm is no foreign enemy; the offer says the attack would fall on their own.
+        [Test]
+        public void GIVEN_a_task_against_the_players_own_realm_WHEN_shown_THEN_the_offer_says_so()
+        {
+            var facts = new QuestOfferFacts {GiverName = "Lord Aldric", Deed = "capture Lord Erwin", PeacefulRealm = "Vlandia", PeacefulRealmIsYours = true};
+
+            QuestOfferText.Body(facts).Should().Contain("Vlandia is your own realm: carrying this out means attacking your own.");
+        }
+
+        // STAKE: an ordinary task must not carry a false war warning.
+        [Test]
+        public void GIVEN_a_task_against_no_one_at_peace_WHEN_shown_THEN_no_warning_is_given()
+        {
+            QuestOfferText.Body(new QuestOfferFacts {GiverName = "Ylva", Deed = "clear the bandits near Ab Comer"}).Should().NotContain("at peace");
+        }
+
         // While the choice waits, the chat says a task was put, not given, so nothing reads as already accepted.
         [Test]
         public void GIVEN_an_offer_waiting_WHEN_the_chat_notes_it_THEN_it_asks_for_an_answer()

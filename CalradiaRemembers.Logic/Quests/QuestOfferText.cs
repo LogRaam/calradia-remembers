@@ -37,6 +37,15 @@ namespace CalradiaRemembers.Logic.Quests
 
         /// <summary>Days the task runs; null or 0 for no deadline.</summary>
         public int? DeadlineDays { get; init; }
+
+        /// <summary>
+        ///   The realm the task means attacking although the player is at peace with it (PeaceAttackPolicy), as the game
+        ///   names it; null when the task attacks no one at peace.
+        /// </summary>
+        public string PeacefulRealm { get; init; }
+
+        /// <summary>True when that realm is the player's own.</summary>
+        public bool PeacefulRealmIsYours { get; init; }
     }
 
     /// <summary>Composes the offer a character puts to the player. Pure.</summary>
@@ -64,7 +73,18 @@ namespace CalradiaRemembers.Logic.Quests
             string reward = earns.Count == 0 ? " No reward is promised." : $" On completion: {string.Join(", ", earns)}.";
             string deadline = facts.DeadlineDays > 0 ? $" You would have {facts.DeadlineDays} day{(facts.DeadlineDays == 1 ? "" : "s")}." : "";
 
-            return ask + reward + deadline + " It becomes your task only if you accept; declining breaks no word.";
+            return ask + reward + deadline + PeaceWarning(facts) + " It becomes your task only if you accept; declining breaks no word.";
+        }
+
+        // EvilPoptart1987 (Nexus, 11/11/2026): "capturing a noble you are not at war with. You cannot complete that quest
+        // without starting a war." Gabriel (12/11/2026, A): the offer says it before the player accepts.
+        private static string PeaceWarning(QuestOfferFacts facts)
+        {
+            if (string.IsNullOrWhiteSpace(facts.PeacefulRealm)) return "";
+
+            return facts.PeacefulRealmIsYours
+                ? $" {facts.PeacefulRealm} is your own realm: carrying this out means attacking your own."
+                : $" You are at peace with {facts.PeacefulRealm}: carrying this out means attacking them.";
         }
 
         /// <summary>The line the chat shows while the offer waits for the player's answer.</summary>

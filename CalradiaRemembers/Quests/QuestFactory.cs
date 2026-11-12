@@ -142,7 +142,7 @@ namespace CalradiaRemembers.Quests
       ///   (attack_lord/capture_prisoner/execute_enemy), or the named settlement's own faction (siege - the only
       ///   hostile type binding neither field, see <see cref="ResolveTargets" />'s own Siege case).
       /// </summary>
-      private static IFaction ResolveHostileTargetFaction(InformalQuest quest)
+      internal static IFaction ResolveHostileTargetFaction(InformalQuest quest)
       {
          if (!string.IsNullOrEmpty(quest.TargetFactionId))
          {

@@ -56,9 +56,17 @@ namespace CalradiaRemembers.Logic.Quests
         ///   duplicates those constants. A hard-to-find bandit deed instead returns the flat, gentle
         ///   <see cref="BanditFailureRegardPenalty" /> with no grudge, no broken-word memory, and no trust spent.
         /// </summary>
-        public static QuestFailureLeniency Resolve(QuestType type, int defaultRegardPenalty)
+        public static QuestFailureLeniency Resolve(QuestType type, int defaultRegardPenalty) => Resolve(type, defaultRegardPenalty, false);
+
+        /// <summary>
+        ///   As <see cref="Resolve(QuestType, int)" />, and a task that still means attacking a realm the player is at
+        ///   peace with (<see cref="PeaceAttackPolicy" />) is forgiven the same way. EvilPoptart1987 (Nexus, 11/11/2026):
+        ///   "It forces you to abandon and incur a massive grudge for no reason." Gabriel (12/11/2026, C): giving up a
+        ///   task the player could only do by starting a war is a disappointment, not a broken word.
+        /// </summary>
+        public static QuestFailureLeniency Resolve(QuestType type, int defaultRegardPenalty, bool meansAttackingARealmAtPeace)
         {
-            if (IsHardToFindTarget(type))
+            if (IsHardToFindTarget(type) || meansAttackingARealmAtPeace)
                 return new QuestFailureLeniency {PlantGrudge = false, RecordBrokenWordMemory = false, SpendPromiseTrust = false, RegardPenalty = BanditFailureRegardPenalty};
 
             return new QuestFailureLeniency {PlantGrudge = true, RecordBrokenWordMemory = true, SpendPromiseTrust = true, RegardPenalty = defaultRegardPenalty};
