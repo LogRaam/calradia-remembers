@@ -148,6 +148,14 @@ namespace CalradiaRemembers.Logic
             || Loves != null || Dislikes != null || LessFond != null;
 
         /// <summary>
+        ///   True when the entry locks something kept on the STORED romantic profile and read back as it is: the gestures
+        ///   loved, less loved and disliked, or the romantic preferences. Such an entry must be laid on the stored profile
+        ///   at every reload. EvilPoptart1987 (Nexus, 12/11/2026): "some edits work, but 'preferences' do not update": the
+        ///   preference lock was laid only beside a kink re-derivation, which ran for an entry with traits or kinks alone.
+        /// </summary>
+        public bool LocksStoredTastes => Loves != null || LessFond != null || Dislikes != null || ParsedPreferences != null;
+
+        /// <summary>
         ///   Human-readable problems with what the author wrote: values that are present but will be ignored
         ///   because nothing recognizes them. Empty when the entry is clean. Surfaced by cr.lore_status and the
         ///   reload log so a hand-edited file never fails silently.

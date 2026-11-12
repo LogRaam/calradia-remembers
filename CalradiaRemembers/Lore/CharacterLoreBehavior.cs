@@ -69,9 +69,11 @@ namespace CalradiaRemembers.Lore
             // lock); a backstory/conviction/orientation-only override must not re-roll and wipe an NPC's kinks.
             if (ov.HasTraits || ov.ParsedKinks != null)
                RederiveKinks(hero); // frozen kinks on an already-met NPC follow the new personality, or an authored lock
-            // The gesture lock lands on the STORED profile here, after the kinks it is weighed against: the Heart line of
-            // the encyclopedia reads the store as it is (Tene21, 03/11/2026: cr.acts showed the roll after cr.reload_lore).
-            if (ov.Loves != null || ov.LessFond != null || ov.Dislikes != null)
+            // The gesture and preference locks land on the STORED profile here, after the kinks they are weighed against:
+            // the Heart line of the encyclopedia reads the store as it is (Tene21, 03/11/2026: cr.acts showed the roll after
+            // cr.reload_lore). Preferences joined 12/11/2026 (EvilPoptart1987: "'preferences' do not update"): an entry
+            // with no traits or kinks never reached the kink re-derivation that laid them.
+            if (ov.LocksStoredTastes)
                UpdateStoredTastes(hero, false);
             n++;
          }

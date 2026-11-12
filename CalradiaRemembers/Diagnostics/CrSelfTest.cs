@@ -423,6 +423,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("scene_opener", Severity.Light, "Lordfadooboo (Nexus, 21/10/2026): a conversation opened cold; Gabriel (22/10/2026): the character sets the scene by default, as captive scenes do. Reads the LIVE opening facts (LlmDialogFlow.SceneFacts) and asserts a conversation opened by the greeting gets a scene while one opened any other way (an interception, a tale meeting) does not, nor one put back from earlier today, nor one carrying the game's own dialogue, nor any with the MCM switch off (set off for a moment, restored). Then, with a model available and nothing on screen, opens a REAL conversation with a lord, starts the scene on a test greeting and plays the player speaking first: the scene is set aside, the greeting stays on screen and is the line remembered, and the call is aborted. Closes the conversation", TestSceneOpener),
          new SelfTest("scene_image_shown", Severity.Light, "Gabriel (08/10/2026): a tale's stage may carry a picture, opening by itself beside the chat when its scene opens. Writes a small picture to a temporary file, opens a scene with it through the real door (its narration refused before any model call), checks the left panel shows that very file and, in Dark Leather, that it steps aside when the chat yields to the pause menu, then closes the scene and deletes the file.", TestSceneImageShown),
          new SelfTest("intimate_acts", Severity.Light, "Gabriel (26/10/2026): 'chaque NPC avait des preferences pour certains gestes sexuels, et meme parfois des gestes qu'il n'aime pas', and 'un geste impose que le NPC n'aime pas devrait reduire le personal regard'. At Hardcore, with a lord arranged as the player's lover (regard 60, intimate; put back after) who loves oral given and dislikes anal received: the turn's reader is taught both from the real EncounterContextBuilder seam; the disliked gesture only asked for costs nothing and is learned; performed, it costs 4 personal regard and leaves a memory; performed again the same day, nothing more; the loved gesture found warms them by 1; one they are less fond of costs nothing; the Heart section names a taste only once it is learned; a profile rolled before the list widened (27/10/2026: 'd'en mettre beaucoup') is completed through the real load path, keeping what she loved and what the player learned. Skips below Hardcore", TestIntimateActs),
+         new SelfTest("override_preferences", Severity.Light, "EvilPoptart1987 (Nexus, 12/11/2026): 'Changed information in character_overrides.json ... ran command cr.reload_lore ... some edits work, but preferences do not update.' With custom traits on and an entry injected at runtime that sets ONLY preferences (Polyamorous, Devoted; no traits, no kinks; character_overrides.json untouched) on a lord whose stored preferences are Reserved: the reload's own ApplyAll lays them on the STORED profile, and the path a conversation takes (UpgradeIfNeeded) lays them on a profile still carrying the old ones. Everything put back, the file reloaded", TestOverridePreferences),
          new SelfTest("override_acts", Severity.Light, "Tene21 (Nexus, 03/11/2026): 'Setting a character's tastes in the file, then running cr.reload_lore followed by cr.acts Character Name still show what I assume are the character's generated tastes.' With custom traits on and a lock injected at runtime (loves kissing and beneath, less fond dirty talk, dislikes none; character_overrides.json untouched) on a lord whose roll had kissing as less loved: the reload's own ApplyAll lays the lock on the STORED profile (what the encyclopedia reads) with kissing in one list only and the empty dislike kept empty; the path cr.acts takes (UpgradeIfNeeded) lays it on a profile still carrying the roll, and a profile of an older taste revision is not padded past the lock; the Heart line reads the authored gesture once learned; custom traits off, RestoreAll gives back the character's own roll. Everything put back, the file reloaded", TestOverrideActs),
          new SelfTest("character_voice", Severity.Light, "Gabriel (10/11/2026), after AI Influence 7.0.0: a voice of their own for every character; kurushimi00 (Nexus, 01/11/2026) heard characters recite alike. Reads YOUR VOICE as the prompt gets it for up to 40 living characters with a station, and asserts it is there, the same when read twice (nothing is saved), opens on a habit of that character's own station and age, that the habits are not all one, and that a preacher never curses. Reads only", TestCharacterVoice),
          new SelfTest("credulity", Severity.Light, "Gabriel (10/11/2026), after AI Influence 7.0.0's naivety: one rule ('to be guarded is to not be naive') served every character. Reads HOW READILY YOU BELIEVE for up to 60 living characters as the prompt gets it and asserts it is the same when read twice and is shrewd, trusting or silent; then plants a BrokenOath grudge against the player on one trusting-or-ordinary character, asserts they turn wary and say why, and takes the grudge back.", TestCredulity),
@@ -15804,6 +15805,67 @@ namespace CalradiaRemembers.Diagnostics
             if (profile.Events.Count > eventsBefore) profile.Events.RemoveRange(eventsBefore, profile.Events.Count - eventsBefore);
             NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, regardBefore - profile.ReputationWithPlayer, NpcMemoryService.Core.Standing.RegardCause.SelfTest);
             if (hadProfile) behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestOverridePreferences(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("override_preferences");
+         if (t.Skip(behavior?.Store == null || Hero.MainHero == null, "no campaign")) return t.Line();
+         if (t.Skip(CrSettings.Instance == null || Lore.CharacterLoreBehavior.Instance == null, "MCM settings or the lore behaviour unavailable")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && h.Clan != Clan.PlayerClan
+                                                            && CharacterOverrideLoader.For(h) == null && Mapping.ActionGate.Allows(h, Logic.ActionKind.Witness));
+         if (t.Skip(lord == null, "no lord without an authored entry")) return t.Line();
+
+         NpcProfile stored = behavior.Store.Get(lord.StringId);
+         bool hadProfile = stored != null;
+         NpcProfile profile = stored ?? Mapping.HeroProfileMapper.FromHero(lord);
+         Mapping.HeroProfileMapper.UpgradeIfNeeded(profile, lord);
+         RomanticProfile r = profile.Romantic;
+         if (t.Skip(r == null, $"{lord.Name} has no romantic profile")) return t.Line();
+
+         bool wasEnabled = ModSettings.UseCustomTraits;
+         List<RomanticPreference> before = r.Preferences.ToList();
+         var authored = new[] {RomanticPreference.Polyamorous, RomanticPreference.Devoted};
+         void Old()
+         {
+            r.Preferences.Clear();
+            r.Preferences.Add(RomanticPreference.Reserved);
+         }
+
+         try
+         {
+            CrSettings.Instance.UseCustomTraits = true;
+            CharacterOverrideLoader.InjectRuntimeOverride(new CharacterOverride {
+               Id = lord.StringId, Hero = lord.Name?.ToString(), Preferences = new List<string> {"Polyamorous", "Devoted"}
+            });
+            t.Note($"{lord.Name}; preferences-only entry injected at runtime, character_overrides.json untouched");
+
+            // STAKE (the report): the reload lays an entry's preferences on the stored profile, traits and kinks absent.
+            Old();
+            behavior.Store.Set(profile);
+            Lore.CharacterLoreBehavior.Instance.ApplyAll();
+            RomanticProfile inStore = behavior.Store.Get(lord.StringId)?.Romantic;
+            t.Expect("theReloadLaysThePreferencesOnTheStoredProfile", inStore != null && inStore.Preferences.SequenceEqual(authored), true);
+
+            // STAKE: a conversation's own profile, brought up to date, carries them too.
+            Old();
+            Mapping.HeroProfileMapper.UpgradeIfNeeded(profile, lord);
+            t.Expect("thePathAConversationTakesSeesThem", r.Preferences.SequenceEqual(authored), true);
+         }
+         finally
+         {
+            CharacterOverrideLoader.Load();
+            CrSettings.Instance.UseCustomTraits = wasEnabled;
+            if (wasEnabled) Lore.CharacterLoreBehavior.Instance.ApplyAll();
+            else Lore.CharacterLoreBehavior.Instance.RestoreAll();
+            r.Preferences.Clear();
+            r.Preferences.AddRange(before);
+            if (hadProfile) behavior.Store.Set(profile);
+            else behavior.Store.Remove(lord.StringId);
          }
 
          return t.Line();

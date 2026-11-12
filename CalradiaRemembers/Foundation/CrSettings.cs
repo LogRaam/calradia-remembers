@@ -375,7 +375,7 @@ namespace CalradiaRemembers.Foundation
 
       [SettingPropertyBool("{=CR_MCM_LeanPrompt}Compact prompt for small models", RequireRestart = false, Order = 12,
          HintText = "{=CR_MCM_LeanPrompt_Hint}Trims the prompt to fit a SMALL, short-context model (4k to 8k). Turn ON if the AI stays silent: " +
-                    "the full prompt is overflowing it. Replies grow less richly grounded. Leave OFF for cloud models.")]
+                    "the full prompt is overflowing it. Replies grow less richly grounded, and fewer tasks are offered. Leave OFF for cloud models.")]
       [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public bool LeanPrompt { get; set; } = false;
 

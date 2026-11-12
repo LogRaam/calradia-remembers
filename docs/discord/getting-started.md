@@ -59,7 +59,7 @@ A guide, not a quote: one evening, one lord, prices of the day. OpenRouter's **A
 
 **Then fit the mod to your model** (LLM Provider):
 - **Local model context (tokens)**: the context length set in your server. The mod trims its prompt to fit.
-- **Compact prompt for small models**: on for a 4k to 8k model, or if the AI stays **silent**.
+- **Compact prompt for small models**: on for a 4k to 8k model, or if the AI stays **silent**. Characters then offer fewer tasks, so leave it off when the full prompt fits.
 - **Reply Token Budget**: raise it if a thinking model is **cut off mid-thought**.
 - **LLM Response Timeout**: raise it for a slow model.
 - **Presence Penalty**: 0 if your model writes badly with it.

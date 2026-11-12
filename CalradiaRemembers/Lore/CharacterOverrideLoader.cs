@@ -137,15 +137,35 @@ namespace CalradiaRemembers.Lore
          RomanticProfile r = profile?.Romantic;
          if (r == null || hero == null) return false;
 
+         bool preferencesChanged = SyncAuthoredPreferences(profile, hero);
+
          IntimateTastes now = TastesOf(r);
          var acts = ActsFor(hero);
          IntimateTastes locked = AuthoredTastesPolicy.Apply(new AuthoredTastesFacts {Current = now, Loves = acts.Loves, LessFond = acts.LessFond, Dislikes = acts.Dislikes});
-         if (locked == null || Same(locked, now)) return false;
+         if (locked == null || Same(locked, now)) return preferencesChanged;
 
          r.LovedActs = locked.Loved;
          r.LessFondActs = locked.LessFond;
          r.DislikedActs = locked.Disliked;
          ModLog.Info($"[OVERRIDE] {profile.Name} gestures locked by authored char data: loves [{string.Join(", ", locked.Loved)}], less fond [{string.Join(", ", locked.LessFond)}], dislikes [{string.Join(", ", locked.Disliked)}].");
+
+         return true;
+      }
+
+      /// <summary>
+      ///   Lays the authored romantic-preference lock on the profile, wherever the gestures are laid (a profile brought up
+      ///   to date, a reload, each turn). EvilPoptart1987 (Nexus, 12/11/2026): "some edits work, but 'preferences' do not
+      ///   update". Returns true when the preferences changed.
+      /// </summary>
+      private static bool SyncAuthoredPreferences(NpcProfile profile, Hero hero)
+      {
+         IReadOnlyList<RomanticPreference> authored = PreferencesFor(hero);
+         List<RomanticPreference> current = profile.Romantic?.Preferences;
+         if (authored == null || current == null || current.SequenceEqual(authored)) return false;
+
+         current.Clear();
+         current.AddRange(authored);
+         ModLog.Info($"[OVERRIDE] {profile.Name} romantic preferences locked to [{string.Join(", ", authored)}] by authored char data.");
 
          return true;
       }

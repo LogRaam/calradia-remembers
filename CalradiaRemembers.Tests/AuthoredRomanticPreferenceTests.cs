@@ -95,6 +95,29 @@ namespace CalradiaRemembers.Tests
                 .HasAnyAuthoredContent.Should().BeTrue();
         }
 
+        // EvilPoptart1987 (Nexus, 12/11/2026): "some edits work, but 'preferences' do not update." STAKE: an entry that
+        // changes only the preferences (no traits, no kinks) was never laid on the stored profile, so cr.reload_lore and
+        // cr.prompt_dump kept the old ones.
+        [Test]
+        public void GIVEN_an_entry_with_only_a_preference_WHEN_a_reload_asks_what_to_lay_on_the_stored_profile_THEN_the_preferences_are_laid()
+        {
+            new CharacterOverride {Hero = "Ira", Preferences = new List<string> {"Polyamorous"}}.LocksStoredTastes.Should().BeTrue();
+        }
+
+        // STAKE: a deliberate lock to no preferences at all is a lock too, and must reach the stored profile.
+        [Test]
+        public void GIVEN_an_empty_preference_lock_WHEN_asked_THEN_it_is_still_laid()
+        {
+            new CharacterOverride {Hero = "Ira", Preferences = new List<string>()}.LocksStoredTastes.Should().BeTrue();
+        }
+
+        // STAKE: an entry that leaves both preferences and gestures out must not rewrite the character's own roll.
+        [Test]
+        public void GIVEN_an_entry_with_only_a_backstory_WHEN_asked_THEN_nothing_is_laid_on_the_stored_tastes()
+        {
+            new CharacterOverride {Hero = "Ira", Backstory = "A widow of the hills."}.LocksStoredTastes.Should().BeFalse();
+        }
+
         // The author's own diagnostics (cr.lore_status, the reload log) must name a bad preference the same way
         // they already name a bad kink or orientation, or the new field is the one place the file fails quietly.
         [Test]
