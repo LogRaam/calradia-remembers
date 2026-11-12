@@ -285,6 +285,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("relation_ledger_prune", Severity.Light, "tashmetu (Nexus, 09/11/2026): the relation ledger reached 18.2 million bytes and broke his save. The REAL prune the save runs, on a stand-in ledger of real lords: a pair back at its start is dropped and reads the same, a pair whose value moved is kept, a pair with an unknown hero is dropped; the size of this campaign's own ledger is noted", TestRelationLedgerPrune),
          new SelfTest("quest_repeat", Severity.Light, "bdionysis80 (Nexus, 10/11/2026): a second war council set 'Scout an army of Sturgia' (Vamina) a few days after the same scouting (Athina) was done, and the table was never told what the player carried. With a [SELFTEST] scouting marked done today on one lord: the REAL IssueQuest refuses the same scouting from another lord and says whose it is; the tasks a council reads list it as done; the company's men and food days are read", TestQuestRepeat),
          new SelfTest("council_sitting_memory", Severity.Light, "Gabriel (10/11/2026): \"la memoire du conseil\". The council showed the last 24 lines of a sitting and dropped the rest, and never recorded the player's own lines. With a 40-line sitting holding the player's words, folded at the council's own pacing: the REAL CouncilPromptBuilder carries the recap first, the player's recent words under 'You', and no line older than the fold; unfolded, the window stays at most the old 24 lines. Builds no world state", TestCouncilSittingMemory),
+         new SelfTest("hire_price_shown", Severity.Light, "Енот Василий (Discord, 11/11/2026): 'Let Lulya the Spicevendor take service in your party for 0 coins? [Y/n]', then the hire charged the full price. A fresh ActionConfirmationController is handed a join_party with price 0 for a free wanderer: the question must name the game's own hiring price, never 0 coins, and the confirmed action must carry that same price. Nothing is hired", TestHirePriceShown),
          new SelfTest("quest_refusal_reason", Severity.Light, "Aporo (Discord, 11/11/2026): Grand Prince Raganvad offered Mazhadan Castle for a captured lord three times, and each refusal said only 'could not be matched to the world', so he restated the same castle. Through the REAL QuestService.ApplyResponse, a clan leader offers a task priced with a castle his clan does not hold: with fief rewards off the player is told fiefs are not quest rewards in the settings, with them on that the castle is not his to give; either way the character's next-turn note says the offer was NOT recorded, and no task is recorded. The giver's outstanding tasks are set aside and restored", TestQuestRefusalReason),
          new SelfTest("quest_consent", Severity.Light, "Schmidt (Discord, 11/11/2026): \"NPC's give you quests that you didn't agree to ... Same with asking NPC's to do something but it shows up for you as a quest.\" Gabriel: \"Tu peux faire 11.\" Through the REAL QuestService.ApplyResponse with a [QUEST] a lord of another realm puts to the player (scout a castle of a third realm), the Accept/Decline window answered through its test seam: while the offer waits nothing is recorded; declined, no task and no journal entry, the giver remembers the refusal and the model is told; accepted, the task is the player's with its journal entry. The giver's outstanding tasks are set aside first and restored, and the accepted task is cancelled and removed", TestQuestConsent),
          new SelfTest("realms_and_armies", Severity.Light, "Schmidt (Discord, 11/11/2026): \"everyone acts surprised when I tell them that Sturgia is no more\", and lords did not know which lords marched in their army. Through the REAL bridge and reader: the realms line names every standing realm with its fiefs and a realm the game counts destroyed as fallen (with none fallen, one realm's own destroyed flag is set for the read and restored at once); a lord marching in an army of two parties or more is told the other lords and the total (with none in the field, an army is raised from two lords of one realm and disbanded at once); a lord in no army is told none", TestRealmsAndArmies),
@@ -6652,6 +6653,30 @@ namespace CalradiaRemembers.Diagnostics
          int? days = MobileParty.MainParty?.GetNumDaysForFoodToLast();
          t.Note($"company: {MobileParty.MainParty?.MemberRoster?.TotalManCount} men, food for {days} days");
          t.Expect("theFoodDaysAreRead", days.HasValue, true);
+
+         return t.Line();
+      }
+
+      private static string TestHirePriceShown(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("hire_price_shown");
+         if (t.Skip(Campaign.Current == null || Hero.MainHero == null || behavior?.Store == null, "no campaign")) return t.Line();
+
+         Hero wanderer = Hero.AllAliveHeroes.FirstOrDefault(h => h.Occupation == Occupation.Wanderer && h.CompanionOf == null && h.PartyBelongedTo == null && !h.IsPrisoner);
+         if (t.Skip(wanderer == null, "no free wanderer in the world")) return t.Line();
+
+         int asking = Campaign.Current.Models.CompanionHiringPriceCalculationModel.GetCompanionHiringPrice(wanderer);
+         int expected = asking <= 0 ? 1 : asking;
+         NpcProfile profile = GetOrCreate(behavior, wanderer);
+         var confirmation = new ActionConfirmationController();
+         var hire = new GameAction {Type = "join_party", Parameters = new Dictionary<string, string> {["price"] = "0"}};
+
+         // STAKE (Енот Василий): the question names what will be paid, not the model's 0.
+         ActionDisposition d = confirmation.Preprocess(hire, wanderer, profile, new ActionContext(profile, null));
+         t.Expect("theHireIsAskedFirst", d, ActionDisposition.Queued);
+         t.Expect("theQuestionNamesTheRealPrice", confirmation.DebugNextQuestion?.Contains($"for {expected} coins") == true, true);
+         t.Expect("neverForZeroCoins", confirmation.DebugNextQuestion?.Contains("for 0 coins") == true, false);
+         t.Expect("theConfirmedHireCarriesThatPrice", confirmation.DebugNextAction?.Parameters?["price"], expected.ToString());
 
          return t.Line();
       }

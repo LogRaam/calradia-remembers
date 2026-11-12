@@ -3800,9 +3800,7 @@ namespace CalradiaRemembers.GameState
                return ActionOutcome.Refused(
                   $"(Your clan cannot support another companion — limit {clan.CompanionLimit}.)");
 
-            int asking = Campaign.Current.Models.CompanionHiringPriceCalculationModel
-                                 .GetCompanionHiringPrice(npcHero);
-            if (asking <= 0) asking = 1;
+            int asking = AskingHirePrice(npcHero);
 
             // The deal is the deal (Gabriel's ruling 2026-09-08). The price agreed in conversation is charged
             // exactly, never renegotiated afterwards into a band: that band is what charged a player 446 while
@@ -5672,6 +5670,21 @@ namespace CalradiaRemembers.GameState
          try { return hero?.GetTraitLevel(trait) ?? 0; }
          catch { return 0; }
       }
+
+      /// <summary>The game's own hiring price for this wanderer, never below 1.</summary>
+      private static int AskingHirePrice(Hero npcHero)
+      {
+         int asking = npcHero == null || Campaign.Current == null ? 0 : Campaign.Current.Models.CompanionHiringPriceCalculationModel.GetCompanionHiringPrice(npcHero);
+
+         return asking <= 0 ? 1 : asking;
+      }
+
+      /// <summary>
+      ///   The denars a join_party will charge for <paramref name="proposed" />: the price named, or the game's own hiring
+      ///   price when none was. Енот Василий (Discord, 11/11/2026): the confirmation said "for 0 coins" and the hire then
+      ///   charged the full price; the question now names this figure, the one that is paid.
+      /// </summary>
+      internal static int HirePriceToCharge(int proposed, Hero npcHero) => HireAgreementPolicy.AgreedPrice(proposed, AskingHirePrice(npcHero));
 
       private static bool TryGetInt(IReadOnlyDictionary<string, string> parameters, string key, out int value)
       {

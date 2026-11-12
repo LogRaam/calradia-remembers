@@ -52,6 +52,9 @@ namespace CalradiaRemembers.Chat
       /// <summary>Self-test seam: the context the next confirmed action would run with (its pinned item), or null.</summary>
       internal ActionContext DebugNextContext => _pending.Count > 0 ? _pending.Peek().Context : null;
 
+      /// <summary>The action the next confirmation will carry out (self-test only), or null when none is pending.</summary>
+      internal GameAction DebugNextAction => _pending.Count > 0 ? _pending.Peek().Action : null;
+
       /// <summary>
       ///   Preprocesses a coin/commit action before the loop would run it. An identical action already resolved
       ///   this conversation is dropped (<see cref="ActionDisposition.Skip" />), taming the LLM re-emitting the
@@ -122,6 +125,20 @@ namespace CalradiaRemembers.Chat
          if (!tracked) return ActionDisposition.ExecuteInline; // change_relation, execute_prisoner, etc.: untouched
 
          int amount = ExtractAmount(action);
+
+         // Енот Василий (Discord, 11/11/2026): "Let Lulya take service in your party for 0 coins? [Y/n]", then the hire charged
+         // the full price, because a hire with no price named costs the game's own. The question names the price that will be
+         // charged, and the confirmed action carries that very figure, so what the player agrees to is what is paid.
+         if (type.Equals("join_party", StringComparison.OrdinalIgnoreCase))
+         {
+            amount = BannerlordGameStateBridge.HirePriceToCharge(amount, npc);
+            var pinnedParameters = new Dictionary<string, string>();
+            if (action.Parameters != null)
+               foreach (KeyValuePair<string, string> p in action.Parameters) pinnedParameters[p.Key] = p.Value;
+            pinnedParameters["price"] = amount.ToString();
+            action = new GameAction {Type = action.Type, Context = action.Context, Parameters = pinnedParameters};
+         }
+
          string key = $"{type.ToLowerInvariant()}:{npc?.StringId}:{amount}";
          if (_resolvedKeys.Contains(key))
          {
