@@ -56,8 +56,8 @@ namespace CalradiaRemembers.GameState
         /// <summary>The current in-game day (from <c>CampaignTime.Now</c>).</summary>
         int GetCurrentGameDay();
 
-        /// <summary>Current season name: Spring, Summer, Autumn, or Winter.</summary>
-        string GetSeasonName();
+        /// <summary>Today's calendar date as the game shows it ("summer 9, 1084"), for a prompt's world state.</summary>
+        string GetCalendarDate();
 
         /// <summary>
         ///   The current part of the day (e.g. "morning", "afternoon", "evening, around dusk",

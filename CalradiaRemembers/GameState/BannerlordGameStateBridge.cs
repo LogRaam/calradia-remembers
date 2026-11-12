@@ -700,16 +700,12 @@ namespace CalradiaRemembers.GameState
          return new PlayerStandingFacts {PlayerIsCaptiveOfNpc = Hero.MainHero.IsPrisoner && Hero.MainHero.PartyBelongedToAsPrisoner?.LeaderHero == npc, NpcIsCaptiveOfPlayer = IsHeldByPlayer(npc), SharesPlayerClan = npc.Clan != null && npc.Clan == Clan.PlayerClan, NpcRulesPlayerRealm = Hero.MainHero.Clan?.Kingdom?.Leader == npc && npc != Hero.MainHero, PlayerRulesNpcRealm = npc.Clan?.Kingdom?.Leader == Hero.MainHero && Hero.MainHero.Clan?.Kingdom != null, PlayerIsMercenaryOfNpcRealm = sharesRealm && (Clan.PlayerClan?.IsUnderMercenaryService ?? false), SharesRealm = sharesRealm, NpcIsMercenaryOfSharedRealm = sharesRealm && (npc.Clan?.IsUnderMercenaryService ?? false)};
       }
 
-      public string GetSeasonName()
-      {
-         var dayOfYear = (int) (CampaignTime.Now.ToDays % WorldCalendar.DaysPerYear);
-
-         if (dayOfYear < 21) return "Spring";
-         if (dayOfYear < 42) return "Summer";
-         if (dayOfYear < 63) return "Autumn";
-
-         return "Winter";
-      }
+      /// <inheritdoc />
+      /// <remarks>
+      ///   Was the season alone. bdionysis80 (Nexus, 12/11/2026): with no year given, the model worked one out of the
+      ///   absolute day count and wrote "summer 1085" on summer 9, 1084.
+      /// </remarks>
+      public string GetCalendarDate() => ChronicleCalendar.GameDateOf((int) CampaignTime.Now.ToDays);
 
       /// <inheritdoc />
       public string GetTimeOfDay()

@@ -1268,7 +1268,7 @@ namespace CalradiaRemembers.Chat
             ReplyLanguage = ModSettings.ReplyLanguage,
             PlayerName = Hero.MainHero?.Name?.ToString(),
             Day = bridge?.GetCurrentGameDay(),
-            Season = bridge?.GetSeasonName(),
+            Season = bridge?.GetCalendarDate(),
             Place = Hero.MainHero?.CurrentSettlement?.Name?.ToString(),
             TranscriptSoFar = CouncilTranscriptLines(),
             SittingRecap = CouncilSittingPolicy.Recap(_transcript),

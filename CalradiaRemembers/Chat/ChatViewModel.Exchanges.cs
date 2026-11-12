@@ -150,7 +150,7 @@ namespace CalradiaRemembers.Chat
             ChatSession session = BuildSessionFor(speaker);
             var world = new WorldState {
                CurrentDay = behavior.GameStateBridge.GetCurrentGameDay(),
-               Season = behavior.GameStateBridge.GetSeasonName(),
+               Season = behavior.GameStateBridge.GetCalendarDate(),
                TimeOfDay = behavior.GameStateBridge.GetTimeOfDay(),
                ActiveConflicts = behavior.GameStateBridge.GetActiveConflicts(),
                Realms = behavior.GameStateBridge.GetRealmStanding(),
@@ -454,7 +454,7 @@ namespace CalradiaRemembers.Chat
             ChatSession session = BuildSessionFor(speaker);
             var world = new WorldState {
                CurrentDay = behavior.GameStateBridge.GetCurrentGameDay(),
-               Season = behavior.GameStateBridge.GetSeasonName(),
+               Season = behavior.GameStateBridge.GetCalendarDate(),
                TimeOfDay = behavior.GameStateBridge.GetTimeOfDay(),
                ActiveConflicts = behavior.GameStateBridge.GetActiveConflicts(),
                Realms = behavior.GameStateBridge.GetRealmStanding(),
@@ -942,7 +942,7 @@ namespace CalradiaRemembers.Chat
 
             WorldState world = new() {
                CurrentDay = behavior.GameStateBridge.GetCurrentGameDay(),
-               Season = behavior.GameStateBridge.GetSeasonName(),
+               Season = behavior.GameStateBridge.GetCalendarDate(),
                TimeOfDay = behavior.GameStateBridge.GetTimeOfDay(),
                ActiveConflicts = behavior.GameStateBridge.GetActiveConflicts(),
                Realms = behavior.GameStateBridge.GetRealmStanding(),
@@ -2500,7 +2500,7 @@ namespace CalradiaRemembers.Chat
 
             var world = new WorldState {
                CurrentDay = behavior.GameStateBridge.GetCurrentGameDay(),
-               Season = behavior.GameStateBridge.GetSeasonName(),
+               Season = behavior.GameStateBridge.GetCalendarDate(),
                TimeOfDay = behavior.GameStateBridge.GetTimeOfDay(),
                ActiveConflicts = behavior.GameStateBridge.GetActiveConflicts(),
                Realms = behavior.GameStateBridge.GetRealmStanding(),

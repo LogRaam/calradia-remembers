@@ -94,5 +94,25 @@ namespace CalradiaRemembers.Tests
             ChronicleCalendar.Ordinal(13).Should().Be("13th");
             ChronicleCalendar.Ordinal(21).Should().Be("21st");
         }
+
+        // bdionysis80 (Nexus, 12/11/2026): "current date Summer 9 1084 while receiving letters with timestamp summer
+        // 1085". STAKE: the date a prompt carries must be the one on the player's screen, or characters write a year ahead.
+        [Test]
+        public void GIVEN_summer_9_of_1084_WHEN_dated_THEN_it_reads_as_the_game_shows_it()
+        {
+            int day = 1084 * ChronicleCalendar.DaysPerYear + ChronicleCalendar.DaysPerSeason + 8;
+
+            ChronicleCalendar.GameDateOf(day).Should().Be("summer 9, 1084");
+        }
+
+        // STAKE: the last day of a year must not already be the next year, nor its first day still the old one.
+        [Test]
+        public void GIVEN_the_turn_of_a_year_WHEN_dated_THEN_winter_21_is_followed_by_spring_1_of_the_next_year()
+        {
+            int lastDay = 1085 * ChronicleCalendar.DaysPerYear - 1;
+
+            ChronicleCalendar.GameDateOf(lastDay).Should().Be("winter 21, 1084");
+            ChronicleCalendar.GameDateOf(lastDay + 1).Should().Be("spring 1, 1085");
+        }
     }
 }

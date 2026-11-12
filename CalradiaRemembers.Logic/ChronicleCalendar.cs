@@ -42,6 +42,18 @@ namespace CalradiaRemembers.Logic
         /// <summary>The lower-case season name ("spring".."winter") for an in-game day.</summary>
         public static string SeasonNameOf(int day) => SeasonNames[SeasonIndexOf(day)];
 
+        /// <summary>
+        ///   The game's own calendar date for an absolute in-game day ("summer 9, 1084"), as the game shows it: years
+        ///   count from 0, the day of the season from 1 (CampaignTime.ToString). bdionysis80 (Nexus, 12/11/2026): a
+        ///   letter given only the day count dated itself "summer 1085" on summer 9, 1084; prompts carry this instead.
+        /// </summary>
+        public static string GameDateOf(int absoluteDay)
+        {
+            if (absoluteDay < 0) absoluteDay = 0;
+
+            return $"{SeasonNameOf(absoluteDay)} {absoluteDay % DaysPerSeason + 1}, {absoluteDay / DaysPerYear}";
+        }
+
         /// <summary>The English ordinal suffix for a small positive number ("1st", "2nd", "3rd", "4th"...).</summary>
         public static string Ordinal(int n)
         {

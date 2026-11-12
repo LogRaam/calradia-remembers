@@ -310,10 +310,13 @@ namespace CalradiaRemembers.Letters
             EncounterContext standing = EncounterContextBuilder.StandingContextFor(profile, historyKnownThrough);
 
             var emptySession = new ChatSession();
+            int letterDay = asOfDay ?? (int) CampaignTime.Now.ToDays;
             var world = new WorldState {
                // An envelope is written as of the day it was sent, not the day it is opened (31/10/2026).
-               CurrentDay = asOfDay ?? (int) CampaignTime.Now.ToDays,
-               Season = "",
+               CurrentDay = letterDay,
+               // bdionysis80 (Nexus, 12/11/2026): "current date Summer 9 1084 while receiving letters with timestamp
+               // summer 1085". Given the day count alone, the writer worked out a year one too many; it gets the date.
+               Season = ChronicleCalendar.GameDateOf(letterDay),
                ActiveConflicts = ""
             };
 
