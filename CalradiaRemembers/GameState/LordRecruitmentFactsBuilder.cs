@@ -5,6 +5,7 @@
 using System.Linq;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Logic;
+using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
 
 #endregion
@@ -54,5 +55,13 @@ namespace CalradiaRemembers.GameState
             IsClanLeader = clan != null && clan.Leader == lord
          };
       }
+
+      /// <summary>
+      ///   The Respect half of join_clan (StanceGatePolicy.CommandsRespectToJoinClan on the lord's live stance), true
+      ///   when there is no stance profile: join_clan never depended on one before the stance increment. One copy for
+      ///   the teaching gate, the bridge and the Actions menu (Fakade, 12/11/2026, brought the third reader).
+      /// </summary>
+      public static bool RespectsEnoughToJoin(NpcProfile profile)
+         => profile == null || StanceGatePolicy.CommandsRespectToJoinClan(Stance.StanceService.ToStance(profile).Respect, profile.ClanRelationWithPlayer ?? 0);
    }
 }

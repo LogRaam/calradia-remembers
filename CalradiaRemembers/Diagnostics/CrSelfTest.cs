@@ -678,6 +678,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("chat_captive_variety", Severity.Light, "LLM (T6): two scenes with the SAME captor + one with a DIFFERENT captor (fresh writing lens each) -> score cross-scene phrase reuse; logs the ratio + worst offenders, rejects only a gross echo regression", TestChatCaptiveVariety, true, 9),
          new SelfTest("conv_summary_queue", Severity.Light, "LLM: seed a base 'Spoke with X.' event + a job whose transcript states a PLAN, run the queue worker -> assert the event is ENRICHED by value match (a promised plan reaches durable memory, not lost)", TestConvSummaryQueueJob, true, 1),
          new SelfTest("letter_font", Severity.Light, "player report: Russian letters rendered Galahad's broken per-glyph fallback (no Cyrillic glyphs). Mechanical: LetterFontPolicy prefers the plain font for the game's own Russian language id and keeps the decorative Galahad look for English; then forces LetterViewModel's language seam (LetterFontResolver.LanguageIdProvider, no real language switch) and asserts the VM's BodyBrush/HeadingBrush/InputBrush bindings actually pick the plain sibling brushes for Russian and the Galahad ones for English, proving the wiring end to end and not just the pure policy. Restores the seam", TestLetterFont),
+         new SelfTest("actions_menu_lord_join", Severity.Light, "Fakade (Nexus, 12/11/2026): \"the option does not appear if not available ... Keep an option greyed out, perhaps with some hint as to why\". On a real lord of another house who does not lead it, through the menu's own fact resolution (ManualActionMenuController.DebugDescribe): with his regard set below the deep-bond mark, 'Ask them to join your clan' is listed Blocked and its reason names the regard needed; at a high regard the regard is no longer the reason. A clan leader of another house is NotForThisPerson. The menu rows (MenuRows) carry no NotForThisPerson entry. Never executes join_clan. Restores the regard", TestActionsMenuLordJoin),
          new SelfTest("manual_conception_entry", Severity.Light, "tashmetu (Nexus, 16/10/2026), Gabriel's ruling the same day: the manual menu may record \"You lay together\" between lovers or spouses, never shown below Explicit. Arranges a partner of the other sex and of fertile age as the player's lover, then reads the REAL menu facts: at Explicit the entry is open; as a stranger, or at Mature, it is not listed at all. Restores the content level and her romance", TestManualConceptionEntry),
          new SelfTest("manual_action_menu", Severity.Light, "Mechanical: drives the REAL ManualActionAvailability gate (the manual action-injection menu) against seeded facts -> a held-and-eligible prisoner exposes execute/free/recruit together, a held-but-ineligible one keeps execute/free and withholds recruit (PrisonerRecruitmentPolicy's own regard/clan-leader gate), and an otherwise-empty (non-ruler) snapshot shows no governance entry but keeps take_gold, the always-on baseline. Pure logic against a plain facts struct, nothing to clean up", TestManualActionMenu)
       };
@@ -22507,6 +22508,67 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             LetterFontResolver.LanguageIdProvider = priorProvider;
+         }
+
+         return t.Line();
+      }
+
+      // Fakade (Nexus, 12/11/2026): an action out of reach is shown greyed with its reason, and a free lord's
+      // recruitment is one of the rows. Drives the menu's real fact resolution on live lords; the per-gate wording
+      // lives in ManualMenuGreyedRowsTests.
+      private static string TestActionsMenuLordJoin(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("actions_menu_lord_join");
+         Hero player = Hero.MainHero;
+         if (t.Abort(player == null || behavior?.Store == null || behavior.GameStateBridge == null, "the campaign or the store is not ready")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsPrisoner && !h.IsChild && h.Clan != null && h.Clan != Clan.PlayerClan
+                                                           && h.Clan.Leader != h && h != player);
+         Hero leader = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsPrisoner && h.Clan != null && h.Clan != Clan.PlayerClan && h.Clan.Leader == h);
+         if (t.Skip(lord == null || leader == null, "no lord of another house who is not its leader, or no leader of another house")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, lord);
+         int priorRegard = profile.ReputationWithPlayer;
+
+         ManualActionStatus Join(Hero h) => Chat.ManualActionMenuController.DebugDescribe(h, behavior.Store.Get(h.StringId), behavior.GameStateBridge)
+                                                                         .SingleOrDefault(x => x.Entry.Type == ManualActionCatalog.JoinClan.Type);
+
+         try
+         {
+            string regardBar = LordRecruitment.MinRelation.ToString();
+
+            profile.ReputationWithPlayer = LordRecruitment.MinRelation - 30;
+            behavior.Store.Set(profile);
+            ManualActionStatus low = Join(lord);
+            t.Note($"{lord.Name}: at regard {profile.ReputationWithPlayer}, {low?.State} ({low?.Reason})");
+            // STAKE: the player sees the lord could be recruited, and what regard it takes.
+            t.Expect("lowRegardIsListedBlocked", low?.State, ManualActionState.Blocked);
+            t.Expect("lowRegardNamesTheRegardNeeded", low?.Reason?.Contains(regardBar) == true, true);
+
+            profile.ReputationWithPlayer = 95;
+            behavior.Store.Set(profile);
+            ManualActionStatus high = Join(lord);
+            t.Note($"{lord.Name}: at regard 95, {high?.State} ({high?.Reason})");
+            // STAKE: once the regard is there, the row names the next gate (or opens), never the regard again.
+            t.Expect("highRegardIsNoLongerTheReason", high != null && high.Reason.Contains(regardBar) == false, true);
+
+            ManualActionStatus head = Join(leader);
+            t.Note($"{leader.Name} leads {leader.Clan?.Name}: {head?.State}");
+            // STAKE: a clan leader is never offered what the bridge would always refuse.
+            t.Expect("aClanLeaderNeverJoins", head?.State, ManualActionState.NotForThisPerson);
+
+            // STAKE: the menu lists open and out-of-reach rows only, never the folded "never" rank.
+            bool menuHasNever = ManualActionAvailability.MenuRows(new ManualActionFacts()).Any(x => x.State == ManualActionState.NotForThisPerson);
+            t.Expect("menuLeavesOutTheNeverRank", menuHasNever, false);
+         }
+         finally
+         {
+            NpcProfile now = behavior.Store.Get(lord.StringId);
+            if (now != null)
+            {
+               now.ReputationWithPlayer = priorRegard;
+               behavior.Store.Set(now);
+            }
          }
 
          return t.Line();

@@ -105,6 +105,19 @@ namespace CalradiaRemembers.Logic.Actions
       /// <summary>NotableRecruitmentPolicy.Evaluate: this settlement notable could bequeath their post and join the player's clan.</summary>
       public bool CanRecruitNotable { get; set; }
 
+      /// <summary>
+      ///   LordRecruitment.Evaluate for this lord: None when they would leave their house for the player's, else the
+      ///   gate that holds them. Null when they are not a free lord of another house at all (LordRecruitmentFactsBuilder
+      ///   gave no facts: a commoner, a wanderer, a prisoner, one of the player's own clan).
+      /// </summary>
+      public LordRecruitmentBlock? LordJoinBlock { get; set; }
+
+      /// <summary>
+      ///   Only meaningful when <see cref="LordJoinBlock" /> is None: StanceGatePolicy.CommandsRespectToJoinClan
+      ///   passes for this lord (true when they have no stance profile, as at the teaching gate and the bridge).
+      /// </summary>
+      public bool LordRespectsPlayerEnough { get; set; }
+
       /// <summary>ResolveCompanionAskingPrice: this free wanderer could be hired, at this asking price (denars); null when not hireable.</summary>
       public int? CompanionAskingPrice { get; set; }
 
@@ -259,6 +272,7 @@ namespace CalradiaRemembers.Logic.Actions
          When(facts.PlayerCanMediatePeace, ManualActionCatalog.MediatePeace, "there is no war of theirs you could stand between");
          When(facts.CanRecruitNotable, ManualActionCatalog.RecruitNotable, "they are not a notable you could bring into your service");
          When(facts.CompanionAskingPrice.HasValue, ManualActionCatalog.JoinParty, "they are not for hire");
+         DescribeLordJoin(facts, Open, Blocked, NotHer);
 
          // Intimacy (Gabriel, 16/10/2026): listed only for the player's spouse, consort or lover, and never below
          // Explicit. Shown to anyone else, even blocked, it would offer a scene with a stranger, a parent or a child.
@@ -271,5 +285,68 @@ namespace CalradiaRemembers.Logic.Actions
          return result;
       }
 
+      /// <summary>
+      ///   The Actions menu's rows: what may be taken now, then what is out of reach as things stand, each with its
+      ///   reason (Fakade, Nexus, 12/11/2026: "Is it possible to see all possible Action/Options rather than only the
+      ///   ones we have access to? Keep an option greyed out, perhaps with some hint as to why it is not available").
+      ///   What will never apply to this person stays out: for most characters it is most of the catalogue, and a
+      ///   menu of grey rows about fiefs for a tavern keeper would bury the few that matter.
+      /// </summary>
+      public static IReadOnlyList<ManualActionStatus> MenuRows(ManualActionFacts facts)
+      {
+         IReadOnlyList<ManualActionStatus> all = Describe(facts);
+
+         return all.Where(s => s.State == ManualActionState.Open)
+                   .Concat(all.Where(s => s.State == ManualActionState.Blocked))
+                   .ToList();
+      }
+
+      /// <summary>
+      ///   join_clan by hand (Fakade, 12/11/2026, who did not know a free lord could be recruited because the menu
+      ///   never showed it). Reads the same LordRecruitment gate the teaching and the bridge read, and names the one
+      ///   that holds. A clan leader is NotForThisPerson: leading the house is who they are, and the bridge refuses it
+      ///   outright.
+      /// </summary>
+      private static void DescribeLordJoin(ManualActionFacts facts,
+                                           System.Action<ManualActionEntry> open,
+                                           System.Action<ManualActionEntry, string> blocked,
+                                           System.Action<ManualActionEntry, string> notHer)
+      {
+         ManualActionEntry entry = ManualActionCatalog.JoinClan;
+
+         switch (facts.LordJoinBlock)
+         {
+            case null:
+               notHer(entry, "they are not a free lord of another house");
+
+               break;
+
+            case LordRecruitmentBlock.LordLeadsOwnClan:
+               notHer(entry, "they lead their own house, and cannot fold it into yours");
+
+               break;
+
+            case LordRecruitmentBlock.TrustTooLow:
+               blocked(entry, $"their regard for you must reach {LordRecruitment.MinRelation} before they would leave their house for yours");
+
+               break;
+
+            case LordRecruitmentBlock.PlayerRankTooLow:
+               blocked(entry, "your clan must stand at least as high as theirs");
+
+               break;
+
+            case LordRecruitmentBlock.LordNotVulnerable:
+               blocked(entry, "they are too settled to leave: their house holds land and is strong, and they are content with their liege");
+
+               break;
+
+            default:
+               if (facts.LordRespectsPlayerEnough) open(entry);
+               else blocked(entry, "they do not respect you enough yet to follow you");
+
+               break;
+         }
+      }
    }
 }

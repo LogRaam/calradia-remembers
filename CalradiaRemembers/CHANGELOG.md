@@ -2,6 +2,12 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.8.10.. unreleased
+
+### Changed
+
+- **The Actions menu shows what is out of reach, greyed, with why** (Fakade, Nexus 12/11/2026: "I did not realize, probably because the option does not appear if not available. Is it possible to see all possible Action/Options rather than only the ones we have access to? Keep an option greyed out, perhaps with some hint as to why it is not available"; Gabriel 13/11/2026: "go"). The menu listed only the open actions (`ManualActionAvailability.GetAvailable`), so an action out of reach left no trace. It now lists the open ones first, then those blocked as things stand, greyed, with the reason as the hint (`ManualActionAvailability.MenuRows`, the same `Describe` the dormant Actions panel reads; `InquiryElement` isEnabled/hint). What never applies to this person (fiefs for a tavern keeper) stays out. A free lord's recruitment (`join_clan`) joins the catalogue as "Ask them to join your clan", naming the gate that holds (`LordRecruitmentBlock`: the regard needed, the clan rank, a lord too settled to leave, respect); a clan leader never sees it. The Respect half of join_clan is one method now (`LordRecruitmentFactsBuilder.RespectsEnoughToJoin`) for the teaching gate, the bridge and the menu. Not done: an MCM switch to hide the greyed rows, and a recruitment difficulty setting (both asked, waiting on Gabriel). `ManualMenuGreyedRowsTests` (10); `cr.test actions_menu_lord_join`. Not play-verified.
+
 ## v2.8.9.. 2026-11-12
 
 ### New

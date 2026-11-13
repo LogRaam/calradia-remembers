@@ -3739,7 +3739,7 @@ namespace CalradiaRemembers.GameState
             if (facts == null || !LordRecruitment.IsEligible(facts))
                return ActionOutcome.Refused($"({npcHero.Name} will not leave their house to join yours — not yet.)");
 
-            if (profile != null && !StanceGatePolicy.CommandsRespectToJoinClan(StanceService.ToStance(profile).Respect, profile.ClanRelationWithPlayer ?? 0))
+            if (!LordRecruitmentFactsBuilder.RespectsEnoughToJoin(profile))
                return ActionOutcome.Refused($"({npcHero.Name} does not respect you enough to throw in their lot with you. Earn their esteem first.)");
 
             Clan oldClan = npcHero.Clan;

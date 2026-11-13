@@ -136,9 +136,11 @@ namespace CalradiaRemembers.Chat
 
             NpcProfile profile = host.Profile;
             ManualActionFacts facts = ResolveFacts(npc, profile, bridge);
-            IReadOnlyList<ManualActionEntry> available = ManualActionAvailability.GetAvailable(facts);
+            // Open first, then what is out of reach as things stand, greyed with its reason as the hint (Fakade,
+            // Nexus, 12/11/2026: an action that never shows is an action the player never learns exists).
+            IReadOnlyList<ManualActionStatus> rows = ManualActionAvailability.MenuRows(facts);
 
-            if (available.Count == 0)
+            if (rows.Count == 0)
             {
                InformationManager.ShowInquiry(new InquiryData(
                   "Actions", $"There is nothing you can do to {npc.Name} right now.",
@@ -147,13 +149,19 @@ namespace CalradiaRemembers.Chat
                return;
             }
 
-            List<InquiryElement> elements = available
-               .Select(e => new InquiryElement(e, $"[{GroupLabel(e.Group)}] {e.DisplayLabel}", null))
+            List<InquiryElement> elements = rows
+               .Select(s => s.State == ManualActionState.Open
+                          ? new InquiryElement(s.Entry, $"[{GroupLabel(s.Entry.Group)}] {s.Entry.DisplayLabel}", null)
+                          : new InquiryElement(s.Entry, $"[{GroupLabel(s.Entry.Group)}] {s.Entry.DisplayLabel}", null, false, Capitalize(s.Reason) + "."))
                .ToList();
+
+            string prompt = rows.Any(s => s.State == ManualActionState.Open)
+               ? $"Choose an action to take with {npc.Name}:"
+               : $"Nothing is open to you with {npc.Name} just now. Each greyed action says what it would take.";
 
             MBInformationManager.ShowMultiSelectionInquiry(new MultiSelectionInquiryData(
                "Actions",
-               $"Choose an action to take with {npc.Name}:",
+               prompt,
                elements, true, 1, 1, "Choose", "Cancel",
                picked =>
                {
@@ -167,6 +175,9 @@ namespace CalradiaRemembers.Chat
             ModLog.Error($"[ACTION_MENU] open failed: {ex.GetType().Name}: {ex.Message}");
          }
       }
+
+      private static string Capitalize(string reason)
+         => string.IsNullOrEmpty(reason) ? reason : char.ToUpperInvariant(reason[0]) + reason.Substring(1);
 
       /// <summary>Raises whatever follow-up the picked entry's parameter kind needs, then injects the built action.</summary>
       private void BeginParameterCapture(IManualActionMenuHost host,
@@ -513,6 +524,8 @@ namespace CalradiaRemembers.Chat
             bool hasNotableSuccessor = npc.IsNotable && BannerlordGameStateBridge.FindNotableSuccessor(npc) != null;
             bool canRecruitNotable = npc.IsNotable && NotableRecruitmentPolicy.CanRecruit(new NotableRecruitmentPolicy.NotableRecruitmentFacts {IsNotable = npc.IsNotable, IsAlive = npc.IsAlive, IsPrisoner = npc.IsPrisoner, IsPlayerClanAlready = npc.Clan == Clan.PlayerClan, Regard = regard, HasEligibleSuccessor = hasNotableSuccessor});
 
+            LordRecruitmentFacts lordFacts = LordRecruitmentFactsBuilder.Build(npc);
+
             int itemCount = MobileParty.MainParty?.ItemRoster?.Count ?? 0;
 
             return new ManualActionFacts {
@@ -542,6 +555,8 @@ namespace CalradiaRemembers.Chat
                PlayerCanMediatePeace = playerCanMediatePeace,
                MediatablePeaceFactions = mediatableFactions,
                CanRecruitNotable = canRecruitNotable,
+               LordJoinBlock = lordFacts == null ? null : LordRecruitment.Evaluate(lordFacts),
+               LordRespectsPlayerEnough = LordRecruitmentFactsBuilder.RespectsEnoughToJoin(profile),
                CompanionAskingPrice = RecruitmentPricing.GetHiringPrice(npc),
                PlayerHasGiveableItems = itemCount > 0,
                ContentPermitsConception = ConceptionActionGate.PermitsConception(ModSettings.AdultContentLevel),

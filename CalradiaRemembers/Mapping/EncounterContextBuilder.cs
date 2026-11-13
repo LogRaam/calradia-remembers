@@ -2212,9 +2212,8 @@ namespace CalradiaRemembers.Mapping
             LordRecruitmentFacts facts = LordRecruitmentFactsBuilder.Build(hero);
 
             if (facts == null || !LordRecruitment.IsEligible(facts)) return false;
-            if (profile == null) return true; // no stance profile to gate on — inherit prior behaviour
 
-            return StanceGatePolicy.CommandsRespectToJoinClan(StanceService.ToStance(profile).Respect, profile.ClanRelationWithPlayer ?? 0);
+            return LordRecruitmentFactsBuilder.RespectsEnoughToJoin(profile);
          }
          catch { return false; }
       }

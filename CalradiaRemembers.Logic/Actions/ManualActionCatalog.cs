@@ -174,6 +174,10 @@ namespace CalradiaRemembers.Logic.Actions
       public static readonly ManualActionEntry RecruitNotable = new(
          "recruit_notable", "Recruit this notable", ManualActionGroup.Diplomacy, ManualActionParameterKind.None, null, false);
 
+      /// <summary>A free lord of another house leaves it for the player's clan (LordRecruitment; the bridge re-checks every gate).</summary>
+      public static readonly ManualActionEntry JoinClan = new(
+         "join_clan", "Ask them to join your clan", ManualActionGroup.Diplomacy, ManualActionParameterKind.None, null, false);
+
       public static readonly ManualActionEntry JoinParty = new(
          "join_party", "Hire them into your party", ManualActionGroup.Diplomacy, ManualActionParameterKind.Amount, "price", true);
 
@@ -190,7 +194,7 @@ namespace CalradiaRemembers.Logic.Actions
          ExecutePrisoner, FreePrisoner, RecruitPrisoner,
          DispatchMission, AssignPartyRole, RecallCompanion, RejoinParty, FollowMe, DismissEscort, RideWithMe, PartWays, ChallengeDuel, ReassureCompanion,
          GrantFief, RevokeFief, AppointGovernor, GrantStipend, GiveTroops,
-         MediatePeace, RecruitNotable, JoinParty
+         MediatePeace, RecruitNotable, JoinClan, JoinParty
       };
    }
 }
