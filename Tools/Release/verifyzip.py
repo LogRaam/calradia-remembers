@@ -653,6 +653,23 @@ MUST = [
     ("sdk",   b"IntimateActNames"),
     ("sdk",   b"LessFondActs"),
     ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
+    # 2.8.9
+    ("logic", b"ScoutPlacePolicy"),
+    ("logic", b"CouncilSittingPolicy"),
+    ("logic", b"RealmStandingFormatter"),
+    ("logic", b"ArmyRoster"),
+    ("logic", b"QuestOfferText"),
+    ("logic", b"QuestRefusalText"),
+    ("logic", b"PeaceAttackPolicy"),
+    ("logic", b"GameDateOf"),
+    ("logic", b"LocksStoredTastes"),
+    ("mod",   b"HirePriceToCharge"),
+    ("mod",   b"GetCalendarDate"),
+    ("mod",   b"SyncAuthoredPreferences"),
+    ("sdk",   b"ReadUsage"),
+    ("sdk",   b"DateLine"),
+    ("sdk",   b"SpouseLetterLine"),
+    ("sdk",   b"AppendLeanQuestMenu"),
     # 2.8.8
     ("logic", b"Ppmd7"),
     ("logic", b"EncodeGzip"),
@@ -885,7 +902,7 @@ for who, lit in LITERALS:
 
 print()
 print("=== modder guides (promised by the Nexus page since 2.4; missing until 2.5.23) ===")
-GUIDES = {"HOWTO_WorldEvents.md": "ActorHeroIds", "HOWTO_Actions.md": "IsFemale", "HOWTO_Voicing.md": "LineSpoken", "EXTENSION_API.md": "CrConversation", "HOWTO_Quests.md": "cr_quests", "TaleEditor.html": "From the werewolf", "ScenarioComposer.html": "IF_HERO_IS:lord_1_14", "HistoryEditor.html": "Campaign begins", "CrvidPlayer.html": "Recompress", "PROMPT_SECTIONS.md": "format_instructions"}
+GUIDES = {"HOWTO_WorldEvents.md": "ActorHeroIds", "HOWTO_Actions.md": "IsFemale", "HOWTO_Voicing.md": "LineSpoken", "EXTENSION_API.md": "CrConversation", "HOWTO_Quests.md": "cr_quests", "TaleEditor.html": "From the werewolf", "ScenarioComposer.html": "IF_HERO_IS:lord_1_14", "HistoryEditor.html": "Campaign begins", "CrvidPlayer.html": "Recompress", "PROMPT_SECTIONS.md": "format_instructions", "PROMPT_PIPELINES.md": "Prompt pipelines: where the model is called"}
 names = set(zn.namelist())
 for g, needle in GUIDES.items():
     path = "CalradiaRemembers/Docs/" + g
