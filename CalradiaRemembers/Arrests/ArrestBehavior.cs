@@ -498,9 +498,15 @@ namespace CalradiaRemembers.Arrests
 
             if (Clan.PlayerClan.Kingdom != null && Clan.PlayerClan.Kingdom == realm)
             {
-               if (Clan.PlayerClan.IsUnderMercenaryService) ChangeKingdomAction.ApplyByLeaveKingdomAsMercenary(Clan.PlayerClan);
-               else ChangeKingdomAction.ApplyByLeaveKingdom(Clan.PlayerClan);
-               ModLog.Info($"[ARREST] the outlaw leaves {realm.Name}.");
+               bool mercenary = Clan.PlayerClan.IsUnderMercenaryService;
+               var kingdom = Clan.PlayerClan.Kingdom;
+               GameState.DiplomacyOutcome door = GameState.DiplomacyCommit.Realm(mercenary ? Logic.Diplomacy.DiplomacyChange.ClanLeavesMercenaryService : Logic.Diplomacy.DiplomacyChange.ClanLeavesKingdom,
+                  "arrest", Clan.PlayerClan, kingdom, null, () =>
+                  {
+                     if (mercenary) ChangeKingdomAction.ApplyByLeaveKingdomAsMercenary(Clan.PlayerClan);
+                     else ChangeKingdomAction.ApplyByLeaveKingdom(Clan.PlayerClan);
+                  });
+               ModLog.Info($"[ARREST] the outlaw leaves {realm.Name}: {(door.Happened ? "left" : door.Verdict.ToString())}.");
             }
 
             MakeWanted(realm);
@@ -555,7 +561,7 @@ namespace CalradiaRemembers.Arrests
          if (realm.MainHeroCrimeRating > 0f) ChangeCrimeRatingAction.Apply(realm, -realm.MainHeroCrimeRating);
          IFaction mine = Hero.MainHero?.MapFaction;
          if (mine != null && mine != realm && realm.IsAtWarWith(mine) && mine.Leader == Hero.MainHero && Clan.PlayerClan.Kingdom == null)
-            MakePeaceAction.Apply(realm, mine);
+            GameState.DiplomacyCommit.Factions(Logic.Diplomacy.DiplomacyChange.MakePeace, "arrest", realm, mine, null, () => MakePeaceAction.Apply(realm, mine));
 
          if (Case.Stage == ArrestStage.Outlaw && Liege()?.MapFaction == realm) Case.Pardon();
 

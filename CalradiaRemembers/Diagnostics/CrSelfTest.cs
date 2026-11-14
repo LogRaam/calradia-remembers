@@ -294,6 +294,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("campaign_overrides", Severity.Light, "Bhelogan (Discord, 14/11/2026): character_overrides.json is global, \"but runtime ids (CharacterObject_N) are per save, so characters from one playthrough leaked into the next\". Writes a character_overrides.json in this campaign's own folder (CrLore.CampaignFolder) naming a lord, reloads, and asserts the lord resolves to the campaign entry and the overlay is reported; then deletes the file (and the folder if the test made it) and reloads. Skipped when the campaign already has its own file (never touched)", TestCampaignOverrides),
          new SelfTest("character_text", Severity.Light, "Bhelogan (Discord, 14/11/2026): \"The per-character text source you described, yes please ... Appearance: shown in the panel, given to the model; Private: model only, never in the panel ... the same for the player\". Registers a CrCharacterText source for one lord and the player, then through the real readers asserts: the lord's appearance block and panel carry the mod's appearance, the prompt carries the secret and the panel never does, the player's text reaches the prompt. Unregisters the source", TestCharacterText),
          new SelfTest("player_report", Severity.Light, "Gabriel (14/11/2026): a report-a-problem button whose report carries the whole context, saved to a file and written into the log. Records one exchange through the real recorder (a prompt holding a fake key), gathers and composes a report through the real service, writes it, and asserts the file holds the player text, the prompt and the reply with the key masked, and that the log holds the report. Deletes the file (the log keeps a [SELFTEST] report)", TestPlayerReport),
+         new SelfTest("diplomacy_door", Severity.Light, "VonLemberg's Bellum Civile bridge RFC (14/11/2026, P0-B): every war, peace and change of realm CR makes asks the registered authorities first. With a [SELFTEST] authority over two realms at war: Rejected and Pending leave the change unmade and give an honest line, Applied is not applied again, PassThrough applies it; the request carries both realms and this save. The change itself is a stand-in (nothing in the world moves). Unregisters the authority", TestDiplomacyDoor),
+         new SelfTest("feed_secrets", Severity.Light, "VonLemberg's Bellum Civile bridge RFC (14/11/2026, P0-C): a council's secret must not become everyone's news, and another mod must read what a given character knows. Feeds a [SELFTEST] secret naming one lord with a second as confidant, and a great public event hidden from the first: through CrWorld, the named lord and the confidant know the secret, an unrelated lord does not, the first lord does not hear the hidden news, and his known events mark the secret as such. Retracts both", TestFeedSecrets),
          new SelfTest("clan_task_no_coin", Severity.Light, "Aporo (Discord, 13/11/2026): \"I don't need that 100 denars for bringing 20 grain when it's my money either way\"; Gabriel: \"tout le clan\". A member of the player's own clan offers a task promising 100 denars and 3 regard, through the real ApplyResponse and the consent seam: the task put to the player carries 0 denars and keeps the 3 regard. The player declines; the giver's memories and outstanding tasks are put back", TestClanTaskNoCoin),
          new SelfTest("quest_consent", Severity.Light, "Schmidt (Discord, 11/11/2026): \"NPC's give you quests that you didn't agree to ... Same with asking NPC's to do something but it shows up for you as a quest.\" Gabriel: \"Tu peux faire 11.\" Through the REAL QuestService.ApplyResponse with a [QUEST] a lord of another realm puts to the player (scout a castle of a third realm), the Accept/Decline window answered through its test seam: while the offer waits nothing is recorded; declined, no task and no journal entry, the giver remembers the refusal and the model is told; accepted, the task is the player's with its journal entry. The giver's outstanding tasks are set aside first and restored, and the accepted task is cancelled and removed", TestQuestConsent),
          new SelfTest("realms_and_armies", Severity.Light, "Schmidt (Discord, 11/11/2026): \"everyone acts surprised when I tell them that Sturgia is no more\", and lords did not know which lords marched in their army. Through the REAL bridge and reader: the realms line names every standing realm with its fiefs and a realm the game counts destroyed as fallen (with none fallen, one realm's own destroyed flag is set for the read and restored at once); a lord marching in an army of two parties or more is told the other lords and the total (with none in the field, an army is raised from two lords of one realm and disbanded at once); a lord in no army is told none", TestRealmsAndArmies),
@@ -6986,6 +6988,99 @@ namespace CalradiaRemembers.Diagnostics
          {
             try { if (path != null) System.IO.File.Delete(path); }
             catch (Exception ex) { t.Note($"cleanup: {ex.GetType().Name}"); }
+         }
+
+         return t.Line();
+      }
+
+      private static string TestDiplomacyDoor(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("diplomacy_door");
+         Kingdom a = Kingdom.All.FirstOrDefault(k => !k.IsEliminated);
+         Kingdom b = Kingdom.All.FirstOrDefault(k => !k.IsEliminated && k != a);
+         if (t.Skip(a == null || b == null, "two standing realms are needed")) return t.Line();
+
+         const string source = "cr_selftest_diplomacy";
+         CrDiplomacyVerdict answer = CrDiplomacyVerdict.Rejected;
+         CrDiplomacyRequest seen = null;
+         CrDiplomacy.RegisterAuthority(source, r =>
+         {
+            seen = r;
+
+            return r.Source == "selftest" ? new CrDiplomacyAnswer {Verdict = answer, Message = answer == CrDiplomacyVerdict.Rejected ? "the selftest council has not voted it" : null} : null;
+         });
+         try
+         {
+            int applied = 0;
+            void Apply() => applied++;
+
+            GameState.DiplomacyOutcome rejected = GameState.DiplomacyCommit.Factions(Logic.Diplomacy.DiplomacyChange.MakePeace, "selftest", a, b, null, Apply);
+            // THE RFC: a refused peace is not made, and the player reads why.
+            t.Expect("aRejectedPeaceIsNotMade", applied == 0 && !rejected.Happened, true);
+            t.Expect("theLineNamesTheReason", rejected.NotHappenedLine("Peace") == "(Peace did not happen: the selftest council has not voted it.)", true);
+            t.Expect("theRequestCarriesBothRealmsAndTheSave", seen?.FactionAId == a.StringId && seen?.FactionBId == b.StringId && seen?.SaveId == Campaign.Current.UniqueGameId, true);
+
+            answer = CrDiplomacyVerdict.Pending;
+            GameState.DiplomacyOutcome pending = GameState.DiplomacyCommit.Factions(Logic.Diplomacy.DiplomacyChange.MakePeace, "selftest", a, b, null, Apply);
+            // THE RFC: a pending treaty is never reported as signed.
+            t.Expect("aPendingPeaceIsNotMadeYet", applied == 0 && pending.NotHappenedLine("Peace")?.Contains("has not happened yet") == true, true);
+
+            answer = CrDiplomacyVerdict.Applied;
+            GameState.DiplomacyOutcome byTheAuthority = GameState.DiplomacyCommit.Factions(Logic.Diplomacy.DiplomacyChange.MakePeace, "selftest", a, b, null, Apply);
+            // STAKE: what the authority made is not made a second time.
+            t.Expect("anAppliedPeaceIsNotMadeTwice", applied == 0 && byTheAuthority.Happened, true);
+
+            GameState.DiplomacyOutcome other = GameState.DiplomacyCommit.Factions(Logic.Diplomacy.DiplomacyChange.MakePeace, "selftest_other", a, b, null, Apply);
+            // STAKE: with no opinion, CR makes the change as it always did.
+            t.Expect("noOpinionLetsCrMakeIt", applied == 1 && other.Happened, true);
+            // STAKE: the public enums carry the same values as CR's own, so a verdict or a kind is never read as another.
+            t.Expect("theKindsMatch", string.Join(",", Enum.GetNames(typeof(Logic.Diplomacy.DiplomacyChange)).Select(n => n + (int) Enum.Parse(typeof(Logic.Diplomacy.DiplomacyChange), n)))
+                                      == string.Join(",", Enum.GetNames(typeof(CrDiplomacyKind)).Select(n => n + (int) Enum.Parse(typeof(CrDiplomacyKind), n))), true);
+            t.Expect("theVerdictsMatch", string.Join(",", Enum.GetNames(typeof(Logic.Diplomacy.DiplomacyVerdict)).Select(n => n + (int) Enum.Parse(typeof(Logic.Diplomacy.DiplomacyVerdict), n)))
+                                         == string.Join(",", Enum.GetNames(typeof(CrDiplomacyVerdict)).Select(n => n + (int) Enum.Parse(typeof(CrDiplomacyVerdict), n))), true);
+         }
+         finally
+         {
+            CrDiplomacy.UnregisterAuthority(source);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestFeedSecrets(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("feed_secrets");
+         if (t.Skip(WorldEventStore.Instance == null, "no world event store")) return t.Line();
+
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h.IsLord && h != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(h)).Take(3).ToList();
+         if (t.Skip(lords.Count < 3, "three lords are needed")) return t.Line();
+
+         string secretId = "selftest_secret_" + Guid.NewGuid().ToString("N"), hiddenId = "selftest_hidden_" + Guid.NewGuid().ToString("N");
+         try
+         {
+            Feed.Record(new ExternalWorldEvent {
+               Id = secretId, SourceMod = "SelfTest", Summary = "[SELFTEST] the council weighs dismissing its chancellor", Magnitude = 90,
+               HeroIds = new List<string> {lords[0].StringId}, KnownOnlyToThoseInvolved = true, KnownToHeroIds = new List<string> {lords[1].StringId}
+            });
+            Feed.Record(new ExternalWorldEvent {
+               Id = hiddenId, SourceMod = "SelfTest", Summary = "[SELFTEST] a great treaty is sealed", Magnitude = 100,
+               HeroIds = new List<string> {lords[0].StringId}, HiddenFromHeroIds = new List<string> {lords[0].StringId}
+            });
+
+            // THE RFC: "A council has secretly discussed replacing a chancellor. The participants might know about the
+            // discussion. An unrelated foreign ruler should not automatically know."
+            t.Expect("theNamedLordKnowsTheSecret", CrWorld.IsAwareOf(lords[0].StringId, secretId), true);
+            t.Expect("theConfidantKnowsIt", CrWorld.IsAwareOf(lords[1].StringId, secretId), true);
+            t.Expect("anUnrelatedLordDoesNot", CrWorld.IsAwareOf(lords[2].StringId, secretId), false);
+            // STAKE: a hero kept out of the news never hears it, however great.
+            t.Expect("theHiddenNewsDoesNotReachHim", CrWorld.IsAwareOf(lords[0].StringId, hiddenId), false);
+            // STAKE: another mod reads what he knows, the secret marked as one.
+            t.Expect("hisKnownEventsMarkTheSecret", CrWorld.KnownEvents(lords[0].StringId, 50).Any(k => k.Id == secretId && k.IsSecret), true);
+         }
+         finally
+         {
+            Feed.Retract(secretId);
+            Feed.Retract(hiddenId);
          }
 
          return t.Line();

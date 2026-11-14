@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 654 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1598 types in 56 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 664 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1601 types in 57 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 288 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -48,7 +48,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (63)
+### CalradiaRemembers (71)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -57,6 +57,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrActions` | public static class | The public facade a third-party mod calls to register (or unregister) one executable conversation action. |
 | `CrAimRaised` | public class | A lord was given the floor for an aim (CrAims.Raised). |
 | `CrAims` | public static class | The door through which other mods give lords aims of their own. |
+| `CrApi` | public static class | The version of CR's whole extension surface, for a mod that detects what it can use. |
 | `CrAppearance` | public static class | The door through which other mods add a line to how a character looks. |
 | `CrCharacterText` | public static class | The door through which other mods write text about a character, for the prompt and the panel. |
 | `CrCharacterTextEntry` | public class | One piece of your text about a character. |
@@ -67,9 +68,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrConversationInfo` | public class | The identity of a conversation as it OPENS, delivered by CrConversation.Started. |
 | `CrConversationLog` | public class | A whole conversation as it CLOSES, delivered by CrConversation.Ended. |
 | `CrCultures` | public static class | Read-only readings of the cultures CR plays by (its ModuleData jealousy_cultures.json, or a Custom copy). |
+| `CrDiplomacy` | public static class | The door through which another mod becomes the authority over the wars, peaces and changes of realm CR makes. |
+| `CrDiplomacyAnswer` | public class | Your answer. |
+| `CrDiplomacyKind` | public enum | A diplomatic change CR is about to make. |
+| `CrDiplomacyRequest` | public class | The change CR asks about. |
+| `CrDiplomacyVerdict` | public enum | What an authority answers. |
 | `CrFolklore` | public static class | The door through which other mods give a character folk tales of their own. |
 | `CrHiddenAffair` | public class | A hidden affair between two lords (see CrRomance.GetHiddenAffair). |
 | `CrHiddenAffairChange` | public class | A hidden affair beginning or ending (see CrRomance.HiddenAffairChanged). |
+| `CrKnownEvent` | public class | One world event a character knows of. |
 | `CrLetters` | public static class | Another mod's letters, delivered through CR's courier and letter window. |
 | `CrLore` | public static class | The door to CR's authored character files. |
 | `CrMatchOutcome` | public class | What came of a registered match when its decider was asked in the chat. |
@@ -97,6 +104,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrTaleProgress` | public class | A tale's progress, delivered by CrTales. |
 | `CrTales` | public static class | The public tale-progress events other mods subscribe to. |
 | `CrTranscriptLine` | public class | One attributed line of a conversation, as delivered in CrConversationLog. |
+| `CrWorld` | public static class | The door to what characters know of the world. |
 | `ExternalActionParam` | public class | One named parameter an ExternalActionSpec accepts, taught to the LLM by name and meaning. |
 | `ExternalActionSpec` | public class | Everything a third-party mod supplies to register one executable conversation action through CrActions.Register. |
 | `ExternalAim` | public class | A lord's aim of his own, as another mod hands it to CrAims.Register. |
@@ -442,7 +450,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PortraitData` | public struct | The flat portrait binding a widget renders from: image id, texture provider name, extra args. |
 | `PortraitTextureGuard` | public static class | The single gate for every character portrait the mod shows (chat lines, the courier letter). |
 
-### CalradiaRemembers.GameState (41)
+### CalradiaRemembers.GameState (43)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -457,6 +465,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BannerlordGameStateBridge` | public class | Concrete implementation of IGameStateBridge using the TaleWorlds campaign API. This is the ONLY class in the mod that should reach directly into Hero.MainHero, Campaign.Current, FactionManager, etc. |
 | `CounterOfferPreview` | public class | The real terms a counter_offer would settle, for the player's confirmation and the executor alike (shared the same way ItemPreview is for a sale): the parsed terms re-checked against what is open to her NOW (CaptiveOffer... |
 | `CourtActionResolver` | public static class | Reads the live game state into the eligibility/amount facts for the "RP with teeth" court actions (give_influence, lend_troops, sway_opinion, release_prisoner, and their 04/07/2026 reciprocals give_troops/spend_influence... |
+| `DiplomacyCommit` | internal static class | Asks the diplomacy authorities, then applies the change only when none took it. |
+| `DiplomacyOutcome` | internal class | What passing the diplomacy door gave. |
 | `DispatchMissionResult` | public enum | The outcome of CourtActionResolver.TryDispatchMission, read by each caller to report its own message. |
 | `DispatchMissionVerdict` | public struct | The verdict of CourtActionResolver.TryDispatchMission: the result, the resolved Type (whenever one was parsed), and the companion-mission behaviour's own Message on DispatchMissionResult.Dispatched or DispatchMissionResu... |
 | `ExchangeService` | public static class | Says what may change hands with a character, moves it, and writes it down. |
@@ -2116,6 +2126,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RecapSignal` | public static class | Whether a late reply found what the folded recap holds: the levies agreed early in the conversation. |
 | `ReportExchange` | public class | One exchange with the model, as the report shows it. |
 | `SermonSignal` | public static class | The fearente signal: a reply that still warns or lectures after the player has answered the concern. |
+
+### CalradiaRemembers.Logic.Diplomacy (3)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `DiplomacyChange` | public enum | A diplomatic change CR is about to make (the public door mirrors it as CrDiplomacyKind, same values). |
+| `DiplomacyCommitPolicy` | public static class | Reads the authorities' answers to a diplomatic change. |
+| `DiplomacyVerdict` | public enum | What an authority answers to a diplomatic change CR is about to make. |
 
 ### CalradiaRemembers.Logic.Duels (30)
 

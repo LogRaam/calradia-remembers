@@ -140,7 +140,7 @@ namespace CalradiaRemembers.Scenarios
          bool declares = WarPressPolicy.KingDeclares(facts);
          ModLog.Info($"[SCENARIO] PRESS_FOR_WAR: {presser.Name} presses {king.Name} against {target.Name} (regard {facts.KingRegardForPresser}, "
                      + $"wars {facts.KingOpenWars}, strength {facts.StrengthRatio:0.00}): {(declares ? "war" : "declined")}.");
-         if (declares) DeclareWarAction.ApplyByDefault(pressed, target);
+         if (declares) GameState.DiplomacyCommit.Factions(Logic.Diplomacy.DiplomacyChange.DeclareWar, "scenario", pressed, target, king, () => DeclareWarAction.ApplyByDefault(pressed, target));
       }
 
       private static void DeclareWar(KeywordToken c, ScenarioContext ctx)
@@ -152,8 +152,8 @@ namespace CalradiaRemembers.Scenarios
          if (a == null || b == null) { ModLog.Info($"[SCENARIO] DECLARE_WAR could not resolve '{c.Args[0]}' / '{c.Args[1]}'."); return; }
          if (a == b || FactionManager.IsAtWarAgainstFaction(a, b)) return;
 
-         DeclareWarAction.ApplyByDefault(a, b);
-         ModLog.Info($"[SCENARIO] DECLARE_WAR: {a.Name} vs {b.Name}.");
+         GameState.DiplomacyOutcome door = GameState.DiplomacyCommit.Factions(Logic.Diplomacy.DiplomacyChange.DeclareWar, "scenario", a, b, null, () => DeclareWarAction.ApplyByDefault(a, b));
+         ModLog.Info($"[SCENARIO] DECLARE_WAR: {a.Name} vs {b.Name}: {(door.Happened ? "declared" : door.Verdict.ToString())}.");
       }
 
       // MAKE_PEACE:FactionA,FactionB — end a war between two factions (no-op if not at war).
@@ -166,8 +166,8 @@ namespace CalradiaRemembers.Scenarios
          if (a == null || b == null || a == b) return;
          if (!FactionManager.IsAtWarAgainstFaction(a, b)) return;
 
-         MakePeaceAction.Apply(a, b);
-         ModLog.Info($"[SCENARIO] MAKE_PEACE: {a.Name} & {b.Name}.");
+         GameState.DiplomacyOutcome door = GameState.DiplomacyCommit.Factions(Logic.Diplomacy.DiplomacyChange.MakePeace, "scenario", a, b, null, () => MakePeaceAction.Apply(a, b));
+         ModLog.Info($"[SCENARIO] MAKE_PEACE: {a.Name} & {b.Name}: {(door.Happened ? "made" : door.Verdict.ToString())}.");
       }
 
       // CHANGE_RELATION:HeroRef:+N — shift the player's relation with a hero (HeroRef may be a name or id).

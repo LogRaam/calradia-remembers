@@ -142,7 +142,9 @@ namespace CalradiaRemembers
                      .Select(w => new ExternalWorldEvent {
                         Id = w.Id, Summary = w.Summary, Day = w.Day, Magnitude = w.Magnitude, SourceMod = w.SourceMod, PlaceId = w.PlaceId,
                         HeroIds = (w.ActorIds ?? new List<string>()).ToList(), FactionIds = (w.FactionIds ?? new List<string>()).ToList(),
-                        Lifetime = w.IsPersistentDeed ? ExternalEventLifetime.Deed : ExternalEventLifetime.Rumor
+                        Lifetime = w.IsPersistentDeed ? ExternalEventLifetime.Deed : ExternalEventLifetime.Rumor,
+                        KnownOnlyToThoseInvolved = w.KnownOnlyToThoseInvolved, KnownToHeroIds = (w.KnownToIds ?? new List<string>()).ToList(),
+                        HiddenFromHeroIds = (w.HiddenFromIds ?? new List<string>()).ToList()
                      })
                      .ToList();
       }
@@ -163,7 +165,12 @@ namespace CalradiaRemembers
             ActorIds = ResolveHeroes((e.HeroIds ?? new List<string>()).Concat(e.ActorHeroIds ?? new List<string>()).Distinct()),
             FactionIds = ResolveFactions(e.FactionIds),
             InvolvesPlayer = ExternalEventRules.IsPlayersOwnDeed(e.ActorHeroIds, Hero.MainHero?.StringId),
-            IsPersistentDeed = e.Lifetime == ExternalEventLifetime.Deed
+            IsPersistentDeed = e.Lifetime == ExternalEventLifetime.Deed,
+            // Secrets and who is kept out (since 2.8.10, Bellum Civile bridge RFC): the store's own fields, which every
+            // awareness query already honours.
+            KnownOnlyToThoseInvolved = e.KnownOnlyToThoseInvolved,
+            KnownToIds = ResolveHeroes(e.KnownToHeroIds ?? new List<string>()),
+            HiddenFromIds = ResolveHeroes(e.HiddenFromHeroIds ?? new List<string>())
          };
 
       private static bool ConsumeQuota(string source, int today)

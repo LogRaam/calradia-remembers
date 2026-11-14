@@ -2412,7 +2412,16 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
-         DeclareWarAction.ApplyByDefault(playerFaction, target);
+         DiplomacyOutcome door = DiplomacyCommit.Factions(Logic.Diplomacy.DiplomacyChange.DeclareWar, "council", playerFaction, target, null,
+            () => DeclareWarAction.ApplyByDefault(playerFaction, target));
+         if (!door.Happened)
+         {
+            string line = door.NotHappenedLine($"War on {target.Name}");
+            ledger.MarkFailed(entry.Id, line);
+            report?.Invoke(line, false);
+
+            return;
+         }
 
          ledger.MarkApplied(entry.Id);
          report?.Invoke($"Your council declares war on {target.Name}.", true);
@@ -2479,7 +2488,16 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
-         MakePeaceAction.Apply(playerFaction, target);
+         DiplomacyOutcome door = DiplomacyCommit.Factions(Logic.Diplomacy.DiplomacyChange.MakePeace, "council", playerFaction, target, null,
+            () => MakePeaceAction.Apply(playerFaction, target));
+         if (!door.Happened)
+         {
+            string line = door.NotHappenedLine($"Peace with {target.Name}");
+            ledger.MarkFailed(entry.Id, line);
+            report?.Invoke(line, false);
+
+            return;
+         }
 
          ledger.MarkApplied(entry.Id);
          report?.Invoke($"Your council makes peace with {target.Name}.", true);

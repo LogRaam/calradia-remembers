@@ -57,6 +57,12 @@ _The door through which other mods give lords aims of their own._
 - `static bool Retract(string sourceMod, string id)`
 - `static event Action<CrAimRaised> Raised`
 
+### CrApi
+
+_The version of CR's whole extension surface, for a mod that detects what it can use._
+
+- `const int Version = 1`
+
 ### CrAppearance
 
 _The door through which other mods add a line to how a character looks._
@@ -140,6 +146,56 @@ _Read-only readings of the cultures CR plays by (its ModuleData jealousy_culture
 
 - `static MarriageCustomReading MarriageCustom(string cultureName, int clanTier)`
 
+### CrDiplomacy
+
+_The door through which another mod becomes the authority over the wars, peaces and changes of realm CR makes._
+
+- `static bool UnregisterAuthority(string sourceMod)`
+- `static void RegisterAuthority(string sourceMod, Func<CrDiplomacyRequest, CrDiplomacyAnswer> authority)`
+
+### CrDiplomacyAnswer
+
+_Your answer._
+
+- `CrDiplomacyVerdict Verdict { get; set; }`
+- `string Message { get; set; }`
+- `string Receipt { get; set; }`
+
+### CrDiplomacyKind
+
+_A diplomatic change CR is about to make._
+
+- `ClanJoinsAsMercenary = 3`
+- `ClanJoinsKingdom = 2`
+- `ClanLeavesKingdom = 4`
+- `ClanLeavesMercenaryService = 5`
+- `DeclareWar = 0`
+- `MakePeace = 1`
+
+### CrDiplomacyRequest
+
+_The change CR asks about._
+
+- `CrDiplomacyKind Kind { get; set; }`
+- `int GameDay { get; set; }`
+- `string ActorHeroId { get; set; }`
+- `string ClanId { get; set; }`
+- `string FactionAId { get; set; }`
+- `string FactionBId { get; set; }`
+- `string KingdomId { get; set; }`
+- `string RequestId { get; set; }`
+- `string SaveId { get; set; }`
+- `string Source { get; set; }`
+
+### CrDiplomacyVerdict
+
+_What an authority answers._
+
+- `Applied = 3`
+- `PassThrough = 0`
+- `Pending = 2`
+- `Rejected = 1`
+
 ### CrFolklore
 
 _The door through which other mods give a character folk tales of their own._
@@ -165,6 +221,18 @@ _A hidden affair beginning or ending (see CrRomance.HiddenAffairChanged)._
 - `string LoverId { get; set; }`
 - `string SaveId { get; set; }`
 - `string SubjectId { get; set; }`
+
+### CrKnownEvent
+
+_One world event a character knows of._
+
+- `bool IsSecret { get; set; }`
+- `int Day { get; set; }`
+- `int Magnitude { get; set; }`
+- `string Confidence { get; set; }`
+- `string Id { get; set; }`
+- `string SourceMod { get; set; }`
+- `string Summary { get; set; }`
 
 ### CrLetters
 
@@ -442,6 +510,13 @@ _One attributed line of a conversation, as delivered in CrConversationLog._
 - `string SpeakerName { get; }`
 - `string Text { get; }`
 
+### CrWorld
+
+_The door to what characters know of the world._
+
+- `static IReadOnlyList<CrKnownEvent> KnownEvents(string heroId, int max = 10)`
+- `static bool IsAwareOf(string heroId, string eventId)`
+
 ### ExternalActionParam
 
 _One named parameter an ExternalActionSpec accepts, taught to the LLM by name and meaning._
@@ -506,6 +581,9 @@ _One world fact a third-party mod wants CR to know about._
 - `List<string> ActorHeroIds { get; set; }`
 - `List<string> FactionIds { get; set; }`
 - `List<string> HeroIds { get; set; }`
+- `List<string> HiddenFromHeroIds { get; set; }`
+- `List<string> KnownToHeroIds { get; set; }`
+- `bool KnownOnlyToThoseInvolved { get; set; }`
 - `int Day { get; set; }`
 - `int Magnitude { get; set; }`
 - `string Category { get; set; }`

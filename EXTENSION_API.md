@@ -602,6 +602,58 @@ was CR's internal `HiddenAffairBehavior`: use these instead, which will not move
 CR also writes, on its own, the memory a quest giver keeps of the game's own quests (begun, done, failed, let lapse):
 do not inject those.
 
+### Being the authority over war, peace and realms (`CrDiplomacy`, since 2.8.10)
+
+CR makes some diplomatic changes itself: a lord brokering peace at the player's request (mediate_peace), the war council's
+war and peace, scenario consequences (DECLARE_WAR, MAKE_PEACE, PRESS_FOR_WAR), an outlaw's bounty lifted or an outlaw
+leaving the realm, a captive lord swearing his house to the player's realm, the player joining or leaving a realm as a
+vassal or mercenary through a character, and the rivals of a ruler's realm declaring war on her union. A mod with its own
+political rules (treaties, votes, costs) registers as the authority over them:
+
+```csharp
+CrDiplomacy.RegisterAuthority("MyBridge", request => {
+   // request.Kind (DeclareWar, MakePeace, ClanJoinsKingdom, ClanJoinsAsMercenary, ClanLeavesKingdom, ClanLeavesMercenaryService)
+   // request.Source ("mediate_peace", "council", "scenario", "arrest", "captor_terms", "join_as_vassal", "join_as_mercenary",
+   //                 "leave_mercenary", "union_rivals"), FactionAId / FactionBId, ClanId / KingdomId, ActorHeroId, GameDay, SaveId
+   if (request.Kind == CrDiplomacyKind.MakePeace)
+      return new CrDiplomacyAnswer { Verdict = CrDiplomacyVerdict.Pending, Message = "the treaty goes before the council" };
+   return null; // PassThrough: CR makes the change itself
+});
+```
+
+- **PassThrough** (or null): CR makes the change as it always did.
+- **Rejected**: CR makes nothing, and the player reads "(Peace between X and Y did not happen: <your message>.)".
+- **Pending**: CR makes nothing, and says it "has not happened yet", never that a treaty was signed. Run your process, then
+  apply the result yourself and feed it as news (`Feed.Record`).
+- **Applied**: you made the change; CR does not make it a second time.
+
+Authorities are asked in the order of their names; the first answer that is not PassThrough decides. A null answer or one
+that throws is PassThrough (logged once). Answer at once, on the game thread. The game's own changes (its kingdom votes, AI
+lords, and the decisions CR files through them) never pass here: listen to the game's `CampaignEvents` for those. With no
+authority registered, nothing changes.
+
+### What a character knows of the world (`CrWorld`, since 2.8.10)
+
+CR decides for every hero, at any time, which world events have reached them (by distance, realm, rank and recency), how
+surely, and which secrets they were let in on. Read it to keep your own prompts true to a character:
+
+```csharp
+IReadOnlyList<CrKnownEvent> known = CrWorld.KnownEvents(hero.StringId, max: 10); // Id, Summary, Day, Magnitude, Confidence, IsSecret, SourceMod
+bool heard = CrWorld.IsAwareOf(hero.StringId, "mybridge_treaty_42");
+```
+
+It is the same selection a conversation with them is built from. Game thread, campaign loaded.
+
+**Secrets from your mod.** A `Feed` event is public news by default. Since 2.8.10 it can be a secret:
+`KnownOnlyToThoseInvolved = true` keeps it to the heroes it names (`HeroIds`, `ActorHeroIds`) plus `KnownToHeroIds`, however
+great or near; `HiddenFromHeroIds` keeps chosen heroes out of any event. A council's private deliberation stays with its
+members; feed the outcome later as news when it becomes public.
+
+### Detecting what CR offers (`CrApi.Version`, since 2.8.10)
+
+`CrApi.Version` is raised by one at each release that adds a door, never lowered. 1 = 2.8.10. Absent (read by reflection)
+means older than 2.8.10. The older `CrNpcMemory.ApiVersion` and `Feed.ApiVersion` keep their own meaning.
+
 ### Regard changes (`CrNpcMemory.RegardChanged`, since 2.6.7)
 
 ```csharp

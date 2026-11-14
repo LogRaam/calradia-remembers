@@ -244,6 +244,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 - taught when: `context?.PlayerIsMercenary != true [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
 - the bridge refuses:
   - "(You are not serving anyone as a mercenary.)"
+  - door.NotHappenedLine($"The end of your contract with {kingdomName}")
 
 ### end_own_marriage
 
@@ -450,6 +451,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - $"({npcHero.Name} does not belong to a kingdom.)"
   - $"(Your clan is already sworn to {playerClan.Kingdom.Name}. " + "Settle that obligation first.)"
   - $"(You are at war with {kingdom.Name}; they will not take your clan into their service while you fight them.)"
+  - door.NotHappenedLine($"Your service under {kingdom.Name}'s banner")
 
 ### join_as_vassal
 
@@ -462,6 +464,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - $"({npcHero.Name} does not rule {kingdom.Name}; only the ruler's word can swear your clan to their banner.)"
   - $"(You are at war with {kingdom.Name}; you cannot swear fealty to a realm you are fighting.)"
   - $"(Your clan is already sworn to {playerClan.Kingdom.Name}. Settle that obligation first.)"
+  - door.NotHappenedLine($"Your oath to {kingdom.Name}")
 
 ### join_clan
 
@@ -540,6 +543,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - $"({leaderFaction.Name} is not at war with {target.Name}, so there is no peace to broker.)"
   - $"({npcHero.Name} will not be lectured on peace by one of no standing. Raise your house before you presume to broker between realms.)"
   - $"({npcHero.Name} does not trust you nearly enough to heed your counsel on so grave a matter as ending a war. Earn their deep trust first.)"
+  - door.NotHappenedLine($"Peace between {leaderFaction.Name} and {target.Name}")
 
 ### open_relationship
 

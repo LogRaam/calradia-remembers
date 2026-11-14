@@ -185,7 +185,10 @@ namespace CalradiaRemembers.Marriage
          {
             if (rival.IsAtWarWith(herRealm)) continue;
 
-            DeclareWarAction.ApplyByDefault(rival, herRealm);
+            GameState.DiplomacyOutcome door = GameState.DiplomacyCommit.Factions(Logic.Diplomacy.DiplomacyChange.DeclareWar, "union_rivals", rival, herRealm, rival.Leader,
+               () => DeclareWarAction.ApplyByDefault(rival, herRealm));
+            if (!door.Happened) continue;
+
             MBInformationManager.AddQuickInformation(new TextObject($"{rival.Name} will not suffer the union of {ruler.Name}'s house: it declares war on {herRealm.Name}."));
          }
       }

@@ -1825,8 +1825,12 @@ namespace CalradiaRemembers.GameState
 
             if (preview.Terms.Contains(CaptiveTerm.Fealty) && npcHero.Clan != null && Hero.MainHero.Clan?.Kingdom != null)
             {
-               ChangeKingdomAction.ApplyByJoinToKingdom(npcHero.Clan, Hero.MainHero.Clan.Kingdom);
-               done.Add($"the house of {npcHero.Clan.Name} sworn to {Hero.MainHero.Clan.Kingdom.Name}");
+               Kingdom realm = Hero.MainHero.Clan.Kingdom;
+               DiplomacyOutcome door = DiplomacyCommit.Realm(Logic.Diplomacy.DiplomacyChange.ClanJoinsKingdom, "captor_terms", npcHero.Clan, realm, npcHero,
+                  () => ChangeKingdomAction.ApplyByJoinToKingdom(npcHero.Clan, realm));
+               done.Add(door.Happened
+                  ? $"the house of {npcHero.Clan.Name} sworn to {realm.Name}"
+                  : door.NotHappenedLine($"The house of {npcHero.Clan.Name} sworn to {realm.Name}").Trim('(', ')', '.'));
             }
 
             if (preview.Terms.Contains(CaptiveTerm.Intimacy))
@@ -3073,7 +3077,10 @@ namespace CalradiaRemembers.GameState
                   return ActionOutcome.Refused($"({npcHero.Name} does not trust you nearly enough to heed your counsel on so grave a matter as ending a war. Earn their deep trust first.)");
             }
 
-            MakePeaceAction.Apply(leaderFaction, target);
+            // The diplomacy door (Bellum Civile bridge RFC, 14/11/2026): an authority may refuse or defer the peace.
+            DiplomacyOutcome door = DiplomacyCommit.Factions(Logic.Diplomacy.DiplomacyChange.MakePeace, "mediate_peace", leaderFaction, target, npcHero,
+               () => MakePeaceAction.Apply(leaderFaction, target));
+            if (!door.Happened) return ActionOutcome.Refused(door.NotHappenedLine($"Peace between {leaderFaction.Name} and {target.Name}"));
 
             string msg = $"By your mediation, {leaderFaction.Name} and {target.Name} lay down their arms and make peace.";
             MBInformationManager.AddQuickInformation(new TextObject(msg), 0, npcHero.CharacterObject);
@@ -3578,8 +3585,9 @@ namespace CalradiaRemembers.GameState
             // (Nexus, 16/10/2026): CR passed CampaignTime.Now, and Mercenary Management reads that field as the
             // end of its contract, so a contract signed in the chat ran out on its first daily check, the clan
             // left, and every lord of the realm judged it an abandonment.
-            ChangeKingdomAction.ApplyByJoinFactionAsMercenary(
-               playerClan, kingdom, default(CampaignTime), mercenaryAwardMultiplier);
+            DiplomacyOutcome door = DiplomacyCommit.Realm(Logic.Diplomacy.DiplomacyChange.ClanJoinsAsMercenary, "join_as_mercenary", playerClan, kingdom, npcHero,
+               () => ChangeKingdomAction.ApplyByJoinFactionAsMercenary(playerClan, kingdom, default(CampaignTime), mercenaryAwardMultiplier));
+            if (!door.Happened) return ActionOutcome.Refused(door.NotHappenedLine($"Your service under {kingdom.Name}'s banner"));
 
             ModLog.Info($"[ACTION] join_as_mercenary: player clan joined {kingdom.Name} as mercenary (award multiplier {mercenaryAwardMultiplier}, no fixed term).");
 
@@ -3624,7 +3632,9 @@ namespace CalradiaRemembers.GameState
             // decompile against the shipped engine: it clears Clan.Kingdom AND runs
             // EndMercenaryServiceAction.EndByLeavingKingdom internally, unlike the generic ApplyByLeaveKingdom
             // (built for a sworn vassal's departure, incl. settlement hand-back logic a mercenary never needs).
-            ChangeKingdomAction.ApplyByLeaveKingdomAsMercenary(playerClan);
+            DiplomacyOutcome door = DiplomacyCommit.Realm(Logic.Diplomacy.DiplomacyChange.ClanLeavesMercenaryService, "leave_mercenary", playerClan, playerClan.Kingdom, npcHero,
+               () => ChangeKingdomAction.ApplyByLeaveKingdomAsMercenary(playerClan));
+            if (!door.Happened) return ActionOutcome.Refused(door.NotHappenedLine($"The end of your contract with {kingdomName}"));
 
             ModLog.Info($"[ACTION] end_mercenary: player clan's mercenary contract with {kingdomName} dissolved.");
 
@@ -3700,7 +3710,9 @@ namespace CalradiaRemembers.GameState
                   $"(Your clan is already sworn to {playerClan.Kingdom.Name}. Settle that obligation first.)");
             }
 
-            ChangeKingdomAction.ApplyByJoinToKingdom(playerClan, kingdom);
+            DiplomacyOutcome door = DiplomacyCommit.Realm(Logic.Diplomacy.DiplomacyChange.ClanJoinsKingdom, "join_as_vassal", playerClan, kingdom, npcHero,
+               () => ChangeKingdomAction.ApplyByJoinToKingdom(playerClan, kingdom));
+            if (!door.Happened) return ActionOutcome.Refused(door.NotHappenedLine($"Your oath to {kingdom.Name}"));
 
             ModLog.Info($"[ACTION] join_as_vassal: player clan sworn as vassal of {kingdom.Name}.");
 

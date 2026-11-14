@@ -99,5 +99,19 @@ namespace CalradiaRemembers
 
       /// <summary>The feeding mod's id — REQUIRED, for provenance, throttling, and muting a misbehaving source.</summary>
       public string SourceMod { get; set; }
+
+      /// <summary>
+      ///   A secret, not news: known only to the heroes it names (HeroIds, ActorHeroIds) and to <see cref="KnownToHeroIds" />,
+      ///   however great or near. VonLemberg's Bellum Civile bridge RFC (14/11/2026): "Private deliberation, authorized NPC
+      ///   knowledge, possible rumors, confirmed public outcome": a council's secret stays with its members, its outcome can
+      ///   be fed later as news. Default false (public news, as before). Since 2.8.10.
+      /// </summary>
+      public bool KnownOnlyToThoseInvolved { get; set; }
+
+      /// <summary>Heroes (StringIds) let in on a secret beyond those it names. Since 2.8.10.</summary>
+      public List<string> KnownToHeroIds { get; set; } = new();
+
+      /// <summary>Heroes (StringIds) who never hear of this event, secret or news. Since 2.8.10.</summary>
+      public List<string> HiddenFromHeroIds { get; set; } = new();
    }
 }
