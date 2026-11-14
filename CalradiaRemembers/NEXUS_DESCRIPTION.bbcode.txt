@@ -438,7 +438,7 @@ A conversation can lead to real action. Here is the full set of things that can 
 [size=4]Requirements[/size]
 
 [list]
-[*][b]Mount & Blade II: Bannerlord[/b] v1.4.x[/*]
+[*][b]Mount & Blade II: Bannerlord[/b] v1.5.7 (with or without War Sails v1.3.7). Built and tested on 1.5.7 since Calradia Remembers 2.8.9.[/*]
 [*]An [b]LLM backend[/b].. either a cloud account with [b]OpenRouter[/b] or [b]NanoGPT[/b] (pay-as-you-go, see cost notes below), or a [b]local AI server[/b] running on your own machine (LM Studio, Ollama, vLLM.. free, no subscription, no data leaving your computer). See setup below. You only need one.[/*]
 [*]Other dependencies like Harmony, MCM, etc.[/*]
 [/list]
