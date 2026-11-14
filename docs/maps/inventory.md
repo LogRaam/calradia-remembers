@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 643 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1587 types in 56 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1588 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 287 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2511,11 +2511,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SceneContentKind` | public enum | The kind of scene that is opening. |
 | `ServiceRole` | public enum | A model ROLE the player can route to its own provider. |
 
-### CalradiaRemembers.Logic.Quests (29)
+### CalradiaRemembers.Logic.Quests (30)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `CaptureQuestPolicy` | public static class | Decides what a proposed capture really is, from whether the giver is at war with the target. |
+| `ClanTaskRewardPolicy` | public static class | The coin a task pays, given who gives it. |
 | `HeldQuest` | public class | A task the game already holds for the player, as the repeat check and the council read it. |
 | `MirrorReconcileDecision` | public enum | What to do with one quest-journal mirror at session launch. |
 | `PeaceAttackFacts` | public class | What decides whether carrying out a task means attacking a realm the player is at peace with. |

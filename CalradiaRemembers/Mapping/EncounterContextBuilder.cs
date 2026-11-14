@@ -779,6 +779,7 @@ namespace CalradiaRemembers.Mapping
                ? (int) CampaignTime.Now.ToDays - joined
                : null,
             NpcIsPlayerHousehold = IsPlayerHousehold(hero, profile),
+            NpcInPlayerClan = hero != Hero.MainHero && Clan.PlayerClan != null && hero.Clan == Clan.PlayerClan,
             MarriedSeductionStance = ResolveMarriedSeductionStance(hero, profile),
             SpouseMarriedUnwillingly = ResolveSpouseMarriedUnwillingly(hero),
             ConsortEligible = ResolveConsortEligible(hero, profile),

@@ -889,6 +889,16 @@ namespace CalradiaRemembers.Quests
             return;
          }
 
+         // Aporo (Discord, 13/11/2026): "it's my money either way". Gabriel: "tout le clan". A member of the player's clan
+         // shares the player's purse; their thanks is the regard, never coin.
+         bool giverInPlayerClan = giverHero != null && Clan.PlayerClan != null && giverHero.Clan == Clan.PlayerClan;
+         int gold = ClanTaskRewardPolicy.GoldFor(giverInPlayerClan, quest.RewardGold);
+         if (gold != quest.RewardGold)
+         {
+            ModLog.Info($"[QUEST] {giver.Name} is of the player's clan: the {quest.RewardGold} denars promised are not paid (one purse).");
+            quest.RewardGold = gold;
+         }
+
          if (askThePlayer)
          {
             PutToThePlayer(giver, giverHero, quest, store, notify);
