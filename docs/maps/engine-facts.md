@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-778 rules read 571 facts.
+780 rules read 571 facts.
 
 ## Facts read by more than one rule
 
@@ -160,6 +160,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MapEvent.IsSiegeAssault` (4) | `BattleFacts`, `Legend`, `LegendBattleFacts`, `LegendPolicy.Name` |
 | `MarriageModel.IsCoupleSuitableForMarriage` (4) | `MatchRegistrationFacts`, `PendingMatchEntry`, `QuestMenuEntry`, `ReturnFacts` |
 | `MobileParty.PrisonRoster` (4) | `CaptiveNameMatch.Best`, `HeldCaptive`, `PrisonerCustodyPolicy.HeldByPlayer`, `PrisonerTradePolicy.ClampPrice` |
+| `ModSettings.LeanPrompt` (4) | `CharacterTextComposer.Append`, `CharacterTextComposer.ForPrompt`, `ConversationCompressionPolicy.ThresholdFor`, `TranscriptFold` |
 | `NatureReader.LovesKindOf` (4) | `ItemConfirmationFacts`, `ItemSaleFacts`, `ItemSalePolicy.DifferenceNote`, `ItemSalePolicy.MostFor` |
 | `PairRegardReader.Assess` (4) | `ClanRegardCandidate`, `PairRegardPolicy.Describe`, `PairRegardPolicy.PageReason`, `PairRegardPolicy.WithoutThePair` |
 | `Party.EstimatedStrength` (4) | `InterceptionFacts`, `InterceptionPolicy.Choose`, `InterceptionPolicy.IsOutnumbered`, `InterceptionPolicy.IsRoadValid` |
@@ -310,7 +311,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.AllowFiefAndMarriageQuestRewards` (2) | `FiefRewardFacts`, `MarriageRewardFacts` |
 | `ModSettings.AllowOpenRouterProviderFallbacks` (2) | `ProviderPinFailurePolicy.Explain`, `ProviderPinFailurePolicy.RoutingJson` |
 | `ModSettings.EnableWarDuty` (2) | `LevyTroopFacts`, `TermsFacts` |
-| `ModSettings.LeanPrompt` (2) | `ConversationCompressionPolicy.ThresholdFor`, `TranscriptFold` |
 | `ModSettings.MarriageRegardThreshold` (2) | `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion` |
 | `ModSettings.NsfwReasoningEffort` (2) | `OnOffReasoningPolicy.ForModel`, `RoleSettings` |
 | `ModSettings.ReasoningEffort` (2) | `OnOffReasoningPolicy.ForModel`, `RoleSettings` |
@@ -468,6 +468,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `CaptureNorm.StakeOf`: `Hero.Clan`
 - `CaptureQuestPolicy.TypeToIssue`: `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`
 - `CardinalDirectionPolicy.Describe`: `Settlement.GetPosition2D`, `Vec2.x`, `Vec2.y`
+- `CharacterTextComposer.Append`: `ModSettings.LeanPrompt`
+- `CharacterTextComposer.ForPrompt`: `ModSettings.LeanPrompt`
 - `CharacterVoiceFacts`: `Hero.Age`, `SocialStationReader.StationOf`
 - `ChaseFacts`: `Army.LeaderParty`, `GetPosition2D.Distance`, `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `LeaderParty.SiegeEvent`, `MobileParty.Army`, `MobileParty.AttachedTo`, `MobileParty.BesiegedSettlement`, `MobileParty.GetPosition2D`, `MobileParty.IsCurrentlyAtSea`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`, `MobileParty.Speed`, `Settlement.IsUnderSiege`, `Settlement.SiegeEvent`
 - `ChatClosePlan.For`: `ActiveViewModel.IsExplorationScene`

@@ -26,6 +26,7 @@ using CalradiaRemembers.Logic.Appreciations;
 using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Bastards;
 using CalradiaRemembers.Logic.Captivity;
+using CalradiaRemembers.Logic.Character;
 using CalradiaRemembers.Logic.Duels;
 using CalradiaRemembers.Logic.Escort;
 using CalradiaRemembers.Logic.Grudges;
@@ -540,6 +541,10 @@ namespace CalradiaRemembers.Mapping
             // contradictory looks. Derived body facts + any player-authored prose, both may be empty (renders none).
             PlayerAppearance = ComposeAppearance(Hero.MainHero, AppearanceVoice.Subject),
             NpcSelfAppearance = ComposeAppearance(hero, AppearanceVoice.Self),
+            // What other mods write of the character and of the player (CrCharacterText, Bhelogan 14/11/2026, since 2.8.10).
+            NpcModBackstory = ModTextFor(hero, CharacterTextSection.Backstory),
+            NpcModPrivate = ModTextFor(hero, CharacterTextSection.Private),
+            PlayerModText = ModTextFor(Hero.MainHero, CharacterTextSection.Backstory),
             // Equipment-awareness pillar (2026-08-29): a modder reported CR feeds NO equipment to the prompt at
             // all, so an NPC's reaction to fine or shabby gear is pure guesswork. Same Subject/Self split as
             // appearance just above: the PLAYER's notable gear read in the third person, the SPEAKING NPC's own
@@ -1031,6 +1036,15 @@ namespace CalradiaRemembers.Mapping
       ///   voice, then what other mods add of their looks (CrAppearance, since 2.8.4), never changing CR's own. Returns
       ///   null (renders nothing) for a null hero or when nothing stands out, no prose exists and no mod adds a line.
       /// </summary>
+      /// <summary>
+      ///   What other mods write in one section of a character's text (CrCharacterText), for this prompt's level; null when
+      ///   nothing. The player's is read as seen by another, an NPC's as their own.
+      /// </summary>
+      internal static string ModTextFor(Hero hero, CharacterTextSection section)
+         => hero == null
+            ? null
+            : CharacterTextComposer.ForPrompt(CrCharacterText.PiecesFor(hero.StringId, hero == Hero.MainHero, hero == Hero.MainHero), section, ModSettings.LeanPrompt);
+
       internal static string ComposeAppearance(Hero hero, AppearanceVoice voice)
       {
          if (hero == null) return null;
@@ -1040,7 +1054,12 @@ namespace CalradiaRemembers.Mapping
             AppearanceProseBehavior.Instance?.Get(hero.StringId),
             voice);
 
-         return AppearanceComposer.WithOutsideLines(composed, CrAppearance.LinesFor(hero.StringId, voice == AppearanceVoice.Subject));
+         string withLines = AppearanceComposer.WithOutsideLines(composed, CrAppearance.LinesFor(hero.StringId, voice == AppearanceVoice.Subject));
+
+         // Longer descriptions other mods write through CrCharacterText (since 2.8.10), after CR's own, never replacing it.
+         IReadOnlyList<CharacterTextPiece> pieces = CrCharacterText.PiecesFor(hero.StringId, hero == Hero.MainHero, voice == AppearanceVoice.Subject);
+
+         return CharacterTextComposer.Append(withLines, CharacterTextComposer.ForPrompt(pieces, CharacterTextSection.Appearance, ModSettings.LeanPrompt));
       }
 
       /// <summary>

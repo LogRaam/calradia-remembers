@@ -64,6 +64,39 @@ _The door through which other mods add a line to how a character looks._
 - `static bool UnregisterLineSource(string source)`
 - `static void RegisterLineSource(string source, Func<string, bool, string> line)`
 
+### CrCharacterText
+
+_The door through which other mods write text about a character, for the prompt and the panel._
+
+- `static bool UnregisterSource(string sourceMod)`
+- `static void RegisterSource(string sourceMod, Func<CrCharacterTextFacts, IEnumerable<CrCharacterTextEntry>> source)`
+
+### CrCharacterTextEntry
+
+_One piece of your text about a character._
+
+- `CrCharacterTextSection Section { get; set; }`
+- `bool Lean { get; set; }`
+- `bool ShowInPanel { get; set; }`
+- `string Text { get; set; }`
+
+### CrCharacterTextFacts
+
+_What CR tells your source when it asks for a character's text._
+
+- `bool IsPlayer { get; set; }`
+- `bool Lean { get; set; }`
+- `bool SeenByOther { get; set; }`
+- `string HeroId { get; set; }`
+
+### CrCharacterTextSection
+
+_Where a piece of your text about a character belongs._
+
+- `Appearance = 0`
+- `Backstory = 1`
+- `Private = 2`
+
 ### CrConception
 
 _Lets another mod forbid the conceptions Calradia Remembers creates._

@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 646 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1591 types in 56 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 650 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1594 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 287 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 27500+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 28000+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 9000+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 6000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -48,7 +48,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (59)
+### CalradiaRemembers (63)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -58,6 +58,10 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrAimRaised` | public class | A lord was given the floor for an aim (CrAims.Raised). |
 | `CrAims` | public static class | The door through which other mods give lords aims of their own. |
 | `CrAppearance` | public static class | The door through which other mods add a line to how a character looks. |
+| `CrCharacterText` | public static class | The door through which other mods write text about a character, for the prompt and the panel. |
+| `CrCharacterTextEntry` | public class | One piece of your text about a character. |
+| `CrCharacterTextFacts` | public class | What CR tells your source when it asks for a character's text. |
+| `CrCharacterTextSection` | public enum | Where a piece of your text about a character belongs. |
 | `CrConception` | public static class | Lets another mod forbid the conceptions Calradia Remembers creates. |
 | `CrConversation` | public static class | The public conversation-lifecycle events other mods subscribe to. |
 | `CrConversationInfo` | public class | The identity of a conversation as it OPENS, delivered by CrConversation.Started. |
@@ -1902,11 +1906,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RansomOfferFacts` | public class | Who holds the player when the game is about to offer a ransom. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 
-### CalradiaRemembers.Logic.Character (27)
+### CalradiaRemembers.Logic.Character (30)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ArchetypeWording` | public static class | Words an archetype for the station of the one who carries it. |
+| `CharacterTextComposer` | public static class | What of the mods' pieces about a character reaches the prompt and the panel. |
+| `CharacterTextPiece` | public class | One piece of text a mod wrote about a character. |
+| `CharacterTextSection` | public enum | Where a piece of a mod's text about a character belongs. |
 | `CharacterVoice` | public class | A character's voice, as drawn. |
 | `CharacterVoiceFacts` | public class | Who a voice is drawn for. |
 | `CharacterVoicePolicy` | public static class | Draws and words a character's voice. |

@@ -4217,7 +4217,7 @@ namespace CalradiaRemembers.Chat
          ShowPanelCharacter = !string.IsNullOrWhiteSpace(PanelCharacter);
 
          // Physical description from body/appearance stats.
-         PanelAppearance = SafeRead(() => AppearanceProseBehavior.Instance?.Get(hero.StringId));
+         PanelAppearance = PanelAppearanceFor(hero);
          ShowPanelAppearance = !string.IsNullOrWhiteSpace(PanelAppearance);
 
          ResolveLearnedSections(hero, profile);
@@ -4236,7 +4236,30 @@ namespace CalradiaRemembers.Chat
          string backstory = SafeRead(() => CharacterOverrideLoader.BackstoryFor(hero));
          if (string.IsNullOrWhiteSpace(backstory)) backstory = profile?.AuthoredBackstory ?? "";
 
-         return Logic.Character.PanelTextCleaner.ForPanel(backstory) ?? "";
+         string pieces = Logic.Character.CharacterTextComposer.ForPanel(
+            CrCharacterText.PiecesFor(hero?.StringId, hero == Hero.MainHero, true), Logic.Character.CharacterTextSection.Backstory);
+
+         return Logic.Character.PanelTextCleaner.ForPanel(JoinParagraphs(backstory, pieces)) ?? "";
+      }
+
+      /// <summary>
+      ///   The Appearance section of a character's panel: the prose the player wrote (cr.appearance), then what other mods
+      ///   asked to show (CrCharacterText, since 2.8.10). Never null. Shared with cr.test character_text.
+      /// </summary>
+      internal static string PanelAppearanceFor(Hero hero)
+      {
+         string prose = SafeRead(() => AppearanceProseBehavior.Instance?.Get(hero?.StringId));
+         string pieces = Logic.Character.CharacterTextComposer.ForPanel(
+            CrCharacterText.PiecesFor(hero?.StringId, hero == Hero.MainHero, true), Logic.Character.CharacterTextSection.Appearance);
+
+         return Logic.Character.PanelTextCleaner.ForPanel(JoinParagraphs(prose, pieces)) ?? "";
+      }
+
+      private static string JoinParagraphs(string first, string then)
+      {
+         if (string.IsNullOrWhiteSpace(then)) return first ?? "";
+
+         return string.IsNullOrWhiteSpace(first) ? then : first.Trim() + "\n\n" + then;
       }
 
       /// <summary>

@@ -496,6 +496,37 @@ CrAppearance.UnregisterLineSource("My Mod");
 - Return the same line until the looks change (the character's own appearance sits in the cached part of the prompt),
   and keep it cheap. One that throws is logged once and passed over.
 
+### Text about a character, for the prompt and the panel (`CrCharacterText`, since 2.8.10)
+
+For more than a line: a description written from the character's renders, a past, a secret. Register one source; CR
+asks it for each character, NPCs and the player alike, whenever it builds a prompt or opens that character's panel.
+
+```csharp
+CrCharacterText.RegisterSource("MyMod", facts => {
+   // facts.HeroId, facts.IsPlayer, facts.SeenByOther (false: the character reading of themself), facts.Lean (Compact prompt)
+   string looks = MyStore.DescriptionOf(facts.HeroId);
+   if (looks == null) return null;
+   return new[] {
+      new CrCharacterTextEntry { Section = CrCharacterTextSection.Appearance, Text = looks },              // panel + model
+      new CrCharacterTextEntry { Section = CrCharacterTextSection.Private, Text = MyStore.SecretOf(facts.HeroId) } // model only
+   };
+});
+CrCharacterText.UnregisterSource("MyMod");
+```
+
+- **Appearance** follows CR's own appearance (never replaces it) and shows under Appearance in the panel.
+- **Backstory** gets a section of its own ("MORE OF WHO YOU ARE"; for the player, under THE PLAYER after
+  player_description.txt) and shows under Character in the panel.
+- **Private** is given to the model only, as something the character keeps: they may deflect, refuse or stay silent,
+  never deny it with a lie. Never shown, whatever `ShowInPanel` says. Ignored for the player.
+- `ShowInPanel` (default true) keeps an Appearance or Backstory entry out of the panel when false.
+- Each entry at most 1,200 characters, at most three per section across all mods, ordered by source name; longer is
+  left out whole. On the Compact prompt only entries with `Lean = true` and at most 300 characters are kept.
+- Return the same text for the same character until it really changes: it sits in the cached part of the prompt.
+  Keep the source cheap; a source that throws gives nothing (logged once). Game thread.
+
+This replaces writing into character_overrides.json or player_description.txt: the player's own files stay theirs.
+
 ### Cultures (`CrCultures.MarriageCustom`, since 2.7.5)
 
 ```csharp
