@@ -1,0 +1,33 @@
+Calradia Remembers
+Copyright (c) 2026 Gabriel Mailhot. All rights reserved.
+
+The source code of Calradia Remembers is published so that players and modders can read it.
+It is not open source. Except as allowed below, no part of it may be copied, modified,
+redistributed or sold without the written permission of the copyright holder.
+
+YOU MAY
+- Read the source code.
+- Build it and run it for your own personal use.
+- Write mods that work with Calradia Remembers through its public extension API
+  (see EXTENSION_API.md), and distribute those mods, provided they do not include
+  Calradia Remembers' own files or code.
+
+YOU MAY NOT, WITHOUT WRITTEN PERMISSION
+- Redistribute Calradia Remembers, compiled or as source, in whole or in part,
+  including mirrors and re-uploads.
+- Publish modified versions of it, or reuse its code in another project.
+
+CONTRIBUTIONS
+By submitting a contribution (a pull request, a patch, a translation file or any other
+material) to this repository, you confirm that you have the right to submit it, and you
+grant the copyright holder a perpetual, worldwide, royalty-free, irrevocable license to use,
+modify, distribute and relicense it as part of Calradia Remembers.
+
+THIRD-PARTY PARTS
+Calradia Remembers ships the LLM Roleplay Service (NpcMemoryService.Core), which is
+available separately under the MIT License:
+https://github.com/LogRaam/LLM-Roleplay-Service
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED. IN NO
+EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
