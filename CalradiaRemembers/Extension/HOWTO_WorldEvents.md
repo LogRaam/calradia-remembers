@@ -29,7 +29,9 @@ FeedResult r = CalradiaRemembers.Feed.Record(new ExternalWorldEvent {
 ```
 
 Also: `Feed.Update(e)` replaces the entry with the same `Id` (or records it fresh), and
-`Feed.Retract(id)` removes it so characters stop speaking of it.
+`Feed.Retract(id)` removes it so characters stop speaking of it. Since 2.8.10, `Feed.List(sourceMod)` returns copies of
+what your mod recorded that CR still holds (a faded rumor is gone; `HeroIds` carries every hero named; `Category` is not
+kept), so a mod can rebuild its own view after a load without keeping a second list.
 
 `FeedResult` tells you what happened: `Recorded`, `RejectedDuplicate` (that `Id` is already stored),
 `RejectedThrottled` (more than 20 records from your `SourceMod` today), `RejectedInvalid` (no

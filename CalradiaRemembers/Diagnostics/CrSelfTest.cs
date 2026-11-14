@@ -5171,6 +5171,9 @@ namespace CalradiaRemembers.Diagnostics
          });
 
          if (t.Abort(rec != FeedResult.Recorded, $"record failed: {rec}")) return t.Line();
+         // Feed.List (since 2.8.10, Bhelogan): a mod reads back what it recorded, and only its own.
+         t.Expect("listedForItsSource", Feed.List("SelfTest").Any(e => e.Id == id && e.Summary.Contains("Pen Cannoc")), true);
+         t.Expect("notListedForAnother", Feed.List("SelfTestOther").Any(e => e.Id == id), false);
 
          // The homestead moves -> the modder corrects the standing fact by the same id.
          FeedResult upd = Feed.Update(new ExternalWorldEvent {
@@ -5181,6 +5184,7 @@ namespace CalradiaRemembers.Diagnostics
          // The homestead is gone -> retract it; a second retract finds nothing.
          FeedResult ret = Feed.Retract(id);
          bool goneAfterRetract = WorldEventStore.Instance.GetById(id) == null;
+         t.Expect("noLongerListedOnceRetracted", Feed.List("SelfTest").Any(e => e.Id == id), false);
          FeedResult retAgain = Feed.Retract(id);
 
          t.Note($"update={upd}, summary now '{Preview(afterUpdate)}', retract={ret}, retractAgain={retAgain}");
@@ -23275,6 +23279,11 @@ namespace CalradiaRemembers.Diagnostics
                AimResult.Accepted);
             t.Expect("updatedUnderTheSameId", CrAims.Register(new ExternalAim {Id = "tower", SourceMod = source, NpcId = lord.StringId, Want = want}),
                AimResult.Updated);
+            // CrAims.List (since 2.8.10, Bhelogan): a mod reads back its aims, a copy with every channel once none is named.
+            ExternalAim listed = CrAims.List(source).FirstOrDefault(a => a.Id == "tower");
+            t.Expect("listedForItsSource", listed?.NpcId == lord.StringId && listed?.Want == want, true);
+            t.Expect("listedWithItsChannels", listed == null ? "" : string.Join(",", listed.Channels), "conversation,letter,audience");
+            t.Expect("crsOwnAimsAreNotListed", CrAims.List(Aims.AimsBehavior.CrSource).Count, 0);
             t.Expect("oneAimPerLord", CrAims.Register(new ExternalAim {Id = "other", SourceMod = source + "_b", NpcId = lord.StringId, Want = want}),
                AimResult.LordAlreadyHasAnAim);
             t.Expect("anUnknownHeroIsRefused", CrAims.Register(new ExternalAim {Id = "x", SourceMod = source, NpcId = "no_such_hero", Want = want}),

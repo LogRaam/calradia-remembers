@@ -292,6 +292,7 @@ AimResult r = CrAims.Register(new ExternalAim {
 });
 CrAims.Raised += r => { /* r.AimId, r.SourceMod, r.NpcId, r.Channel, r.GameDay */ };
 CrAims.Retract("MyMod", "lakonon");
+IReadOnlyList<ExternalAim> mine = CrAims.List("MyMod");   // since 2.8.10: copies of your aims still held
 ```
 
 You say WHAT a lord wants; CR decides WHEN it surfaces and remembers that it did. In a conversation the player opens,

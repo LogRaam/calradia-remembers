@@ -13,6 +13,9 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 ### For modders
 
 - **`CrPrompt.Reload()` and `CrLore.Reload()`** (Bhelogan, Discord 14/11/2026: "Public reloads ... instead of us calling the cr.reload_prompts / cr.reload_lore console commands"): the console reloads, as API, game thread only. EXTENSION_API.md, "Reloading the files from your mod".
+- **`Feed.List(sourceMod)` and `CrAims.List(sourceMod)`** (Bhelogan, Discord 14/11/2026): copies of the world events and aims a
+  mod gave CR that CR still holds, its own only (CR's own aims are never listed), game thread only. `cr.test feed_update` and
+  `aims_door` now read them back.
 
 ## v2.8.9.. 2026-11-13
 

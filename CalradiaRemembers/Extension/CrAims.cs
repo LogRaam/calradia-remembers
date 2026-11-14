@@ -142,6 +142,28 @@ namespace CalradiaRemembers
          => !IsReserved(sourceMod) && AimsBehavior.Instance?.Retract(sourceMod?.Trim(), id?.Trim()) == true;
 
       /// <summary>
+      ///   Your mod's aims CR still holds, as copies (changing them changes nothing; Register again with the same id to
+      ///   update, Retract to take one back). Channels lists the ways each may surface ("conversation", "letter",
+      ///   "audience"; empty when none). An aim that expired or was retracted is gone. Empty for a blank or reserved source
+      ///   or outside a campaign. Call it on the game thread. Since 2.8.10 (Bhelogan, Discord, 14/11/2026).
+      /// </summary>
+      public static IReadOnlyList<ExternalAim> List(string sourceMod)
+      {
+         AimsBehavior behavior = AimsBehavior.Instance;
+         if (behavior == null || string.IsNullOrWhiteSpace(sourceMod) || IsReserved(sourceMod)) return new List<ExternalAim>();
+
+         string source = sourceMod.Trim();
+
+         return behavior.Book.All.ToList()
+                        .Where(a => a != null && string.Equals(a.SourceMod, source, StringComparison.OrdinalIgnoreCase))
+                        .Select(a => new ExternalAim {
+                           Id = a.Id, SourceMod = a.SourceMod, NpcId = a.NpcId, Want = a.Want, PlayerPart = a.PlayerPart, MissionId = a.MissionId,
+                           Channels = NamesOf(a.Channels), ExpiresOnDay = a.ExpiresOnDay
+                        })
+                        .ToList();
+      }
+
+      /// <summary>
       ///   A lord was given the floor for an aim: the conversation opened with his leave to raise it (a letter released, an
       ///   audience granted, once those channels carry aims). It means he was GIVEN the floor, not that he said it: in a
       ///   conversation he may judge the moment wrong and stay silent.
@@ -165,6 +187,16 @@ namespace CalradiaRemembers
 
       private static bool IsReserved(string sourceMod)
          => string.Equals(sourceMod?.Trim(), AimsBehavior.CrSource, StringComparison.OrdinalIgnoreCase);
+
+      private static List<string> NamesOf(AimChannels channels)
+      {
+         var names = new List<string>();
+         if ((channels & AimChannels.Conversation) != 0) names.Add("conversation");
+         if ((channels & AimChannels.Letter) != 0) names.Add("letter");
+         if ((channels & AimChannels.Audience) != 0) names.Add("audience");
+
+         return names;
+      }
 
       private static AimChannels ChannelsOf(List<string> names)
       {

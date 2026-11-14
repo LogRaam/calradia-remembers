@@ -53,6 +53,7 @@ _A lord was given the floor for an aim (CrAims.Raised)._
 _The door through which other mods give lords aims of their own._
 
 - `static AimResult Register(ExternalAim aim)`
+- `static IReadOnlyList<ExternalAim> List(string sourceMod)`
 - `static bool Retract(string sourceMod, string id)`
 - `static event Action<CrAimRaised> Raised`
 
@@ -487,6 +488,7 @@ _The public, one-way inbound API: a third-party mod calls Record to feed CR a wo
 - `static FeedResult Record(ExternalWorldEvent e)`
 - `static FeedResult Retract(string id)`
 - `static FeedResult Update(ExternalWorldEvent e)`
+- `static IReadOnlyList<ExternalWorldEvent> List(string sourceMod)`
 
 ### FeedResult
 

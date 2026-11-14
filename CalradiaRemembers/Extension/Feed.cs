@@ -2,6 +2,7 @@
 
 #region
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Foundation;
@@ -122,6 +123,30 @@ namespace CalradiaRemembers
       #region private
 
       /// <summary>Maps a validated external event to a stored world event (shared by Record and Update).</summary>
+      /// <summary>
+      ///   What your mod has recorded that CR still holds, as copies (changing them changes nothing; use Update or Retract),
+      ///   oldest first. HeroIds carries every hero the event names (CR keeps no separate list of actors), Category is not
+      ///   kept, and a rumor CR has already let fade is gone. Empty for a blank source or outside a campaign. Call it on the
+      ///   game thread. Since 2.8.10 (Bhelogan, Discord, 14/11/2026).
+      /// </summary>
+      public static IReadOnlyList<ExternalWorldEvent> List(string sourceMod)
+      {
+         WorldEventStore store = WorldEventStore.Instance;
+         if (store == null || string.IsNullOrWhiteSpace(sourceMod)) return new List<ExternalWorldEvent>();
+
+         string source = sourceMod.Trim();
+
+         return store.All()
+                     .Where(w => w != null && string.Equals(w.SourceMod, source, StringComparison.OrdinalIgnoreCase))
+                     .OrderBy(w => w.Day)
+                     .Select(w => new ExternalWorldEvent {
+                        Id = w.Id, Summary = w.Summary, Day = w.Day, Magnitude = w.Magnitude, SourceMod = w.SourceMod, PlaceId = w.PlaceId,
+                        HeroIds = (w.ActorIds ?? new List<string>()).ToList(), FactionIds = (w.FactionIds ?? new List<string>()).ToList(),
+                        Lifetime = w.IsPersistentDeed ? ExternalEventLifetime.Deed : ExternalEventLifetime.Rumor
+                     })
+                     .ToList();
+      }
+
       private static WorldEvent Build(ExternalWorldEvent e, string summary, int today)
          => new() {
             Id = string.IsNullOrEmpty(e.Id)
