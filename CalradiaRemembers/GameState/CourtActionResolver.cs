@@ -422,7 +422,12 @@ namespace CalradiaRemembers.GameState
             ? authorizer
             : MarriageProspectResolver.ResolveCandidate(authorizer, targetKinName);
 
-         if (a == null || a == Hero.MainHero || a.Clan != Clan.PlayerClan)
+         // The player named as their own kin (Aporo, Discord, 14/11/2026: a toast to "Captain Arwa and her husband" read as a
+         // match of two others, with the player as the kin): said plainly, not as an unknown name.
+         if (a == Hero.MainHero || string.Equals(playerKinName?.Trim(), Hero.MainHero?.Name?.ToString(), StringComparison.OrdinalIgnoreCase))
+            return new ArrangeMarriageVerdict(ArrangeMarriageResult.PlayerThemself, a, b, null, null);
+
+         if (a == null || a.Clan != Clan.PlayerClan)
             return new ArrangeMarriageVerdict(ArrangeMarriageResult.NoPlayerKin, a, b, null, null);
 
          if (b == null)
@@ -1359,7 +1364,10 @@ namespace CalradiaRemembers.GameState
       ///   one of the pair is held captive, or their two houses are on opposite sides of an active war. The direct
       ///   marry action already refuses exactly these states; arrange_marriage now honours the same law (v1.34.2).
       /// </summary>
-      BlockedByGuard
+      BlockedByGuard,
+
+      /// <summary>The kin named on the player's side is the player: arranging a marriage weds one of their kin, never them.</summary>
+      PlayerThemself
    }
 
    /// <summary>

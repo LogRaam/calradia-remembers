@@ -112,6 +112,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 - the bridge refuses:
   - SilentRefusalMessages.ArrangeMarriageMissingKin()
   - $"(No unwed kin of your own clan answers to '{playerKinName}'.)"
+  - $"(Arranging a marriage weds one of your kin, never you, so nothing was sealed. A wedding of your own is " + $"sealed only when the game can perform i...
   - $"({npcHero.Name} names no one of their house by '{targetKinName}'.)"
   - $"({npcHero.Name} has no authority to promise {verdict.B.Name} in marriage.)"
   - $"({verdict.A.Name} and {verdict.B.Name} cannot lawfully wed.)"

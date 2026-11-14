@@ -1543,6 +1543,7 @@ namespace CalradiaRemembers.Chat
             case ArrangeMarriageResult.NotCrossClan: return "the kin named is already of the player's own clan.";
             case ArrangeMarriageResult.RefusedStanding: return $"{actorName}'s house will not give their kin to the player's house on its present standing.";
             case ArrangeMarriageResult.BlockedByGuard: return "the two named cannot be wed now: not across a war, nor from captivity.";
+            case ArrangeMarriageResult.PlayerThemself: return "an arranged match weds one of the player's kin, never the player.";
             default: return "the match could not be arranged.";
          }
       }

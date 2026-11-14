@@ -2731,6 +2731,9 @@ namespace CalradiaRemembers.GameState
             {
                case ArrangeMarriageResult.NoPlayerKin:
                   return ActionOutcome.Refused($"(No unwed kin of your own clan answers to '{playerKinName}'.)");
+               case ArrangeMarriageResult.PlayerThemself:
+                  return ActionOutcome.Refused($"(Arranging a marriage weds one of your kin, never you, so nothing was sealed. A wedding of your own is "
+                                               + $"sealed only when the game can perform it: run cr.marry_check {npcHero.Name} to see what stands in the way.)");
                case ArrangeMarriageResult.NoTargetKin:
                   return ActionOutcome.Refused($"({npcHero.Name} names no one of their house by '{targetKinName}'.)");
                case ArrangeMarriageResult.NoAuthority:

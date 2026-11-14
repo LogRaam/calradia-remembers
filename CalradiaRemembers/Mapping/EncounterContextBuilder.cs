@@ -764,6 +764,7 @@ namespace CalradiaRemembers.Mapping
             LoveMatchEligible = ResolveLoveMatchEligible(hero, profile),
             MarriageBlockedBecause = ResolveMarriageBlockReason(hero, profile),
             LeaveHouseClosedBecause = ResolveLeaveHouseObstacle(hero, profile),
+            LeaveHouseRoadOpen = ResolveLeaveHouseRoadOpen(hero, profile),
             LoveMatchReluctant = ResolveLoveMatchReluctant(hero, profile),
             LoveMatchBlessed = ResolveLoveMatchBlessed(hero),
             // "Marry your own companion": when the eligible partner is one of the player's OWN companions, the
@@ -2572,6 +2573,11 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>The two-sided regard read every marriage gate shares: the mod's personal ledger OR the live vanilla relation reaching the EFFECTIVE bar (MCM "Marriage Regard Needed", capped at the shipped 50).</summary>
+      // Aporo (Discord, 14/11/2026): the road of leaving his house was offered by the head of a minor house for whom no action
+      // could take it, and the model made up its price ("dissolve your clan"). It is offered only while leave_house_to_wed is.
+      internal static bool ResolveLeaveHouseRoadOpen(Hero hero, NpcProfile profile)
+         => ResolveMarriageBlockReason(hero, profile) == MarriageBlockReason.LeadsTheirOwnHouse && LeaveHouseForRulerBehavior.OpenRoads(hero).Length > 0;
+
       // Her one road is named closed only where it is hers to offer: a ruler who heads her house, facing a player who heads theirs.
       private static LeaveHouseObstacle ResolveLeaveHouseObstacle(Hero hero, NpcProfile profile)
          => ResolveMarriageBlockReason(hero, profile) == MarriageBlockReason.LeadsTheirOwnHouse

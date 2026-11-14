@@ -43,14 +43,17 @@ namespace CalradiaRemembers.Marriage
             var candidates = new List<Hero>();
             if (isLeader)
                foreach (Hero member in npc.Clan.Heroes.ToList())
-                  if (Mapping.ActionGate.Allows(member, Logic.ActionKind.MarriageProspect) && IsOfferableProspect(player, member))
+                  // A head of a house is no match for a player who heads his own (the game weds no two heads); listed, she was
+                  // offered as "yourself, unwed" beside the teaching that bars it (Aporo, Discord, 14/11/2026).
+                  if (Mapping.ActionGate.Allows(member, Logic.ActionKind.MarriageProspect) && IsOfferableProspect(player, member) && !HeadsOfTwoHouses(player, member))
                      candidates.Add(member);
 
             // A PARENT may bless their OWN child even when they do not head the clan — the
             // natural person a player approaches for a daughter's or son's hand.
             if (npc.Children != null)
                foreach (Hero child in npc.Children)
-                  if (Mapping.ActionGate.Allows(child, Logic.ActionKind.MarriageProspect) && child.Clan != Clan.PlayerClan && IsOfferableProspect(player, child) && !candidates.Contains(child))
+                  if (Mapping.ActionGate.Allows(child, Logic.ActionKind.MarriageProspect) && child.Clan != Clan.PlayerClan && IsOfferableProspect(player, child) && !candidates.Contains(child)
+                      && !HeadsOfTwoHouses(player, child))
                      candidates.Add(child);
 
             if (candidates.Count == 0) return null;

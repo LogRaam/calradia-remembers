@@ -26185,6 +26185,12 @@ namespace CalradiaRemembers.Diagnostics
             MarriageBlockReason reason = EncounterContextBuilder.ResolveMarriageBlockReason(head, profile);
             t.Note($"{head.Name} heads {head.Clan.Name}: {reason}");
             t.Expect("theHouseIsNamedAsTheObstacle", reason, MarriageBlockReason.LeadsTheirOwnHouse);
+            // Aporo (Discord, 14/11/2026): she is no longer offered as her own house's unwed kin beside the teaching that bars it,
+            // and the road of leaving his house is offered only when leave_house_to_wed is.
+            t.Expect("sheIsNotListedAsHerOwnHousesKin", MarriageProspectResolver.Build(head)?.Contains("yourself, unwed") == true, false);
+            t.Expect("theRoadIsOfferedOnlyWhenOpen", EncounterContextBuilder.ResolveLeaveHouseRoadOpen(head, profile), LeaveHouseForRulerBehavior.OpenRoads(head).Length > 0);
+            // A match arranged with the player as his own kin is refused by name, not as an unknown kin.
+            t.Expect("thePlayerIsNotHisOwnKin", CourtActionResolver.TryArrangeMarriage(Hero.MainHero.Name.ToString(), head.Name.ToString(), head).Result, ArrangeMarriageResult.PlayerThemself);
 
             ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "marry"}, head, new ActionContext(profile, null));
             t.Expect("aMarryEmittedAnywayIsRefused", outcome?.WasRefused, true);
