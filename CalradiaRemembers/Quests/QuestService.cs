@@ -718,7 +718,7 @@ namespace CalradiaRemembers.Quests
       }
 
       /// <summary>What a task is against, as the repeat check reads it (QuestRepeatPolicy.KeyOf).</summary>
-      private static string KeyOf(InformalQuest q) => QuestRepeatPolicy.KeyOf(q.TargetFactionId, q.TargetHeroId, q.TargetSettlement);
+      private static string KeyOf(InformalQuest q) => QuestRepeatPolicy.KeyOf(q.TargetFactionId, q.TargetHeroId, q.TargetSettlement, q.TargetHideoutId);
 
       /// <summary>
       ///   Every task the game holds for the player, open or carried out, across every giver, for the repeat check and

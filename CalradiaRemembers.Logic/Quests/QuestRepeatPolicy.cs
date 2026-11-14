@@ -56,13 +56,20 @@ namespace CalradiaRemembers.Logic.Quests
       /// <summary>TUNE: the most tasks a council is shown.</summary>
       public const int CouncilListCap = 8;
 
-      /// <summary>The target a deed is against, as one key: realm, person and place, lower-cased; empty when none is set.</summary>
-      public static string KeyOf(string factionId, string heroId, string settlement)
+      /// <summary>
+      ///   The target a deed is against, as one key: realm, person and place, lower-cased, and the hideout itself when the deed
+      ///   names one; empty when none is set. Aporo (Discord, 14/11/2026, "Can't accept task that is named the same as previous
+      ///   one?"): two bandit camps near Iyakis shared the town as their key, so clearing the second was refused as a repeat of
+      ///   the first. A deed with no hideout keeps the key it always had.
+      /// </summary>
+      public static string KeyOf(string factionId, string heroId, string settlement, string hideoutId = null)
       {
          string[] parts = {factionId, heroId, settlement};
-         if (parts.All(string.IsNullOrWhiteSpace)) return "";
+         if (parts.All(string.IsNullOrWhiteSpace) && string.IsNullOrWhiteSpace(hideoutId)) return "";
 
-         return string.Join("|", parts.Select(p => (p ?? "").Trim().ToLowerInvariant()));
+         string key = string.Join("|", parts.Select(p => (p ?? "").Trim().ToLowerInvariant()));
+
+         return string.IsNullOrWhiteSpace(hideoutId) ? key : key + "|" + hideoutId.Trim().ToLowerInvariant();
       }
 
       /// <summary>

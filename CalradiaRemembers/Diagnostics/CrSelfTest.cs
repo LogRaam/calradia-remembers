@@ -6638,6 +6638,10 @@ namespace CalradiaRemembers.Diagnostics
          done.Evidence = "[SELFTEST] seen";
          NpcProfile first = behavior.Store.Get(lords[0].StringId);
          NpcProfile second = behavior.Store.Get(lords[1].StringId);
+         var hideout = new InformalQuest {
+            Type = QuestType.BanditHideout, Description = "[SELFTEST] camp", TargetSettlement = "[SELFTEST] town", TargetHideoutId = "selftest_camp_a",
+            Status = QuestStatus.Completed, SatisfiedOnDay = today
+         };
          try
          {
             first.ActiveQuests.Add(done);
@@ -6655,10 +6659,21 @@ namespace CalradiaRemembers.Diagnostics
             // STAKE (bdionysis80): the council reads the scouting as done, with what was found.
             List<string> lines = Logic.Quests.QuestRepeatPolicy.CouncilLines(Quests.QuestService.HeldQuests(behavior.Store), today);
             t.Expect("theCouncilReadsItAsDone", lines.Any(l => l.Contains(first.Name) && l.Contains("done") && l.Contains("[SELFTEST] seen")), true);
+
+            // THE REPORT (Aporo, Discord, 14/11/2026): a second bandit camp near the same town is its own task. Read through
+            // the REAL held-task reader, so the hideout reaches the key the repeat check compares.
+            first.ActiveQuests.Add(hideout);
+            behavior.Store.Set(first);
+            List<Logic.Quests.HeldQuest> held = Quests.QuestService.HeldQuests(behavior.Store);
+            t.Expect("anotherCampNearTheTownIsNoRepeat",
+               Logic.Quests.QuestRepeatPolicy.RepeatOf(QuestType.BanditHideout, Logic.Quests.QuestRepeatPolicy.KeyOf(null, null, "[SELFTEST] town", "selftest_camp_b"), today, held) == null, true);
+            t.Expect("theSameCampIsStillARepeat",
+               Logic.Quests.QuestRepeatPolicy.RepeatOf(QuestType.BanditHideout, Logic.Quests.QuestRepeatPolicy.KeyOf(null, null, "[SELFTEST] town", "selftest_camp_a"), today, held) != null, true);
          }
          finally
          {
             first.ActiveQuests.Remove(done);
+            first.ActiveQuests.Remove(hideout);
             behavior.Store.Set(first);
             NpcProfile after = behavior.Store.Get(lords[1].StringId);
             if (after.ActiveQuests.RemoveAll(q => q.Description == "[SELFTEST] scout again") > 0) behavior.Store.Set(after);

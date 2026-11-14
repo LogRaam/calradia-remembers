@@ -58,6 +58,36 @@ namespace CalradiaRemembers.Tests
          QuestRepeatPolicy.RepeatOf(QuestType.AttackFaction, Sturgia, 101, held).Should().BeNull();
       }
 
+      // THE REPORT (Aporo, Discord, 14/11/2026): two bandit camps near Iyakis are two tasks, the second not refused as the first.
+      [Test]
+      public void GIVEN_a_cleared_hideout_near_a_town_WHEN_another_hideout_near_it_is_offered_THEN_it_is_not_a_repeat()
+      {
+         var held = new[] {
+            new HeldQuest {Type = QuestType.BanditHideout, TargetKey = QuestRepeatPolicy.KeyOf(null, null, "Iyakis", "hideout_seaside_3"), DoneOnDay = 100}
+         };
+
+         QuestRepeatPolicy.RepeatOf(QuestType.BanditHideout, QuestRepeatPolicy.KeyOf(null, null, "Iyakis", "hideout_seaside_7"), 101, held).Should().BeNull();
+      }
+
+      // STAKE: the same hideout, still open, is not set a second time.
+      [Test]
+      public void GIVEN_an_open_task_on_a_hideout_WHEN_the_same_hideout_is_offered_THEN_it_is_a_repeat()
+      {
+         string key = QuestRepeatPolicy.KeyOf(null, null, "Iyakis", "hideout_seaside_3");
+         var held = new[] {new HeldQuest {Type = QuestType.BanditHideout, TargetKey = key, Open = true}};
+
+         QuestRepeatPolicy.RepeatOf(QuestType.BanditHideout, key, 101, held).Should().NotBeNull();
+      }
+
+      // STAKE: a hideout task from before the fix (no hideout in its key) does not block a new one on another camp.
+      [Test]
+      public void GIVEN_a_hideout_task_done_before_the_fix_WHEN_a_hideout_near_the_same_town_is_offered_THEN_it_is_not_a_repeat()
+      {
+         var held = new[] {new HeldQuest {Type = QuestType.BanditHideout, TargetKey = QuestRepeatPolicy.KeyOf(null, null, "Iyakis"), DoneOnDay = 100}};
+
+         QuestRepeatPolicy.RepeatOf(QuestType.BanditHideout, QuestRepeatPolicy.KeyOf(null, null, "Iyakis", "hideout_seaside_7"), 101, held).Should().BeNull();
+      }
+
       // STAKE: a task with no target (goods, coin) is never refused as a repeat; two loads of goods are two tasks.
       [Test]
       public void GIVEN_a_task_with_no_target_WHEN_offered_THEN_it_is_never_a_repeat()
