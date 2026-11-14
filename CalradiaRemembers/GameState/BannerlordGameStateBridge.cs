@@ -1561,7 +1561,7 @@ namespace CalradiaRemembers.GameState
          }
          catch (Exception ex)
          {
-            ModLog.Error($"[ACTION] execute_prisoner failed: {ex.GetType().Name}: {ex.Message}");
+            ModLog.Error($"[ACTION] execute_prisoner failed: {ex}"); // the whole trace: the throw is in the engine's kill or a listener, and the message alone cannot say which
 
             return null;
          }

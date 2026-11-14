@@ -12924,6 +12924,18 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      /// <summary>
+      ///   A conversation turn applied with the player accepting any task it puts to them (Schmidt's consent window, 2.8.9).
+      ///   For self-tests that seed a task through the real pipeline to test what follows; quest_consent tests the window.
+      /// </summary>
+      private static void ApplyAccepted(NpcProfile giver, Hero giverHero, ParsedResponse response, int gameDay, IGameStateBridge bridge,
+                                        BannerlordNpcMemoryStore store, Action<string, bool> notify)
+      {
+         Quests.QuestService.ConsentForTest = _ => true;
+         try { Quests.QuestService.ApplyResponse(giver, giverHero, response, gameDay, bridge, store, notify); }
+         finally { Quests.QuestService.ConsentForTest = null; }
+      }
+
       private static string TestProvideGold(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("providegold");
@@ -12933,7 +12945,7 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(giver == null, "every live lord already holds an outstanding task, so none can be given a new one")) return t.Line();
 
          NpcProfile profile = GetOrCreate(behavior, giver);
-         QuestService.ApplyResponse(
+         ApplyAccepted(
             profile, giver,
             new ParsedResponse {
                Dialogue = "",
@@ -13199,7 +13211,7 @@ namespace CalradiaRemembers.Diagnostics
 
          NpcProfile profile = GetOrCreate(behavior, giver);
          string desc = $"[SELFTEST] {giver.Name} asks you to clear a lair.";
-         QuestService.ApplyResponse(
+         ApplyAccepted(
             profile, giver,
             new ParsedResponse {
                Dialogue = "",
@@ -13295,7 +13307,7 @@ namespace CalradiaRemembers.Diagnostics
          SweepSelfTestHideoutQuests(behavior); // an open lair task left by an earlier run is never set twice (QuestRepeatPolicy)
          NpcProfile profile = GetOrCreate(behavior, giver);
          const string desc = "[SELFTEST] a lair to clear (marker).";
-         QuestService.ApplyResponse(
+         ApplyAccepted(
             profile, giver,
             new ParsedResponse {
                Dialogue = "",
@@ -27712,7 +27724,7 @@ namespace CalradiaRemembers.Diagnostics
          int day = behavior.GameStateBridge.GetCurrentGameDay();
 
          // Refusal branch: an unrecognized goods category grounds no quest at all.
-         QuestService.ApplyResponse(profile, giver,
+         ApplyAccepted(profile, giver,
             new ParsedResponse {Dialogue = "", QuestGiven = new QuestProposal {Type = QuestType.ProvideGoods, Category = "swords", RequiredCount = 5}},
             day, behavior.GameStateBridge, behavior.Store, null);
          bool refused = behavior.Store.Get(giver.StringId).ActiveQuests.All(q => q.Type != QuestType.ProvideGoods);
@@ -27720,7 +27732,7 @@ namespace CalradiaRemembers.Diagnostics
 
          // Issue a real grain supply task through the pipeline (grounds category + count).
          const int need = 3;
-         QuestService.ApplyResponse(profile, giver,
+         ApplyAccepted(profile, giver,
             new ParsedResponse {
                Dialogue = "",
                QuestGiven = new QuestProposal {
@@ -27757,7 +27769,7 @@ namespace CalradiaRemembers.Diagnostics
          // froggyluv (26/10/2026): grain handed over in WORDS (give_item, the path the Give menu takes too) settles the
          // task as the bag does; short of the count, nothing leaves. Through the REAL bridge action.
          ArrangeCleanNpc(behavior, profile, giver);
-         QuestService.ApplyResponse(profile, giver,
+         ApplyAccepted(profile, giver,
             new ParsedResponse {Dialogue = "", QuestGiven = new QuestProposal {Type = QuestType.ProvideGoods, Category = "grain", RequiredCount = need, RewardGold = 0, RewardRelation = 1}},
             day, behavior.GameStateBridge, behavior.Store, null);
          profile = behavior.Store.Get(giver.StringId);
