@@ -97,5 +97,30 @@ namespace CalradiaRemembers.Logic
 
             return new CharacterOverrideSet(_overrides.Where(o => !SameTarget(o)).Concat(new[] { ov }));
         }
+
+        /// <summary>
+        ///   This set with a campaign's own entries laid over it (Bhelogan, Discord, 14/11/2026: overrides are global, "but
+        ///   runtime ids (CharacterObject_N) are per save, so characters from one playthrough leaked into the next"). Each
+        ///   campaign entry replaces the shared one with the same key (its id, or its name when it has no id), as
+        ///   <see cref="With"/> does; the rest are added. Null or empty leaves this set unchanged.
+        /// </summary>
+        public CharacterOverrideSet Overlay(IEnumerable<CharacterOverride> campaignEntries)
+        {
+            CharacterOverrideSet set = this;
+            foreach (CharacterOverride entry in campaignEntries ?? Enumerable.Empty<CharacterOverride>()) set = set.With(entry);
+
+            return set;
+        }
+
+        /// <summary>
+        ///   The folder name of a campaign's own overrides (<c>Custom/campaigns/&lt;name&gt;/</c>): its unique game id with
+        ///   anything but letters, digits, '-' and '_' made '_'. Null for a blank id (no campaign).
+        /// </summary>
+        public static string CampaignFolderName(string uniqueGameId)
+        {
+            if (string.IsNullOrWhiteSpace(uniqueGameId)) return null;
+
+            return new string(uniqueGameId.Trim().Select(c => char.IsLetterOrDigit(c) || c == '-' || c == '_' ? c : '_').ToArray());
+        }
     }
 }

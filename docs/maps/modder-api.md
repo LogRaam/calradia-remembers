@@ -150,6 +150,7 @@ _Another mod's letters, delivered through CR's courier and letter window._
 _The door to CR's authored character files._
 
 - `static bool Reload()`
+- `static string CampaignFolder()`
 
 ### CrMatchOutcome
 

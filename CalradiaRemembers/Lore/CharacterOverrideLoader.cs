@@ -44,6 +44,27 @@ namespace CalradiaRemembers.Lore
       /// </summary>
       public static string LastLoadError { get; private set; }
 
+      /// <summary>The campaign overlay the last <see cref="Load" /> looked for (Custom/campaigns/&lt;id&gt;/character_overrides.json), or null outside a campaign.</summary>
+      public static string LastOverlayPath { get; private set; }
+
+      /// <summary>How many entries the campaign overlay laid over the shared file at the last <see cref="Load" /> (0 when it was absent).</summary>
+      public static int LastOverlayCount { get; private set; }
+
+      /// <summary>Null when the campaign overlay was absent or parsed; the parse error otherwise (the shared file still applies).</summary>
+      public static string LastOverlayError { get; private set; }
+
+      /// <summary>
+      ///   This campaign's own overrides folder, <c>&lt;Custom&gt;/campaigns/&lt;unique game id&gt;/</c>, whether or not it exists; null
+      ///   outside a campaign. A character_overrides.json there is laid over the shared one (Bhelogan, Discord, 14/11/2026:
+      ///   runtime ids "are per save, so characters from one playthrough leaked into the next").
+      /// </summary>
+      public static string CampaignFolder()
+      {
+         string name = CharacterOverrideSet.CampaignFolderName(Campaign.Current?.UniqueGameId);
+
+         return name == null ? null : Path.Combine(NarrativeLoader.CustomBaseFolder(), "campaigns", name);
+      }
+
       /// <summary>
       ///   The authored backstory for <paramref name="hero" /> when custom data is enabled, else null.
       ///   Used to sync <see cref="NpcMemoryService.Core.Models.NpcProfile.AuthoredBackstory" /> before
@@ -224,6 +245,37 @@ namespace CalradiaRemembers.Lore
       }
 
       public static void Load()
+      {
+         LoadShared();
+         LoadCampaignOverlay();
+      }
+
+      // This campaign's own entries over the shared file; a missing or broken overlay leaves the shared set as it is.
+      private static void LoadCampaignOverlay()
+      {
+         string folder = CampaignFolder();
+         LastOverlayPath = folder == null ? null : Path.Combine(folder, "character_overrides.json");
+         LastOverlayCount = 0;
+         LastOverlayError = null;
+         if (LastOverlayPath == null || !File.Exists(LastOverlayPath)) return;
+
+         try
+         {
+            List<CharacterOverride> entries =
+               JsonConvert.DeserializeObject<List<CharacterOverride>>(File.ReadAllText(LastOverlayPath)) ?? new List<CharacterOverride>();
+            Set = Set.Overlay(entries);
+            LastOverlayCount = entries.Count(e => e != null);
+            ModLog.Info($"  Laid {LastOverlayCount} campaign character override(s) over the shared file ({LastOverlayPath}).");
+         }
+         catch (Exception ex)
+         {
+            LastOverlayError = ex.Message;
+            ModLog.Error($"  campaign character_overrides.json failed to parse, the shared file alone applies: {ex.Message}");
+            ModLog.ConfigError($"This campaign's character_overrides.json failed to parse ({ex.Message}). The shared file alone applies until it is fixed.");
+         }
+      }
+
+      private static void LoadShared()
       {
          // Custom-first (player report): character_overrides.json was the ONE lore file not read from
          // ModuleData/Custom, so a copy there was ignored and only the shipped ModuleData copy worked, which is

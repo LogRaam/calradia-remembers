@@ -396,6 +396,10 @@ namespace CalradiaRemembers
          sb.AppendLine($"File: {CharacterOverrideLoader.LastLoadPath}  (exists: {(CharacterOverrideLoader.LastLoadFileExisted ? "yes" : "no")})");
          sb.AppendLine($"Loaded: {CharacterOverrideLoader.LastLoadCount} override(s)");
          sb.AppendLine($"Last parse error: {CharacterOverrideLoader.LastLoadError ?? "none"}");
+         sb.AppendLine(CharacterOverrideLoader.LastOverlayPath == null
+            ? "This campaign's overrides: none (no campaign id)"
+            : $"This campaign's overrides: {CharacterOverrideLoader.LastOverlayPath}  ({CharacterOverrideLoader.LastOverlayCount} laid over the shared file"
+              + (CharacterOverrideLoader.LastOverlayError == null ? ")" : $"; parse error: {CharacterOverrideLoader.LastOverlayError})"));
          AppendCustomPromptFiles(sb);
          sb.AppendLine("Resolution:");
 

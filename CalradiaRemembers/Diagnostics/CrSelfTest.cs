@@ -291,6 +291,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("quest_refusal_reason", Severity.Light, "Aporo (Discord, 11/11/2026): Grand Prince Raganvad offered Mazhadan Castle for a captured lord three times, and each refusal said only 'could not be matched to the world', so he restated the same castle. Through the REAL QuestService.ApplyResponse, a clan leader offers a task priced with a castle his clan does not hold: with fief rewards off the player is told fiefs are not quest rewards in the settings, with them on that the castle is not his to give; either way the character's next-turn note says the offer was NOT recorded, and no task is recorded. The giver's outstanding tasks are set aside and restored", TestQuestRefusalReason),
          new SelfTest("prompt_follows_player", Severity.Light, "Icezera (Discord, 13/11/2026): after a player switch, \"NPC's are still thinking that I'm the original character. Even replaced the player_description with the new character.\" The character prompt was built once and rebuilt only when the clan, realm or a setting changed, and cr.reload_prompts reread the files without rebuilding it. Asserts that the chat service is built again when the player's name (a switch, through the name seam) changes, kept when nothing changed, and built again after CrPrompt.Reload. Restores the seam. Needs a configured provider", TestPromptFollowsPlayer),
          new SelfTest("panel_text_clean", Severity.Light, "Bhelogan (Discord, 14/11/2026): the conversation panel's Character section showed another mod's markers (\"[DNB_PHYSICAL_DESCRIPTION]...\", \"[HSAI_SECRET:...]\") instead of text for a human, and a secret before it was discovered. Through the panel's own reader (ChatViewModel.PanelCharacterFor), on a lord with no authored override and a profile copy carrying such a backstory: the description is kept without its markers, the token and the secret block are left out. Read-only (the profile is a copy)", TestPanelTextClean),
+         new SelfTest("campaign_overrides", Severity.Light, "Bhelogan (Discord, 14/11/2026): character_overrides.json is global, \"but runtime ids (CharacterObject_N) are per save, so characters from one playthrough leaked into the next\". Writes a character_overrides.json in this campaign's own folder (CrLore.CampaignFolder) naming a lord, reloads, and asserts the lord resolves to the campaign entry and the overlay is reported; then deletes the file (and the folder if the test made it) and reloads. Skipped when the campaign already has its own file (never touched)", TestCampaignOverrides),
          new SelfTest("clan_task_no_coin", Severity.Light, "Aporo (Discord, 13/11/2026): \"I don't need that 100 denars for bringing 20 grain when it's my money either way\"; Gabriel: \"tout le clan\". A member of the player's own clan offers a task promising 100 denars and 3 regard, through the real ApplyResponse and the consent seam: the task put to the player carries 0 denars and keeps the 3 regard. The player declines; the giver's memories and outstanding tasks are put back", TestClanTaskNoCoin),
          new SelfTest("quest_consent", Severity.Light, "Schmidt (Discord, 11/11/2026): \"NPC's give you quests that you didn't agree to ... Same with asking NPC's to do something but it shows up for you as a quest.\" Gabriel: \"Tu peux faire 11.\" Through the REAL QuestService.ApplyResponse with a [QUEST] a lord of another realm puts to the player (scout a castle of a third realm), the Accept/Decline window answered through its test seam: while the offer waits nothing is recorded; declined, no task and no journal entry, the giver remembers the refusal and the model is told; accepted, the task is the player's with its journal entry. The giver's outstanding tasks are set aside first and restored, and the accepted task is cancelled and removed", TestQuestConsent),
          new SelfTest("realms_and_armies", Severity.Light, "Schmidt (Discord, 11/11/2026): \"everyone acts surprised when I tell them that Sturgia is no more\", and lords did not know which lords marched in their army. Through the REAL bridge and reader: the realms line names every standing realm with its fiefs and a realm the game counts destroyed as fallen (with none fallen, one realm's own destroyed flag is set for the read and restored at once); a lord marching in an army of two parties or more is told the other lords and the total (with none in the field, an army is raised from two lords of one realm and disbanded at once); a lord in no army is told none", TestRealmsAndArmies),
@@ -6848,6 +6849,46 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("noMarkerIsShown", shown.Contains("[DNB_") || shown.Contains("[/DNB_") || shown.Contains("HSAI_SECRET"), false);
          // STAKE: a secret is never read in the panel before it is discovered.
          t.Expect("noSecretIsShown", shown.Contains("selftest gold"), false);
+
+         return t.Line();
+      }
+
+      private static string TestCampaignOverrides(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("campaign_overrides");
+         string folder = CrLore.CampaignFolder();
+         if (t.Skip(Campaign.Current == null || folder == null, "no campaign")) return t.Line();
+
+         string file = System.IO.Path.Combine(folder, "character_overrides.json");
+         if (t.Skip(System.IO.File.Exists(file), "this campaign already has its own character_overrides.json; the test never touches it")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero);
+         if (t.Skip(lord == null, "no lord")) return t.Line();
+
+         bool madeFolder = !System.IO.Directory.Exists(folder);
+         try
+         {
+            System.IO.Directory.CreateDirectory(folder);
+            System.IO.File.WriteAllText(file, "[{\"id\": \"" + lord.StringId + "\", \"backstory\": \"Selftest campaign backstory.\"}]");
+            CharacterOverrideLoader.Load();
+            t.Note($"{lord.Name}, overlay {CharacterOverrideLoader.LastOverlayPath}");
+            // THE REPORT: a character written for this campaign is read for this campaign.
+            t.Expect("theLordResolvesToTheCampaignEntry", CharacterOverrideLoader.For(lord)?.Backstory, "Selftest campaign backstory.");
+            t.Expect("theOverlayIsReported", CharacterOverrideLoader.LastOverlayCount, 1);
+         }
+         finally
+         {
+            try
+            {
+               System.IO.File.Delete(file);
+               if (madeFolder) System.IO.Directory.Delete(folder);
+            }
+            catch (Exception ex) { t.Note($"cleanup: {ex.GetType().Name}"); }
+            CharacterOverrideLoader.Load();
+         }
+
+         // STAKE: once the campaign's file is gone, the lord is back to the shared file alone.
+         t.Expect("goneWithTheFile", CharacterOverrideLoader.For(lord)?.Backstory == "Selftest campaign backstory.", false);
 
          return t.Line();
       }

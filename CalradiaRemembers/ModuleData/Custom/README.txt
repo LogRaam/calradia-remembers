@@ -29,6 +29,9 @@ For example:
   Custom\jealousy_cultures.json (same JSON rules and same DISPLAY NAME keying as cultural_traditions.json)
   Custom\setting.json
   Custom\character_overrides.json (your hand-written characters; needs MCM "Use custom traits"; cr.reload_lore)
+  Custom\campaigns\<campaign id>\character_overrides.json (characters for ONE campaign only, laid over the shared
+    file: heroes born or spawned in a campaign get ids like CharacterObject_2526 that mean someone else in the next
+    one. cr.lore_status shows this campaign's folder. Since 2.8.10)
   Custom\stations\merchant.txt (who each social station is and how they meet you; same names as ModuleData\stations)
   Custom\folklore\battania.txt (the tales a people tells; a file named after another mod's culture id adds that people)
 

@@ -137,6 +137,14 @@ A mod that edits CR's files (an editor for the Custom folder, say) reloads them 
 
 Both build the next reply's prompt from the fresh files. Call them on the **game thread**, with a campaign loaded.
 
+**Characters for one campaign** (`CrLore.CampaignFolder()`, since 2.8.10): heroes born or spawned in a campaign have
+runtime ids (`CharacterObject_2526`) that name someone else in the next campaign. Write their entries to
+`character_overrides.json` in `CrLore.CampaignFolder()` (`<Custom folder>/campaigns/<unique game id>/`; create it, null
+when no campaign is loaded), then call `CrLore.Reload()`. That file is laid over the shared one for this campaign only:
+an entry replaces the shared entry with the same key (its id, or its name when it has no id). Only
+character_overrides.json is read there; stations, folklore and the prompt files stay shared. `cr.lore_status` shows the
+folder and how many entries it laid over.
+
 ### Scenario packs (`ModuleData/cr_scenarios`, since 2.7.9)
 
 A scenario is a rule that makes the world react: when a trigger fires (`ON_DEATH`, `ON_MARRIAGE`, `ON_WAR_DECLARED`,

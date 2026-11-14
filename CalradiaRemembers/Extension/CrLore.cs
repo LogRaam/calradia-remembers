@@ -14,5 +14,15 @@ namespace CalradiaRemembers
       ///   it on the main thread.
       /// </summary>
       public static bool Reload() => Lore.PromptDataReload.ReloadLore();
+
+      /// <summary>
+      ///   This campaign's own overrides folder, <c>&lt;Custom folder&gt;/campaigns/&lt;unique game id&gt;/</c>, whether or not it exists
+      ///   yet; null when no campaign is loaded. A character_overrides.json written there is laid over the shared one for this
+      ///   campaign only: an entry replaces the shared entry with the same key (its id, or its name when it has no id), the
+      ///   rest are added. Use it for heroes with runtime ids ("CharacterObject_2526"), which are per save. Create the folder
+      ///   yourself, write the file, then call <see cref="Reload" />. Only character_overrides.json is read there: stations,
+      ///   folklore and the prompt files stay shared. Since 2.8.10 (Bhelogan, Discord, 14/11/2026).
+      /// </summary>
+      public static string CampaignFolder() => Lore.CharacterOverrideLoader.CampaignFolder();
    }
 }
