@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 650 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1594 types in 56 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1595 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 287 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1941,7 +1941,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `Piety` | public enum | How a character's piety shows. |
 | `RosterItemKey` | public static class | Names one stack of goods by item and quality, and finds it again among what the party holds. |
 
-### CalradiaRemembers.Logic.Chat (30)
+### CalradiaRemembers.Logic.Chat (31)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1971,6 +1971,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `OverlayNeighbour` | public class | One layer beside the chat, as the arbiter needs to see it. |
 | `PresencePenaltyPolicy` | public static class | Pure: the presence penalty a conversation turn is sent with. |
 | `PromptPlayerIdentity` | public static class | The player identity a built character prompt is tied to. |
+| `PurseOfferText` | public static class | The words of the purse's windows: what giving coin from the bag does, and how a transaction is read. |
 | `ReplyBudgetPolicy` | public static class | Pure: the reply budget the player picked, or none when they left it on Auto. |
 | `SceneOpenerFacts` | public class | What a conversation's opening knows when it decides whether the character sets the scene. |
 | `SceneOpenerOutcome` | public enum | How the character's scene-setting turn ended. |

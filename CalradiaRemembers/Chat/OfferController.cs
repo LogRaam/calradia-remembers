@@ -280,11 +280,14 @@ namespace CalradiaRemembers.Chat
       private void PromptGoldOffer(IOfferHost host)
       {
          int carried = Hero.MainHero?.Gold ?? 0;
+         // Aporo (Discord, 14/11/2026) took the character's words for the payment and declined the [Y/n] that was it. The
+         // window says the purse writes an offer; "Learn more" opens how a transaction works (Gabriel, same day). The engine's
+         // text window has two buttons, so Cancel lives in the Info window (Close), which Back returns from.
          InformationManager.ShowTextInquiry(new TextInquiryData(
-            "Give Gold",
-            $"How many denars? (You carry {carried:N0}.)",
+            Logic.Chat.PurseOfferText.AmountTitle,
+            Logic.Chat.PurseOfferText.AmountPrompt(carried),
             true, true,
-            "Give", "Cancel",
+            "Give", "Learn more...",
             amountText =>
             {
                if (!int.TryParse(amountText?.Trim(), out int amount) || amount <= 0) return;
@@ -292,8 +295,18 @@ namespace CalradiaRemembers.Chat
                host.SetInputText($"I would like to give you {amount:N0} denars.");
                ModLog.Info($"[OFFER GOLD] pre-filled: {amount} denars.");
             },
-            null));
+            () => ShowGivingInfo(host)));
       }
+
+      /// <summary>How a transaction with a character works, and how to tell a refusal from a bug; Back reopens the purse.</summary>
+      private void ShowGivingInfo(IOfferHost host)
+         => InformationManager.ShowInquiry(new InquiryData(
+            Logic.Chat.PurseOfferText.LearnMoreTitle,
+            Logic.Chat.PurseOfferText.LearnMore(),
+            true, true,
+            "Back to the purse", "Close",
+            () => PromptGoldOffer(host),
+            null));
 
       /// <summary>
       ///   The current NPC's outstanding item-barter bargain (deliver goods for a favor), or null when there is
