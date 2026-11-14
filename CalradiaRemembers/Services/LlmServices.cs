@@ -220,6 +220,7 @@ namespace CalradiaRemembers.Services
 
          open.WireObserver = _wireObserver;
          open.UsageObserver = _usageObserver;
+         open.ExchangeObserver = ReportRecorder.Instance;
       }
 
       // OpenRouter's app attribution (fearente, 24/10/2026, could not tell which calls on his bill were the mod's).
@@ -457,7 +458,7 @@ namespace CalradiaRemembers.Services
                AppTitle = AppTitle,
                AppUrl = AppUrl
             };
-            LlmClient = new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver, UsageObserver = _usageObserver};
+            LlmClient = new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver, UsageObserver = _usageObserver, ExchangeObserver = ReportRecorder.Instance};
 
             if (ResolveProvider() != ProviderCustom && string.IsNullOrWhiteSpace(ApiKeyFor(ServiceRole.Prose, DefaultKind())))
                ModLog.Info($"LLM stack built, but no {ResolveProvider()} API key is set yet. " +
@@ -935,7 +936,7 @@ namespace CalradiaRemembers.Services
             AppUrl = AppUrl
          };
 
-         return new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver};
+         return new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver, ExchangeObserver = ReportRecorder.Instance};
       }
 
       /// <summary>
@@ -961,7 +962,7 @@ namespace CalradiaRemembers.Services
             AppUrl = AppUrl
          };
 
-         return new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver, UsageObserver = _usageObserver};
+         return new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver, UsageObserver = _usageObserver, ExchangeObserver = ReportRecorder.Instance};
       }
 
       private ILlmClient BuildInterpreterClient(ProviderKind kind, string model)
@@ -990,7 +991,7 @@ namespace CalradiaRemembers.Services
             AppUrl = AppUrl
          };
 
-         return new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver, UsageObserver = _usageObserver};
+         return new OpenRouterClient(_httpClient, config) {WireObserver = _wireObserver, UsageObserver = _usageObserver, ExchangeObserver = ReportRecorder.Instance};
       }
 
       /// <summary>

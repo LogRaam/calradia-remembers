@@ -6,9 +6,9 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 650 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1595 types in 56 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 287 types in 17 namespaces, 9 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 654 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1598 types in 56 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 288 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -293,7 +293,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CompanionBriefingCoordinator` | public static class | Offers the companion-briefing picker and opens the resulting private chat. |
 | `CompanionHireBehavior` | public class | Keeps the day each companion joined the player's company. |
 
-### CalradiaRemembers.Diagnostics (16)
+### CalradiaRemembers.Diagnostics (19)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -306,6 +306,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrSelfTest` | public static class | End-to-end self-test harness. |
 | `LlmDiagnostic` | public static class | Sends a test prompt to the configured LLM and logs the response. |
 | `MemoryBench` | public static class | A live-model bench for what a character KNOWS: does he use what he was given, and does he keep quiet about what he was not? |
+| `PlayerReportManager` | internal static class | Show/hide lifecycle of the player report window. |
+| `PlayerReportService` | internal static class | Gathers, composes and writes a player report. |
+| `PlayerReportViewModel` | public class | View model of the player report window. |
 | `RoleplayBench` | public static class | The cr.rp_bench roleplay model bench. |
 | `SeededCase` | public class | One seeded character and what was done to them, so the run knows what to ask about. |
 | `SeededKind` | public enum | The situations the seeder can create. |
@@ -811,13 +814,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ScenarioPackLoader` | public static class | Reads and parses the scenario packs into ScenarioRules. |
 | `ScenarioRuntime` | public class | Holds the loaded rules + the persisted fired-once set, and runs a fired trigger end to end. |
 
-### CalradiaRemembers.Services (3)
+### CalradiaRemembers.Services (4)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ApiKeyTester` | public static class | Backs the MCM "Test Connection" buttons. |
 | `BackgroundCallHold` | public static class | Makes a background model call wait for the open conversation to close, on the local server only. |
 | `LlmServices` | public class | Centralizes the construction and lifetime of the LLM stack (HTTP client, OpenRouter client, parser, prompt builder, chat service). |
+| `ReportRecorder` | internal class | The latest exchanges with the model, kept in memory for a player report. |
 
 ### CalradiaRemembers.Social (1)
 
@@ -2074,7 +2078,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SummaryEnqueueOutcome` | public enum | What ConversationSummaryQueue.Enqueue actually did with the new job. |
 | `WitnessExchangePolicy` | public static class | Decides whether the bystander exchange must stop and leave the floor to the player. |
 
-### CalradiaRemembers.Logic.Diagnostics (31)
+### CalradiaRemembers.Logic.Diagnostics (34)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2104,10 +2108,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `InterpretRowResult` | public class | An interpret row's costs and score, by difficulty. |
 | `LogRotationPolicy` | public static class | Trims a session-delimited log to its most recent blocks. |
 | `MemoryAccentRepair` | public static class | Mends a profile's memories mangled by the console. |
+| `PlayerReportComposer` | public static class | Composes a player report and masks anything that looks like a secret. |
+| `PlayerReportFacts` | public class | What a player report is made of. |
 | `PngHeader` | public static class | Reads a PNG's colour type. |
 | `ProseRowResult` | public class | A prose (or standard) row's costs and signals. |
 | `ProseSignals` | public class | Advisory signals over a prose row's replies: they point the eye, the reader judges. |
 | `RecapSignal` | public static class | Whether a late reply found what the folded recap holds: the levies agreed early in the conversation. |
+| `ReportExchange` | public class | One exchange with the model, as the report shows it. |
 | `SermonSignal` | public static class | The fearente signal: a reply that still warns or lectures after the player has answered the concern. |
 
 ### CalradiaRemembers.Logic.Duels (30)
@@ -3040,11 +3047,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WorldClaimPolicy` | public static class | Decides whether a thing an NPC said may become a thing that is true. |
 | `WoundedBand` | public enum | How much of the company is fit to fight. |
 
-### NpcMemoryService.Core.LlmClient (4)
+### NpcMemoryService.Core.LlmClient (5)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ILlmClient` | public interface | Sends a completion request and returns a response, both expressed in our internal protocol. |
+| `ILlmExchangeObserver` | public interface | Sees each finished exchange with the model: the request as asked, the response as it came back, and the model used. |
 | `ILlmUsageObserver` | public interface | Sees every HTTP attempt a client makes, with what the provider reported it cost. |
 | `ILlmWireObserver` | public interface | Sees each request as it goes out. |
 | `LlmWireSnapshot` | public record | One outgoing request, described in the terms its cost is decided by. |

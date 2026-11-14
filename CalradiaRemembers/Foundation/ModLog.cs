@@ -101,6 +101,19 @@ namespace CalradiaRemembers.Foundation
       ///   message per session so a per-conversation fault cannot spam the log or the screen. Writes to
       ///   the log file (like the session header) and shows one in-game message so it cannot pass unnoticed.
       /// </summary>
+      /// <summary>The log file's full path (the player report reads this session from it).</summary>
+      internal static string FilePath => LogPath;
+
+      /// <summary>
+      ///   Writes a player report into the log, whole, ALWAYS, even with logging off (Gabriel, 14/11/2026: "réinjecter le rapport
+      ///   du joueur dans le log avec tout le contexte"), so a player who sends only the log still sends the report.
+      /// </summary>
+      internal static void Report(string report)
+      {
+         WriteToFile($"[{DateTime.Now:HH:mm:ss}] [REPORT] [{Tag}] a player report follows");
+         WriteToFile(report ?? "");
+      }
+
       internal static void Compat(string message)
       {
          lock (SeenCompat)

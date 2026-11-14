@@ -2583,6 +2583,24 @@ namespace CalradiaRemembers.Chat
        + "The character remembers all of it next time you meet.";
 
       /// <summary>Opens the "?" help popup that explains the chat window, so the buttons need no per-button tooltips.</summary>
+      /// <summary>Whether the "report a problem" button shows (MCM, Diagnostics).</summary>
+      [DataSourceProperty]
+      public bool ShowReportButton => ModSettings.ShowReportButton;
+
+      /// <summary>Opens the player report window on this conversation (Gabriel, 14/11/2026).</summary>
+      public void ExecuteReportProblem()
+      {
+         try { Diagnostics.PlayerReportManager.Open(ReportTranscript(), _npcHero?.Name?.ToString()); }
+         catch (Exception ex) { ModLog.Error($"[REPORT] the report window could not open: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>The conversation as the chat shows it, one line per message ("Speaker: text"). Shared with cr.test player_report.</summary>
+      internal List<string> ReportTranscript()
+         => Messages.Select(m => (m?.DisplayText ?? "").Replace("\r", ""))
+                    .Where(t => t.Length > 0)
+                    .Select(t => t.Contains('\n') ? t.Substring(0, t.IndexOf('\n')) + ": " + t.Substring(t.IndexOf('\n') + 1).Replace("\n", " ") : t)
+                    .ToList();
+
       public void ExecuteShowHelp()
       {
          try

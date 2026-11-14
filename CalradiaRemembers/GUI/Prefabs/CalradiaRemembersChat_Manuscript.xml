@@ -885,6 +885,21 @@
                                 Brush.TextHorizontalAlignment="Left" Text="@ModelModeText" />
                   </Children>
                 </ButtonWidget>
+                <!-- Report a problem (Gabriel, 14/11/2026): a discreet link above the model line, when the MCM option is on. -->
+                <ButtonWidget Id="ReportButton"
+                              WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+                              HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                              MarginLeft="258" MarginBottom="192"
+                              IsVisible="@ShowReportButton"
+                              DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                              Command.Click="ExecuteReportProblem">
+                  <Children>
+                    <TextWidget WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+                                HorizontalAlignment="Left" VerticalAlignment="Center"
+                                Brush="CR.Link.Grey.12"
+                                Brush.TextHorizontalAlignment="Left" Text="Report a problem" />
+                  </Children>
+                </ButtonWidget>
                 <!-- Options (fifth tile, the gear): opens the game menu. Transparent hit-box over the page-art
                      gear tile (positioned in game at 218/174). -->
                 <ButtonWidget Id="OptionsButton"

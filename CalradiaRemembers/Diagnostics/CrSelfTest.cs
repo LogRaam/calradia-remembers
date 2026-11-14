@@ -293,6 +293,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("panel_text_clean", Severity.Light, "Bhelogan (Discord, 14/11/2026): the conversation panel's Character section showed another mod's markers (\"[DNB_PHYSICAL_DESCRIPTION]...\", \"[HSAI_SECRET:...]\") instead of text for a human, and a secret before it was discovered. Through the panel's own reader (ChatViewModel.PanelCharacterFor), on a lord with no authored override and a profile copy carrying such a backstory: the description is kept without its markers, the token and the secret block are left out. Read-only (the profile is a copy)", TestPanelTextClean),
          new SelfTest("campaign_overrides", Severity.Light, "Bhelogan (Discord, 14/11/2026): character_overrides.json is global, \"but runtime ids (CharacterObject_N) are per save, so characters from one playthrough leaked into the next\". Writes a character_overrides.json in this campaign's own folder (CrLore.CampaignFolder) naming a lord, reloads, and asserts the lord resolves to the campaign entry and the overlay is reported; then deletes the file (and the folder if the test made it) and reloads. Skipped when the campaign already has its own file (never touched)", TestCampaignOverrides),
          new SelfTest("character_text", Severity.Light, "Bhelogan (Discord, 14/11/2026): \"The per-character text source you described, yes please ... Appearance: shown in the panel, given to the model; Private: model only, never in the panel ... the same for the player\". Registers a CrCharacterText source for one lord and the player, then through the real readers asserts: the lord's appearance block and panel carry the mod's appearance, the prompt carries the secret and the panel never does, the player's text reaches the prompt. Unregisters the source", TestCharacterText),
+         new SelfTest("player_report", Severity.Light, "Gabriel (14/11/2026): a report-a-problem button whose report carries the whole context, saved to a file and written into the log. Records one exchange through the real recorder (a prompt holding a fake key), gathers and composes a report through the real service, writes it, and asserts the file holds the player text, the prompt and the reply with the key masked, and that the log holds the report. Deletes the file (the log keeps a [SELFTEST] report)", TestPlayerReport),
          new SelfTest("clan_task_no_coin", Severity.Light, "Aporo (Discord, 13/11/2026): \"I don't need that 100 denars for bringing 20 grain when it's my money either way\"; Gabriel: \"tout le clan\". A member of the player's own clan offers a task promising 100 denars and 3 regard, through the real ApplyResponse and the consent seam: the task put to the player carries 0 denars and keeps the 3 regard. The player declines; the giver's memories and outstanding tasks are put back", TestClanTaskNoCoin),
          new SelfTest("quest_consent", Severity.Light, "Schmidt (Discord, 11/11/2026): \"NPC's give you quests that you didn't agree to ... Same with asking NPC's to do something but it shows up for you as a quest.\" Gabriel: \"Tu peux faire 11.\" Through the REAL QuestService.ApplyResponse with a [QUEST] a lord of another realm puts to the player (scout a castle of a third realm), the Accept/Decline window answered through its test seam: while the offer waits nothing is recorded; declined, no task and no journal entry, the giver remembers the refusal and the model is told; accepted, the task is the player's with its journal entry. The giver's outstanding tasks are set aside first and restored, and the accepted task is cancelled and removed", TestQuestConsent),
          new SelfTest("realms_and_armies", Severity.Light, "Schmidt (Discord, 11/11/2026): \"everyone acts surprised when I tell them that Sturgia is no more\", and lords did not know which lords marched in their army. Through the REAL bridge and reader: the realms line names every standing realm with its fiefs and a realm the game counts destroyed as fallen (with none fallen, one realm's own destroyed flag is set for the read and restored at once); a lord marching in an army of two parties or more is told the other lords and the total (with none in the field, an army is raised from two lords of one realm and disbanded at once); a lord in no army is told none", TestRealmsAndArmies),
@@ -6932,6 +6933,40 @@ namespace CalradiaRemembers.Diagnostics
 
          // STAKE: with no source, nothing is added.
          t.Expect("goneOnceUnregistered", Mapping.EncounterContextBuilder.ComposeAppearance(lord, AppearanceVoice.Self)?.Contains("selftest scar") == true, false);
+
+         return t.Line();
+      }
+
+      private static string TestPlayerReport(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("player_report");
+
+         Services.ReportRecorder.Instance.OnExchange(
+            new LlmRequest {SystemPrompt = "SELFTEST prompt for Lady Arwa, key sk-or-v1-selftest0123456789abcdef", Messages = new[] {new LlmMessage(MessageRole.User, "SELFTEST hello")}, Subject = "selftest"},
+            new LlmResponse {Content = "SELFTEST reply: well met.", IsSuccess = true}, "selftest/model");
+
+         Logic.Diagnostics.PlayerReportFacts facts = Diagnostics.PlayerReportService.Gather("[SELFTEST] she asked for the coin twice", false, new List<string> {"Selftest: a line"}, "Selftest Lady");
+         string report = Logic.Diagnostics.PlayerReportComposer.Compose(facts);
+         string path = Diagnostics.PlayerReportService.Write(report);
+         try
+         {
+            if (t.Abort(path == null || !System.IO.File.Exists(path), "the report file could not be written")) return t.Line();
+
+            string written = System.IO.File.ReadAllText(path);
+            t.Note(path);
+            // THE REQUEST: the report holds the player's words, the prompt and the reply.
+            t.Expect("thePlayersWordsAreIn", written.Contains("she asked for the coin twice"), true);
+            t.Expect("thePromptAndReplyAreIn", written.Contains("SELFTEST prompt for Lady Arwa") && written.Contains("SELFTEST reply: well met."), true);
+            // STAKE: a key never reaches a public channel.
+            t.Expect("theKeyIsMasked", written.Contains("selftest0123456789abcdef"), false);
+            // THE REQUEST: the report is written into the log too.
+            t.Expect("theLogHoldsTheReport", Diagnostics.PlayerReportService.SessionLogLines().Any(l => l.Contains("she asked for the coin twice")), true);
+         }
+         finally
+         {
+            try { if (path != null) System.IO.File.Delete(path); }
+            catch (Exception ex) { t.Note($"cleanup: {ex.GetType().Name}"); }
+         }
 
          return t.Line();
       }

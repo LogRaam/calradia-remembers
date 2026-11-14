@@ -55,6 +55,9 @@ namespace CalradiaRemembers.Foundation
       /// </summary>
       public static bool AllowCaptorExecutions => CrSettings.Instance?.AllowCaptorExecutions ?? false;
 
+      /// <summary>Whether the chat shows the "report a problem" button (Gabriel, 14/11/2026: optional in MCM). On by default.</summary>
+      public static bool ShowReportButton => CrSettings.Instance?.ShowReportButton ?? true;
+
       /// <summary>
       ///   Whether a lord may promise one of their own clan's fiefs, or a marriage into their house (or
       ///   themselves), as the delivered PRICE of a quest reward (COUNCIL_ACTIONS.md Partie 5, the "Caladog"

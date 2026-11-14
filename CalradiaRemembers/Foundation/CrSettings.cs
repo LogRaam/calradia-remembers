@@ -269,6 +269,12 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Diagnostics}Diagnostics", GroupOrder = 7)]
       public bool EnableScreenLogging { get; set; } = false;
 
+      [SettingPropertyBool("{=CR_MCM_ShowReportButton}Report button in the chat", RequireRestart = false, Order = 8,
+         HintText = "{=CR_MCM_ShowReportButton_Hint}Shows a button in the chat window to report a problem: you describe it and see the whole " +
+                    "report (conversation, prompts, replies, log), saved to a file you share on Discord and written into the log. Nothing is sent by itself.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Diagnostics}Diagnostics", GroupOrder = 7)]
+      public bool ShowReportButton { get; set; } = true;
+
       [SettingPropertyBool("{=CR_MCM_EnableJealousy}Enable Jealousy", RequireRestart = false, Order = 0,
          HintText = "{=CR_MCM_EnableJealousy_Hint}On (default): the world is richer, partners react to being favoured or slighted, a neglected " +
                     "co-partner can feel wronged, and open-relationship pacts matter. Off: a drama-free household, " +

@@ -1,0 +1,116 @@
+<Prefab>
+  <!-- The player report window (Gabriel, 14/11/2026): the player writes what went wrong and sees, below, the whole report
+       as it will be saved and written into the log. PlayerReportViewModel. -->
+  <Window Id="CalradiaRemembersReportWindow" Layer="Overlay">
+    <Widget Id="Backdrop"
+            WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+            Sprite="BlankWhiteSquare_9" Color="#000000AA">
+      <Children>
+
+        <Widget Id="Panel"
+                WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                SuggestedWidth="1040" SuggestedHeight="800"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                Sprite="BlankWhiteSquare_9" Color="#1c1812F9">
+          <Children>
+
+            <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                    Sprite="frame_9" ExtendLeft="10" ExtendTop="10" ExtendRight="10" ExtendBottom="10"
+                    AlphaFactor="0.5" IsDisabled="true" />
+
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="40"
+                        VerticalAlignment="Top" MarginTop="22" MarginLeft="34" MarginRight="34"
+                        Brush="Default" Brush.FontSize="26" Brush.FontColor="#c8a878FF"
+                        Brush.TextHorizontalAlignment="Left" Text="@Title" IsDisabled="true" />
+
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="66"
+                        VerticalAlignment="Top" MarginTop="66" MarginLeft="34" MarginRight="34"
+                        Brush="Default" Brush.FontSize="16" Brush.FontColor="#b8a888FF"
+                        Brush.TextHorizontalAlignment="Left" Text="@Explanation" IsDisabled="true" />
+
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="26"
+                        VerticalAlignment="Top" MarginTop="138" MarginLeft="34" MarginRight="34"
+                        Brush="Default" Brush.FontSize="17" Brush.FontColor="#9a8a78FF"
+                        Brush.TextHorizontalAlignment="Left" Text="@InputLabel" IsDisabled="true" />
+
+            <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="Fixed" SuggestedHeight="46"
+                    VerticalAlignment="Top" MarginTop="166" MarginLeft="34" MarginRight="34"
+                    Sprite="BlankWhiteSquare_9" Color="#0d0a08DD" AlphaFactor="0.55">
+              <Children>
+                <EditableTextWidget Id="ReportInput"
+                                    WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                    HorizontalAlignment="Left" VerticalAlignment="Center"
+                                    MarginLeft="12" MarginRight="12"
+                                    Brush="Default" Brush.FontSize="18" Brush.FontColor="#e8d8b8FF"
+                                    Brush.TextHorizontalAlignment="Left"
+                                    MaxLength="1500" Text="@PlayerText" />
+              </Children>
+            </Widget>
+
+            <!-- The report as it will be saved; the player's words are at its top, wrapped. -->
+            <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                    MarginTop="226" MarginBottom="92" MarginLeft="34" MarginRight="34"
+                    Sprite="BlankWhiteSquare_9" Color="#0d0a08AA" AlphaFactor="0.4">
+              <Children>
+                <ChatScrollablePanel Id="ReportScrollPanel"
+                                     WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                     MarginRight="24" AutoHideScrollBars="true"
+                                     ClipRect="ReportClipRect" InnerPanel="ReportClipRect\ReportText"
+                                     VerticalScrollbar="..\ReportScrollbar\Scrollbar">
+                  <Children>
+                    <Widget Id="ReportClipRect" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" ClipContents="true">
+                      <Children>
+                        <TextWidget Id="ReportText"
+                                    WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                    VerticalAlignment="Top" MarginLeft="12" MarginRight="12" MarginTop="10" MarginBottom="10"
+                                    Brush="Default" Brush.FontSize="15" Brush.FontColor="#d8c8a8FF"
+                                    Brush.TextHorizontalAlignment="Left" Text="@PreviewText" IsDisabled="true" />
+                      </Children>
+                    </Widget>
+                  </Children>
+                </ChatScrollablePanel>
+                <Standard.VerticalScrollbar Id="ReportScrollbar" HeightSizePolicy="StretchToParent" HorizontalAlignment="Right" MarginRight="0" />
+              </Children>
+            </Widget>
+
+            <ListPanel StackLayout.LayoutMethod="HorizontalLeftToRight"
+                       WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+                       HorizontalAlignment="Center" VerticalAlignment="Bottom" MarginBottom="26">
+              <Children>
+                <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="280" SuggestedHeight="42"
+                              MarginRight="16" Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                              Command.Click="ExecuteToggleRemove">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="17" Text="@RemoveButtonText" />
+                  </Children>
+                </ButtonWidget>
+                <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="230" SuggestedHeight="42"
+                              MarginRight="16" Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                              Command.Click="ExecuteCreate">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="18" Text="@CreateButtonText" />
+                  </Children>
+                </ButtonWidget>
+                <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed" SuggestedWidth="180" SuggestedHeight="42"
+                              Brush="ButtonBrush1" DoNotPassEventsToChildren="true" UpdateChildrenStates="true"
+                              Command.Click="ExecuteCancel">
+                  <Children>
+                    <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Brush="Popup.Button.Text" Brush.FontSize="18" Text="@CancelButtonText" />
+                  </Children>
+                </ButtonWidget>
+              </Children>
+            </ListPanel>
+
+          </Children>
+        </Widget>
+
+      </Children>
+    </Widget>
+  </Window>
+</Prefab>

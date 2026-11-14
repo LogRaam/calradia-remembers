@@ -71,6 +71,22 @@
                             Brush.TextHorizontalAlignment="Center" Text="?" IsDisabled="true" />
               </Children>
             </ButtonWidget>
+            <!-- Report a problem (Gabriel, 14/11/2026): beside the help, shown when the MCM option is on. -->
+            <ButtonWidget Id="ReportButton"
+                          WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                          SuggestedWidth="34" SuggestedHeight="34"
+                          HorizontalAlignment="Right" VerticalAlignment="Top"
+                          MarginTop="8" MarginRight="52"
+                          DoNotPassEventsToChildren="true"
+                          Brush="ButtonBrush1"
+                          IsVisible="@ShowReportButton"
+                          Command.Click="ExecuteReportProblem">
+              <Children>
+                <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                            Brush="Popup.Button.Text" Brush.FontSize="20"
+                            Brush.TextHorizontalAlignment="Center" Text="!" IsDisabled="true" />
+              </Children>
+            </ButtonWidget>
             <!-- The witnesses line opens the participants panel (29/10/2026). -->
             <ButtonWidget Id="WitnessesLineButton"
                           WidthSizePolicy="StretchToParent"
