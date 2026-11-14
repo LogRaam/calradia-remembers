@@ -27,7 +27,7 @@ Key: MCM, else env var `OPENROUTER_API_KEY`. **Never accept a key or a login in 
 (This line named `x-ai/grok-4.20` alone until 2026-09-15, which hid the second call entirely — and that
 call turned out to be the larger half of what a turn costs.)
 
-Bannerlord: **v1.4.8 (War Sails)** since 2026-08-10. (This line said v1.3.15 until 2026-09-07; it was wrong.)
+Bannerlord: **v1.5.7 (War Sails 1.3.7)**, live on PC since 2026-11-11 (TaleWorlds announcement; Steam still labels it beta). Before: v1.4.8 from 2026-08-10. The decompiled 1.4.8 tree predates 1.5.7: decompile a type from the installed binaries before trusting it (blood feuds, `ExecutionCampaignBehavior`, are 1.5.7 only).
 
 ---
 

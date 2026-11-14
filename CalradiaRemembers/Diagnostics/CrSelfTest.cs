@@ -618,6 +618,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("appreciation_repeat", Severity.Light, "repetition (2026-07-22 fix): plant the SAME kindness on two different days -> assert it deepened ONE record instead of adding a twin, the tally reads twice, and the warmth actually ROSE (counting must weigh, not just show) -> assert a third plant the same day is still refused by the anti-noise rule -> run the migration twice and assert a reload cannot inflate the tally or split the record", TestAppreciationRepeat),
          new SelfTest("nemesis_kill", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(battle death) -> assert IsAlive flips false + a closure world-event is recorded", TestNemesisKilledInBattle),
          new SelfTest("nemesis_execute", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(executed) -> assert IsAlive flips false + the closure world-event reads distinctly from the battle-death flavor", TestNemesisExecuted),
+         new SelfTest("leaderless_feud_guard", Severity.Light, "Bannerlord 1.5.7 blood feuds (Gabriel's cr.test all, 13/11/2026: executing a nemesis threw inside the engine's feud, a bandit clan having no leader). Where the game has ExecutionCampaignBehavior.OnPlayerExecutedHero, the guard is attached, and its prefix refuses the feud for a hero whose clan has no leader and allows it for a lord of a led clan. MANUAL on a game without blood feuds. nemesis_execute_prisoner drives the real execution. Read-only", TestLeaderlessFeudGuard),
          new SelfTest("nemesis_execute_prisoner", Severity.Light, "mint a fresh nemesis -> TakePrisonerAction (real capture) -> assert PlayerHeldNemesisPrisoner detects him -> BannerlordGameStateBridge.ExecuteAction(execute_prisoner) (the REAL bridge action the chat entry point's LLM emission triggers, not the Resolve harness) -> assert the existing HeroKilledEvent hook still resolves him + records the closure deed", TestNemesisExecutePrisoner),
          new SelfTest("nemesis_turn", Severity.Light, "increment 4 (SPARE + TURN): mint a nemesis -> real TakePrisonerAction -> force his stance below the gate floor and assert the real BannerlordGameStateBridge.ExecuteAction(turn_nemesis) REFUSES (still a prisoner, not turned) -> raise Fear/Respect past the floors and assert it TURNS him (identity marked turned, released from captivity, sworn into the player's clan)", TestNemesisTurn),
          new SelfTest("nemesis_hunt", Severity.Heavy, "active hunt (map-presence): seed a latent nemesis of a live bandit band's culture -> force NemesisBehavior.TryMaterializeInto -> assert a nemesis Hero materialized INTO that band (joined its roster), so a battle the player starts can put the hunt's target in front of him; cleanup detaches him and marks the identity dead", TestNemesisHunt),
@@ -6764,6 +6765,25 @@ namespace CalradiaRemembers.Diagnostics
             behavior.Store.Set(profile);
             LlmFeedbackNotes.ConsumeFor(giver.StringId);
          }
+
+         return t.Line();
+      }
+
+      private static string TestLeaderlessFeudGuard(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("leaderless_feud_guard");
+         if (t.Skip(!Nemesis.LeaderlessFeudGuard.TargetExists, "this game version has no blood feuds (before 1.5.7): nothing to guard")) return t.Line();
+
+         Nemesis.LeaderlessFeudGuard.EnsurePatched(); // idempotent: attached at startup
+         // STAKE: without the guard, executing a nemesis throws inside the engine and the rest of the death is lost.
+         t.Expect("guardAttached", Nemesis.LeaderlessFeudGuard.IsPatched, true);
+
+         Hero leaderless = Hero.AllAliveHeroes.FirstOrDefault(h => h.Clan != null && h.Clan.Leader == null);
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.Clan != null && h.Clan.Leader != null && h.Clan != Clan.PlayerClan);
+         if (leaderless != null) t.Expect("noFeudWithALeaderlessClan", Nemesis.LeaderlessFeudGuard.Prefix(leaderless), false);
+         else t.Note("no living hero of a leaderless clan in this world; the refusal is held by LeaderlessFeudPolicyTests");
+         // STAKE: a real lord's execution still starts the feud the game promises.
+         if (lord != null) t.Expect("aLedClanStillFeuds", Nemesis.LeaderlessFeudGuard.Prefix(lord), true);
 
          return t.Line();
       }

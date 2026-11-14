@@ -97,6 +97,8 @@ namespace CalradiaRemembers
          // is loaded: while a CR panel owns the screen, its Harmony prefix skips the vanilla settlement-visual tick
          // that otherwise crashes natively under a pushed panel. Self-guarded, so a version mismatch is a no-op.
          UI.SettlementVisualTickGuard.EnsurePatched();
+         // Bannerlord 1.5.7 blood feuds: executing a CR nemesis (a leaderless bandit clan) threw inside the engine. Off on 1.4.8.
+         Nemesis.LeaderlessFeudGuard.EnsurePatched();
          // Same class of problem, same shape of guard: the map keeps reading its own hotkeys under a pushed panel,
          // so the face generator opened while the player was typing a letter reply (Gabriel, 2026-09-06).
          UI.MapNavigationInputGuard.EnsurePatched();

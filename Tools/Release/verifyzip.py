@@ -674,6 +674,8 @@ MUST = [
     ("logic", b"ClanTaskRewardPolicy"),
     ("mod",   b"RespectsEnoughToJoin"),
     ("sdk",   b"ClanPurseLine"),
+    ("logic", b"LeaderlessFeudPolicy"),
+    ("mod",   b"LeaderlessFeudGuard"),
     # 2.8.8
     ("logic", b"Ppmd7"),
     ("logic", b"EncodeGzip"),

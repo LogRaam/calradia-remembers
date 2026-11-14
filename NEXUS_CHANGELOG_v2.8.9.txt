@@ -24,6 +24,7 @@ Fixed
 - A task the game cannot record now says why, to you and to the character, for example a castle offered as a reward while fief rewards are off in the settings. The character can then offer something else. (Thank you, Aporo.)
 - A character only agrees to marry you when the game can actually perform the marriage. (Thank you, EmhyrTyl.)
 - Coin paid to you for a captive you hand over now counts as the sale, so you are paid the agreed price.
+- On Bannerlord 1.5.7, executing a nemesis no longer fails halfway: the game's new blood feuds tried to quarrel with a band of looters that has no leader.
 - The Invite button no longer appears in a talk with an envoy, where an invited guest could never speak. (Thank you, Schmidt.)
 
 Changed
@@ -33,7 +34,7 @@ Changed
 
 Developer tools
 
-- cr.test all gains actions_menu_lord_join, clan_task_no_coin, council_sitting_memory, hire_price_shown, letter_date_real, override_preferences, quest_consent, quest_peace_warning, quest_refusal_reason, realms_and_armies and scout_place.
+- cr.test all gains actions_menu_lord_join, clan_task_no_coin, council_sitting_memory, hire_price_shown, leaderless_feud_guard, letter_date_real, override_preferences, quest_consent, quest_peace_warning, quest_refusal_reason, realms_and_armies and scout_place.
 
 Notes
 

@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 643 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1588 types in 56 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 644 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1589 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 287 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -711,10 +711,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WarWearinessBehavior` | public class | Accrues war-weariness from real battle events and runs the honorable-retirement loop for a spent companion. |
 | `WarWearinessService` | public static class | The single place a companion's war-weariness is read from / written to their profile. |
 
-### CalradiaRemembers.Nemesis (7)
+### CalradiaRemembers.Nemesis (8)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `LeaderlessFeudGuard` | public static class | Skips the engine's blood-feud start when the executed hero's clan has no leader (a CR nemesis's bandit clan). |
 | `NemesisBehavior` | public class | The save-persisted store of nemesis identities. |
 | `NemesisBountyDialogFlow` | public static class | Registers the scripted bounty-offer line at hero_main_options: shown only when the conversation partner is a lord eligible to put a price on a living, unresolved, not-already- bountied nemesis (NemesisBountyPolicy). |
 | `NemesisDossierFactory` | public static class | Resolves a Hero to the encyclopedia nemesis dossier text, or empty when he is not an ENCOUNTERED nemesis. |
@@ -1023,7 +1024,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (478)
+### CalradiaRemembers.Logic (479)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1229,6 +1230,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `KinkParser` | public static class | Parses author-written kink names (case-insensitive) to Kink values. |
 | `KnowledgeTier` | public enum | How confidently an NPC could say where a third party is, from their social tie alone. |
 | `LandfallFacts` | public class | What decides whether a conversation waiting for landfall may be received now. |
+| `LeaderlessFeudPolicy` | public static class | Whether the engine may start its blood feud for a hero the player executed. |
 | `LetterCandidate` | public class | One candidate letter waiting to compete for the mailbox budget. |
 | `LetterLeakConsequencePolicy` | public static class | The grudge magnitude and renown cost a fired letter-leak (Inc 2) applies. |
 | `LetterMailboxPolicy` | public static class | Which of today's ready letters are sent: every one, at most one per sender (a sender's own wait between letters then holds the rest), the weightiest of each sender's first. |
