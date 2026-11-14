@@ -63,6 +63,13 @@ namespace CalradiaRemembers.Logic.Diagnostics
 
         /// <summary>The player chose not to share what was said: the conversation, the prompts and replies are left out.</summary>
         public bool RemoveConversationText { get; init; }
+
+        /// <summary>
+        ///   When set, the LOG section says this instead of listing lines: the copy written INTO the log points to the lines
+        ///   already above it rather than writing them a second time (Gabriel, 14/11/2026: "il faudrait pas réinjecter le log au
+        ///   complet").
+        /// </summary>
+        public string LogPointer { get; init; }
     }
 
     /// <summary>Composes a player report and masks anything that looks like a secret.</summary>
@@ -122,6 +129,16 @@ namespace CalradiaRemembers.Logic.Diagnostics
             sb.AppendLine($"MODEL EXCHANGES ({exchanges.Count}, oldest first)");
             for (int i = 0; i < exchanges.Count; i++) AppendExchange(sb, i + 1, exchanges[i], removed);
 
+            if (!string.IsNullOrWhiteSpace(facts.LogPointer))
+            {
+                sb.AppendLine("LOG");
+                sb.AppendLine(facts.LogPointer);
+                sb.AppendLine();
+                sb.AppendLine(EndMarker);
+
+                return Mask(sb.ToString());
+            }
+
             List<string> log = (facts.LogLines ?? new List<string>())
                                .Where(l => !removed || (l != null && Timestamped.IsMatch(l)))
                                .Select(l => removed ? Quoted.Replace(l ?? "", "\"...\"") : l)
@@ -144,6 +161,21 @@ namespace CalradiaRemembers.Logic.Diagnostics
                 masked = secret.Replace(masked, m => m.Groups.Count > 1 && m.Groups[1].Success ? m.Groups[1].Value + "[masked]" : "[masked]");
 
             return masked;
+        }
+
+        /// <summary>
+        ///   The lines of a session's log from the first one stamped at or after <paramref name="since" /> (time of day), the
+        ///   unstamped lines among them included (a prompt written out whole): the conversation's own part of the log. Empty
+        ///   when no line is that late.
+        /// </summary>
+        public static List<string> LinesSince(IReadOnlyList<string> sessionLines, System.TimeSpan since)
+        {
+            var lines = (sessionLines ?? new List<string>()).ToList();
+            int first = lines.FindIndex(l => l != null && Timestamped.IsMatch(l)
+                                             && System.TimeSpan.TryParse(l.Substring(1, 8), System.Globalization.CultureInfo.InvariantCulture, out System.TimeSpan at)
+                                             && at >= since);
+
+            return first < 0 ? new List<string>() : lines.Skip(first).ToList();
         }
 
         /// <summary>The first <paramref name="maxChars" /> characters of a report, for the window, saying how much more the file holds.</summary>

@@ -29,7 +29,7 @@ namespace CalradiaRemembers.Diagnostics
       internal static bool IsOpen => _layer != null;
 
       /// <summary>Opens the window for the conversation <paramref name="transcript" /> with <paramref name="characterName" />.</summary>
-      internal static void Open(IReadOnlyList<string> transcript, string characterName)
+      internal static void Open(IReadOnlyList<string> transcript, string characterName, DateTime conversationOpened)
       {
          if (IsOpen) return;
 
@@ -37,8 +37,8 @@ namespace CalradiaRemembers.Diagnostics
          if (_host == null) return;
 
          bool hardcore = ModSettings.AdultContentLevel == NpcMemoryService.Core.Models.AdultContentLevel.Hardcore;
-         _vm = new PlayerReportViewModel((text, removed) => PlayerReportService.Gather(text, removed, transcript, characterName), hardcore) {
-            OnCloseRequested = Close, OnCreated = Created
+         _vm = new PlayerReportViewModel((text, removed) => PlayerReportService.Gather(text, removed, transcript, characterName, conversationOpened), hardcore) {
+            OnCloseRequested = Close, OnCreated = facts => Created(facts, conversationOpened)
          };
 
          _layer = new GauntletLayer("CalradiaRemembersReport", 11000);
@@ -64,9 +64,9 @@ namespace CalradiaRemembers.Diagnostics
          _vm = null;
       }
 
-      private static void Created(string report)
+      private static void Created(Logic.Diagnostics.PlayerReportFacts facts, DateTime conversationOpened)
       {
-         string path = PlayerReportService.Write(report);
+         string path = PlayerReportService.Write(facts, conversationOpened);
          PlayerReportService.ShowAndShare(path);
 
          string where = path ?? "CalradiaRemembers.log (the file could not be written)";

@@ -20,7 +20,7 @@ namespace CalradiaRemembers.Diagnostics
       internal const int PreviewChars = 12000;
 
       internal Action OnCloseRequested;
-      internal Action<string> OnCreated;
+      internal Action<PlayerReportFacts> OnCreated;
 
       private readonly Func<string, bool, PlayerReportFacts> _gather;
       private PlayerReportFacts _facts;
@@ -93,7 +93,7 @@ namespace CalradiaRemembers.Diagnostics
 
       public void ExecuteCreate()
       {
-         OnCreated?.Invoke(Report);
+         OnCreated?.Invoke(WithChoices());
          OnCloseRequested?.Invoke();
       }
 

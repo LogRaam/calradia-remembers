@@ -6941,13 +6941,16 @@ namespace CalradiaRemembers.Diagnostics
       {
          var t = new TestRun("player_report");
 
+         DateTime opened = DateTime.Now.AddSeconds(-1);
          Services.ReportRecorder.Instance.OnExchange(
             new LlmRequest {SystemPrompt = "SELFTEST prompt for Lady Arwa, key sk-or-v1-selftest0123456789abcdef", Messages = new[] {new LlmMessage(MessageRole.User, "SELFTEST hello")}, Subject = "selftest"},
             new LlmResponse {Content = "SELFTEST reply: well met.", IsSuccess = true}, "selftest/model");
 
-         Logic.Diagnostics.PlayerReportFacts facts = Diagnostics.PlayerReportService.Gather("[SELFTEST] she asked for the coin twice", false, new List<string> {"Selftest: a line"}, "Selftest Lady");
-         string report = Logic.Diagnostics.PlayerReportComposer.Compose(facts);
-         string path = Diagnostics.PlayerReportService.Write(report);
+         Logic.Diagnostics.PlayerReportFacts facts = Diagnostics.PlayerReportService.Gather("[SELFTEST] she asked for the coin twice", false, new List<string> {"Selftest: a line"}, "Selftest Lady", opened);
+         // Gabriel (14/11/2026): the report holds this conversation's exchanges only.
+         t.Expect("onlyThisConversationsExchanges", facts.Exchanges.Count > 0 && facts.Exchanges.Any(e => e.Subject == "selftest"), true);
+         t.Expect("noOlderExchange", Services.ReportRecorder.Instance.Since(DateTime.Now.AddMinutes(1)).Count, 0);
+         string path = Diagnostics.PlayerReportService.Write(facts, opened);
          try
          {
             if (t.Abort(path == null || !System.IO.File.Exists(path), "the report file could not be written")) return t.Line();
@@ -6961,6 +6964,8 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("theKeyIsMasked", written.Contains("selftest0123456789abcdef"), false);
             // THE REQUEST: the report is written into the log too.
             t.Expect("theLogHoldsTheReport", Diagnostics.PlayerReportService.SessionLogLines().Any(l => l.Contains("she asked for the coin twice")), true);
+            // Gabriel (14/11/2026): "il faudrait pas réinjecter le log au complet": the copy in the log points to its lines.
+            t.Expect("theLogCopyPointsToItsLines", Diagnostics.PlayerReportService.SessionLogLines().Any(l => l.Contains("this conversation's log lines are above in this file")), true);
          }
          finally
          {

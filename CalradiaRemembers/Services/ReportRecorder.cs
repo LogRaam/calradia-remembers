@@ -1,7 +1,10 @@
 // Code written by Gabriel Mailhot, 14/11/2026.
 // Keeps the latest exchanges with the model in memory, so a player's report (PlayerReportService) carries the prompt the
 // character was given and the reply as it came back, even with file logging off. Gabriel (14/11/2026): "on voit tout le
-// contexte, les logs, la conversation". Nothing is written anywhere until the player asks for a report.
+// contexte, les logs, la conversation"; and, the same day, "le MODEL EXCHANGE est contextualisé pour la conversation en
+// cours?": a report takes only the exchanges since its conversation opened (Since). Nothing is written anywhere until the
+// player asks for a report. Lives in Services, beside the clients it is attached to (a Services -> Diagnostics edge was
+// refused by the dependency ratchet).
 
 #region
 
@@ -20,9 +23,9 @@ namespace CalradiaRemembers.Services
    internal sealed class ReportRecorder : ILlmExchangeObserver
    {
       /// <summary>How many exchanges are kept: the last turns of a conversation with their interpreter calls.</summary>
-      internal const int Kept = 12;
+      internal const int Kept = 24;
 
-      private readonly LinkedList<ReportExchange> _exchanges = new();
+      private readonly LinkedList<(DateTime At, ReportExchange Exchange)> _exchanges = new();
 
       private ReportRecorder() { }
 
@@ -34,23 +37,24 @@ namespace CalradiaRemembers.Services
       {
          if (request == null) return;
 
+         DateTime now = DateTime.Now;
          var exchange = new ReportExchange {
-            Time = DateTime.Now.ToString("HH:mm:ss"), Model = model, Subject = request.Subject, SystemPrompt = request.SystemPrompt,
+            Time = now.ToString("HH:mm:ss"), Model = model, Subject = request.Subject, SystemPrompt = request.SystemPrompt,
             Messages = (request.Messages ?? new List<LlmMessage>()).Select(m => $"{m.Role.ToString().ToLowerInvariant()}: {m.Content}").ToList(),
             Reply = response?.Content, Error = response is {IsSuccess: false} ? response.ErrorMessage ?? "failed" : null
          };
 
          lock (_exchanges)
          {
-            _exchanges.AddLast(exchange);
+            _exchanges.AddLast((now, exchange));
             while (_exchanges.Count > Kept) _exchanges.RemoveFirst();
          }
       }
 
-      /// <summary>The kept exchanges, oldest first, as a copy.</summary>
-      internal IReadOnlyList<ReportExchange> Latest()
+      /// <summary>The kept exchanges that finished at or after <paramref name="since" />, oldest first, as a copy.</summary>
+      internal IReadOnlyList<ReportExchange> Since(DateTime since)
       {
-         lock (_exchanges) return _exchanges.ToList();
+         lock (_exchanges) return _exchanges.Where(e => e.At >= since).Select(e => e.Exchange).ToList();
       }
    }
 }

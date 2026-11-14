@@ -493,6 +493,9 @@ namespace CalradiaRemembers.Chat
       private int _witnessExchangesThisRound;
       private bool _witnessMemoryFinalized; // idempotency guard for the per-witness "I was present" memory
 
+      // When this conversation opened: a player report takes its model exchanges and log lines from here (14/11/2026).
+      private readonly DateTime _openedAt = DateTime.Now;
+
       public ChatViewModel()
       {
          _messages = new MBBindingList<ChatMessageViewModel>();
@@ -2590,7 +2593,7 @@ namespace CalradiaRemembers.Chat
       /// <summary>Opens the player report window on this conversation (Gabriel, 14/11/2026).</summary>
       public void ExecuteReportProblem()
       {
-         try { Diagnostics.PlayerReportManager.Open(ReportTranscript(), _npcHero?.Name?.ToString()); }
+         try { Diagnostics.PlayerReportManager.Open(ReportTranscript(), _npcHero?.Name?.ToString(), _openedAt); }
          catch (Exception ex) { ModLog.Error($"[REPORT] the report window could not open: {ex.GetType().Name}: {ex.Message}"); }
       }
 

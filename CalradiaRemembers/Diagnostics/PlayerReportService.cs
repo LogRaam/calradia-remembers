@@ -37,25 +37,36 @@ namespace CalradiaRemembers.Diagnostics
       /// <summary>The folder reports are written to, beside the log.</summary>
       internal static string Folder => Path.Combine(Path.GetDirectoryName(ModLog.FilePath) ?? "", "CR Reports");
 
-      /// <summary>Everything a report is made of, from the conversation open now and what the mod holds.</summary>
-      internal static PlayerReportFacts Gather(string playerText, bool removeConversationText, IEnumerable<string> transcript, string characterName)
+      /// <summary>
+      ///   Everything a report is made of, for the conversation opened at <paramref name="conversationOpened" />: its exchanges with
+      ///   the model and its part of this session's log only (Gabriel, 14/11/2026: "le MODEL EXCHANGE est contextualisé pour la
+      ///   conversation en cours?").
+      /// </summary>
+      internal static PlayerReportFacts Gather(string playerText, bool removeConversationText, IEnumerable<string> transcript, string characterName,
+                                               DateTime conversationOpened)
          => new() {
-            PlayerText = playerText, RemoveConversationText = removeConversationText, Header = Header(characterName),
-            Transcript = (transcript ?? Enumerable.Empty<string>()).ToList(), Exchanges = Services.ReportRecorder.Instance.Latest(), LogLines = SessionLogLines()
+            PlayerText = playerText, RemoveConversationText = removeConversationText, Header = Header(characterName, conversationOpened),
+            Transcript = (transcript ?? Enumerable.Empty<string>()).ToList(), Exchanges = Services.ReportRecorder.Instance.Since(conversationOpened),
+            LogLines = PlayerReportComposer.LinesSince(SessionLogLines(), conversationOpened.TimeOfDay)
          };
 
       /// <summary>
-      ///   Writes the report to a new file in <see cref="Folder" /> and whole into the log. Returns the file's path, or null when
-      ///   the file could not be written (the log still holds it).
+      ///   Writes the report whole to a new file in <see cref="Folder" />, and into the log without its log lines, which are
+      ///   already there above it (Gabriel, 14/11/2026: "il faudrait pas réinjecter le log au complet"). Returns the file's path,
+      ///   or null when the file could not be written (the log still holds the report).
       /// </summary>
-      internal static string Write(string report)
+      internal static string Write(PlayerReportFacts facts, DateTime conversationOpened)
       {
-         ModLog.Report(report);
+         ModLog.Report(PlayerReportComposer.Compose(new PlayerReportFacts {
+            PlayerText = facts?.PlayerText, RemoveConversationText = facts?.RemoveConversationText == true, Header = facts?.Header,
+            Transcript = facts?.Transcript, Exchanges = facts?.Exchanges,
+            LogPointer = $"(this conversation's log lines are above in this file, from {conversationOpened:HH:mm:ss}; the report file holds them too)"
+         }));
          try
          {
             Directory.CreateDirectory(Folder);
             string path = Path.Combine(Folder, $"CR_Report_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
-            File.WriteAllText(path, report ?? "");
+            File.WriteAllText(path, PlayerReportComposer.Compose(facts));
 
             return path;
          }
@@ -99,13 +110,14 @@ namespace CalradiaRemembers.Diagnostics
          }
       }
 
-      private static List<string> Header(string characterName)
+      private static List<string> Header(string characterName, DateTime conversationOpened)
       {
          var header = new List<string> {
             $"Calradia Remembers: {ModVersion()}",
             $"Bannerlord: {Safe(() => ApplicationVersion.FromParametersFile().ToString())}",
             $"Date: {DateTime.Now:yyyy-MM-dd HH:mm}",
             $"Character spoken to: {characterName ?? "(none)"}",
+            $"Conversation opened: {conversationOpened:HH:mm:ss}",
             $"Model mode: {Safe(() => ModelModePolicy.DisplayName(Services.LlmServices.ActiveModelMode))}",
             $"Model: {Safe(() => Services.LlmServices.ActiveModelId)}",
             $"Interpreter model: {Safe(() => NpcMemoryCampaignBehavior.Instance?.LlmServices?.ResolveInterpreterModel())}",

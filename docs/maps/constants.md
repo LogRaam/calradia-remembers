@@ -837,7 +837,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 
 | Constant | Value | What it is |
 |---|---|---|
-| `Kept` | 12 | How many exchanges are kept: the last turns of a conversation with their interpreter calls. |
+| `Kept` | 24 | How many exchanges are kept: the last turns of a conversation with their interpreter calls. |
 
 ### RescueBehavior
 

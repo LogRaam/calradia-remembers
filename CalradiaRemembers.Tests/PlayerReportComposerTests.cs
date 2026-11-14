@@ -74,6 +74,30 @@ namespace CalradiaRemembers.Tests
                .And.NotContain("we can get married");
       }
 
+      // THE QUESTION (Gabriel, 14/11/2026): "le MODEL EXCHANGE est contextualisé pour la conversation en cours?": the log part
+      // starts where the conversation opened, a prompt written out whole between stamped lines included.
+      [Test]
+      public void GIVEN_a_session_log_WHEN_cut_at_the_conversations_opening_THEN_only_its_lines_remain()
+      {
+         var session = new List<string> {
+            "=== Session started 18:52:39 ===", "[18:55:00] [ACTION] an older conversation", "[19:02:58] [CHAT] opened with Arwa", "You are Lady Arwa.", "[19:03:38] [ACTION] change_relation"
+         };
+
+         PlayerReportComposer.LinesSince(session, new System.TimeSpan(19, 2, 58))
+                             .Should().Equal("[19:02:58] [CHAT] opened with Arwa", "You are Lady Arwa.", "[19:03:38] [ACTION] change_relation");
+      }
+
+      // THE QUESTION: "il faudrait pas réinjecter le log au complet": the copy written into the log points to its lines.
+      [Test]
+      public void GIVEN_a_log_pointer_WHEN_composed_THEN_no_log_line_is_written_again()
+      {
+         var facts = new PlayerReportFacts {
+            PlayerText = "x", LogLines = new List<string> {"[19:03:38] [ACTION] change_relation"}, LogPointer = "(this conversation's log lines are above, from 19:02:58)"
+         };
+
+         PlayerReportComposer.Compose(facts).Should().Contain("are above, from 19:02:58").And.NotContain("[ACTION] change_relation");
+      }
+
       // STAKE: the window shows the start and says the file holds the rest.
       [Test]
       public void GIVEN_a_long_report_WHEN_previewed_THEN_it_is_cut_and_says_how_much_is_left()
