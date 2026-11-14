@@ -39,6 +39,10 @@ namespace CalradiaRemembers.Dynasty
             // wiping real memories from the whole save each way. See SuccessionTrigger.
             PlayerChangeKind kind = ClassifyChange(oldPlayer);
 
+            // Whatever the change, the next prompt is built for the new player (Icezera, Discord, 13/11/2026: after a switch,
+            // "NPC's are still thinking that I'm the original character").
+            NpcMemoryCampaignBehavior.Instance?.LlmServices?.Invalidate();
+
             // Leaving the house for a ruler (LeaveHouseForRuler) reframes only once the wedding is sealed, and calls
             // Apply itself: a refused wedding hands everything back, and a reframe cannot be undone.
             if (kind == PlayerChangeKind.Abdication)

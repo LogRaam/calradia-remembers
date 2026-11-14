@@ -67,6 +67,9 @@ namespace CalradiaRemembers.Services
       // a realm the player had been expelled from (tashmetu, 19/09/2026). A change now rebuilds the builder.
       private string _builtPlayerFaction;
       private string _builtPlayerClan;
+      // Who the player is (hero, name, gender, clan, realm) as the builder last captured them. A player switch to another
+      // hero of the same clan kept the old name and gender until the save was reloaded (Icezera, Discord, 13/11/2026).
+      private string _builtPlayerIdentity;
       private float _builtTemperature;
       private int? _builtReplyBudget;
       private float _builtPresencePenalty;
@@ -137,12 +140,13 @@ namespace CalradiaRemembers.Services
 
             string playerFaction = Hero.MainHero?.MapFaction?.Name?.ToString() ?? "";
             string playerClan = Hero.MainHero?.Clan?.Name?.ToString() ?? "";
+            string playerIdentity = CurrentPlayerIdentity();
 
             if (_chatService != null && _builtAdultLevel == current && _builtWarmth == warmth
                                       && _builtReplyLanguage == replyLanguage && _builtReplyLength == replyLength
                                       && _builtPlayerFaction == playerFaction && _builtPlayerClan == playerClan
                                       && _builtTemperature == temperature && _builtReplyBudget == replyBudget
-                                      && _builtPresencePenalty == presencePenalty)
+                                      && _builtPresencePenalty == presencePenalty && _builtPlayerIdentity == playerIdentity)
                return _chatService;
             _chatService = BuildChatService();
             _builtAdultLevel = current;
@@ -154,6 +158,7 @@ namespace CalradiaRemembers.Services
             _builtTemperature = temperature;
             _builtReplyBudget = replyBudget;
             _builtPresencePenalty = presencePenalty;
+            _builtPlayerIdentity = playerIdentity;
 
             return _chatService;
          }
@@ -476,6 +481,19 @@ namespace CalradiaRemembers.Services
       ///   Call after reloading narrative files at session launch.
       /// </summary>
       public void Invalidate() => _chatService = null;
+
+      /// <summary>
+      ///   The player identity the next prompt would be built for (the test overrides included), so a switch of the player's
+      ///   hero rebuilds the prompt (<see cref="Logic.Chat.PromptPlayerIdentity" />).
+      /// </summary>
+      internal static string CurrentPlayerIdentity()
+      {
+         Hero player = Hero.MainHero;
+         string name = string.IsNullOrWhiteSpace(TestPlayerNameOverride) ? player?.Name?.ToString() : TestPlayerNameOverride;
+
+         return Logic.Chat.PromptPlayerIdentity.Stamp(player?.StringId, name, TestPlayerGenderOverride ?? player?.IsFemale ?? false,
+            player?.Clan?.Name?.ToString(), player?.MapFaction?.Name?.ToString());
+      }
 
       #region private
 

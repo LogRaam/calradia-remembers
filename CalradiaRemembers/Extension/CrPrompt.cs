@@ -9,6 +9,7 @@
 #region
 
 using System;
+using System.Collections.Generic;
 using NpcMemoryService.Core.Extension;
 using CalradiaRemembers.Foundation;
 
@@ -41,5 +42,14 @@ namespace CalradiaRemembers
 
       /// <summary>Unregisters the provider for <paramref name="name" />. Returns whether one was present.</summary>
       public static bool Unregister(string name) => PromptVariableRegistry.Unregister(name);
+
+      /// <summary>
+      ///   Rereads the editable prompt files from disk (Custom first: world.txt, player_description.txt, the behaviour
+      ///   guidelines, post_history_instructions.txt, heard_now.txt, council_seat.txt, setting.json, cultural_traditions.json,
+      ///   jealousy_cultures.json, stations and folklore), what <c>cr.reload_prompts</c> does; the next reply is built from
+      ///   them. Returns the files that failed to reload, empty when all did. Call it on the main thread, with a campaign
+      ///   loaded. Since 2.8.10.
+      /// </summary>
+      public static IReadOnlyList<string> Reload() => Lore.PromptDataReload.ReloadPromptFiles();
    }
 }

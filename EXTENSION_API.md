@@ -124,6 +124,19 @@ button handler, never from a background task. An injected memory never moves reg
 something the character remembers and can speak from. Do not inject what CR already records on its own (a
 rescue from captivity, a battle, a tournament, a letter): the character would remember it twice.
 
+### Reloading the files from your mod (`CrPrompt.Reload`, `CrLore.Reload`, since 2.8.10)
+
+A mod that edits CR's files (an editor for the Custom folder, say) reloads them without the console:
+
+- `CrPrompt.Reload()` rereads the prompt files, Custom first (world.txt, player_description.txt, the behaviour guidelines,
+  post_history_instructions.txt, heard_now.txt, council_seat.txt, setting.json, cultural_traditions.json,
+  jealousy_cultures.json, stations and folklore), what `cr.reload_prompts` does. It returns the files that failed to
+  reload, empty when all did.
+- `CrLore.Reload()` rereads character_overrides.json and applies or restores the authored traits, what `cr.reload_lore`
+  does. It returns false when no campaign is running.
+
+Both build the next reply's prompt from the fresh files. Call them on the **game thread**, with a campaign loaded.
+
 ### Scenario packs (`ModuleData/cr_scenarios`, since 2.7.9)
 
 A scenario is a rule that makes the world react: when a trigger fires (`ON_DEATH`, `ON_MARRIAGE`, `ON_WAR_DECLARED`,

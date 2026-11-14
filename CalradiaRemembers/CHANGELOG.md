@@ -4,6 +4,16 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.8.10.. unreleased
 
+### Fixed
+
+- **Characters know who you play after a player switch** (Icezera, Discord 13/11/2026: "Used the player switcher to switch character and NPC's are still thinking that I'm the original character. Even replaced the player_description with the new character."). The character prompt carries the player's name and gender, and `LlmServices.ChatService` rebuilt it only when the player's clan, realm or a setting changed, so a switch to another hero of the same clan kept the old name until the save was reloaded. The prompt is now tied to the player's identity, hero, name, gender, clan and realm (`PromptPlayerIdentity`, tested), and `SuccessionBehavior` drops it on every `OnPlayerCharacterChanged`, a switch included. Not changed: memories belong to the character who holds them, not to one player hero, so after a switch characters still remember what the previous hero said and did (a switch erases nothing, since Wallace1067's report; only a succession reframes). `cr.test prompt_follows_player`. Not play-verified.
+- **`cr.reload_prompts` now does what it says** (found on Icezera's report): it reread world.txt, player_description.txt, the guidelines and the other prompt files, but the character prompt already built from the old ones was kept, so an edit waited for a save reload while the command answered "The next reply uses them". It now has the next reply build its prompt again (`Lore.PromptDataReload`, shared with the console and the new public reloads); `cr.reload_lore` too.
+- **The conversation panel no longer shows other mods' markers, or a secret** (Bhelogan, Discord 14/11/2026, with a screenshot: "is there a better way to write the entries, so they show up looking formatted for a human instead of an LLM?"). The Character section showed the backstory of character_overrides.json as written, and his Detective's Notebook writes its description there between `[DNB_PHYSICAL_DESCRIPTION]` markers so it can replace its own block later; another mod left `[HSAI_SECRET:...]`. The panel now leaves out a block whose marker names a secret (SECRET, PRIVATE or HIDDEN), a reference token `[NAME:value]` and any other `[NAME]` marker, keeping the words between; ordinary brackets stay (`PanelTextCleaner`, tested, read through `ChatViewModel.PanelCharacterFor`). The model still reads the backstory whole. `cr.test panel_text_clean`.
+
+### For modders
+
+- **`CrPrompt.Reload()` and `CrLore.Reload()`** (Bhelogan, Discord 14/11/2026: "Public reloads ... instead of us calling the cr.reload_prompts / cr.reload_lore console commands"): the console reloads, as API, game thread only. EXTENSION_API.md, "Reloading the files from your mod".
+
 ## v2.8.9.. 2026-11-13
 
 ### New

@@ -4213,8 +4213,7 @@ namespace CalradiaRemembers.Chat
          ShowPanelBackground = !string.IsNullOrWhiteSpace(PanelBackground);
 
          // The mod's authored backstory: from the override files, or the value synced onto the profile.
-         PanelCharacter = SafeRead(() => CharacterOverrideLoader.BackstoryFor(hero));
-         if (string.IsNullOrWhiteSpace(PanelCharacter)) PanelCharacter = profile?.AuthoredBackstory ?? "";
+         PanelCharacter = PanelCharacterFor(hero, profile);
          ShowPanelCharacter = !string.IsNullOrWhiteSpace(PanelCharacter);
 
          // Physical description from body/appearance stats.
@@ -4224,6 +4223,20 @@ namespace CalradiaRemembers.Chat
          ResolveLearnedSections(hero, profile);
 
          ShowPanelInfo = true;
+      }
+
+      /// <summary>
+      ///   The Character section of a character's panel: the authored backstory (the override files, else the value synced
+      ///   onto the profile), as a human reads it: other mods' markers and secret blocks left out (Bhelogan, Discord,
+      ///   14/11/2026; <see cref="Logic.Character.PanelTextCleaner" />). The model reads the backstory whole. Never null.
+      ///   Shared with cr.test panel_text_clean.
+      /// </summary>
+      internal static string PanelCharacterFor(Hero hero, NpcProfile profile)
+      {
+         string backstory = SafeRead(() => CharacterOverrideLoader.BackstoryFor(hero));
+         if (string.IsNullOrWhiteSpace(backstory)) backstory = profile?.AuthoredBackstory ?? "";
+
+         return Logic.Character.PanelTextCleaner.ForPanel(backstory) ?? "";
       }
 
       /// <summary>

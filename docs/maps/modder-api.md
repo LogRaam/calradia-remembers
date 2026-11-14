@@ -144,6 +144,12 @@ _Another mod's letters, delivered through CR's courier and letter window._
 - `static string GetReply(string letterId)`
 - `static string GetStatus(string letterId)`
 
+### CrLore
+
+_The door to CR's authored character files._
+
+- `static bool Reload()`
+
 ### CrMatchOutcome
 
 _What came of a registered match when its decider was asked in the chat._
@@ -287,6 +293,7 @@ _The companion patrols, read-only, and their public events._
 
 _The public facade a third-party mod calls to register (or unregister) one live prompt variable._
 
+- `static IReadOnlyList<string> Reload()`
 - `static bool Unregister(string name)`
 - `static void RegisterVariable(string name, Func<PromptVarFacts, string> provider)`
 

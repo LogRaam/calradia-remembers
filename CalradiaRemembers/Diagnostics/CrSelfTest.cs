@@ -289,6 +289,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("letter_date_real", Severity.Light, "bdionysis80 (Nexus, 12/11/2026): 'current date Summer 9 1084 while receiving letters with timestamp summer 1085'. Prompts were given the absolute day count and no date. Asserts the date the prompts now carry (ChronicleCalendar.GameDateOf, through the bridge) is today's date as the game itself reads it: season, day of the season and year from CampaignTime.Now. Changes nothing", TestLetterDateReal),
          new SelfTest("hire_price_shown", Severity.Light, "Енот Василий (Discord, 11/11/2026): 'Let Lulya the Spicevendor take service in your party for 0 coins? [Y/n]', then the hire charged the full price. A fresh ActionConfirmationController is handed a join_party with price 0 for a free wanderer: the question must name the game's own hiring price, never 0 coins, and the confirmed action must carry that same price. Nothing is hired", TestHirePriceShown),
          new SelfTest("quest_refusal_reason", Severity.Light, "Aporo (Discord, 11/11/2026): Grand Prince Raganvad offered Mazhadan Castle for a captured lord three times, and each refusal said only 'could not be matched to the world', so he restated the same castle. Through the REAL QuestService.ApplyResponse, a clan leader offers a task priced with a castle his clan does not hold: with fief rewards off the player is told fiefs are not quest rewards in the settings, with them on that the castle is not his to give; either way the character's next-turn note says the offer was NOT recorded, and no task is recorded. The giver's outstanding tasks are set aside and restored", TestQuestRefusalReason),
+         new SelfTest("prompt_follows_player", Severity.Light, "Icezera (Discord, 13/11/2026): after a player switch, \"NPC's are still thinking that I'm the original character. Even replaced the player_description with the new character.\" The character prompt was built once and rebuilt only when the clan, realm or a setting changed, and cr.reload_prompts reread the files without rebuilding it. Asserts that the chat service is built again when the player's name (a switch, through the name seam) changes, kept when nothing changed, and built again after CrPrompt.Reload. Restores the seam. Needs a configured provider", TestPromptFollowsPlayer),
+         new SelfTest("panel_text_clean", Severity.Light, "Bhelogan (Discord, 14/11/2026): the conversation panel's Character section showed another mod's markers (\"[DNB_PHYSICAL_DESCRIPTION]...\", \"[HSAI_SECRET:...]\") instead of text for a human, and a secret before it was discovered. Through the panel's own reader (ChatViewModel.PanelCharacterFor), on a lord with no authored override and a profile copy carrying such a backstory: the description is kept without its markers, the token and the secret block are left out. Read-only (the profile is a copy)", TestPanelTextClean),
          new SelfTest("clan_task_no_coin", Severity.Light, "Aporo (Discord, 13/11/2026): \"I don't need that 100 denars for bringing 20 grain when it's my money either way\"; Gabriel: \"tout le clan\". A member of the player's own clan offers a task promising 100 denars and 3 regard, through the real ApplyResponse and the consent seam: the task put to the player carries 0 denars and keeps the 3 regard. The player declines; the giver's memories and outstanding tasks are put back", TestClanTaskNoCoin),
          new SelfTest("quest_consent", Severity.Light, "Schmidt (Discord, 11/11/2026): \"NPC's give you quests that you didn't agree to ... Same with asking NPC's to do something but it shows up for you as a quest.\" Gabriel: \"Tu peux faire 11.\" Through the REAL QuestService.ApplyResponse with a [QUEST] a lord of another realm puts to the player (scout a castle of a third realm), the Accept/Decline window answered through its test seam: while the offer waits nothing is recorded; declined, no task and no journal entry, the giver remembers the refusal and the model is told; accepted, the task is the player's with its journal entry. The giver's outstanding tasks are set aside first and restored, and the accepted task is cancelled and removed", TestQuestConsent),
          new SelfTest("realms_and_armies", Severity.Light, "Schmidt (Discord, 11/11/2026): \"everyone acts surprised when I tell them that Sturgia is no more\", and lords did not know which lords marched in their army. Through the REAL bridge and reader: the realms line names every standing realm with its fiefs and a realm the game counts destroyed as fallen (with none fallen, one realm's own destroyed flag is set for the read and restored at once); a lord marching in an army of two parties or more is told the other lords and the total (with none in the field, an army is raised from two lords of one realm and disbanded at once); a lord in no army is told none", TestRealmsAndArmies),
@@ -6784,6 +6786,64 @@ namespace CalradiaRemembers.Diagnostics
          else t.Note("no living hero of a leaderless clan in this world; the refusal is held by LeaderlessFeudPolicyTests");
          // STAKE: a real lord's execution still starts the feud the game promises.
          if (lord != null) t.Expect("aLedClanStillFeuds", Nemesis.LeaderlessFeudGuard.Prefix(lord), true);
+
+         return t.Line();
+      }
+
+      private static string TestPromptFollowsPlayer(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("prompt_follows_player");
+         if (t.Skip(Campaign.Current == null || Hero.MainHero == null || behavior?.LlmServices == null, "no campaign")) return t.Line();
+
+         LlmServices services = behavior.LlmServices;
+         string priorName = LlmServices.TestPlayerNameOverride;
+         try
+         {
+            NpcChatService first = services.ChatService;
+            if (t.Skip(first == null, "no provider configured: the chat service is not built")) return t.Line();
+
+            // STAKE: an unchanged player keeps the prompt already built (no rebuild on every reply).
+            t.Expect("samePlayerKeepsThePrompt", ReferenceEquals(services.ChatService, first), true);
+
+            // THE REPORT: the player's name changes (a switch to another hero of the same clan), the prompt follows.
+            LlmServices.TestPlayerNameOverride = "Selftest Switched Hero";
+            NpcChatService switched = services.ChatService;
+            t.Expect("aSwitchedPlayerRebuildsThePrompt", ReferenceEquals(switched, first), false);
+
+            // THE REPORT: an edited player_description.txt reaches the next reply after the reload.
+            IReadOnlyList<string> failed = CrPrompt.Reload();
+            t.Note(failed.Count == 0 ? "every prompt file reloaded" : "failed to reload: " + string.Join(", ", failed));
+            t.Expect("theReloadRebuildsThePrompt", ReferenceEquals(services.ChatService, switched), false);
+         }
+         finally
+         {
+            LlmServices.TestPlayerNameOverride = priorName;
+            services.Invalidate();
+         }
+
+         return t.Line();
+      }
+
+      private static string TestPanelTextClean(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("panel_text_clean");
+         if (t.Skip(Campaign.Current == null, "no campaign")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && CharacterOverrideLoader.For(h)?.HasBackstory != true);
+         if (t.Skip(lord == null, "every lord has an authored backstory")) return t.Line();
+
+         var copy = new NpcProfile {
+            Id = lord.StringId, Name = lord.Name.ToString(), Clan = lord.Clan?.Name?.ToString() ?? "", Faction = lord.MapFaction?.Name?.ToString() ?? "",
+            AuthoredBackstory = "[DNB_PHYSICAL_DESCRIPTION]\nPhysical description: a selftest scar runs over his brow.\n[/DNB_PHYSICAL_DESCRIPTION] "
+                              + "[HSAI_SECRET:hs_secret_selftest] [SELFTEST_SECRET]He hid the selftest gold.[/SELFTEST_SECRET]"
+         };
+         string shown = Chat.ChatViewModel.PanelCharacterFor(lord, copy);
+         t.Note($"{lord.Name}: the panel shows \"{shown}\"");
+         // THE REPORT: the description reads as prose, without the markers.
+         t.Expect("theDescriptionIsShown", shown.Contains("a selftest scar runs over his brow"), true);
+         t.Expect("noMarkerIsShown", shown.Contains("[DNB_") || shown.Contains("[/DNB_") || shown.Contains("HSAI_SECRET"), false);
+         // STAKE: a secret is never read in the panel before it is discovered.
+         t.Expect("noSecretIsShown", shown.Contains("selftest gold"), false);
 
          return t.Line();
       }

@@ -349,11 +349,7 @@ namespace CalradiaRemembers
       {
          if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
 
-         var behavior = CharacterLoreBehavior.Instance;
-
-         if (behavior == null) return "Character lore behavior is not active.";
-
-         behavior.ReloadAndReapply();
+         if (!Lore.PromptDataReload.ReloadLore()) return "Character lore behavior is not active.";
 
          return $"Reloaded character_overrides.json ({CharacterOverrideLoader.Set.Count} entr(ies)); " + $"custom traits {(ModSettings.UseCustomTraits ? "applied" : "off (vanilla restored)")}.";
       }
@@ -373,18 +369,7 @@ namespace CalradiaRemembers
       {
          if (!TryContext(out NpcMemoryCampaignBehavior _, out string error)) return error;
 
-         var failed = new List<string>();
-         void Reload(string what, Action load)
-         {
-            try { load(); }
-            catch (Exception ex) { failed.Add($"{what} ({ex.GetType().Name})"); }
-         }
-
-         Reload("narrative texts", NarrativeLoader.Load);
-         Reload("setting.json", SettingProfileLoader.LoadAndApply);
-         Reload("cultural_traditions.json", CulturalTraditionsLoader.Load);
-         Reload("jealousy_cultures.json", JealousyCultureLoader.Load);
-
+         IReadOnlyList<string> failed = Lore.PromptDataReload.ReloadPromptFiles();
          string basis = $"from {NarrativeLoader.CustomBaseFolder()} (Custom-first, falling back to ModuleData)";
 
          return failed.Count == 0

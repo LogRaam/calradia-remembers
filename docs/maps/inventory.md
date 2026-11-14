@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 644 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1589 types in 56 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 646 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1591 types in 56 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 287 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -48,7 +48,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (58)
+### CalradiaRemembers (59)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -67,6 +67,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrHiddenAffair` | public class | A hidden affair between two lords (see CrRomance.GetHiddenAffair). |
 | `CrHiddenAffairChange` | public class | A hidden affair beginning or ending (see CrRomance.HiddenAffairChanged). |
 | `CrLetters` | public static class | Another mod's letters, delivered through CR's courier and letter window. |
+| `CrLore` | public static class | The door to CR's authored character files. |
 | `CrMatchOutcome` | public class | What came of a registered match when its decider was asked in the chat. |
 | `CrMatchRequest` | public class | A match offered to CrMatches.Register, its people named by hero StringId. |
 | `CrMatches` | public static class | Lets another mod hand the player a match to broker; CR teaches it to the one who decides and settles it. |
@@ -576,12 +577,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `VanillaCaptivityPatch` | public static class | Suppresses the two vanilla events that cut a bandit captivity short before a Calradia Remembers captive scene gets a chance to fire: the captor's ransom offer ("he proposes to free you in return for N gold") — cancelled... |
 | `VillagesSparedLetterBehavior` | public class | In each war against the player, the closest lord sparing their villages tells them so, once. |
 
-### CalradiaRemembers.Lore (3)
+### CalradiaRemembers.Lore (4)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `CharacterLoreBehavior` | public class | Loads and applies/restores the authored character traits across the campaign. |
 | `CharacterOverrideLoader` | public static class | Loads and caches character_overrides.json (an array of per-NPC entries) into a CharacterOverrideSet. |
+| `PromptDataReload` | internal static class | Reloads the editable prompt and lore files from disk. |
 | `SettingProfileLoader` | public static class | Reads ModuleData/setting.json (the world's name/adjective + which cultures read as patriarchal) and applies it to PromptLore. |
 
 ### CalradiaRemembers.Map (7)
@@ -1900,7 +1902,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RansomOfferFacts` | public class | Who holds the player when the game is about to offer a ransom. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 
-### CalradiaRemembers.Logic.Character (26)
+### CalradiaRemembers.Logic.Character (27)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1928,10 +1930,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NaturePageFacts` | public class | What the encyclopedia says of a character's fear and superstition. |
 | `NaturePolicy` | public static class | Rolls and words a character's fear and superstition. |
 | `NatureRoll` | public class | A character's fear and superstition, as rolled. |
+| `PanelTextCleaner` | public static class | What of an authored text the conversation panel shows a human. |
 | `Piety` | public enum | How a character's piety shows. |
 | `RosterItemKey` | public static class | Names one stack of goods by item and quality, and finds it again among what the party holds. |
 
-### CalradiaRemembers.Logic.Chat (29)
+### CalradiaRemembers.Logic.Chat (30)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1960,6 +1963,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NpcDossierText` | public static class | Formats the lines of the NPC dossier. |
 | `OverlayNeighbour` | public class | One layer beside the chat, as the arbiter needs to see it. |
 | `PresencePenaltyPolicy` | public static class | Pure: the presence penalty a conversation turn is sent with. |
+| `PromptPlayerIdentity` | public static class | The player identity a built character prompt is tied to. |
 | `ReplyBudgetPolicy` | public static class | Pure: the reply budget the player picked, or none when they left it on Auto. |
 | `SceneOpenerFacts` | public class | What a conversation's opening knows when it decides whether the character sets the scene. |
 | `SceneOpenerOutcome` | public enum | How the character's scene-setting turn ended. |
