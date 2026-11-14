@@ -670,6 +670,10 @@ MUST = [
     ("sdk",   b"DateLine"),
     ("sdk",   b"SpouseLetterLine"),
     ("sdk",   b"AppendLeanQuestMenu"),
+    ("logic", b"MenuRows"),
+    ("logic", b"ClanTaskRewardPolicy"),
+    ("mod",   b"RespectsEnoughToJoin"),
+    ("sdk",   b"ClanPurseLine"),
     # 2.8.8
     ("logic", b"Ppmd7"),
     ("logic", b"EncodeGzip"),

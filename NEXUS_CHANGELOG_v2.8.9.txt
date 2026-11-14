@@ -26,9 +26,14 @@ Fixed
 - Coin paid to you for a captive you hand over now counts as the sale, so you are paid the agreed price.
 - The Invite button no longer appears in a talk with an envoy, where an invited guest could never speak. (Thank you, Schmidt.)
 
+Changed
+
+- The Actions menu now also lists what you cannot do yet, greyed out, with the reason when you hover it: for example the regard a lord needs before leaving his house for yours. Asking a lord of another house to join your clan is now in the menu. (Thank you, Fakade.)
+- Members of your own clan (your spouse, family and companions) no longer pay you for a task: it is your own money either way. They thank you with regard instead. Characters are also told not to pay you when you say you want no payment. (Thank you, Aporo.)
+
 Developer tools
 
-- cr.test all gains council_sitting_memory, hire_price_shown, letter_date_real, override_preferences, quest_consent, quest_peace_warning, quest_refusal_reason, realms_and_armies and scout_place.
+- cr.test all gains actions_menu_lord_join, clan_task_no_coin, council_sitting_memory, hire_price_shown, letter_date_real, override_preferences, quest_consent, quest_peace_warning, quest_refusal_reason, realms_and_armies and scout_place.
 
 Notes
 
