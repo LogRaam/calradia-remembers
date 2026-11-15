@@ -108,6 +108,22 @@ namespace CalradiaRemembers.Tests
          Enumerable.Range(0, 300).Count(i => !lifelong.Contains(CharacterVoicePolicy.Draw(Facts("lord_" + i, age: 60)).Habit)).Should().BeGreaterThan(0);
       }
 
+      // THE AUDIT (VonLemberg, 15/11/2026): "Prefer speech patterns that influence how NPCs respond rather than what
+      // subjects they constantly introduce." Gabriel: "reformule oui". The hunter and the man of the land keep their
+      // images, and are no longer told to bring them into everything, or a lord answers every question with a horse.
+      [Test]
+      public void GIVEN_the_habits_of_the_hunt_and_of_the_land_WHEN_read_THEN_they_colour_an_answer_without_steering_the_talk()
+      {
+         string hunt = CharacterVoicePolicy.HabitsFor("lord", 35).Single(h => h.Contains("the hunt and the horse"));
+         string land = CharacterVoicePolicy.HabitsFor("headman", 35).Single(h => h.Contains("seasons, seed, rain and rot"));
+
+         foreach (string habit in new[] {hunt, land})
+         {
+            habit.Should().NotContain("everything");
+            habit.Should().Contain("you do not turn the talk to them");
+         }
+      }
+
       // STAKE: the station pack makes a preacher deferential and holy; a cursing, faithless preacher contradicts it.
       [Test]
       public void GIVEN_a_preacher_WHEN_the_voice_is_drawn_THEN_they_never_curse_and_are_devout()

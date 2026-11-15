@@ -109,12 +109,14 @@ namespace CalradiaRemembers.Logic.Character
          H("You frame things as debts: who owes whom, and what, and for how long."),
          H("You lower your voice for anything that matters, as if the walls had ears."),
          H("You speak with a soldier's bluntness: orders rather than requests, even in friendship.", Swords),
-         H("You reach for the hunt and the horse to describe everything.", Swords),
+         // Reworded 15/11/2026 (VonLemberg's audit, Gabriel: "reformule oui"): a habit shapes HOW a character answers, it
+         // does not bring a subject into every reply. "to describe everything" and "see everything in terms of" did.
+         H("When an image comes to you, it comes from the hunt and the horse; you do not turn the talk to them.", Swords),
          H("You speak of your house and your forebears as if they stood beside you, listening.", Nobles),
          H("You say \"we\" for your house's interests, and \"I\" only for your own small wants.", Nobles),
          H("You talk of yourself by name, as another would, when you are proud or angry.", Nobles),
          H("You haggle by habit, even over things that are not for sale.", Traders),
-         H("You see everything in terms of the land: seasons, seed, rain and rot.", LandFolk),
+         H("When you need a comparison, you take it from the land: seasons, seed, rain and rot; you do not turn the talk to them.", LandFolk),
          H("You give everyone a nickname and name nothing outright that could hang you.", new[] {SocialStation.GangLeader}),
          H("You answer with teachings you know by heart, and the occasional pointed parable.", new[] {"preacher"}),
          H("You speak fast and leap between thoughts, and apologize for it.", null, Young),
