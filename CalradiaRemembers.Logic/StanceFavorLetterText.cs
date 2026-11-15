@@ -37,23 +37,10 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public static string For(string senderId, int sentBefore)
         {
-            int start = (int)(StableHash(senderId) % (uint)Letters.Length);
+            int start = (int)(Hashing.StableHash.Of(senderId) % (uint)Letters.Length);
             int step = sentBefore < 0 ? 0 : sentBefore;
 
             return Letters[(start + step) % Letters.Length];
-        }
-
-        /// <summary>FNV-1a over the id: the same lord starts at the same text in every session and on every machine.</summary>
-        private static uint StableHash(string id)
-        {
-            uint hash = 2166136261;
-            foreach (char c in id ?? "")
-            {
-                hash ^= c;
-                hash *= 16777619;
-            }
-
-            return hash;
         }
     }
 }

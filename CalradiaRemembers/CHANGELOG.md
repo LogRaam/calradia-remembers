@@ -23,6 +23,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 - **The Sturgian traditions agree with the battlefield** (Gabriel, 15/11/2026: "on garde 25% et on ajuste la prose sturgienne"): cultural_traditions.json said shieldmaidens fight "in equal numbers", while Women in the ranks puts one Sturgian soldier in four as a woman. It now says about one warrior in four.
 
+### Developer tools
+
+- **One stable hash** (Gabriel, 15/11/2026: "fais l'utilitaire commun"): the FNV-1a loop behind every draw that is never saved (voice, loved gestures, folk tale, first impression, a lord's first letter, women in the ranks, authored quest rolls, callback keys, portrait sprite names) was written out nine times; it is now `Logic.Hashing.StableHash.Of`, in a namespace that uses no other, so using it can never close a cycle. `StableHashTests` pins the numbers, computed outside the code before the change: no draw moved, and no decision table did. Left as they are: SelfEsteemPolicy.PersonalDraw (another start value), the political map's signature (bytes of a grid), the SDK's MoodOfTheDay (the SDK cannot see Logic).
+- **The dependency map reads steadier and truer**: its table of who uses how many is in name order (a count that moves changes its own row; the top five of each are two lines above it), where a ranking showed one new edge as a row removed and a row added. Two false edges it could read are closed: a name being CALLED is no longer taken for a type, and a type nested in another no longer answers for a bare name (a private nested `Same` in Logic had drawn Logic.War -> Logic through a method called `Same`).
+
 ## v2.8.10.. 2026-11-15
 
 ### Fixed

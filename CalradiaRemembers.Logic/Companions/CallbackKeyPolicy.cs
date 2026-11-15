@@ -30,24 +30,10 @@ namespace CalradiaRemembers.Logic.Companions
             if (m == null) return "";
 
             string own = string.IsNullOrEmpty(m.MemoryId)
-                ? "w" + WordsHash(m.Summary ?? "").ToString("x8")
+                ? "w" + Hashing.StableHash.Of(m.Summary).ToString("x8")
                 : "i" + m.MemoryId;
 
             return $"{m.DayAndKindKey}:{own}";
-        }
-
-        // FNV-1a, the same number in every session and on every machine (string.GetHashCode is not). Its own copy: the
-        // one in Logic.Romance would tie Companions and Romance into a cycle.
-        private static uint WordsHash(string text)
-        {
-            uint hash = 2166136261;
-            foreach (char c in text)
-            {
-                hash ^= c;
-                hash *= 16777619;
-            }
-
-            return hash;
         }
 
         /// <summary>Whether this memory was already called back to: by its own key, or by the key an older version saved.</summary>

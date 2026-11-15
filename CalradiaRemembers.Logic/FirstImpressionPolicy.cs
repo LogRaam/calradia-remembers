@@ -120,19 +120,8 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>
         ///   Deterministic 0..99 hash of a seed (a StringId), the SAME value for the SAME seed across processes.
-        ///   Uses an FNV-1a loop, NOT string.GetHashCode (which is randomized per process).
+        ///   Uses Hashing.StableHash, NOT string.GetHashCode (which is randomized per process).
         /// </summary>
-        public static int StableRoll(string seed)
-        {
-            uint h = 2166136261;
-
-            foreach (var c in seed ?? "")
-            {
-                h ^= c;
-                h *= 16777619;
-            }
-
-            return (int)(h % 100u);
-        }
+        public static int StableRoll(string seed) => (int)(Hashing.StableHash.Of(seed) % 100u);
     }
 }

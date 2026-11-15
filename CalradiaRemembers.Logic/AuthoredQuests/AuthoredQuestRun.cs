@@ -850,13 +850,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>A stable roll in [0,1) from the quest and the day (FNV-1a: string.GetHashCode is randomised per process).</summary>
       private static double Roll(string questId, int day)
       {
-         unchecked
-         {
-            uint h = 2166136261;
-            foreach (char c in (questId ?? "") + ":" + day) h = (h ^ c) * 16777619;
-
-            return (h % 10000) / 10000.0;
-         }
+         return Hashing.StableHash.Of((questId ?? "") + ":" + day) % 10000 / 10000.0;
       }
    }
 

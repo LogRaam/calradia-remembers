@@ -53,14 +53,7 @@ namespace CalradiaRemembers.Portraits
         /// <summary>Deterministic FNV-1a hash of the path (case-folded), for the per-file sprite name.</summary>
         private static uint StableHash(string path)
         {
-            uint h = 2166136261;
-            foreach (char c in (path ?? "").ToLowerInvariant())
-            {
-                h ^= c;
-                h *= 16777619;
-            }
-
-            return h;
+            return Logic.Hashing.StableHash.Of((path ?? "").ToLowerInvariant());
         }
 
         /// <summary>

@@ -209,20 +209,7 @@ namespace CalradiaRemembers.Logic.Romance
       }
 
       /// <summary>FNV-1a over the id: the same number on every run and every machine, unlike string.GetHashCode.</summary>
-      public static int StableSeed(string heroId)
-      {
-         unchecked
-         {
-            uint h = 2166136261;
-            foreach (char c in heroId ?? "")
-            {
-               h ^= c;
-               h *= 16777619;
-            }
-
-            return (int) h;
-         }
-      }
+      public static int StableSeed(string heroId) => unchecked((int) Hashing.StableHash.Of(heroId));
 
       /// <summary>The gestures a character's kinks hold: never disliked nor less loved.</summary>
       public static HashSet<IntimateAct> Core(IntimateTasteFacts f)

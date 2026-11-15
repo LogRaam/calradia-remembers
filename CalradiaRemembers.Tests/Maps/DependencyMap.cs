@@ -238,6 +238,9 @@ namespace CalradiaRemembers.Tests.Maps
          {
             if (id.Parent is MemberAccessExpressionSyntax access && access.Name == id) continue;
             if (id.Parent is QualifiedNameSyntax qualified && qualified.Right == id) continue;
+            // A name being CALLED is a method, never a type: `Same(a, b)` in Logic.War read as the type `Same` of
+            // Logic and drew a false edge (15/11/2026).
+            if (id.Parent is InvocationExpressionSyntax call && call.Expression == id) continue;
 
             string name = id.Identifier.Text;
             if (own != null && own.Contains(name)) continue;
@@ -249,7 +252,11 @@ namespace CalradiaRemembers.Tests.Maps
          return found;
       }
 
-      /// <summary>Every type our code declares, by namespace (classes, structs, records, interfaces, enums, delegates).</summary>
+      /// <summary>
+      ///   Every type our code declares at the top of a namespace (classes, structs, records, interfaces, enums,
+      ///   delegates). A type nested in another is left out: outside its file it is only ever named through its outer
+      ///   type, and a private nested `Same` otherwise answers for any bare `Same` in the namespaces below (15/11/2026).
+      /// </summary>
       private static Dictionary<string, HashSet<string>> TypesByNamespace(IReadOnlyList<SourceFile> files)
       {
          var map = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
@@ -258,8 +265,8 @@ namespace CalradiaRemembers.Tests.Maps
             if (f.Namespace == null || !IsOurs(f.Namespace)) continue;
             if (!map.TryGetValue(f.Namespace, out HashSet<string>? set)) map[f.Namespace] = set = new HashSet<string>(StringComparer.Ordinal);
 
-            foreach (BaseTypeDeclarationSyntax t in f.Root.DescendantNodes().OfType<BaseTypeDeclarationSyntax>()) set.Add(t.Identifier.Text);
-            foreach (DelegateDeclarationSyntax d in f.Root.DescendantNodes().OfType<DelegateDeclarationSyntax>()) set.Add(d.Identifier.Text);
+            foreach (BaseTypeDeclarationSyntax t in f.Root.DescendantNodes().OfType<BaseTypeDeclarationSyntax>().Where(t => t.Parent is not TypeDeclarationSyntax)) set.Add(t.Identifier.Text);
+            foreach (DelegateDeclarationSyntax d in f.Root.DescendantNodes().OfType<DelegateDeclarationSyntax>().Where(d => d.Parent is not TypeDeclarationSyntax)) set.Add(d.Identifier.Text);
          }
 
          return map;
@@ -328,10 +335,16 @@ namespace CalradiaRemembers.Tests.Maps
          sb.AppendLine("`Uses` high: a namespace that knows too many others, and breaks when any of them moves. `Used by` high: a");
          sb.AppendLine("foundation, which is fine as long as it is stable and uses little itself.");
          sb.AppendLine();
+         // The table is in NAME order, so a count that moves changes its own row in place. It was ranked by count until
+         // 15/11/2026: a namespace gaining one edge was shown as a row removed here and a row added there, which read
+         // as two changes and hid which one it was. The ranking is the two short lines above the table.
+         sb.AppendLine("Uses the most: " + string.Join(", ", nodes.OrderByDescending(n => Count(uses, n)).ThenBy(n => n, StringComparer.Ordinal).Take(5).Select(n => $"`{n}` ({Count(uses, n)})")) + ".");
+         sb.AppendLine("Used by the most: " + string.Join(", ", nodes.OrderByDescending(n => Count(usedBy, n)).ThenBy(n => n, StringComparer.Ordinal).Take(5).Select(n => $"`{n}` ({Count(usedBy, n)})")) + ".");
+         sb.AppendLine();
          sb.AppendLine("| Namespace | Uses | Used by |");
          sb.AppendLine("|---|---|---|");
 
-         foreach (string ns in nodes.OrderByDescending(n => Count(uses, n)).ThenByDescending(n => Count(usedBy, n)).ThenBy(n => n, StringComparer.Ordinal))
+         foreach (string ns in nodes)
             sb.AppendLine($"| `{ns}` | {Count(uses, ns)} | {Count(usedBy, ns)} |");
 
          sb.AppendLine();

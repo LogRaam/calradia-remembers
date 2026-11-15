@@ -80,12 +80,7 @@ namespace CalradiaRemembers.Logic.Troops
         // 0..99, from the troop id and the soldier's seed (FNV-1a, then a mix): stable across runs and machines.
         private static int Roll(string troopId, int seed)
         {
-            uint h = 2166136261;
-            foreach (char c in troopId ?? "")
-            {
-                h ^= c;
-                h *= 16777619;
-            }
+            uint h = Hashing.StableHash.Of(troopId);
 
             h ^= unchecked((uint) seed);
             h *= 0x9E3779B1;

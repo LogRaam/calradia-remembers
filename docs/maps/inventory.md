@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 673 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1643 types in 60 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1644 types in 61 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2332,6 +2332,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TraitFacts` | public class | A hero's trait levels relevant to grudge formation, rigidity, and decay: Mercy (forgiving vs tallying), Honor (broken word stings hardest), Valor (fearful grudges hide rather than confront), Calculating (forms easily, ne... |
 | `UnblessedMarriageFacts` | public class | Facts for Tier2GrudgeRules.UnblessedMarriageGrudge: a family member who opposed an unblessed marriage the player made. |
 | `WorldEventFacts` | public class | A persisted WorldEvent, as read by the engine-side scan. |
+
+### CalradiaRemembers.Logic.Hashing (1)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `StableHash` | public static class | A number from a text, the same in every session and on every machine (FNV-1a, 32 bits, over its characters). |
 
 ### CalradiaRemembers.Logic.HelpPleas (15)
 

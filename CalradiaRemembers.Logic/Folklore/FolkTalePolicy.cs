@@ -170,17 +170,7 @@ namespace CalradiaRemembers.Logic.Folklore
       }
 
       /// <summary>FNV-1a over the id's characters: the same id gives the same number in every session and process.</summary>
-      public static uint StableHash(string text)
-      {
-         uint hash = 2166136261;
-         foreach (char c in text)
-         {
-            hash ^= c;
-            hash *= 16777619;
-         }
-
-         return hash;
-      }
+      public static uint StableHash(string text) => Hashing.StableHash.Of(text);
 
       #region private
 
