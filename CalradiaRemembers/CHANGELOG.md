@@ -2,6 +2,8 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.8.12.. unreleased
+
 ## v2.8.11.. 2026-11-15
 
 ### Fixed
