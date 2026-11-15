@@ -299,6 +299,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("prompt_stock_sections", Severity.Light, "Bhelogan (Muh Prompts, 14/11/2026): 'read-only stock text of a prompt section (for the profile editor)'. For a real lord, through CrPrompt.StockSections: every keyed section is listed in the stock order (the keys of CrPrompt.Sections), the identity section writes something and names him, StockSectionText reads the same text, and an unknown hero gives nothing", TestPromptStockSections),
          new SelfTest("portrait_source", Severity.Light, "Bhelogan (14/11/2026): 'a portrait source for chat portraits, so a mod can supply a picture per hero without naming files by runtime id'. Writes two tiny PNGs in a temp folder and registers a [SELFTEST] source through CrPortraits: its picture is shown for the lord it answers for and not for another, it wins over a realm portrait, the player's own ChatPortraits file (in a temp Custom folder) still wins over it, and a source that throws is passed over. Unregisters, restores the hooks and deletes the temp folder", TestPortraitSource),
          new SelfTest("workshop_sale_memory", Severity.Light, "Windmolen (Nexus, 14/11/2026): the man who sold him a business 'contested my ownership, wanted me to produce a sealed document or a witness'. Takes a real town workshop owned by a character and hands the sale to the behaviour the game event calls (no workshop changes hands): the seller remembers selling it to the player, in that town; the reverse (the player's workshop going to him) gives no memory. Removes the memory it added", TestWorkshopSaleMemory),
+         new SelfTest("women_in_ranks", Severity.Light, "Gabriel (14/11/2026): a share of women among the soldiers in battle, per culture (Sturgia, Battania, Khuzait 25%, Nords 10%) and realm (Southern Empire 10%). Asserts what a campaign can show without a battle: the patch on Mission.GetAgentBuildDataToSpawnTroop is attached, the table is loaded, every culture and realm id in women_in_ranks.json is one the game knows, every configured culture has a woman's face to give, and a woman soldier's face is drawn as a woman's while any other soldier gets exactly the game's own. The real check is a battle", TestWomenInRanks),
          new SelfTest("feed_secrets", Severity.Light, "VonLemberg's Bellum Civile bridge RFC (14/11/2026, P0-C): a council's secret must not become everyone's news, and another mod must read what a given character knows. Feeds a [SELFTEST] secret naming one lord with a second as confidant, and a great public event hidden from the first: through CrWorld, the named lord and the confidant know the secret, an unrelated lord does not, the first lord does not hear the hidden news, and his known events mark the secret as such. Retracts both", TestFeedSecrets),
          new SelfTest("clan_task_no_coin", Severity.Light, "Aporo (Discord, 13/11/2026): \"I don't need that 100 denars for bringing 20 grain when it's my money either way\"; Gabriel: \"tout le clan\". A member of the player's own clan offers a task promising 100 denars and 3 regard, through the real ApplyResponse and the consent seam: the task put to the player carries 0 denars and keeps the 3 regard. The player declines; the giver's memories and outstanding tasks are put back", TestClanTaskNoCoin),
          new SelfTest("quest_consent", Severity.Light, "Schmidt (Discord, 11/11/2026): \"NPC's give you quests that you didn't agree to ... Same with asking NPC's to do something but it shows up for you as a quest.\" Gabriel: \"Tu peux faire 11.\" Through the REAL QuestService.ApplyResponse with a [QUEST] a lord of another realm puts to the player (scout a castle of a third realm), the Accept/Decline window answered through its test seam: while the offer waits nothing is recorded; declined, no task and no journal entry, the giver remembers the refusal and the model is told; accepted, the task is the player's with its journal entry. The giver's outstanding tasks are set aside first and restored, and the accepted task is cancelled and removed", TestQuestConsent),
@@ -7160,6 +7161,41 @@ namespace CalradiaRemembers.Diagnostics
                behavior.Store.Set(profile);
             }
          }
+
+         return t.Line();
+      }
+
+      private static string TestWomenInRanks(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("women_in_ranks");
+         Mapping.WomenInRanksPatch.EnsurePatched(); // idempotent: attached at startup
+         t.Expect("theSoldierPreparationIsPatched", Mapping.WomenInRanksPatch.IsPatched, true);
+         if (Mapping.WomenInRanksLoader.LoadedFrom == null) Mapping.WomenInRanksLoader.Load();
+         t.Expect("theTableIsLoaded", Mapping.WomenInRanksLoader.LoadedFrom != null, true);
+
+         Logic.Troops.WomenInRanksTable table = Mapping.WomenInRanksLoader.Table;
+         // STAKE: a mistyped id in the file silently gives no women; name it.
+         string unknownCultures = string.Join(", ", table.Cultures.Keys.Where(id => MBObjectManager.Instance.GetObject<CultureObject>(id) == null));
+         string unknownRealms = string.Join(", ", table.Realms.Keys.Where(id => Kingdom.All.All(k => k.StringId != id)));
+         t.Expect("everyCultureIdIsTheGames", unknownCultures, "");
+         t.Expect("everyRealmIdIsTheGames", unknownRealms, "");
+         // STAKE: without a woman's face she would get a man's face on a woman's body (the policy then keeps him a man).
+         string faceless = string.Join(", ", table.Cultures.Keys.Select(id => MBObjectManager.Instance.GetObject<CultureObject>(id))
+                                                         .Where(c => c != null && Mapping.WomenInRanksPatch.FemaleFaceOf(c) == null).Select(c => c.StringId));
+         t.Expect("everyConfiguredCultureHasAWomansFace", faceless, "");
+
+         CultureObject sturgia = MBObjectManager.Instance.GetObject<CultureObject>("sturgia");
+         CharacterObject recruit = sturgia?.BasicTroop;
+         if (t.Skip(recruit == null || recruit.IsFemale, "no Sturgian recruit to draw a face for")) return t.Line();
+
+         // STAKE: a woman soldier gets a woman's face; any other soldier exactly the game's own (nothing else in the battle changes).
+         var asWoman = new TaleWorlds.MountAndBlade.AgentBuildData(recruit).IsFemale(true);
+         var asIs = new TaleWorlds.MountAndBlade.AgentBuildData(recruit);
+         BodyProperties hers = Mapping.WomenInRanksPatch.ComputeBody(asWoman, recruit, recruit.Equipment, 7);
+         BodyProperties his = Mapping.WomenInRanksPatch.ComputeBody(asIs, recruit, recruit.Equipment, 7);
+         t.Expect("anyOtherSoldierGetsTheGamesOwnFace", his.ToString(), recruit.GetBodyProperties(recruit.Equipment, 7).ToString());
+         t.Expect("aWomanSoldiersFaceIsDrawnApart", hers.ToString() != his.ToString(), true);
+         t.Note($"table from {Mapping.WomenInRanksLoader.LoadedFrom}; check a Sturgian or Khuzait battle for faces and armour.");
 
          return t.Line();
       }

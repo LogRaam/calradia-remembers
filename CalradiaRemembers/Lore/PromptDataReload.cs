@@ -36,6 +36,7 @@ namespace CalradiaRemembers.Lore
          Reload("narrative texts", NarrativeLoader.Load);
          Reload("setting.json", SettingProfileLoader.LoadAndApply);
          Reload("cultural_traditions.json", CulturalTraditionsLoader.Load);
+         Reload("women_in_ranks.json", WomenInRanksLoader.Load);
          Reload("jealousy_cultures.json", JealousyCultureLoader.Load);
 
          NpcMemoryCampaignBehavior.Instance?.LlmServices?.Invalidate();

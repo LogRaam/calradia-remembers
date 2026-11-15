@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 670 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1603 types in 58 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 672 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1606 types in 59 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -620,7 +620,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterBoxNavigationItemVM` | internal class | A genuine nav-bar item that opens the letter box, its badge counting the letters waiting. |
 | `MapNavigationCouncilItemPatch` | internal static class | Adds the council nav item to MapNavigationVM.NavigationItems at construction, before the bar binds. |
 
-### CalradiaRemembers.Mapping (58)
+### CalradiaRemembers.Mapping (60)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -682,6 +682,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TraumaLedgerBehavior` | public class | The ledger of aggressions the player witnessed or committed, one record per aggression. |
 | `TraumaPageReader` | internal static class | Reads the aggressions a hero lived through for the Trauma section. |
 | `WeddingDayBehavior` | public class | The day each married hero was wed, as CR saw it happen. |
+| `WomenInRanksLoader` | public static class | Loads and keeps the women-in-the-ranks table. |
+| `WomenInRanksPatch` | public static class | Makes a share of the soldiers entering a battle women, per culture and realm. |
 
 ### CalradiaRemembers.Marriage (17)
 
@@ -2795,6 +2797,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TraumaKind` | public enum | What was done. |
 | `TraumaPagePolicy` | public static class | The Trauma section's words, its gate, and the ledger's save form. |
 | `TraumaRecord` | public class | One aggression a character lived through, as the ledger keeps it. |
+
+### CalradiaRemembers.Logic.Troops (3)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `RankSoldierFacts` | public class | One soldier about to enter a battle. |
+| `WomenInRanksPolicy` | public static class | Whether a soldier entering a battle is a woman. |
+| `WomenInRanksTable` | public class | The share of women per culture and per realm, in percent (women_in_ranks.json). |
 
 ### CalradiaRemembers.Logic.Ventures (2)
 

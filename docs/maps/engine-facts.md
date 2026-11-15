@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-781 rules read 571 facts.
+784 rules read 578 facts.
 
 ## Facts read by more than one rule
 
@@ -173,6 +173,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Vec2.Distance` (4) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CourierStuckPolicy.HasMoved`, `GeographyDescriber.Bearing` |
 | `AgeModel.HeroComesOfAge` (3) | `CaptiveOfferFacts`, `ChildrenListText.Part`, `SharedPastPairFacts` |
 | `CampaignOptions.IsLifeDeathCycleDisabled` (3) | `ExecutionFacts`, `PregnancyPolicy.MayConceive`, `PregnancyPolicy.ShouldEndStuckPregnancy` |
+| `CharacterObject.IsFemale` (3) | `CaptiveEncounterPolicy.ShouldBanditSceneBeCollective`, `RankSoldierFacts`, `WomenInRanksPolicy.IsWoman` |
 | `Clan.Heroes` (3) | `CouncilTroopDelivery`, `HostageCandidateFacts`, `HostageEligibilityPolicy.IsEligible` |
 | `ConversationManager.IsConversationInProgress` (3) | `DuelStagingSupport.ReadyToOpenTheSquare`, `SquareReadinessFacts`, `StagingHostFacts` |
 | `Current.CurrentMenuContext` (3) | `DuelStagingSupport.ReadyToOpenTheSquare`, `RoadAudienceFacts`, `SquareReadinessFacts` |
@@ -235,6 +236,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `StatureReader.OfClan` (3) | `BastardPrestigePolicy.PrestigeScore`, `BastardPrestigePolicy.Resolve`, `LordRecruitmentFacts` |
 | `Status.IsCuriousOrDeeper` (3) | `CorrespondenceRankFacts`, `CorrespondenceRankPolicy.DealsInPerson`, `RegardProposal` |
 | `Store.Set` (3) | `KillAttemptResult`, `SkirmishLine`, `SkirmishMemoryText.CountIn` |
+| `StringComparer.OrdinalIgnoreCase` (3) | `RealmFaceFacts`, `SpeakerNamesakePolicy.IsMerelyANamesake`, `WomenInRanksTable` |
 | `StringId.GetHashCode` (3) | `RomanticProfilePolicy.DetermineKinks`, `RomanticProfilePolicy.DetermineOrientation`, `RomanticProfilePolicy.DeterminePreferences` |
 | `TestCalledToMuster.Invoke` (3) | `RetainerLeavePolicy.CalledToMuster`, `RetainerLeavePolicy.MustLeave`, `RetainerStandingFacts` |
 | `Town.Loyalty` (3) | `EdictCounselPolicy.Answer`, `EdictGrievanceFacts`, `EdictTownFacts` |
@@ -244,6 +246,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ViolenceSceneReader.FactsFor` (3) | `KillAttemptPolicy.ChanceReasons`, `ViolencePolicy.Resolve`, `ViolencePolicy.SuccessChance` |
 | `AccessTools.Method` (2) | `LeaveHouseFacts`, `LeaveHouseForRulerPolicy.WhyNot` |
 | `ActiveCount.Invoke` (2) | `InitiativeGrant`, `WorldInitiativePolicy.Decide` |
+| `AgentBuildData.AgentOrigin` (2) | `RankSoldierFacts`, `WomenInRanksPolicy.IsWoman` |
 | `AiBehavior.EngageParty` (2) | `CompanionPatrolPolicy.ShouldReissue`, `PatrolLeashFacts` |
 | `AiBehavior.FleeToGate` (2) | `CompanionPatrolPolicy.ShouldReissue`, `PatrolLeashFacts` |
 | `AiBehavior.FleeToParty` (2) | `CompanionPatrolPolicy.ShouldReissue`, `PatrolLeashFacts` |
@@ -255,6 +258,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `CharacterStates.Disabled` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `CompanionHiringPriceCalculationModel.GetCompanionHiringPrice` (2) | `HireAgreementPolicy.AgreedPrice`, `HireAgreementPolicy.CanAfford` |
 | `ConversationManager.IsConversationFlowActive` (2) | `LandfallFacts`, `StagingHostFacts` |
+| `CultureObject.Townswoman` (2) | `RankSoldierFacts`, `WomenInRanksPolicy.IsWoman` |
+| `CultureObject.VillageWoman` (2) | `RankSoldierFacts`, `WomenInRanksPolicy.IsWoman` |
 | `Current.ActiveState` (2) | `LandfallFacts`, `StagingHostFacts` |
 | `DialogFlow.Profile` (2) | `PendingSummaryJob`, `SpeakerProfileSelector.Select` |
 | `DiplomacyModel.GetInfluenceCostOfProposingWar` (2) | `PressForWarFacts`, `PressForWarPolicy.WhyNot` |
@@ -275,6 +280,9 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.HeroState` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `Hero.IsKingdomLeader` (2) | `PairBondFacts`, `PairBondPolicy.Assess` |
 | `HeroHelper.NPCPersonalityClashWithNPC` (2) | `PairBondFacts`, `PairBondPolicy.Assess` |
+| `IAgentOriginBase.BattleCombatant` (2) | `RankSoldierFacts`, `WomenInRanksPolicy.IsWoman` |
+| `IAgentOriginBase.Seed` (2) | `RankSoldierFacts`, `WomenInRanksPolicy.IsWoman` |
+| `IAgentOriginBase.UniqueSeed` (2) | `RankSoldierFacts`, `WomenInRanksPolicy.IsWoman` |
 | `IFaction.Leader` (2) | `HeroNaming`, `RescueCaptorFacts` |
 | `IsBusy.Invoke` (2) | `InitiativeGrant`, `WorldInitiativePolicy.Decide` |
 | `Item.Tier` (2) | `HeldItem`, `ScatteredLootItem` |
@@ -349,7 +357,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `State.Requests` (2) | `InitiativeGrant`, `WorldInitiativePolicy.Decide` |
 | `Status.IsCourtingOrDeeper` (2) | `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible` |
 | `Store.MostRecentMatching` (2) | `HardshipPolicy.ShouldRecord`, `WarLoomingPolicy.ShouldRecord` |
-| `StringComparer.OrdinalIgnoreCase` (2) | `RealmFaceFacts`, `SpeakerNamesakePolicy.IsMerelyANamesake` |
 | `Summary.IndexOf` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
 | `TerrainType.Forest` (2) | `TaleVillagePolicy.Pick`, `TaleVillagePolicy.WhyNoneQuiet` |
 | `Town.GetWallLevel` (2) | `ScoutPlacePolicy.Report`, `ScoutPlaceSighting` |
@@ -947,6 +954,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `QuestRescueCreditPolicy.CreditsPlayerRescue`: `EndCaptivityDetail.Death`, `EndCaptivityDetail.Ransom`, `EndCaptivityDetail.ReleasedAfterBattle`, `EndCaptivityDetail.ReleasedAfterEscape`, `EndCaptivityDetail.ReleasedAfterPeace`, `EndCaptivityDetail.ReleasedByChoice`, `EndCaptivityDetail.ReleasedByCompensation`
 - `RaidRestraintPolicy.ChanceToSpare`: `Hero.Father`, `Hero.Mother`, `Hero.Spouse`
 - `RaidRestraintPolicy.Spares`: `Hero.Father`, `Hero.Mother`, `Hero.Spouse`
+- `RankSoldierFacts`: `AgentBuildData.AgentOrigin`, `CharacterObject.IsFemale`, `CultureObject.Townswoman`, `CultureObject.VillageWoman`, `IAgentOriginBase.BattleCombatant`, `IAgentOriginBase.Seed`, `IAgentOriginBase.UniqueSeed`
 - `RansomEnvoyFacts`: `FactionManager.IsAtWarAgainstFaction`, `Hero.Clan`, `Hero.Gold`, `Hero.MapFaction`, `Hero.PartyBelongedToAsPrisoner`, `MobileParty.Party`, `PartyBase.Settlement`, `PartyBelongedToAsPrisoner.MapFaction`, `Settlement.OwnerClan`
 - `RansomEnvoyPolicy.Advance`: `Hero.MapFaction`
 - `RansomEnvoyPolicy.MaySend`: `FactionManager.IsAtWarAgainstFaction`, `Hero.Clan`, `Hero.Gold`, `Hero.MapFaction`, `Hero.PartyBelongedToAsPrisoner`, `MobileParty.Party`, `PartyBase.Settlement`, `PartyBelongedToAsPrisoner.MapFaction`, `Settlement.OwnerClan`
@@ -1144,5 +1152,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `WhereaboutsFacts`: `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `Hero.StayingInSettlement`, `MemberRoster.TotalManCount`, `MobileParty.Army`
 - `WitnessStandingFacts`: `Clan.Kingdom`, `Clan.Leader`, `Hero.Clan`, `Hero.GetTraitLevel`, `Hero.IsFemale`, `Kingdom.Leader`, `PairBondReader.Points`
 - `WitnessStandingText.AtTable`: `Hero.IsFemale`
+- `WomenInRanksPolicy.IsWoman`: `AgentBuildData.AgentOrigin`, `CharacterObject.IsFemale`, `CultureObject.Townswoman`, `CultureObject.VillageWoman`, `IAgentOriginBase.BattleCombatant`, `IAgentOriginBase.Seed`, `IAgentOriginBase.UniqueSeed`
+- `WomenInRanksTable`: `JsonConvert.DeserializeObject`, `StringComparer.OrdinalIgnoreCase`
 - `WorkshopSaleFacts`: `Hero.IsDead`
 - `WorldInitiativePolicy.Decide`: `ActiveCount.Invoke`, `IsBusy.Invoke`, `ModSettings.WorldInitiative`, `State.Grants`, `State.KeptSinceHour`, `State.LastOwnTalkHour`, `State.LastSettledHour`, `State.Requests`

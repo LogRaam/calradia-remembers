@@ -21,6 +21,7 @@ The mod **never ships files in it and never writes into it**. For every file, it
 - `behavior_guidelines.txt`, plus one per kind of character: `_companion`, `_notable`, `_wanderer`, `_gangleader`. You can even add one per trade (`behavior_guidelines_merchant.txt`, `_artisan`, `_ruralnotable`, `_headman`, `_preacher`): start from a copy of `_notable`.
 - `post_history_instructions.txt`: the last instructions, read after the conversation.
 - `setting.json`, `cultural_traditions.json`, `jealousy_cultures.json` (keep the JSON valid; cultures are keyed by their **displayed name**, so an overhaul mod's culture, e.g. `"Nord"`, gets its own entry).
+- `women_in_ranks.json`: the share of women (0 to 100) among each culture's soldiers in battle, keyed by the game's culture **id** (`sturgia`, `nord`, `empire`...); a `realms` entry by kingdom id (`empire_s`) wins for that realm's armies. MCM *Women In The Ranks* turns it off.
 - `character_overrides.json`: hand-written personalities for chosen characters (needs MCM *Use custom traits*; reload with `cr.reload_lore`).
 
 **In sub-folders** (same name as in `ModuleData/`):

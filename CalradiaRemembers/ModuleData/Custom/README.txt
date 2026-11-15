@@ -27,6 +27,9 @@ For example:
     pairs with commas between them; keyed by the culture's DISPLAY NAME, case-sensitive, so an overhaul
     mod's own culture, for example "Nord", goes in as its own entry)
   Custom\jealousy_cultures.json (same JSON rules and same DISPLAY NAME keying as cultural_traditions.json)
+  Custom\women_in_ranks.json (the share of women, 0 to 100, among each culture's soldiers in battle; keyed by the
+    game's culture ID, not its name: sturgia, battania, khuzait, nord, empire, vlandia, aserai; a "realms" entry by
+    kingdom id, such as empire_s, wins over the culture for that realm's armies. MCM "Women In The Ranks". Since 2.8.10)
   Custom\setting.json
   Custom\character_overrides.json (your hand-written characters; needs MCM "Use custom traits"; cr.reload_lore)
   Custom\campaigns\<campaign id>\character_overrides.json (characters for ONE campaign only, laid over the shared

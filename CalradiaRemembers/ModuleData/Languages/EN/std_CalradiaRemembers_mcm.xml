@@ -269,6 +269,8 @@
     <string id="CR_MCM_WitnessDensity_Sparse" text="Sparse" />
     <string id="CR_MCM_WitnessDensity_Normal" text="Normal" />
     <string id="CR_MCM_WitnessDensity_Bustling" text="Bustling" />
+    <string id="CR_MCM_WomenInRanks" text="Women In The Ranks" />
+    <string id="CR_MCM_WomenInRanks_Hint" text="Some soldiers in battle are women: a quarter in Sturgia, Battania and the Khuzait, a tenth among the Nords and the Southern Empire, none elsewhere. Shares in women_in_ranks.json. Turn off if another mod already does this." />
     <string id="CR_MCM_WorldInitiativePace" text="How Often the World Comes to You" />
     <string id="CR_MCM_WorldInitiativePace_Hint" text="One conductor decides whose turn it is to come to you unasked (lords, companions, tales...). Off: each paces itself, as before. Custom uses the settings below." />
     <string id="CR_MCM_Group_WorldInitiative" text="The World's Initiative" />

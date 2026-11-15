@@ -1,0 +1,12 @@
+{
+  "_about": "Calradia Remembers: the share of women, in percent (0 to 100), among the regular soldiers of each culture in battle. Keys are the game's culture ids (aserai, battania, empire, khuzait, nord, sturgia, vlandia...). A realm entry (the game's kingdom id: empire_s, empire_w, empire...) wins over the culture for the soldiers of that realm's armies. Heroes, companions and troops that are already women are never changed. Copy this file into your Custom folder to change it; MCM 'Women In The Ranks' turns it off.",
+  "cultures": {
+    "sturgia": 25,
+    "battania": 25,
+    "khuzait": 25,
+    "nord": 10
+  },
+  "realms": {
+    "empire_s": 10
+  }
+}

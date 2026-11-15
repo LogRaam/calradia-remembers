@@ -789,6 +789,13 @@ namespace CalradiaRemembers.Foundation
       public Dropdown<McmChoice> WitnessDensity { get; set; } =
          McmChoice.List(2, "{=CR_MCM_WitnessDensity_Sparse}Sparse", "{=CR_MCM_WitnessDensity_Normal}Normal", "{=CR_MCM_WitnessDensity_Bustling}Bustling"); // default: Bustling (today's live behaviour, unchanged)
 
+      // Gabriel, 14/11/2026: women among the soldiers of some cultures (women_in_ranks.json). Off for a player whose other mod already does it.
+      [SettingPropertyBool("{=CR_MCM_WomenInRanks}Women In The Ranks", RequireRestart = false, Order = 13,
+         HintText = "{=CR_MCM_WomenInRanks_Hint}Some soldiers in battle are women: a quarter in Sturgia, Battania and the Khuzait, a tenth among " +
+                    "the Nords and the Southern Empire, none elsewhere. Shares in women_in_ranks.json. Turn off if another mod already does this.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
+      public bool WomenInRanks { get; set; } = true;
+
       // The world's initiative (Gabriel, 28/10/2026): one director decides whose turn it is to come to the player unasked,
       // and the player tunes it ("combien de systemes peuvent se manifester en meme temps, le delai avant que l'orchestrateur
       // decide de lancer une intervention"). Off leaves every system to pace itself as before.
