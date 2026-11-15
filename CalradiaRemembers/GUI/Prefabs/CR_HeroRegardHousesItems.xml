@@ -4,6 +4,10 @@
        Gabriel (23/10/2026): a house on the vanilla number alone is a row of its own, its banner then its line (the two
        heads of house named, the number, the war). A hidden widget measures zero (Widget.Measure, 1.4.8), so each row
        shows one of the two layouts. -->
+  <!-- Folded by its header (LapitaPolata, 15/11/2026). The switch sits on a parent: a binding on the widget that carries
+       DataSource would be read from the list. A hidden widget measures zero (Widget.Measure, 1.4.8). -->
+  <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren" IsVisible="@CalradiaRegardHousesShown">
+    <Children>
   <ListPanel DataSource="{CalradiaRegardHouseRows}"
              StackLayout.LayoutMethod="VerticalTopToBottom"
              WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
@@ -81,4 +85,6 @@
       </Widget>
     </ItemTemplate>
   </ListPanel>
+    </Children>
+  </Widget>
 </DummyRoot>

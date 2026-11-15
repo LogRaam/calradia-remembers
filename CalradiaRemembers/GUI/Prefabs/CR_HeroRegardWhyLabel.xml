@@ -1,8 +1,20 @@
 <DummyRoot>
-  <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="CoverChildren"
-                          HorizontalAlignment="Left"
-                          Brush="Encyclopedia.Stat.DefinitionText"
-                          Brush.TextHorizontalAlignment="Left"
-                          Text="@CalradiaRegardWhyLabel"
-                          MarginTop="12" MarginLeft="30" />
+  <!-- LapitaPolata (Discord, 15/11/2026): "The longer I play the game, the longer the lists have become." The header is the
+       switch: a click folds or shows the rows below, the header says how many and [+] / [-]. No brush on the button: the
+       header keeps the page's own lettering. -->
+  <ButtonWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="CoverChildren"
+                HorizontalAlignment="Left"
+                MarginTop="12" MarginLeft="30"
+                IsVisible="@CalradiaRegardHasWhy"
+                DoNotPassEventsToChildren="true"
+                UpdateChildrenStates="true"
+                Command.Click="ExecuteToggleRegardWhy">
+    <Children>
+      <AutoHideRichTextWidget HeightSizePolicy="CoverChildren" WidthSizePolicy="CoverChildren"
+                              HorizontalAlignment="Left"
+                              Brush="Encyclopedia.Stat.DefinitionText"
+                              Brush.TextHorizontalAlignment="Left"
+                              Text="@CalradiaRegardWhyLabel" />
+    </Children>
+  </ButtonWidget>
 </DummyRoot>

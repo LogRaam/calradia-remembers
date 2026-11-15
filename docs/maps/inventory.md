@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 677 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1652 types in 61 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1653 types in 61 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1057,7 +1057,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (496)
+### CalradiaRemembers.Logic (497)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1206,6 +1206,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FirstImpressionDisposition` | public enum | How a barely-known NPC opens toward the player, driven by their traits and the player's standing. |
 | `FirstImpressionInputs` | public class | The inputs that decide how a barely-known noble opens toward the player. |
 | `FirstImpressionPolicy` | public static class | Pure rules that resolve a barely-known noble's opening posture toward the player. |
+| `FoldableSectionHeader` | public static class | The header of an encyclopedia section the player can fold. |
 | `FoodTradeFacts` | public class | One visit's food trade in a town. |
 | `FoodTradeVerdict` | public enum | What the town remembers of a visit's food trade. |
 | `ForeignDivorceDetection` | public static class | Finds the marriages another mod ended. |

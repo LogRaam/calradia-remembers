@@ -10,6 +10,10 @@
 // - A character's page: the vanilla lists as they were, less anyone what really happened says is the opposite, plus
 //   anyone it makes a friend or enemy with a reason the player may know (PairRegardPolicy.PageReason). A page where
 //   nothing derived applies is left exactly as vanilla built it.
+//
+// LapitaPolata (Discord, 15/11/2026): "The longer I play the game, the longer the lists have become." Each section's header
+// is a switch that folds or shows its rows (Logic.FoldableSectionHeader writes it, with the count); the choice holds for
+// every page until the game is closed.
 
 #region
 
@@ -56,6 +60,15 @@ namespace CalradiaRemembers.Encyclopedia
 
       private string _label;
       private string _housesLabel;
+
+      // The section labels before the count and the switch are added (FoldableSectionHeader), kept to rewrite the header on a click.
+      private string _whyWords;
+      private string _housesWords;
+
+      // LapitaPolata (15/11/2026): whether each section's rows are shown. Static: the player's choice holds on every page
+      // opened afterwards, until the game is closed.
+      private static bool _whyShown = true;
+      private static bool _housesShown = true;
 
       // Gabriel (22/10/2026): the reasons and the houses as rows, portrait or banners, status, reason, a coloured marker.
       private readonly MBBindingList<RegardPersonRowVM> _people = new();
@@ -118,7 +131,42 @@ namespace CalradiaRemembers.Encyclopedia
             if (_label == value) return;
             _label = value;
             ViewModel?.OnPropertyChanged();
+            ViewModel?.OnPropertyChanged(nameof(CalradiaRegardHasWhy));
          }
+      }
+
+      /// <summary>Whether the friends-and-enemies rows are shown (the player folds them by clicking the header).</summary>
+      [DataSourceProperty]
+      public bool CalradiaRegardWhyShown => _whyShown;
+
+      /// <summary>Whether the house rows are shown (the player folds them by clicking the header).</summary>
+      [DataSourceProperty]
+      public bool CalradiaRegardHousesShown => _housesShown;
+
+      /// <summary>Whether the friends-and-enemies header has anything to head (it is hidden with its section otherwise).</summary>
+      [DataSourceProperty]
+      public bool CalradiaRegardHasWhy => !string.IsNullOrEmpty(_label);
+
+      /// <summary>Whether the houses header has anything to head.</summary>
+      [DataSourceProperty]
+      public bool CalradiaRegardHasHouses => !string.IsNullOrEmpty(_housesLabel);
+
+      /// <summary>The friends-and-enemies header was clicked: fold or show its rows, here and on every page after.</summary>
+      [DataSourceMethod]
+      public void ExecuteToggleRegardWhy()
+      {
+         _whyShown = !_whyShown;
+         CalradiaRegardWhyLabel = FoldableSectionHeader.Text(_whyWords, _people.Count, _whyShown);
+         ViewModel?.OnPropertyChanged(nameof(CalradiaRegardWhyShown));
+      }
+
+      /// <summary>The houses header was clicked: fold or show its rows, here and on every page after.</summary>
+      [DataSourceMethod]
+      public void ExecuteToggleRegardHouses()
+      {
+         _housesShown = !_housesShown;
+         CalradiaRegardHousesLabel = FoldableSectionHeader.Text(_housesWords, _houseRows.Count, _housesShown);
+         ViewModel?.OnPropertyChanged(nameof(CalradiaRegardHousesShown));
       }
 
       /// <summary>One row per listed friend or enemy: portrait, status, reason, marker. Empty when none.</summary>
@@ -139,6 +187,7 @@ namespace CalradiaRemembers.Encyclopedia
             if (_housesLabel == value) return;
             _housesLabel = value;
             ViewModel?.OnPropertyChanged();
+            ViewModel?.OnPropertyChanged(nameof(CalradiaRegardHasHouses));
          }
       }
 
@@ -159,6 +208,8 @@ namespace CalradiaRemembers.Encyclopedia
       {
          CalradiaRegardWhyLabel = "";
          CalradiaRegardHousesLabel = "";
+         _whyWords = null;
+         _housesWords = null;
          ClearRows();
          _explained.Clear();
 
@@ -256,7 +307,7 @@ namespace CalradiaRemembers.Encyclopedia
          // Gabriel (23/10/2026): a house on the vanilla number alone has its own row, the banner then the line naming
          // both heads of house, the war on that line.
          // tashmetu (2/11/2026): on a member's page the heads' lines read as the member's own; say whose standing it is.
-         CalradiaRegardHousesLabel = ClanRegardListPolicy.HousesLabel(hero == Hero.MainHero || lord == hero, hero.Clan?.Name?.ToString(), lord.Name?.ToString());
+         _housesWords = ClanRegardListPolicy.HousesLabel(hero == Hero.MainHero || lord == hero, hero.Clan?.Name?.ToString(), lord.Name?.ToString());
          foreach (ClanRegardGroup g in groups)
          {
             var row = new RegardHouseRowVM(g.Reason == null ? "Named above, through their lord" : Capitalised(g.Reason), g.Affinity, g.OneHouse);
@@ -268,6 +319,8 @@ namespace CalradiaRemembers.Encyclopedia
 
             if (row.Houses.Count > 0) _houseRows.Add(row);
          }
+
+         CalradiaRegardHousesLabel = FoldableSectionHeader.Text(_housesWords, _houseRows.Count, _housesShown);
       }
 
       // Under a house's banner: the war, and the lord through whom it is explained above.
@@ -356,8 +409,9 @@ namespace CalradiaRemembers.Encyclopedia
       {
          if (rows.Count == 0) return;
 
-         CalradiaRegardWhyLabel = label;
+         _whyWords = label;
          foreach (RegardPersonRowVM row in rows) _people.Add(row);
+         CalradiaRegardWhyLabel = FoldableSectionHeader.Text(label, _people.Count, _whyShown);
       }
 
       private void ClearRows()

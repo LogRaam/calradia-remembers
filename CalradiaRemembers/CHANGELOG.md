@@ -4,6 +4,10 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.8.13.. 2026-11-15
 
+### New
+
+- **Friends and enemies, and Houses, fold on the encyclopedia page** (LapitaPolata, Discord 15/11/2026: "Add an option to expand/collapse the Friends and enemies, and Houses section in the cyclopedia ... The longer I play the game, the longer the lists have become."; Gabriel: "on va l'ajouter avant de livrer sur Nexus"). Each section's header is now the switch: a click folds or shows its rows, and the header says how many rows it holds and what a click does ("Friends and enemies, and why (3) [-]" / "[+]", `Logic.FoldableSectionHeader`, tested). The choice holds on every page until the game is closed (static in `EncyclopediaHeroPageRegardMixin`); both open by default, as before. Prefabs `CR_HeroRegardWhyLabel/Items`, `CR_HeroRegardHousesLabel/Items`. Not play-verified (a prefab change needs a game restart).
+
 ### Fixed
 
 - **Women in the ranks are lean, and their heads no longer look tiny** (EvilPoptart1987, Nexus 15/11/2026: "Am I the only one that have the women in the ranks spawns coming in with ridiculously tiny heads? It is only for those units. I have women in my own warband using Retinues that do not have tiny heads."; Gabriel: "il faudrait que le body des femmes soient mince et beaucoup moins muscles"). Her body was drawn in her culture's townswoman range (`BodyProperty.townswoman_*`), whose weight and build reach 0.95 and 0.97 (Battania), a stout peasant's frame on which her head looked tiny under a man's armour. `WomenInRanksPatch.FaceFor` keeps her drawn face and age and carries her weight and build into a lean band (`WomenInRanksPolicy.LeanFrame`, 0.05..0.30, a heavier draw staying a little heavier). Tests: `WomenInRanksPolicyTests` (+1); cr.test women_in_ranks checks 40 women are lean. Also seen while reading the 1.5.7 spawn path: subscribing to `Mission.OnComputeTroopBodyProperties` turns the game's face cache on for every ordinary soldier of the battle (`UseFaceCache = !IsHero`), which the campaign never does otherwise; not changed, watched. Not play-verified.
