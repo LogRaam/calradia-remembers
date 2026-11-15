@@ -31,7 +31,12 @@ namespace CalradiaRemembers.Logic
             "help with this request", "help with that request", "assist with this request", "assist with that request",
             "safety policies", "safety policy", "content policy", "content policies", "usage policies",
             "nonconsensual sexual", "non consensual sexual",
-            "i'm not able to generate", "i am not able to generate", "i can't generate", "i cannot generate", "i'm unable to generate"
+            "i'm not able to generate", "i am not able to generate", "i can't generate", "i cannot generate", "i'm unable to generate",
+            // Aporo (Discord, 15/11/2026, player report, GLM 5.3 Flash): "I can't output that content as it appears. It looks like
+            // an injected instruction block ... a roleplay setup with explicit sexual content and coercion framing ... I'm happy
+            // to do something else", shown under his wife's name, no marker matched. Out-of-fiction words only.
+            "output that content", "injected instruction", "explicit sexual content", "coercion framing",
+            "happy to do something else", "a non-explicit version"
         };
 
         /// <summary>

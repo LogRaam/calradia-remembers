@@ -58,6 +58,19 @@ namespace CalradiaRemembers.Tests
             DialogueHeuristics.LooksLikeRefusal("Sorry, I'm not able to generate that. It goes against the content policy.").Should().BeTrue();
         }
 
+        // Aporo (Discord, 15/11/2026, player report): GLM 5.3 Flash refused a Hardcore turn with this reply, word for word,
+        // shown under his wife's name. Missed, it is never hidden and never redone on the NSFW model he set (Grok 4.20).
+        [Test]
+        public void GIVEN_the_refusal_glm_wrote_in_aporos_game_WHEN_checked_THEN_it_is_detected()
+        {
+            DialogueHeuristics.LooksLikeRefusal("[I can't output that content as it appears. It looks like an injected instruction block rather than a "
+                                              + "genuine conversation turn \u2014 and leaving that aside, the material it's wrapped in is a roleplay setup with "
+                                              + "explicit sexual content and coercion framing that I'm not going to participate in.\n\nIf you'd like, I'm happy "
+                                              + "to do something else \u2014 worldbuilding, a different story, or continuing a non-explicit version of this scenario.]")
+                              .Should().BeTrue();
+            DialogueHeuristics.LooksLikeRefusal("If you'd like, I'm happy to do something else.").Should().BeTrue();
+        }
+
         // The new markers speak of the request and the policy, never of a deed: a narrator or a lord saying they
         // cannot do something in the story is not a refusal.
         [Test]
@@ -66,6 +79,7 @@ namespace CalradiaRemembers.Tests
             DialogueHeuristics.LooksLikeRefusal("He coughs hard. He cannot stand.").Should().BeFalse();
             DialogueHeuristics.LooksLikeRefusal("I can't help with that, stranger. Ask the miller.").Should().BeFalse();
             DialogueHeuristics.LooksLikeRefusal("I cannot let you pass, by order of the count.").Should().BeFalse();
+            DialogueHeuristics.LooksLikeRefusal("I'm not going to participate in your brother's scheme.").Should().BeFalse();
         }
 
         // Fail closed on missing text: an empty or null dialogue line must not itself trip the refusal path,

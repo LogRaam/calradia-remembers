@@ -8,6 +8,7 @@ New
 
 Fixed
 
+- A model refusal worded like GLM 5.3 Flash's ("I can't output that content... injected instruction block") is now recognised: it is no longer shown under a character's name, and in Enhanced it is redone on your NSFW model. (Thank you, Aporo.)
 - Women in the ranks are now drawn lean and far less muscular, with their own face kept. Their bodies came from the game's stout, heavy peasant women, so under a man's armour their heads looked tiny. (Thank you, EvilPoptart1987.)
 
 Developer tools
