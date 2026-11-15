@@ -33,6 +33,7 @@ namespace CalradiaRemembers.Mapping
       private static Harmony _harmony;
       private static WeakReference<Mission> _subscribed = new WeakReference<Mission>(null);
       private static bool _complained;
+      private static bool _faceComplained;
 
       /// <summary>True once attached to the game's soldier preparation (cr.test women_in_ranks asserts it).</summary>
       public static bool IsPatched { get; private set; }
@@ -69,7 +70,8 @@ namespace CalradiaRemembers.Mapping
       {
          CharacterObject face = culture?.VillageWoman ?? culture?.Townswoman;
 
-         return face != null && face.IsFemale ? face : null;
+         // A face is drawn inside her body range: a template without one cannot give a face, so it gives no women.
+         return face != null && face.IsFemale && face.BodyPropertyRange != null ? face : null;
       }
 
       /// <summary>Marks the soldier a woman when the draw says so. Reads only the prepared result.</summary>
@@ -115,11 +117,23 @@ namespace CalradiaRemembers.Mapping
       /// <summary>A woman's face for a soldier CR made a woman; for every other soldier, exactly the game's own computation.</summary>
       public static BodyProperties ComputeBody(AgentBuildData data, BasicCharacterObject character, Equipment equipment, int seed)
       {
-         if (data != null && data.GenderOverriden && data.AgentIsFemale && character != null && !character.IsFemale
-             && FemaleFaceOf((character as CharacterObject)?.Culture) is BasicCharacterObject face)
-            return TaleWorlds.Core.FaceGen.GetRandomBodyProperties(character.Race, true, face.GetBodyPropertiesMin(), face.GetBodyPropertiesMax(),
-                                                   (int) (equipment?.HairCoverType ?? ArmorComponent.HairCoverTypes.None), seed,
-                                                   face.BodyPropertyRange?.HairTags, face.BodyPropertyRange?.BeardTags, face.BodyPropertyRange?.TattooTags, 0f);
+         try
+         {
+            if (data != null && data.GenderOverriden && data.AgentIsFemale && character != null && !character.IsFemale
+                && FemaleFaceOf((character as CharacterObject)?.Culture) is BasicCharacterObject face)
+               return TaleWorlds.Core.FaceGen.GetRandomBodyProperties(character.Race, true, face.GetBodyPropertiesMin(), face.GetBodyPropertiesMax(),
+                                                      (int) (equipment?.HairCoverType ?? ArmorComponent.HairCoverTypes.None), seed,
+                                                      face.BodyPropertyRange?.HairTags, face.BodyPropertyRange?.BeardTags, face.BodyPropertyRange?.TattooTags, 0f);
+         }
+         catch (Exception ex)
+         {
+            // This runs for every soldier a battle spawns: a failure here must never stop a battle, only cost her face.
+            if (!_faceComplained)
+            {
+               _faceComplained = true;
+               ModLog.Error($"[RANKS] drawing a woman soldier's face failed, the game's own face used (said once): {ex.GetType().Name}: {ex.Message}");
+            }
+         }
 
          return character.GetBodyProperties(equipment, seed);
       }

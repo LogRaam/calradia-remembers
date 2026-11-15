@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-786 rules read 578 facts.
+786 rules read 579 facts.
 
 ## Facts read by more than one rule
 
@@ -254,6 +254,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `AiBehavior.PatrolAroundPoint` (2) | `CompanionPatrolPolicy.ShouldReissue`, `PatrolLeashFacts` |
 | `BestFeat.Outcome` (2) | `BattleFeatText.SubjectBestedByPlayer`, `BattleFeatText.WitnessedFeat` |
 | `Case.LiegeId` (2) | `ArrestPolicy.CouncilSeats`, `TrialVerdictPolicy.DefaultConviction` |
+| `CharacterObject.BodyPropertyRange` (2) | `RankSoldierFacts`, `WomenInRanksPolicy.IsWoman` |
 | `CharacterRelationManager.GetHeroRelation` (2) | `PairBondFacts`, `PairBondPolicy.Assess` |
 | `CharacterStates.Disabled` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `CompanionHiringPriceCalculationModel.GetCompanionHiringPrice` (2) | `HireAgreementPolicy.AgreedPrice`, `HireAgreementPolicy.CanAfford` |
@@ -956,7 +957,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `QuestRescueCreditPolicy.CreditsPlayerRescue`: `EndCaptivityDetail.Death`, `EndCaptivityDetail.Ransom`, `EndCaptivityDetail.ReleasedAfterBattle`, `EndCaptivityDetail.ReleasedAfterEscape`, `EndCaptivityDetail.ReleasedAfterPeace`, `EndCaptivityDetail.ReleasedByChoice`, `EndCaptivityDetail.ReleasedByCompensation`
 - `RaidRestraintPolicy.ChanceToSpare`: `Hero.Father`, `Hero.Mother`, `Hero.Spouse`
 - `RaidRestraintPolicy.Spares`: `Hero.Father`, `Hero.Mother`, `Hero.Spouse`
-- `RankSoldierFacts`: `AgentBuildData.AgentOrigin`, `CharacterObject.IsFemale`, `CultureObject.Townswoman`, `CultureObject.VillageWoman`, `IAgentOriginBase.BattleCombatant`, `IAgentOriginBase.Seed`, `IAgentOriginBase.UniqueSeed`
+- `RankSoldierFacts`: `AgentBuildData.AgentOrigin`, `CharacterObject.BodyPropertyRange`, `CharacterObject.IsFemale`, `CultureObject.Townswoman`, `CultureObject.VillageWoman`, `IAgentOriginBase.BattleCombatant`, `IAgentOriginBase.Seed`, `IAgentOriginBase.UniqueSeed`
 - `RansomEnvoyFacts`: `FactionManager.IsAtWarAgainstFaction`, `Hero.Clan`, `Hero.Gold`, `Hero.MapFaction`, `Hero.PartyBelongedToAsPrisoner`, `MobileParty.Party`, `PartyBase.Settlement`, `PartyBelongedToAsPrisoner.MapFaction`, `Settlement.OwnerClan`
 - `RansomEnvoyPolicy.Advance`: `Hero.MapFaction`
 - `RansomEnvoyPolicy.MaySend`: `FactionManager.IsAtWarAgainstFaction`, `Hero.Clan`, `Hero.Gold`, `Hero.MapFaction`, `Hero.PartyBelongedToAsPrisoner`, `MobileParty.Party`, `PartyBase.Settlement`, `PartyBelongedToAsPrisoner.MapFaction`, `Settlement.OwnerClan`
@@ -1154,7 +1155,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `WhereaboutsFacts`: `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `Hero.StayingInSettlement`, `MemberRoster.TotalManCount`, `MobileParty.Army`
 - `WitnessStandingFacts`: `Clan.Kingdom`, `Clan.Leader`, `Hero.Clan`, `Hero.GetTraitLevel`, `Hero.IsFemale`, `Kingdom.Leader`, `PairBondReader.Points`
 - `WitnessStandingText.AtTable`: `Hero.IsFemale`
-- `WomenInRanksPolicy.IsWoman`: `AgentBuildData.AgentOrigin`, `CharacterObject.IsFemale`, `CultureObject.Townswoman`, `CultureObject.VillageWoman`, `IAgentOriginBase.BattleCombatant`, `IAgentOriginBase.Seed`, `IAgentOriginBase.UniqueSeed`
+- `WomenInRanksPolicy.IsWoman`: `AgentBuildData.AgentOrigin`, `CharacterObject.BodyPropertyRange`, `CharacterObject.IsFemale`, `CultureObject.Townswoman`, `CultureObject.VillageWoman`, `IAgentOriginBase.BattleCombatant`, `IAgentOriginBase.Seed`, `IAgentOriginBase.UniqueSeed`
 - `WomenInRanksTable`: `JsonConvert.DeserializeObject`, `StringComparer.OrdinalIgnoreCase`
 - `WorkshopSaleFacts`: `Hero.IsDead`
 - `WorldInitiativePolicy.Decide`: `ActiveCount.Invoke`, `IsBusy.Invoke`, `ModSettings.WorldInitiative`, `State.Grants`, `State.KeptSinceHour`, `State.LastOwnTalkHour`, `State.LastSettledHour`, `State.Requests`

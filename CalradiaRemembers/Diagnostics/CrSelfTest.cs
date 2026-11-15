@@ -7066,7 +7066,8 @@ namespace CalradiaRemembers.Diagnostics
 
          // STAKE: the stock text is the character's own, not a template: his identity names him.
          string identity = sections.FirstOrDefault(s => s.Key == "identity")?.Text ?? "";
-         t.Expect("theIdentityNamesHim", identity.Contains(lord.FirstName?.ToString() ?? lord.Name.ToString()), true);
+         // The identity line writes the name in capitals ("YOU ARE LUCON"), so the name is looked for without case.
+         t.Expect("theIdentityNamesHim", identity.IndexOf(lord.FirstName?.ToString() ?? lord.Name.ToString(), StringComparison.OrdinalIgnoreCase) >= 0, true);
          t.Expect("oneSectionReadsTheSame", CrPrompt.StockSectionText("identity", lord.StringId), identity);
          // STAKE: an unknown hero gives nothing rather than another character's text.
          t.Expect("anUnknownHeroGivesNothing", CrPrompt.StockSections("selftest_no_such_hero").Count, 0);
@@ -7168,17 +7169,35 @@ namespace CalradiaRemembers.Diagnostics
       private static string TestWomenInRanks(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("women_in_ranks");
+         string stage = "attaching the patch";
+         try
+         {
+            return WomenInRanksSteps(t, s => stage = s);
+         }
+         catch (Exception ex)
+         {
+            // A bare "threw NullReferenceException" (cr.test all, 15/11/2026) said nothing of where: name the step.
+            t.Expect("everyStepRuns", $"threw {ex.GetType().Name} while {stage}: {ex.Message}", "");
+
+            return t.Line();
+         }
+      }
+
+      private static string WomenInRanksSteps(TestRun t, Action<string> at)
+      {
          Mapping.WomenInRanksPatch.EnsurePatched(); // idempotent: attached at startup
          t.Expect("theSoldierPreparationIsPatched", Mapping.WomenInRanksPatch.IsPatched, true);
          if (Mapping.WomenInRanksLoader.LoadedFrom == null) Mapping.WomenInRanksLoader.Load();
          t.Expect("theTableIsLoaded", Mapping.WomenInRanksLoader.LoadedFrom != null, true);
 
+         at("reading the table's ids");
          Logic.Troops.WomenInRanksTable table = Mapping.WomenInRanksLoader.Table;
          // STAKE: a mistyped id in the file silently gives no women; name it.
          string unknownCultures = string.Join(", ", table.Cultures.Keys.Where(id => MBObjectManager.Instance.GetObject<CultureObject>(id) == null));
          string unknownRealms = string.Join(", ", table.Realms.Keys.Where(id => Kingdom.All.All(k => k.StringId != id)));
          t.Expect("everyCultureIdIsTheGames", unknownCultures, "");
          t.Expect("everyRealmIdIsTheGames", unknownRealms, "");
+         at("finding each culture's woman's face");
          // STAKE: without a woman's face she would get a man's face on a woman's body (the policy then keeps him a man).
          string faceless = string.Join(", ", table.Cultures.Keys.Select(id => MBObjectManager.Instance.GetObject<CultureObject>(id))
                                                          .Where(c => c != null && Mapping.WomenInRanksPatch.FemaleFaceOf(c) == null).Select(c => c.StringId));
@@ -7189,9 +7208,12 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(recruit == null || recruit.IsFemale, "no Sturgian recruit to draw a face for")) return t.Line();
 
          // STAKE: a woman soldier gets a woman's face; any other soldier exactly the game's own (nothing else in the battle changes).
+         at("preparing a recruit as the game does");
          var asWoman = new TaleWorlds.MountAndBlade.AgentBuildData(recruit).IsFemale(true);
          var asIs = new TaleWorlds.MountAndBlade.AgentBuildData(recruit);
+         at("drawing her face");
          BodyProperties hers = Mapping.WomenInRanksPatch.ComputeBody(asWoman, recruit, recruit.Equipment, 7);
+         at("drawing his face");
          BodyProperties his = Mapping.WomenInRanksPatch.ComputeBody(asIs, recruit, recruit.Equipment, 7);
          t.Expect("anyOtherSoldierGetsTheGamesOwnFace", his.ToString(), recruit.GetBodyProperties(recruit.Equipment, 7).ToString());
          t.Expect("aWomanSoldiersFaceIsDrawnApart", hers.ToString() != his.ToString(), true);
