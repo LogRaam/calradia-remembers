@@ -7208,13 +7208,11 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(recruit == null || recruit.IsFemale, "no Sturgian recruit to draw a face for")) return t.Line();
 
          // STAKE: a woman soldier gets a woman's face; any other soldier exactly the game's own (nothing else in the battle changes).
-         at("preparing a recruit as the game does");
-         var asWoman = new TaleWorlds.MountAndBlade.AgentBuildData(recruit).IsFemale(true);
-         var asIs = new TaleWorlds.MountAndBlade.AgentBuildData(recruit);
+         // Not through an AgentBuildData: one cannot be built outside a battle (Team.Invalid throws with no mission, 1.5.7).
          at("drawing her face");
-         BodyProperties hers = Mapping.WomenInRanksPatch.ComputeBody(asWoman, recruit, recruit.Equipment, 7);
+         BodyProperties hers = Mapping.WomenInRanksPatch.FaceFor(true, recruit, recruit.Equipment, 7);
          at("drawing his face");
-         BodyProperties his = Mapping.WomenInRanksPatch.ComputeBody(asIs, recruit, recruit.Equipment, 7);
+         BodyProperties his = Mapping.WomenInRanksPatch.FaceFor(false, recruit, recruit.Equipment, 7);
          t.Expect("anyOtherSoldierGetsTheGamesOwnFace", his.ToString(), recruit.GetBodyProperties(recruit.Equipment, 7).ToString());
          t.Expect("aWomanSoldiersFaceIsDrawnApart", hers.ToString() != his.ToString(), true);
          t.Note($"table from {Mapping.WomenInRanksLoader.LoadedFrom}; check a Sturgian or Khuzait battle for faces and armour.");

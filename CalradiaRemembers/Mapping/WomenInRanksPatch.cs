@@ -115,11 +115,18 @@ namespace CalradiaRemembers.Mapping
       }
 
       /// <summary>A woman's face for a soldier CR made a woman; for every other soldier, exactly the game's own computation.</summary>
-      public static BodyProperties ComputeBody(AgentBuildData data, BasicCharacterObject character, Equipment equipment, int seed)
+      public static BodyProperties ComputeBody(AgentBuildData data, BasicCharacterObject character, Equipment equipment, int seed) =>
+         FaceFor(data != null && data.GenderOverriden && data.AgentIsFemale, character, equipment, seed);
+
+      /// <summary>
+      ///   The face itself, apart from the prepared soldier: an AgentBuildData cannot be built outside a battle (its
+      ///   Team.Invalid builds a team with no mission and throws, 1.5.7), so cr.test all asks this directly.
+      /// </summary>
+      public static BodyProperties FaceFor(bool madeWoman, BasicCharacterObject character, Equipment equipment, int seed)
       {
          try
          {
-            if (data != null && data.GenderOverriden && data.AgentIsFemale && character != null && !character.IsFemale
+            if (madeWoman && character != null && !character.IsFemale
                 && FemaleFaceOf((character as CharacterObject)?.Culture) is BasicCharacterObject face)
                return TaleWorlds.Core.FaceGen.GetRandomBodyProperties(character.Race, true, face.GetBodyPropertiesMin(), face.GetBodyPropertiesMax(),
                                                       (int) (equipment?.HairCoverType ?? ArmorComponent.HairCoverTypes.None), seed,
