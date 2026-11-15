@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 673 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1636 types in 60 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1638 types in 60 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1053,7 +1053,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (490)
+### CalradiaRemembers.Logic (492)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1193,6 +1193,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FiefAudienceCandidate` | public class | One partyless hero standing in the settlement who qualifies for a fief audience, and why. |
 | `FiefAudiencePolicy` | public static class | Decides which of InterceptionPolicy's triggers make sense for someone with no field party, standing where the player just walked in, and how often the fief-audience offer itself may fire for the same NPC. |
 | `FiefAudienceSeekerFacts` | public class | Who a person standing in the settlement is, for whether they may ask for an audience at all. |
+| `FiefHandover` | public class | One fief changing hands, as the one who held it sees it. |
+| `FiefLossPolicy` | public static class | Whether a fief changing hands is a loss to the one who held it, the blow that can set a day. |
 | `FirstImpressionDescriber` | public static class | Renders a FirstImpressionDisposition as the prompt's "first impression" guidance. |
 | `FirstImpressionDisposition` | public enum | How a barely-known NPC opens toward the player, driven by their traits and the player's standing. |
 | `FirstImpressionInputs` | public class | The inputs that decide how a barely-known noble opens toward the player. |

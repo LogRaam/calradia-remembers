@@ -630,6 +630,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("appreciation_repeat", Severity.Light, "repetition (2026-07-22 fix): plant the SAME kindness on two different days -> assert it deepened ONE record instead of adding a twin, the tally reads twice, and the warmth actually ROSE (counting must weigh, not just show) -> assert a third plant the same day is still refused by the anti-noise rule -> run the migration twice and assert a reload cannot inflate the tally or split the record", TestAppreciationRepeat),
          new SelfTest("nemesis_kill", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(battle death) -> assert IsAlive flips false + a closure world-event is recorded", TestNemesisKilledInBattle),
          new SelfTest("nemesis_execute", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(executed) -> assert IsAlive flips false + the closure world-event reads distinctly from the battle-death flavor", TestNemesisExecuted),
+         new SelfTest("fief_award_no_loss", Severity.Light, "superdeeplearningaibot (Discord, 15/11/2026): he and Queen Rhagaea took Phycaon, the realm's vote gave it to her vassal, and her day was set by 'the loss of Phycaon'. With a real ruler and a vassal of her realm, asks SelfEsteemBehavior's own reading: a fief the crown places from the ruler to her vassal is no loss to her; the same fief taken from the vassal back to the crown is a loss to him, and a siege taking it from her is a loss to her. Read-only, no fief moves", TestFiefAwardNoLoss),
          new SelfTest("executionerless_death", Severity.Light, "Gabriel's play test (15/11/2026, 1.5.7): a hero with an Executed death mark and no executioner was killed by the daily tick, and ExecutionCampaignBehavior.OnHeroKilled read the missing killer's clan and crashed the game. Asserts the guard is attached and that the REAL OnHeroKilled, called with an Executed detail and no killer for a living lord, no longer throws, while an execution by someone is still kept as one. MANUAL on a game without the method. Kills nobody: OnHeroKilled only does the bookkeeping", TestExecutionerlessDeath),
          new SelfTest("leaderless_feud_guard", Severity.Light, "Bannerlord 1.5.7 blood feuds (Gabriel's cr.test all, 13/11/2026: executing a nemesis threw inside the engine's feud, a bandit clan having no leader). Where the game has ExecutionCampaignBehavior.OnPlayerExecutedHero, the guard is attached, and its prefix refuses the feud for a hero whose clan has no leader and allows it for a lord of a led clan. MANUAL on a game without blood feuds. nemesis_execute_prisoner drives the real execution. Read-only", TestLeaderlessFeudGuard),
          new SelfTest("nemesis_execute_prisoner", Severity.Light, "mint a fresh nemesis -> TakePrisonerAction (real capture) -> assert PlayerHeldNemesisPrisoner detects him -> BannerlordGameStateBridge.ExecuteAction(execute_prisoner) (the REAL bridge action the chat entry point's LLM emission triggers, not the Resolve harness) -> assert the existing HeroKilledEvent hook still resolves him + records the closure deed", TestNemesisExecutePrisoner),
@@ -6839,6 +6840,27 @@ namespace CalradiaRemembers.Diagnostics
             behavior.Store.Set(profile);
             LlmFeedbackNotes.ConsumeFor(giver.StringId);
          }
+
+         return t.Line();
+      }
+
+      private static string TestFiefAwardNoLoss(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("fief_award_no_loss");
+         Kingdom realm = Kingdom.All.FirstOrDefault(k => !k.IsEliminated && k.Leader != null && k.Clans.Any(c => c != k.RulingClan && c.Leader != null && !c.IsEliminated));
+         if (t.Skip(realm == null, "no realm with a ruler and a vassal house")) return t.Line();
+
+         Hero ruler = realm.Leader;
+         Hero vassal = realm.Clans.First(c => c != realm.RulingClan && c.Leader != null && !c.IsEliminated).Leader;
+         const ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail vote = ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail.ByKingDecision;
+         t.Note($"{ruler.Name} rules {realm.Name}; {vassal.Name} serves her");
+
+         // THE REPORT: the queen placing the town she took with her vassal is no loss to her.
+         t.Expect("theRulerAwardingHerVassalLosesNothing", Standing.SelfEsteemBehavior.IsLossFor(ruler, vassal, vote), false);
+         // STAKE: a lord whose fief the crown takes back has lost it.
+         t.Expect("aVassalStrippedByTheCrownLosesIt", Standing.SelfEsteemBehavior.IsLossFor(vassal, ruler, vote), true);
+         // STAKE: a ruler whose town falls to a siege, her own rebels' included, has lost it.
+         t.Expect("aRulerLosingASiegeLosesIt", Standing.SelfEsteemBehavior.IsLossFor(ruler, vassal, ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail.BySiege), true);
 
          return t.Line();
       }

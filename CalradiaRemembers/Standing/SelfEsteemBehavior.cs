@@ -95,10 +95,22 @@ namespace CalradiaRemembers.Standing
          {
             if (settlement == null || !(settlement.IsTown || settlement.IsCastle) || newOwner == oldOwner) return;
 
-            if (oldOwner != null) SelfEsteemService.Record(oldOwner, SelfEsteemEvent.FiefLost, settlement.Name?.ToString());
+            if (oldOwner != null && IsLossFor(oldOwner, newOwner, detail)) SelfEsteemService.Record(oldOwner, SelfEsteemEvent.FiefLost, settlement.Name?.ToString());
             if (newOwner != null) SelfEsteemService.Record(newOwner, SelfEsteemEvent.FiefGained, settlement.Name?.ToString());
          });
       }
+
+      /// <summary>
+      ///   Whether the one who held the fief lost it (Logic.FiefLossPolicy): not a ruler whose realm's vote, decision or gift
+      ///   placed it with her own vassal (superdeeplearningaibot, 15/11/2026: the queen mourned the town she had taken and
+      ///   awarded). cr.test fief_award_no_loss asks this with real heroes.
+      /// </summary>
+      internal static bool IsLossFor(Hero oldOwner, Hero newOwner, ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail detail) =>
+         FiefLossPolicy.IsLoss(new FiefHandover {
+            ByTheCrownsHand = detail == ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail.ByKingDecision
+                              || detail == ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail.ByGift,
+            HolderRulesTheNewHoldersRealm = oldOwner != null && newOwner?.Clan?.Kingdom != null && newOwner.Clan.Kingdom.Leader == oldOwner
+         });
 
       // A death in the house: parents, spouse, children, siblings.
       private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)

@@ -4,6 +4,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.8.11.. unreleased
 
+### Fixed
+
+- **A ruler who awards a town she took to her own vassal no longer mourns it as lost** (superdeeplearningaibot, Discord 15/11/2026, "Civil War Siege Win registers as FiefLost for the Ruler", with Bellum Civile: "Me and Rhagaea successfully besieged and captured Phycaon ... Her prompt dump shows: YOUR DAY: ... What set your day this way: the loss of Phycaon"; his guess was the rebels sharing the realm's id). His log shows "Queen Rhagaea: FiefLost" and "Strategos Turiados: FiefGained" at the same instant: the realm's vote awarding the captured town (1.5.7 SettlementClaimantDecision -> ChangeOwnerOfSettlementAction.ApplyByKingDecision, whose old owner is the one holding it while the realm votes, here the queen). `SelfEsteemBehavior` now asks `Logic.FiefLossPolicy` (tested): a fief the crown places (vote, decision, gift) from the ruler with a vassal of her own realm is no loss to her; a lord the crown strips, and any town lost to a siege or a rebellion, still is. The day this cost the queen stays as it was; the next blow sets the next one. `cr.test fief_award_no_loss`.
+
+### Changed
+
+- **The Sturgian traditions agree with the battlefield** (Gabriel, 15/11/2026: "on garde 25% et on ajuste la prose sturgienne"): cultural_traditions.json said shieldmaidens fight "in equal numbers", while Women in the ranks puts one Sturgian soldier in four as a woman. It now says about one warrior in four.
+
 ## v2.8.10.. 2026-11-15
 
 ### Fixed

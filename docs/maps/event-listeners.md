@@ -188,7 +188,7 @@ mentions: an event with seven ways to happen and a listener that names one of th
 | `OnSettlementLeftEvent` | `AssemblyMenuBehavior.OnSettlementLeft` |  |
 | `OnSettlementLeftEvent` | `WorldInitiativeBehavior.(inline)` |  |
 | `OnSettlementOwnerChangedEvent` | `HelpPleaBehavior.OnSettlementOwnerChanged` | ChangeOwnerOfSettlementDetail: BySiege |
-| `OnSettlementOwnerChangedEvent` | `SelfEsteemBehavior.OnSettlementOwnerChanged` | ChangeOwnerOfSettlementDetail: (none named, takes them all) |
+| `OnSettlementOwnerChangedEvent` | `SelfEsteemBehavior.OnSettlementOwnerChanged` | ChangeOwnerOfSettlementDetail: ByGift, ByKingDecision |
 | `OnSettlementOwnerChangedEvent` | `WarCouncilOfferBehavior.OnSettlementOwnerChanged` | ChangeOwnerOfSettlementDetail: (none named, takes them all) |
 | `OnSettlementOwnerChangedEvent` | `WorldEventFeeders.OnSettlementOwnerChanged` | ChangeOwnerOfSettlementDetail: ByGift, ByKingDecision, BySiege |
 | `OnSiegeAftermathAppliedEvent` | `MisdeedLedgerBehavior.OnSiegeAftermath` |  |
