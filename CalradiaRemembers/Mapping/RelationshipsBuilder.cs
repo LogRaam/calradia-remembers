@@ -188,11 +188,11 @@ namespace CalradiaRemembers.Mapping
       {
          try
          {
-            return hero.Age >= (Campaign.Current?.Models?.AgeModel?.HeroComesOfAge ?? 18);
+            return hero.Age >= Logic.Conditions.ComingOfAge.YearsOr(Campaign.Current?.Models?.AgeModel?.HeroComesOfAge);
          }
          catch
          {
-            return hero.Age >= 18;
+            return hero.Age >= Logic.Conditions.ComingOfAge.EngineDefault;
          }
       }
 

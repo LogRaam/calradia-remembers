@@ -974,7 +974,7 @@ namespace CalradiaRemembers.Witnesses
       private static void TryAddFlavorWitness(List<WitnessEntry> witnesses, Hero npcHero, WitnessDensity density)
       {
          if (density == WitnessDensity.Sparse) return;
-         if (MBRandom.RandomFloat < 0.5f) return;
+         if (MBRandom.RandomFloat < WitnessPresencePolicy.FlavorWitnessSkipChance) return;
 
          WitnessEntry entry;
          switch (npcHero.Occupation)

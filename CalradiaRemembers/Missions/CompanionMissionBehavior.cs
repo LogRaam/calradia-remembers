@@ -819,7 +819,7 @@ namespace CalradiaRemembers.Missions
          lines.Add(enemies.Count > 0
             ? $"they are at war with {string.Join(", ", enemies)}"
             : "they are at peace with their neighbours");
-         lines.Add($"the mood about {dest.Name} reads as {(dest.Town is {Loyalty: >= 50} ? "settled" : "restless")}");
+         lines.Add($"the mood about {dest.Name} reads as {(dest.Town != null && Logic.Conditions.ConditionBands.IsSettled(Logic.Conditions.ConditionBands.Loyalty(dest.Town.Loyalty)) ? "settled" : "restless")}");
 
          int count = CompanionMissions.NewsItemsForResult(m.Quality, lines.Count);
          m.News = lines.Take(count).ToList();

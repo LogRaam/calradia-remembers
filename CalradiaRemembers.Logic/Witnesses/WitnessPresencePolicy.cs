@@ -19,6 +19,13 @@ namespace CalradiaRemembers.Logic.Witnesses
     /// <summary>Thins a gathered list of ambient hero witnesses according to the player's chosen WitnessDensity.</summary>
     public static class WitnessPresencePolicy
     {
+        /// <summary>
+        ///   At Normal and Bustling, the chance that no flavour bystander (a gang enforcer, an apprentice, a lingering
+        ///   customer) stands at a notable's side: half the time no one is around, so private moments stay possible and the
+        ///   scenes stay varied (WitnessResolver.TryAddFlavorWitness). Sparse never adds one.
+        /// </summary>
+        public const float FlavorWitnessSkipChance = 0.5f;
+
         /// <summary>The per-witness keep chance for Sparse: rooms thin out fast, private moments become common.</summary>
         public const double SparseProbability = 0.25;
 

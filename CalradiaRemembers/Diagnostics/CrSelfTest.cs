@@ -1419,7 +1419,7 @@ namespace CalradiaRemembers.Diagnostics
 
             if (template == null) return null;
 
-            int age = (Campaign.Current?.Models?.AgeModel?.HeroComesOfAge ?? 18) + 5;
+            int age = Logic.Conditions.ComingOfAge.YearsOr(Campaign.Current?.Models?.AgeModel?.HeroComesOfAge) + 5;
             Hero minted = HeroCreator.CreateSpecialHero(template, null, null, null, age);
             minted.ChangeState(Hero.CharacterStates.Active);
 
@@ -6673,9 +6673,9 @@ namespace CalradiaRemembers.Diagnostics
             behavior.Store.Set(first);
             List<Logic.Quests.HeldQuest> held = Quests.QuestService.HeldQuests(behavior.Store);
             t.Expect("anotherCampNearTheTownIsNoRepeat",
-               Logic.Quests.QuestRepeatPolicy.RepeatOf(QuestType.BanditHideout, Logic.Quests.QuestRepeatPolicy.KeyOf(null, null, "[SELFTEST] town", "selftest_camp_b"), today, held) == null, true);
+               Logic.Quests.QuestRepeatPolicy.RepeatOf(QuestType.BanditHideout, Logic.Quests.QuestRepeatPolicy.KeyOf(new Logic.Quests.QuestTarget {Settlement = "[SELFTEST] town", HideoutId = "selftest_camp_b"}), today, held) == null, true);
             t.Expect("theSameCampIsStillARepeat",
-               Logic.Quests.QuestRepeatPolicy.RepeatOf(QuestType.BanditHideout, Logic.Quests.QuestRepeatPolicy.KeyOf(null, null, "[SELFTEST] town", "selftest_camp_a"), today, held) != null, true);
+               Logic.Quests.QuestRepeatPolicy.RepeatOf(QuestType.BanditHideout, Logic.Quests.QuestRepeatPolicy.KeyOf(new Logic.Quests.QuestTarget {Settlement = "[SELFTEST] town", HideoutId = "selftest_camp_a"}), today, held) != null, true);
          }
          finally
          {

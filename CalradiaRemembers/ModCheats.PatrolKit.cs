@@ -44,7 +44,7 @@ namespace CalradiaRemembers
                                                              .OrderBy(_ => MBRandom.RandomFloat)
                                                              .Take(companions)
                                                              .ToList();
-            int age = (Campaign.Current.Models?.AgeModel?.HeroComesOfAge ?? 18) + 7;
+            int age = Logic.Conditions.ComingOfAge.YearsOr(Campaign.Current.Models?.AgeModel?.HeroComesOfAge) + 7;
             foreach (CharacterObject template in templates)
             {
                Hero minted = HeroCreator.CreateSpecialHero(template, null, null, null, age);

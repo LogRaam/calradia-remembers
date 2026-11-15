@@ -87,6 +87,49 @@ namespace CalradiaRemembers.Tests.Maps
          return MutualPairs(uses, origins);
       }
 
+      /// <summary>
+      ///   The shortest cycle through <paramref name="ns" />, as hops "A -> B (a file of A that names B)", or empty when it
+      ///   is in none. A blocking failure names what to change (14/11/2026: "a namespace joined a cycle" twice in one day,
+      ///   and both times the closing edge had to be guessed); cutting any one hop breaks this cycle.
+      /// </summary>
+      public static IReadOnlyList<string> ShortestCycleThrough(IReadOnlyList<SourceFile> files, string ns)
+      {
+         Dictionary<string, SortedSet<string>> uses = EdgesOf(files, out Dictionary<(string, string), SortedSet<string>> origins);
+         if (!uses.ContainsKey(ns)) return Array.Empty<string>();
+
+         var cameFrom = new Dictionary<string, string>(StringComparer.Ordinal);
+         var queue = new Queue<string>();
+         foreach (string next in uses[ns])
+            if (!cameFrom.ContainsKey(next))
+            {
+               cameFrom[next] = ns;
+               queue.Enqueue(next);
+            }
+
+         while (queue.Count > 0)
+         {
+            string at = queue.Dequeue();
+            if (at == ns) break;
+            if (!uses.TryGetValue(at, out SortedSet<string>? targets)) continue;
+
+            foreach (string next in targets)
+               if (!cameFrom.ContainsKey(next))
+               {
+                  cameFrom[next] = at;
+                  queue.Enqueue(next);
+               }
+         }
+
+         if (!cameFrom.ContainsKey(ns)) return Array.Empty<string>();
+
+         var path = new List<string> {ns};
+         for (string at = cameFrom[ns]; at != ns; at = cameFrom[at]) path.Add(at);
+         path.Add(ns);
+         path.Reverse();
+
+         return path.Zip(path.Skip(1), (a, b) => $"{a} -> {b} ({origins[(a, b)].First()})").ToList();
+      }
+
       #region private
 
       private static bool IsOurs(string ns) => OurRoots.Any(r => ns == r || ns.StartsWith(r + ".", StringComparison.Ordinal));

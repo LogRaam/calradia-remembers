@@ -53,6 +53,9 @@ namespace CalradiaRemembers.Logic
       /// </summary>
       public int Station => IsRuler ? 3 : IsGreatHouse ? 2 : IsEstablished ? 1 : 0;
 
+      /// <summary>A ruler or a great house: the two highest stations (station 2 and above), who keep face in public.</summary>
+      public bool IsGreatHouseOrRuler => IsRuler || IsGreatHouse;
+
       /// <summary>How many coarse stations <paramref name="lower" /> stands beneath <paramref name="higher" /> (0 for a peer or above).</summary>
       public static int StationsBelow(Stature higher, Stature lower) => higher.Station - lower.Station > 0 ? higher.Station - lower.Station : 0;
 

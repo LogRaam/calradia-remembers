@@ -33,6 +33,11 @@ All notable changes to the mod, newest first. Dates are calendar dates.
   mod gave CR that CR still holds, its own only (CR's own aims are never listed), game thread only. `cr.test feed_update` and
   `aims_door` now read them back.
 
+### Developer tools
+
+- **Two new guards for engineering practice** (Gabriel, 14/11/2026: "des MAPS qui aideraient a mettre en pratique le SOLID, Tell Don't Ask et autres bonnes pratiques"). `docs/maps/glue-decisions.md` lists every fact of the game the engine glue compares with a bare number (Tell Don't Ask in this project's terms: the decision belongs in a Logic policy), ratcheted; `SwapRiskGuard` holds Tools/Find-SwapRisk.ps1's count in the suite (it had climbed back from 0 to 33 unnoticed). The cycle ratchet now names the shortest cycle a new namespace joined, hop by hop with a file for each. 2f26356 and this round.
+- **The glue's decisions moved into Logic, unchanged** (the map's 16 candidates, Gabriel: "on pourrait aussi traiter les candidats"): the seat and camp bands (loyalty, security, food, morale, provisions, wounded) into `Logic.Conditions.ConditionBands`, so the loyalty 50 that EncounterContextBuilder and the companion's mission report each wrote has one home (they agreed; they could have drifted); the captor's influence mark into `PlayerImportancePolicy`; the coming-of-age fallback written in five places into `ComingOfAge`; station 2 into `Stature.IsGreatHouseOrRuler`; the flavour witness roll into `WitnessPresencePolicy`. Boundary tests for every mark (`ConditionBandsTests`). `QuestRepeatPolicy.KeyOf` takes a `QuestTarget` (four ids of one type had been four strings in a row). Glue decisions 16 -> 1 (the almanac's podium, presentation), swap risk 33 -> 32. No player-visible change.
+
 ## v2.8.9.. 2026-11-13
 
 ### New

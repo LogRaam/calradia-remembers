@@ -47,6 +47,25 @@ namespace CalradiaRemembers.Logic.Quests
       public string Evidence { get; init; }
    }
 
+   /// <summary>
+   ///   What a deed is against: four ids of one type, so a facts object rather than four strings in a row a caller could
+   ///   pass in the wrong order and still compile (the swap-risk ratchet, 14/11/2026).
+   /// </summary>
+   public sealed class QuestTarget
+   {
+      /// <summary>The realm the deed is against, or null.</summary>
+      public string FactionId { get; init; }
+
+      /// <summary>The person the deed is against, or null.</summary>
+      public string HeroId { get; init; }
+
+      /// <summary>The place the deed is near or at, or null.</summary>
+      public string Settlement { get; init; }
+
+      /// <summary>The hideout itself, when the deed names one (two camps near one town are two targets), or null.</summary>
+      public string HideoutId { get; init; }
+   }
+
    /// <summary>Decides whether a task offered repeats one the player holds, and lists those a council should know. Pure.</summary>
    public static class QuestRepeatPolicy
    {
@@ -62,14 +81,16 @@ namespace CalradiaRemembers.Logic.Quests
       ///   one?"): two bandit camps near Iyakis shared the town as their key, so clearing the second was refused as a repeat of
       ///   the first. A deed with no hideout keeps the key it always had.
       /// </summary>
-      public static string KeyOf(string factionId, string heroId, string settlement, string hideoutId = null)
+      public static string KeyOf(QuestTarget target)
       {
-         string[] parts = {factionId, heroId, settlement};
-         if (parts.All(string.IsNullOrWhiteSpace) && string.IsNullOrWhiteSpace(hideoutId)) return "";
+         if (target == null) return "";
+
+         string[] parts = {target.FactionId, target.HeroId, target.Settlement};
+         if (parts.All(string.IsNullOrWhiteSpace) && string.IsNullOrWhiteSpace(target.HideoutId)) return "";
 
          string key = string.Join("|", parts.Select(p => (p ?? "").Trim().ToLowerInvariant()));
 
-         return string.IsNullOrWhiteSpace(hideoutId) ? key : key + "|" + hideoutId.Trim().ToLowerInvariant();
+         return string.IsNullOrWhiteSpace(target.HideoutId) ? key : key + "|" + target.HideoutId.Trim().ToLowerInvariant();
       }
 
       /// <summary>

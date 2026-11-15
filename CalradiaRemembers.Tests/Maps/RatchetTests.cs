@@ -125,8 +125,8 @@ namespace CalradiaRemembers.Tests.Maps
                                         .ToList();
 
          joined.Should().BeEmpty("a namespace that was free of cycles has been drawn into one: "
-                               + string.Join(", ", joined)
-                               + ". Read docs/maps/dependencies.md to see which group, and break the edge rather than widening this "
+                               + string.Join("; ", joined.Select(n => $"{n}, through {string.Join(", ", DependencyMap.ShortestCycleThrough(SourceTree.Production, n))}"))
+                               + ". Cutting any one hop of a cycle breaks it; docs/maps/dependencies.md shows the whole group. Break an edge rather than widening this "
                                + "baseline. If it truly had to happen, add the name here and say why in the commit.");
       }
 
@@ -187,9 +187,13 @@ namespace CalradiaRemembers.Tests.Maps
 
       /// <summary>
       ///   Facts of the game compared with a bare number in the glue on 14/11/2026, the day the map started (Gabriel: maps that
-      ///   put Tell Don't Ask into practice). docs/maps/glue-decisions.md lists them.
+      ///   put Tell Don't Ask into practice). docs/maps/glue-decisions.md lists them. 16 when fitted; 1 the same day, once the
+      ///   seat and camp bands moved to Logic.Conditions.ConditionBands (the loyalty 50 written twice now has one home), the
+      ///   captor's influence mark to PlayerImportancePolicy, the coming-of-age fallback to ComingOfAge, station 2 to
+      ///   Stature.IsGreatHouseOrRuler and the flavour witness roll to WitnessPresencePolicy. The one left is the almanac's
+      ///   podium (the top three shown as cards): presentation, not a rule of the game.
       /// </summary>
-      private const int GlueDecisionsOn14November = 16;
+      private const int GlueDecisionsOn14November = 1;
 
       // TELL DON'T ASK, IN THIS PROJECT'S TERMS: a decision belongs in a pure policy where a test holds it and a second copy
       // shows. A fact compared with a number in the glue is the decision made again, out of reach, free to drift (the
@@ -214,9 +218,9 @@ namespace CalradiaRemembers.Tests.Maps
       ///   Public members of the Logic layer with three or more same-typed parameters in a row on 14/11/2026, the day the suite
       ///   started holding them. Tools/Find-SwapRisk.ps1 had taken them to zero on 10/09/2026, but nothing ran it; 33 had come
       ///   back by the time this test did (the script, run the same day, lists the same 33), one of them QuestRepeatPolicy.KeyOf,
-      ///   widened that very day.
+      ///   widened that very day. 32 the same day, once KeyOf took a QuestTarget.
       /// </summary>
-      private const int SwapRiskRunsOn14November = 33;
+      private const int SwapRiskRunsOn14November = 32;
 
       // A SWAP THE COMPILER CANNOT SEE: three same-typed parameters in a row in a pure rule is a call that will one day pass two
       // of them the wrong way round, compile, and give a plausible wrong answer (CanEscort cost seven rewritten assertions).

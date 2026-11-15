@@ -13,34 +13,7 @@ written in place. Moving one into a policy (or pointing it at a named rung) lowe
 (`constants.md` lists those); equality tests are not counted. Diagnostics and the console are left out. Not
 counted as decisions: 0, 1 and -1, numbers under 0.01, `Count` and `Length`, loop conditions.
 
-**16 decisions** in 5 namespaces.
-
-## CalradiaRemembers.Mapping (12)
-
-- `EncounterContextBuilder.PlayerLooksImportant`: `c.Influence >= 150f`
-- `EncounterContextBuilder.ReadFoodTrend`: `town.FoodChange < -0.5f`
-- `EncounterContextBuilder.ReadFoodTrend`: `town.FoodChange > 0.5f`
-- `EncounterContextBuilder.ReadLoyalty`: `town.Loyalty < 25f`
-- `EncounterContextBuilder.ReadLoyalty`: `town.Loyalty < 50f`
-- `EncounterContextBuilder.ReadLoyalty`: `town.Loyalty < 75f`
-- `EncounterContextBuilder.ReadMood`: `party.Morale < 25f`
-- `EncounterContextBuilder.ReadMood`: `party.Morale < 45f`
-- `EncounterContextBuilder.ReadMood`: `party.Morale > 70f`
-- `EncounterContextBuilder.ReadSecurity`: `town.Security < 25f`
-- `EncounterContextBuilder.ReadSecurity`: `town.Security < 60f`
-- `RelationshipsBuilder.IsGrown`: `hero.Age >= 18`
-
-## CalradiaRemembers.Missions (1)
-
-- `CompanionMissionBehavior.GatherMood`: `Loyalty: >= 50`
-
-## CalradiaRemembers.Standing (1)
-
-- `PerceivedImageService.For`: `StatureReader.Of(hero).Station >= 2`
-
-## CalradiaRemembers.Witnesses (1)
-
-- `WitnessResolver.TryAddFlavorWitness`: `MBRandom.RandomFloat < 0.5f`
+**1 decisions** in 1 namespaces.
 
 ## CalradiaRemembers.WorldAlmanac (1)
 

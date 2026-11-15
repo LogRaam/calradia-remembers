@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 672 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1606 types in 59 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1610 types in 60 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2056,6 +2056,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RetentionStep` | public enum | What the engine should do this tick for an unhappy companion. |
 | `WandererBackstoryPolicy` | public static class | Which of the game's lines are a wanderer's own story, and the one memory that keeps it. |
 
+### CalradiaRemembers.Logic.Conditions (3)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `ComingOfAge` | public static class | The coming of age, when the game cannot be asked. |
+| `ConditionBands` | public static class | How a seat and a company are faring, on the engine's own scales. |
+| `PlayerImportancePolicy` | public static class | Whether the player looks important to a captor. |
+
 ### CalradiaRemembers.Logic.Conversation (35)
 
 | Type | Kind | What it is |
@@ -2558,7 +2566,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SceneContentKind` | public enum | The kind of scene that is opening. |
 | `ServiceRole` | public enum | A model ROLE the player can route to its own provider. |
 
-### CalradiaRemembers.Logic.Quests (30)
+### CalradiaRemembers.Logic.Quests (31)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2586,6 +2594,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestRewardGatePolicy` | public static class | Pure eligibility/re-validation gate for RewardGrant.GrantFief and RewardGrant.MarriageReward. |
 | `QuestRewardPayoutVerdict` | public enum | The binary outcome of re-validating a heavy quest reward (fief or marriage) at payout. |
 | `QuestSaveBasePolicy` | public static class | Decides the quest definer's save-type base id, avoiding a known boot-crash collision with Europe1100. |
+| `QuestTarget` | public class | What a deed is against: four ids of one type, so a facts object rather than four strings in a row a caller could pass in the wrong order and still compile (the swap-risk ratchet, 14/11/2026). |
 | `ScoutArmyTarget` | public enum | The target a scout_army task is bound to. |
 | `ScoutArmyTargetFacts` | public class | What a scout_army proposal names, and how the named place stands. |
 | `ScoutArmyTargetPolicy` | public static class | Decides whose army a scout_army task concerns. |

@@ -1260,8 +1260,8 @@ namespace CalradiaRemembers.Mapping
 
             if (c == null) return false;
 
-            // "Important" is a house of landed nobility (Stature.LandedNobleTier, the 3 this line always held) or real sway.
-            return StatureReader.Player.IsLandedNoble || c.Influence >= 150f;
+            // "Important" is a house of landed nobility or real sway (Logic.Conditions.PlayerImportancePolicy).
+            return Logic.Conditions.PlayerImportancePolicy.LooksImportant(StatureReader.Player, c.Influence);
          }
          catch { return false; }
       }
@@ -1545,7 +1545,7 @@ namespace CalradiaRemembers.Mapping
 
             Hero payer = hero.Clan?.Leader ?? hero;
             Kingdom playersRealm = Hero.MainHero.Clan?.Kingdom;
-            int comesOfAge = Campaign.Current?.Models?.AgeModel?.HeroComesOfAge ?? 18;
+            int comesOfAge = Logic.Conditions.ComingOfAge.YearsOr(Campaign.Current?.Models?.AgeModel?.HeroComesOfAge);
 
             return CaptiveOfferPolicy.Decide(new CaptiveOfferFacts {
                Traits = new CalradiaRemembers.Logic.Appreciations.TraitFacts {
@@ -3098,24 +3098,13 @@ namespace CalradiaRemembers.Mapping
          int ceiling = town.FoodStocksUpperLimit();
          if (ceiling <= 0) return FoodBand.Unknown;
 
-         float share = town.FoodStocks / ceiling;
-
-         if (share < 0.10f) return FoodBand.Empty;
-         if (share < 0.35f) return FoodBand.Thin;
-         if (share < 0.75f) return FoodBand.Adequate;
-
-         return FoodBand.Full;
+         return Logic.Conditions.ConditionBands.FoodStores(town.FoodStocks / ceiling);
       }
 
       /// <summary>Which way it is going, which is the half of a steward's report that decides what to do.</summary>
       private static FoodTrend ReadFoodTrend(Town town)
       {
-         if (town == null) return FoodTrend.Unknown;
-
-         if (town.FoodChange < -0.5f) return FoodTrend.Falling;
-         if (town.FoodChange > 0.5f) return FoodTrend.Rising;
-
-         return FoodTrend.Steady;
+         return town == null ? FoodTrend.Unknown : Logic.Conditions.ConditionBands.FoodDirection(town.FoodChange);
       }
 
       /// <summary>
@@ -3136,24 +3125,13 @@ namespace CalradiaRemembers.Mapping
       /// <summary>On the engine's own 0-100 loyalty scale; below 25 is where vanilla itself starts worrying.</summary>
       private static LoyaltyBand ReadLoyalty(Town town)
       {
-         if (town == null) return LoyaltyBand.Unknown;
-
-         if (town.Loyalty < 25f) return LoyaltyBand.Rebellious;
-         if (town.Loyalty < 50f) return LoyaltyBand.Restless;
-         if (town.Loyalty < 75f) return LoyaltyBand.Content;
-
-         return LoyaltyBand.Devoted;
+         return town == null ? LoyaltyBand.Unknown : Logic.Conditions.ConditionBands.Loyalty(town.Loyalty);
       }
 
       /// <summary>On the engine's own 0-100 security scale. Low security IS banditry on the roads.</summary>
       private static SecurityBand ReadSecurity(Town town)
       {
-         if (town == null) return SecurityBand.Unknown;
-
-         if (town.Security < 25f) return SecurityBand.Lawless;
-         if (town.Security < 60f) return SecurityBand.Uneasy;
-
-         return SecurityBand.Settled;
+         return town == null ? SecurityBand.Unknown : Logic.Conditions.ConditionBands.Security(town.Security);
       }
 
       /// <summary>
@@ -3630,23 +3608,13 @@ namespace CalradiaRemembers.Mapping
       /// <summary>The engine's own count of days, banded: a quartermaster says "a week or so", not "eleven".</summary>
       private static ProvisionBand ReadProvisions(MobileParty party)
       {
-         int days = party.GetNumDaysForFoodToLast();
-
-         if (days <= 0) return ProvisionBand.Starving;
-         if (days < 7) return ProvisionBand.Short;
-         if (days < 21) return ProvisionBand.Sufficient;
-
-         return ProvisionBand.Plentiful;
+         return Logic.Conditions.ConditionBands.Provisions(party.GetNumDaysForFoodToLast());
       }
 
       /// <summary>On the engine's own 0-100 morale, where 50 is the settled middle it drifts back towards.</summary>
       private static CampMood ReadMood(MobileParty party)
       {
-         if (party.Morale < 25f) return CampMood.Mutinous;
-         if (party.Morale < 45f) return CampMood.Sullen;
-         if (party.Morale > 70f) return CampMood.HighHearted;
-
-         return CampMood.Steady;
+         return Logic.Conditions.ConditionBands.Mood(party.Morale);
       }
 
       private static WoundedBand ReadWounded(MobileParty party)
@@ -3655,12 +3623,7 @@ namespace CalradiaRemembers.Mapping
 
          if (roster == null || roster.TotalManCount <= 0) return WoundedBand.Unknown;
 
-         float hurt = (roster.TotalManCount - roster.TotalHealthyCount) / (float) roster.TotalManCount;
-
-         if (hurt > 0.50f) return WoundedBand.Most;
-         if (hurt > 0.20f) return WoundedBand.Many;
-
-         return WoundedBand.Few;
+         return Logic.Conditions.ConditionBands.Wounded((roster.TotalManCount - roster.TotalHealthyCount) / (float) roster.TotalManCount);
       }
 
       /// <summary>

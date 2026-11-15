@@ -38,7 +38,7 @@ namespace CalradiaRemembers.Standing
                Mood = ConversationMood.NowFor(hero.StringId, day) ?? day,
                IsFemale = hero.IsFemale,
                KnowsHimWell = (profile?.ReputationWithPlayer ?? 0) >= Regard.FriendlyTier,
-               KeepsFace = hero.GetTraitLevel(DefaultTraits.Calculating) > 0 || StatureReader.Of(hero).Station >= 2
+               KeepsFace = hero.GetTraitLevel(DefaultTraits.Calculating) > 0 || StatureReader.Of(hero).IsGreatHouseOrRuler
             });
          }
          catch (Exception ex)
