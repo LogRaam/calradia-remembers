@@ -96,7 +96,9 @@ namespace CalradiaRemembers.Mapping
       internal static bool IsAlreadyKnown(Hero npc, NpcProfile profile, IGameStateBridge bridge)
       {
          int relation = bridge?.GetPlayerRelation(npc) ?? 0;
-         int events = profile?.Events?.Count ?? 0;
+         // Memories LIVED with the player only: three rumours heard about the world do not make the player known to them
+         // (VonLemberg, source audit, 15/11/2026).
+         int events = NpcMemoryService.Core.Models.HistoryWindowPolicy.LivedCount(profile?.Events);
          // M-R4 (regard audit): the mod's OWN personal regard also proves they are no stranger. Without this a run
          // of hostile chats (regard sunk to -30) with no [EVENT] recorded still read as "they have done nothing to
          // wrong you", an opening tone that flatly contradicts the CURRENT STANCE line built from the same score.

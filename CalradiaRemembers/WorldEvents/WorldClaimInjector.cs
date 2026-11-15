@@ -56,7 +56,9 @@ namespace CalradiaRemembers.WorldEvents
                // formatting difference.
                bool fromThePlayer = speaker == null || speaker == Hero.MainHero;
 
-               ClaimVerdict verdict = WorldClaimPolicy.Judge(claim, fromThePlayer, AlreadyKnown(claim, today));
+               // The player's name reaches the gate, so a claim that names them is refused whatever the model labelled
+               // it (VonLemberg, source audit, 15/11/2026: nothing ever set AboutThePlayer).
+               ClaimVerdict verdict = WorldClaimPolicy.Judge(claim, fromThePlayer, AlreadyKnown(claim, today), Hero.MainHero?.Name?.ToString());
 
                if (verdict != ClaimVerdict.Accepted)
                {
@@ -98,6 +100,12 @@ namespace CalradiaRemembers.WorldEvents
             ActorIds = speaker?.StringId == null ? new List<string>() : new List<string> {speaker.StringId},
             PlaceId = place?.StringId,
 
+            // The realm the news belongs to: the place's, else the speaker's. WorldClaimPolicy.Magnitude was set so a
+            // claim "reaches the district and the realm", and without this the realm's share of awareness was never
+            // given: a stated claim reached a third party on its first day only, a hedged one nobody at all
+            // (VonLemberg, source audit, 15/11/2026).
+            FactionIds = RealmOf(place, speaker),
+
             // Never the player's chronicle: the player's own deeds have their own road into the world, and two
             // authors on one record is how two records disagree.
             InvolvesPlayer = false,
@@ -126,6 +134,13 @@ namespace CalradiaRemembers.WorldEvents
                     PlaceName = NameOfPlace(e.PlaceId) ?? claim.PlaceName,
                     Text = e.Summary
                  }) == key) != null;
+      }
+
+      private static List<string> RealmOf(Settlement place, Hero speaker)
+      {
+         string realm = place?.MapFaction?.StringId ?? speaker?.MapFaction?.StringId;
+
+         return realm == null ? new List<string>() : new List<string> {realm};
       }
 
       private static Settlement PlaceNamed(string name)

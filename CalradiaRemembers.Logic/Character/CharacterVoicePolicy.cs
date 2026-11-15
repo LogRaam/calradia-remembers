@@ -139,15 +139,33 @@ namespace CalradiaRemembers.Logic.Character
          string id = f?.HeroId ?? "";
          string station = f?.Station ?? "";
          RomanticTraits t = f?.Traits ?? new RomanticTraits();
-         IReadOnlyList<string> habits = HabitsFor(station, f?.Age ?? 30);
-         var habitRoll = new Random(Romance.IntimateActPolicy.StableSeed(id + "|voice"));
          var moodRoll = new Random(Romance.IntimateActPolicy.StableSeed(id + "|voice-tongue"));
 
          return new CharacterVoice {
-            Habit = habits[habitRoll.Next(habits.Count)],
+            Habit = HabitOf(id, station, f?.Age ?? 30),
             Coarseness = CoarsenessOf(station, t, f?.Age ?? 30, moodRoll.Next(2)),
             Piety = PietyOf(station, t, moodRoll.Next(10))
          };
+      }
+
+      /// <summary>
+      ///   The habit for life, and the habit of an age. The lifelong habit is drawn among those of the station that belong
+      ///   to no age, so it is the same at 24, 25, 49 and 50 (VonLemberg, source audit, 15/11/2026: the draw was taken in
+      ///   a pool that changed size at 25 and at 50, so most characters changed habit on those birthdays). A second,
+      ///   separate draw decides whether the young or the old character shows a habit of their age instead, with the
+      ///   same odds as before: that one comes with the age and goes with it, which is what an age habit is.
+      /// </summary>
+      private static string HabitOf(string id, string station, int age)
+      {
+         IReadOnlyList<string> lifelong = HabitsFor(station, 30);
+         string own = lifelong[new Random(Romance.IntimateActPolicy.StableSeed(id + "|voice")).Next(lifelong.Count)];
+
+         List<string> ofTheAge = HabitsFor(station, age).Where(h => !lifelong.Contains(h)).ToList();
+         if (ofTheAge.Count == 0) return own;
+
+         var ageRoll = new Random(Romance.IntimateActPolicy.StableSeed(id + "|voice-age"));
+
+         return ageRoll.Next(lifelong.Count + ofTheAge.Count) < ofTheAge.Count ? ofTheAge[ageRoll.Next(ofTheAge.Count)] : own;
       }
 
       /// <summary>

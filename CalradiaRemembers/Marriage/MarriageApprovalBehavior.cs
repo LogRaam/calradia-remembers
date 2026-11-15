@@ -453,7 +453,7 @@ namespace CalradiaRemembers.Marriage
             NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(spouse.StringId);
             string line = WeddingMemoryText.For(new WeddingFacts {
                PlayerName = Hero.MainHero?.Name?.ToString() ?? "",
-               HaveSharedHistory = profile?.Events != null && profile.Events.Count > 0,
+               HaveSharedHistory = NpcMemoryService.Core.Models.HistoryWindowPolicy.LivedCount(profile?.Events) > 0,
                HaveMet = spouse.HasMet,
                FromAnotherHouse = spouse.Clan != null && spouse.Clan != Clan.PlayerClan
             });

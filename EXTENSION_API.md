@@ -551,6 +551,9 @@ CrCharacterText.UnregisterSource("MyMod");
   Keep the source cheap; a source that throws gives nothing (logged once). Game thread.
 
 This replaces writing into character_overrides.json or player_description.txt: the player's own files stay theirs.
+Give a text through ONE road only: CR does not compare the two, so a biography written into character_overrides.json
+and also returned by a source reaches the model (and the panel) twice. A mod moving to `CrCharacterText` takes its
+block out of the override file.
 
 ### Cultures (`CrCultures.MarriageCustom`, since 2.7.5)
 

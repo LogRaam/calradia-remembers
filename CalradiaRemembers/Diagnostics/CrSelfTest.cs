@@ -451,6 +451,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("capture_norm_facts", Severity.Light, "Fakade (Nexus, 10/11/2026): a lady left in a garrison dungeon after a plain capture, and her realm said she was 'kept like chattel'; the garrison's lord wrote the player had 'abandoned her'. The capture line named the keeping as the offence with no fact of it. Captures a real in-party lord into the player's party, reads the REAL CaptureFactsFor over a capture event naming them, asserts still held, held in the player's party, the right sex, and that the line forbids inventing ill treatment and no longer names the keeping as the offence. Frees the captive.", TestCaptureNormFacts),
          new SelfTest("captive_notoriety", Severity.Light, "Lordfadooboo (Nexus, 03/10/2026): an empress in an Aserai cell said few would trouble themselves with her. A real ruler must read as 'a ruler' whose capture is news; and when the game holds a captive of rank, her real prompt must tell her the world talks of her. Changes nothing.", TestCaptiveNotoriety),
          new SelfTest("memory_repair_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026) and Gabriel: one command to mend every memory the console mangled before the fix. Stores a mangled memory on a real lord, as an old save holds it, runs cr.memory_repair_accents through the engine's console: the memory must read as typed. Removes it after.", TestMemoryRepairAccents),
+         new SelfTest("rumour_no_acquaintance", Severity.Light, "VonLemberg (Discord, 15/11/2026, source audit of 2.8.10): 'the player met a lord 40 days ago, but the lord received an unrelated memory yesterday. The system may treat yesterday as their last meeting', and injected memories made a stranger read as known. On a throwaway profile of a real lord (the save is untouched), through the REAL EncounterContextBuilder and FirstImpressionResolver: with only rumours heard and a memory of his own life, he has never met the player (no last meeting, a stranger when free, not already known by his memories); with a meeting 40 days old added, the last meeting is 40 days ago whatever he heard today", TestRumourNoAcquaintance),
+         new SelfTest("compression_takeback", Severity.Light, "VonLemberg (Discord, 15/11/2026, source audit of 2.8.10): a memory a mod takes back with CrNpcMemory.RemoveMemory while a compression pass is in flight came back when the pass was applied, and could linger in the background summary. On a real lord: adds a memory through the REAL AddMemory, takes the snapshot a pass would read, takes the memory back through the REAL RemoveMemory, then applies through the REAL write-back (1) a pass that kept it: it must stay gone, and a memory added meanwhile must stay; (2) a pass that folded it into its summary: nothing is applied and the background is left as it was. No model is called. Leaves the lord as found", TestCompressionTakeback),
          new SelfTest("player_memory_kept", Severity.Light, "Icezera (Discord, 15/11/2026): memories added with cr.memory_add were gone some days later; memory compression had folded them away. Sends cr.memory_add, through the engine's own console dispatch, a memory dated 30 days back to a real lord (padded with test memories to the size compression works on), then runs the REAL compressor on that profile with a stand-in model that drops everything: the memory the player wrote must be kept, and an ordinary test memory of the same age must not be. No model is called. Removes every test memory after", TestPlayerMemoryKept),
          new SelfTest("console_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026): accents typed into cr.memory_add / cr.memory_set came out as mojibake (the console reads UTF-8 back as Windows-1252). Sends cr.memory_add, through the engine's own console dispatch, a line mangled exactly as the console mangles it: the stored memory must read exactly as typed. Removes the memory after.", TestConsoleAccents),
          new SelfTest("extreme_trait_persona", Severity.Light, "A trait at +-2 (the game's strongest) met no persona archetype and got the generic 'figure of contradictions' line. Takes a real hero with such a trait and builds the persona the real way: the extreme must be said in it, never as relish. Stores nothing.", TestExtremeTraitPersona),
@@ -16865,6 +16867,100 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      private static string TestRumourNoAcquaintance(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("rumour_no_acquaintance");
+
+         // A lord with no standing bond, so only his memories could make the player known to him.
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && h.Clan != Clan.PlayerClan && !FirstImpressionResolver.HasStandingBond(h, null, behavior.GameStateBridge));
+         if (t.Skip(lord == null, "no lord without a standing bond to the player")) return t.Line();
+
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+         NpcProfile heardOnly = HeroProfileMapper.FromHero(lord);
+         heardOnly.Events.Add(new NotableEvent(today, NotableEventType.Hearsay, "(selftest) heard that a caravan was taken"));
+         heardOnly.Events.Add(new NotableEvent(today, NotableEventType.Hearsay, "(selftest) heard of a blight"));
+         heardOnly.Events.Add(new NotableEvent(today, NotableEventType.Hearsay, "(selftest) heard of a wedding"));
+         heardOnly.Events.Add(new NotableEvent(today - 1, NotableEventType.OwnLife, "(selftest) buried an uncle"));
+
+         EncounterContext ctx = EncounterContextBuilder.Build(lord, heardOnly, behavior.GameStateBridge, "hello");
+         t.Note($"{lord.Name}: status={ctx.PlayerStatus}, daysSinceLastMeeting={ctx.DaysSinceLastMeeting}");
+         t.Expect("rumoursAreNoMeeting", ctx.DaysSinceLastMeeting, -1);
+         t.Expect("rumoursDoNotMakeThePlayerKnown", FirstImpressionResolver.IsAlreadyKnown(lord, heardOnly, behavior.GameStateBridge), false);
+         if (behavior.GameStateBridge.GetPlayerStatus(lord) == PlayerStatusVsNpc.Free)
+            t.Expect("thePlayerIsStillAStranger", ctx.PlayerStatus, PlayerStatusVsNpc.Stranger);
+         else
+            t.Note($"the game says the player is {behavior.GameStateBridge.GetPlayerStatus(lord)} to him, so the stranger reading does not apply");
+
+         // The audit's own example: met 40 days ago, a rumour heard today.
+         heardOnly.Events.Insert(0, new NotableEvent(today - 40, NotableEventType.FirstMeeting, "(selftest) met at a feast"));
+         ctx = EncounterContextBuilder.Build(lord, heardOnly, behavior.GameStateBridge, "hello");
+         t.Expect("theLastMeetingIsTheMeetingNotTheRumour", ctx.DaysSinceLastMeeting, 40);
+
+         return t.Line();
+      }
+
+      private static string TestCompressionTakeback(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("compression_takeback");
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero);
+         if (t.Skip(lord == null, "no lord in this world")) return t.Line();
+
+         const string rumor = "[SELFTEST] A rumor a mod will take back.";
+         const string filler = "[SELFTEST] an old skirmish";
+         const string meanwhile = "[SELFTEST] made while the pass was away";
+         const string summary = "[SELFTEST] summary of the pass";
+         bool hadProfile = behavior.Store.Get(lord.StringId) != null;
+         string backgroundBefore = behavior.Store.Get(lord.StringId)?.BackgroundContext;
+
+         try
+         {
+            // (1) The pass KEPT the rumor; the mod took it back meanwhile.
+            t.Expect("added", CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = lord.StringId, Summary = rumor, Kind = "Hearsay", SourceMod = "CrSelfTest"}), MemoryResult.Added);
+            NpcProfile profile = behavior.Store.Get(lord.StringId);
+            profile.Events.Add(new NotableEvent(1, NotableEventType.Other, filler));
+            List<NotableEvent> read = profile.Events.ToList();
+            List<NotableEvent> keptAllButTheFiller = read.Where(e => e.summary != filler).ToList();
+
+            t.Expect("takenBack", CrNpcMemory.RemoveMemory(new CrMemoryRemoval {NpcId = lord.StringId, Summary = rumor, SourceMod = "CrSelfTest"}), 1);
+            profile.Events.Insert(0, new NotableEvent(1, NotableEventType.Other, meanwhile));
+
+            bool applied = Memory.MemoryCompressionService.Apply(behavior, lord.StringId, read, NpcMemoryService.Core.Compression.CompressionResult.Success(keptAllButTheFiller, 1, summary, null));
+            profile = behavior.Store.Get(lord.StringId);
+            t.Expect("thePassIsApplied", applied, true);
+            t.Expect("theRumorTakenBackStaysGone", profile.Events.Any(e => e.summary == rumor), false);
+            t.Expect("whatThePassDroppedIsGone", profile.Events.Any(e => e.summary == filler), false);
+            t.Expect("aMemoryMadeMeanwhileStays", profile.Events.Any(e => e.summary == meanwhile), true);
+
+            // (2) The pass FOLDED the rumor into its summary; the mod took it back meanwhile.
+            profile.BackgroundContext = backgroundBefore;
+            CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = lord.StringId, Summary = rumor, Kind = "Hearsay", SourceMod = "CrSelfTest"});
+            profile = behavior.Store.Get(lord.StringId);
+            read = profile.Events.ToList();
+            List<NotableEvent> keptAllButTheRumor = read.Where(e => e.summary != rumor).ToList();
+            CrNpcMemory.RemoveMemory(new CrMemoryRemoval {NpcId = lord.StringId, Summary = rumor, SourceMod = "CrSelfTest"});
+
+            applied = Memory.MemoryCompressionService.Apply(behavior, lord.StringId, read, NpcMemoryService.Core.Compression.CompressionResult.Success(keptAllButTheRumor, 1, summary, null));
+            profile = behavior.Store.Get(lord.StringId);
+            t.Expect("aPassThatFoldedItIsSetAside", applied, false);
+            t.Expect("theBackgroundDoesNotSpeakOfIt", profile.BackgroundContext == backgroundBefore, true);
+            t.Expect("theRumorIsStillGone", profile.Events.Any(e => e.summary == rumor), false);
+         }
+         finally
+         {
+            NpcProfile profile = behavior.Store.Get(lord.StringId);
+            if (profile?.Events != null)
+            {
+               profile.Events.RemoveAll(e => e.summary != null && e.summary.StartsWith("[SELFTEST]"));
+               profile.BackgroundContext = backgroundBefore;
+               behavior.Store.Set(profile);
+               if (!hadProfile && profile.Events.Count == 0) t.Note($"{lord.Name}: an empty profile created by the test remains (harmless: no memory, no regard)");
+            }
+         }
+
+         return t.Line();
+      }
+
       private static string TestPlayerMemoryKept(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("player_memory_kept");
@@ -27543,6 +27639,28 @@ namespace CalradiaRemembers.Diagnostics
             // 5. and the same news twice is still one piece of news.
             t.Expect("theSameNewsTwiceIsRecordedOnce",
                      WorldClaimInjector.Adopt(new List<WorldClaim> {blight}, speaker, today), 0);
+
+            // 6. the news belongs to a realm, so that realm hears it (VonLemberg, source audit, 15/11/2026: no realm
+            // was written, and a claim reached a third party on its first day only).
+            string realm = (place.MapFaction ?? speaker.MapFaction)?.StringId;
+            if (realm != null)
+            {
+               t.Expect("theNewsBelongsToTheRealmOfItsPlace", row.FactionIds?.Contains(realm) == true, true);
+               t.Expect("someoneOfThatRealmFarFromThePlaceHearsIt", RumorAwareness.Knows(RumorAwareness.Score(row.Magnitude, true, 0, 0)), true);
+            }
+
+            // 7. a claim that names the player never enters, whatever the model labelled it (same audit).
+            string playerName = Hero.MainHero?.Name?.ToString();
+            if (!string.IsNullOrWhiteSpace(playerName))
+            {
+               var aboutThePlayer = new WorldClaim {
+                  SpeakerId = speaker.StringId, SpeakerName = speaker.Name?.ToString(),
+                  Subject = ClaimSubject.LocalQuarrel, PlaceName = place.Name?.ToString(), StatedAsFact = true,
+                  Text = $"[SELFTEST] {playerName} quarrelled with the steward at {place.Name}."
+               };
+
+               t.Expect("aClaimNamingThePlayerNeverEnters", WorldClaimInjector.Adopt(new List<WorldClaim> {aboutThePlayer}, speaker, today), 0);
+            }
          }
          finally
          {

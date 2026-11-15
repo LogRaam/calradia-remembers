@@ -1084,13 +1084,12 @@ namespace CalradiaRemembers.Mapping
 
       private static int ComputeDaysSinceLastMeeting(NpcProfile profile, IGameStateBridge bridge)
       {
-         if (profile == null || profile.Events == null || profile.Events.Count == 0)
-            return -1;
+         // Only what they lived with the player dates a meeting: a rumour that reached them yesterday, or their own life
+         // apart, is no meeting (VonLemberg, source audit, 15/11/2026).
+         int? lastLivedDay = HistoryWindowPolicy.LastLivedDay(profile?.Events);
+         if (lastLivedDay == null) return -1;
 
-         int latestEventDay = profile.Events.Max(e => e.gameDay);
-         int currentDay = bridge.GetCurrentGameDay();
-
-         return Math.Max(0, currentDay - latestEventDay);
+         return Math.Max(0, bridge.GetCurrentGameDay() - lastLivedDay.Value);
       }
 
       /// <summary>
@@ -4144,7 +4143,9 @@ namespace CalradiaRemembers.Mapping
       {
          PlayerStatusVsNpc fromBridge = bridge.GetPlayerStatus(hero);
 
-         bool firstMeeting = profile == null || profile.Events == null || profile.Events.Count == 0;
+         // Nothing LIVED with the player: word that reached them, or a memory of their own life, makes no acquaintance
+         // (VonLemberg, source audit, 15/11/2026: CrNpcMemory.AddMemory can seed a character the player never met).
+         bool firstMeeting = HistoryWindowPolicy.LivedCount(profile?.Events) == 0;
 
          if (firstMeeting && fromBridge == PlayerStatusVsNpc.Free)
             return PlayerStatusVsNpc.Stranger;

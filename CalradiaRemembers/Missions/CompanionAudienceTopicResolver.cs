@@ -273,11 +273,12 @@ namespace CalradiaRemembers.Missions
 
          foreach (NotableEvent ev in events)
          {
-            // NotableEvent has no id of its own; gameDay+type is a stable enough composite identity to
-            // remember "already used as a callback" without ever resurfacing the SAME stored memory on
-            // every audience the strongest-first ranking would otherwise keep picking.
-            string key = CallbackKey(companion, ev);
-            if (usedCallbackKeys != null && usedCallbackKeys.Contains(key)) continue;
+            // A memory already called back to never resurfaces at every audience the strongest-first ranking would
+            // otherwise keep picking. Its key tells it from another memory of the same day and kind (VonLemberg, source
+            // audit, 15/11/2026); a key saved by 2.8.10 or older still stands for all of that day and kind.
+            var memory = new CallbackMemory {DayAndKindKey = CallbackKey(companion, ev), MemoryId = ev.Id, Summary = ev.summary};
+            if (CallbackKeyPolicy.IsSpent(memory, usedCallbackKeys)) continue;
+            string key = CallbackKeyPolicy.KeyOf(memory);
 
             int strength = CompanionCallbackPolicy.Strength(ev.type, today - ev.gameDay);
             if (strength <= bestStrength) continue;
@@ -295,7 +296,7 @@ namespace CalradiaRemembers.Missions
          };
       }
 
-      /// <summary>The composite identity used to remember a NotableEvent already spent as a callback.</summary>
+      /// <summary>The key 2.8.10 and older saved for a spent callback: companion, day and kind (see Logic CallbackKeyPolicy).</summary>
       public static string CallbackKey(Hero companion, NotableEvent ev)
          => $"{companion?.StringId}:{ev.gameDay}:{(int) ev.type}";
 

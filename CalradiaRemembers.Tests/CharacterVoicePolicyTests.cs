@@ -72,6 +72,42 @@ namespace CalradiaRemembers.Tests
          CharacterVoicePolicy.HabitsFor("lord", 60).Should().NotContain(h => h.Contains("older and harder than you are"));
       }
 
+      // THE AUDIT (VonLemberg, 15/11/2026): "This could cause a previously stable speaking style to change abruptly on a
+      // birthday." A character who speaks with a lifelong habit keeps it across 25 and across 50; only a habit of youth
+      // or of old age comes and goes with the age.
+      [Test]
+      public void GIVEN_a_character_with_a_lifelong_habit_WHEN_they_turn_25_or_50_THEN_they_speak_as_they_did()
+      {
+         var lifelong = CharacterVoicePolicy.HabitsFor("lord", 35);
+         var changedWithoutAnAgeHabit = 0;
+
+         for (var i = 0; i < 300; i++)
+         {
+            string id = "lord_" + i;
+            string young = CharacterVoicePolicy.Draw(Facts(id, age: 24)).Habit;
+            string grown = CharacterVoicePolicy.Draw(Facts(id, age: 25)).Habit;
+            string stillGrown = CharacterVoicePolicy.Draw(Facts(id, age: 49)).Habit;
+            string old = CharacterVoicePolicy.Draw(Facts(id, age: 50)).Habit;
+
+            grown.Should().Be(stillGrown);
+            if (lifelong.Contains(young) && young != grown) changedWithoutAnAgeHabit++;
+            if (lifelong.Contains(old) && old != grown) changedWithoutAnAgeHabit++;
+         }
+
+         changedWithoutAnAgeHabit.Should().Be(0);
+      }
+
+      // STAKE ("while preserving legitimate age-related characteristics"): some of the young and some of the old still
+      // show a habit of their age, or the age habits would be dead text.
+      [Test]
+      public void GIVEN_many_young_and_old_characters_WHEN_voices_are_drawn_THEN_some_show_a_habit_of_their_age()
+      {
+         var lifelong = CharacterVoicePolicy.HabitsFor("lord", 35);
+
+         Enumerable.Range(0, 300).Count(i => !lifelong.Contains(CharacterVoicePolicy.Draw(Facts("lord_" + i, age: 20)).Habit)).Should().BeGreaterThan(0);
+         Enumerable.Range(0, 300).Count(i => !lifelong.Contains(CharacterVoicePolicy.Draw(Facts("lord_" + i, age: 60)).Habit)).Should().BeGreaterThan(0);
+      }
+
       // STAKE: the station pack makes a preacher deferential and holy; a cursing, faithless preacher contradicts it.
       [Test]
       public void GIVEN_a_preacher_WHEN_the_voice_is_drawn_THEN_they_never_curse_and_are_devout()

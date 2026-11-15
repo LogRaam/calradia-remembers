@@ -124,6 +124,9 @@ namespace CalradiaRemembers.Memory
 
                 await Services.BackgroundCallHold.WhileConversationOpenAsync(Services.LlmServices.RunsLocally(ServiceRole.Housekeeping), $"memory compaction for {profile.Name}");
 
+                // What the pass reads: its answer is applied against these very memories (see Apply).
+                List<NotableEvent> readByThePass = profile.Events.ToList();
+
                 CompressionResult result;
                 using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(TimeoutSeconds)))
                 {
@@ -137,14 +140,19 @@ namespace CalradiaRemembers.Memory
                     return;
                 }
 
-                if (result.DroppedCount <= 0)
+                if (result.DroppedCount <= 0 || result.KeptEvents.Count >= readByThePass.Count)
                 {
                     ModLog.Info($"[MEMORY] compression kept everything for {profile.Name} ({snapshotCount} events); nothing to drop.");
 
                     return;
                 }
 
-                Apply(behavior, npcId, result, snapshotCount);
+                if (!Apply(behavior, npcId, readByThePass, result))
+                {
+                    // Set aside, not failed: give the attempt back so the next trigger retries it.
+                    if (lastAttempt > 0) LastAttemptedAtCount[npcId] = lastAttempt;
+                    else LastAttemptedAtCount.Remove(npcId);
+                }
             }
             catch (OperationCanceledException)
             {
@@ -168,70 +176,28 @@ namespace CalradiaRemembers.Memory
         #region private
 
         /// <summary>
-        ///   Writes the compressed history back. The compressor worked on a SNAPSHOT, so anything recorded
-        ///   while the call was in flight is carried over rather than lost: compression must never cost the
-        ///   player a memory that was made after it started.
-        ///
-        ///   <para>
-        ///     That used to be true of APPENDS only, and this comment used to claim it of enrichments too —
-        ///     "a summary the queue enriched … is carried over untouched" — which was false and is the worse
-        ///     kind of wrong, because the next reader concludes the case is handled. A summarizer replaces an
-        ///     anchor IN PLACE, at its original index, which is inside the snapshot range; KeptEvents holds
-        ///     the object as it was BEFORE that, so writing it back silently restored the plain
-        ///     "Spoke with X." over the rich summary — with the job already marked done and never retried
-        ///     (audit, 15/09/2026).
-        ///   </para>
-        ///   <para>
-        ///     Now each kept event is re-read from the CURRENT list by its identity, so whatever the anchor
-        ///     has become since the snapshot is what survives. Events with no identity — everything written
-        ///     before 16/09/2026, and everything nobody intends to revisit — behave exactly as they did.
-        ///   </para>
+        ///   Writes a compression pass back onto the history AS IT STANDS NOW (Logic.CompressionMergePolicy): the very
+        ///   memories the pass dropped are taken out, and nothing else is touched. The pass used to rebuild the history
+        ///   from its snapshot, which lost an enrichment made meanwhile (audit, 15/09/2026), then a memory written by hand
+        ///   meanwhile (Icezera, 15/11/2026), then brought back a memory a mod had taken back (VonLemberg, 15/11/2026).
+        ///   When a memory the pass folded into its summary is gone, the summary is out of date: nothing is applied and
+        ///   false is returned, so the pass is tried again later.
         /// </summary>
-        /// <summary>
-        ///   The live version of a kept event: whatever now sits under its identity, or the snapshot's own
-        ///   object when it has no identity or has since gone. Enrichment replaces an anchor in place while a
-        ///   compression pass is in flight, and this is what stops the pass undoing it.
-        /// </summary>
-        private static NotableEvent Current(NpcProfile fresh, NotableEvent kept)
-        {
-            if (kept == null || string.IsNullOrEmpty(kept.Id)) return kept;
-
-            foreach (NotableEvent live in fresh.Events)
-                if (live != null && string.Equals(live.Id, kept.Id, StringComparison.Ordinal))
-                    return live;
-
-            return kept;
-        }
-
-        /// <summary>
-        ///   Puts back, in its place by day, any memory the player wrote while the call was in flight that the rebuilt
-        ///   history lacks. cr.memory_add files a memory dated in the past among the older ones, inside the snapshot's
-        ///   range, so the "added since" tail never sees it (Icezera, 15/11/2026: memories added by hand went missing).
-        /// </summary>
-        private static void CarryPlayerWritten(NpcProfile fresh, List<NotableEvent> rebuilt)
-        {
-            foreach (NotableEvent live in fresh.Events.ToList())
-            {
-                if (live is not {IsPlayerWritten: true}) continue;
-                if (rebuilt.Any(r => ReferenceEquals(r, live) || (!string.IsNullOrEmpty(live.Id) && r != null && string.Equals(r.Id, live.Id, StringComparison.Ordinal)))) continue;
-
-                int at = rebuilt.FindIndex(r => r != null && r.gameDay > live.gameDay);
-                rebuilt.Insert(at < 0 ? rebuilt.Count : at, live);
-            }
-        }
-
-        private static void Apply(NpcMemoryCampaignBehavior behavior, string npcId, CompressionResult result, int snapshotCount)
+        internal static bool Apply(NpcMemoryCampaignBehavior behavior, string npcId, IReadOnlyList<NotableEvent> readByThePass, CompressionResult result)
         {
             NpcProfile fresh = behavior.Store.Get(npcId);
-            if (fresh?.Events == null) return;
+            if (fresh?.Events == null) return false;
 
-            List<NotableEvent> since = fresh.Events.Count > snapshotCount
-                ? fresh.Events.Skip(snapshotCount).ToList()
-                : new List<NotableEvent>();
+            CompressionMergeOutcome<NotableEvent> outcome = CompressionMergePolicy.Resolve(new CompressionMerge<NotableEvent> {
+                Before = readByThePass, Kept = result.KeptEvents, Live = fresh.Events.ToList()
+            });
 
-            var rebuilt = new List<NotableEvent>(result.KeptEvents.Select(kept => Current(fresh, kept)));
-            rebuilt.AddRange(since);
-            CarryPlayerWritten(fresh, rebuilt);
+            if (outcome.Stale)
+            {
+                ModLog.Info($"[MEMORY] compression set aside for {fresh.Name}: a memory it folded away was taken back or rewritten meanwhile; will retry later.");
+
+                return false;
+            }
 
             int before = fresh.Events.Count;
 
@@ -239,7 +205,7 @@ namespace CalradiaRemembers.Memory
             // the same list to build prompts; between those two calls the character's whole past is gone, and
             // a reader landing in that window sees an empty history or throws into a background task. See
             // NpcProfile.ReplaceEvents.
-            fresh.ReplaceEvents(rebuilt);
+            fresh.ReplaceEvents(outcome.History);
 
             // The compressor is told to fold the EXISTING background context into its summary, so replacing is
             // right: keeping both would duplicate the older outline every pass.
@@ -247,8 +213,9 @@ namespace CalradiaRemembers.Memory
                 fresh.BackgroundContext = result.BackgroundSummary.Trim();
 
             behavior.Store.Set(fresh);
-            ModLog.Info($"[MEMORY] compressed {fresh.Name}: {before} -> {fresh.Events.Count} events "
-                      + $"({result.DroppedCount} dropped, {since.Count} added during the call kept).");
+            ModLog.Info($"[MEMORY] compressed {fresh.Name}: {before} -> {fresh.Events.Count} events ({before - fresh.Events.Count} dropped).");
+
+            return true;
         }
 
         #endregion
