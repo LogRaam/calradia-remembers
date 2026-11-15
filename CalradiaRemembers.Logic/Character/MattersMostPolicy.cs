@@ -58,8 +58,32 @@ namespace CalradiaRemembers.Logic.Character
       /// <summary>They belong to no noble house: a wanderer, a hired sword.</summary>
       public bool IsWanderer { get; init; }
 
-      /// <summary>They hold a live grudge the player may know of (against someone else, or one the player knows).</summary>
+      /// <summary>
+      ///   They hold a live grudge, any grudge, the one against the player they keep hidden included: it moves them whether
+      ///   or not the player knows (VonLemberg, source audit, 15/11/2026; Gabriel: "oui je veux cette separation"). What
+      ///   the PAGE may say of it is decided apart (<see cref="MattersMostPageFacts.ScoreHiddenFromThePlayer" />).
+      /// </summary>
       public bool HasScoreToSettle { get; init; }
+   }
+
+   /// <summary>One live grudge, as what matters most to its holder sees it.</summary>
+   public sealed class GrudgeSighting
+   {
+      /// <summary>It is held against the player.</summary>
+      public bool AgainstThePlayer { get; init; }
+
+      /// <summary>The player knows of it.</summary>
+      public bool KnownToPlayer { get; init; }
+   }
+
+   /// <summary>Whether a character has a score to settle, and whether the player may be told so.</summary>
+   public sealed class ScoreToSettle
+   {
+      /// <summary>They hold at least one live grudge.</summary>
+      public bool Held { get; init; }
+
+      /// <summary>Every grudge they hold is against the player and hidden from them: the page must not say it.</summary>
+      public bool HiddenFromThePlayer { get; init; }
    }
 
    /// <summary>What the encyclopedia says of what matters most to a character.</summary>
@@ -76,6 +100,13 @@ namespace CalradiaRemembers.Logic.Character
 
       /// <summary>The player knows of their lover (RomanticProfile.LoverKnownToPlayer).</summary>
       public bool LoverKnownToPlayer { get; init; }
+
+      /// <summary>
+      ///   Their score to settle rests only on a grudge against the player that the player does not know of
+      ///   (<see cref="ScoreToSettle.HiddenFromThePlayer" />): "a score he means to settle" on the page of a man the player
+      ///   thinks a friend would give the secret away.
+      /// </summary>
+      public bool ScoreHiddenFromThePlayer { get; init; }
    }
 
    /// <summary>Chooses, keeps and words what matters most to a character. Pure.</summary>
@@ -106,10 +137,31 @@ namespace CalradiaRemembers.Logic.Character
       /// </summary>
       public static bool StillKnown(MattersMost before, MattersMost now, bool known) => known && before == now;
 
-      /// <summary>The line on their page, or null while the player has not learned it.</summary>
+      /// <summary>
+      ///   Whether they have a score to settle, and whether it may be told. Every live grudge counts for the character, the
+      ///   hidden one against the player included; the page is silent while that hidden one is all there is. Until
+      ///   15/11/2026 the hidden grudge did not count at all, so the prompt said "you nurse a secret grudge" and "what
+      ///   matters most to you is your children" side by side (VonLemberg's source audit).
+      /// </summary>
+      public static ScoreToSettle ScoreOf(IEnumerable<GrudgeSighting> grudges)
+      {
+         var held = false;
+         var open = false;
+         foreach (GrudgeSighting g in grudges ?? Enumerable.Empty<GrudgeSighting>())
+         {
+            if (g == null) continue;
+            held = true;
+            if (!g.AgainstThePlayer || g.KnownToPlayer) open = true;
+         }
+
+         return new ScoreToSettle {Held = held, HiddenFromThePlayer = held && !open};
+      }
+
+      /// <summary>The line on their page, or null while the player has not learned it, or while it would tell a secret.</summary>
       public static string PageLine(MattersMostPageFacts f)
       {
          if (f == null || !f.Known || f.MattersMost == MattersMost.None) return null;
+         if (f.MattersMost == MattersMost.Vengeance && f.ScoreHiddenFromThePlayer) return null;
 
          string her = f.IsFemale ? "her" : "his";
          string she = f.IsFemale ? "she" : "he";

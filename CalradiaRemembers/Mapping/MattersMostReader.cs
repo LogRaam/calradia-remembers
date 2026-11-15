@@ -1,8 +1,10 @@
 ﻿// Code written by Gabriel Mailhot, 27/10/2026.
 // What the world says is true of a character, read for MattersMostPolicy (Gabriel, 27/10/2026: "qu'est-ce qui compte le
 // plus pour un NPC. Ses enfants? Sa richesse? Son amoureux?"): their living children, spouse and kin, a lover, their house
-// and lands, and a live grudge the player may know of. A grudge held against the player and hidden from them never
-// grounds a score to settle: the encyclopedia would otherwise tell the player of a grudge they were never meant to see.
+// and lands, and a live grudge. A grudge held against the player and hidden from them moves the character like any other,
+// but the encyclopedia says nothing of a score to settle that rests on it alone (VonLemberg, source audit, 15/11/2026;
+// Gabriel: "oui je veux cette separation"): until then it counted for neither, and the prompt said both "you nurse a
+// secret grudge" and "what matters most to you is your children".
 
 #region
 
@@ -35,8 +37,6 @@ namespace CalradiaRemembers.Mapping
          bool bondBroken = r != null && r.Status is RomanticStatus.Estranged or RomanticStatus.Broken;
          Hero lover = !string.IsNullOrEmpty(r?.TakenLoverId) ? Hero.FindFirst(x => x.StringId == r.TakenLoverId) : null;
          bool isNoble = hero.IsLord && hero.Clan != null && hero.Clan != Clan.PlayerClan || hero.IsLord && hero.Clan == Clan.PlayerClan && hero.CompanionOf == null;
-         var today = (int) CampaignTime.Now.ToDays;
-         IReadOnlyList<Grudge> grudges = GrudgeBehavior.Instance?.LiveGrudgesFor(hero, today);
 
          return new MattersMostFacts {
             HeroId = hero.StringId,
@@ -50,8 +50,18 @@ namespace CalradiaRemembers.Mapping
             LeadsTheirHouse = hero.Clan?.Leader == hero || hero.Clan?.Kingdom?.Leader == hero,
             HoldsLands = hero.GovernorOf != null || hero.Clan?.Leader == hero && hero.Clan.Settlements?.Any(s => s.IsTown || s.IsCastle) == true,
             IsWanderer = !isNoble && (hero.IsWanderer || hero.CompanionOf != null),
-            HasScoreToSettle = grudges?.Any(g => g != null && (g.TargetId != player?.StringId || g.KnownToPlayer)) == true
+            HasScoreToSettle = ScoreOf(hero).Held
          };
+      }
+
+      /// <summary>Their live grudges, read as a score to settle (MattersMostPolicy.ScoreOf).</summary>
+      private static ScoreToSettle ScoreOf(Hero hero)
+      {
+         string playerId = Hero.MainHero?.StringId;
+         IReadOnlyList<Grudge> grudges = GrudgeBehavior.Instance?.LiveGrudgesFor(hero, (int) CampaignTime.Now.ToDays);
+
+         return MattersMostPolicy.ScoreOf(grudges?.Where(g => g != null)
+                                                 .Select(g => new GrudgeSighting {AgainstThePlayer = g.TargetId == playerId, KnownToPlayer = g.KnownToPlayer}));
       }
 
       /// <summary>Chooses or keeps what matters most to them; logs a change.</summary>
@@ -81,7 +91,8 @@ namespace CalradiaRemembers.Mapping
 
          return MattersMostPolicy.PageLine(new MattersMostPageFacts {
             MattersMost = profile.MattersMost, Known = profile.MattersMostKnown, IsFemale = hero.IsFemale,
-            LoverKnownToPlayer = profile.Romantic?.LoverKnownToPlayer == true
+            LoverKnownToPlayer = profile.Romantic?.LoverKnownToPlayer == true,
+            ScoreHiddenFromThePlayer = profile.MattersMost == MattersMost.Vengeance && ScoreOf(hero).HiddenFromThePlayer
          });
       }
    }

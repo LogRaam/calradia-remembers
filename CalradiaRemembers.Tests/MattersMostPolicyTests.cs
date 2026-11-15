@@ -114,6 +114,49 @@ namespace CalradiaRemembers.Tests
                           .Should().Be("What matters most to her: her lover.");
       }
 
+      // THE AUDIT (VonLemberg, 15/11/2026): "A secret vendetta should be able to influence internal motivation without
+      // revealing the secret in dialogue or the encyclopedia." Gabriel: "oui je veux cette separation". A grudge against
+      // the player, kept hidden, gives the character a score to settle all the same.
+      [Test]
+      public void GIVEN_only_a_hidden_grudge_against_the_player_WHEN_read_THEN_they_have_a_score_to_settle_that_the_page_must_not_tell()
+      {
+         ScoreToSettle score = MattersMostPolicy.ScoreOf(new[] {new GrudgeSighting {AgainstThePlayer = true, KnownToPlayer = false}});
+
+         score.Held.Should().BeTrue();
+         score.HiddenFromThePlayer.Should().BeTrue();
+      }
+
+      // STAKE: the page keeps the secret. A man the player thinks a friend never reads "a score he means to settle".
+      [Test]
+      public void GIVEN_a_score_resting_on_a_hidden_grudge_WHEN_his_page_opens_THEN_it_says_nothing_of_it()
+      {
+         MattersMostPolicy.PageLine(new MattersMostPageFacts {MattersMost = MattersMost.Vengeance, Known = true, ScoreHiddenFromThePlayer = true}).Should().BeNull();
+      }
+
+      // STAKE: a grudge the player may see (against someone else, or one they know of) is told as it always was, even
+      // beside a hidden one: the page says "a score to settle" and names no one.
+      [Test]
+      public void GIVEN_a_grudge_the_player_may_see_beside_a_hidden_one_WHEN_read_THEN_the_page_may_tell_it()
+      {
+         ScoreToSettle score = MattersMostPolicy.ScoreOf(new[] {
+            new GrudgeSighting {AgainstThePlayer = true, KnownToPlayer = false},
+            new GrudgeSighting {AgainstThePlayer = false}
+         });
+
+         score.HiddenFromThePlayer.Should().BeFalse();
+         MattersMostPolicy.PageLine(new MattersMostPageFacts {MattersMost = MattersMost.Vengeance, Known = true})
+                          .Should().Be("What matters most to him: a score he means to settle.");
+      }
+
+      // STAKE: no grudge, no score; and a hidden grudge says nothing about the OTHER anchors' lines.
+      [Test]
+      public void GIVEN_no_grudge_WHEN_read_THEN_there_is_no_score_and_other_anchors_are_told_as_before()
+      {
+         MattersMostPolicy.ScoreOf(new GrudgeSighting[0]).Held.Should().BeFalse();
+         MattersMostPolicy.PageLine(new MattersMostPageFacts {MattersMost = MattersMost.Children, Known = true, ScoreHiddenFromThePlayer = true})
+                          .Should().Be("What matters most to him: his children.");
+      }
+
       // STAKE: every anchor has its words on the page, and the player who is loved reads "you".
       [Test]
       public void GIVEN_every_anchor_WHEN_learned_THEN_his_page_names_it()

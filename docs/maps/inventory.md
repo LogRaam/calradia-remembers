@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 673 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1644 types in 61 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1646 types in 61 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1952,7 +1952,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RansomOfferFacts` | public class | Who holds the player when the game is about to offer a ransom. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 
-### CalradiaRemembers.Logic.Character (30)
+### CalradiaRemembers.Logic.Character (32)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1974,6 +1974,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GiftTastePolicy` | public static class | Rolls gift tastes, reads an item's kind, sizes a gift's regard and words what was learned. |
 | `GiftTastes` | public class | A character's gift tastes, as rolled. |
 | `GiftWelcome` | public enum | How a gift is met. |
+| `GrudgeSighting` | public class | One live grudge, as what matters most to its holder sees it. |
 | `HeldGoods` | public class | One stack the party holds, as the key reads it. |
 | `LaidOutGood` | public class | One good laid out in the bag for a sale: how many were set out, and how many the player holds now. |
 | `MattersMostFacts` | public class | What is true of a character, as what matters most to them is chosen from it. |
@@ -1986,6 +1987,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PanelTextCleaner` | public static class | What of an authored text the conversation panel shows a human. |
 | `Piety` | public enum | How a character's piety shows. |
 | `RosterItemKey` | public static class | Names one stack of goods by item and quality, and finds it again among what the party holds. |
+| `ScoreToSettle` | public class | Whether a character has a score to settle, and whether the player may be told so. |
 
 ### CalradiaRemembers.Logic.Chat (31)
 

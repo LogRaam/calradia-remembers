@@ -451,6 +451,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("capture_norm_facts", Severity.Light, "Fakade (Nexus, 10/11/2026): a lady left in a garrison dungeon after a plain capture, and her realm said she was 'kept like chattel'; the garrison's lord wrote the player had 'abandoned her'. The capture line named the keeping as the offence with no fact of it. Captures a real in-party lord into the player's party, reads the REAL CaptureFactsFor over a capture event naming them, asserts still held, held in the player's party, the right sex, and that the line forbids inventing ill treatment and no longer names the keeping as the offence. Frees the captive.", TestCaptureNormFacts),
          new SelfTest("captive_notoriety", Severity.Light, "Lordfadooboo (Nexus, 03/10/2026): an empress in an Aserai cell said few would trouble themselves with her. A real ruler must read as 'a ruler' whose capture is news; and when the game holds a captive of rank, her real prompt must tell her the world talks of her. Changes nothing.", TestCaptiveNotoriety),
          new SelfTest("memory_repair_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026) and Gabriel: one command to mend every memory the console mangled before the fix. Stores a mangled memory on a real lord, as an old save holds it, runs cr.memory_repair_accents through the engine's console: the memory must read as typed. Removes it after.", TestMemoryRepairAccents),
+         new SelfTest("hidden_grudge_motive", Severity.Light, "VonLemberg (Discord, 15/11/2026, source audit of 2.8.10): 'A secret vendetta should be able to influence internal motivation without revealing the secret in dialogue or the encyclopedia.' Gabriel: 'oui je veux cette separation'. On a real lord with no other grudge (his grudges and what matters most to him are put back after): plants a grudge against the player that the player does not know of, through the grudge ledger; through the REAL MattersMostReader he has a score to settle; with Vengeance learned, his What You Know section stays silent; once the player knows of the grudge, it names it", TestHiddenGrudgeMotive),
          new SelfTest("rumour_no_acquaintance", Severity.Light, "VonLemberg (Discord, 15/11/2026, source audit of 2.8.10): 'the player met a lord 40 days ago, but the lord received an unrelated memory yesterday. The system may treat yesterday as their last meeting', and injected memories made a stranger read as known. On a throwaway profile of a real lord (the save is untouched), through the REAL EncounterContextBuilder and FirstImpressionResolver: with only rumours heard and a memory of his own life, he has never met the player (no last meeting, a stranger when free, not already known by his memories); with a meeting 40 days old added, the last meeting is 40 days ago whatever he heard today", TestRumourNoAcquaintance),
          new SelfTest("compression_takeback", Severity.Light, "VonLemberg (Discord, 15/11/2026, source audit of 2.8.10): a memory a mod takes back with CrNpcMemory.RemoveMemory while a compression pass is in flight came back when the pass was applied, and could linger in the background summary. On a real lord: adds a memory through the REAL AddMemory, takes the snapshot a pass would read, takes the memory back through the REAL RemoveMemory, then applies through the REAL write-back (1) a pass that kept it: it must stay gone, and a memory added meanwhile must stay; (2) a pass that folded it into its summary: nothing is applied and the background is left as it was. No model is called. Leaves the lord as found", TestCompressionTakeback),
          new SelfTest("player_memory_kept", Severity.Light, "Icezera (Discord, 15/11/2026): memories added with cr.memory_add were gone some days later; memory compression had folded them away. Sends cr.memory_add, through the engine's own console dispatch, a memory dated 30 days back to a real lord (padded with test memories to the size compression works on), then runs the REAL compressor on that profile with a stand-in model that drops everything: the memory the player wrote must be kept, and an ordinary test memory of the same age must not be. No model is called. Removes every test memory after", TestPlayerMemoryKept),
@@ -16862,6 +16863,47 @@ namespace CalradiaRemembers.Diagnostics
                profile.Events.RemoveAll(e => e.summary != null && e.summary.StartsWith("[SELFTEST]"));
                behavior.Store.Set(profile);
             }
+         }
+
+         return t.Line();
+      }
+
+      private static string TestHiddenGrudgeMotive(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("hidden_grudge_motive");
+         if (t.Skip(behavior?.Store == null || Hero.MainHero == null || GrudgeBehavior.Instance == null, "no campaign or no grudge ledger")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && behavior.Store.Get(h.StringId) != null
+                                                             && GrudgeBehavior.Instance.LiveGrudgesFor(h, today).Count == 0);
+         if (t.Skip(lord == null, "no lord with a memory profile and no live grudge (talk to one first)")) return t.Line();
+
+         NpcProfile profile = behavior.Store.Get(lord.StringId);
+         MattersMost mattersBefore = profile.MattersMost;
+         bool knownBefore = profile.MattersMostKnown;
+         var planted = new Grudge {
+            Id = "selftest_hidden_grudge", HolderId = lord.StringId, TargetId = Hero.MainHero.StringId, Source = GrudgeSource.BrokenOath,
+            CauseSummary = "self-test: a wrong kept secret", EventDay = today, Magnitude = 90, Rigidity = 50, KnownToPlayer = false
+         };
+
+         try
+         {
+            GrudgeBehavior.Instance.AddGrudgeForTest(planted);
+            t.Expect("aHiddenGrudgeGivesHimAScoreToSettle", Mapping.MattersMostReader.FactsOf(lord, profile).HasScoreToSettle, true);
+
+            profile.MattersMost = MattersMost.Vengeance;
+            profile.MattersMostKnown = true;
+            t.Expect("hisPageKeepsTheSecret", Mapping.MattersMostReader.PageLine(lord, profile), null);
+
+            planted.KnownToPlayer = true;
+            t.Expect("onceTheGrudgeIsKnownHisPageMayTellIt", Mapping.MattersMostReader.PageLine(lord, profile)?.Contains("a score") == true, true);
+         }
+         finally
+         {
+            GrudgeBehavior.Instance.RemoveGrudge(planted);
+            profile.MattersMost = mattersBefore;
+            profile.MattersMostKnown = knownBefore;
+            behavior.Store.Set(profile);
          }
 
          return t.Line();
