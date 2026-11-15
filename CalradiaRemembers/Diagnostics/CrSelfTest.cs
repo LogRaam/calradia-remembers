@@ -16937,7 +16937,14 @@ namespace CalradiaRemembers.Diagnostics
             if (t.Skip(stock.Count == 0, "the stock prompt is not available (no model connection set up)")) return t.Line();
 
             string persona = CrPrompt.PersonaText(lord.StringId);
-            t.Note($"{lord.Name}: {CrPrompt.Persona(lord.StringId).Count} persona sections, {persona.Length} chars");
+            IReadOnlyList<CrPromptSection> sections = CrPrompt.Persona(lord.StringId);
+            t.Note($"{lord.Name}: {sections.Count} persona sections, {persona.Length} chars");
+            // Gabriel's run (15/11/2026): 577,067 chars and a format marker, with no word of where. Name each section's size,
+            // and the sections that carry a marker, so a failure says which part of the prompt it comes from.
+            t.Note("sizes: " + string.Join(", ", sections.Select(s => $"{s.Key}={s.Text.Length}")));
+            string marked = string.Join(", ", sections.Where(s => s.Text.Contains("[ACTION]") || s.Text.Contains("[DIALOGUE]"))
+                                                      .Select(s => $"{s.Key} at \"{Excerpt(s.Text, s.Text.IndexOf(s.Text.Contains("[ACTION]") ? "[ACTION]" : "[DIALOGUE]", StringComparison.Ordinal))}\""));
+            if (marked.Length > 0) t.Note("format markers in: " + marked);
             t.Expect("thePersonaIsNotEmpty", persona.Length > 0, true);
             t.Expect("thePersonaNamesTheLord", persona.IndexOf(lord.FirstName?.ToString() ?? lord.Name.ToString(), StringComparison.OrdinalIgnoreCase) >= 0, true);
             if (!ModSettings.LeanPrompt) t.Expect("thePersonaCarriesTheModsBackstory", persona.Contains(backstoryMark), true);
@@ -16954,6 +16961,15 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          return t.Line();
+      }
+
+      // Forty characters either side of a position in a text, on one line: where a marker sits, for a failure's note.
+      private static string Excerpt(string text, int at)
+      {
+         if (string.IsNullOrEmpty(text) || at < 0) return "";
+         int from = Math.Max(0, at - 40);
+
+         return text.Substring(from, Math.Min(text.Length - from, 100)).Replace("\r", " ").Replace("\n", " ");
       }
 
       private static string TestRumourNoAcquaintance(NpcMemoryCampaignBehavior behavior)
