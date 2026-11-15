@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 672 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1634 types in 60 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 673 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1635 types in 60 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -737,10 +737,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WarWearinessBehavior` | public class | Accrues war-weariness from real battle events and runs the honorable-retirement loop for a spent companion. |
 | `WarWearinessService` | public static class | The single place a companion's war-weariness is read from / written to their profile. |
 
-### CalradiaRemembers.Nemesis (8)
+### CalradiaRemembers.Nemesis (9)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `ExecutionerlessDeathGuard` | public static class | Keeps the engine's execution bookkeeping from reading a missing executioner (a stale Executed death mark). |
 | `LeaderlessFeudGuard` | public static class | Skips the engine's blood-feud start when the executed hero's clan has no leader (a CR nemesis's bandit clan). |
 | `NemesisBehavior` | public class | The save-persisted store of nemesis identities. |
 | `NemesisBountyDialogFlow` | public static class | Registers the scripted bounty-offer line at hero_main_options: shown only when the conversation partner is a lord eligible to put a price on a living, unresolved, not-already- bountied nemesis (NemesisBountyPolicy). |
@@ -1052,7 +1053,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (488)
+### CalradiaRemembers.Logic (489)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1179,6 +1180,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EscortCostPolicy` | public static class | Pure pricing for the per-correspondent armed-escort premium (a distance-scaled one-off fee). |
 | `ExchangeKind` | public enum | What kind of exchange is being settled. |
 | `ExchangeRecord` | public class | One exchange as the log reads it. |
+| `ExecutionerlessDeathPolicy` | public static class | Whether the engine's execution bookkeeping (blood feuds) may treat a death as an execution. |
 | `ExternalEventRules` | public static class | The normalisation + quota rules every externally-fed world event passes through. |
 | `ExternalMissionRules` | public static class | The normalisation rules every externally-registered player mission passes through. |
 | `EyeColorBands` | public static class | The words for Bannerlord's eye-colour gradient, banded from the slider offset. |

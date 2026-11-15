@@ -630,6 +630,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("appreciation_repeat", Severity.Light, "repetition (2026-07-22 fix): plant the SAME kindness on two different days -> assert it deepened ONE record instead of adding a twin, the tally reads twice, and the warmth actually ROSE (counting must weigh, not just show) -> assert a third plant the same day is still refused by the anti-noise rule -> run the migration twice and assert a reload cannot inflate the tally or split the record", TestAppreciationRepeat),
          new SelfTest("nemesis_kill", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(battle death) -> assert IsAlive flips false + a closure world-event is recorded", TestNemesisKilledInBattle),
          new SelfTest("nemesis_execute", Severity.Light, "mint a fresh nemesis -> NemesisResolutionBehavior.Resolve(executed) -> assert IsAlive flips false + the closure world-event reads distinctly from the battle-death flavor", TestNemesisExecuted),
+         new SelfTest("executionerless_death", Severity.Light, "Gabriel's play test (15/11/2026, 1.5.7): a hero with an Executed death mark and no executioner was killed by the daily tick, and ExecutionCampaignBehavior.OnHeroKilled read the missing killer's clan and crashed the game. Asserts the guard is attached and that the REAL OnHeroKilled, called with an Executed detail and no killer for a living lord, no longer throws, while an execution by someone is still kept as one. MANUAL on a game without the method. Kills nobody: OnHeroKilled only does the bookkeeping", TestExecutionerlessDeath),
          new SelfTest("leaderless_feud_guard", Severity.Light, "Bannerlord 1.5.7 blood feuds (Gabriel's cr.test all, 13/11/2026: executing a nemesis threw inside the engine's feud, a bandit clan having no leader). Where the game has ExecutionCampaignBehavior.OnPlayerExecutedHero, the guard is attached, and its prefix refuses the feud for a hero whose clan has no leader and allows it for a lord of a led clan. MANUAL on a game without blood feuds. nemesis_execute_prisoner drives the real execution. Read-only", TestLeaderlessFeudGuard),
          new SelfTest("nemesis_execute_prisoner", Severity.Light, "mint a fresh nemesis -> TakePrisonerAction (real capture) -> assert PlayerHeldNemesisPrisoner detects him -> BannerlordGameStateBridge.ExecuteAction(execute_prisoner) (the REAL bridge action the chat entry point's LLM emission triggers, not the Resolve harness) -> assert the existing HeroKilledEvent hook still resolves him + records the closure deed", TestNemesisExecutePrisoner),
          new SelfTest("nemesis_turn", Severity.Light, "increment 4 (SPARE + TURN): mint a nemesis -> real TakePrisonerAction -> force his stance below the gate floor and assert the real BannerlordGameStateBridge.ExecuteAction(turn_nemesis) REFUSES (still a prisoner, not turned) -> raise Fear/Respect past the floors and assert it TURNS him (identity marked turned, released from captivity, sworn into the player's clan)", TestNemesisTurn),
@@ -6800,6 +6801,43 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      private static string TestExecutionerlessDeath(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("executionerless_death");
+         if (t.Skip(!Nemesis.ExecutionerlessDeathGuard.TargetExists, "this game version has no ExecutionCampaignBehavior.OnHeroKilled (before 1.5.7): nothing to guard")) return t.Line();
+
+         Nemesis.ExecutionerlessDeathGuard.EnsurePatched(); // idempotent: attached at startup
+         // STAKE: without the guard, the first daily tick after such a hero comes back ends the game.
+         t.Expect("guardAttached", Nemesis.ExecutionerlessDeathGuard.IsPatched, true);
+
+         CampaignBehaviorBase engine = Campaign.Current?.CampaignBehaviorManager?.GetBehaviors<CampaignBehaviorBase>()
+                                               .FirstOrDefault(b => b.GetType().FullName == "TaleWorlds.CampaignSystem.CampaignBehaviors.ExecutionCampaignBehavior");
+         MethodInfo onKilled = engine?.GetType().GetMethod("OnHeroKilled", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+         // A lord of another house, free: no pending execution of the player's clan names him, so the bookkeeping changes nothing.
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.Clan != null && h.Clan != Clan.PlayerClan && !h.IsPrisoner && h != Hero.MainHero);
+         if (t.Skip(onKilled == null || lord == null, "the engine's execution behaviour or a free lord of another house is missing")) return t.Line();
+
+         string threw = "";
+         try
+         {
+            onKilled.Invoke(engine, new object[] {lord, null, KillCharacterAction.KillCharacterActionDetail.Executed, false});
+         }
+         catch (TargetInvocationException ex)
+         {
+            threw = $"{ex.InnerException?.GetType().Name}: {ex.InnerException?.Message}";
+         }
+
+         // THE CRASH: an execution with nobody who executed.
+         t.Expect("anExecutionWithNoExecutionerNoLongerThrows", threw, "");
+         t.Expect("andTheLordIsUntouched", lord.IsAlive, true);
+         // STAKE: an execution by someone is still kept as one, for the feud 1.5.7 starts.
+         var kept = KillCharacterAction.KillCharacterActionDetail.Executed;
+         Nemesis.ExecutionerlessDeathGuard.Prefix(lord, Hero.MainHero, ref kept);
+         t.Expect("anExecutionBySomeoneStaysOne", kept, KillCharacterAction.KillCharacterActionDetail.Executed);
+
+         return t.Line();
+      }
+
       private static string TestLeaderlessFeudGuard(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("leaderless_feud_guard");
@@ -9450,6 +9488,9 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("rewardRelation", after?.RewardRelation, expectedRelation);
          t.Note($"{displayName}: bounty from {giver.Name} ({expectedGold}g/+{expectedRelation}), stamped by a real capture, evidence={after?.Evidence}");
          DropTestBounty(behavior, giver, nemesisHero);
+         // The captive does not stay in the player's prison: a save made after cr.test all keeps nothing of it (Gabriel's
+         // play test, 15/11/2026, crashed on a test nemesis still held when the player was taken).
+         if (nemesisHero.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(nemesisHero, Hero.MainHero);
 
          return t.Line();
       }

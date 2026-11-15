@@ -99,6 +99,8 @@ namespace CalradiaRemembers
          UI.SettlementVisualTickGuard.EnsurePatched();
          // Bannerlord 1.5.7 blood feuds: executing a CR nemesis (a leaderless bandit clan) threw inside the engine. Off on 1.4.8.
          Nemesis.LeaderlessFeudGuard.EnsurePatched();
+         // Gabriel, 15/11/2026: an Executed death mark with no executioner crashed the engine's feud ledger on a daily tick. Off on 1.4.8.
+         Nemesis.ExecutionerlessDeathGuard.EnsurePatched();
          // Gabriel, 14/11/2026: a share of women among the soldiers in battle, per culture and realm (women_in_ranks.json).
          Mapping.WomenInRanksPatch.EnsurePatched();
          // Same class of problem, same shape of guard: the map keeps reading its own hotkeys under a pushed panel,
