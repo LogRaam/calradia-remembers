@@ -298,6 +298,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("diplomacy_door", Severity.Light, "VonLemberg's Bellum Civile bridge RFC (14/11/2026, P0-B): every war, peace and change of realm CR makes asks the registered authorities first. With a [SELFTEST] authority over two realms at war: Rejected and Pending leave the change unmade and give an honest line, Applied is not applied again, PassThrough applies it; the request carries both realms and this save. The change itself is a stand-in (nothing in the world moves). Unregisters the authority", TestDiplomacyDoor),
          new SelfTest("prompt_stock_sections", Severity.Light, "Bhelogan (Muh Prompts, 14/11/2026): 'read-only stock text of a prompt section (for the profile editor)'. For a real lord, through CrPrompt.StockSections: every keyed section is listed in the stock order (the keys of CrPrompt.Sections), the identity section writes something and names him, StockSectionText reads the same text, and an unknown hero gives nothing", TestPromptStockSections),
          new SelfTest("portrait_source", Severity.Light, "Bhelogan (14/11/2026): 'a portrait source for chat portraits, so a mod can supply a picture per hero without naming files by runtime id'. Writes two tiny PNGs in a temp folder and registers a [SELFTEST] source through CrPortraits: its picture is shown for the lord it answers for and not for another, it wins over a realm portrait, the player's own ChatPortraits file (in a temp Custom folder) still wins over it, and a source that throws is passed over. Unregisters, restores the hooks and deletes the temp folder", TestPortraitSource),
+         new SelfTest("workshop_sale_memory", Severity.Light, "Windmolen (Nexus, 14/11/2026): the man who sold him a business 'contested my ownership, wanted me to produce a sealed document or a witness'. Takes a real town workshop owned by a character and hands the sale to the behaviour the game event calls (no workshop changes hands): the seller remembers selling it to the player, in that town; the reverse (the player's workshop going to him) gives no memory. Removes the memory it added", TestWorkshopSaleMemory),
          new SelfTest("feed_secrets", Severity.Light, "VonLemberg's Bellum Civile bridge RFC (14/11/2026, P0-C): a council's secret must not become everyone's news, and another mod must read what a given character knows. Feeds a [SELFTEST] secret naming one lord with a second as confidant, and a great public event hidden from the first: through CrWorld, the named lord and the confidant know the secret, an unrelated lord does not, the first lord does not hear the hidden news, and his known events mark the secret as such. Retracts both", TestFeedSecrets),
          new SelfTest("clan_task_no_coin", Severity.Light, "Aporo (Discord, 13/11/2026): \"I don't need that 100 denars for bringing 20 grain when it's my money either way\"; Gabriel: \"tout le clan\". A member of the player's own clan offers a task promising 100 denars and 3 regard, through the real ApplyResponse and the consent seam: the task put to the player carries 0 denars and keeps the 3 regard. The player declines; the giver's memories and outstanding tasks are put back", TestClanTaskNoCoin),
          new SelfTest("quest_consent", Severity.Light, "Schmidt (Discord, 11/11/2026): \"NPC's give you quests that you didn't agree to ... Same with asking NPC's to do something but it shows up for you as a quest.\" Gabriel: \"Tu peux faire 11.\" Through the REAL QuestService.ApplyResponse with a [QUEST] a lord of another realm puts to the player (scout a castle of a third realm), the Accept/Decline window answered through its test seam: while the offer waits nothing is recorded; declined, no task and no journal entry, the giver remembers the refusal and the model is told; accepted, the task is the player's with its journal entry. The giver's outstanding tasks are set aside first and restored, and the accepted task is cancelled and removed", TestQuestConsent),
@@ -7123,6 +7124,41 @@ namespace CalradiaRemembers.Diagnostics
             Portraits.ChatPortraitResolver.CustomBaseFolder = keepCustom;
             try { Directory.Delete(root, true); }
             catch { /* a temp folder left behind is harmless */ }
+         }
+
+         return t.Line();
+      }
+
+      private static string TestWorkshopSaleMemory(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("workshop_sale_memory");
+         if (t.Skip(behavior.Store == null || Hero.MainHero == null, "no campaign")) return t.Line();
+
+         TaleWorlds.CampaignSystem.Settlements.Workshops.Workshop shop = TaleWorlds.CampaignSystem.Settlements.Settlement.All
+            .Where(s => s.IsTown && s.Town?.Workshops != null).SelectMany(s => s.Town.Workshops)
+            .FirstOrDefault(w => w?.Owner != null && w.Owner != Hero.MainHero && !w.Owner.IsDead && w.WorkshopType != null);
+         if (t.Skip(shop == null, "no town workshop owned by a character")) return t.Line();
+
+         Hero seller = shop.Owner;
+         string line = null;
+         try
+         {
+            line = Behaviors.WorkshopSaleMemoryBehavior.Remember(shop, seller, Hero.MainHero);
+            // THE REPORT: the seller knows he sold it, to whom and where.
+            t.Expect("theSellerRemembersTheSale", behavior.Store.Get(seller.StringId)?.Events.Any(e => e.summary == line) ?? false, true);
+            t.Expect("toThePlayer", line?.Contains(Hero.MainHero.Name.ToString()) ?? false, true);
+            t.Expect("inThatTown", line?.Contains(shop.Settlement.Name.ToString()) ?? false, true);
+            // STAKE: a workshop the player gives up was not bought from anyone; no false memory of selling it to them.
+            t.Expect("theReverseGivesNoMemory", Behaviors.WorkshopSaleMemoryBehavior.Remember(shop, Hero.MainHero, seller), null);
+         }
+         finally
+         {
+            NpcProfile profile = behavior.Store.Get(seller.StringId);
+            if (profile != null && line != null)
+            {
+               profile.Events.RemoveAll(e => e.summary == line);
+               behavior.Store.Set(profile);
+            }
          }
 
          return t.Line();

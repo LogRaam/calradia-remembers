@@ -149,6 +149,8 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new SuccessionBehavior());
          // fearente (26/10/2026): the day a companion joined the player's company, so they are not told a shared childhood.
          campaignStarter.AddBehavior(new Companions.CompanionHireBehavior());
+         // Windmolen (14/11/2026): the man who sold the player a workshop disputed the sale; he now remembers it.
+         campaignStarter.AddBehavior(new WorkshopSaleMemoryBehavior());
          // Leaving the house for a ruler (Gabriel, 26/10/2026): the heir takes it up, the old character weds her.
          campaignStarter.AddBehavior(new Marriage.LeaveHouseForRulerBehavior());
          // Self-esteem (30/09/2026, Lordfadooboo): battles, captivities, tournaments, fiefs and deaths move how a met

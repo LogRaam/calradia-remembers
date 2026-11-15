@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-780 rules read 571 facts.
+781 rules read 571 facts.
 
 ## Facts read by more than one rule
 
@@ -96,6 +96,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Town.Prosperity` (8) | `EdictCounselPolicy.Answer`, `EdictTownFacts`, `FiefCandidate`, `HardshipPolicy.ShouldRecord`, `LevyFacts`, `TermsFacts`, `WarDutyConfiscation.HasTakeable`, `WarDutyInput` |
 | `Clan.Influence` (7) | `ClaimantBackerFacts`, `CourtActionPolicy.CanAffordInfluenceGrant`, `CourtActionPolicy.ClanNeedsInfluence`, `EdictDecreeFacts`, `KingdomPowerFacts`, `PressForWarFacts`, `PressForWarPolicy.WhyNot` |
 | `DayMoodReader.Draw` (7) | `CorrespondencePreferenceParser.Parse`, `LetterRegardPolicy.ParseTone`, `LetterRegardPolicy.StripToneLine`, `LetterReplyDecisionParser.Parse`, `PatrolLetterText.OrdersStop`, `PatrolLetterText.StripOrderLine`, `PerceivedImageFacts` |
+| `Hero.IsDead` (7) | `KillAttemptResult`, `MattersMostFacts`, `MattersMostPolicy.Resolve`, `MattersMostPolicy.StillKnown`, `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession`, `WorkshopSaleFacts` |
 | `Hero.Siblings` (7) | `MeetingGapDescriber.Describe`, `PairBondFacts`, `PairBondPolicy.Assess`, `PairRegardFacts`, `PairRegardPolicy.Assess`, `PredecessorFacts`, `SuccessionMemoryPolicy.Reframe` |
 | `PartyBase.MapFaction` (7) | `CourierLossFacts`, `CourierSecretPolicy.BecomesSecret`, `CourierSecretPolicy.IsResent`, `CourierSecretPolicy.SenderLossMemory`, `HeroNaming`, `MeetingLeaveFacts`, `RescueCaptorFacts` |
 | `PartyBelongedTo.GetPosition2D` (7) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `EscortCostPolicy.EscortPremium`, `HeldTournament`, `JealousyHearingPolicy.WithinEarshot` |
@@ -103,7 +104,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Town.Governor` (7) | `AppointmentOfferFacts`, `CompanionAmbitionFacts`, `CompanionAmbitionPolicy.Select`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `ResolutionEligibilityPolicy.OfferedExecutableKeysForScope`, `ResolutionWorldFacts` |
 | `Clan.MapFaction` (6) | `CourierLossFacts`, `CourierSecretPolicy.BecomesSecret`, `CourierSecretPolicy.IsResent`, `CourierSecretPolicy.SenderLossMemory`, `HostageBreachFacts`, `HostageBreachPolicy.IsPledgerAtFault` |
 | `CurrentSettlement.GetPosition2D` (6) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `HeldTournament`, `JealousyHearingPolicy.WithinEarshot` |
-| `Hero.IsDead` (6) | `KillAttemptResult`, `MattersMostFacts`, `MattersMostPolicy.Resolve`, `MattersMostPolicy.StillKnown`, `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `IFaction.IsKingdomFaction` (6) | `FirstImpressionDescriber.Describe`, `FirstImpressionInputs`, `FirstImpressionPolicy.Resolve`, `PlayerFameFacts`, `PlayerFamePolicy.Line`, `PlayerFamePolicy.Read` |
 | `Kingdom.IsEliminated` (6) | `PressForWarFacts`, `PressForWarPolicy.WhyNot`, `StrategistActFacts`, `StrategistAimPolicy.ChooseDeed`, `StrategistAimPolicy.DeedStands`, `StrategistTargetFacts` |
 | `Kingdom.RulingClan` (6) | `CaptiveOfferFacts`, `OutlawPolicy.IsBrigandage`, `UnionFacts`, `WarDutyLive`, `WarDutyPolicy.Decide`, `WarLoomingPolicy.ShouldRecord` |
@@ -1144,4 +1144,5 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `WhereaboutsFacts`: `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `Hero.StayingInSettlement`, `MemberRoster.TotalManCount`, `MobileParty.Army`
 - `WitnessStandingFacts`: `Clan.Kingdom`, `Clan.Leader`, `Hero.Clan`, `Hero.GetTraitLevel`, `Hero.IsFemale`, `Kingdom.Leader`, `PairBondReader.Points`
 - `WitnessStandingText.AtTable`: `Hero.IsFemale`
+- `WorkshopSaleFacts`: `Hero.IsDead`
 - `WorldInitiativePolicy.Decide`: `ActiveCount.Invoke`, `IsBusy.Invoke`, `ModSettings.WorldInitiative`, `State.Grants`, `State.KeptSinceHour`, `State.LastOwnTalkHour`, `State.LastSettledHour`, `State.Requests`

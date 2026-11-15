@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 669 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1601 types in 57 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 670 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1603 types in 58 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -206,11 +206,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroTally` | public class | One hero's raw part in one mission, by hero id; CombatTally is its worded form. |
 | `PrisonerMemoryBehavior` | public class | Writes the memories of the player's prisoners: taken, left in a dungeon, and how it ended. |
 
-### CalradiaRemembers.Behaviors (1)
+### CalradiaRemembers.Behaviors (2)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `NpcMemoryCampaignBehavior` | public class | Bridges the NpcMemoryService SDK to the Bannerlord campaign lifecycle. |
+| `WorkshopSaleMemoryBehavior` | public class | Gives a character who sold the player a workshop the memory of the sale. |
 
 ### CalradiaRemembers.Chat (51)
 
@@ -2794,6 +2795,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TraumaKind` | public enum | What was done. |
 | `TraumaPagePolicy` | public static class | The Trauma section's words, its gate, and the ledger's save form. |
 | `TraumaRecord` | public class | One aggression a character lived through, as the ledger keeps it. |
+
+### CalradiaRemembers.Logic.Ventures (2)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `WorkshopSaleFacts` | public class | What the game says about one change of a workshop's owner. |
+| `WorkshopSaleMemoryPolicy` | public static class | The memory a seller keeps of selling a workshop to the player. |
 
 ### CalradiaRemembers.Logic.Verbs (6)
 
