@@ -441,6 +441,12 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
       public float PresencePenalty { get; set; } = PresencePenaltyPolicy.Default;
 
+      [SettingPropertyBool("{=CR_MCM_AllowOtherModsLlm}Other mods may use my connection", RequireRestart = false, Order = 18,
+         HintText = "{=CR_MCM_AllowOtherModsLlm_Hint}On (default): a mod built on Calradia Remembers (a diplomacy mod, say) may send its own " +
+                    "requests through your model and key; each is logged with its name. Off: none can, and they are told so.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
+      public bool AllowOtherModsLlm { get; set; } = true;
+
       [SettingPropertyInteger("{=CR_MCM_LlmTimeoutSeconds}LLM Response Timeout (s)", 15, 600, "0 's'", RequireRestart = false, Order = 11,
          HintText = "{=CR_MCM_LlmTimeoutSeconds_Hint}How long to wait for a reply, in seconds (default 120), in conversations and for letters and " +
                     "summaries (never under 60). Raise it for a slow local or reasoning model; lower it to fail fast. " +

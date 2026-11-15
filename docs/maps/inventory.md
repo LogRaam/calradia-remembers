@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 673 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1647 types in 61 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 677 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1652 types in 61 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -48,7 +48,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (73)
+### CalradiaRemembers (77)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -78,6 +78,10 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrHiddenAffairChange` | public class | A hidden affair beginning or ending (see CrRomance.HiddenAffairChanged). |
 | `CrKnownEvent` | public class | One world event a character knows of. |
 | `CrLetters` | public static class | Another mod's letters, delivered through CR's courier and letter window. |
+| `CrLlm` | public static class | Sends one plain completion through the player's own Calradia Remembers connection, for a mod that wants CR's model, key and provider instead of its own. |
+| `CrLlmRequest` | public class | One request a mod sends through CrLlm. |
+| `CrLlmResult` | public class | What came back from CrLlm.CompleteAsync. |
+| `CrLlmTurn` | public class | One turn of the conversation a mod sends through CrLlm. |
 | `CrLore` | public static class | The door to CR's authored character files. |
 | `CrMatchOutcome` | public class | What came of a registered match when its decider was asked in the chat. |
 | `CrMatchRequest` | public class | A match offered to CrMatches.Register, its people named by hero StringId. |
@@ -2264,11 +2268,16 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EscortRefusal` | public enum | Why a lord will not escort the player, or None when he will. |
 | `EscortStandingFacts` | public class | The facts an ending rests on, read off the live campaign by the caller. |
 
-### CalradiaRemembers.Logic.Extension (1)
+### CalradiaRemembers.Logic.Extension (6)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ConversationLineSequencer` | public class | Sequences line indices within one conversation session. |
+| `ExternalLlmRefusal` | public enum | Why a request from another mod was not sent. |
+| `ExternalLlmRequestFacts` | public class | What CrLlm knows about one request from another mod, before sending it. |
+| `ExternalLlmRequestPolicy` | public static class | Rules on a request another mod sends through CrLlm. |
+| `ExternalLlmRuling` | public class | The ruling on one request: whether it goes, and the answer length it may have. |
+| `PersonaSectionPolicy` | public static class | Which sections of the character prompt make up a character's persona for another mod (CrPrompt.Persona). |
 
 ### CalradiaRemembers.Logic.Extortion (12)
 

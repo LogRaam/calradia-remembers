@@ -452,6 +452,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("captive_notoriety", Severity.Light, "Lordfadooboo (Nexus, 03/10/2026): an empress in an Aserai cell said few would trouble themselves with her. A real ruler must read as 'a ruler' whose capture is news; and when the game holds a captive of rank, her real prompt must tell her the world talks of her. Changes nothing.", TestCaptiveNotoriety),
          new SelfTest("memory_repair_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026) and Gabriel: one command to mend every memory the console mangled before the fix. Stores a mangled memory on a real lord, as an old save holds it, runs cr.memory_repair_accents through the engine's console: the memory must read as typed. Removes it after.", TestMemoryRepairAccents),
          new SelfTest("hidden_grudge_motive", Severity.Light, "VonLemberg (Discord, 15/11/2026, source audit of 2.8.10): 'A secret vendetta should be able to influence internal motivation without revealing the secret in dialogue or the encyclopedia.' Gabriel: 'oui je veux cette separation'. On a real lord with no other grudge (his grudges and what matters most to him are put back after): plants a grudge against the player that the player does not know of, through the grudge ledger; through the REAL MattersMostReader he has a score to settle; with Vengeance learned, his What You Know section stays silent; once the player knows of the grudge, it names it", TestHiddenGrudgeMotive),
+         new SelfTest("persona_surface", Severity.Light, "VonLemberg (Discord, 15/11/2026, RFC for a diplomacy mod): a ruler must speak to another ruler 'using their established persona and knowledge, without initiating a player conversation'; Gabriel ruled CR hands the persona and the other mod makes its own call (CrPrompt.Persona), or sends it through the player's connection (CrLlm). A unit test proves which sections belong; only the live prompt proves what a real lord's persona carries. Registers a throwaway CrCharacterText source for a real lord (a backstory line and a PRIVATE line, both marked), reads the REAL CrPrompt.StockSections, Persona and PersonaText, and asserts: the persona is not empty and names the lord, carries the mod's backstory line (Full prompt), never carries the private line, nor CR's reply format or verbs; StockSections itself no longer hands out the private line; and CrLlm refuses an unsigned request without sending anything. Unregisters the source; calls no model, spends nothing", TestPersonaSurface),
          new SelfTest("rumour_no_acquaintance", Severity.Light, "VonLemberg (Discord, 15/11/2026, source audit of 2.8.10): 'the player met a lord 40 days ago, but the lord received an unrelated memory yesterday. The system may treat yesterday as their last meeting', and injected memories made a stranger read as known. On a throwaway profile of a real lord (the save is untouched), through the REAL EncounterContextBuilder and FirstImpressionResolver: with only rumours heard and a memory of his own life, he has never met the player (no last meeting, a stranger when free, not already known by his memories); with a meeting 40 days old added, the last meeting is 40 days ago whatever he heard today", TestRumourNoAcquaintance),
          new SelfTest("compression_takeback", Severity.Light, "VonLemberg (Discord, 15/11/2026, source audit of 2.8.10): a memory a mod takes back with CrNpcMemory.RemoveMemory while a compression pass is in flight came back when the pass was applied, and could linger in the background summary. On a real lord: adds a memory through the REAL AddMemory, takes the snapshot a pass would read, takes the memory back through the REAL RemoveMemory, then applies through the REAL write-back (1) a pass that kept it: it must stay gone, and a memory added meanwhile must stay; (2) a pass that folded it into its summary: nothing is applied and the background is left as it was. No model is called. Leaves the lord as found", TestCompressionTakeback),
          new SelfTest("player_memory_kept", Severity.Light, "Icezera (Discord, 15/11/2026): memories added with cr.memory_add were gone some days later; memory compression had folded them away. Sends cr.memory_add, through the engine's own console dispatch, a memory dated 30 days back to a real lord (padded with test memories to the size compression works on), then runs the REAL compressor on that profile with a stand-in model that drops everything: the memory the player wrote must be kept, and an ordinary test memory of the same age must not be. No model is called. Removes every test memory after", TestPlayerMemoryKept),
@@ -16904,6 +16905,47 @@ namespace CalradiaRemembers.Diagnostics
             profile.MattersMost = mattersBefore;
             profile.MattersMostKnown = knownBefore;
             behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestPersonaSurface(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("persona_surface");
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && HeroPresence.IsInTheWorld(h));
+         if (t.Skip(lord == null, "no lord in the world")) return t.Line();
+
+         const string source = "CR selftest persona";
+         const string backstoryMark = "[SELFTEST] persona backstory line";
+         const string privateMark = "[SELFTEST] persona private line";
+         CrCharacterText.RegisterSource(source, f => f?.HeroId == lord.StringId
+            ? new[] {
+               new CrCharacterTextEntry {Text = backstoryMark, Section = CrCharacterTextSection.Backstory},
+               new CrCharacterTextEntry {Text = privateMark, Section = CrCharacterTextSection.Private, ShowInPanel = false}
+            }
+            : Array.Empty<CrCharacterTextEntry>());
+         try
+         {
+            IReadOnlyList<CrPromptSection> stock = CrPrompt.StockSections(lord.StringId);
+            if (t.Skip(stock.Count == 0, "the stock prompt is not available (no model connection set up)")) return t.Line();
+
+            string persona = CrPrompt.PersonaText(lord.StringId);
+            t.Note($"{lord.Name}: {CrPrompt.Persona(lord.StringId).Count} persona sections, {persona.Length} chars");
+            t.Expect("thePersonaIsNotEmpty", persona.Length > 0, true);
+            t.Expect("thePersonaNamesTheLord", persona.IndexOf(lord.FirstName?.ToString() ?? lord.Name.ToString(), StringComparison.OrdinalIgnoreCase) >= 0, true);
+            if (!ModSettings.LeanPrompt) t.Expect("thePersonaCarriesTheModsBackstory", persona.Contains(backstoryMark), true);
+            t.Expect("thePersonaNeverCarriesAnotherModsSecret", persona.Contains(privateMark), false);
+            t.Expect("thePersonaCarriesNoReplyFormatOrVerb", persona.Contains("[ACTION]") || persona.Contains("[DIALOGUE]"), false);
+            t.Expect("theStockSectionsNoLongerHandOutTheSecret", stock.Any(s => (s.Text ?? "").Contains(privateMark)), false);
+
+            CrLlmResult unsigned = CrLlm.CompleteAsync(new CrLlmRequest {SourceMod = " ", SystemPrompt = "x"}).GetAwaiter().GetResult();
+            t.Expect("anUnsignedRequestIsRefusedUnsent", unsigned.Refused, true);
+         }
+         finally
+         {
+            CrCharacterText.UnregisterSource(source);
          }
 
          return t.Line();

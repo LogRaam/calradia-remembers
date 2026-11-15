@@ -29,6 +29,11 @@ namespace CalradiaRemembers.Tests.Maps
       public const string AllowRemovalVariable = "CR_ALLOW_API_REMOVAL";
 
       private static readonly Regex MemberLine = new(@"^- `(?<member>.+)`$");
+
+      // A constant's VALUE is not part of what a caller binds to: a compiled bridge keeps the value it was built with and
+      // finds the member still there. CrApi.Version is designed to rise by one at each release that adds a door, and the
+      // guard called 1 -> 2 a vanished member (15/11/2026). The name and type of a constant stay protected.
+      private static readonly Regex ConstValue = new(@"^(?<decl>(static )?const \S+ \S+) = .+$");
       private static readonly Regex VersionValue = new(@"<Version value=""(?<version>[^""]+)""");
 
       /// <summary>
@@ -53,7 +58,11 @@ namespace CalradiaRemembers.Tests.Maps
             }
 
             Match m = MemberLine.Match(line);
-            if (m.Success && type.Length > 0) members.Add($"{type}: {m.Groups["member"].Value}");
+            if (!m.Success || type.Length == 0) continue;
+
+            string member = m.Groups["member"].Value;
+            Match constant = ConstValue.Match(member);
+            members.Add($"{type}: {(constant.Success ? constant.Groups["decl"].Value : member)}");
          }
 
          return members;

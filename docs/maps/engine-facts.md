@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-788 rules read 582 facts.
+790 rules read 583 facts.
 
 ## Facts read by more than one rule
 
@@ -319,6 +319,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MobileParty.TotalWeightCarried` (2) | `CompanionCounselPolicy.Select`, `PartyCounselFacts` |
 | `ModSettings.AllowFiefAndMarriageQuestRewards` (2) | `FiefRewardFacts`, `MarriageRewardFacts` |
 | `ModSettings.AllowOpenRouterProviderFallbacks` (2) | `ProviderPinFailurePolicy.Explain`, `ProviderPinFailurePolicy.RoutingJson` |
+| `ModSettings.AllowOtherModsLlm` (2) | `ExternalLlmRequestFacts`, `ExternalLlmRequestPolicy.Explain` |
 | `ModSettings.EnableWarDuty` (2) | `LevyTroopFacts`, `TermsFacts` |
 | `ModSettings.MarriageRegardThreshold` (2) | `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion` |
 | `ModSettings.NsfwReasoningEffort` (2) | `OnOffReasoningPolicy.ForModel`, `RoleSettings` |
@@ -613,6 +614,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `EscortStandingFacts`: `FactionManager.IsAtWarAgainstFaction`, `Hero.IsPrisoner`, `Hero.MapFaction`, `Hero.PartyBelongedTo`, `MobileParty.Army`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`
 - `ExecutionFacts`: `CampaignOptions.IsLifeDeathCycleDisabled`, `ModSettings.AdultContentLevel`, `ModSettings.AllowCaptorExecutions`, `PartyBelongedToAsPrisoner.LeaderHero`
 - `ExpulsionFacts`: `Clan.Leader`, `Hero.IsAlive`, `Hero.IsPlayerCompanion`, `Hero.Spouse`
+- `ExternalLlmRequestFacts`: `ModSettings.AllowOtherModsLlm`
+- `ExternalLlmRequestPolicy.Explain`: `ModSettings.AllowOtherModsLlm`
 - `ExtortionLeverFacts`: `GetPosition2D.Distance`, `Hero.Clan`, `Hero.IsFemale`, `Hero.Name`, `Hero.Spouse`, `Ledger.BargainOver`, `Ledger.IsExposed`, `MemberRoster.TotalHealthyCount`, `MobileParty.GetPosition2D`, `Spouse.Name`, `VillageStates.Normal`
 - `ExtortionPolicy.Cost`: `Ledger.TimesPressed`
 - `ExtortionPolicy.IsWorthAsking`: `Hero.Gold`

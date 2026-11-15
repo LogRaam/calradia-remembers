@@ -141,6 +141,9 @@ namespace CalradiaRemembers.Foundation
       /// </summary>
       public static bool EnableNpcWorldClaims => CrSettings.Instance?.EnableNpcWorldClaims ?? false;
 
+      /// <summary>Whether another mod may send its own LLM requests through the player's CR connection (CrLlm). Default on.</summary>
+      public static bool AllowOtherModsLlm => CrSettings.Instance?.AllowOtherModsLlm ?? true;
+
       /// <summary>
       ///   When ON (default), an NPC's end_conversation closes an ordinary Chatroom conversation (input locks,
       ///   Leave button). OFF leaves the chat open so the player keeps the last word and closes it themselves.

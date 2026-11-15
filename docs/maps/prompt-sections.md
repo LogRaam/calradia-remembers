@@ -26,7 +26,7 @@ shipped). `sealed`: cannot be turned off, moved or reworded; `required`: cannot 
 | 9 | `identity` | `AppendIdentity` | prefix |  |  |  | (no summary) |
 | 10 | `player_standing` | `AppendPlayerStanding` | prefix |  | aware |  | States where the player stands with this character, or says nothing when the host could not answer. |
 | 11 | `npc_self_appearance` | `AppendNpcSelfAppearance` | prefix |  |  |  | Renders the SPEAKING NPC's OWN appearance (Self voice, second person), so the character the LLM plays pictures its own body consistently and never invents contradictory looks. |
-| 12 | `authored_backstory` | `AppendAuthoredBackstory` | prefix |  | dropped by policy (`AuthoredBackstory`) | LeanPromptPolicy.Include(PromptSection.AuthoredBackstory, s.Lean) | (no summary) |
+| 12 | `authored_backstory` | `AppendAuthoredBackstory` | prefix |  | dropped by policy (`AuthoredBackstory`) | LeanPromptPolicy.Include(PromptSection.AuthoredBackstory, s.Lean) | The player's own backstory and voice for this character. |
 | 13 | `authored_conviction` | `AppendAuthoredConviction` | prefix |  | dropped by policy (`AuthoredBackstory`) | LeanPromptPolicy.Include(PromptSection.AuthoredBackstory, s.Lean) | (no summary) |
 | 14 | `mod_backstory` | `AppendModBackstory` | prefix |  |  |  | More of who the character is, from other mods (EncounterContext.NpcModBackstory). |
 | 15 | `mod_private` | `AppendModPrivate` | prefix |  |  |  | What the character keeps to themself, from other mods (EncounterContext.NpcModPrivate). |

@@ -83,6 +83,19 @@ _One world fact._
          ModderApiGuard.Vanished(Released, current).Should().BeEmpty("PlayerIsActor is not in the released snapshot, and additions are free");
       }
 
+      // STAKE: CrApi.Version is meant to rise by one at each release that adds a door, and a bridge reads it to know what it
+      // can use. Raising it removes nothing a bridge binds to (a compiled one keeps its own copy of the value), so the guard
+      // must let it rise; it caught exactly that on 15/11/2026 and would have kept the suite red until the next release.
+      // A constant whose NAME or TYPE goes is still refused.
+      [Test]
+      public void GIVEN_a_released_constant_WHEN_only_its_value_changes_THEN_it_is_not_refused_but_a_renamed_one_is()
+      {
+         const string released = "### CrApi\n\n- `const int Version = 1`\n";
+
+         ModderApiGuard.Vanished(released, "### CrApi\n\n- `const int Version = 2`\n").Should().BeEmpty();
+         ModderApiGuard.Vanished(released, "### CrApi\n\n- `const int ApiVersion = 2`\n").Should().Equal("CrApi: const int Version");
+      }
+
       // Two types can carry a member of the same shape; removing it from one must not be hidden by the other.
       [Test]
       public void GIVEN_two_types_with_the_same_member_WHEN_one_loses_it_THEN_that_one_is_named()

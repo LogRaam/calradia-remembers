@@ -677,10 +677,73 @@ It is the same selection a conversation with them is built from. Game thread, ca
 great or near; `HiddenFromHeroIds` keeps chosen heroes out of any event. A council's private deliberation stays with its
 members; feed the outcome later as news when it becomes public.
 
+### A character's persona, for your own LLM call (`CrPrompt.Persona`, since 2.8.12)
+
+For a mod that makes a character speak outside a conversation with the player (a ruler writing to another ruler, a
+council behind closed doors), with your own model and your own prompt:
+
+```csharp
+string persona = CrPrompt.PersonaText(hero.StringId);              // one block, ready for a system prompt
+IReadOnlyList<CrPromptSection> parts = CrPrompt.Persona(hero.StringId); // the same, section by section (Key, Text)
+```
+
+It is CR's own prompt text for that character right now: who they are, how they sound (the player's backstory and
+conviction included), what matters most to them, their fears, family and ties, what they remember (CR's private
+memories included, as CR summarises them), their own aim, their mood today, and the world events that have reached them
+(the same selection as `CrWorld.KnownEvents`: a lord who never heard of a secret does not have it). The keys kept:
+`world_description`, `identity`, `npc_self_appearance`, `authored_backstory`, `authored_conviction`, `mod_backstory`,
+`character_voice`, `relationships`, `family_compact`, `matters_most`, `fear_and_superstition`, `inherited_note`,
+`background_context`, `history`, `legend`, `own_aim`, `volatile_knowledge`, `day_mood`. Empty sections are dropped.
+
+Left out on purpose: everything written for a talk WITH THE PLAYER (their standing, offers made to them, secrets held
+about them), CR's reply format and `[ACTION]` verbs (CR does not read your reply back), and `mod_private`, what another
+mod confided to the character as known to them alone (since 2.8.12 `StockSections` hands that one out empty too). A
+memory or an aim may still name the player: they are part of this character's life.
+
+- **It is text to paste, not data to parse.** The wording changes between versions.
+- **Nothing happens.** Reading a persona builds it locally, calls no model, writes nothing. What your character then says
+  is yours: CR does not remember it, publish it or act on it. If it should be remembered, add it yourself afterwards
+  (`CrNpcMemory.AddMemory`, a `Feed` event), once it really happened.
+- **Your prompt, your rules.** CR's own characters never lie to the player; that rule lives in CR's conversation prompt,
+  which this persona leaves out. Bluff, threat and concealment between rulers are your prompt's to allow.
+- Read it again before each call: it follows the moment. Game thread, campaign loaded; empty for an unknown hero or before
+  CR's model connection is set up.
+
+### Sending the call through CR's connection (`CrLlm`, since 2.8.12)
+
+If you would rather not run your own provider, send the request through the player's own CR connection (the prose model,
+key and provider the player chose in CR's options):
+
+```csharp
+if (CrLlm.IsReady)   // else CrLlm.Unavailable() says why
+{
+    CrLlmResult r = await CrLlm.CompleteAsync(new CrLlmRequest {
+        SourceMod = "MyDiplomacyMod",                       // required: signs the request in CR's log
+        RequestId = "treaty-42-reply",                      // handed back unchanged
+        SystemPrompt = myInstructions + "\n\n" + CrPrompt.PersonaText(king.StringId),
+        Turns = { new CrLlmTurn { Text = "The envoy of Sturgia reads: ..." } },
+        MaxOutputTokens = 400                               // 0 = 600; never more than 4000
+    }, cancellationToken);
+    // r.Succeeded, r.Text, r.Error, r.Refused, r.Cancelled, r.CampaignChanged, r.PromptTokens, r.CompletionTokens, r.Cost
+}
+```
+
+- One plain completion, nothing else: no memory read or written, no conversation opened, no `[ACTION]` parsed, no campaign
+  change. You get the model's raw text.
+- **Call it from the game thread; the task may finish on a worker thread.** Bring the result back to the game thread
+  before touching game objects. If the campaign was unloaded or replaced meanwhile, `CampaignChanged` is true and
+  `Succeeded` false: do not apply it.
+- It never throws. Refusals cost nothing and say why: the player turned off "Other mods may use my connection" (MCM,
+  LLM Provider, on by default), no connection is ready, no `SourceMod`, or nothing to answer.
+- It spends the player's credit and counts in CR's usage figures; every call is logged (`[EXT LLM]`) with your mod's name.
+  CR never calls on its own because you registered: only your `CompleteAsync` spends.
+- `Turns` alternate: `FromModel = false` for a line put to the character, `true` for one it said before.
+
 ### Detecting what CR offers (`CrApi.Version`, since 2.8.10)
 
-`CrApi.Version` is raised by one at each release that adds a door, never lowered. 1 = 2.8.10. Absent (read by reflection)
-means older than 2.8.10. The older `CrNpcMemory.ApiVersion` and `Feed.ApiVersion` keep their own meaning.
+`CrApi.Version` is raised by one at each release that adds a door, never lowered. 1 = 2.8.10, 2 = 2.8.12 (`CrPrompt.Persona`,
+`CrLlm`). Absent (read by reflection) means older than 2.8.10. Read it by reflection or at run time: a constant compiled
+into your mod keeps the value it was built with. The older `CrNpcMemory.ApiVersion` and `Feed.ApiVersion` keep their own meaning.
 
 ### Regard changes (`CrNpcMemory.RegardChanged`, since 2.6.7)
 

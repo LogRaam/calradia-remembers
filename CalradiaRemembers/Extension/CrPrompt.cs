@@ -16,6 +16,7 @@ using NpcMemoryService.Core.Models;
 using NpcMemoryService.Core.Prompts;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
+using CalradiaRemembers.Logic.Extension;
 using TaleWorlds.CampaignSystem;
 
 #endregion
@@ -71,7 +72,8 @@ namespace CalradiaRemembers
       ///   follows the character and the moment (their rank, the adult content level, Lean...), so an empty Text means the
       ///   section writes nothing for them now, not that it has no words. Covers the one-to-one character prompt; the
       ///   commoner and council prompts are not keyed. Empty for an unknown hero, outside a campaign, or before the
-      ///   model connection is set up. Game thread. Since 2.8.10.
+      ///   model connection is set up. Game thread. Since 2.8.10. Since 2.8.12, "mod_private" (what another mod confided to
+      ///   the character through CrCharacterText, Private) always comes back with an empty Text: it is that mod's secret.
       /// </summary>
       public static IReadOnlyList<CrPromptSection> StockSections(string heroId)
       {
@@ -86,8 +88,9 @@ namespace CalradiaRemembers
             EncounterContext context = Mapping.EncounterContextBuilder.Build(hero, profile, behavior.GameStateBridge, null);
             var world = new WorldState {CurrentDay = behavior.GameStateBridge.GetCurrentGameDay()};
 
+            // What another mod confided to the character never leaves CR (VonLemberg's persona request, 15/11/2026).
             return builder.RenderStockSections(profile, world, context)
-                          .Select(s => new CrPromptSection {Key = s.Key, Zone = s.Zone.ToString(), Lock = s.Lock.ToString(), Text = s.Text})
+                          .Select(s => new CrPromptSection {Key = s.Key, Zone = s.Zone.ToString(), Lock = s.Lock.ToString(), Text = PersonaSectionPolicy.MayLeaveCr(s.Key) ? s.Text : ""})
                           .ToList();
          }
          catch (Exception ex)
@@ -101,6 +104,27 @@ namespace CalradiaRemembers
       /// <summary>The stock text of one section for <paramref name="heroId" /> (see <see cref="StockSections" />); null for an unknown key or hero. Since 2.8.10.</summary>
       public static string StockSectionText(string key, string heroId)
          => StockSections(heroId).FirstOrDefault(s => string.Equals(s.Key, key, StringComparison.OrdinalIgnoreCase))?.Text;
+
+      /// <summary>
+      ///   The character's persona as CR writes it right now, for a mod that makes its own LLM call as this character (a
+      ///   ruler writing to another ruler, VonLemberg, 15/11/2026): who they are, how they sound, what they want, what they
+      ///   remember (CR's private memories included, as CR summarises them) and the world events they know, in the stock
+      ///   order. Only the sections that describe the character are kept (see the keys in EXTENSION_API.md); everything
+      ///   written for a talk with the player (offers, their standing, secrets about them), CR's reply format and verbs,
+      ///   and what another mod confided to the character are left out. The words are CR's prompt text and change between
+      ///   versions: paste them into a prompt, never parse them. A memory or an aim may still mention the player by name.
+      ///   Empty sections are dropped. Empty for an unknown hero, outside a campaign, or before the model connection is set
+      ///   up. Game thread; builds locally, calls no model. Since 2.8.12.
+      /// </summary>
+      public static IReadOnlyList<CrPromptSection> Persona(string heroId)
+         => StockSections(heroId).Where(s => PersonaSectionPolicy.IsPersona(s.Key) && !string.IsNullOrWhiteSpace(s.Text)).ToList();
+
+      /// <summary>
+      ///   <see cref="Persona" /> as one block of text, the sections in order and separated by a blank line: ready to place in
+      ///   a system prompt. Empty when <see cref="Persona" /> is. Game thread. Since 2.8.12.
+      /// </summary>
+      public static string PersonaText(string heroId)
+         => string.Join(Environment.NewLine + Environment.NewLine, Persona(heroId).Select(s => s.Text.Trim()));
    }
 
    /// <summary>One section of the character prompt (CrPrompt.Sections, CrPrompt.StockSections). Since 2.8.10.</summary>

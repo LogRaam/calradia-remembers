@@ -10,7 +10,7 @@ other than `NarrativeLoader` (tales, scenarios, styles, prompt profiles) is not 
 
 ## Where the model is called
 
-24 methods call the model. `tool` marks a developer command or bench (`Diagnostics`, `ModCheats`, a `*Bench*` file), never run in play.
+25 methods call the model. `tool` marks a developer command or bench (`Diagnostics`, `ModCheats`, a `*Bench*` file), never run in play.
 
 | Pipeline | Layer | Use | Prompt from | What it is |
 |---|---|---|---|---|
@@ -32,6 +32,7 @@ other than `NarrativeLoader` (tales, scenarios, styles, prompt profiles) is not 
 | `WorldClaimExtractor.ExtractAsync` | Sdk | play | `BuildSystemPrompt()` | Reads a finished conversation. |
 | `ActionBenchRunner.RunAsync` | Sdk | tool | `ActionInterpreterPromptBuilder` | Runs every case in cases through interpreter and scores it, passes times each (default 1), so a nondeterministic model's dice can be averaged out by the report's majority rule. |
 | `CostReplayRunner.ReplayAsync` | Logic | tool |  | Replays captured as row through client (built for the row's model and reasoning), writing the conversation into transcripts. |
+| `CrSelfTest.TestPersonaSurface` | Mod | tool |  | End-to-end self-test harness. |
 | `InterpretTestRunner.CallInterpreter` | Mod | tool | `ActionInterpreterPromptBuilder` | Calls the configured model one-shot as the interpreter, reusing the same seam the mod's summarizers use (LlmServices.LlmClient.CompleteAsync), driven on a background task with a CancellationTokenSource budget and error h... |
 | `MemoryBench.JudgeYes` | Mod | tool |  | A cold YES/NO from the INTERPRETER role, which is the cheap mechanical model and exactly what this kind of verdict wants. |
 | `ModCheats.VoicedAssessment` | Mod | tool | `StrategicAssessmentPromptBuilder` | (no summary) |
