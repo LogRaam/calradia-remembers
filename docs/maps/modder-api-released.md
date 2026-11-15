@@ -1,4 +1,4 @@
-Released in v2.8.9
+Released in v2.8.10
 
 The modder API as it SHIPPED, the baseline for the vanished-member guard (see docs/maps/README.md). Recorded on
 purpose at each release cut with Tools/Update-Maps.ps1 -RecordReleasedApi; never by a plain regeneration.
@@ -58,8 +58,15 @@ _A lord was given the floor for an aim (CrAims.Raised)._
 _The door through which other mods give lords aims of their own._
 
 - `static AimResult Register(ExternalAim aim)`
+- `static IReadOnlyList<ExternalAim> List(string sourceMod)`
 - `static bool Retract(string sourceMod, string id)`
 - `static event Action<CrAimRaised> Raised`
+
+### CrApi
+
+_The version of CR's whole extension surface, for a mod that detects what it can use._
+
+- `const int Version = 1`
 
 ### CrAppearance
 
@@ -67,6 +74,39 @@ _The door through which other mods add a line to how a character looks._
 
 - `static bool UnregisterLineSource(string source)`
 - `static void RegisterLineSource(string source, Func<string, bool, string> line)`
+
+### CrCharacterText
+
+_The door through which other mods write text about a character, for the prompt and the panel._
+
+- `static bool UnregisterSource(string sourceMod)`
+- `static void RegisterSource(string sourceMod, Func<CrCharacterTextFacts, IEnumerable<CrCharacterTextEntry>> source)`
+
+### CrCharacterTextEntry
+
+_One piece of your text about a character._
+
+- `CrCharacterTextSection Section { get; set; }`
+- `bool Lean { get; set; }`
+- `bool ShowInPanel { get; set; }`
+- `string Text { get; set; }`
+
+### CrCharacterTextFacts
+
+_What CR tells your source when it asks for a character's text._
+
+- `bool IsPlayer { get; set; }`
+- `bool Lean { get; set; }`
+- `bool SeenByOther { get; set; }`
+- `string HeroId { get; set; }`
+
+### CrCharacterTextSection
+
+_Where a piece of your text about a character belongs._
+
+- `Appearance = 0`
+- `Backstory = 1`
+- `Private = 2`
 
 ### CrConception
 
@@ -111,6 +151,56 @@ _Read-only readings of the cultures CR plays by (its ModuleData jealousy_culture
 
 - `static MarriageCustomReading MarriageCustom(string cultureName, int clanTier)`
 
+### CrDiplomacy
+
+_The door through which another mod becomes the authority over the wars, peaces and changes of realm CR makes._
+
+- `static bool UnregisterAuthority(string sourceMod)`
+- `static void RegisterAuthority(string sourceMod, Func<CrDiplomacyRequest, CrDiplomacyAnswer> authority)`
+
+### CrDiplomacyAnswer
+
+_Your answer._
+
+- `CrDiplomacyVerdict Verdict { get; set; }`
+- `string Message { get; set; }`
+- `string Receipt { get; set; }`
+
+### CrDiplomacyKind
+
+_A diplomatic change CR is about to make._
+
+- `ClanJoinsAsMercenary = 3`
+- `ClanJoinsKingdom = 2`
+- `ClanLeavesKingdom = 4`
+- `ClanLeavesMercenaryService = 5`
+- `DeclareWar = 0`
+- `MakePeace = 1`
+
+### CrDiplomacyRequest
+
+_The change CR asks about._
+
+- `CrDiplomacyKind Kind { get; set; }`
+- `int GameDay { get; set; }`
+- `string ActorHeroId { get; set; }`
+- `string ClanId { get; set; }`
+- `string FactionAId { get; set; }`
+- `string FactionBId { get; set; }`
+- `string KingdomId { get; set; }`
+- `string RequestId { get; set; }`
+- `string SaveId { get; set; }`
+- `string Source { get; set; }`
+
+### CrDiplomacyVerdict
+
+_What an authority answers._
+
+- `Applied = 3`
+- `PassThrough = 0`
+- `Pending = 2`
+- `Rejected = 1`
+
 ### CrFolklore
 
 _The door through which other mods give a character folk tales of their own._
@@ -137,6 +227,18 @@ _A hidden affair beginning or ending (see CrRomance.HiddenAffairChanged)._
 - `string SaveId { get; set; }`
 - `string SubjectId { get; set; }`
 
+### CrKnownEvent
+
+_One world event a character knows of._
+
+- `bool IsSecret { get; set; }`
+- `int Day { get; set; }`
+- `int Magnitude { get; set; }`
+- `string Confidence { get; set; }`
+- `string Id { get; set; }`
+- `string SourceMod { get; set; }`
+- `string Summary { get; set; }`
+
 ### CrLetters
 
 _Another mod's letters, delivered through CR's courier and letter window._
@@ -148,6 +250,13 @@ _Another mod's letters, delivered through CR's courier and letter window._
 - `static string DeliverWithId(Hero sender, string body, string sourceMod)`
 - `static string GetReply(string letterId)`
 - `static string GetStatus(string letterId)`
+
+### CrLore
+
+_The door to CR's authored character files._
+
+- `static bool Reload()`
+- `static string CampaignFolder()`
 
 ### CrMatchOutcome
 
@@ -288,12 +397,33 @@ _The companion patrols, read-only, and their public events._
 - `static event Action<CrPatrolBattle> Fought`
 - `static event Action<CrPatrolEnd> Ended`
 
+### CrPortraits
+
+_The door through which another mod gives heroes their chat portrait._
+
+- `static bool UnregisterSource(string sourceMod)`
+- `static string Resolve(string heroId, string displayName = null)`
+- `static void RegisterSource(string sourceMod, Func<string, string> source)`
+
 ### CrPrompt
 
 _The public facade a third-party mod calls to register (or unregister) one live prompt variable._
 
+- `static IReadOnlyList<CrPromptSection> Sections()`
+- `static IReadOnlyList<CrPromptSection> StockSections(string heroId)`
+- `static IReadOnlyList<string> Reload()`
 - `static bool Unregister(string name)`
+- `static string StockSectionText(string key, string heroId)`
 - `static void RegisterVariable(string name, Func<PromptVarFacts, string> provider)`
+
+### CrPromptSection
+
+_One section of the character prompt (CrPrompt.Sections, CrPrompt.StockSections)._
+
+- `string Key { get; set; }`
+- `string Lock { get; set; }`
+- `string Text { get; set; }`
+- `string Zone { get; set; }`
 
 ### CrRegardChange
 
@@ -405,6 +535,13 @@ _One attributed line of a conversation, as delivered in CrConversationLog._
 - `string SpeakerName { get; }`
 - `string Text { get; }`
 
+### CrWorld
+
+_The door to what characters know of the world._
+
+- `static IReadOnlyList<CrKnownEvent> KnownEvents(string heroId, int max = 10)`
+- `static bool IsAwareOf(string heroId, string eventId)`
+
 ### ExternalActionParam
 
 _One named parameter an ExternalActionSpec accepts, taught to the LLM by name and meaning._
@@ -469,6 +606,9 @@ _One world fact a third-party mod wants CR to know about._
 - `List<string> ActorHeroIds { get; set; }`
 - `List<string> FactionIds { get; set; }`
 - `List<string> HeroIds { get; set; }`
+- `List<string> HiddenFromHeroIds { get; set; }`
+- `List<string> KnownToHeroIds { get; set; }`
+- `bool KnownOnlyToThoseInvolved { get; set; }`
 - `int Day { get; set; }`
 - `int Magnitude { get; set; }`
 - `string Category { get; set; }`
@@ -485,6 +625,7 @@ _The public, one-way inbound API: a third-party mod calls Record to feed CR a wo
 - `static FeedResult Record(ExternalWorldEvent e)`
 - `static FeedResult Retract(string id)`
 - `static FeedResult Update(ExternalWorldEvent e)`
+- `static IReadOnlyList<ExternalWorldEvent> List(string sourceMod)`
 
 ### FeedResult
 
