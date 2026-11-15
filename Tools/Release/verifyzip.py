@@ -656,6 +656,8 @@ MUST = [
     ("sdk",   b"LessFondActs"),
     ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
     # 2.8.13
+    ("sdk",   b"AppendMattersMostDiscovery"),
+    ("sdk",   b"AppendFearDiscovery"),
     ("logic", b"FoldableSectionHeader"),
     ("mod",   b"ExecuteToggleRegardWhy"),
     ("mod",   b"CalradiaRegardHousesShown"),
