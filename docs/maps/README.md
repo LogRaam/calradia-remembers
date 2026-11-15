@@ -34,6 +34,7 @@ project internals.
 | [`gates.md`](gates.md) | What OPENS this verb, what the bridge DEMANDS of it, and which other verbs can change the answer between the two? The pairing lens: a teaching gate is resolved when the context is built, a bridge guard runs when the action is dispatched, and the turn's other actions run in between. |
 | [`composition-parity.md`](composition-parity.md) | Is each action taught to BOTH readers of a conversation, the prose model (Standard) and the interpreter (Enhanced)? Both prompts rendered by the real builders over four scenarios; a verb taught to one reader only is refused unless written down with its reason (`CompositionParityTests`). |
 | [`shared-state.md`](shared-state.md) | What outlives the call that wrote it, and so has a lifetime somebody must decide? |
+| [`glue-decisions.md`](glue-decisions.md) | Where does the engine glue decide for itself? Every fact of the game (a member read off an object, a `Get...` call) compared with a bare number outside `Logic`, Diagnostics and the console: Tell Don't Ask in this project's terms (the decision belongs in a pure policy). Ratcheted: a new one fails `RatchetTests`. Two lines deciding the same fact differently (a town's loyalty read `< 50` in one place, `>= 50` in another) are the first thing to look for. |
 | [`decisions-regard.md`](decisions-regard.md) | **The two-minute view.** What does each rung of the regard scale actually decide? Real calls, swept from -100 to +100, plus where each rule turns. |
 | [`save-format.md`](save-format.md) | **Contract.** What does the mod write into a player's campaign? Every save key and every saveable type id. |
 | [`modder-api.md`](modder-api.md) | **Contract.** What are other people's mods built against? Every public member under an `Extension` folder. |
@@ -63,13 +64,16 @@ the player report it answers.
 They are not all the same kind of test, and treating them as one kind is how this stops working.
 
 **Informing.** `inventory`, `dependencies`, the two rules files, `constants`, `event-listeners`, `prompt-sections`,
-`prompt-pipelines`, `verbs`, `gates`, `shared-state`. These fail, you regenerate, you read the diff, you commit. Whatever the code now says
+`prompt-pipelines`, `verbs`, `gates`, `shared-state`, `glue-decisions`. These fail, you regenerate, you read the diff, you commit. Whatever the code now says
 becomes the new truth. Their whole value is the two seconds of attention the diff buys, and that value decays: the
 real risk here is not a wrong map, it is a reflex. Regenerate-and-commit becomes muscle memory within weeks, and then
 these are green paperwork.
 
-**Blocking.** `save-format`'s vanished-key guard, the modder API's vanished-member guard, and the two ratchets in
-[`RatchetTests`](../../CalradiaRemembers.Tests/Maps/RatchetTests.cs). These do NOT accept what the code now says.
+**Blocking.** `save-format`'s vanished-key guard, the modder API's vanished-member guard, and the ratchets in
+[`RatchetTests`](../../CalradiaRemembers.Tests/Maps/RatchetTests.cs) (cycles, mutual pairs, regard thresholds, bare
+`IsAlive`, coin and goods moves, relation touches and, since 14/11/2026, the glue's decisions against a bare number and
+the swap risk: public members of `Logic` taking three same-typed parameters in a row, the suite's copy of
+`Tools/Find-SwapRisk.ps1`). These do NOT accept what the code now says.
 Regenerating does not make them green; only changing the code, or writing down on purpose why the rule no longer
 holds, does.
 

@@ -239,7 +239,9 @@ one of the older positional ones, which is exactly why it was the one that cost 
 **Done, and now measurable (2026-09-10).** `Tools/Find-SwapRisk.ps1` reports every public member in
 `CalradiaRemembers.Logic` that takes a run of consecutive same-typed parameters, which is the only place a silent
 argument swap can hide (anywhere else the compiler catches it). It went from **99** public static methods with a
-run of three or more, plus **29** more once constructors were counted, to **zero**. Run it after adding a policy.
+run of three or more, plus **29** more once constructors were counted, to **zero**. Nothing ran it afterwards, and
+33 had come back by 14/11/2026, when the suite took it over: `RatchetTests` holds the count (33, lowered as signatures
+get facts objects) with `SwapRiskGuard`, the same rule read from syntax, so a new one fails the suite.
 A non-zero report is not a style complaint: it is a signature that will one day be called with two arguments the
 wrong way round, compile, run, and give a plausible wrong answer.
 

@@ -85,6 +85,11 @@ namespace CalradiaRemembers.Tests.Maps
       public void GIVEN_the_source_as_it_stands_WHEN_the_shared_state_is_regenerated_THEN_it_matches_the_committed_map()
          => ApprovedMap.Verify(SharedStateMap.Path, Generated(SharedStateMap.Generate));
 
+      // Gabriel, 14/11/2026: Tell Don't Ask in this project's terms, the glue deciding with a bare number (GlueDecisionsMap).
+      [Test]
+      public void GIVEN_the_source_as_it_stands_WHEN_the_glue_decisions_are_regenerated_THEN_they_match_the_committed_map()
+         => ApprovedMap.Verify(GlueDecisionsMap.Path, Generated(GlueDecisionsMap.Generate));
+
       // THE PAIRING LENS, asked for by Gabriel on 22/09/2026 after a triage that needed five separate reads to
       // settle whether one audit line meant anything: what TEACHES a verb, what the bridge DEMANDS of it, and
       // which other verbs can change the answer between the two.

@@ -185,6 +185,57 @@ namespace CalradiaRemembers.Tests.Maps
                       + $"was set. Lower it to {bare} in this commit so the ratchet keeps holding.");
       }
 
+      /// <summary>
+      ///   Facts of the game compared with a bare number in the glue on 14/11/2026, the day the map started (Gabriel: maps that
+      ///   put Tell Don't Ask into practice). docs/maps/glue-decisions.md lists them.
+      /// </summary>
+      private const int GlueDecisionsOn14November = 16;
+
+      // TELL DON'T ASK, IN THIS PROJECT'S TERMS: a decision belongs in a pure policy where a test holds it and a second copy
+      // shows. A fact compared with a number in the glue is the decision made again, out of reach, free to drift (the
+      // affection bar's literal 50 in three places).
+      [Test]
+      public void GIVEN_facts_of_the_game_compared_with_a_bare_number_in_the_glue_WHEN_counted_THEN_there_are_no_more_than_the_baseline()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
+
+         int count = GlueDecisionsMap.Count(SourceTree.Production);
+
+         count.Should().BeLessThanOrEqualTo(GlueDecisionsOn14November,
+            $"the glue has started deciding for itself ({count} against a baseline of {GlueDecisionsOn14November}): a fact of the game "
+          + "compared with a number written in place. Put the decision in a Logic policy (a facts object, a named rung) and call it; "
+          + "docs/maps/glue-decisions.md lists every one. If it truly belongs in the glue, raise the baseline here and say why.");
+
+         if (count < GlueDecisionsOn14November)
+            Assert.Warn($"{GlueDecisionsOn14November - count} decision(s) moved out of the glue since the baseline: lower it to {count}.");
+      }
+
+      /// <summary>
+      ///   Public members of the Logic layer with three or more same-typed parameters in a row on 14/11/2026, the day the suite
+      ///   started holding them. Tools/Find-SwapRisk.ps1 had taken them to zero on 10/09/2026, but nothing ran it; 33 had come
+      ///   back by the time this test did (the script, run the same day, lists the same 33), one of them QuestRepeatPolicy.KeyOf,
+      ///   widened that very day.
+      /// </summary>
+      private const int SwapRiskRunsOn14November = 33;
+
+      // A SWAP THE COMPILER CANNOT SEE: three same-typed parameters in a row in a pure rule is a call that will one day pass two
+      // of them the wrong way round, compile, and give a plausible wrong answer (CanEscort cost seven rewritten assertions).
+      [Test]
+      public void GIVEN_the_pure_rules_WHEN_their_signatures_are_read_THEN_no_more_take_three_same_typed_parameters_in_a_row_than_before()
+      {
+         if (!SourceTree.IsReachable) Assert.Ignore($"Cannot see {SourceTree.MissingAnchor}; run `dotnet test`.");
+
+         IReadOnlyList<string> findings = SwapRiskGuard.Findings(SourceTree.Production);
+
+         findings.Count.Should().BeLessThanOrEqualTo(SwapRiskRunsOn14November,
+            "a public member of CalradiaRemembers.Logic now takes three or more parameters of one type in a row. Ask for the type "
+          + "that already exists, or give it a facts object with { get; init; } (CLAUDE.md, \"The structural cure\"). All of them: "
+          + string.Join("; ", findings));
+
+         if (findings.Count < SwapRiskRunsOn14November)
+            Assert.Warn($"{SwapRiskRunsOn14November - findings.Count} signature(s) given a facts object since the baseline: lower it to {findings.Count}.");
+      }
+
       #region private
 
       /// <summary>
