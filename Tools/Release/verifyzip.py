@@ -47,7 +47,7 @@ blobs = {k: zn.read(v) for k, v in DLLS.items()}
 # Managed metadata keeps type and member names as UTF-8 in the #Strings heap, so a plain byte search is a
 # sound presence test for a name this distinctive.
 LITERALS = [
-    ("logic", "injected instruction"),   # 2.8.13: Aporo's GLM refusal marker
+    ("logic", "injected instruction"),   # 2.8.12: Aporo's GLM refusal marker
     ("sdk",   "invent no tics of your own."),   # 2.8.12: the authored-voice wording
     ("sdk",   "Never write \"the player\""),   # 2.7.0: the Lean reminder
     ("sdk",   "In the memory lines just below"),   # 2.7.0: whose "you"
@@ -655,7 +655,7 @@ MUST = [
     ("sdk",   b"IntimateActNames"),
     ("sdk",   b"LessFondActs"),
     ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
-    # 2.8.13
+    # 2.8.12
     ("sdk",   b"AppendMattersMostDiscovery"),
     ("sdk",   b"AppendFearDiscovery"),
     ("logic", b"FoldableSectionHeader"),
@@ -1002,7 +1002,7 @@ for path, needle in [("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf
                      ("CalradiaRemembers/ModuleData/Languages/EN/std_CalradiaRemembers_mcm.xml", "CR_MCM_"),
                      ("CalradiaRemembers/ModuleData/Languages/README.txt", "language"),
                      ("CalradiaRemembers/ModuleData/Custom/README.txt", "behavior_guidelines_merchant.txt"),
-                     # 2.8.13
+                     # 2.8.12
                      ("CalradiaRemembers/GUI/Prefabs/CR_HeroRegardWhyLabel.xml", "ExecuteToggleRegardWhy"),
                      ("CalradiaRemembers/GUI/Prefabs/CR_HeroRegardHousesItems.xml", "CalradiaRegardHousesShown"),
                      # 2.8.11

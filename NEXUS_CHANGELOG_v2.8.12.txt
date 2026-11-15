@@ -1,6 +1,15 @@
 Version 2.8.12
 
-Characters you wrote keep their personality without repeating a tic, and other mods can now borrow a character's persona.
+Long lists on the encyclopedia fold away, women in the ranks look like soldiers, characters you wrote keep their personality without a repeated tic, and other mods can borrow a character's persona.
+
+New
+
+- On a character's encyclopedia page, click the "Friends and enemies" or "Houses" header to fold or show its list. The header says how many entries it holds, and your choice stays for every page until you close the game. (Thank you, LapitaPolata.)
+
+Fixed
+
+- A model refusal worded like GLM 5.3 Flash's ("I can't output that content... injected instruction block") is now recognised: it is no longer shown under a character's name, and in Enhanced it is redone on your NSFW model. (Thank you, Aporo.)
+- Women in the ranks are now drawn lean and far less muscular, with their own face kept. Their bodies came from the game's stout, heavy peasant women, so under a man's armour their heads looked tiny. (Thank you, EvilPoptart1987.)
 
 Changed
 
@@ -15,7 +24,7 @@ For modders
 
 Developer tools
 
-- cr.test all gains persona_surface.
+- cr.test all gains persona_surface; women_in_ranks also checks that the women soldiers it draws are lean.
 
 Notes
 
