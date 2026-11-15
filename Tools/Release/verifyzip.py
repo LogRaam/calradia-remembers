@@ -654,6 +654,9 @@ MUST = [
     ("sdk",   b"IntimateActNames"),
     ("sdk",   b"LessFondActs"),
     ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
+    # 2.8.13
+    ("logic", b"LeanFrame"),
+    ("logic", b"LeanFrameHighest"),
     # 2.8.12
     ("logic", b"PersonaSectionPolicy"),
     ("logic", b"ExternalLlmRequestPolicy"),

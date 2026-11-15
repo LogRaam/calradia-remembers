@@ -1,0 +1,15 @@
+Version 2.8.13
+
+Women in the ranks look like soldiers, not tiny heads on heavy bodies.
+
+Fixed
+
+- Women in the ranks are now drawn lean and far less muscular, with their own face kept. Their bodies came from the game's stout, heavy peasant women, so under a man's armour their heads looked tiny. (Thank you, EvilPoptart1987.)
+
+Developer tools
+
+- cr.test all: women_in_ranks also checks that the women soldiers it draws are lean.
+
+Notes
+
+- Saves from 2.8.12 and older load as they are, and your MCM choices are kept.
