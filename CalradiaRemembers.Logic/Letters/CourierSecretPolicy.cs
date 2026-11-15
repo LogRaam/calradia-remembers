@@ -91,6 +91,19 @@ namespace CalradiaRemembers.Logic.Letters
       public string HeroId { get; set; }
    }
 
+   /// <summary>A letter a courier read: its sender, its recipient and what it said.</summary>
+   public sealed class CourierLetterNames
+   {
+      /// <summary>The sender name.</summary>
+      public string SenderName { get; init; }
+
+      /// <summary>The recipient name.</summary>
+      public string RecipientName { get; init; }
+
+      /// <summary>The content.</summary>
+      public string Content { get; init; }
+   }
+
    /// <summary>The decisions a lost courier and its secret turn on. Pure.</summary>
    public static class CourierSecretPolicy
    {
@@ -161,7 +174,11 @@ namespace CalradiaRemembers.Logic.Letters
       ///   and what it said, quoted (cut at <see cref="ReaderExcerptMaxChars" />). The quote is what lets them act on
       ///   it later, in their own words, rather than on a vague "a letter was found".
       /// </summary>
-      public static string ReaderMemory(string senderName, string recipientName, string content)
+      public static string ReaderMemory(CourierLetterNames facts) => ReaderMemory(facts.SenderName, facts.RecipientName, facts.Content);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static string ReaderMemory(string senderName, string recipientName, string content)
       {
          string sender = string.IsNullOrWhiteSpace(senderName) ? "someone" : senderName.Trim();
          string recipient = string.IsNullOrWhiteSpace(recipientName) ? "another" : recipientName.Trim();

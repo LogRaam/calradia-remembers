@@ -36,7 +36,7 @@ namespace CalradiaRemembers.Lore
          var n = 0;
          foreach (Hero hero in Hero.AllAliveHeroes)
          {
-            CharacterOverride ov = CharacterOverrideLoader.Set.Resolve(hero.StringId, hero.Name?.ToString(), CharacterOverrideLoader.TemplateKeyOf(hero));
+            CharacterOverride ov = CharacterOverrideLoader.Set.Resolve(new HeroOverrideLookup {HeroId = hero.StringId, HeroName = hero.Name?.ToString(), TemplateId = CharacterOverrideLoader.TemplateKeyOf(hero)});
 
             // Skip only a truly-empty entry: ANY authored content (traits, a kink lock, a backstory, a conviction,
             // or orientation text) makes this a character cr.reload_lore should process. Earlier this counted only
@@ -101,7 +101,7 @@ namespace CalradiaRemembers.Lore
          var n = 0;
          foreach (Hero hero in Hero.AllAliveHeroes)
          {
-            CharacterOverride ov = CharacterOverrideLoader.Set.Resolve(hero.StringId, hero.Name?.ToString(), CharacterOverrideLoader.TemplateKeyOf(hero));
+            CharacterOverride ov = CharacterOverrideLoader.Set.Resolve(new HeroOverrideLookup {HeroId = hero.StringId, HeroName = hero.Name?.ToString(), TemplateId = CharacterOverrideLoader.TemplateKeyOf(hero)});
 
             // Same content gate as ApplyAll: visit any authored character. A traits/kink-lock override must be
             // visited so turning "Use custom traits" OFF actually releases its kink lock (RederiveKinks below

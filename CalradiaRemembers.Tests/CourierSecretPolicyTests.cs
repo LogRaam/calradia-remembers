@@ -178,7 +178,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_lord_comes_by_an_intercepted_letter_WHEN_they_remember_it_THEN_they_know_who_wrote_it_to_whom_and_what()
       {
-         CourierSecretPolicy.ReaderMemory("Arwa", "Derthert", Substantive)
+         CourierSecretPolicy.ReaderMemory(new CourierLetterNames {SenderName = "Arwa", RecipientName = "Derthert", Content = Substantive})
                             .Should().Be($"A letter Arwa wrote to Derthert, taken from a courier on the road, came into my hands. It read: \"{Substantive}\"");
       }
 
@@ -186,7 +186,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_long_letter_WHEN_its_reader_remembers_it_THEN_the_quote_is_cut()
       {
-         string memory = CourierSecretPolicy.ReaderMemory("Arwa", "Derthert", new string('a', 1000));
+         string memory = CourierSecretPolicy.ReaderMemory(new CourierLetterNames {SenderName = "Arwa", RecipientName = "Derthert", Content = new string('a', 1000)});
 
          memory.Should().EndWith("...\"");
          memory.Length.Should().BeLessThan(CourierSecretPolicy.ReaderExcerptMaxChars + 150);

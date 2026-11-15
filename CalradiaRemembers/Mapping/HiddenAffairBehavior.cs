@@ -245,7 +245,7 @@ namespace CalradiaRemembers.Mapping
          if (candidates.Count == 0) return;
 
          (Hero subject, HiddenAffairCandidate facts) = candidates[MBRandom.RandomInt(candidates.Count)];
-         if (!HiddenAffairPolicy.Begins(Ledger.Affairs.Count, HiddenAffairPolicy.ChancePercent(facts), MBRandom.RandomInt(100))) return;
+         if (!HiddenAffairPolicy.Begins(new AffairDraw {Standing = Ledger.Affairs.Count, ChancePercent = HiddenAffairPolicy.ChancePercent(facts), Roll = MBRandom.RandomInt(100)})) return;
 
          NpcProfile profile = Memory?.Store?.Get(subject.StringId) ?? HeroProfileMapper.FromHero(subject);
          if (profile.Romantic == null) return;

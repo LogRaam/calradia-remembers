@@ -53,6 +53,22 @@ namespace CalradiaRemembers.Logic.Conversation
       GiveTheWorldBack
    }
 
+   /// <summary>The state a briefing's return is decided on.</summary>
+   public sealed class BriefingReturnFacts
+   {
+      /// <summary>The armed.</summary>
+      public bool Armed { get; init; }
+
+      /// <summary>The chat is open.</summary>
+      public bool ChatIsOpen { get; init; }
+
+      /// <summary>The host is live.</summary>
+      public bool HostIsLive { get; init; }
+
+      /// <summary>The ticks waited.</summary>
+      public int TicksWaited { get; init; }
+   }
+
    /// <summary>
    ///   The whole decision the briefing return makes, as a pure function of four facts. Every fault of
    ///   13/09/2026 is expressible here, and therefore assertable in a unit test.
@@ -80,10 +96,10 @@ namespace CalradiaRemembers.Logic.Conversation
          missionLive || mapConversationLive;
 
       /// <summary>
-      ///   THE DECISION. <paramref name="armed" /> is whether a briefing close asked for a return;
-      ///   <paramref name="chatIsOpen" /> whether the briefing window is still up;
-      ///   <paramref name="hostIsLive" /> whether the meeting still has a host to open over;
-      ///   <paramref name="ticksWaited" /> how long we have been waiting.
+      ///   THE DECISION. <see cref="BriefingReturnFacts.Armed" /> is whether a briefing close asked for a return;
+      ///   <see cref="BriefingReturnFacts.ChatIsOpen" /> whether the briefing window is still up;
+      ///   <see cref="BriefingReturnFacts.HostIsLive" /> whether the meeting still has a host to open over;
+      ///   <see cref="BriefingReturnFacts.TicksWaited" /> how long we have been waiting.
       ///   <para>
       ///     NOTE THE ASYMMETRY THAT WAS WRONG BEFORE: a live host is the REASON to act, never the reason to
       ///     wait. The return wants the meeting the player never left. Staging one is not a move this decision
@@ -99,7 +115,11 @@ namespace CalradiaRemembers.Logic.Conversation
       ///     The caller now asks the question this parameter's NAME always claimed to ask.
       ///   </para>
       /// </summary>
-      public static ReturnMove Decide(bool armed, bool chatIsOpen, bool hostIsLive, int ticksWaited)
+      public static ReturnMove Decide(BriefingReturnFacts facts) => Decide(facts.Armed, facts.ChatIsOpen, facts.HostIsLive, facts.TicksWaited);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static ReturnMove Decide(bool armed, bool chatIsOpen, bool hostIsLive, int ticksWaited)
       {
          if (!armed) return ReturnMove.Idle;
          if (ticksWaited > PatienceTicks) return ReturnMove.GiveTheWorldBack;

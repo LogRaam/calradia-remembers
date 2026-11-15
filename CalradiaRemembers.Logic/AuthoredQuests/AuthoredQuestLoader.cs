@@ -227,7 +227,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
                 && q.Requires?.Husband == null)
                blocking.Add($"consequence '{c.Type}' names the giver's husband, but no husband is bound: add \"husband\" to \"requires\".");
             // Items in tales (tashmetu, 20/10/2026): what is given is named, in a count the game can carry.
-            if (c?.Type == "item") blocking.AddRange(TaleItemPolicy.ShapeProblems($"consequence '{c.Type}'", "item", c.Item, c.Count));
+            if (c?.Type == "item") blocking.AddRange(TaleItemPolicy.ShapeProblems(new TaleItemShape {Where = $"consequence '{c.Type}'", Type = "item", Item = c.Item, Count = c.Count}));
             if (c?.Type == "regard" && (c.Amount == 0 || c.Amount < -100 || c.Amount > 100))
                blocking.Add($"consequence 'regard' moves regard by {c.Amount}, which must be from -100 to 100 and not 0.");
             if (c != null && !TaleConceptionPolicy.IsAChance(c.Chance))
@@ -716,7 +716,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
                if (string.IsNullOrWhiteSpace(o.Hero)) blocking.Add($"{where}: {o.Type} needs \"hero\".");
                break;
             case "bring":
-               blocking.AddRange(TaleItemPolicy.ShapeProblems(where, "bring", o.Item, o.Count));
+               blocking.AddRange(TaleItemPolicy.ShapeProblems(new TaleItemShape {Where = where, Type = "bring", Item = o.Item, Count = o.Count}));
                break;
          }
       }

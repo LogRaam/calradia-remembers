@@ -70,6 +70,22 @@ namespace CalradiaRemembers.Logic
       public int Today { get; init; }
    }
 
+   /// <summary>Who left which realm, and for whom: the names a departure line is written with.</summary>
+   public sealed class MercenaryDepartureNames
+   {
+      /// <summary>How the realm left behind takes the departure.</summary>
+      public MercenaryDepartureVerdict Verdict { get; init; }
+
+      /// <summary>Who left: the player, or the company in the Company lines.</summary>
+      public string Who { get; init; }
+
+      /// <summary>The realm whose service was left.</summary>
+      public string Realm { get; init; }
+
+      /// <summary>The enemy the company went over to, or null.</summary>
+      public string Enemy { get; init; }
+   }
+
    /// <summary>The rules of a mercenary's departure. Pure.</summary>
    public static class MercenaryDeparturePolicy
    {
@@ -190,7 +206,11 @@ namespace CalradiaRemembers.Logic
       };
 
       /// <summary>The news line, as characters hear it.</summary>
-      public static string Summary(MercenaryDepartureVerdict verdict, string player, string realm, string enemy = null)
+      public static string Summary(MercenaryDepartureNames facts) => Summary(facts.Verdict, facts.Who, facts.Realm, facts.Enemy);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static string Summary(MercenaryDepartureVerdict verdict, string player, string realm, string enemy = null)
          => verdict switch
          {
             MercenaryDepartureVerdict.ReleasedInVictory => $"{player}'s company left {realm}'s service with the war well in hand, and with thanks.",
@@ -200,7 +220,11 @@ namespace CalradiaRemembers.Logic
          };
 
       /// <summary>The chronicler's line.</summary>
-      public static string ChronicleLine(MercenaryDepartureVerdict verdict, string player, string realm, string enemy = null)
+      public static string ChronicleLine(MercenaryDepartureNames facts) => ChronicleLine(facts.Verdict, facts.Who, facts.Realm, facts.Enemy);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static string ChronicleLine(MercenaryDepartureVerdict verdict, string player, string realm, string enemy = null)
          => verdict switch
          {
             MercenaryDepartureVerdict.ReleasedInVictory => $"{player}'s hired service to {realm} ended with the war well in hand",
@@ -228,7 +252,11 @@ namespace CalradiaRemembers.Logic
          => verdict == MercenaryDepartureVerdict.Abandoned || verdict == MercenaryDepartureVerdict.Betrayal;
 
       /// <summary>The news line about one of the game's companies, as characters hear it.</summary>
-      public static string CompanySummary(MercenaryDepartureVerdict verdict, string company, string realm, string enemy = null)
+      public static string CompanySummary(MercenaryDepartureNames facts) => CompanySummary(facts.Verdict, facts.Who, facts.Realm, facts.Enemy);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static string CompanySummary(MercenaryDepartureVerdict verdict, string company, string realm, string enemy = null)
       {
          string who = CompanyName(company);
 
@@ -242,7 +270,11 @@ namespace CalradiaRemembers.Logic
       }
 
       /// <summary>The chronicler's line about one of the game's companies.</summary>
-      public static string CompanyChronicleLine(MercenaryDepartureVerdict verdict, string company, string realm, string enemy = null)
+      public static string CompanyChronicleLine(MercenaryDepartureNames facts) => CompanyChronicleLine(facts.Verdict, facts.Who, facts.Realm, facts.Enemy);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static string CompanyChronicleLine(MercenaryDepartureVerdict verdict, string company, string realm, string enemy = null)
       {
          string who = CompanyName(company);
 
@@ -268,7 +300,11 @@ namespace CalradiaRemembers.Logic
       public static int VassalMagnitude(MercenaryDepartureVerdict verdict) => Math.Max(PlainVassalDepartureMagnitude, Magnitude(verdict));
 
       /// <summary>The news line about a vassal holding no fief who renounced fealty, as characters hear it.</summary>
-      public static string VassalSummary(MercenaryDepartureVerdict verdict, string player, string realm, string enemy = null)
+      public static string VassalSummary(MercenaryDepartureNames facts) => VassalSummary(facts.Verdict, facts.Who, facts.Realm, facts.Enemy);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static string VassalSummary(MercenaryDepartureVerdict verdict, string player, string realm, string enemy = null)
          => verdict switch
          {
             MercenaryDepartureVerdict.Abandoned => $"{player} renounced fealty to {realm} in the middle of a losing war.",
@@ -278,7 +314,11 @@ namespace CalradiaRemembers.Logic
          };
 
       /// <summary>The chronicler's line about a vassal holding no fief who renounced fealty.</summary>
-      public static string VassalChronicleLine(MercenaryDepartureVerdict verdict, string player, string realm, string enemy = null)
+      public static string VassalChronicleLine(MercenaryDepartureNames facts) => VassalChronicleLine(facts.Verdict, facts.Who, facts.Realm, facts.Enemy);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static string VassalChronicleLine(MercenaryDepartureVerdict verdict, string player, string realm, string enemy = null)
          => verdict switch
          {
             MercenaryDepartureVerdict.Abandoned => $"{player} forsook {realm} in a losing war, and the oath was broken",

@@ -21,6 +21,22 @@ using System;
 
 namespace CalradiaRemembers.Logic.Saving
 {
+   /// <summary>A packed block and the settings it was packed with.</summary>
+   public sealed class PpmdPacked
+   {
+      /// <summary>The packed.</summary>
+      public byte[] Packed { get; init; }
+
+      /// <summary>The length.</summary>
+      public int Length { get; init; }
+
+      /// <summary>The order.</summary>
+      public int Order { get; init; }
+
+      /// <summary>The memory.</summary>
+      public int Memory { get; init; }
+   }
+
    /// <summary>PPMd variant H (7z range coder): encodes and decodes one block whose length the caller keeps. Pure.</summary>
    public static class Ppmd7
    {
@@ -49,10 +65,14 @@ namespace CalradiaRemembers.Logic.Saving
       }
 
       /// <summary>
-      ///   The <paramref name="length" /> bytes <paramref name="packed" /> holds, read with the order and memory it was written
+      ///   The <see cref="PpmdPacked.Length" /> bytes <see cref="PpmdPacked.Packed" /> holds, read with the order and memory it was written
       ///   with. Throws on a damaged stream.
       /// </summary>
-      public static byte[] Decode(byte[] packed, int length, int order, int memory)
+      public static byte[] Decode(PpmdPacked facts) => Decode(facts.Packed, facts.Length, facts.Order, facts.Memory);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static byte[] Decode(byte[] packed, int length, int order, int memory)
       {
          Check(order, memory);
          if (length < 0) throw new ArgumentOutOfRangeException(nameof(length));

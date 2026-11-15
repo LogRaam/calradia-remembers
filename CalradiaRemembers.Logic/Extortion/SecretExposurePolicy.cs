@@ -39,6 +39,19 @@ namespace CalradiaRemembers.Logic.Extortion
       public int GrudgeMagnitude { get; init; }
    }
 
+   /// <summary>Who would hear, about whom, and the lover the secret is about.</summary>
+   public sealed class SecretListener
+   {
+      /// <summary>The listener id.</summary>
+      public string ListenerId { get; init; }
+
+      /// <summary>The subject id.</summary>
+      public string SubjectId { get; init; }
+
+      /// <summary>The lover id.</summary>
+      public string LoverId { get; init; }
+   }
+
    /// <summary>Decides who may hear a secret, what telling it costs, and how the scandal reads.</summary>
    public static class SecretExposurePolicy
    {
@@ -58,7 +71,11 @@ namespace CalradiaRemembers.Logic.Extortion
       public const int BrokenBargainGrudge = 60;
 
       /// <summary>True when this person can be told: the two lovers already know it.</summary>
-      public static bool MayHear(string listenerId, string subjectId, string loverId)
+      public static bool MayHear(SecretListener facts) => MayHear(facts.ListenerId, facts.SubjectId, facts.LoverId);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static bool MayHear(string listenerId, string subjectId, string loverId)
          => !string.IsNullOrEmpty(listenerId) && listenerId != subjectId && listenerId != loverId;
 
       /// <summary>What it costs with someone named by the secret; dearer with one who paid for silence.</summary>

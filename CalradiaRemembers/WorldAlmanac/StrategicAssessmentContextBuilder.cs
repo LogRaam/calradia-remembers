@@ -133,7 +133,7 @@ namespace CalradiaRemembers.WorldAlmanac
 
          try
          {
-            CharacterOverride ov = CharacterOverrideLoader.Set?.Resolve(companion.StringId, companion.Name?.ToString());
+            CharacterOverride ov = CharacterOverrideLoader.Set?.Resolve(new Logic.HeroOverrideLookup {HeroId = companion.StringId, HeroName = companion.Name?.ToString()});
             if (ov != null)
             {
                if (ov.HasBackstory) parts.Add(ov.Backstory.Trim());

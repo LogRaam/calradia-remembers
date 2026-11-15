@@ -24,6 +24,22 @@ namespace CalradiaRemembers.Logic
         public string FactionName { get; init; }
     }
 
+    /// <summary>Who won and lost a battle, where, and with how many men at the start.</summary>
+    public sealed class BattleRecordNames
+    {
+        /// <summary>The winner.</summary>
+        public string Winner { get; init; }
+
+        /// <summary>The loser.</summary>
+        public string Loser { get; init; }
+
+        /// <summary>The place clause.</summary>
+        public string PlaceClause { get; init; }
+
+        /// <summary>The men at start.</summary>
+        public int MenAtStart { get; init; }
+    }
+
     /// <summary>Pure: names a battle's sides and its scale for the world's record.</summary>
     public static class BattleRecordText
     {
@@ -74,7 +90,11 @@ namespace CalradiaRemembers.Logic
         ///   The record's line: "{winner} defeated {loser}{place}, {scale}." A field battle with no place reads
         ///   "in battle"; the scale is left out when unknown.
         /// </summary>
-        public static string Summary(string winner, string loser, string placeClause, int menAtStart)
+        public static string Summary(BattleRecordNames facts) => Summary(facts.Winner, facts.Loser, facts.PlaceClause, facts.MenAtStart);
+
+        // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+        // way round and still compile (swap-risk ratchet, 14/11/2026).
+        private static string Summary(string winner, string loser, string placeClause, int menAtStart)
         {
             string place = string.IsNullOrEmpty(placeClause) ? " in battle" : placeClause;
             string scale = Scale(menAtStart);

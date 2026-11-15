@@ -428,7 +428,7 @@ namespace CalradiaRemembers.Quests
       // A scenario's summons is not an errand raised in conversation: nothing of the giver's own bars it, neither an errand on
       // offer nor a quest of theirs under way (Gabriel, 26/10/2026: the night was still refused with the wolf's tale under way).
       private AuthoredOfferFacts FactsFor(AuthoredQuest q, Hero giver, int today, bool bySummons = false) => new() {
-         Today = today, StoryUnderWay = TalePause.StoryUnderWay(_run is {Status: AuthoredQuestStatus.Active}, _paused != null, bySummons),
+         Today = today, StoryUnderWay = TalePause.StoryUnderWay(new TaleMoment {RunActive = _run is {Status: AuthoredQuestStatus.Active}, OnePaused = _paused != null, BySummons = bySummons}),
          Unique = q.Unique, AlreadyPlayed = _done.Contains(q.Id),
          GiverHasVanillaQuest = !bySummons && HasATaskOfTheirOwn(giver),
          LastPlayedOnDay = _playedOn.TryGetValue(q.Id, out int p) ? p : (int?) null, RepeatCooldownDays = q.RepeatCooldownDays,
@@ -1344,7 +1344,7 @@ namespace CalradiaRemembers.Quests
          var notes = new List<string>();
          // Gabriel (08/10/2026): what this narration reveals, springs or brings in may carry a picture; read before the
          // markers move the tale on, and taken by the chat once the narration is shown.
-         _pendingSceneImage = ImagePath(q, AuthoredTaleImages.ImageForMarkers(_run, q, m.Found, m.Hazards, m.Met));
+         _pendingSceneImage = ImagePath(q, AuthoredTaleImages.ImageForMarkers(new TaleMarkersSeen {Run = _run, Tale = q, Found = m.Found, Sprung = m.Hazards, Met = m.Met}));
          foreach (string f in m.Found)
             if (AuthoredQuestEngine.Found(_run, q, f)) ModLog.Info($"[TALE] finding '{f}'.");
 
@@ -1780,7 +1780,7 @@ namespace CalradiaRemembers.Quests
       /// <summary>The tale set aside takes up again where it stood, once nothing else plays and the player is free.</summary>
       private void ResumeIfFree(bool playerPrisoner)
       {
-         if (!TalePause.ShouldResume(_paused != null, _run is {Status: AuthoredQuestStatus.Active}, playerPrisoner)) return;
+         if (!TalePause.ShouldResume(new TaleMoment {OnePaused = _paused != null, RunActive = _run is {Status: AuthoredQuestStatus.Active}, PlayerPrisoner = playerPrisoner})) return;
          TalePause.Resume(_paused, (int) CampaignTime.Now.ToDays);
          _run = _paused;
          _paused = null;

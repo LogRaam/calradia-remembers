@@ -241,7 +241,7 @@ namespace CalradiaRemembers.Encyclopedia
             PairRegard r = PairRegardReader.Assess(lord, other);
             houses.Add(new ClanRegardCandidate {
                Name = c.Name?.ToString(), Id = c.StringId, Derived = r.Verdict,
-               DerivedReason = PairRegardPolicy.WithoutThePair(PairRegardPolicy.PageReason(r), lord.Name?.ToString(), other.Name?.ToString()),
+               DerivedReason = PairRegardPolicy.WithoutThePair(new PairReasonNames {Reason = PairRegardPolicy.PageReason(r), OneName = lord.Name?.ToString(), OtherName = other.Name?.ToString()}),
                VanillaRelation = Mapping.PairBondReader.Points(lord, other), AtWar = atWar,
                Through = lord == hero && _explained.Contains(other) ? other.Name?.ToString() : null,
                Lord = lord.Name?.ToString(), OtherLord = other.Name?.ToString()
@@ -324,7 +324,7 @@ namespace CalradiaRemembers.Encyclopedia
          // Gabriel (20/10/2026): under "Personal regard: unknown", a bare "Why:" read as the reason for the regard toward
          // the player, while these lines are the character's own friends and enemies. The label says whose they are.
          Show(shown.Select(x => new RegardPersonRowVM(x.Hero, $"{x.Hero.Name}, {(x.Friend ? "friend" : "enemy")}",
-                                                      Capitalised(PairRegardPolicy.WithoutThePair(x.Why, hero.Name?.ToString(), x.Hero.Name?.ToString())), x.Friend))
+                                                      Capitalised(PairRegardPolicy.WithoutThePair(new PairReasonNames {Reason = x.Why, OneName = hero.Name?.ToString(), OtherName = x.Hero.Name?.ToString()})), x.Friend))
                    .ToList(), "Friends and enemies, and why:");
       }
 

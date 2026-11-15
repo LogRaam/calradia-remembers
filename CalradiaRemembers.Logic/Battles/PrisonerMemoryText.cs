@@ -29,6 +29,19 @@ namespace CalradiaRemembers.Logic.Battles
       Compensated
    }
 
+   /// <summary>Who left which captive, and where.</summary>
+   public sealed class PrisonerDepositNames
+   {
+      /// <summary>The player name.</summary>
+      public string PlayerName { get; init; }
+
+      /// <summary>The captive.</summary>
+      public string Captive { get; init; }
+
+      /// <summary>The place.</summary>
+      public string Place { get; init; }
+   }
+
    /// <summary>Pure: the memory lines of the player's prisoners.</summary>
    public static class PrisonerMemoryText
    {
@@ -45,7 +58,11 @@ namespace CalradiaRemembers.Logic.Battles
       public static string LeftInDungeon(string playerName, string place) => $"{Name(playerName)} left me in the dungeon of {Place(place)}.";
 
       /// <summary>The memory of the lord whose dungeon now holds him: "Arwa left Lucon of the dey Meroc in my dungeon at Hargard."</summary>
-      public static string DepositedWithMe(string playerName, string captive, string place)
+      public static string DepositedWithMe(PrisonerDepositNames facts) => DepositedWithMe(facts.PlayerName, facts.Captive, facts.Place);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static string DepositedWithMe(string playerName, string captive, string place)
          => $"{Name(playerName)} left {(string.IsNullOrWhiteSpace(captive) ? "a prisoner" : captive.Trim())} in my dungeon at {Place(place)}.";
 
       /// <summary>

@@ -31,6 +31,22 @@ namespace CalradiaRemembers.Logic.Captivity
       public int UntilDay { get; set; }
    }
 
+   /// <summary>An oath a captive takes to a captor's realm: the captor, the realm, its name, and the day.</summary>
+   public sealed class CaptorOathTaken
+   {
+      /// <summary>The captor's hero id.</summary>
+      public string CaptorId { get; init; }
+
+      /// <summary>The realm sworn to.</summary>
+      public string FactionId { get; init; }
+
+      /// <summary>The realm's name, as the oath is told.</summary>
+      public string FactionName { get; init; }
+
+      /// <summary>The game day the oath is taken.</summary>
+      public int Today { get; init; }
+   }
+
    /// <summary>Every oath of parole still binding the player.</summary>
    public sealed class CaptorParoleLedger
    {
@@ -41,7 +57,11 @@ namespace CalradiaRemembers.Logic.Captivity
       public int NextId { get; set; } = 1;
 
       /// <summary>Records an oath taken today.</summary>
-      public CaptorParole Add(string captorId, string factionId, string factionName, int today)
+      public CaptorParole Add(CaptorOathTaken facts) => Add(facts.CaptorId, facts.FactionId, facts.FactionName, facts.Today);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private CaptorParole Add(string captorId, string factionId, string factionName, int today)
       {
          var oath = new CaptorParole {
             Id = $"cr_parole_{NextId++}", CaptorId = captorId, FactionId = factionId, FactionName = factionName,

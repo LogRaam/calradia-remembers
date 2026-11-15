@@ -360,7 +360,7 @@ namespace CalradiaRemembers.Letters
 
             int today = Today;
             profile.Events.Add(new NotableEvent(today, NotableEventType.Other,
-               CourierSecretPolicy.ReaderMemory(secret.SenderName, secret.RecipientName, secret.Content)));
+               CourierSecretPolicy.ReaderMemory(new CourierLetterNames {SenderName = secret.SenderName, RecipientName = secret.RecipientName, Content = secret.Content})));
             behavior.Store.Set(profile);
 
             if (!live) return;

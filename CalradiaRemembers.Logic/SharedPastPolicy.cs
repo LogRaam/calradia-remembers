@@ -97,6 +97,22 @@ namespace CalradiaRemembers.Logic
         public string Summary { get; init; }
     }
 
+    /// <summary>The kind of shared past, the two people and the place.</summary>
+    public sealed class SharedPastNames
+    {
+        /// <summary>The kind.</summary>
+        public SharedPastKind Kind { get; init; }
+
+        /// <summary>The first.</summary>
+        public string First { get; init; }
+
+        /// <summary>The second.</summary>
+        public string Second { get; init; }
+
+        /// <summary>The place.</summary>
+        public string Place { get; init; }
+    }
+
     /// <summary>Draws, dates, words and weighs the shared past of two lords.</summary>
     public static class SharedPastPolicy
     {
@@ -192,11 +208,15 @@ namespace CalradiaRemembers.Logic
             int halfLife = weight > 0 ? BondHalfLife : GrievanceHalfLife;
             int fading = Math.Max(0, yearsAgo - FullWeightYears);
 
-            return PairRegardPolicy.Aged(weight, fading, halfLife);
+            return PairRegardPolicy.Aged(new RegardAgeing {Weight = weight, YearsAgo = fading, HalfLifeYears = halfLife});
         }
 
         /// <summary>The line, naming both and the town it happened near, never anything the world could contradict.</summary>
-        public static string Summary(SharedPastKind kind, string first, string second, string place)
+        public static string Summary(SharedPastNames facts) => Summary(facts.Kind, facts.First, facts.Second, facts.Place);
+
+        // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+        // way round and still compile (swap-risk ratchet, 14/11/2026).
+        private static string Summary(SharedPastKind kind, string first, string second, string place)
         {
             string near = string.IsNullOrWhiteSpace(place) ? "" : $" near {place}";
             string at = string.IsNullOrWhiteSpace(place) ? "" : $" at {place}";

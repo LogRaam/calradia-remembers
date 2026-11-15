@@ -53,11 +53,28 @@ namespace CalradiaRemembers.Logic.AuthoredHistory
       public List<HistoryRelationLedgerEntry> Ledger { get; } = new();
    }
 
+   /// <summary>An authored history event and the two people it ties.</summary>
+   public sealed class HistoryRelationKey
+   {
+      /// <summary>The event id.</summary>
+      public string EventId { get; init; }
+
+      /// <summary>The a.</summary>
+      public string A { get; init; }
+
+      /// <summary>The b.</summary>
+      public string B { get; init; }
+   }
+
    /// <summary>Plans the relation moves of a sync. Pure.</summary>
    public static class HistoryRelationLedger
    {
       /// <summary>The ledger key of a pair in an event; the pair is ordered, so a/b and b/a are one entry.</summary>
-      public static string KeyOf(string eventId, string a, string b)
+      public static string KeyOf(HistoryRelationKey facts) => KeyOf(facts.EventId, facts.A, facts.B);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static string KeyOf(string eventId, string a, string b)
          => string.CompareOrdinal(a, b) <= 0 ? $"{eventId}|{a}|{b}" : $"{eventId}|{b}|{a}";
 
       /// <summary>

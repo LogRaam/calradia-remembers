@@ -91,7 +91,7 @@ namespace CalradiaRemembers.Verbs
 
             string place = speaker.CurrentSettlement?.Name?.ToString();
             profile.Events.Add(new NotableEvent(today, NotableEventType.Collaboration,
-               PairPeacePolicy.MemoryLine(target.Name.ToString(), Hero.MainHero?.Name?.ToString(), place)));
+               PairPeacePolicy.MemoryLine(new PeaceMemoryNames {OtherName = target.Name.ToString(), PlayerName = Hero.MainHero?.Name?.ToString(), Place = place})));
 
             ModLog.Info($"[PEACE] reconcile_with: {speaker.Name} made peace with {target.Name} (grudges laid to rest: {grudges}).");
 

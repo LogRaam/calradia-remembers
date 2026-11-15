@@ -198,9 +198,7 @@ namespace CalradiaRemembers.Companions
             // did not, and that is the whole of the fault.
             bool missionLive = Mission.Current != null;
             bool mapTalkLive = Hero.OneToOneConversationHero != null;
-            ReturnMove move = BriefingReturnDecision.Decide(
-               _returnArmed, chatOpen, BriefingReturnDecision.HostIsLive(missionLive, mapTalkLive),
-               ++_ticksWaited);
+            ReturnMove move = BriefingReturnDecision.Decide(new BriefingReturnFacts {Armed = _returnArmed, ChatIsOpen = chatOpen, HostIsLive = BriefingReturnDecision.HostIsLive(missionLive, mapTalkLive), TicksWaited = ++_ticksWaited});
 
             // Logged on CHANGE only: this runs on every application tick, and Wait is the answer for most of
             // them. What a reader needs is the inputs at the moment the answer turned - because every fault

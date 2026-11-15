@@ -177,10 +177,10 @@ namespace CalradiaRemembers.Tests
          scene.Encounters.Add(new AuthoredEncounter {Id = "boy", Image = "boy.jpg"});
          AuthoredQuestRun run = AuthoredTales.At(q, "the_wood");
 
-         AuthoredTaleImages.ImageForMarkers(run, q, new[] {"lantern"}, new string[0], new string[0]).Should().Be("lantern.jpg");
-         AuthoredTaleImages.ImageForMarkers(run, q, new[] {"lantern"}, new[] {"snare"}, new string[0]).Should().Be("snare.jpg");
-         AuthoredTaleImages.ImageForMarkers(run, q, new[] {"lantern"}, new[] {"snare"}, new[] {"boy"}).Should().Be("boy.jpg");
-         AuthoredTaleImages.ImageForMarkers(run, q, new string[0], new string[0], new string[0]).Should().BeNull();
+         AuthoredTaleImages.ImageForMarkers(new TaleMarkersSeen {Run = run, Tale = q, Found = new[] {"lantern"}, Sprung = new string[0], Met = new string[0]}).Should().Be("lantern.jpg");
+         AuthoredTaleImages.ImageForMarkers(new TaleMarkersSeen {Run = run, Tale = q, Found = new[] {"lantern"}, Sprung = new[] {"snare"}, Met = new string[0]}).Should().Be("snare.jpg");
+         AuthoredTaleImages.ImageForMarkers(new TaleMarkersSeen {Run = run, Tale = q, Found = new[] {"lantern"}, Sprung = new[] {"snare"}, Met = new[] {"boy"}}).Should().Be("boy.jpg");
+         AuthoredTaleImages.ImageForMarkers(new TaleMarkersSeen {Run = run, Tale = q, Found = new string[0], Sprung = new string[0], Met = new string[0]}).Should().BeNull();
       }
 
       // Their images are checked at load like a stage's.

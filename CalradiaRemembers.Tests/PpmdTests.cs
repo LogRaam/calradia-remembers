@@ -53,7 +53,7 @@ namespace CalradiaRemembers.Tests
 
          packed.Length.Should().Be(packedLength, name);
          Hex(packed).Should().Be(sha256, name);
-         Ppmd7.Decode(packed, data.Length, order, memory).Should().Equal(data, name);
+         Ppmd7.Decode(new PpmdPacked {Packed = packed, Length = data.Length, Order = order, Memory = memory}).Should().Equal(data, name);
       }
 
       // STAKE: a damaged store fails loudly, so the load falls back to an older form instead of loading garbage as memories.
@@ -65,7 +65,7 @@ namespace CalradiaRemembers.Tests
          byte[] cut = packed.Take(packed.Length / 2).ToArray();
 
          byte[] back = null;
-         Action read = () => back = Ppmd7.Decode(cut, data.Length, 8, 16 << 20);
+         Action read = () => back = Ppmd7.Decode(new PpmdPacked {Packed = cut, Length = data.Length, Order = 8, Memory = 16 << 20});
 
          try { read(); }
          catch (InvalidOperationException) { return; }

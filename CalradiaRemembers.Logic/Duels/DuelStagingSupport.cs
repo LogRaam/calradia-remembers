@@ -11,6 +11,22 @@
 
 namespace CalradiaRemembers.Logic.Duels
 {
+   /// <summary>Who a person on the duel's ground is.</summary>
+   public sealed class DuelBystanderFacts
+   {
+      /// <summary>The is human.</summary>
+      public bool IsHuman { get; init; }
+
+      /// <summary>The is the player.</summary>
+      public bool IsThePlayer { get; init; }
+
+      /// <summary>The is the opponent.</summary>
+      public bool IsTheOpponent { get; init; }
+
+      /// <summary>The on the players team.</summary>
+      public bool OnThePlayersTeam { get; init; }
+   }
+
    /// <summary>Whether a chosen <see cref="DuelVenue" /> can actually be staged by the game RIGHT NOW.</summary>
    public static class DuelStagingSupport
    {
@@ -69,7 +85,11 @@ namespace CalradiaRemembers.Logic.Duels
       ///   the fight"). The game's fight handler makes the whole player team an enemy of the opponent's, and companions
       ///   following the player are on it: everyone on that team but the player stands aside.
       /// </summary>
-      public static bool StandsAsideFromTheDuel(bool isHuman, bool isThePlayer, bool isTheOpponent, bool onThePlayersTeam)
+      public static bool StandsAsideFromTheDuel(DuelBystanderFacts facts) => StandsAsideFromTheDuel(facts.IsHuman, facts.IsThePlayer, facts.IsTheOpponent, facts.OnThePlayersTeam);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static bool StandsAsideFromTheDuel(bool isHuman, bool isThePlayer, bool isTheOpponent, bool onThePlayersTeam)
          => isHuman && !isThePlayer && !isTheOpponent && onThePlayersTeam;
    }
 

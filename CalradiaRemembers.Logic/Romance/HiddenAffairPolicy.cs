@@ -128,6 +128,19 @@ namespace CalradiaRemembers.Logic.Romance
       Found
    }
 
+   /// <summary>The draw a hidden affair begins on: the standing between the two, the chance and the roll.</summary>
+   public sealed class AffairDraw
+   {
+      /// <summary>The standing.</summary>
+      public int Standing { get; init; }
+
+      /// <summary>The chance percent.</summary>
+      public int ChancePercent { get; init; }
+
+      /// <summary>The roll.</summary>
+      public int Roll { get; init; }
+   }
+
    /// <summary>Decides who takes a lover, how many stand at once, when it ends and what an inquiry finds.</summary>
    public static class HiddenAffairPolicy
    {
@@ -163,7 +176,11 @@ namespace CalradiaRemembers.Logic.Romance
       }
 
       /// <summary>True when a new affair begins: there is room, and the roll (0 to 99) lands.</summary>
-      public static bool Begins(int standing, int chancePercent, int roll) => standing < MaxAtOnce && roll < chancePercent;
+      public static bool Begins(AffairDraw facts) => Begins(facts.Standing, facts.ChancePercent, facts.Roll);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static bool Begins(int standing, int chancePercent, int roll) => standing < MaxAtOnce && roll < chancePercent;
 
       /// <summary>True when the affair is over: someone left the world, a marriage changed, or it ran its course.</summary>
       public static bool IsOver(HiddenAffairSpan s) => s == null || !s.BothInTheWorld || !s.StillMarried || !s.LoverStillFree || s.AgeDays >= LongestDays;

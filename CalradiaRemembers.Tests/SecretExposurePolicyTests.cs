@@ -25,15 +25,15 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_the_two_lovers_WHEN_asked_who_may_hear_THEN_neither_can_be_told()
       {
          // STAKE: telling someone their own affair is no exposure: it would spend the secret on the only two who already know it.
-         SecretExposurePolicy.MayHear("ira", "ira", "aldric").Should().BeFalse();
-         SecretExposurePolicy.MayHear("aldric", "ira", "aldric").Should().BeFalse();
+         SecretExposurePolicy.MayHear(new SecretListener {ListenerId = "ira", SubjectId = "ira", LoverId = "aldric"}).Should().BeFalse();
+         SecretExposurePolicy.MayHear(new SecretListener {ListenerId = "aldric", SubjectId = "ira", LoverId = "aldric"}).Should().BeFalse();
       }
 
       [Test]
       public void GIVEN_anyone_else_WHEN_asked_who_may_hear_THEN_they_can_be_told()
       {
          // STAKE: the betrayed spouse is the listener a player most wants to reach.
-         SecretExposurePolicy.MayHear("orthes", "ira", "aldric").Should().BeTrue();
+         SecretExposurePolicy.MayHear(new SecretListener {ListenerId = "orthes", SubjectId = "ira", LoverId = "aldric"}).Should().BeTrue();
       }
 
       [Test]

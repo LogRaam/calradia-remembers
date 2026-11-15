@@ -253,7 +253,7 @@ namespace CalradiaRemembers.Chat
 
             // Enhanced mode: a refused, filtered or empty beat is redone once on the NSFW model, on its own provider
             // (Gabriel, 04/10/2026: the werewolf scene refused and he had to switch the model by hand).
-            if (RefusalFallbackPolicy.ShouldRedo(enhanced, beatModel, nsfwModel, raw, finish))
+            if (RefusalFallbackPolicy.ShouldRedo(new RefusalRedoFacts {EnhancedMode = enhanced, BeatModel = beatModel, NsfwModel = nsfwModel, Reply = raw, FinishReason = finish}))
             {
                string why = string.IsNullOrWhiteSpace(raw) ? $"gave nothing ({error ?? "empty reply"})"
                   : DialogueHeuristics.LooksLikeRefusal(raw) ? "refused" : $"was cut off (finish={finish})";

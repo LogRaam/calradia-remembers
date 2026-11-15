@@ -30,7 +30,7 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_prisoner_left_in_a_lords_dungeon_WHEN_both_remember_THEN_each_tells_his_side()
       {
          PrisonerMemoryText.LeftInDungeon("Arwa", "Hargard").Should().Be("Arwa left me in the dungeon of Hargard.");
-         PrisonerMemoryText.DepositedWithMe("Arwa", "Lucon of the dey Meroc", "Hargard").Should().Be("Arwa left Lucon of the dey Meroc in my dungeon at Hargard.");
+         PrisonerMemoryText.DepositedWithMe(new PrisonerDepositNames {PlayerName = "Arwa", Captive = "Lucon of the dey Meroc", Place = "Hargard"}).Should().Be("Arwa left Lucon of the dey Meroc in my dungeon at Hargard.");
       }
 
       // STAKE: how a captivity the player held ended, each in its own words.

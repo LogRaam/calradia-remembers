@@ -55,7 +55,7 @@ If you are from the Nords:
 You are a seafarer of raider stock.";
 
         private static string Narrow(string culture, string faction)
-            => FactionGuidelinesPolicy.NarrowToOwnCulture(Guidelines, culture, faction);
+            => FactionGuidelinesPolicy.NarrowToOwnCulture(new GuidelinesNarrowing {Guidelines = Guidelines, CultureName = culture, FactionName = faction});
 
         // The plain case, and the whole point: one culture in, seven out.
         [Test]
@@ -155,7 +155,7 @@ You are a seafarer of raider stock.";
         {
             const string plain = "=== CONTEXT AND MOOD ===\n\nRespect the mood.";
 
-            FactionGuidelinesPolicy.NarrowToOwnCulture(plain, "Sturgia", "Sturgia").Should().Be(plain);
+            FactionGuidelinesPolicy.NarrowToOwnCulture(new GuidelinesNarrowing {Guidelines = plain, CultureName = "Sturgia", FactionName = "Sturgia"}).Should().Be(plain);
         }
 
         // And an unknown speaker narrows nothing rather than guessing, which keeps the old behaviour
@@ -163,7 +163,7 @@ You are a seafarer of raider stock.";
         [Test]
         public void GIVEN_no_culture_and_no_faction_WHEN_narrowed_THEN_everything_is_kept()
         {
-            string text = FactionGuidelinesPolicy.NarrowToOwnCulture(Guidelines, null, null);
+            string text = FactionGuidelinesPolicy.NarrowToOwnCulture(new GuidelinesNarrowing {Guidelines = Guidelines, CultureName = null, FactionName = null});
 
             text.Should().Be(Guidelines);
         }
@@ -252,7 +252,7 @@ You are a seafarer of raider stock.";
         {
             string withRhodoks = Guidelines + "\n\nIf you are from the Rhodoks:\nYou are a pikeman of the mountain cantons.";
 
-            string text = FactionGuidelinesPolicy.NarrowToOwnCulture(withRhodoks, "Battania", "Kingdom of Rhodok");
+            string text = FactionGuidelinesPolicy.NarrowToOwnCulture(new GuidelinesNarrowing {Guidelines = withRhodoks, CultureName = "Battania", FactionName = "Kingdom of Rhodok"});
 
             text.Should().Contain("proud clan culture");
             text.Should().NotContain("pikeman of the mountain cantons");
@@ -263,11 +263,11 @@ You are a seafarer of raider stock.";
         [Test]
         public void GIVEN_a_realm_of_another_culture_WHEN_asking_whose_realm_it_is_THEN_it_is_not_the_characters_own()
         {
-            FactionGuidelinesPolicy.RealmOfOwnPeople("Kingdom of Prueba reino", realmCultureId: "battania", characterCultureId: "vlandia")
+            FactionGuidelinesPolicy.RealmOfOwnPeople(new RealmPeopleFacts {RealmName = "Kingdom of Prueba reino", RealmCultureId = "battania", CharacterCultureId = "vlandia"})
                                    .Should().BeNull();
-            FactionGuidelinesPolicy.RealmOfOwnPeople("Kingdom of Wercheg", realmCultureId: "vlandia", characterCultureId: "vlandia")
+            FactionGuidelinesPolicy.RealmOfOwnPeople(new RealmPeopleFacts {RealmName = "Kingdom of Wercheg", RealmCultureId = "vlandia", CharacterCultureId = "vlandia"})
                                    .Should().Be("Kingdom of Wercheg");
-            FactionGuidelinesPolicy.RealmOfOwnPeople("Kingdom of Wercheg", realmCultureId: null, characterCultureId: "vlandia")
+            FactionGuidelinesPolicy.RealmOfOwnPeople(new RealmPeopleFacts {RealmName = "Kingdom of Wercheg", RealmCultureId = null, CharacterCultureId = "vlandia"})
                                    .Should().BeNull();
         }
 
@@ -276,7 +276,7 @@ You are a seafarer of raider stock.";
         [Test]
         public void GIVEN_a_vlandian_in_a_realm_not_of_his_people_WHEN_narrowed_THEN_the_heading_keeps_his_peoples_name()
         {
-            string text = Narrow("Vlandia", FactionGuidelinesPolicy.RealmOfOwnPeople("Kingdom of Prueba reino", "battania", "vlandia"));
+            string text = Narrow("Vlandia", FactionGuidelinesPolicy.RealmOfOwnPeople(new RealmPeopleFacts {RealmName = "Kingdom of Prueba reino", RealmCultureId = "battania", CharacterCultureId = "vlandia"}));
 
             text.Should().Contain("If you are from Vlandia:");
             text.Should().NotContain("Prueba reino");

@@ -21,7 +21,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_player_hires_on_as_a_mercenary_WHEN_the_world_records_it_THEN_no_oath_is_spoken_of()
       {
-         RealmServiceLine line = RealmServiceWording.Joined(asMercenary: true, "Brennoc", "Regnum Valandorum", "Derthert");
+         RealmServiceLine line = RealmServiceWording.Joined(new RealmJoiningNames {AsMercenary = true, PlayerName = "Brennoc", KingdomName = "Regnum Valandorum", RulerName = "Derthert"});
 
          line.Summary.Should().Be("Brennoc took service with Regnum Valandorum as a mercenary captain.");
          (line.Summary + " " + line.ChronicleLine).Should().NotContainAny("fealty", "bent the knee", "swore");
@@ -32,7 +32,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_player_swears_to_a_realm_WHEN_the_world_records_it_THEN_it_is_fealty()
       {
-         RealmServiceLine line = RealmServiceWording.Joined(asMercenary: false, "Brennoc", "Regnum Valandorum", "Derthert");
+         RealmServiceLine line = RealmServiceWording.Joined(new RealmJoiningNames {AsMercenary = false, PlayerName = "Brennoc", KingdomName = "Regnum Valandorum", RulerName = "Derthert"});
 
          line.Summary.Should().Be("Brennoc swore fealty to Regnum Valandorum.");
          line.ChronicleLine.Should().Be("Brennoc bent the knee and swore fealty to Derthert of Regnum Valandorum");

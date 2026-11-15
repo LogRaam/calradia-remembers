@@ -224,7 +224,7 @@ namespace CalradiaRemembers.Lore
       public static CharacterOverride For(Hero hero)
          => hero == null
             ? null
-            : Set.Resolve(hero.StringId, hero.Name?.ToString(), TemplateKeyOf(hero));
+            : Set.Resolve(new HeroOverrideLookup {HeroId = hero.StringId, HeroName = hero.Name?.ToString(), TemplateId = TemplateKeyOf(hero)});
 
       /// <summary>
       ///   The template id <paramref name="hero" /> may be matched on: none for a hero born of parents, whose template

@@ -73,7 +73,7 @@ namespace CalradiaRemembers.Travel
       {
          if (party == null) return;
 
-         _ledger.Track(party.StringId, role, tag);
+         _ledger.Track(new TransientPartyEntry {PartyId = party.StringId, Role = role, Tag = tag});
          if (onDestroyed != null) _onDestroyed[party.StringId] = onDestroyed;
          else _onDestroyed.Remove(party.StringId);
          if (onRestore != null) _onRestore[party.StringId] = onRestore;

@@ -14,6 +14,25 @@ using System.Linq;
 
 namespace CalradiaRemembers.Logic.AuthoredQuests
 {
+   /// <summary>What a tale run has shown so far: the run, its tale, and the markers found, sprung and met.</summary>
+   public sealed class TaleMarkersSeen
+   {
+      /// <summary>The run.</summary>
+      public AuthoredQuestRun Run { get; init; }
+
+      /// <summary>The tale.</summary>
+      public AuthoredQuest Tale { get; init; }
+
+      /// <summary>The found.</summary>
+      public IEnumerable<string> Found { get; init; }
+
+      /// <summary>The sprung.</summary>
+      public IEnumerable<string> Sprung { get; init; }
+
+      /// <summary>The met.</summary>
+      public IEnumerable<string> Met { get; init; }
+   }
+
    /// <summary>A tale's images: which one shows, and what is wrong with them. Pure.</summary>
    public static class AuthoredTaleImages
    {
@@ -110,7 +129,11 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       ///   The picture a scene narration calls for (Gabriel, 08/10/2026): of the people it brings in, else the dangers it
       ///   springs, else the findings it reveals, the last named of the kind; null when none of them carries one.
       /// </summary>
-      public static string ImageForMarkers(AuthoredQuestRun run, AuthoredQuest q, IEnumerable<string> found, IEnumerable<string> sprung, IEnumerable<string> met)
+      public static string ImageForMarkers(TaleMarkersSeen facts) => ImageForMarkers(facts.Run, facts.Tale, facts.Found, facts.Sprung, facts.Met);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static string ImageForMarkers(AuthoredQuestRun run, AuthoredQuest q, IEnumerable<string> found, IEnumerable<string> sprung, IEnumerable<string> met)
       {
          AuthoredScene scene = AuthoredQuestEngine.Current(run, q)?.Objective?.Scene;
          if (scene == null) return null;

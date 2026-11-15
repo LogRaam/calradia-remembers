@@ -229,7 +229,7 @@ namespace CalradiaRemembers.Tests
                 new CharacterOverride { Hero = "Derthert", Valor = 1 }
             });
 
-            set.Resolve(heroId: "lord_1", heroName: "Derthert").Hero.Should().Be("Someone Else");
+            set.Resolve(new HeroOverrideLookup {HeroId = "lord_1", HeroName = "Derthert"}).Hero.Should().Be("Someone Else");
         }
 
         // tashmetu (Nexus, 26/09/2026): a mercenary captain's id and name are rolled per campaign, but his template is
@@ -239,7 +239,7 @@ namespace CalradiaRemembers.Tests
         {
             var set = new CharacterOverrideSet(new[] { new CharacterOverride { Id = "spc_skolderbrotva_leader_0", Valor = 2 } });
 
-            set.Resolve(heroId: "CharacterObject_2526", heroName: "Yahya of the Beni Zilal", templateId: "spc_skolderbrotva_leader_0")
+            set.Resolve(new HeroOverrideLookup {HeroId = "CharacterObject_2526", HeroName = "Yahya of the Beni Zilal", TemplateId = "spc_skolderbrotva_leader_0"})
                .Should().NotBeNull();
         }
 
@@ -251,7 +251,7 @@ namespace CalradiaRemembers.Tests
         {
             var set = new CharacterOverrideSet(new[] { new CharacterOverride { Id = "lord_5_3", Hero = "Rhagaea", Backstory = "Hers alone." } });
 
-            set.Resolve("lord_5_3_child_1", "Ira", CharacterOverrideSet.TemplateKey("lord_5_3", hasParents: true)).Should().BeNull();
+            set.Resolve(new HeroOverrideLookup {HeroId = "lord_5_3_child_1", HeroName = "Ira", TemplateId = CharacterOverrideSet.TemplateKey("lord_5_3", hasParents: true)}).Should().BeNull();
         }
 
         // STAKE (tashmetu, 26/09/2026): the captain spawned from a template has no parents; his template is still the
@@ -261,7 +261,7 @@ namespace CalradiaRemembers.Tests
         {
             var set = new CharacterOverrideSet(new[] { new CharacterOverride { Id = "spc_skolderbrotva_leader_0", Valor = 2 } });
 
-            set.Resolve("CharacterObject_2526", "Yahya", CharacterOverrideSet.TemplateKey("spc_skolderbrotva_leader_0", hasParents: false))
+            set.Resolve(new HeroOverrideLookup {HeroId = "CharacterObject_2526", HeroName = "Yahya", TemplateId = CharacterOverrideSet.TemplateKey("spc_skolderbrotva_leader_0", hasParents: false)})
                .Should().NotBeNull();
         }
 
@@ -275,7 +275,7 @@ namespace CalradiaRemembers.Tests
                 new CharacterOverride { Id = "CharacterObject_2526", Hero = "Hero entry" }
             });
 
-            set.Resolve("CharacterObject_2526", "Yahya", "spc_skolderbrotva_leader_0").Hero.Should().Be("Hero entry");
+            set.Resolve(new HeroOverrideLookup {HeroId = "CharacterObject_2526", HeroName = "Yahya", TemplateId = "spc_skolderbrotva_leader_0"}).Hero.Should().Be("Hero entry");
         }
 
         // Most hand-authored entries will never carry an id (the file's basic example doesn't ask for one), so
@@ -285,7 +285,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_no_id_match_WHEN_resolving_THEN_a_single_name_match_is_used()
         {
             var set = new CharacterOverrideSet(new[] { new CharacterOverride { Hero = "Derthert", Valor = 1 } });
-            set.Resolve(heroId: "lord_99", heroName: "derthert").Should().NotBeNull(); // case-insensitive
+            set.Resolve(new HeroOverrideLookup {HeroId = "lord_99", HeroName = "derthert"}).Should().NotBeNull(); // case-insensitive
         }
 
         // Most heroes in a campaign have no authored entry at all, which is the normal case, not an error. A
@@ -295,7 +295,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_no_match_at_all_WHEN_resolving_THEN_it_returns_null()
         {
             var set = new CharacterOverrideSet(new[] { new CharacterOverride { Hero = "Derthert" } });
-            set.Resolve("x", "Caladog").Should().BeNull();
+            set.Resolve(new HeroOverrideLookup {HeroId = "x", HeroName = "Caladog"}).Should().BeNull();
         }
 
         // Two hand-authored characters can innocently share a display name. Guessing which one applies would
@@ -310,7 +310,7 @@ namespace CalradiaRemembers.Tests
                 new CharacterOverride { Hero = "Aria", Honor = -2 }
             });
 
-            set.Resolve(heroId: null, heroName: "Aria").Should().BeNull();
+            set.Resolve(new HeroOverrideLookup {HeroId = null, HeroName = "Aria"}).Should().BeNull();
         }
 
         // Confirms the refuse-on-ambiguity rule above doesn't over-refuse: once the author actually adds ids to
@@ -324,7 +324,7 @@ namespace CalradiaRemembers.Tests
                 new CharacterOverride { Hero = "Aria", Id = "aria_south", Honor = -2 }
             });
 
-            set.Resolve(heroId: "aria_south", heroName: "Aria").Honor.Should().Be(-2);
+            set.Resolve(new HeroOverrideLookup {HeroId = "aria_south", HeroName = "Aria"}).Honor.Should().Be(-2);
         }
 
         // cr.lore_status (the diagnostic the player-feedback loop needs) enumerates every authored entry to
@@ -352,7 +352,7 @@ namespace CalradiaRemembers.Tests
             var set = new CharacterOverrideSet(null)
                 .With(new CharacterOverride { Id = "lord_1", Hero = "Derthert", Backstory = "A rage-forged warrior." });
 
-            set.Resolve("lord_1", "Derthert").Backstory.Should().Be("A rage-forged warrior.");
+            set.Resolve(new HeroOverrideLookup {HeroId = "lord_1", HeroName = "Derthert"}).Backstory.Should().Be("A rage-forged warrior.");
         }
 
         // A live console test has to override the file-backed entry for that one NPC, not sit alongside it. If
@@ -364,7 +364,7 @@ namespace CalradiaRemembers.Tests
             var set = new CharacterOverrideSet(new[] { new CharacterOverride { Id = "lord_1", Hero = "Derthert", Backstory = "old" } })
                 .With(new CharacterOverride { Id = "lord_1", Hero = "Derthert", Backstory = "new" });
 
-            set.Resolve("lord_1", "Derthert").Backstory.Should().Be("new");
+            set.Resolve(new HeroOverrideLookup {HeroId = "lord_1", HeroName = "Derthert"}).Backstory.Should().Be("new");
             set.Count.Should().Be(1); // replaced, not duplicated
         }
 
@@ -377,8 +377,8 @@ namespace CalradiaRemembers.Tests
             var set = new CharacterOverrideSet(new[] { new CharacterOverride { Id = "lord_other", Hero = "Caladog", Backstory = "kept" } })
                 .With(new CharacterOverride { Id = "lord_1", Hero = "Derthert", Backstory = "injected" });
 
-            set.Resolve("lord_other", "Caladog").Backstory.Should().Be("kept");
-            set.Resolve("lord_1", "Derthert").Backstory.Should().Be("injected");
+            set.Resolve(new HeroOverrideLookup {HeroId = "lord_other", HeroName = "Caladog"}).Backstory.Should().Be("kept");
+            set.Resolve(new HeroOverrideLookup {HeroId = "lord_1", HeroName = "Derthert"}).Backstory.Should().Be("injected");
         }
 
         // Defensive null-safety for callers of With(): InjectRuntimeOverride already guards this at the call

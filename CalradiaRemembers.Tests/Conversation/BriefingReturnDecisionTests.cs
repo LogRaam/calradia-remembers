@@ -55,7 +55,7 @@ namespace CalradiaRemembers.Tests.Conversation
          bool host = BriefingReturnDecision.HostIsLive(false, false);
 
          host.Should().BeFalse();
-         BriefingReturnDecision.Decide(true, chatIsOpen: false, hostIsLive: host, ticksWaited: 1)
+         BriefingReturnDecision.Decide(new BriefingReturnFacts {Armed = true, ChatIsOpen = false, HostIsLive = host, TicksWaited = 1})
                                .Should()
                                .Be(ReturnMove.GiveTheWorldBack);
       }
@@ -67,7 +67,7 @@ namespace CalradiaRemembers.Tests.Conversation
       {
          foreach ((bool mission, bool mapTalk) in new[] {(true, false), (false, true), (true, true)})
             BriefingReturnDecision
-               .Decide(true, false, BriefingReturnDecision.HostIsLive(mission, mapTalk), 1)
+               .Decide(new BriefingReturnFacts {Armed = true, ChatIsOpen = false, HostIsLive = BriefingReturnDecision.HostIsLive(mission, mapTalk), TicksWaited = 1})
                .Should()
                .Be(ReturnMove.OpenOverLiveHost, $"mission={mission} mapTalk={mapTalk} is a meeting to return to");
       }
@@ -80,7 +80,7 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public void GIVEN_the_chat_is_down_and_a_host_is_live_WHEN_deciding_THEN_it_opens_over_that_host()
       {
-         BriefingReturnDecision.Decide(armed: true, chatIsOpen: false, hostIsLive: true, ticksWaited: 1)
+         BriefingReturnDecision.Decide(new BriefingReturnFacts {Armed = true, ChatIsOpen = false, HostIsLive = true, TicksWaited = 1})
                                .Should()
                                .Be(ReturnMove.OpenOverLiveHost);
       }
@@ -90,7 +90,7 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public void GIVEN_no_host_at_all_WHEN_deciding_THEN_it_gives_the_world_back_rather_than_waiting()
       {
-         BriefingReturnDecision.Decide(true, chatIsOpen: false, hostIsLive: false, ticksWaited: 1)
+         BriefingReturnDecision.Decide(new BriefingReturnFacts {Armed = true, ChatIsOpen = false, HostIsLive = false, TicksWaited = 1})
                                .Should()
                                .Be(ReturnMove.GiveTheWorldBack);
       }
@@ -113,7 +113,7 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public void GIVEN_the_window_is_still_closing_WHEN_deciding_THEN_it_waits()
       {
-         BriefingReturnDecision.Decide(true, chatIsOpen: true, hostIsLive: true, ticksWaited: 1)
+         BriefingReturnDecision.Decide(new BriefingReturnFacts {Armed = true, ChatIsOpen = true, HostIsLive = true, TicksWaited = 1})
                                .Should()
                                .Be(ReturnMove.Wait);
       }
@@ -123,7 +123,7 @@ namespace CalradiaRemembers.Tests.Conversation
       public void GIVEN_the_wait_has_run_long_WHEN_deciding_THEN_it_stops_waiting_and_settles_up()
       {
          BriefingReturnDecision
-            .Decide(true, chatIsOpen: true, hostIsLive: true, BriefingReturnDecision.PatienceTicks + 1)
+            .Decide(new BriefingReturnFacts {Armed = true, ChatIsOpen = true, HostIsLive = true, TicksWaited = BriefingReturnDecision.PatienceTicks + 1})
             .Should()
             .Be(ReturnMove.GiveTheWorldBack);
       }
@@ -134,7 +134,7 @@ namespace CalradiaRemembers.Tests.Conversation
       {
          foreach (bool chat in new[] {true, false})
          foreach (bool scene in new[] {true, false})
-            BriefingReturnDecision.Decide(false, chat, scene, 0).Should().Be(ReturnMove.Idle);
+            BriefingReturnDecision.Decide(new BriefingReturnFacts {Armed = false, ChatIsOpen = chat, HostIsLive = scene, TicksWaited = 0}).Should().Be(ReturnMove.Idle);
       }
 
       // ── the two closes ──

@@ -416,7 +416,7 @@ namespace CalradiaRemembers.WorldEvents
          (bool atWar, float own, float enemies) = WarFooting(kingdom);
          MercenaryDepartureVerdict verdict = MercenaryDeparturePolicy.Judge(new MercenaryDepartureFacts {EmployerAtWar = atWar, EmployerStrength = own, EnemiesStrength = enemies});
 
-         return (verdict, MercenaryDeparturePolicy.CompanySummary(verdict, company?.Name?.ToString(), kingdom?.Name?.ToString()));
+         return (verdict, MercenaryDeparturePolicy.CompanySummary(new MercenaryDepartureNames {Verdict = verdict, Who = company?.Name?.ToString(), Realm = kingdom?.Name?.ToString()}));
       }
 
       /// <summary>
@@ -430,7 +430,7 @@ namespace CalradiaRemembers.WorldEvents
          MercenaryDepartureVerdict verdict = MercenaryDeparturePolicy.Judge(new MercenaryDepartureFacts {EmployerAtWar = atWar, EmployerStrength = own, EnemiesStrength = enemies});
 
          return (judged, verdict, MercenaryDeparturePolicy.RegardShift(verdict, SameCulture(kingdom), sworn: true),
-                 MercenaryDeparturePolicy.VassalSummary(verdict, PlayerName, kingdom?.Name?.ToString()));
+                 MercenaryDeparturePolicy.VassalSummary(new MercenaryDepartureNames {Verdict = verdict, Who = PlayerName, Realm = kingdom?.Name?.ToString()}));
       }
 
       /// <summary>
@@ -563,13 +563,13 @@ namespace CalradiaRemembers.WorldEvents
             Magnitude = sworn ? MercenaryDeparturePolicy.VassalMagnitude(verdict) : MercenaryDeparturePolicy.Magnitude(verdict),
             InvolvesPlayer = true,
             Summary = sworn
-               ? MercenaryDeparturePolicy.VassalSummary(verdict, PlayerName, realm, enemyName)
-               : MercenaryDeparturePolicy.Summary(verdict, PlayerName, realm, enemyName),
+               ? MercenaryDeparturePolicy.VassalSummary(new MercenaryDepartureNames {Verdict = verdict, Who = PlayerName, Realm = realm, Enemy = enemyName})
+               : MercenaryDeparturePolicy.Summary(new MercenaryDepartureNames {Verdict = verdict, Who = PlayerName, Realm = realm, Enemy = enemyName}),
             ActorIds = new List<string> {Hero.MainHero?.StringId}.Where(id => id != null).ToList(),
             FactionIds = new List<string> {kingdom.StringId},
             ChronicleLine = sworn
-               ? MercenaryDeparturePolicy.VassalChronicleLine(verdict, PlayerName, realm, enemyName)
-               : MercenaryDeparturePolicy.ChronicleLine(verdict, PlayerName, realm, enemyName),
+               ? MercenaryDeparturePolicy.VassalChronicleLine(new MercenaryDepartureNames {Verdict = verdict, Who = PlayerName, Realm = realm, Enemy = enemyName})
+               : MercenaryDeparturePolicy.ChronicleLine(new MercenaryDepartureNames {Verdict = verdict, Who = PlayerName, Realm = realm, Enemy = enemyName}),
             Status = sworn && departure ? WorldEventFeeders.PlayerLeftRealmStatus : null
          });
       }
@@ -668,10 +668,10 @@ namespace CalradiaRemembers.WorldEvents
             Type = WorldEventType.Other,
             Day = Today,
             Magnitude = MercenaryDeparturePolicy.Magnitude(verdict),
-            Summary = MercenaryDeparturePolicy.CompanySummary(verdict, company.Name?.ToString(), kingdom.Name?.ToString(), enemyName),
+            Summary = MercenaryDeparturePolicy.CompanySummary(new MercenaryDepartureNames {Verdict = verdict, Who = company.Name?.ToString(), Realm = kingdom.Name?.ToString(), Enemy = enemyName}),
             ActorIds = new List<string> {company.Leader?.StringId}.Where(id => id != null).ToList(),
             FactionIds = factions,
-            ChronicleLine = MercenaryDeparturePolicy.CompanyChronicleLine(verdict, company.Name?.ToString(), kingdom.Name?.ToString(), enemyName)
+            ChronicleLine = MercenaryDeparturePolicy.CompanyChronicleLine(new MercenaryDepartureNames {Verdict = verdict, Who = company.Name?.ToString(), Realm = kingdom.Name?.ToString(), Enemy = enemyName})
          });
       }
 

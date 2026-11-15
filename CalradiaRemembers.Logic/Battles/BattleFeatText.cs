@@ -11,6 +11,19 @@
 
 namespace CalradiaRemembers.Logic.Battles
 {
+    /// <summary>Who downed the player, in which engagement, and the player's name.</summary>
+    public sealed class PlayerDownedFacts
+    {
+        /// <summary>The foe name.</summary>
+        public string FoeName { get; init; }
+
+        /// <summary>The engagement.</summary>
+        public string Engagement { get; init; }
+
+        /// <summary>The player name.</summary>
+        public string PlayerName { get; init; }
+    }
+
     /// <summary>The first-hand lines a battle's real deeds leave in the memory of those who were there.</summary>
     public static class BattleFeatText
     {
@@ -47,7 +60,11 @@ namespace CalradiaRemembers.Logic.Battles
         ///   The mirror: a foe who put the PLAYER down. Kept as its own line because it is the seed of a rivalry or
         ///   a grudge, and because a lord who unhorsed the player has something of his own to say about it.
         /// </summary>
-        public static string WitnessedPlayerDowned(string foeName, string engagement, string playerName = null)
+        public static string WitnessedPlayerDowned(PlayerDownedFacts facts) => WitnessedPlayerDowned(facts.FoeName, facts.Engagement, facts.PlayerName);
+
+        // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+        // way round and still compile (swap-risk ratchet, 14/11/2026).
+        private static string WitnessedPlayerDowned(string foeName, string engagement, string playerName = null)
         {
             string who = string.IsNullOrWhiteSpace(foeName) ? "a foe" : foeName.Trim();
             string place = string.IsNullOrWhiteSpace(engagement) ? "" : $" at {engagement.Trim()}";

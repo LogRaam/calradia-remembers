@@ -145,7 +145,7 @@ namespace CalradiaRemembers.Tests
       {
          // STAKE: a reload must not free the player of their word.
          var ledger = new CaptorParoleLedger();
-         ledger.Add("lord", "k", "The Realm", 100);
+         ledger.Add(new CaptorOathTaken {CaptorId = "lord", FactionId = "k", FactionName = "The Realm", Today = 100});
 
          CaptorParoleLedger read = CaptorParoleLedger.Deserialize(ledger.Serialize());
 

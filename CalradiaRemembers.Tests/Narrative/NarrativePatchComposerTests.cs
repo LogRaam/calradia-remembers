@@ -148,7 +148,7 @@ You are a seafarer of raider stock.";
          string composed = NarrativePatchComposer.Compose(Guidelines,
             new[] {new NarrativePatch("BellumBridge", "A seat on the privy council is not a feudal title.")});
 
-         string imperial = FactionGuidelinesPolicy.NarrowToOwnCulture(composed, "Empire", "Southern Empire");
+         string imperial = FactionGuidelinesPolicy.NarrowToOwnCulture(new GuidelinesNarrowing {Guidelines = composed, CultureName = "Empire", FactionName = "Southern Empire"});
 
          imperial.Should().Contain("A seat on the privy council is not a feudal title.");
          imperial.Should().NotContain("seafarer of raider stock", "the narrowing itself must still work");

@@ -67,17 +67,17 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_the_handful_standing_WHEN_a_roll_lands_THEN_no_new_affair_begins()
       {
          // STAKE: Gabriel: a handful in the realm at once. Past it, a world where everyone cheats and a secret is worth nothing.
-         HiddenAffairPolicy.Begins(HiddenAffairPolicy.MaxAtOnce, 100, 0).Should().BeFalse();
-         HiddenAffairPolicy.Begins(HiddenAffairPolicy.MaxAtOnce - 1, 100, 0).Should().BeTrue();
+         HiddenAffairPolicy.Begins(new AffairDraw {Standing = HiddenAffairPolicy.MaxAtOnce, ChancePercent = 100, Roll = 0}).Should().BeFalse();
+         HiddenAffairPolicy.Begins(new AffairDraw {Standing = HiddenAffairPolicy.MaxAtOnce - 1, ChancePercent = 100, Roll = 0}).Should().BeTrue();
       }
 
       [Test]
       public void GIVEN_a_roll_at_the_chance_WHEN_read_THEN_it_misses()
       {
          // STAKE: a chance of 0 must never begin an affair, so the honourable lord stays out of it on the highest and lowest roll alike.
-         HiddenAffairPolicy.Begins(0, 0, 0).Should().BeFalse();
-         HiddenAffairPolicy.Begins(0, 6, 6).Should().BeFalse();
-         HiddenAffairPolicy.Begins(0, 6, 5).Should().BeTrue();
+         HiddenAffairPolicy.Begins(new AffairDraw {Standing = 0, ChancePercent = 0, Roll = 0}).Should().BeFalse();
+         HiddenAffairPolicy.Begins(new AffairDraw {Standing = 0, ChancePercent = 6, Roll = 6}).Should().BeFalse();
+         HiddenAffairPolicy.Begins(new AffairDraw {Standing = 0, ChancePercent = 6, Roll = 5}).Should().BeTrue();
       }
 
       [TestCase(false, true, true, 10)]

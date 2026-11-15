@@ -162,11 +162,11 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_reason_opening_on_both_names_WHEN_shown_on_the_page_THEN_the_pair_is_not_named_again_but_a_deed_keeps_its_doer()
       {
-         PairRegardPolicy.WithoutThePair("Halthdar and Hertogi rode together against raiders near Thronderlag (8 years ago)", "Halthdar", "Hertogi")
+         PairRegardPolicy.WithoutThePair(new PairReasonNames {Reason = "Halthdar and Hertogi rode together against raiders near Thronderlag (8 years ago)", OneName = "Halthdar", OtherName = "Hertogi"})
                          .Should().Be("rode together against raiders near Thronderlag (8 years ago)");
-         PairRegardPolicy.WithoutThePair("Hertogi and Halthdar have been friends since they were young", "Halthdar", "Hertogi")
+         PairRegardPolicy.WithoutThePair(new PairReasonNames {Reason = "Hertogi and Halthdar have been friends since they were young", OneName = "Halthdar", OtherName = "Hertogi"})
                          .Should().Be("have been friends since they were young");
-         PairRegardPolicy.WithoutThePair("Hertogi insulted Halthdar at a feast, and Halthdar never forgot it", "Halthdar", "Hertogi")
+         PairRegardPolicy.WithoutThePair(new PairReasonNames {Reason = "Hertogi insulted Halthdar at a feast, and Halthdar never forgot it", OneName = "Halthdar", OtherName = "Hertogi"})
                          .Should().Be("Hertogi insulted Halthdar at a feast, and Halthdar never forgot it");
       }
    }

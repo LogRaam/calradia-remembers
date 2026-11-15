@@ -7,6 +7,22 @@
 
 namespace CalradiaRemembers.Logic.AuthoredQuests
 {
+   /// <summary>The state of the tales at one moment.</summary>
+   public sealed class TaleMoment
+   {
+      /// <summary>The one paused.</summary>
+      public bool OnePaused { get; init; }
+
+      /// <summary>The run active.</summary>
+      public bool RunActive { get; init; }
+
+      /// <summary>The player prisoner.</summary>
+      public bool PlayerPrisoner { get; init; }
+
+      /// <summary>The by summons.</summary>
+      public bool BySummons { get; init; }
+   }
+
    /// <summary>A tale set aside while a scenario's tale plays, and taken up again after. Pure.</summary>
    public static class TalePause
    {
@@ -14,7 +30,11 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       ///   Whether a tale counts as under way for one that would begin now. A summons by a scenario may set the tale under
       ///   way aside, but never a second one (one level only); anything else waits for both to be over.
       /// </summary>
-      public static bool StoryUnderWay(bool runActive, bool onePaused, bool bySummons)
+      public static bool StoryUnderWay(TaleMoment facts) => StoryUnderWay(facts.RunActive, facts.OnePaused, facts.BySummons);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static bool StoryUnderWay(bool runActive, bool onePaused, bool bySummons)
          => bySummons ? runActive && onePaused : runActive || onePaused;
 
       /// <summary>Sets the run aside on this day: its clock stops.</summary>
@@ -24,7 +44,11 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       }
 
       /// <summary>The set-aside tale takes up again once nothing else plays and the player is no longer held.</summary>
-      public static bool ShouldResume(bool onePaused, bool runActive, bool playerPrisoner) => onePaused && !runActive && !playerPrisoner;
+      public static bool ShouldResume(TaleMoment facts) => ShouldResume(facts.OnePaused, facts.RunActive, facts.PlayerPrisoner);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static bool ShouldResume(bool onePaused, bool runActive, bool playerPrisoner) => onePaused && !runActive && !playerPrisoner;
 
       /// <summary>
       ///   Takes the run up again: the days it waited are not counted against it, so its time limit, its waits and its

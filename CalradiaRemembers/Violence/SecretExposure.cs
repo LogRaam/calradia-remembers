@@ -53,7 +53,7 @@ namespace CalradiaRemembers.Violence
          if (ModSettings.AdultContentLevel == AdultContentLevel.Off || player == null || behavior == null || listener == null || listener == player) return new List<HeldSecret>();
 
          return Affairs(player).Where(s => !behavior.Ledger.IsExposed(s.Subject.StringId, s.Lover.StringId)
-                                           && SecretExposurePolicy.MayHear(listener.StringId, s.Subject.StringId, s.Lover.StringId)).ToList();
+                                           && SecretExposurePolicy.MayHear(new SecretListener {ListenerId = listener.StringId, SubjectId = s.Subject.StringId, LoverId = s.Lover.StringId})).ToList();
       }
 
       /// <summary>The held affair this name points to, or the only one held when the model gave no name.</summary>

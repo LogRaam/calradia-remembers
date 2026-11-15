@@ -123,7 +123,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_the_pair_written_the_other_way_round_WHEN_keyed_THEN_it_is_the_same_entry()
       {
-         HistoryRelationLedger.KeyOf("e", "x", "y").Should().Be(HistoryRelationLedger.KeyOf("e", "y", "x"));
+         HistoryRelationLedger.KeyOf(new HistoryRelationKey {EventId = "e", A = "x", B = "y"}).Should().Be(HistoryRelationLedger.KeyOf(new HistoryRelationKey {EventId = "e", A = "y", B = "x"}));
       }
    }
 }

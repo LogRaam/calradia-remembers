@@ -27,8 +27,8 @@ namespace CalradiaRemembers.Tests
 
          CharacterOverrideSet set = shared.Overlay(new[] {new CharacterOverride {Id = "CharacterObject_2526", Backstory = "this campaign"}});
 
-         set.Resolve("CharacterObject_2526", "Yahya")?.Backstory.Should().Be("this campaign");
-         set.Resolve("lord_1_1", "Derthert")?.Backstory.Should().Be("shared");
+         set.Resolve(new HeroOverrideLookup {HeroId = "CharacterObject_2526", HeroName = "Yahya"})?.Backstory.Should().Be("this campaign");
+         set.Resolve(new HeroOverrideLookup {HeroId = "lord_1_1", HeroName = "Derthert"})?.Backstory.Should().Be("shared");
       }
 
       // STAKE: a campaign entry for a hero the shared file also writes wins, without leaving two entries behind.
@@ -40,7 +40,7 @@ namespace CalradiaRemembers.Tests
          CharacterOverrideSet set = shared.Overlay(new[] {new CharacterOverride {Id = "lord_1_1", Backstory = "this campaign"}});
 
          set.Count.Should().Be(1);
-         set.Resolve("lord_1_1", "Derthert")?.Backstory.Should().Be("this campaign");
+         set.Resolve(new HeroOverrideLookup {HeroId = "lord_1_1", HeroName = "Derthert"})?.Backstory.Should().Be("this campaign");
       }
 
       // STAKE: a campaign with no file of its own keeps the shared characters exactly.
@@ -50,7 +50,7 @@ namespace CalradiaRemembers.Tests
          var shared = new CharacterOverrideSet(new[] {new CharacterOverride {Id = "lord_1_1", Backstory = "shared"}});
 
          shared.Overlay(null).Count.Should().Be(1);
-         shared.Overlay(new List<CharacterOverride>()).Resolve("lord_1_1", "Derthert")?.Backstory.Should().Be("shared");
+         shared.Overlay(new List<CharacterOverride>()).Resolve(new HeroOverrideLookup {HeroId = "lord_1_1", HeroName = "Derthert"})?.Backstory.Should().Be("shared");
       }
 
       // STAKE: the campaign's folder is a plain folder name whatever the id holds.

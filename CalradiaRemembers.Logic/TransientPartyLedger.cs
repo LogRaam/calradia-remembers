@@ -39,7 +39,11 @@ namespace CalradiaRemembers.Logic
       public int Count => _byId.Count;
 
       /// <summary>Tracks a party under a role (and an optional tag), replacing any earlier entry for the same id.</summary>
-      public void Track(string partyId, string role, string tag = null)
+      public void Track(TransientPartyEntry facts) => Track(facts.PartyId, facts.Role, facts.Tag);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private void Track(string partyId, string role, string tag = null)
       {
          if (string.IsNullOrWhiteSpace(partyId) || string.IsNullOrWhiteSpace(role)) return;
 

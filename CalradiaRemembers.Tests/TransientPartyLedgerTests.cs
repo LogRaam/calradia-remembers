@@ -23,8 +23,8 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_parties_of_several_roles_WHEN_a_save_asks_THEN_every_one_is_listed()
       {
          var ledger = new TransientPartyLedger();
-         ledger.Track("p2", "arrest.hunters", "vlandia");
-         ledger.Track("p1", "arrest.sergeants");
+         ledger.Track(new TransientPartyEntry {PartyId = "p2", Role = "arrest.hunters", Tag = "vlandia"});
+         ledger.Track(new TransientPartyEntry {PartyId = "p1", Role = "arrest.sergeants"});
 
          ledger.AllIds().Should().Equal("p1", "p2");
       }
@@ -34,9 +34,9 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_tracked_parties_WHEN_an_owner_looks_by_role_or_tag_THEN_it_finds_only_its_own()
       {
          var ledger = new TransientPartyLedger();
-         ledger.Track("s1", "arrest.sergeants");
-         ledger.Track("h1", "arrest.hunters", "vlandia");
-         ledger.Track("h2", "arrest.hunters", "sturgia");
+         ledger.Track(new TransientPartyEntry {PartyId = "s1", Role = "arrest.sergeants"});
+         ledger.Track(new TransientPartyEntry {PartyId = "h1", Role = "arrest.hunters", Tag = "vlandia"});
+         ledger.Track(new TransientPartyEntry {PartyId = "h2", Role = "arrest.hunters", Tag = "sturgia"});
 
          ledger.OfRole("arrest.hunters").Should().HaveCount(2);
          ledger.WithTag("arrest.hunters", "sturgia").PartyId.Should().Be("h2");
@@ -56,8 +56,8 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_party_tracked_twice_WHEN_counted_THEN_it_is_one_entry_with_the_latest_role()
       {
          var ledger = new TransientPartyLedger();
-         ledger.Track("p", "arrest.sergeants");
-         ledger.Track("p", "arrest.hunters", "vlandia");
+         ledger.Track(new TransientPartyEntry {PartyId = "p", Role = "arrest.sergeants"});
+         ledger.Track(new TransientPartyEntry {PartyId = "p", Role = "arrest.hunters", Tag = "vlandia"});
 
          ledger.Count.Should().Be(1);
          ledger.Find("p").Role.Should().Be("arrest.hunters");
@@ -68,8 +68,8 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_parties_gone_from_the_world_WHEN_swept_THEN_they_are_forgotten()
       {
          var ledger = new TransientPartyLedger();
-         ledger.Track("alive", "arrest.sergeants");
-         ledger.Track("gone", "arrest.hunters", "vlandia");
+         ledger.Track(new TransientPartyEntry {PartyId = "alive", Role = "arrest.sergeants"});
+         ledger.Track(new TransientPartyEntry {PartyId = "gone", Role = "arrest.hunters", Tag = "vlandia"});
 
          ledger.ForgetMissing(id => id == "alive").Should().Be(1);
          ledger.AllIds().Should().Equal("alive");
@@ -80,8 +80,8 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_blank_id_or_role_WHEN_tracked_THEN_nothing_is_recorded()
       {
          var ledger = new TransientPartyLedger();
-         ledger.Track("", "arrest.sergeants");
-         ledger.Track("p", " ");
+         ledger.Track(new TransientPartyEntry {PartyId = "", Role = "arrest.sergeants"});
+         ledger.Track(new TransientPartyEntry {PartyId = "p", Role = " "});
 
          ledger.Count.Should().Be(0);
          ledger.Forget("p").Should().BeFalse();

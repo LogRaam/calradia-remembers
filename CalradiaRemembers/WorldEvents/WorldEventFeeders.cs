@@ -833,7 +833,7 @@ namespace CalradiaRemembers.WorldEvents
                   ? Math.Max(40, magnitude)
                   : magnitude,
                InvolvesPlayer = playerIn,
-               Summary = BattleRecordText.Summary(winName, loseName, placeClause, menAtStart),
+               Summary = BattleRecordText.Summary(new BattleRecordNames {Winner = winName, Loser = loseName, PlaceClause = placeClause, MenAtStart = menAtStart}),
                // The long-term memory keeps a battle of several hundred men, or a siege (Gabriel, 17/10/2026, 7.7a).
                MenAtStart = menAtStart,
                IsSiege = isSiege,
@@ -1298,7 +1298,7 @@ namespace CalradiaRemembers.WorldEvents
       {
          if (kingdom == null) return;
          Hero ruler = kingdom.Leader;
-         RealmServiceLine line = RealmServiceWording.Joined(asMercenary, PlayerName, kingdom.Name?.ToString(), ruler?.Name?.ToString());
+         RealmServiceLine line = RealmServiceWording.Joined(new RealmJoiningNames {AsMercenary = asMercenary, PlayerName = PlayerName, KingdomName = kingdom.Name?.ToString(), RulerName = ruler?.Name?.ToString()});
          Store.Record(new WorldEvent {
             Type = WorldEventType.PlayerFeat,
             Day = Today,

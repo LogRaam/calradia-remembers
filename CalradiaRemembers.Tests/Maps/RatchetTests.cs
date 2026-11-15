@@ -218,9 +218,11 @@ namespace CalradiaRemembers.Tests.Maps
       ///   Public members of the Logic layer with three or more same-typed parameters in a row on 14/11/2026, the day the suite
       ///   started holding them. Tools/Find-SwapRisk.ps1 had taken them to zero on 10/09/2026, but nothing ran it; 33 had come
       ///   back by the time this test did (the script, run the same day, lists the same 33), one of them QuestRepeatPolicy.KeyOf,
-      ///   widened that very day. 32 the same day, once KeyOf took a QuestTarget.
+      ///   widened that very day. 32 the same day, once KeyOf took a QuestTarget; 30 once the guard stopped counting public
+      ///   members of private types (Ppmd7's range coder); 0 once every other one took a facts object, its positional form
+      ///   kept private behind a one-line delegation (Gabriel: "oui"). At zero this is a wall: the next one fails.
       /// </summary>
-      private const int SwapRiskRunsOn14November = 32;
+      private const int SwapRiskRunsOn14November = 0;
 
       // A SWAP THE COMPILER CANNOT SEE: three same-typed parameters in a row in a pure rule is a call that will one day pass two
       // of them the wrong way round, compile, and give a plausible wrong answer (CanEscort cost seven rewritten assertions).

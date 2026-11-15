@@ -109,7 +109,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_peaceful_departure_WHEN_worded_THEN_it_is_a_contract_that_ended()
       {
-         string summary = MercenaryDeparturePolicy.Summary(MercenaryDepartureVerdict.AtPeace, "Brennoc", "Vlandia");
+         string summary = MercenaryDeparturePolicy.Summary(new MercenaryDepartureNames {Verdict = MercenaryDepartureVerdict.AtPeace, Who = "Brennoc", Realm = "Vlandia"});
 
          summary.Should().Be("Brennoc's mercenary contract with Vlandia came to an end.");
          summary.Should().NotContain("oath").And.NotContain("fealty");
@@ -137,9 +137,9 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_company_that_went_over_to_the_enemy_WHEN_worded_THEN_it_names_the_company_the_realm_and_the_enemy()
       {
-         MercenaryDeparturePolicy.CompanySummary(MercenaryDepartureVerdict.Betrayal, "Skolderbrotva", "Vlandia", "Sturgia")
+         MercenaryDeparturePolicy.CompanySummary(new MercenaryDepartureNames {Verdict = MercenaryDepartureVerdict.Betrayal, Who = "Skolderbrotva", Realm = "Vlandia", Enemy = "Sturgia"})
                                  .Should().Be("The Skolderbrotva left Vlandia's service in the middle of the war and went over to its enemy, Sturgia.");
-         MercenaryDeparturePolicy.CompanySummary(MercenaryDepartureVerdict.Abandoned, "Skolderbrotva", "Vlandia")
+         MercenaryDeparturePolicy.CompanySummary(new MercenaryDepartureNames {Verdict = MercenaryDepartureVerdict.Abandoned, Who = "Skolderbrotva", Realm = "Vlandia"})
                                  .Should().Be("The Skolderbrotva abandoned Vlandia in the middle of a losing war, and kept the pay.");
       }
 
@@ -147,7 +147,7 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_company_named_with_its_article_WHEN_worded_THEN_the_article_is_not_doubled()
       {
-         MercenaryDeparturePolicy.CompanySummary(MercenaryDepartureVerdict.Abandoned, "The Brotherhood of the Woods", "Battania")
+         MercenaryDeparturePolicy.CompanySummary(new MercenaryDepartureNames {Verdict = MercenaryDepartureVerdict.Abandoned, Who = "The Brotherhood of the Woods", Realm = "Battania"})
                                  .Should().StartWith("The Brotherhood of the Woods abandoned");
       }
 
@@ -202,9 +202,9 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_sworn_vassal_WHEN_the_departure_is_worded_THEN_it_speaks_of_the_oath_not_of_a_company()
       {
-         MercenaryDeparturePolicy.VassalSummary(MercenaryDepartureVerdict.Abandoned, "Arwa", "Vlandia")
+         MercenaryDeparturePolicy.VassalSummary(new MercenaryDepartureNames {Verdict = MercenaryDepartureVerdict.Abandoned, Who = "Arwa", Realm = "Vlandia"})
                                  .Should().Be("Arwa renounced fealty to Vlandia in the middle of a losing war.");
-         MercenaryDeparturePolicy.VassalSummary(MercenaryDepartureVerdict.Betrayal, "Arwa", "Vlandia", "Sturgia")
+         MercenaryDeparturePolicy.VassalSummary(new MercenaryDepartureNames {Verdict = MercenaryDepartureVerdict.Betrayal, Who = "Arwa", Realm = "Vlandia", Enemy = "Sturgia"})
                                  .Should().Be("Arwa renounced fealty to Vlandia in the middle of the war and went over to its enemy, Sturgia.");
          MercenaryDeparturePolicy.VassalLordMemory(MercenaryDepartureVerdict.Abandoned, "Arwa")
                                  .Should().Contain("swore to us").And.NotContain("company");

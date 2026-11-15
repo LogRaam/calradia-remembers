@@ -21,40 +21,40 @@ namespace CalradiaRemembers.Tests
       [Test]
       public void GIVEN_a_tale_under_way_and_none_set_aside_WHEN_a_scenario_summons_THEN_nothing_stands_in_the_way()
       {
-         TalePause.StoryUnderWay(runActive: true, onePaused: false, bySummons: true).Should().BeFalse();
+         TalePause.StoryUnderWay(new TaleMoment {RunActive = true, OnePaused = false, BySummons = true}).Should().BeFalse();
       }
 
       // STAKE: one level only ("oui ca me va"): a summons never sets a second tale aside while one already waits.
       [Test]
       public void GIVEN_a_tale_set_aside_and_another_under_way_WHEN_a_scenario_summons_THEN_it_waits()
       {
-         TalePause.StoryUnderWay(runActive: true, onePaused: true, bySummons: true).Should().BeTrue();
+         TalePause.StoryUnderWay(new TaleMoment {RunActive = true, OnePaused = true, BySummons = true}).Should().BeTrue();
       }
 
       // STAKE: the night is over but the player is still held: a second night may come, nothing more is set aside.
       [Test]
       public void GIVEN_a_tale_set_aside_and_nothing_under_way_WHEN_a_scenario_summons_THEN_it_may_open()
       {
-         TalePause.StoryUnderWay(runActive: false, onePaused: true, bySummons: true).Should().BeFalse();
+         TalePause.StoryUnderWay(new TaleMoment {RunActive = false, OnePaused = true, BySummons = true}).Should().BeFalse();
       }
 
       // STAKE: a tale raised in conversation never interrupts: it waits for the tale under way and the one set aside.
       [Test]
       public void GIVEN_a_tale_under_way_or_set_aside_WHEN_a_tale_is_raised_in_conversation_THEN_it_waits()
       {
-         TalePause.StoryUnderWay(runActive: true, onePaused: false, bySummons: false).Should().BeTrue();
-         TalePause.StoryUnderWay(runActive: false, onePaused: true, bySummons: false).Should().BeTrue();
-         TalePause.StoryUnderWay(runActive: false, onePaused: false, bySummons: false).Should().BeFalse();
+         TalePause.StoryUnderWay(new TaleMoment {RunActive = true, OnePaused = false, BySummons = false}).Should().BeTrue();
+         TalePause.StoryUnderWay(new TaleMoment {RunActive = false, OnePaused = true, BySummons = false}).Should().BeTrue();
+         TalePause.StoryUnderWay(new TaleMoment {RunActive = false, OnePaused = false, BySummons = false}).Should().BeFalse();
       }
 
       // STAKE: "reprendre ensuite la quete du loup lorsque je suis libere de prison": not before.
       [Test]
       public void GIVEN_a_tale_set_aside_WHEN_asked_whether_it_takes_up_again_THEN_only_once_nothing_plays_and_the_player_is_free()
       {
-         TalePause.ShouldResume(onePaused: true, runActive: false, playerPrisoner: false).Should().BeTrue();
-         TalePause.ShouldResume(onePaused: true, runActive: false, playerPrisoner: true).Should().BeFalse();
-         TalePause.ShouldResume(onePaused: true, runActive: true, playerPrisoner: false).Should().BeFalse();
-         TalePause.ShouldResume(onePaused: false, runActive: false, playerPrisoner: false).Should().BeFalse();
+         TalePause.ShouldResume(new TaleMoment {OnePaused = true, RunActive = false, PlayerPrisoner = false}).Should().BeTrue();
+         TalePause.ShouldResume(new TaleMoment {OnePaused = true, RunActive = false, PlayerPrisoner = true}).Should().BeFalse();
+         TalePause.ShouldResume(new TaleMoment {OnePaused = true, RunActive = true, PlayerPrisoner = false}).Should().BeFalse();
+         TalePause.ShouldResume(new TaleMoment {OnePaused = false, RunActive = false, PlayerPrisoner = false}).Should().BeFalse();
       }
 
       // STAKE: Gabriel agreed the clock stops while the tale waits: days in a cell never make the wolf fail.

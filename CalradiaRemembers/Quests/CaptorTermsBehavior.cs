@@ -142,7 +142,7 @@ namespace CalradiaRemembers.Quests
          IFaction realm = captor?.MapFaction;
          if (realm == null || Instance == null || !Release(captor)) return false;
 
-         CaptorParole oath = Instance.Ledger.Add(captor.StringId, realm.StringId, realm.Name?.ToString(), Today);
+         CaptorParole oath = Instance.Ledger.Add(new CaptorOathTaken {CaptorId = captor.StringId, FactionId = realm.StringId, FactionName = realm.Name?.ToString(), Today = Today});
          OpenJournal(oath, captor);
          ModLog.Info($"[PAROLE] the player swore to {captor.Name} not to attack {oath.FactionName} until day {oath.UntilDay}.");
 

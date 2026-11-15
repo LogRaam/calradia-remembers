@@ -54,6 +54,19 @@ namespace CalradiaRemembers.Logic.Grudges
         public int? PeaceDay { get; init; }
     }
 
+    /// <summary>The names a peace memory is written with.</summary>
+    public sealed class PeaceMemoryNames
+    {
+        /// <summary>The other name.</summary>
+        public string OtherName { get; init; }
+
+        /// <summary>The player name.</summary>
+        public string PlayerName { get; init; }
+
+        /// <summary>The place.</summary>
+        public string Place { get; init; }
+    }
+
     /// <summary>Which wrongs a peace made in conversation lays to rest.</summary>
     public static class PairPeacePolicy
     {
@@ -90,7 +103,11 @@ namespace CalradiaRemembers.Logic.Grudges
         public static bool IsRepeat(int? lastPeaceDay, int today) => lastPeaceDay.HasValue && today - lastPeaceDay.Value < RepeatDays;
 
         /// <summary>The memory line the holder keeps: "Made peace with Adram at Gabriel's table, in Pravend."</summary>
-        public static string MemoryLine(string otherName, string playerName, string place)
+        public static string MemoryLine(PeaceMemoryNames facts) => MemoryLine(facts.OtherName, facts.PlayerName, facts.Place);
+
+        // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+        // way round and still compile (swap-risk ratchet, 14/11/2026).
+        private static string MemoryLine(string otherName, string playerName, string place)
         {
             string at = string.IsNullOrWhiteSpace(place) ? "" : $", in {place}";
 

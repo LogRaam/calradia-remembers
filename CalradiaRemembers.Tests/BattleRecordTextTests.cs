@@ -58,9 +58,9 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_a_battle_WHEN_the_line_is_written_THEN_it_names_the_sides_the_place_and_the_scale()
         {
-            BattleRecordText.Summary("Roland of Montmirail", "a band of Looters", " near Ortysia", 45)
+            BattleRecordText.Summary(new BattleRecordNames {Winner = "Roland of Montmirail", Loser = "a band of Looters", PlaceClause = " near Ortysia", MenAtStart = 45})
                             .Should().Be("Roland of Montmirail defeated a band of Looters near Ortysia, a skirmish of a few dozen men.");
-            BattleRecordText.Summary("Roland of Montmirail", "men of Vlandia", "", 0)
+            BattleRecordText.Summary(new BattleRecordNames {Winner = "Roland of Montmirail", Loser = "men of Vlandia", PlaceClause = "", MenAtStart = 0})
                             .Should().Be("Roland of Montmirail defeated men of Vlandia in battle.");
         }
 

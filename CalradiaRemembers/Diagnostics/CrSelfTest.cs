@@ -11421,7 +11421,7 @@ namespace CalradiaRemembers.Diagnostics
                Id = eventId, Type = WorldEventType.Other, Status = SharedPastPolicy.StatusPrefix + SharedPastKind.TourneyRivalry,
                // A rivalry still at full weight (SharedPastPolicy.FullWeightYears), so it alone makes enemies of them.
                Day = today - 30, Magnitude = SharedPastPolicy.Magnitude,
-               Summary = SharedPastPolicy.Summary(SharedPastKind.TourneyRivalry, a.Name.ToString(), b.Name.ToString(), null),
+               Summary = SharedPastPolicy.Summary(new SharedPastNames {Kind = SharedPastKind.TourneyRivalry, First = a.Name.ToString(), Second = b.Name.ToString(), Place = null}),
                ActorIds = new List<string> {a.StringId, b.StringId}, SourceMod = "CalradiaRemembers.SelfTest"
             });
             // Below zero, as a rivalry leaves it, so the evening-out can be seen.
@@ -12577,14 +12577,14 @@ namespace CalradiaRemembers.Diagnostics
          Quests.CaptorTermsBehavior.DebugSuppressGrudge = true;
          try
          {
-            Logic.Captivity.CaptorParole kept = terms.Ledger.Add(lord.StringId, lord.MapFaction?.StringId, "the realm", today);
+            Logic.Captivity.CaptorParole kept = terms.Ledger.Add(new CaptorOathTaken {CaptorId = lord.StringId, FactionId = lord.MapFaction?.StringId, FactionName = "the realm", Today = today});
             terms.Close(kept, false, today);
             t.Expect("anOathKeptRaisesRegard", profile.ReputationWithPlayer > regard, true);
             t.Expect("andIsOver", terms.Ledger.Oaths.Count, 0);
             t.Expect("andIsRemembered", profile.Events.Count, events + 1);
 
             int warm = profile.ReputationWithPlayer;
-            Logic.Captivity.CaptorParole broken = terms.Ledger.Add(lord.StringId, lord.MapFaction?.StringId, "the realm", today);
+            Logic.Captivity.CaptorParole broken = terms.Ledger.Add(new CaptorOathTaken {CaptorId = lord.StringId, FactionId = lord.MapFaction?.StringId, FactionName = "the realm", Today = today});
             terms.Close(broken, true, today);
             t.Expect("anOathBrokenLowersRegard", profile.ReputationWithPlayer < warm, true);
             t.Expect("andIsRememberedAsABetrayal", profile.Events.Last().type, NotableEventType.Betrayal);
@@ -21298,8 +21298,8 @@ namespace CalradiaRemembers.Diagnostics
          Hero foreign = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.MapFaction is Kingdom k && h.Culture != null && k.Culture != null && k.Culture != h.Culture);
          if (t.Skip(own == null || foreign == null, "need a lord of his own people's kingdom and a hero living in another people's")) return t.Line();
 
-         string ownRealm = FactionGuidelinesPolicy.RealmOfOwnPeople(own.MapFaction.Name?.ToString(), own.MapFaction.Culture?.StringId, own.Culture?.StringId);
-         string foreignRealm = FactionGuidelinesPolicy.RealmOfOwnPeople(foreign.MapFaction.Name?.ToString(), foreign.MapFaction.Culture?.StringId, foreign.Culture?.StringId);
+         string ownRealm = FactionGuidelinesPolicy.RealmOfOwnPeople(new RealmPeopleFacts {RealmName = own.MapFaction.Name?.ToString(), RealmCultureId = own.MapFaction.Culture?.StringId, CharacterCultureId = own.Culture?.StringId});
+         string foreignRealm = FactionGuidelinesPolicy.RealmOfOwnPeople(new RealmPeopleFacts {RealmName = foreign.MapFaction.Name?.ToString(), RealmCultureId = foreign.MapFaction.Culture?.StringId, CharacterCultureId = foreign.Culture?.StringId});
 
          t.Note($"own={own.Name} ({own.Culture?.StringId}) of {own.MapFaction.Name}; foreign={foreign.Name} ({foreign.Culture?.StringId}) in {foreign.MapFaction.Name} ({foreign.MapFaction.Culture?.StringId})");
          t.Expect("aLordOfHisOwnPeopleKeepsHisRealm", ownRealm, own.MapFaction.Name?.ToString());
@@ -24532,9 +24532,9 @@ namespace CalradiaRemembers.Diagnostics
             const string refusal = "I cannot fulfill this request. It is a violation of my safety policies.";
             t.Expect("theNsfwModelIsTheRefusalFallback", llm.ResolveNsfwModel(), "some/distinct-model");
             t.Expect("theNsfwRoleHasItsOwnClient", llm.NsfwClient != null, true);
-            t.Expect("aRefusedBeatIsRedoneThere", RefusalFallbackPolicy.ShouldRedo(true, LlmServices.ActiveModelId, llm.ResolveNsfwModel(), refusal, "stop"), true);
+            t.Expect("aRefusedBeatIsRedoneThere", RefusalFallbackPolicy.ShouldRedo(new RefusalRedoFacts {EnhancedMode = true, BeatModel = LlmServices.ActiveModelId, NsfwModel = llm.ResolveNsfwModel(), Reply = refusal, FinishReason = "stop"}), true);
             s.CncModel = "";
-            t.Expect("withNoNsfwModelNothingIsRedone", RefusalFallbackPolicy.ShouldRedo(true, LlmServices.ActiveModelId, llm.ResolveNsfwModel(), refusal, "stop"), false);
+            t.Expect("withNoNsfwModelNothingIsRedone", RefusalFallbackPolicy.ShouldRedo(new RefusalRedoFacts {EnhancedMode = true, BeatModel = LlmServices.ActiveModelId, NsfwModel = llm.ResolveNsfwModel(), Reply = refusal, FinishReason = "stop"}), false);
          }
          finally
          {

@@ -13,6 +13,25 @@ using System;
 
 namespace CalradiaRemembers.Logic
 {
+    /// <summary>A reply and the models it may be redone with.</summary>
+    public sealed class RefusalRedoFacts
+    {
+        /// <summary>The enhanced mode.</summary>
+        public bool EnhancedMode { get; init; }
+
+        /// <summary>The beat model.</summary>
+        public string BeatModel { get; init; }
+
+        /// <summary>The nsfw model.</summary>
+        public string NsfwModel { get; init; }
+
+        /// <summary>The reply.</summary>
+        public string Reply { get; init; }
+
+        /// <summary>The finish reason.</summary>
+        public string FinishReason { get; init; }
+    }
+
     /// <summary>
     ///   Whether a beat is redone on the NSFW model. Only in Enhanced mode (Roleplay and NSFW are the player's own
     ///   choice of model), only when the NSFW model is a different model from the one that wrote the beat (asking
@@ -23,7 +42,11 @@ namespace CalradiaRemembers.Logic
     /// </summary>
     public static class RefusalFallbackPolicy
     {
-        public static bool ShouldRedo(bool enhancedMode, string beatModel, string nsfwModel, string reply, string finishReason)
+        public static bool ShouldRedo(RefusalRedoFacts facts) => ShouldRedo(facts.EnhancedMode, facts.BeatModel, facts.NsfwModel, facts.Reply, facts.FinishReason);
+
+        // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+        // way round and still compile (swap-risk ratchet, 14/11/2026).
+        private static bool ShouldRedo(bool enhancedMode, string beatModel, string nsfwModel, string reply, string finishReason)
         {
             if (!enhancedMode || string.IsNullOrWhiteSpace(nsfwModel)) return false;
             if (string.Equals(nsfwModel.Trim(), beatModel?.Trim(), StringComparison.OrdinalIgnoreCase)) return false;

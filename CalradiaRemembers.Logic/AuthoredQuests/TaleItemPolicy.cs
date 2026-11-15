@@ -16,6 +16,22 @@ using System.Linq;
 
 namespace CalradiaRemembers.Logic.AuthoredQuests
 {
+   /// <summary>Where a tale names an item, its type, the item and the count.</summary>
+   public sealed class TaleItemShape
+   {
+      /// <summary>The where.</summary>
+      public string Where { get; init; }
+
+      /// <summary>The type.</summary>
+      public string Type { get; init; }
+
+      /// <summary>The item.</summary>
+      public string Item { get; init; }
+
+      /// <summary>The count.</summary>
+      public int Count { get; init; }
+   }
+
    /// <summary>How a tale's goods are named, matched and handed over. Pure; the game's items are read through the seams given.</summary>
    public static class TaleItemPolicy
    {
@@ -61,7 +77,11 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       ///   What the loader can say of a tale's goods without the game: every `bring` and `item` names something, in a count
       ///   from 1 to <see cref="MaxCount" />. Whether the game knows the name is told by <see cref="UnknownItems" /> at load.
       /// </summary>
-      public static IEnumerable<string> ShapeProblems(string where, string type, string item, int count)
+      public static IEnumerable<string> ShapeProblems(TaleItemShape facts) => ShapeProblems(facts.Where, facts.Type, facts.Item, facts.Count);
+
+      // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+      // way round and still compile (swap-risk ratchet, 14/11/2026).
+      private static IEnumerable<string> ShapeProblems(string where, string type, string item, int count)
       {
          if (string.IsNullOrWhiteSpace(item)) yield return $"{where}: {type} needs \"item\": what is asked or given, as the game names it (\"grain\", \"wine\", \"horses\").";
          if (count < 1 || count > MaxCount) yield return $"{where}: {type} needs a \"count\" from 1 to {MaxCount}.";

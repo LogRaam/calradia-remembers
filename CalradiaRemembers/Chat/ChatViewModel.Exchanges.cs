@@ -1107,7 +1107,7 @@ namespace CalradiaRemembers.Chat
                string beatText = $"{result.Response?.Dialogue} {result.Response?.Narration}";
                string nsfwModel = behavior.LlmServices.ResolveNsfwModel();
                bool refusedBeat = DialogueHeuristics.LooksLikeRefusal(beatText)
-                                  && RefusalFallbackPolicy.ShouldRedo(true, LlmServices.ActiveModelId, nsfwModel, beatText, result.FinishReason);
+                                  && RefusalFallbackPolicy.ShouldRedo(new RefusalRedoFacts {EnhancedMode = true, BeatModel = LlmServices.ActiveModelId, NsfwModel = nsfwModel, Reply = beatText, FinishReason = result.FinishReason});
 
                if (refusedBeat || TruncationFallbackPolicy.ShouldFallBack(result.FinishReason, fallbackConfigured, hasSpokenDialogue))
                {

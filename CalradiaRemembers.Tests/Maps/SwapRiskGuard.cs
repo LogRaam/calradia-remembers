@@ -10,6 +10,7 @@
 // Read from syntax: two parameters are "the same type" when their type and modifier (out, ref, in) are written the same
 // (`int` and `Int32` are missed); every public method, constructor and delegate of the Logic layer is read, static or not.
 // First run: the one finding was TryDecompose(string, out string, out string), which no caller can swap; hence the modifier.
+// A member counts only when every type around it is public too: Ppmd7's private range coder (start, size, total) is not an API.
 
 #region
 
@@ -41,6 +42,8 @@ namespace CalradiaRemembers.Tests.Maps
                   _ => (null, null, default)
                };
                if (list == null || !modifiers.Any(SyntaxKind.PublicKeyword)) continue;
+               // A public member of a private or internal type is reachable from nowhere else (Ppmd7's range coder, 14/11/2026).
+               if (node.Ancestors().OfType<BaseTypeDeclarationSyntax>().Any(t => !t.Modifiers.Any(SyntaxKind.PublicKeyword))) continue;
 
                // The modifier is part of the shape: `string a, out string b` cannot be swapped, the compiler refuses `out` on an input.
                int run = LongestRun(list.Parameters.Select(p => (p.Modifiers.ToString() + " " + (p.Type?.ToString() ?? "?")).Replace(" ", "")).ToList());

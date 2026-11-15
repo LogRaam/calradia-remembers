@@ -271,8 +271,7 @@ namespace CalradiaRemembers.Duels
             foreach (Agent agent in Mission.Agents.ToList())
             {
                if (agent == null || !agent.IsActive()) continue;
-               if (!DuelStagingSupport.StandsAsideFromTheDuel(agent.IsHuman, agent == Mission.MainAgent, agent == opponent,
-                                                             agent.Team != null && agent.Team == Mission.PlayerTeam)) continue;
+               if (!DuelStagingSupport.StandsAsideFromTheDuel(new DuelBystanderFacts {IsHuman = agent.IsHuman, IsThePlayer = agent == Mission.MainAgent, IsTheOpponent = agent == opponent, OnThePlayersTeam = agent.Team != null && agent.Team == Mission.PlayerTeam})) continue;
 
                agent.SetTeam(crowd, true);
                moved++;

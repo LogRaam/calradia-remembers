@@ -33,6 +33,32 @@ using System.Text;
 
 namespace CalradiaRemembers.Logic
 {
+    /// <summary>Faction guidelines and the culture and faction they are narrowed to.</summary>
+    public sealed class GuidelinesNarrowing
+    {
+        /// <summary>The guidelines.</summary>
+        public string Guidelines { get; init; }
+
+        /// <summary>The culture name.</summary>
+        public string CultureName { get; init; }
+
+        /// <summary>The faction name.</summary>
+        public string FactionName { get; init; }
+    }
+
+    /// <summary>A realm and whether it is of a character's own people.</summary>
+    public sealed class RealmPeopleFacts
+    {
+        /// <summary>The realm name.</summary>
+        public string RealmName { get; init; }
+
+        /// <summary>The realm culture id.</summary>
+        public string RealmCultureId { get; init; }
+
+        /// <summary>The character culture id.</summary>
+        public string CharacterCultureId { get; init; }
+    }
+
     /// <summary>
     ///   Narrows the FACTION BEHAVIOR section of a behaviour-guidelines text to the headings that could
     ///   apply to one character. Pure and engine-free: the caller hands in the text and the character's
@@ -60,7 +86,11 @@ namespace CalradiaRemembers.Logic
         ///   a realm may help choose their block or retitle it: a companion serving the player, or a notable in a town
         ///   another people holds, lives in a realm that is not theirs.
         /// </summary>
-        public static string RealmOfOwnPeople(string realmName, string realmCultureId, string characterCultureId)
+        public static string RealmOfOwnPeople(RealmPeopleFacts facts) => RealmOfOwnPeople(facts.RealmName, facts.RealmCultureId, facts.CharacterCultureId);
+
+        // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+        // way round and still compile (swap-risk ratchet, 14/11/2026).
+        private static string RealmOfOwnPeople(string realmName, string realmCultureId, string characterCultureId)
         {
             if (string.IsNullOrWhiteSpace(realmName) || string.IsNullOrWhiteSpace(realmCultureId)
                 || string.IsNullOrWhiteSpace(characterCultureId)) return null;
@@ -70,7 +100,11 @@ namespace CalradiaRemembers.Logic
                 : null;
         }
 
-        public static string NarrowToOwnCulture(string guidelines, string cultureName, string factionName)
+        public static string NarrowToOwnCulture(GuidelinesNarrowing facts) => NarrowToOwnCulture(facts.Guidelines, facts.CultureName, facts.FactionName);
+
+        // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+        // way round and still compile (swap-risk ratchet, 14/11/2026).
+        private static string NarrowToOwnCulture(string guidelines, string cultureName, string factionName)
         {
             if (string.IsNullOrWhiteSpace(guidelines)) return guidelines;
 

@@ -4562,9 +4562,7 @@ namespace CalradiaRemembers.Mapping
 
          // The realm only when it is the character's own people's (tashmetu, 27/09/2026): a companion's realm is
          // the player's and a notable's is whoever holds the town, and neither may pull in or retitle a block.
-         return FactionGuidelinesPolicy.NarrowToOwnCulture(
-            text, hero.Culture?.Name?.ToString(),
-            FactionGuidelinesPolicy.RealmOfOwnPeople(hero.MapFaction?.Name?.ToString(), hero.MapFaction?.Culture?.StringId, hero.Culture?.StringId));
+         return FactionGuidelinesPolicy.NarrowToOwnCulture(new GuidelinesNarrowing {Guidelines = text, CultureName = hero.Culture?.Name?.ToString(), FactionName = FactionGuidelinesPolicy.RealmOfOwnPeople(new RealmPeopleFacts {RealmName = hero.MapFaction?.Name?.ToString(), RealmCultureId = hero.MapFaction?.Culture?.StringId, CharacterCultureId = hero.Culture?.StringId})});
       }
 
       /// <summary>

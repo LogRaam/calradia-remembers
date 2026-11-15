@@ -181,7 +181,7 @@ namespace CalradiaRemembers.Logic.Saving
          var packed = new byte[stored.Length - PpmdHeaderLength];
          Buffer.BlockCopy(stored, PpmdHeaderLength, packed, 0, packed.Length);
 
-         return Encoding.UTF8.GetString(Ppmd7.Decode(packed, length, order, memoryMb << 20));
+         return Encoding.UTF8.GetString(Ppmd7.Decode(new PpmdPacked {Packed = packed, Length = length, Order = order, Memory = memoryMb << 20}));
       }
 
       /// <summary>Whether a saved blob is compressed by CR, PPMd or GZip; plain JSON never opens like either.</summary>

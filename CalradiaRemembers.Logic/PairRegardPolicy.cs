@@ -96,6 +96,32 @@ namespace CalradiaRemembers.Logic
         public bool Reconciled { get; init; }
     }
 
+    /// <summary>A regard's weight and how far it has faded with the years.</summary>
+    public sealed class RegardAgeing
+    {
+        /// <summary>The weight.</summary>
+        public int Weight { get; init; }
+
+        /// <summary>The years ago.</summary>
+        public int YearsAgo { get; init; }
+
+        /// <summary>The half life years.</summary>
+        public int HalfLifeYears { get; init; }
+    }
+
+    /// <summary>A reason between two people and their names, to be taken out of it.</summary>
+    public sealed class PairReasonNames
+    {
+        /// <summary>The reason.</summary>
+        public string Reason { get; init; }
+
+        /// <summary>The one name.</summary>
+        public string OneName { get; init; }
+
+        /// <summary>The other name.</summary>
+        public string OtherName { get; init; }
+    }
+
     /// <summary>Weighs what lies between two characters into a verdict with its reason.</summary>
     public static class PairRegardPolicy
     {
@@ -146,7 +172,11 @@ namespace CalradiaRemembers.Logic
         public static int HelpedInThePast(int yearsAgo) => Aged(HelpedInThePastWeight, yearsAgo, HalfLifeYears);
 
         /// <summary>Halved once per full half-life elapsed.</summary>
-        public static int Aged(int weight, int yearsAgo, int halfLifeYears)
+        public static int Aged(RegardAgeing facts) => Aged(facts.Weight, facts.YearsAgo, facts.HalfLifeYears);
+
+        // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+        // way round and still compile (swap-risk ratchet, 14/11/2026).
+        private static int Aged(int weight, int yearsAgo, int halfLifeYears)
         {
             if (yearsAgo <= 0 || halfLifeYears <= 0) return weight;
 
@@ -214,7 +244,11 @@ namespace CalradiaRemembers.Logic
         ///   (18/10/2026): the page's own lord need not be named again. Only that opening is cut: a reason where one of
         ///   them acts on the other ("Hertogi insulted Halthdar at a feast") keeps both names, since who did what matters.
         /// </summary>
-        public static string WithoutThePair(string reason, string oneName, string otherName)
+        public static string WithoutThePair(PairReasonNames facts) => WithoutThePair(facts.Reason, facts.OneName, facts.OtherName);
+
+        // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+        // way round and still compile (swap-risk ratchet, 14/11/2026).
+        private static string WithoutThePair(string reason, string oneName, string otherName)
         {
             if (string.IsNullOrWhiteSpace(reason) || string.IsNullOrWhiteSpace(oneName) || string.IsNullOrWhiteSpace(otherName)) return reason;
 

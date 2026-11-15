@@ -86,7 +86,7 @@ namespace CalradiaRemembers.Battles
          Remember(captive, PrisonerMemoryText.LeftInDungeon(PlayerName, place.Name?.ToString()));
 
          string label = HeroLabel.Describe(new HeroLabel.HeroNaming {Name = captive.Name?.ToString(), ClanName = captive.Clan?.Name?.ToString()});
-         string line = PrisonerMemoryText.DepositedWithMe(PlayerName, label, place.Name?.ToString());
+         string line = PrisonerMemoryText.DepositedWithMe(new PrisonerDepositNames {PlayerName = PlayerName, Captive = label, Place = place.Name?.ToString()});
          foreach (Hero keeper in new[] {place.OwnerClan?.Leader, place.Town?.Governor}.Where(h => h != null && h != Hero.MainHero && h != captive).Distinct())
             Remember(keeper, line);
 

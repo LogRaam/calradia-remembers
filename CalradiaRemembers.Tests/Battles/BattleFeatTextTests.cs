@@ -55,7 +55,7 @@ namespace CalradiaRemembers.Tests.Battles
         public void GIVEN_a_witnessed_deed_WHEN_written_THEN_it_is_in_the_first_person()
         {
             BattleFeatText.WitnessedFeat("Lucon", CombatFeatOutcome.Bested, "").Should().StartWith("I saw");
-            BattleFeatText.WitnessedPlayerDowned("Lucon", "").Should().StartWith("I saw");
+            BattleFeatText.WitnessedPlayerDowned(new PlayerDownedFacts {FoeName = "Lucon", Engagement = ""}).Should().StartWith("I saw");
         }
 
         // tashmetu (Nexus, 13/10/2026, via cr.prompt_dump): '"you" means two people: in the instructions "you" is
@@ -106,11 +106,11 @@ namespace CalradiaRemembers.Tests.Battles
         [Test]
         public void GIVEN_the_player_was_downed_WHEN_written_THEN_the_foe_is_named()
         {
-            BattleFeatText.WitnessedPlayerDowned("Ganak", "open battle", "Adam").Should().Contain("Ganak").And.Contain("open battle").And.Contain("Adam");
+            BattleFeatText.WitnessedPlayerDowned(new PlayerDownedFacts {FoeName = "Ganak", Engagement = "open battle", PlayerName = "Adam"}).Should().Contain("Ganak").And.Contain("open battle").And.Contain("Adam");
 
             // WHOSE "YOU" (reminensce, 19/09/2026): a memory read in a prompt that calls the CHARACTER "you" must
             // not use "you" for the player. With no name to hand it says "the player", never "you".
-            BattleFeatText.WitnessedPlayerDowned("Ganak", "open battle").Should().Contain("the player").And.NotContain(" you ");
+            BattleFeatText.WitnessedPlayerDowned(new PlayerDownedFacts {FoeName = "Ganak", Engagement = "open battle"}).Should().Contain("the player").And.NotContain(" you ");
         }
 
         // The version that reaches lords who were NOT there is hearsay, third person, naming both parties: an

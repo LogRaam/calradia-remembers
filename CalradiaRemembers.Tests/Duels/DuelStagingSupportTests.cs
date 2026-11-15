@@ -159,15 +159,15 @@ namespace CalradiaRemembers.Tests.Duels
       [Test]
       public void GIVEN_a_companion_following_the_player_WHEN_the_duel_starts_THEN_they_stand_aside()
       {
-         DuelStagingSupport.StandsAsideFromTheDuel(isHuman: true, isThePlayer: false, isTheOpponent: false, onThePlayersTeam: true).Should().BeTrue();
+         DuelStagingSupport.StandsAsideFromTheDuel(new DuelBystanderFacts {IsHuman = true, IsThePlayer = false, IsTheOpponent = false, OnThePlayersTeam = true}).Should().BeTrue();
       }
 
       [Test]
       public void GIVEN_the_two_duellists_or_a_townsman_WHEN_the_duel_starts_THEN_none_is_moved()
       {
-         DuelStagingSupport.StandsAsideFromTheDuel(true, true, false, true).Should().BeFalse();
-         DuelStagingSupport.StandsAsideFromTheDuel(true, false, true, false).Should().BeFalse();
-         DuelStagingSupport.StandsAsideFromTheDuel(true, false, false, false).Should().BeFalse();
+         DuelStagingSupport.StandsAsideFromTheDuel(new DuelBystanderFacts {IsHuman = true, IsThePlayer = true, IsTheOpponent = false, OnThePlayersTeam = true}).Should().BeFalse();
+         DuelStagingSupport.StandsAsideFromTheDuel(new DuelBystanderFacts {IsHuman = true, IsThePlayer = false, IsTheOpponent = true, OnThePlayersTeam = false}).Should().BeFalse();
+         DuelStagingSupport.StandsAsideFromTheDuel(new DuelBystanderFacts {IsHuman = true, IsThePlayer = false, IsTheOpponent = false, OnThePlayersTeam = false}).Should().BeFalse();
       }
    }
 }

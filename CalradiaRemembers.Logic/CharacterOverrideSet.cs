@@ -17,6 +17,19 @@ using System.Linq;
 
 namespace CalradiaRemembers.Logic
 {
+    /// <summary>Who an authored character entry is looked up for: the hero's id, name and template key.</summary>
+    public sealed class HeroOverrideLookup
+    {
+        /// <summary>The hero's id.</summary>
+        public string HeroId { get; init; }
+
+        /// <summary>The hero's name, matched without case.</summary>
+        public string HeroName { get; init; }
+
+        /// <summary>The template key (CharacterOverrideSet.TemplateKey), or null.</summary>
+        public string TemplateId { get; init; }
+    }
+
     /// <summary>The authored overrides as a whole, with the rule for picking one for a hero.</summary>
     public sealed class CharacterOverrideSet
     {
@@ -42,16 +55,20 @@ namespace CalradiaRemembers.Logic
         public IReadOnlyList<CharacterOverride> All => _overrides;
 
         /// <summary>
-        ///   The override for a hero, or null when none applies. A matching <paramref name="heroId"/>
+        ///   The override for a hero, or null when none applies. A matching <see cref="HeroOverrideLookup.HeroId" />
         ///   (StringId) always wins: the unambiguous key. Next, an entry whose id is the hero's
-        ///   <paramref name="templateId"/> (tashmetu, Nexus, 26/09/2026: a mercenary captain's StringId and name are
+        ///   <see cref="HeroOverrideLookup.TemplateId" /> (tashmetu, Nexus, 26/09/2026: a mercenary captain's StringId and name are
         ///   rolled per campaign, "CharacterObject_2526", "Yahya of the Beni Zilal", but the template he is spawned
         ///   from, "spc_skolderbrotva_leader_0", is the same in every game, so a pack keyed on it works everywhere).
-        ///   Otherwise the first case-insensitive match on <paramref name="heroName"/> is used, UNLESS several
+        ///   Otherwise the first case-insensitive match on <see cref="HeroOverrideLookup.HeroName" /> is used, UNLESS several
         ///   entries share that name and none pins an id: that homonym can't be told apart, so it returns null (the
         ///   caller should warn the author to add an <c>id</c>) rather than silently apply the wrong one.
         /// </summary>
-        public CharacterOverride Resolve(string heroId, string heroName, string templateId = null)
+        public CharacterOverride Resolve(HeroOverrideLookup facts) => Resolve(facts.HeroId, facts.HeroName, facts.TemplateId);
+
+        // The positional form behind the facts, private so no caller can pass two of its same-typed arguments the wrong
+        // way round and still compile (swap-risk ratchet, 14/11/2026).
+        private CharacterOverride Resolve(string heroId, string heroName, string templateId = null)
         {
             if (!string.IsNullOrWhiteSpace(heroId))
             {

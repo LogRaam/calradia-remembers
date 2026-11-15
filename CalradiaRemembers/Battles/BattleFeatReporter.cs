@@ -250,7 +250,7 @@ namespace CalradiaRemembers.Battles
          if (!string.IsNullOrEmpty(_digest.DownedThePlayer))
             lines.Add(isTheOneWhoDownedThePlayer
                ? BattleFeatText.SubjectDownedThePlayer(_engagement, PlayerName)
-               : BattleFeatText.WitnessedPlayerDowned(_digest.DownedThePlayer, _engagement, PlayerName));
+               : BattleFeatText.WitnessedPlayerDowned(new PlayerDownedFacts {FoeName = _digest.DownedThePlayer, Engagement = _engagement, PlayerName = PlayerName}));
 
          if (_digest.TollToMention > 0)
             lines.Add(BattleFeatText.WitnessedToll(_digest.TollToMention, _engagement, PlayerName));

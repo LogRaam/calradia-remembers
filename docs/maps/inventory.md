@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 672 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1610 types in 60 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1634 types in 60 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1052,7 +1052,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (479)
+### CalradiaRemembers.Logic (488)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1090,6 +1090,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BackgroundCallHoldPolicy` | public static class | Decides whether a background model call keeps waiting for the conversation to close. |
 | `BackgroundCallTimeout` | public static class | The timeout of a call nobody waits on in a conversation. |
 | `BanditClearOfferPolicy` | public static class | Decides whether an open-field bandit-clearing deed is viable to offer near a giver's anchor town. |
+| `BattleRecordNames` | public class | Who won and lost a battle, where, and with how many men at the start. |
 | `BattleRecordText` | public static class | Pure: names a battle's sides and its scale for the world's record. |
 | `BattleSideFacts` | public class | One side of a recorded battle, as the game knows it. |
 | `BattleWorthFacts` | public class | What a won battle was worth (fkasad, 01/10/2026: "fighting half a dozen looters" is no feat). |
@@ -1213,6 +1214,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GoldTransferLimit` | public static class | The ceiling on a single gold transfer, enforced by the bridge and mirrored by every policy that prices one. |
 | `GreetingDeferencePolicy` | public static class | Which greeting lines offer service, and who may say them to the player. |
 | `GuardEvaluator` | public static class | Combines a rule's guards: every guard must resolve true. |
+| `GuidelinesNarrowing` | public class | Faction guidelines and the culture and faction they are narrowed to. |
 | `HairColorBands` | public static class | The words for a rendered hair colour. |
 | `HairRgb` | public class | A rendered hair colour, its three channels 0..255. |
 | `HappinessBand` | public enum | How a companion feels about being in your service — the bands the score falls into. |
@@ -1223,6 +1225,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeldEquipmentSlot` | public enum | One equipped slot a holder can accumulate an item for. |
 | `HeldItem` | public class | A persisted record of one item taken from the player, enough to rebuild the real EquipmentElement later (wearing it on the holder, or granting it back to the player on recovery). |
 | `HeroLabel` | public static class | Builds a disambiguating label for a hero from primitives, since this project cannot reference the engine Hero type directly (callers pass the strings they already read off it). |
+| `HeroOverrideLookup` | public class | Who an authored character entry is looked up for: the hero's id, name and template key. |
 | `HireAgreementPolicy` | public static class | The price a struck bargain actually costs: the one that was agreed, never a renegotiated one. |
 | `HistoryCandidateFacts` | public class | The facts of a third-party event leaving the news, read to decide whether the world keeps it. |
 | `HistoryKind` | public enum | What kind of happening a world event is, as the long-term memory sorts it. |
@@ -1290,6 +1293,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryDayFormatter` | public static class | Renders a memory event's absolute game day as player-readable text: the raw day number plus a relative hint ("today", "yesterday", "N days ago"). |
 | `MemoryRemovalFacts` | public class | A stored memory, and the removal a mod asks for. |
 | `MercenaryDepartureFacts` | public class | The realm's situation when the contract ended. |
+| `MercenaryDepartureNames` | public class | Who left which realm, and for whom: the names a departure line is written with. |
 | `MercenaryDeparturePolicy` | public static class | The rules of a mercenary's departure. |
 | `MercenaryDepartureVerdict` | public enum | How a realm takes the end of the player's mercenary contract. |
 | `MercenaryEnlistmentPolicy` | public static class | Pure gate for the join_as_mercenary action: whether the player's clan may take mercenary service under the kingdom in question right now, the two facts both the prompt teaching and the bridge's execution guard must agree... |
@@ -1316,6 +1320,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `OrientationParser` | public static class | Parses a human orientation word (plus common synonyms) to a SexualOrientation. |
 | `OutlawPolicy` | public static class | The rules of outlawry, bounties and amnesty. |
 | `OverdueOutcome` | public enum | What the daily overdue sweep should do once a commitment's deadline lapses. |
+| `PairReasonNames` | public class | A reason between two people and their names, to be taken out of it. |
 | `PairRegard` | public class | The speaker's regard for the other: points on the regard scale, the verdict, and the reasons, strongest first. |
 | `PairRegardFacts` | public class | What ties the speaker to the other, and what happened between them. |
 | `PairRegardPolicy` | public static class | Weighs what lies between two characters into a verdict with its reason. |
@@ -1397,6 +1402,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestVoidReason` | public enum | Why QuestTargetVoidPolicy.ReasonToVoid would cancel a hero-bound quest, or None when it stands. |
 | `RansomEnvoyFacts` | public class | Who a giver may send the player to buy back. |
 | `RansomEnvoyPolicy` | public static class | The rules of a ransom_envoy task. |
+| `RealmPeopleFacts` | public class | A realm and whether it is of a character's own people. |
 | `RealmStanding` | public class | One realm as the world-state line tells it. |
 | `RealmStandingFormatter` | public static class | Renders the realms line of the world state. |
 | `RebellionFacts` | public class | A house's rebellion, and its return to the fold. |
@@ -1404,6 +1410,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RecruitIntentDetector` | public static class | Detects a "where can I find / hire a companion?" intent in a free-text player message. |
 | `RecruitTroopsPolicy` | public static class | The rules of a recruit_troops task. |
 | `RefusalFallbackPolicy` | public static class | Whether a beat is redone on the NSFW model. |
+| `RefusalRedoFacts` | public class | A reply and the models it may be redone with. |
+| `RegardAgeing` | public class | A regard's weight and how far it has faded with the years. |
 | `ReinforceGarrisonPolicy` | public static class | The rules of a reinforce_garrison task. |
 | `RelationGate` | public static class | Single source of truth for how a LLM-proposed relation change is allowed to move the player↔NPC relationship. |
 | `RelationSummaryFacts` | public class | The standings the header line is written from. |
@@ -1475,6 +1483,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SharedIntimacyResult` | public enum | What becomes of a night another mod reports. |
 | `SharedPastDraw` | public class | A drawn past: who stands first (the one the kind's first weight applies to), when, and its line. |
 | `SharedPastKind` | public enum | What two lords may have shared before the campaign (design 7.3). |
+| `SharedPastNames` | public class | The kind of shared past, the two people and the place. |
 | `SharedPastPairFacts` | public class | The pair and the facts its draw reads. |
 | `SharedPastPolicy` | public static class | Draws, dates, words and weighs the shared past of two lords. |
 | `SharedPastSide` | public class | One side of the pair, as the game knows them now. |
@@ -1730,7 +1739,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WitnessFacts` | public class | The facts of one character present at a conversation's close. |
 | `WitnessKeeps` | public enum | What a character present at a conversation keeps of it, beside the one the player addressed. |
 
-### CalradiaRemembers.Logic.AuthoredHistory (13)
+### CalradiaRemembers.Logic.AuthoredHistory (14)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1742,13 +1751,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AuthoredHistoryLoader` | public static class | Parses and validates authored history. |
 | `AuthoredRelation` | public class | A starting relation between two heroes. |
 | `HistoryHeroFacts` | public class | What the campaign knows of one hero, read by the validation. |
+| `HistoryRelationKey` | public class | An authored history event and the two people it ties. |
 | `HistoryRelationLedger` | public static class | Plans the relation moves of a sync. |
 | `HistoryRelationLedgerEntry` | public class | What the file already did to one pair for one event (saved). |
 | `HistoryRelationPlan` | public class | The moves of one sync, and the ledger to save after them. |
 | `HistoryRelationStep` | public class | One relation move to make now. |
 | `HistoryWorldFacts` | public class | The campaign as the validation sees it. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (99)
+### CalradiaRemembers.Logic.AuthoredQuests (102)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1842,10 +1852,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TaleHistory` | public static class | What a tale already lived with this giver, as flags of the run that begins. |
 | `TaleImagePool` | public static class | Which picture of a stage's pool this playing of the tale shows. |
 | `TaleItemPolicy` | public static class | How a tale's goods are named, matched and handed over. |
+| `TaleItemShape` | public class | Where a tale names an item, its type, the item and the count. |
 | `TaleJournalFacts` | public class | One open journal entry of a tale, against the tale the game is running. |
 | `TaleJournalPolicy` | public static class | tashmetu (07/10/2026): "a finished tale stays listed twice, under Old Quests and still under Active Quests". |
 | `TaleJournalVerdict` | public enum | What becomes of a tale's journal entry. |
+| `TaleMarkersSeen` | public class | What a tale run has shown so far: the run, its tale, and the markers found, sprung and met. |
 | `TaleModuleFolder` | public class | Another mod's tales folder. |
+| `TaleMoment` | public class | The state of the tales at one moment. |
 | `TalePause` | public static class | A tale set aside while a scenario's tale plays, and taken up again after. |
 | `TaleRegardFlags` | public static class | The flags that say how the giver's regard moved over the tale. |
 | `TaleRoleState` | public class | What the game reads of one of the tale's people, for the ways out the world takes (war_ends, dies, weds_player). |
@@ -1866,7 +1879,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BastardScandalPolicy` | public static class | Scales the cost of a discovered bastard scandal (the standing hit and how far it spreads) by the culture's outrage at infidelity — the same JealousyOutrage the jealousy system reads. |
 | `HushMoneyPolicy` | public static class | The numeric contract for hush money paid to a lord who holds the player's secret-lover identity. |
 
-### CalradiaRemembers.Logic.Battles (24)
+### CalradiaRemembers.Logic.Battles (26)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1886,6 +1899,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CombatTally` | public class | What one hero did and suffered in one fight. |
 | `CombatTallyText` | public static class | The words a hero's own memory keeps of their part in a fight. |
 | `CombatantFacts` | public class | The fighting facts of one combatant, as the game itself knows them; the policy turns these into a prowess score. |
+| `PlayerDownedFacts` | public class | Who downed the player, in which engagement, and the player's name. |
+| `PrisonerDepositNames` | public class | Who left which captive, and where. |
 | `PrisonerMemoryText` | public static class | Pure: the memory lines of the player's prisoners. |
 | `SiegeNews` | public class | The facts of one siege as the news tells it. |
 | `SiegeRecordText` | public static class | Pure: the summary lines and the weight of a siege's news. |
@@ -1895,7 +1910,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SkirmishMemoryText` | public static class | Pure: the folded "small fights" memory a companion keeps of the skirmishes shared with the player. |
 | `TalliedFoe` | public class | One foe a hero put out of the fight, with the campaign's verdict on them afterwards. |
 
-### CalradiaRemembers.Logic.Captivity (28)
+### CalradiaRemembers.Logic.Captivity (29)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1918,6 +1933,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptivityRansomPolicy` | public static class | Whether the game's own ransom offer reaches the player. |
 | `CaptorAudienceFacts` | public class | Who holds the player, and how things stand between them. |
 | `CaptorAudiencePolicy` | public static class | When a captor sends for the player, and what he wants of the talk. |
+| `CaptorOathTaken` | public class | An oath a captive takes to a captor's realm: the captor, the realm, its name, and the day. |
 | `CaptorParole` | public class | One oath: not to attack this realm until this day. |
 | `CaptorParoleLedger` | public class | Every oath of parole still binding the player. |
 | `CaptureFacts` | public class | What is known of the capture. |
@@ -2064,11 +2080,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ConditionBands` | public static class | How a seat and a company are faring, on the engine's own scales. |
 | `PlayerImportancePolicy` | public static class | Whether the player looks important to a captor. |
 
-### CalradiaRemembers.Logic.Conversation (35)
+### CalradiaRemembers.Logic.Conversation (36)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `BriefingReturnDecision` | public static class | The whole decision the briefing return makes, as a pure function of four facts. |
+| `BriefingReturnFacts` | public class | The state a briefing's return is decided on. |
 | `CastPanelFacts` | public class | What the panel is built from. |
 | `CastPanelMember` | public class | One person present, as the chat knows them. |
 | `CastPanelPolicy` | public static class | Builds the participants panel's rows. |
@@ -2151,7 +2168,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DiplomacyCommitPolicy` | public static class | Reads the authorities' answers to a diplomatic change. |
 | `DiplomacyVerdict` | public enum | What an authority answers to a diplomatic change CR is about to make. |
 
-### CalradiaRemembers.Logic.Duels (30)
+### CalradiaRemembers.Logic.Duels (31)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2162,6 +2179,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CourtshipRivalryEligibility` | public static class | Whether a rival mounts a courtship-rivalry duel over a hero the player courts. |
 | `DuelAcceptanceContext` | public class | Everything DuelAcceptancePolicy.Decide weighs. |
 | `DuelAcceptancePolicy` | public static class | Decides whether an NPC accepts an admissible duel. |
+| `DuelBystanderFacts` | public class | Who a person on the duel's ground is. |
 | `DuelChallengeContext` | public class | Everything DuelChallengePolicy.Evaluate needs. |
 | `DuelChallengePolicy` | public static class | Decides whether a duel challenge is admissible at all. |
 | `DuelChallenger` | public enum | Who issued the challenge. |
@@ -2239,7 +2257,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `ConversationLineSequencer` | public class | Sequences line indices within one conversation session. |
 
-### CalradiaRemembers.Logic.Extortion (11)
+### CalradiaRemembers.Logic.Extortion (12)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2254,6 +2272,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ExtortionRecord` | public class | One attempt on one person. |
 | `ExtortionResistanceFacts` | public class | What decides whether someone gives in. |
 | `SecretExposurePolicy` | public static class | Decides who may hear a secret, what telling it costs, and how the scandal reads. |
+| `SecretListener` | public class | Who would hear, about whom, and the lover the secret is about. |
 
 ### CalradiaRemembers.Logic.Folklore (2)
 
@@ -2262,7 +2281,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FolkTale` | public class | One tale as written in a folklore file. |
 | `FolkTalePolicy` | public static class | Reads folklore files and decides which tales a character carries. |
 
-### CalradiaRemembers.Logic.Grudges (36)
+### CalradiaRemembers.Logic.Grudges (37)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2294,6 +2313,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PairPeacePolicy` | public static class | Which wrongs a peace made in conversation lays to rest. |
 | `PairWrongFacts` | public class | One thing held against the other, and whether a peace made since covers it. |
 | `PairWrongKind` | public enum | What one character may hold against another, as the pair's regard reads it. |
+| `PeaceMemoryNames` | public class | The names a peace memory is written with. |
 | `ProfileEventFacts` | public class | A persisted NotableEvent on some NPC's profile, as read by the engine-side scan. |
 | `QuestOutcomeFacts` | public class | A terminated InformalQuest (Expired/Abandoned), as read by the engine-side scan. |
 | `SwayExposedFacts` | public class | Facts for Tier2GrudgeRules.SwayExposedGrudge: the player turned X's opinion against this target, and the target heard of it. |
@@ -2396,13 +2416,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LegendPolicy` | public static class | Which battles pass into legend, who has heard of them, and how each tells it. |
 | `LegendTellerFacts` | public class | What ties one character to a legend. |
 
-### CalradiaRemembers.Logic.Letters (44)
+### CalradiaRemembers.Logic.Letters (45)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `CourierDispatchPolicy` | public static class | Pure gate for the reply-courier dispatch: whether a sender already has a courier on the road. |
 | `CourierHirePlace` | public enum | The kind of place the player stands in. |
 | `CourierHirePlacePolicy` | public static class | Where the courier is offered from the settlement's own menu. |
+| `CourierLetterNames` | public class | A letter a courier read: its sender, its recipient and what it said. |
 | `CourierLoss` | public enum | What happened to a courier that never arrived. |
 | `CourierLossFacts` | public class | What is known about whoever destroyed a courier. |
 | `CourierRationPolicy` | public static class | Decides when a courier's larder is refilled mid-errand. |
@@ -2611,7 +2632,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RaidRestraintLedger` | public class | Every draw of the wars under way. |
 | `RaidRestraintPolicy` | public static class | Whether a lord at war with the player may spare the player's villages, and how likely he is to. |
 
-### CalradiaRemembers.Logic.RealmTidings (12)
+### CalradiaRemembers.Logic.RealmTidings (13)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2620,6 +2641,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RealmFaceFile` | public static class | Reads and merges faces files. |
 | `RealmFacePlan` | public class | What to change. |
 | `RealmFacePlanner` | public static class | Who to dress and who to give her face back. |
+| `RealmJoiningNames` | public class | How the player joined a realm, and the names the line is written with. |
 | `RealmServiceLine` | public class | The news line, the chronicle line and the reach of the player's clan entering a realm's service. |
 | `RealmServiceWording` | public static class | Words the player's entry into a realm as what it was: an oath of fealty, or a hired contract. |
 | `RealmTidingsPolicy` | public static class | Pure subject-selection for a realm-tidings letter: given the world events a writer could relay and the ones they have already relayed, picks the single most worth-telling fresh event, or nothing. |
@@ -2654,10 +2676,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RescueGratitudePolicy` | public static class | Decides how strongly an NPC reacts to being rescued (or to a loved one being rescued) by the player. |
 | `RescueTie` | public enum | How the freed prisoner relates to the player, deciding the shape of their gratitude. |
 
-### CalradiaRemembers.Logic.Romance (46)
+### CalradiaRemembers.Logic.Romance (47)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `AffairDraw` | public class | The draw a hidden affair begins on: the standing between the two, the chance and the roll. |
 | `AffairInquiry` | public enum | What a companion's inquiry into a lord comes to. |
 | `AuthoredTastesFacts` | public class | A character's tastes as they stand, and the lists an author wrote for them. |
 | `AuthoredTastesPolicy` | public static class | How an authored gesture lock lands on a character's rolled tastes. |
@@ -2705,12 +2728,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SecretReactionPolicy` | public static class | From the model's one-word reading to a severity, and from a severity to a reaction. |
 | `SecretSeverity` | public enum | How an intercepted letter touches the lord who read it. |
 
-### CalradiaRemembers.Logic.Saving (4)
+### CalradiaRemembers.Logic.Saving (5)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `MarkovText` | public class | A word chain of order two learned from sample sentences; writes new sentences in their manner. |
 | `Ppmd7` | public static class | PPMd variant H (7z range coder): encodes and decodes one block whose length the caller keeps. |
+| `PpmdPacked` | public class | A packed block and the settings it was packed with. |
 | `SaveBlobCodec` | public static class | Turns a store's JSON into the bytes a save holds, and back, and says whether those bytes are safe to save. |
 | `SaveBlobVerdict` | public enum | Whether a blob may go into the save. |
 
