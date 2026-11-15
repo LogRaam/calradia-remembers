@@ -7,6 +7,8 @@
 // how much hair shows) and her seed, and draws a woman's face in the range of her culture's village women. For every other
 // soldier it returns exactly what the game would have computed (the same call). Resolved by name and return type, read
 // only from the result, and switched off with a log line when the game moves it (the 1.5.5 SpawnAgent change, tashmetu).
+// Her weight and build are then made lean (WomenInRanksPolicy.LeanFrame): the townswoman range gave stout frames under which
+// her head looked tiny (EvilPoptart1987, Nexus 15/11/2026).
 
 #region
 
@@ -128,9 +130,16 @@ namespace CalradiaRemembers.Mapping
          {
             if (madeWoman && character != null && !character.IsFemale
                 && FemaleFaceOf((character as CharacterObject)?.Culture) is BasicCharacterObject face)
-               return TaleWorlds.Core.FaceGen.GetRandomBodyProperties(character.Race, true, face.GetBodyPropertiesMin(), face.GetBodyPropertiesMax(),
+            {
+               BodyProperties drawn = TaleWorlds.Core.FaceGen.GetRandomBodyProperties(character.Race, true, face.GetBodyPropertiesMin(), face.GetBodyPropertiesMax(),
                                                       (int) (equipment?.HairCoverType ?? ArmorComponent.HairCoverTypes.None), seed,
                                                       face.BodyPropertyRange?.HairTags, face.BodyPropertyRange?.BeardTags, face.BodyPropertyRange?.TattooTags, 0f);
+
+               // The townswoman range reaches a stout peasant's frame, under which her head looked tiny (EvilPoptart1987,
+               // 15/11/2026): her face and age stay as drawn, her weight and build are carried into a lean band.
+               return new BodyProperties(new DynamicBodyProperties(drawn.Age, WomenInRanksPolicy.LeanFrame(drawn.Weight), WomenInRanksPolicy.LeanFrame(drawn.Build)),
+                                         drawn.StaticProperties);
+            }
          }
          catch (Exception ex)
          {

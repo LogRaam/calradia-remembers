@@ -50,9 +50,32 @@ namespace CalradiaRemembers.Logic.Troops
         public bool HasFemaleFace { get; init; }
     }
 
-    /// <summary>Whether a soldier entering a battle is a woman. Pure.</summary>
+    /// <summary>Whether a soldier entering a battle is a woman, and the frame she is drawn with. Pure.</summary>
     public static class WomenInRanksPolicy
     {
+        // EvilPoptart1987 (Nexus, 15/11/2026): "the women in the ranks spawns coming in with ridiculously tiny heads". Her body
+        // was drawn in the range of her culture's townswomen, whose weight and build reach 0.95 and 0.97 (a stout, heavy
+        // peasant), so a small woman's head sat on a wide, muscled frame under a man's armour. Gabriel (15/11/2026): "il
+        // faudrait que le body des femmes soient mince et beaucoup moins muscles." Both are drawn in this lean band instead,
+        // still spread by her own draw so two women soldiers do not share one frame.
+
+        /// <summary>The leanest weight and build a woman soldier is given (the game's 0..1 body sliders).</summary>
+        public const float LeanFrameLowest = 0.05f;
+
+        /// <summary>The heaviest weight and build a woman soldier is given (the game's 0..1 body sliders).</summary>
+        public const float LeanFrameHighest = 0.30f;
+
+        /// <summary>
+        ///   A woman soldier's weight or build: the value her culture's woman template drew (0..1), carried into the lean band
+        ///   <see cref="LeanFrameLowest" />..<see cref="LeanFrameHighest" /> so a heavier draw stays a little heavier, never stout.
+        /// </summary>
+        public static float LeanFrame(float drawn)
+        {
+            float t = float.IsNaN(drawn) ? 0f : drawn < 0f ? 0f : drawn > 1f ? 1f : drawn;
+
+            return LeanFrameLowest + (LeanFrameHighest - LeanFrameLowest) * t;
+        }
+
         /// <summary>The share for a soldier of <paramref name="cultureId" /> in an army of <paramref name="realmId" />: the realm's when listed, else the culture's, else 0; held to 0..100.</summary>
         public static int PercentFor(WomenInRanksTable table, string cultureId, string realmId)
         {

@@ -30,6 +30,21 @@ namespace CalradiaRemembers.Tests
       private static RankSoldierFacts Soldier(string culture, string realm = null, int seed = 1)
          => new() {CultureId = culture, RealmId = realm, TroopId = culture + "_recruit", Seed = seed, HasFemaleFace = true};
 
+      // STAKE (EvilPoptart1987, Nexus 15/11/2026: "ridiculously tiny heads"; Gabriel: "mince et beaucoup moins muscles"): the
+      // townswoman range her body was drawn in reaches weight 0.95 and build 0.97, a stout peasant's frame under which her head
+      // looked tiny. Whatever the template draws, she is lean; a heavier draw stays a little heavier so the ranks still vary.
+      [Test]
+      public void GIVEN_a_woman_soldiers_drawn_weight_or_build_WHEN_her_frame_is_set_THEN_it_is_lean_and_still_varies()
+      {
+         WomenInRanksPolicy.LeanFrame(0.97f).Should().BeLessThanOrEqualTo(WomenInRanksPolicy.LeanFrameHighest);
+         WomenInRanksPolicy.LeanFrame(0.97f).Should().BeLessThanOrEqualTo(0.30f);
+         WomenInRanksPolicy.LeanFrame(0f).Should().Be(WomenInRanksPolicy.LeanFrameLowest);
+         WomenInRanksPolicy.LeanFrame(0.9f).Should().BeGreaterThan(WomenInRanksPolicy.LeanFrame(0.3f));
+         WomenInRanksPolicy.LeanFrame(5f).Should().Be(WomenInRanksPolicy.LeanFrameHighest);
+         WomenInRanksPolicy.LeanFrame(-1f).Should().Be(WomenInRanksPolicy.LeanFrameLowest);
+         WomenInRanksPolicy.LeanFrame(float.NaN).Should().Be(WomenInRanksPolicy.LeanFrameLowest);
+      }
+
       private static double ShareOfWomen(string culture, string realm = null)
          => Enumerable.Range(0, 10000).Count(seed => WomenInRanksPolicy.IsWoman(Shipped, Soldier(culture, realm, seed))) / 100.0;
 

@@ -2864,7 +2864,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | Type | Kind | What it is |
 |---|---|---|
 | `RankSoldierFacts` | public class | One soldier about to enter a battle. |
-| `WomenInRanksPolicy` | public static class | Whether a soldier entering a battle is a woman. |
+| `WomenInRanksPolicy` | public static class | Whether a soldier entering a battle is a woman, and the frame she is drawn with. |
 | `WomenInRanksTable` | public class | The share of women per culture and per realm, in percent (women_in_ranks.json). |
 
 ### CalradiaRemembers.Logic.Ventures (2)

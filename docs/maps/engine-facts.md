@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-790 rules read 583 facts.
+791 rules read 592 facts.
 
 ## Facts read by more than one rule
 
@@ -1161,6 +1161,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `WitnessStandingFacts`: `Clan.Kingdom`, `Clan.Leader`, `Hero.Clan`, `Hero.GetTraitLevel`, `Hero.IsFemale`, `Kingdom.Leader`, `PairBondReader.Points`
 - `WitnessStandingText.AtTable`: `Hero.IsFemale`
 - `WomenInRanksPolicy.IsWoman`: `AgentBuildData.AgentOrigin`, `CharacterObject.BodyPropertyRange`, `CharacterObject.IsFemale`, `CultureObject.Townswoman`, `CultureObject.VillageWoman`, `IAgentOriginBase.BattleCombatant`, `IAgentOriginBase.Seed`, `IAgentOriginBase.UniqueSeed`
+- `WomenInRanksPolicy.LeanFrame`: `BasicCharacterObject.Race`, `BodyProperties.Build`, `BodyProperties.Weight`, `BodyPropertyRange.BeardTags`, `BodyPropertyRange.HairTags`, `BodyPropertyRange.TattooTags`, `Equipment.HairCoverType`, `FaceGen.GetRandomBodyProperties`, `HairCoverTypes.None`
 - `WomenInRanksTable`: `JsonConvert.DeserializeObject`, `StringComparer.OrdinalIgnoreCase`
 - `WorkshopSaleFacts`: `Hero.IsDead`
 - `WorldInitiativePolicy.Decide`: `ActiveCount.Invoke`, `IsBusy.Invoke`, `ModSettings.WorldInitiative`, `State.Grants`, `State.KeptSinceHour`, `State.LastOwnTalkHour`, `State.LastSettledHour`, `State.Requests`
