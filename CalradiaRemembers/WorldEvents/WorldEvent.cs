@@ -171,6 +171,13 @@ namespace CalradiaRemembers.WorldEvents
       /// </summary>
       public bool KnownOnlyToThoseInvolved { get; set; }
 
+      /// <summary>
+      ///   Its first speaker only guessed at it (a character's claim given as GUESS, WorldClaim.StatedAsFact false): every
+      ///   line that tells it says so (Logic.RumorHedge; VonLemberg, source audit, 15/11/2026). Absent on an older save,
+      ///   so false: told as before.
+      /// </summary>
+      public bool OnlyAGuess { get; set; }
+
       /// <summary>Heroes the player kept unaware of this event (cr.world_event_hide). Absent on an older save, so empty.</summary>
       public List<string> HiddenFromIds { get; set; } = new();
 

@@ -947,7 +947,7 @@ namespace CalradiaRemembers.Mapping
                string doubt = conf == RumorConfidence.Distant
                   ? " — though none can fully vouch for it"
                   : "";
-               lines.Add($"- {valence}{RumorDiscretion.TagFor(e.KnownOnlyToThoseInvolved)}{e.Summary.TrimEnd('.', ' ')}{doubt}.");
+               lines.Add($"- {valence}{RumorDiscretion.TagFor(e.KnownOnlyToThoseInvolved)}{RumorHedge.TagFor(e.OnlyAGuess)}{e.Summary.TrimEnd('.', ' ')}{doubt}.");
 
                if (lines.Count >= 3) break;
             }
@@ -3526,7 +3526,7 @@ namespace CalradiaRemembers.Mapping
                   if (e.InvolvesPlayer || string.IsNullOrWhiteSpace(e.Summary)) continue;
                   if (e.Type == WorldEventType.WarDeclared || e.Type == WorldEventType.PeaceDeclared) continue;
 
-                  tidings.Add(new Tiding {Text = RumorDiscretion.TagFor(e.KnownOnlyToThoseInvolved) + e.Summary, Confidence = MapConfidence(confidence)});
+                  tidings.Add(new Tiding {Text = RumorDiscretion.TagFor(e.KnownOnlyToThoseInvolved) + RumorHedge.TagFor(e.OnlyAGuess) + e.Summary, Confidence = MapConfidence(confidence)});
                }
 
             var facts = new RealmNewsFacts {Headline = ResolveRealmNews(hero), Tidings = tidings};
@@ -4202,7 +4202,7 @@ namespace CalradiaRemembers.Mapping
                if (string.IsNullOrWhiteSpace(e.Summary)) continue;
 
                if (e.Type == WorldEventType.WarDeclared || e.Type == WorldEventType.PeaceDeclared)
-                  return $"- {RumorDiscretion.TagFor(e.KnownOnlyToThoseInvolved)}{e.Summary.TrimEnd('.', ' ')}.";
+                  return $"- {RumorDiscretion.TagFor(e.KnownOnlyToThoseInvolved)}{RumorHedge.TagFor(e.OnlyAGuess)}{e.Summary.TrimEnd('.', ' ')}.";
             }
 
             return null;
@@ -4637,7 +4637,7 @@ namespace CalradiaRemembers.Mapping
                   string tag = s.Confidence == RumorConfidence.Distant ? "(a distant, unverified rumour) "
                      : s.Confidence == RumorConfidence.Secondhand ? "(heard secondhand) "
                      : "";
-                  return $"- {RumorDiscretion.TagFor(s.Event.KnownOnlyToThoseInvolved)}{tag}{s.Event.Summary.TrimEnd('.', ' ')}.";
+                  return $"- {RumorDiscretion.TagFor(s.Event.KnownOnlyToThoseInvolved)}{tag}{RumorHedge.TagFor(s.Event.OnlyAGuess)}{s.Event.Summary.TrimEnd('.', ' ')}.";
                })
                .ToList();
 

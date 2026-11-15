@@ -201,7 +201,7 @@ namespace CalradiaRemembers.RealmTidings
       ///   RealmTidings occasion text turns it into a relay and forbids inventing anything beyond it.
       /// </summary>
       private static string BuildContext(WorldEvent evt, RumorConfidence confidence)
-         => $"News stirring in the realm ({DescribeKind(evt.Type)}). {ConfidenceFraming(confidence)} {evt.Summary} " +
+         => $"News stirring in the realm ({DescribeKind(evt.Type)}). {ConfidenceFraming(confidence)} {RumorHedge.TagFor(evt.OnlyAGuess)}{evt.Summary} " +
             "Relay only this news, in your own voice, and add nothing that is not stated here.";
 
       /// <summary>The confidence framing derived from how surely the news reached the writer (faint / word-of-mouth / confirmed).</summary>

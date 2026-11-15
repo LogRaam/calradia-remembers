@@ -27691,6 +27691,21 @@ namespace CalradiaRemembers.Diagnostics
                t.Expect("someoneOfThatRealmFarFromThePlaceHearsIt", RumorAwareness.Knows(RumorAwareness.Score(row.Magnitude, true, 0, 0)), true);
             }
 
+            // 7a. a stated claim is told as stated; a guessed one carries its speaker's doubt (same audit).
+            t.Expect("aStatedClaimIsNotMarkedAGuess", row.OnlyAGuess, false);
+            var guess = new WorldClaim {
+               SpeakerId = speaker.StringId, SpeakerName = speaker.Name?.ToString(),
+               Subject = ClaimSubject.Omen, PlaceName = place.Name?.ToString(), StatedAsFact = false,
+               Text = $"[SELFTEST] Some say a two-headed calf was born near {place.Name}."
+            };
+            t.Expect("aGuessEntersTheWorld", WorldClaimInjector.Adopt(new List<WorldClaim> {guess}, speaker, today), 1);
+            WorldEvent guessRow = WorldEventStore.Instance.MostRecentMatching(WorldEventType.HeardTell, e => e?.Summary != null && e.Summary.Contains("two-headed calf"));
+            if (guessRow != null)
+            {
+               written.Add(guessRow.Id);
+               t.Expect("aGuessIsMarkedAsOne", guessRow.OnlyAGuess, true);
+            }
+
             // 7. a claim that names the player never enters, whatever the model labelled it (same audit).
             string playerName = Hero.MainHero?.Name?.ToString();
             if (!string.IsNullOrWhiteSpace(playerName))

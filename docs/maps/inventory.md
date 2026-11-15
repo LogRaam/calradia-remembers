@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 673 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1646 types in 61 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1647 types in 61 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1053,7 +1053,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (495)
+### CalradiaRemembers.Logic (496)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1445,6 +1445,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RumorAwarenessBreakdown` | public class | One observer's awareness of one event, with every term that produced it. |
 | `RumorConfidence` | public enum | How surely a rumour has reached an observer — derived from the awareness score. |
 | `RumorDiscretion` | public static class | Whether a world event is kept from someone whatever their score. |
+| `RumorHedge` | public static class | How a piece of news that was only a guess is told. |
 | `ScenarioMergeResult` | public class | The rules kept, where each came from, and what was dropped. |
 | `ScenarioPackFolder` | public class | A folder of scenario packs and who it belongs to. |
 | `ScenarioPackFolders` | public static class | Where scenario packs are read from, in order. |

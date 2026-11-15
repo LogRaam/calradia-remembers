@@ -114,6 +114,9 @@ namespace CalradiaRemembers.WorldEvents
             // Capped low by policy so an invented rumour never outranks a battle or a siege in what a
             // character brings up.
             Magnitude = WorldClaimPolicy.ReachOf(claim),
+
+            // The speaker's doubt travels with the news: whoever hears it later is told it was a guess.
+            OnlyAGuess = !claim.StatedAsFact,
             SourceMod = Source
          };
       }
