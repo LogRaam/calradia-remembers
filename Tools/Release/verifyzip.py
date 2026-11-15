@@ -47,6 +47,7 @@ blobs = {k: zn.read(v) for k, v in DLLS.items()}
 # Managed metadata keeps type and member names as UTF-8 in the #Strings heap, so a plain byte search is a
 # sound presence test for a name this distinctive.
 LITERALS = [
+    ("sdk",   "invent no tics of your own."),   # 2.8.12: the authored-voice wording
     ("sdk",   "Never write \"the player\""),   # 2.7.0: the Lean reminder
     ("sdk",   "In the memory lines just below"),   # 2.7.0: whose "you"
     ("sdk",   "The player asks what it would take to make things right"),
@@ -653,6 +654,13 @@ MUST = [
     ("sdk",   b"IntimateActNames"),
     ("sdk",   b"LessFondActs"),
     ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
+    # 2.8.12
+    ("logic", b"PersonaSectionPolicy"),
+    ("logic", b"ExternalLlmRequestPolicy"),
+    ("mod",   b"CrLlmRequest"),
+    ("mod",   b"PersonaText"),
+    ("mod",   b"AllowOtherModsLlm"),
+    ("mod",   b"TestPersonaSurface"),
     # 2.8.11
     ("logic", b"FiefLossPolicy"),
     ("logic", b"CompressionMergePolicy"),

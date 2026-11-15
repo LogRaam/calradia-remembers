@@ -1,4 +1,4 @@
-Released in v2.8.11
+Released in v2.8.12
 
 The modder API as it SHIPPED, the baseline for the vanished-member guard (see docs/maps/README.md). Recorded on
 purpose at each release cut with Tools/Update-Maps.ps1 -RecordReleasedApi; never by a plain regeneration.
@@ -66,7 +66,7 @@ _The door through which other mods give lords aims of their own._
 
 _The version of CR's whole extension surface, for a mod that detects what it can use._
 
-- `const int Version = 1`
+- `const int Version = 2`
 
 ### CrAppearance
 
@@ -251,6 +251,47 @@ _Another mod's letters, delivered through CR's courier and letter window._
 - `static string GetReply(string letterId)`
 - `static string GetStatus(string letterId)`
 
+### CrLlm
+
+_Sends one plain completion through the player's own Calradia Remembers connection, for a mod that wants CR's model, key and provider instead of its own._
+
+- `static Task<CrLlmResult> CompleteAsync(CrLlmRequest request, CancellationToken cancellationToken = default)`
+- `static bool IsReady { get; }`
+- `static string Unavailable()`
+
+### CrLlmRequest
+
+_One request a mod sends through CrLlm._
+
+- `IList<CrLlmTurn> Turns { get; set; }`
+- `float Creativity { get; set; }`
+- `int MaxOutputTokens { get; set; }`
+- `string RequestId { get; set; }`
+- `string SourceMod { get; set; }`
+- `string SystemPrompt { get; set; }`
+
+### CrLlmResult
+
+_What came back from CrLlm.CompleteAsync._
+
+- `bool CampaignChanged { get; set; }`
+- `bool Cancelled { get; set; }`
+- `bool Refused { get; set; }`
+- `bool Succeeded { get; set; }`
+- `double? Cost { get; set; }`
+- `int CompletionTokens { get; set; }`
+- `int PromptTokens { get; set; }`
+- `string Error { get; set; }`
+- `string RequestId { get; set; }`
+- `string Text { get; set; }`
+
+### CrLlmTurn
+
+_One turn of the conversation a mod sends through CrLlm._
+
+- `bool FromModel { get; set; }`
+- `string Text { get; set; }`
+
 ### CrLore
 
 _The door to CR's authored character files._
@@ -409,10 +450,12 @@ _The door through which another mod gives heroes their chat portrait._
 
 _The public facade a third-party mod calls to register (or unregister) one live prompt variable._
 
+- `static IReadOnlyList<CrPromptSection> Persona(string heroId)`
 - `static IReadOnlyList<CrPromptSection> Sections()`
 - `static IReadOnlyList<CrPromptSection> StockSections(string heroId)`
 - `static IReadOnlyList<string> Reload()`
 - `static bool Unregister(string name)`
+- `static string PersonaText(string heroId)`
 - `static string StockSectionText(string key, string heroId)`
 - `static void RegisterVariable(string name, Func<PromptVarFacts, string> provider)`
 

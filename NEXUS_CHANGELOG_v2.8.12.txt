@@ -1,0 +1,22 @@
+Version 2.8.12
+
+Characters you wrote keep their personality without repeating a tic, and other mods can now borrow a character's persona.
+
+Changed
+
+- A character whose voice you wrote shows it in how they think, judge, react and argue, not in a catchphrase repeated every line. A habit you wrote comes back now and then, and still every time if your text says so. The mod no longer invents tics of its own for them. (Thank you, VonLemberg.)
+
+For modders
+
+- A mod can read a character's whole persona, as CR knows it right now (identity, voice, backstory, what matters to them, their memories, their aim, their mood, the news that reached them), and use it in its own LLM call, for example rulers negotiating among themselves. Nothing aimed at the player is included. (Thank you, VonLemberg.)
+- A mod can also send that call through your own CR connection. A new option, "Other mods may use my connection" (MCM, LLM Provider, on by default), lets you refuse; every such call is logged with the mod's name. (Thank you, VonLemberg.)
+- A secret one mod gives a character is no longer readable by another mod.
+- EXTENSION_API.md: "A character's persona, for your own LLM call" and "Sending the call through CR's connection". CrApi.Version is 2.
+
+Developer tools
+
+- cr.test all gains persona_surface.
+
+Notes
+
+- Saves from 2.8.11 and older load as they are, and your MCM choices are kept.
