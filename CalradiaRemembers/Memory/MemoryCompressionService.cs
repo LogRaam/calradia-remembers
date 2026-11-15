@@ -203,6 +203,23 @@ namespace CalradiaRemembers.Memory
             return kept;
         }
 
+        /// <summary>
+        ///   Puts back, in its place by day, any memory the player wrote while the call was in flight that the rebuilt
+        ///   history lacks. cr.memory_add files a memory dated in the past among the older ones, inside the snapshot's
+        ///   range, so the "added since" tail never sees it (Icezera, 15/11/2026: memories added by hand went missing).
+        /// </summary>
+        private static void CarryPlayerWritten(NpcProfile fresh, List<NotableEvent> rebuilt)
+        {
+            foreach (NotableEvent live in fresh.Events.ToList())
+            {
+                if (live is not {IsPlayerWritten: true}) continue;
+                if (rebuilt.Any(r => ReferenceEquals(r, live) || (!string.IsNullOrEmpty(live.Id) && r != null && string.Equals(r.Id, live.Id, StringComparison.Ordinal)))) continue;
+
+                int at = rebuilt.FindIndex(r => r != null && r.gameDay > live.gameDay);
+                rebuilt.Insert(at < 0 ? rebuilt.Count : at, live);
+            }
+        }
+
         private static void Apply(NpcMemoryCampaignBehavior behavior, string npcId, CompressionResult result, int snapshotCount)
         {
             NpcProfile fresh = behavior.Store.Get(npcId);
@@ -214,6 +231,7 @@ namespace CalradiaRemembers.Memory
 
             var rebuilt = new List<NotableEvent>(result.KeptEvents.Select(kept => Current(fresh, kept)));
             rebuilt.AddRange(since);
+            CarryPlayerWritten(fresh, rebuilt);
 
             int before = fresh.Events.Count;
 

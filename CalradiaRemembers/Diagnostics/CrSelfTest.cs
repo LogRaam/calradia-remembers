@@ -451,6 +451,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("capture_norm_facts", Severity.Light, "Fakade (Nexus, 10/11/2026): a lady left in a garrison dungeon after a plain capture, and her realm said she was 'kept like chattel'; the garrison's lord wrote the player had 'abandoned her'. The capture line named the keeping as the offence with no fact of it. Captures a real in-party lord into the player's party, reads the REAL CaptureFactsFor over a capture event naming them, asserts still held, held in the player's party, the right sex, and that the line forbids inventing ill treatment and no longer names the keeping as the offence. Frees the captive.", TestCaptureNormFacts),
          new SelfTest("captive_notoriety", Severity.Light, "Lordfadooboo (Nexus, 03/10/2026): an empress in an Aserai cell said few would trouble themselves with her. A real ruler must read as 'a ruler' whose capture is news; and when the game holds a captive of rank, her real prompt must tell her the world talks of her. Changes nothing.", TestCaptiveNotoriety),
          new SelfTest("memory_repair_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026) and Gabriel: one command to mend every memory the console mangled before the fix. Stores a mangled memory on a real lord, as an old save holds it, runs cr.memory_repair_accents through the engine's console: the memory must read as typed. Removes it after.", TestMemoryRepairAccents),
+         new SelfTest("player_memory_kept", Severity.Light, "Icezera (Discord, 15/11/2026): memories added with cr.memory_add were gone some days later; memory compression had folded them away. Sends cr.memory_add, through the engine's own console dispatch, a memory dated 30 days back to a real lord (padded with test memories to the size compression works on), then runs the REAL compressor on that profile with a stand-in model that drops everything: the memory the player wrote must be kept, and an ordinary test memory of the same age must not be. No model is called. Removes every test memory after", TestPlayerMemoryKept),
          new SelfTest("console_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026): accents typed into cr.memory_add / cr.memory_set came out as mojibake (the console reads UTF-8 back as Windows-1252). Sends cr.memory_add, through the engine's own console dispatch, a line mangled exactly as the console mangles it: the stored memory must read exactly as typed. Removes the memory after.", TestConsoleAccents),
          new SelfTest("extreme_trait_persona", Severity.Light, "A trait at +-2 (the game's strongest) met no persona archetype and got the generic 'figure of contradictions' line. Takes a real hero with such a trait and builds the persona the real way: the extreme must be said in it, never as relish. Stores nothing.", TestExtremeTraitPersona),
          new SelfTest("retired_persona_refreshed", Severity.Light, "tashmetu (Nexus, 02/10/2026): a companion's sister played far crueller than her traits, because three ordinary -1 traits drew the 'Sadistic' archetype. It was reworded; a save keeps the persona it stored. Gives a throwaway profile of a real lord the old wording and runs the real load upgrade: it must be derived again. Stores nothing.", TestRetiredPersonaRefreshed),
@@ -16862,6 +16863,65 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          return t.Line();
+      }
+
+      private static string TestPlayerMemoryKept(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("player_memory_kept");
+
+         // A one-word name, so cr.memory_add's own last-token lookup lands on the same hero this test reads back.
+         Hero hero = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && h.Name != null && !h.Name.ToString().Contains(" "));
+         if (t.Skip(hero == null, "no lord with a one-word name")) return t.Line();
+
+         string token = hero.Name.ToString();
+         Hero target = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.Name != null && h.Name.ToString().IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0);
+         const string written = "[SELFTEST] We fought side by side at Pendraic.";
+         const string ordinary = "[SELFTEST] an ordinary memory of the same age";
+
+         try
+         {
+            TaleWorlds.Library.CommandLineFunctionality.CallFunction("cr.memory_add", "30 " + written + " " + token, out bool found);
+            t.Expect("theCommandWasFound", found, true);
+
+            NpcProfile profile = behavior.Store.Get(target.StringId);
+            if (t.Skip(profile?.Events == null, $"{target.Name} has no profile after cr.memory_add")) return t.Line();
+
+            NotableEvent mine = profile.Events.FirstOrDefault(e => e.summary == written);
+            t.Expect("theMemoryIsMarkedAsThePlayers", mine?.IsPlayerWritten == true, true);
+
+            // The fixture: one ordinary memory of the same day, and enough recent ones that both sit outside the five
+            // compression always keeps.
+            int day = mine?.gameDay ?? 1;
+            profile.Events.Add(new NotableEvent(day, NotableEventType.Other, ordinary));
+            int today = Math.Max(day + 1, (int) CampaignTime.Now.ToDays);
+            for (var i = 0; i < 13; i++) profile.Events.Add(new NotableEvent(today, NotableEventType.Other, $"[SELFTEST] filler {i}"));
+            profile.Events.Sort((a, b) => a.gameDay.CompareTo(b.gameDay));
+            t.Note($"{target.Name}: {profile.Events.Count} memories, the player's dated day {day}");
+
+            var compressor = new NpcMemoryService.Core.Compression.LlmMemoryCompressor(new DropEverythingClient());
+            NpcMemoryService.Core.Compression.CompressionResult result = compressor.CompressAsync(profile).GetAwaiter().GetResult();
+
+            t.Expect("thePlayersMemoryIsKept", result.KeptEvents.Any(e => e.summary == written), true);
+            t.Expect("anOrdinaryMemoryOfTheSameAgeMayGo", result.KeptEvents.Any(e => e.summary == ordinary), false);
+         }
+         finally
+         {
+            NpcProfile profile = behavior.Store.Get(target.StringId);
+            if (profile?.Events != null)
+            {
+               profile.Events.RemoveAll(e => e.summary != null && e.summary.StartsWith("[SELFTEST]"));
+               behavior.Store.Set(profile);
+            }
+         }
+
+         return t.Line();
+      }
+
+      /// <summary>A stand-in model that keeps nothing, so only the compressor's own guardrails decide what stays.</summary>
+      private sealed class DropEverythingClient : NpcMemoryService.Core.LlmClient.ILlmClient
+      {
+         public System.Threading.Tasks.Task<NpcMemoryService.Core.Models.LlmResponse> CompleteAsync(NpcMemoryService.Core.Models.LlmRequest request, System.Threading.CancellationToken ct = default)
+            => System.Threading.Tasks.Task.FromResult(new NpcMemoryService.Core.Models.LlmResponse {Content = "[KEEP]\n[/KEEP]\n[DROP_SUMMARY]Old talk.[/DROP_SUMMARY]", IsSuccess = true});
       }
 
       private static string TestConsoleAccents(NpcMemoryCampaignBehavior behavior)

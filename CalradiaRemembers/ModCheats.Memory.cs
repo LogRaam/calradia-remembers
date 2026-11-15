@@ -65,7 +65,9 @@ namespace CalradiaRemembers
 
          int gameDay = Math.Max(1, (int) CampaignTime.Now.ToDays - daysAgo);
          NpcProfile profile = GetOrCreateProfile(behavior, hero);
-         profile.Events.Add(new NotableEvent(gameDay, NotableEventType.Other, summary));
+         // Marked as the player's own and given an identity: compression never drops it, and a pass in flight carries it
+         // over even though the sort below files it among the older memories (Icezera, 15/11/2026).
+         profile.Events.Add(new NotableEvent(gameDay, NotableEventType.Other, summary) {IsPlayerWritten = true}.Identified());
          // Keep chronology readable for both cr.memory and the prompt.
          profile.Events.Sort((a, b) => a.gameDay.CompareTo(b.gameDay));
          behavior.Store.Set(profile);
@@ -234,7 +236,10 @@ namespace CalradiaRemembers
             return $"Index {index} out of range — {hero.Name} has {profile.Events.Count} event(s). Use cr.memory to see them.";
 
          NotableEvent old = profile.Events[index];
-         profile.Events[index] = old with {summary = newSummary};
+         // The rewritten memory is the player's own now (Icezera, 15/11/2026), and an identity lets a compression pass in
+         // flight keep the new wording rather than write the old one back.
+         NotableEvent rewritten = old with {summary = newSummary, IsPlayerWritten = true};
+         profile.Events[index] = string.IsNullOrEmpty(rewritten.Id) ? rewritten.Identified() : rewritten;
          behavior.Store.Set(profile);
 
          return $"{hero.Name}: event [{index}] updated.\n" + $"  Before: \"{old.summary}\"\n" + $"  After:  \"{newSummary}\"";
