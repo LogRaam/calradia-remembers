@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 673 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1635 types in 60 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1636 types in 60 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1053,7 +1053,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (489)
+### CalradiaRemembers.Logic (490)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1472,6 +1472,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SelfEsteemPolicy` | public static class | Self-esteem's rules. |
 | `SelfEsteemState` | public class | What is kept on the character: the shift, the day it was last set, and his recent captivities. |
 | `SelfEsteemTemper` | public class | The traits that decide how easily it moves. |
+| `SelfTestLeftoverPolicy` | public static class | What a self-test left in the player's prison that was not there before it ran. |
 | `ServiceEnticement` | public enum | The kind of enticement a poaching lord dangles in a ServiceOffer letter. |
 | `ServiceOfferPolicy` | public static class | Chooses the ServiceOffer enticement and holds the light accept warm-up. |
 | `SessionHistoryComposer` | public static class | Rebuilds one participant's view of the conversation from the shared attributed transcript. |

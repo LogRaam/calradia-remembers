@@ -1929,8 +1929,50 @@ namespace CalradiaRemembers.Diagnostics
       private static string SafeRun(SelfTest test, NpcMemoryCampaignBehavior behavior, int budgetSeconds)
       {
          _running++;
-         try { return SafeRunInner(test, behavior, budgetSeconds); }
+         try
+         {
+            Dictionary<string, int> before = PlayerPrisonHeroes();
+            string line = SafeRunInner(test, behavior, budgetSeconds);
+
+            return WithLeftovers(line, Logic.SelfTestLeftoverPolicy.Leftovers(before, PlayerPrisonHeroes()));
+         }
          finally { _running--; }
+      }
+
+      /// <summary>The heroes in the player's prison, each labelled by name and id, with how many times the roster holds him.</summary>
+      private static Dictionary<string, int> PlayerPrisonHeroes()
+      {
+         var held = new Dictionary<string, int>();
+         try
+         {
+            TroopRoster prison = PartyBase.MainParty?.PrisonRoster;
+            if (prison == null) return held;
+
+            foreach (TroopRosterElement e in prison.GetTroopRoster())
+            {
+               if (e.Character?.HeroObject == null) continue;
+
+               string key = $"{e.Character.HeroObject.Name} [{e.Character.HeroObject.StringId}]";
+               held[key] = (held.TryGetValue(key, out int n) ? n : 0) + e.Number;
+            }
+         }
+         catch (Exception ex) { ModLog.Info($"[SELFTEST] reading the player's prison failed: {ex.GetType().Name}: {ex.Message}"); }
+
+         return held;
+      }
+
+      // A test that leaves a captive in the player's prison fails, naming him (Gabriel's play test, 15/11/2026: a test
+      // nemesis held twice came back to life when the player's prisoners were freed, and crashed the game a day later).
+      private static string WithLeftovers(string line, IReadOnlyList<string> leftovers)
+      {
+         if (leftovers.Count == 0 || line == null) return line;
+
+         string note = $" | LEFT IN THE PLAYER'S PRISON: {string.Join(", ", leftovers)} (a test frees or removes what it captures)";
+         // Whatever the test said of itself (PASS, a skip, MANUAL), what it left behind fails it.
+         string failed = System.Text.RegularExpressions.Regex.Replace(line, @"^(\[SELFTEST\] [^:]+: )[A-Z]+", "$1FAIL");
+         ModLog.Error($"[SELFTEST] left in the player's prison: {string.Join(", ", leftovers)}");
+
+         return failed + note;
       }
 
       private static string SafeRunInner(SelfTest test, NpcMemoryCampaignBehavior behavior, int budgetSeconds)
