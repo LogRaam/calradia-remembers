@@ -1,6 +1,10 @@
 Version 2.8.13
 
-Women in the ranks look like soldiers, not tiny heads on heavy bodies.
+Long lists on the encyclopedia fold away, and women in the ranks look like soldiers.
+
+New
+
+- On a character's encyclopedia page, click the "Friends and enemies" or "Houses" header to fold or show its list. The header says how many entries it holds, and your choice stays for every page until you close the game. (Thank you, LapitaPolata.)
 
 Fixed
 
