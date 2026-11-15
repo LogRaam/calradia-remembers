@@ -56,6 +56,10 @@ namespace CalradiaRemembers.Tests
       [TestCase("behavior_guidelines")]
       [TestCase("credulity")]
       [TestCase("encounter_context")]
+      // cr.test persona_surface (Gabriel's game, 15/11/2026): how the player learns a trait is CR's reply format, split out
+      // of matters_most and fear_and_superstition so the persona carries the trait without it.
+      [TestCase("matters_most_discovery")]
+      [TestCase("fear_discovery")]
       public void GIVEN_a_section_written_for_the_talk_with_the_player_WHEN_asked_THEN_it_is_not_part_of_the_persona(string key)
       {
          PersonaSectionPolicy.IsPersona(key).Should().BeFalse();

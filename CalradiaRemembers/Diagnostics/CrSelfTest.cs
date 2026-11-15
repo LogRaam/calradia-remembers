@@ -16942,14 +16942,15 @@ namespace CalradiaRemembers.Diagnostics
             // Gabriel's run (15/11/2026): 577,067 chars and a format marker, with no word of where. Name each section's size,
             // and the sections that carry a marker, so a failure says which part of the prompt it comes from.
             t.Note("sizes: " + string.Join(", ", sections.Select(s => $"{s.Key}={s.Text.Length}")));
-            string marked = string.Join(", ", sections.Where(s => s.Text.Contains("[ACTION]") || s.Text.Contains("[DIALOGUE]"))
-                                                      .Select(s => $"{s.Key} at \"{Excerpt(s.Text, s.Text.IndexOf(s.Text.Contains("[ACTION]") ? "[ACTION]" : "[DIALOGUE]", StringComparison.Ordinal))}\""));
+            string[] formatMarks = {"[ACTION]", "[DIALOGUE]", "[DISCOVERY]"};
+            string marked = string.Join(", ", sections.Where(s => formatMarks.Any(m => s.Text.Contains(m)))
+                                                      .Select(s => $"{s.Key} at \"{Excerpt(s.Text, s.Text.IndexOf(formatMarks.First(m => s.Text.Contains(m)), StringComparison.Ordinal))}\""));
             if (marked.Length > 0) t.Note("format markers in: " + marked);
             t.Expect("thePersonaIsNotEmpty", persona.Length > 0, true);
             t.Expect("thePersonaNamesTheLord", persona.IndexOf(lord.FirstName?.ToString() ?? lord.Name.ToString(), StringComparison.OrdinalIgnoreCase) >= 0, true);
             if (!ModSettings.LeanPrompt) t.Expect("thePersonaCarriesTheModsBackstory", persona.Contains(backstoryMark), true);
             t.Expect("thePersonaNeverCarriesAnotherModsSecret", persona.Contains(privateMark), false);
-            t.Expect("thePersonaCarriesNoReplyFormatOrVerb", persona.Contains("[ACTION]") || persona.Contains("[DIALOGUE]"), false);
+            t.Expect("thePersonaCarriesNoReplyFormatOrVerb", marked.Length > 0, false);
             t.Expect("theStockSectionsNoLongerHandOutTheSecret", stock.Any(s => (s.Text ?? "").Contains(privateMark)), false);
 
             CrLlmResult unsigned = CrLlm.CompleteAsync(new CrLlmRequest {SourceMod = " ", SystemPrompt = "x"}).GetAwaiter().GetResult();
