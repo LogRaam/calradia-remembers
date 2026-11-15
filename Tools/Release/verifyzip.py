@@ -653,6 +653,21 @@ MUST = [
     ("sdk",   b"IntimateActNames"),
     ("sdk",   b"LessFondActs"),
     ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
+    # 2.8.11
+    ("logic", b"FiefLossPolicy"),
+    ("logic", b"CompressionMergePolicy"),
+    ("logic", b"CallbackKeyPolicy"),
+    ("logic", b"StableHash"),
+    ("logic", b"RumorHedge"),
+    ("logic", b"GrudgeSighting"),
+    ("mod",   b"TestCompressionTakeback"),
+    ("mod",   b"TestHiddenGrudgeMotive"),
+    ("mod",   b"TestRumourNoAcquaintance"),
+    ("mod",   b"TestPlayerMemoryKept"),
+    ("mod",   b"OnlyAGuess"),
+    ("sdk",   b"IsPlayerWritten"),
+    ("sdk",   b"NamesThePlayer"),
+    ("sdk",   b"LastLivedDay"),
     # 2.8.10
     ("logic", b"PromptPlayerIdentity"),
     ("logic", b"PanelTextCleaner"),
@@ -970,6 +985,8 @@ for path, needle in [("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf
                      ("CalradiaRemembers/ModuleData/Languages/EN/std_CalradiaRemembers_mcm.xml", "CR_MCM_"),
                      ("CalradiaRemembers/ModuleData/Languages/README.txt", "language"),
                      ("CalradiaRemembers/ModuleData/Custom/README.txt", "behavior_guidelines_merchant.txt"),
+                     # 2.8.11
+                     ("CalradiaRemembers/ModuleData/cultural_traditions.json", "about one warrior in four"),
                      # 2.8.10
                      ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersReport.xml", "CalradiaRemembersReportWindow"),
                      ("CalradiaRemembers/ModuleData/women_in_ranks.json", '"sturgia"'),

@@ -1,0 +1,32 @@
+Version 2.8.11
+
+Memories you write stay, characters keep their voice, rumours stay honest, and a round of fixes from a modder's source audit and your reports.
+
+Fixed
+
+- A ruler who gives a town she took to her own vassal no longer mourns it as lost. A lord whose fief the crown takes back, and a town lost to a siege or a rebellion, still count as losses. (Thank you, superdeeplearningaibot.)
+- Memories you write with cr.memory_add or rewrite with cr.memory_set are never dropped when a character's memory is compressed. A memory already folded away stays in the character's background summary. (Thank you, Icezera.)
+- A memory another mod takes back while a character's memory is being compressed no longer comes back afterwards, and never lingers in their background. (Thank you, VonLemberg.)
+- A rumour a character heard, or a memory of their own life, no longer counts as meeting you: a lord you never met treats you as a stranger, and "the last time we met" is the last time you actually dealt with each other. (Thank you, VonLemberg.)
+- A character's habit of speech no longer changes on their 25th or 50th birthday. Some characters under 25 or over 50 speak with a different habit once, from this version. (Thank you, VonLemberg.)
+- A companion with two memories of the same day and kind can bring up the second one in an audience after the first. (Thank you, VonLemberg.)
+- News a character invents about the world never names you, never turns a plan or a hope into a thing done, now reaches the people of its realm, and a guess is passed on as a guess. (Thank you, VonLemberg.)
+
+Changed
+
+- The Sturgian traditions now say that about one warrior in four in a Sturgian host is a woman, matching Women in the ranks.
+- The habits "the hunt and the horse" and "the land" colour how a character answers without turning every conversation to them. (Thank you, VonLemberg.)
+- What matters most to a character, and a conviction you wrote for them, show in what they choose and refuse rather than in what they keep talking about. (Thank you, VonLemberg.)
+- A grudge a character holds against you in secret now moves them like any other, and their encyclopedia page still says nothing of it while it is secret. (Thank you, VonLemberg.)
+
+For modders
+
+- EXTENSION_API.md: give a character's biography through one road only (character_overrides.json or CrCharacterText); CR does not compare the two.
+
+Developer tools
+
+- cr.test all gains compression_takeback, fief_award_no_loss, hidden_grudge_motive, player_memory_kept and rumour_no_acquaintance; world_claims checks more.
+
+Notes
+
+- Saves from 2.8.10 and older load as they are, and your MCM choices are kept.
