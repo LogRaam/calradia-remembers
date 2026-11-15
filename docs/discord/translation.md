@@ -8,8 +8,8 @@ What characters say, their letters, their memories and the chronicle are written
 - MCM → Content → **Reply Language**: name a language (`Spanish`, `Türkçe`...) to force every reply into it, whatever you write.
 (Texts already written in an older save stay as they were.)
 
-**What a translation file covers today: the mod's MCM page.** Every setting's name, its explanation, the group names and the buttons: about 350 texts.
-**Not translatable yet:** the choices inside drop-down lists, the encyclopedia texts the mod adds, and the notices shown during play.
+**What a translation file covers today: the mod's MCM page.** Every setting's name, its explanation, the group names, the buttons and (since 2.8.10) the choices inside drop-down lists.
+**Not translatable yet:** the encyclopedia texts the mod adds, the mod's own windows (chat, letters, council), and the notices shown during play.
 
 Everything is in `Modules/CalradiaRemembers/ModuleData/Languages/`:
 - `EN/`: the English template, with every text and its **id**;

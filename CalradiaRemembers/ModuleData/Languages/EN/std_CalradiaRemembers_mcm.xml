@@ -9,10 +9,16 @@
     <string id="CR_MCM_AdultContentLevel" text="Adult Content Level" />
     <string id="CR_MCM_AdultContentLevel_Hint" text="How much romantic/intimate content NPCs may express. Off, Mature (romance, nothing explicit), Explicit, or Hardcore. A child can be conceived only at Explicit or above. Applies on your next conversation." />
     <string id="CR_MCM_Group_Content" text="Content" />
+    <string id="CR_MCM_AdultContentLevel_Off" text="Off" />
+    <string id="CR_MCM_AdultContentLevel_Mature" text="Mature" />
+    <string id="CR_MCM_AdultContentLevel_Explicit" text="Explicit" />
+    <string id="CR_MCM_AdultContentLevel_Hardcore" text="Hardcore" />
     <string id="CR_MCM_PromptProfile" text="Prompt Profile" />
     <string id="CR_MCM_PromptProfile_Hint" text="Which prompt profile composes what characters read: stock, your own (Custom/Prompts) or one a mod ships (cr_prompts). Stock is the reset. cr.prompt_check lists what each profile changes." />
     <string id="CR_MCM_ChatSkin" text="Chat Window Style" />
     <string id="CR_MCM_ChatSkin_Hint" text="The look of the conversation window. Origin is the original panel; Dark Leather is the illuminated leather book. Both are the same conversation, only the look differs. Applies on your next conversation." />
+    <string id="CR_MCM_ChatSkin_Origin" text="Origin" />
+    <string id="CR_MCM_ChatSkin_DarkLeather" text="Dark Leather" />
     <string id="CR_MCM_ChatTextSizePercent" text="Chat Text Size (%)" />
     <string id="CR_MCM_ChatTextSizePercent_Hint" text="Scales ONLY the dialogue text in the chat window, not the window itself: a smaller value fits more words per line, a larger one reads easier. 100 is the shipped size. Applies on your next conversation." />
     <string id="CR_MCM_DarkLeatherZoomPercent" text="Dark Leather Size (%)" />
@@ -46,13 +52,22 @@
     <string id="CR_MCM_EnableStrategicAssessment_Hint" text="On (default): the Strategic Assessment is written by your highest-Tactics companion (a warband soldier if you have none), and the sharper their Tactics the better the counsel. Off, or alone: a plain summary, no AI call." />
     <string id="CR_MCM_CouncilVoices" text="Council Voices" />
     <string id="CR_MCM_CouncilVoices_Hint" text="Default for a new council (flip it in the council window). One call for the table keeps the scene cohesive but voices the others from little more than a name. One call per member gives each their real memory and regard, at a round-trip apiece." />
+    <string id="CR_MCM_CouncilVoices_OneCallForTheTable" text="One call for the table" />
+    <string id="CR_MCM_CouncilVoices_OneCallPerMember" text="One call per member" />
     <string id="CR_MCM_CompanionContentment" text="Companion contentment" />
     <string id="CR_MCM_CompanionContentment_Hint" text="When ON, a neglected companion grows restless, asks for an audience, and if you keep refusing eventually leaves by letter, never silently. Also gates the occasional found-topic audience. OFF disables both entirely." />
     <string id="CR_MCM_Group_Companions" text="Companions" />
     <string id="CR_MCM_ContentmentPacing" text="Contentment Pacing" />
     <string id="CR_MCM_ContentmentPacing_Hint" text="How fast companions get over a grievance: Forgiving, Balanced (default), or Exacting. In every setting, a companion left merely idle NEVER leaves you." />
+    <string id="CR_MCM_ContentmentPacing_Forgiving" text="Forgiving" />
+    <string id="CR_MCM_ContentmentPacing_Balanced" text="Balanced" />
+    <string id="CR_MCM_ContentmentPacing_Exacting" text="Exacting" />
     <string id="CR_MCM_CompanionAudiencePacing" text="Companions Asking For A Word" />
     <string id="CR_MCM_CompanionAudiencePacing_Hint" text="How often a travelling companion asks for a private word, in a settlement or on the road. Never switches it off. Occasionally is the shipped feel. With The World's Initiative on, it sets how much of its turns companions get." />
+    <string id="CR_MCM_CompanionAudiencePacing_Never" text="Never" />
+    <string id="CR_MCM_CompanionAudiencePacing_Rarely" text="Rarely" />
+    <string id="CR_MCM_CompanionAudiencePacing_Occasionally" text="Occasionally" />
+    <string id="CR_MCM_CompanionAudiencePacing_Often" text="Often" />
     <string id="CR_MCM_CustomApiKey" text="API Key (optional)" />
     <string id="CR_MCM_CustomApiKey_Hint" text="Leave blank for keyless local servers like LM Studio or Ollama. Fill it in only if your server requires one. Applies immediately." />
     <string id="CR_MCM_Group_OpenAICompatible" text="OpenAI-Compatible" />
@@ -66,8 +81,17 @@
     <string id="CR_MCM_CustomEndpointUrlInterpret_Hint" text="Optional. A separate OpenAI-Compatible server URL for the Interpret role only, so the interpreter can run on its own local machine. Blank = use the shared Endpoint URL above. Applies immediately." />
     <string id="CR_MCM_CustomParameterCompatibility" text="Parameter Compatibility" />
     <string id="CR_MCM_CustomParameterCompatibility_Hint" text="Which sampling parameters to send. Auto detects OpenAI reasoning models (gpt-5, o1/o3/o4), which reject the classic max_tokens. Leave on Auto unless your endpoint rejects a field." />
+    <string id="CR_MCM_CustomParameterCompatibility_Auto" text="Auto" />
+    <string id="CR_MCM_CustomParameterCompatibility_Standard" text="Standard" />
+    <string id="CR_MCM_CustomParameterCompatibility_Reasoning" text="Reasoning" />
     <string id="CR_MCM_CustomReasoningEffort" text="Reasoning Effort" />
     <string id="CR_MCM_CustomReasoningEffort_Hint" text="Sends reasoning_effort to a local or OpenAI-compatible endpoint. Set Off if a reasoning model spends the whole reply budget thinking and stalls. Default sends nothing. Some servers (vLLM) ignore it; Verbose Logging shows what was sent." />
+    <string id="CR_MCM_CustomReasoningEffort_Default" text="Default" />
+    <string id="CR_MCM_CustomReasoningEffort_Off" text="Off" />
+    <string id="CR_MCM_CustomReasoningEffort_Minimal" text="Minimal" />
+    <string id="CR_MCM_CustomReasoningEffort_Low" text="Low" />
+    <string id="CR_MCM_CustomReasoningEffort_Medium" text="Medium" />
+    <string id="CR_MCM_CustomReasoningEffort_High" text="High" />
     <string id="CR_MCM_CustomApiKeyNsfw" text="API Key (NSFW)" />
     <string id="CR_MCM_CustomApiKeyNsfw_Hint" text="Optional. A separate API key for the NSFW role only, so it can authenticate against a different OpenAI-Compatible server than the shared one. Blank = use the API Key above. Applies immediately." />
     <string id="CR_MCM_CustomApiKeyHousekeeping" text="API Key (Background)" />
@@ -137,6 +161,8 @@
     <string id="CR_MCM_Group_NanoGPT" text="NanoGPT" />
     <string id="CR_MCM_ChatCompositionModeSetting" text="Chat Composition" />
     <string id="CR_MCM_ChatCompositionModeSetting_Hint" text="Where a fresh session's in-chat Enhanced/Roleplay switch starts. Enhanced (default): the prose model writes and the interpret model tags, richest but slower. Standard: one call, cheapest and fastest. The in-chat switch overrides it for the session." />
+    <string id="CR_MCM_ChatCompositionModeSetting_Standard" text="Standard" />
+    <string id="CR_MCM_ChatCompositionModeSetting_Enhanced" text="Enhanced" />
     <string id="CR_MCM_CncModel" text="NSFW model" />
     <string id="CR_MCM_CncModel_Hint" text="Model id for explicit content: captivity in Standard mode, the fallback in Enhanced. Blank uses the PROSE model - and so does the shipped OpenRouter id if you point this role at your own server without naming ITS model." />
     <string id="CR_MCM_CncProvider" text="NSFW provider" />
@@ -151,20 +177,43 @@
     <string id="CR_MCM_ActionInterpreterProvider_Hint" text="Which provider the Interpret model above is sent to. (default) uses the PROSE provider (set it to a local OpenAI-Compatible endpoint to run the interpreter locally). Applies immediately." />
     <string id="CR_MCM_NsfwReasoningEffort" text="Reasoning Effort (NSFW)" />
     <string id="CR_MCM_NsfwReasoningEffort_Hint" text="Reasoning effort while the chat is in NSFW mode. Lower or Off makes a reasoning model far less prone to moralizing refusals, and speeds up scenes. OpenRouter and NanoGPT." />
+    <string id="CR_MCM_NsfwReasoningEffort_SameAsProse" text="Same as prose" />
+    <string id="CR_MCM_NsfwReasoningEffort_Default" text="Default" />
+    <string id="CR_MCM_NsfwReasoningEffort_Off" text="Off" />
+    <string id="CR_MCM_NsfwReasoningEffort_Minimal" text="Minimal" />
+    <string id="CR_MCM_NsfwReasoningEffort_Low" text="Low" />
+    <string id="CR_MCM_NsfwReasoningEffort_Medium" text="Medium" />
+    <string id="CR_MCM_NsfwReasoningEffort_High" text="High" />
     <string id="CR_MCM_ReasoningEffort" text="Reasoning Effort (PROSE)" />
     <string id="CR_MCM_ReasoningEffort_Hint" text="How hard the PROSE model thinks before replying. Higher can mean finer dialogue but slower replies, more truncation and more refusals on adult content; keep it Low or Medium. Grok 4 only thinks or not: Low means Off there. OpenRouter and NanoGPT." />
+    <string id="CR_MCM_ReasoningEffort_Default" text="Default" />
+    <string id="CR_MCM_ReasoningEffort_Off" text="Off" />
+    <string id="CR_MCM_ReasoningEffort_Minimal" text="Minimal" />
+    <string id="CR_MCM_ReasoningEffort_Low" text="Low" />
+    <string id="CR_MCM_ReasoningEffort_Medium" text="Medium" />
+    <string id="CR_MCM_ReasoningEffort_High" text="High" />
     <string id="CR_MCM_RelationshipWarmth" text="Relationship Pacing" />
     <string id="CR_MCM_RelationshipWarmth_Hint" text="How relationships grow through conversation: a philosophy, not a difficulty. Grounded keeps the core game's feel; Warm rewards good company; Storyteller is roleplay-first. Insults cost the same everywhere." />
+    <string id="CR_MCM_RelationshipWarmth_Grounded" text="Grounded" />
+    <string id="CR_MCM_RelationshipWarmth_Warm" text="Warm" />
+    <string id="CR_MCM_RelationshipWarmth_Storyteller" text="Storyteller" />
     <string id="CR_MCM_ReplyLanguage" text="Reply Language" />
     <string id="CR_MCM_ReplyLanguage_Hint" text="Leave blank to use the game's language (an English game mirrors whatever language you write in). Name a language (e.g. Spanish) to force every reply, letter, memory, and the illuminated chronicle into it, no matter what you write." />
     <string id="CR_MCM_ReplyLength" text="Reply Length" />
     <string id="CR_MCM_ReplyLength_Hint" text="How long characters' replies run. Full is the length the mod has always used (3 to 7 sentences, longer for a story). Balanced: 2 to 4. Short: 1 to 3, always. Counted in sentences, so a reply is never cut off mid-way." />
+    <string id="CR_MCM_ReplyLength_Full" text="Full" />
+    <string id="CR_MCM_ReplyLength_Balanced" text="Balanced" />
+    <string id="CR_MCM_ReplyLength_Short" text="Short" />
     <string id="CR_MCM_NpcsRaiseWorldNews" text="NPCs Raise World News" />
     <string id="CR_MCM_NpcsRaiseWorldNews_Hint" text="Off (default): an NPC approaches you only about something between the two of you. On: they may also stop you to ask what you make of distant news. Their own deeds and yours are always allowed either way." />
     <string id="CR_MCM_CharactersSetTheScene" text="Characters Set The Scene" />
     <string id="CR_MCM_CharactersSetTheScene_Hint" text="On (default): when you start a conversation, the character opens it, what they were doing and their first words, while you may already type. One more model call per conversation. Off: the short greeting alone." />
     <string id="CR_MCM_InterceptionPacing" text="Lords Approaching You" />
     <string id="CR_MCM_InterceptionPacing_Hint" text="How often a lord rides out to have a word with you on the road. Never switches it off entirely. Occasionally is the shipped feel. With The World's Initiative on, it sets how much of its turns lords get." />
+    <string id="CR_MCM_InterceptionPacing_Never" text="Never" />
+    <string id="CR_MCM_InterceptionPacing_Rarely" text="Rarely" />
+    <string id="CR_MCM_InterceptionPacing_Occasionally" text="Occasionally" />
+    <string id="CR_MCM_InterceptionPacing_Often" text="Often" />
     <string id="CR_MCM_AuthoredQuests" text="Authored Quests (experimental)" />
     <string id="CR_MCM_AuthoredQuests_Hint" text="Experimental, off by default. On: characters may ask your help with a written tale (a quest in several stages, like the wolf of the wood). Off: no new tale is offered; one under way goes on (cr.story_abandon sets it aside)." />
     <string id="CR_MCM_LordsHoldTheirCourse" text="Lords Hold Their Course" />
@@ -217,9 +266,17 @@
     <string id="CR_MCM_VerboseLogging_Hint" text="Logs the full system prompt and NPC reply on every exchange. Turn on only to capture a bug report: it floods the log. Requires Enable Logging." />
     <string id="CR_MCM_WitnessDensity" text="Witness Density" />
     <string id="CR_MCM_WitnessDensity_Hint" text="How many ambient bystanders a conversation gathers. Sparse thins the room fast; Normal keeps a genuine middle ground; Bustling (default) is today's full room, unchanged. Never touches companions you bring yourself. Applies on your next conversation." />
+    <string id="CR_MCM_WitnessDensity_Sparse" text="Sparse" />
+    <string id="CR_MCM_WitnessDensity_Normal" text="Normal" />
+    <string id="CR_MCM_WitnessDensity_Bustling" text="Bustling" />
     <string id="CR_MCM_WorldInitiativePace" text="How Often the World Comes to You" />
     <string id="CR_MCM_WorldInitiativePace_Hint" text="One conductor decides whose turn it is to come to you unasked (lords, companions, tales...). Off: each paces itself, as before. Custom uses the settings below." />
     <string id="CR_MCM_Group_WorldInitiative" text="The World's Initiative" />
+    <string id="CR_MCM_WorldInitiativePace_Off" text="Off" />
+    <string id="CR_MCM_WorldInitiativePace_Rarely" text="Rarely" />
+    <string id="CR_MCM_WorldInitiativePace_Occasionally" text="Occasionally" />
+    <string id="CR_MCM_WorldInitiativePace_Often" text="Often" />
+    <string id="CR_MCM_WorldInitiativePace_Custom" text="Custom" />
     <string id="CR_MCM_InitiativeAtOnce" text="At Once (Custom)" />
     <string id="CR_MCM_InitiativeAtOnce_Hint" text="How many of them may be at you at the same time, e.g. a lord riding after you and a word asked in town. Custom only." />
     <string id="CR_MCM_InitiativePerWindow" text="Interruptions per Window (Custom)" />
@@ -234,10 +291,16 @@
     <string id="CR_MCM_InitiativeQuietHours_Hint" text="After a conversation you opened yourself, the world leaves you alone this many game hours. Custom only." />
     <string id="CR_MCM_InitiativeVariety" text="Variety" />
     <string id="CR_MCM_InitiativeVariety_Hint" text="How far a kind that just came to you steps back so the others get their turn. The world's urgent matters are not affected." />
+    <string id="CR_MCM_InitiativeVariety_Low" text="Low" />
+    <string id="CR_MCM_InitiativeVariety_Normal" text="Normal" />
+    <string id="CR_MCM_InitiativeVariety_Strong" text="Strong" />
     <string id="CR_MCM_InitiativeExpireDays" text="Requests Expire After (days)" />
     <string id="CR_MCM_InitiativeExpireDays_Hint" text="A wish to come to you that waited this many game days is dropped, like stale news. The world's urgent matters never expire." />
     <string id="CR_MCM_InitiativeLettersCountAs" text="Letters Count As" />
     <string id="CR_MCM_InitiativeLettersCountAs_Hint" text="Most letters ask for no turn. This is what the few that do cost from the count above: a lord's friendship or threat, a companion's farewell, a divorce demand." />
+    <string id="CR_MCM_InitiativeLettersCountAs_AFullInterruption" text="A Full Interruption" />
+    <string id="CR_MCM_InitiativeLettersCountAs_Half" text="Half" />
+    <string id="CR_MCM_InitiativeLettersCountAs_Nothing" text="Nothing" />
     <string id="CR_MCM_InitiativeUrgentWait" text="Urgent Matters Wait Their Turn" />
     <string id="CR_MCM_InitiativeUrgentWait_Hint" text="Off (default): an arrest, your liege's war summons, an ambush or an envoy with a short deadline comes whenever the moment allows. On: they wait their turn like the rest." />
     <string id="CR_MCM_InitiativeWeightLords" text="Weight: Lords (%)" />

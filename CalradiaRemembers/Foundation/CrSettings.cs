@@ -39,8 +39,8 @@ namespace CalradiaRemembers.Foundation
                     "nothing explicit), Explicit, or Hardcore. A child can be conceived only at Explicit or " +
                     "above. Applies on your next conversation.")]
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
-      public Dropdown<string> AdultContentLevel { get; set; } =
-         new(new[] {"Off", "Mature", "Explicit", "Hardcore"}, 1); // default: Mature
+      public Dropdown<McmChoice> AdultContentLevel { get; set; } =
+         McmChoice.List(1, "{=CR_MCM_AdultContentLevel_Off}Off", "{=CR_MCM_AdultContentLevel_Mature}Mature", "{=CR_MCM_AdultContentLevel_Explicit}Explicit", "{=CR_MCM_AdultContentLevel_Hardcore}Hardcore"); // default: Mature
 
       // The Prompt Composer (Gabriel, 11/10/2026: "Un param MCM pourrait designer l'ordonnanceur a utiliser"). Filled with the
       // profiles found at the main menu and at each session launch (Mapping.PromptProfileService); MCM saves only the place
@@ -55,8 +55,8 @@ namespace CalradiaRemembers.Foundation
                     "illuminated leather book. Both are the same conversation, only the look differs. Applies on " +
                     "your next conversation.")]
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
-      public Dropdown<string> ChatSkin { get; set; } =
-         new(new[] {"Origin", "Dark Leather"}, 1); // default: Dark Leather (the illuminated book)
+      public Dropdown<McmChoice> ChatSkin { get; set; } =
+         McmChoice.List(1, "{=CR_MCM_ChatSkin_Origin}Origin", "{=CR_MCM_ChatSkin_DarkLeather}Dark Leather"); // default: Dark Leather (the illuminated book)
 
       [SettingPropertyInteger("{=CR_MCM_ChatTextSizePercent}Chat Text Size (%)", 70, 130, "0 '%'", RequireRestart = false, Order = 6,
          HintText = "{=CR_MCM_ChatTextSizePercent_Hint}Scales ONLY the dialogue text in the chat window, not the window itself: a smaller value fits " +
@@ -165,8 +165,8 @@ namespace CalradiaRemembers.Foundation
                     "cohesive but voices the others from little more than a name. One call per member gives " +
                     "each their real memory and regard, at a round-trip apiece.")]
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
-      public Dropdown<string> CouncilVoices { get; set; } =
-         new(new[] {"One call for the table", "One call per member"}, 0); // default: whole table
+      public Dropdown<McmChoice> CouncilVoices { get; set; } =
+         McmChoice.List(0, "{=CR_MCM_CouncilVoices_OneCallForTheTable}One call for the table", "{=CR_MCM_CouncilVoices_OneCallPerMember}One call per member"); // default: whole table
 
       [SettingPropertyBool("{=CR_MCM_CompanionContentment}Companion contentment", RequireRestart = false, Order = 0,
          HintText = "{=CR_MCM_CompanionContentment_Hint}When ON, a neglected companion grows restless, asks for an audience, and if you keep refusing eventually " +
@@ -179,16 +179,16 @@ namespace CalradiaRemembers.Foundation
          HintText = "{=CR_MCM_ContentmentPacing_Hint}How fast companions get over a grievance: Forgiving, Balanced (default), or Exacting. In every " +
                     "setting, a companion left merely idle NEVER leaves you.")]
       [SettingPropertyGroup("{=CR_MCM_Group_Companions}Companions", GroupOrder = 6)]
-      public Dropdown<string> ContentmentPacing { get; set; } =
-         new(new[] {"Forgiving", "Balanced", "Exacting"}, 1); // default: Balanced
+      public Dropdown<McmChoice> ContentmentPacing { get; set; } =
+         McmChoice.List(1, "{=CR_MCM_ContentmentPacing_Forgiving}Forgiving", "{=CR_MCM_ContentmentPacing_Balanced}Balanced", "{=CR_MCM_ContentmentPacing_Exacting}Exacting"); // default: Balanced
 
       [SettingPropertyDropdown("{=CR_MCM_CompanionAudiencePacing}Companions Asking For A Word", RequireRestart = false, Order = 2,
          HintText = "{=CR_MCM_CompanionAudiencePacing_Hint}How often a travelling companion asks for a private word, in a settlement or on " +
                     "the road. Never switches it off. Occasionally is the shipped feel. With The World's Initiative on, it sets " +
                     "how much of its turns companions get.")]
       [SettingPropertyGroup("{=CR_MCM_Group_Companions}Companions", GroupOrder = 6)]
-      public Dropdown<string> CompanionAudiencePacing { get; set; } =
-         new(new[] {"Never", "Rarely", "Occasionally", "Often"}, 2); // default: Occasionally (today's settlement feel, plus a road chance)
+      public Dropdown<McmChoice> CompanionAudiencePacing { get; set; } =
+         McmChoice.List(2, "{=CR_MCM_CompanionAudiencePacing_Never}Never", "{=CR_MCM_CompanionAudiencePacing_Rarely}Rarely", "{=CR_MCM_CompanionAudiencePacing_Occasionally}Occasionally", "{=CR_MCM_CompanionAudiencePacing_Often}Often"); // default: Occasionally (today's settlement feel, plus a road chance)
 
       [SettingPropertyText("{=CR_MCM_CustomApiKey}API Key (optional)", RequireRestart = false, Order = 0,
          HintText = "{=CR_MCM_CustomApiKey_Hint}Leave blank for keyless local servers like LM Studio or Ollama. Fill it in only if your server " +
@@ -225,16 +225,16 @@ namespace CalradiaRemembers.Foundation
          HintText = "{=CR_MCM_CustomParameterCompatibility_Hint}Which sampling parameters to send. Auto detects OpenAI reasoning models (gpt-5, o1/o3/o4), which " +
                     "reject the classic max_tokens. Leave on Auto unless your endpoint rejects a field.")]
       [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 3)]
-      public Dropdown<string> CustomParameterCompatibility { get; set; } =
-         new(new[] {"Auto", "Standard", "Reasoning"}, 0); // default: Auto
+      public Dropdown<McmChoice> CustomParameterCompatibility { get; set; } =
+         McmChoice.List(0, "{=CR_MCM_CustomParameterCompatibility_Auto}Auto", "{=CR_MCM_CustomParameterCompatibility_Standard}Standard", "{=CR_MCM_CustomParameterCompatibility_Reasoning}Reasoning"); // default: Auto
 
       [SettingPropertyDropdown("{=CR_MCM_CustomReasoningEffort}Reasoning Effort", RequireRestart = false, Order = 6,
          HintText = "{=CR_MCM_CustomReasoningEffort_Hint}Sends reasoning_effort to a local or OpenAI-compatible endpoint. Set Off if a reasoning model spends the " +
                     "whole reply budget thinking and stalls. Default sends nothing. Some servers (vLLM) ignore it; Verbose " +
                     "Logging shows what was sent.")]
       [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 3)]
-      public Dropdown<string> CustomReasoningEffort { get; set; } =
-         new(new[] {"Default", "Off", "Minimal", "Low", "Medium", "High"}, 0); // default: Default (send nothing)
+      public Dropdown<McmChoice> CustomReasoningEffort { get; set; } =
+         McmChoice.List(0, "{=CR_MCM_CustomReasoningEffort_Default}Default", "{=CR_MCM_CustomReasoningEffort_Off}Off", "{=CR_MCM_CustomReasoningEffort_Minimal}Minimal", "{=CR_MCM_CustomReasoningEffort_Low}Low", "{=CR_MCM_CustomReasoningEffort_Medium}Medium", "{=CR_MCM_CustomReasoningEffort_High}High"); // default: Default (send nothing)
 
       [SettingPropertyText("{=CR_MCM_CustomApiKeyNsfw}API Key (NSFW)", RequireRestart = false, Order = 5,
          HintText = "{=CR_MCM_CustomApiKeyNsfw_Hint}Optional. A separate API key for the NSFW role only, so it can authenticate against a different " +
@@ -477,8 +477,8 @@ namespace CalradiaRemembers.Foundation
                     "writes and the interpret model tags, richest but slower. Standard: one call, cheapest and fastest. The " +
                     "in-chat switch overrides it for the session.")]
       [SettingPropertyGroup("{=CR_MCM_Group_LLMProvider}LLM Provider", GroupOrder = 0)]
-      public Dropdown<string> ChatCompositionModeSetting { get; set; } =
-         new(new[] {ChatCompositionModePolicy.StandardLabel, ChatCompositionModePolicy.EnhancedLabel}, 1); // default: Enhanced
+      public Dropdown<McmChoice> ChatCompositionModeSetting { get; set; } =
+         McmChoice.List(1, "{=CR_MCM_ChatCompositionModeSetting_Standard}Standard", "{=CR_MCM_ChatCompositionModeSetting_Enhanced}Enhanced"); // default: Enhanced
 
       // Phase 2: consensual scenes are now "chat" (the PROSE model), so this separate consensual model and its
       // provider are no longer shown in MCM or read anywhere. Kept as plain (un-attributed) properties, still named
@@ -539,24 +539,24 @@ namespace CalradiaRemembers.Foundation
          HintText = "{=CR_MCM_NsfwReasoningEffort_Hint}Reasoning effort while the chat is in NSFW mode. Lower or Off makes a reasoning model far less " +
                     "prone to moralizing refusals, and speeds up scenes. OpenRouter and NanoGPT.")]
       [SettingPropertyGroup("{=CR_MCM_Group_OpenRouter}OpenRouter", GroupOrder = 1)]
-      public Dropdown<string> NsfwReasoningEffort { get; set; } =
-         new(new[] {ModelModePolicy.SameAsProse, "Default", "Off", "Minimal", "Low", "Medium", "High"}, 0); // default: Same as roleplay
+      public Dropdown<McmChoice> NsfwReasoningEffort { get; set; } =
+         McmChoice.List(0, "{=CR_MCM_NsfwReasoningEffort_SameAsProse}Same as prose", "{=CR_MCM_NsfwReasoningEffort_Default}Default", "{=CR_MCM_NsfwReasoningEffort_Off}Off", "{=CR_MCM_NsfwReasoningEffort_Minimal}Minimal", "{=CR_MCM_NsfwReasoningEffort_Low}Low", "{=CR_MCM_NsfwReasoningEffort_Medium}Medium", "{=CR_MCM_NsfwReasoningEffort_High}High"); // default: Same as roleplay
 
       [SettingPropertyDropdown("{=CR_MCM_ReasoningEffort}Reasoning Effort (PROSE)", RequireRestart = false, Order = 1,
          HintText = "{=CR_MCM_ReasoningEffort_Hint}How hard the PROSE model thinks before replying. Higher can mean finer dialogue but slower replies, more " +
                     "truncation and more refusals on adult content; keep it Low or Medium. Grok 4 only thinks or not: Low means " +
                     "Off there. OpenRouter and NanoGPT.")]
       [SettingPropertyGroup("{=CR_MCM_Group_OpenRouter}OpenRouter", GroupOrder = 1)]
-      public Dropdown<string> ReasoningEffort { get; set; } =
-         new(new[] {"Default", "Off", "Minimal", "Low", "Medium", "High"}, 3); // default: Low
+      public Dropdown<McmChoice> ReasoningEffort { get; set; } =
+         McmChoice.List(3, "{=CR_MCM_ReasoningEffort_Default}Default", "{=CR_MCM_ReasoningEffort_Off}Off", "{=CR_MCM_ReasoningEffort_Minimal}Minimal", "{=CR_MCM_ReasoningEffort_Low}Low", "{=CR_MCM_ReasoningEffort_Medium}Medium", "{=CR_MCM_ReasoningEffort_High}High"); // default: Low
 
       [SettingPropertyDropdown("{=CR_MCM_RelationshipWarmth}Relationship Pacing", RequireRestart = false, Order = 1,
          HintText = "{=CR_MCM_RelationshipWarmth_Hint}How relationships grow through conversation: a philosophy, not a difficulty. Grounded keeps the " +
                     "core game's feel; Warm rewards good company; Storyteller is roleplay-first. Insults cost the " +
                     "same everywhere.")]
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
-      public Dropdown<string> RelationshipWarmth { get; set; } =
-         new(new[] {"Grounded", "Warm", "Storyteller"}, 0); // default: Grounded (= Normal)
+      public Dropdown<McmChoice> RelationshipWarmth { get; set; } =
+         McmChoice.List(0, "{=CR_MCM_RelationshipWarmth_Grounded}Grounded", "{=CR_MCM_RelationshipWarmth_Warm}Warm", "{=CR_MCM_RelationshipWarmth_Storyteller}Storyteller"); // default: Grounded (= Normal)
 
       [SettingPropertyText("{=CR_MCM_ReplyLanguage}Reply Language", RequireRestart = false, Order = 3,
          HintText = "{=CR_MCM_ReplyLanguage_Hint}Leave blank to use the game's language (an English game mirrors whatever language you write " +
@@ -571,8 +571,8 @@ namespace CalradiaRemembers.Foundation
                     "sentences, longer for a story). Balanced: 2 to 4. Short: 1 to 3, always. Counted in sentences, so a " +
                     "reply is never cut off mid-way.")]
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
-      public Dropdown<string> ReplyLength { get; set; } =
-         new(new[] {"Full", "Balanced", "Short"}, 0); // default: Full, the shipped length
+      public Dropdown<McmChoice> ReplyLength { get; set; } =
+         McmChoice.List(0, "{=CR_MCM_ReplyLength_Full}Full", "{=CR_MCM_ReplyLength_Balanced}Balanced", "{=CR_MCM_ReplyLength_Short}Short"); // default: Full, the shipped length
 
       // Three players in two days, none of them defending it (Kilju101 17/09, Lordfadooboo 18/09, fkasad 18/09).
       // fkasad put the cost plainly: "Maybe one in ten NPCs has something interesting to say, but unfortunately,
@@ -603,8 +603,8 @@ namespace CalradiaRemembers.Foundation
          HintText = "{=CR_MCM_InterceptionPacing_Hint}How often a lord rides out to have a word with you on the road. Never switches it off " +
                     "entirely. Occasionally is the shipped feel. With The World's Initiative on, it sets how much of its turns lords get.")]
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
-      public Dropdown<string> InterceptionPacing { get; set; } =
-         new(new[] {"Never", "Rarely", "Occasionally", "Often"}, 2); // default: Occasionally (today's behaviour)
+      public Dropdown<McmChoice> InterceptionPacing { get; set; } =
+         McmChoice.List(2, "{=CR_MCM_InterceptionPacing_Never}Never", "{=CR_MCM_InterceptionPacing_Rarely}Rarely", "{=CR_MCM_InterceptionPacing_Occasionally}Occasionally", "{=CR_MCM_InterceptionPacing_Often}Often"); // default: Occasionally (today's behaviour)
 
       // Authored quests (docs/design/AUTHORED_QUESTS.md; Gabriel, 03/10/2026): a switch for the new written tales.
       // Gabriel (05/10/2026): shipped in 2.7.0 OFF and marked experimental; the scene's close is not yet play-verified.
@@ -786,8 +786,8 @@ namespace CalradiaRemembers.Foundation
                     "a genuine middle ground; Bustling (default) is today's full room, unchanged. Never touches " +
                     "companions you bring yourself. Applies on your next conversation.")]
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
-      public Dropdown<string> WitnessDensity { get; set; } =
-         new(new[] {"Sparse", "Normal", "Bustling"}, 2); // default: Bustling (today's live behaviour, unchanged)
+      public Dropdown<McmChoice> WitnessDensity { get; set; } =
+         McmChoice.List(2, "{=CR_MCM_WitnessDensity_Sparse}Sparse", "{=CR_MCM_WitnessDensity_Normal}Normal", "{=CR_MCM_WitnessDensity_Bustling}Bustling"); // default: Bustling (today's live behaviour, unchanged)
 
       // The world's initiative (Gabriel, 28/10/2026): one director decides whose turn it is to come to the player unasked,
       // and the player tunes it ("combien de systemes peuvent se manifester en meme temps, le delai avant que l'orchestrateur
@@ -795,8 +795,8 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyDropdown("{=CR_MCM_WorldInitiativePace}How Often the World Comes to You", RequireRestart = false, Order = 1,
          HintText = "{=CR_MCM_WorldInitiativePace_Hint}One conductor decides whose turn it is to come to you unasked (lords, companions, tales...). Off: each paces itself, as before. Custom uses the settings below.")]
       [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
-      public Dropdown<string> WorldInitiativePace { get; set; } =
-         new(new[] {"Off", "Rarely", "Occasionally", "Often", "Custom"}, 2); // default: Occasionally
+      public Dropdown<McmChoice> WorldInitiativePace { get; set; } =
+         McmChoice.List(2, "{=CR_MCM_WorldInitiativePace_Off}Off", "{=CR_MCM_WorldInitiativePace_Rarely}Rarely", "{=CR_MCM_WorldInitiativePace_Occasionally}Occasionally", "{=CR_MCM_WorldInitiativePace_Often}Often", "{=CR_MCM_WorldInitiativePace_Custom}Custom"); // default: Occasionally
 
       [SettingPropertyInteger("{=CR_MCM_InitiativeAtOnce}At Once (Custom)", 1, 3, "0", RequireRestart = false, Order = 2,
          HintText = "{=CR_MCM_InitiativeAtOnce_Hint}How many of them may be at you at the same time, e.g. a lord riding after you and a word asked in town. Custom only.")]
@@ -831,8 +831,8 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyDropdown("{=CR_MCM_InitiativeVariety}Variety", RequireRestart = false, Order = 8,
          HintText = "{=CR_MCM_InitiativeVariety_Hint}How far a kind that just came to you steps back so the others get their turn. The world's urgent matters are not affected.")]
       [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
-      public Dropdown<string> InitiativeVariety { get; set; } =
-         new(new[] {"Low", "Normal", "Strong"}, 1); // default: Normal
+      public Dropdown<McmChoice> InitiativeVariety { get; set; } =
+         McmChoice.List(1, "{=CR_MCM_InitiativeVariety_Low}Low", "{=CR_MCM_InitiativeVariety_Normal}Normal", "{=CR_MCM_InitiativeVariety_Strong}Strong"); // default: Normal
 
       [SettingPropertyInteger("{=CR_MCM_InitiativeExpireDays}Requests Expire After (days)", 1, 30, "0", RequireRestart = false, Order = 9,
          HintText = "{=CR_MCM_InitiativeExpireDays_Hint}A wish to come to you that waited this many game days is dropped, like stale news. The world's urgent matters never expire.")]
@@ -842,8 +842,8 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyDropdown("{=CR_MCM_InitiativeLettersCountAs}Letters Count As", RequireRestart = false, Order = 10,
          HintText = "{=CR_MCM_InitiativeLettersCountAs_Hint}Most letters ask for no turn. This is what the few that do cost from the count above: a lord's friendship or threat, a companion's farewell, a divorce demand.")]
       [SettingPropertyGroup("{=CR_MCM_Group_WorldInitiative}The World's Initiative", GroupOrder = 10)]
-      public Dropdown<string> InitiativeLettersCountAs { get; set; } =
-         new(new[] {"A Full Interruption", "Half", "Nothing"}, 1); // default: Half
+      public Dropdown<McmChoice> InitiativeLettersCountAs { get; set; } =
+         McmChoice.List(1, "{=CR_MCM_InitiativeLettersCountAs_AFullInterruption}A Full Interruption", "{=CR_MCM_InitiativeLettersCountAs_Half}Half", "{=CR_MCM_InitiativeLettersCountAs_Nothing}Nothing"); // default: Half
 
       [SettingPropertyBool("{=CR_MCM_InitiativeUrgentWait}Urgent Matters Wait Their Turn", RequireRestart = false, Order = 11,
          HintText = "{=CR_MCM_InitiativeUrgentWait_Hint}Off (default): an arrest, your liege's war summons, an ambush or an envoy with a short deadline comes whenever the moment allows. On: they wait their turn like the rest.")]

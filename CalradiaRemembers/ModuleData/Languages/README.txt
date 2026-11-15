@@ -1,7 +1,9 @@
 TRANSLATING CALRADIA REMEMBERS
 
 What can be translated today: the Mod Configuration Menu page (every setting's name, its explanation, the group
-names and the buttons). The English file in EN/ is the template; it lists every text with its id.
+names, the buttons and, since 2.8.10, the choices inside drop-down lists). The English file in EN/ is the template; it
+lists every text with its id. A choice's id names its setting (CR_MCM_ReplyLength_Short), so "Off" can be translated
+differently in each list. Translate a choice's text freely: the mod reads which choice is picked, never its words.
 
 To make a translation (example: Simplified Chinese, the game's "CNs" folder):
 
@@ -23,5 +25,6 @@ To make a translation (example: Simplified Chinese, the game's "CNs" folder):
 You can ship a translation as its own small mod (its own ModuleData/Languages folder, the same ids): the game reads
 the language files of every loaded module.
 
-Not translatable yet: the choices inside drop-down lists, the encyclopedia texts the mod adds, and the notices it
-shows during play. What characters say follows the game's language (MCM "Reply Language").
+Not translatable yet: the encyclopedia texts the mod adds, the mod's own windows (chat, letters, council), and the
+notices it shows during play. The provider names (OpenRouter, NanoGPT...) and the prompt profile names stay as they
+are. What characters say follows the game's language (MCM "Reply Language").

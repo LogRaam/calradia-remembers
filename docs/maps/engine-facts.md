@@ -473,7 +473,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `CharacterVoiceFacts`: `Hero.Age`, `SocialStationReader.StationOf`
 - `ChaseFacts`: `Army.LeaderParty`, `GetPosition2D.Distance`, `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `LeaderParty.SiegeEvent`, `MobileParty.Army`, `MobileParty.AttachedTo`, `MobileParty.BesiegedSettlement`, `MobileParty.GetPosition2D`, `MobileParty.IsCurrentlyAtSea`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`, `MobileParty.Speed`, `Settlement.IsUnderSiege`, `Settlement.SiegeEvent`
 - `ChatClosePlan.For`: `ActiveViewModel.IsExplorationScene`
-- `ChatCompositionModePolicy.Parse`: `ChatCompositionModeSetting.SelectedValue`
+- `ChatCompositionModePolicy.Parse`: `ChatCompositionModeSetting.Choice`
 - `ChatEscapeFacts`: `ScreenManager.FocusedLayer`
 - `ChatFocusArbitrationPolicy.Decide`: `ScreenManager.TopScreen`
 - `ChatFocusArbitrationPolicy.ReasonFor`: `ScreenManager.TopScreen`
@@ -704,7 +704,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `HuntFacts`: `Army.LeaderParty`, `MobileParty.Army`, `ModSettings.EnableArrests`
 - `HusbandFacts`: `Clan.Kingdom`, `Hero.Spouse`, `Kingdom.Leader`
 - `InitiativeGrant`: `ActiveCount.Invoke`, `IsBusy.Invoke`, `ModSettings.WorldInitiative`, `State.Grants`, `State.KeptSinceHour`, `State.LastOwnTalkHour`, `State.LastSettledHour`, `State.Requests`
-- `InitiativeSettings`: `InitiativeLettersCountAs.SelectedValue`, `WorldInitiativePace.SelectedValue`
+- `InitiativeSettings`: `InitiativeLettersCountAs.Choice`, `WorldInitiativePace.Choice`
 - `InterceptionFacts`: `Army.EstimatedStrength`, `Army.LeaderParty`, `Clan.Renown`, `FactionManager.IsAtWarAgainstFaction`, `Hero.GetRelation`, `Hero.MapFaction`, `Hero.PartyBelongedTo`, `MobileParty.Army`, `MobileParty.GetPosition2D`, `MobileParty.Party`, `ModSettings.LordsApproaching`, `Party.EstimatedStrength`, `Settlement.MapFaction`
 - `InterceptionPacingRules.CooldownDays`: `ModSettings.LordsApproaching`
 - `InterceptionPacingRules.DailyChancePercent`: `ModSettings.LordsApproaching`

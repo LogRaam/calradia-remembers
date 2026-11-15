@@ -36,7 +36,7 @@ namespace CalradiaRemembers.Foundation
             if (s?.AdultContentLevel == null)
                return AdultContentLevel.Mature;
 
-            switch (s.AdultContentLevel.SelectedValue)
+            switch (s.AdultContentLevel.Choice())
             {
                case "Off": return AdultContentLevel.Off;
                case "Explicit": return AdultContentLevel.Explicit;
@@ -105,7 +105,7 @@ namespace CalradiaRemembers.Foundation
       ///   or null when MCM has not loaded. <see cref="CrSettings" /> holds it; Chat's ChatManager.MenuSkinPrefab maps it
       ///   to a prefab, so the settings never name the chat's prefabs.
       /// </summary>
-      public static string ChatSkinChoice => CrSettings.Instance?.ChatSkin?.SelectedValue;
+      public static string ChatSkinChoice => CrSettings.Instance?.ChatSkin?.Choice();
 
       /// <summary>
       ///   When true, the companion-contentment loop runs (restlessness, audiences, farewell-letter
@@ -369,7 +369,7 @@ namespace CalradiaRemembers.Foundation
       public static bool AuthoredQuests => CrSettings.Instance?.AuthoredQuests ?? false;
 
       /// <summary>The world's initiative is Off: every system paces itself as before (Gabriel, 28/10/2026). Occasionally without MCM.</summary>
-      public static bool WorldInitiativeOff => CrSettings.Instance?.WorldInitiativePace?.SelectedValue == "Off";
+      public static bool WorldInitiativeOff => CrSettings.Instance?.WorldInitiativePace?.Choice() == "Off";
 
       /// <summary>
       ///   The director's settings (Gabriel, 28/10/2026): the pace's preset for the timing, or the player's own values in
@@ -381,7 +381,7 @@ namespace CalradiaRemembers.Foundation
          get
          {
             CrSettings s = CrSettings.Instance;
-            string pace = s?.WorldInitiativePace?.SelectedValue;
+            string pace = s?.WorldInitiativePace?.Choice();
             Logic.Initiative.InitiativeSettings timing = pace switch {
                "Rarely" => Logic.Initiative.WorldInitiativePolicy.Preset(Logic.Initiative.InitiativePace.Rarely),
                "Often" => Logic.Initiative.WorldInitiativePolicy.Preset(Logic.Initiative.InitiativePace.Often),
@@ -398,13 +398,13 @@ namespace CalradiaRemembers.Foundation
                MinGapHours = custom ? InitiativeGapHours : timing.MinGapHours,
                SettlingDelayHours = custom ? InitiativeSettlingHours : timing.SettlingDelayHours,
                QuietAfterOwnTalkHours = custom ? InitiativeQuietHours : timing.QuietAfterOwnTalkHours,
-               Variety = s.InitiativeVariety?.SelectedValue switch {
+               Variety = s.InitiativeVariety?.Choice() switch {
                   "Low" => Logic.Initiative.InitiativeVariety.Low,
                   "Strong" => Logic.Initiative.InitiativeVariety.Strong,
                   _ => Logic.Initiative.InitiativeVariety.Normal
                },
                ExpireDays = InitiativeExpireDays,
-               LettersCountAs = s.InitiativeLettersCountAs?.SelectedValue switch {
+               LettersCountAs = s.InitiativeLettersCountAs?.Choice() switch {
                   "A Full Interruption" => Logic.Initiative.LetterCost.Full,
                   "Nothing" => Logic.Initiative.LetterCost.None,
                   _ => Logic.Initiative.LetterCost.Half
@@ -468,7 +468,7 @@ namespace CalradiaRemembers.Foundation
       {
          get
          {
-            string v = CrSettings.Instance?.InterceptionPacing?.SelectedValue;
+            string v = CrSettings.Instance?.InterceptionPacing?.Choice();
 
             switch (v)
             {
@@ -491,7 +491,7 @@ namespace CalradiaRemembers.Foundation
       {
          get
          {
-            string v = CrSettings.Instance?.CouncilVoices?.SelectedValue;
+            string v = CrSettings.Instance?.CouncilVoices?.Choice();
 
             return v == "One call per member"
                ? CouncilVoiceMode.PerMember
@@ -547,7 +547,7 @@ namespace CalradiaRemembers.Foundation
       {
          get
          {
-            string v = CrSettings.Instance?.ContentmentPacing?.SelectedValue;
+            string v = CrSettings.Instance?.ContentmentPacing?.Choice();
 
             switch (v)
             {
@@ -571,7 +571,7 @@ namespace CalradiaRemembers.Foundation
       {
          get
          {
-            string v = CrSettings.Instance?.CompanionAudiencePacing?.SelectedValue;
+            string v = CrSettings.Instance?.CompanionAudiencePacing?.Choice();
 
             switch (v)
             {
@@ -593,7 +593,7 @@ namespace CalradiaRemembers.Foundation
       {
          get
          {
-            string v = CrSettings.Instance?.CustomParameterCompatibility?.SelectedValue;
+            string v = CrSettings.Instance?.CustomParameterCompatibility?.Choice();
 
             switch (v)
             {
@@ -742,7 +742,7 @@ namespace CalradiaRemembers.Foundation
       ///   interpreter call). Read live from the MCM menu; defaults to Integrated on anything unexpected.
       /// </summary>
       public static ChatCompositionMode ChatCompositionMode =>
-         ChatCompositionModePolicy.Parse(CrSettings.Instance?.ChatCompositionModeSetting?.SelectedValue);
+         ChatCompositionModePolicy.Parse(CrSettings.Instance?.ChatCompositionModeSetting?.Choice());
 
       /// <summary>
       ///   The reasoning-effort keyword for NSFW mode, read live from the MCM menu. The default
@@ -753,7 +753,7 @@ namespace CalradiaRemembers.Foundation
       {
          get
          {
-            string v = CrSettings.Instance?.NsfwReasoningEffort?.SelectedValue;
+            string v = CrSettings.Instance?.NsfwReasoningEffort?.Choice();
 
             return string.IsNullOrWhiteSpace(v)
                ? ModelModePolicy.SameAsProse
@@ -770,7 +770,7 @@ namespace CalradiaRemembers.Foundation
       {
          get
          {
-            string v = CrSettings.Instance?.ReasoningEffort?.SelectedValue;
+            string v = CrSettings.Instance?.ReasoningEffort?.Choice();
 
             return string.IsNullOrWhiteSpace(v)
                ? "Low"
@@ -789,7 +789,7 @@ namespace CalradiaRemembers.Foundation
       {
          get
          {
-            string v = CrSettings.Instance?.CustomReasoningEffort?.SelectedValue;
+            string v = CrSettings.Instance?.CustomReasoningEffort?.Choice();
 
             return string.IsNullOrWhiteSpace(v)
                ? "Default"
@@ -810,7 +810,7 @@ namespace CalradiaRemembers.Foundation
       {
          get
          {
-            switch (CrSettings.Instance?.ReplyLength?.SelectedValue)
+            switch (CrSettings.Instance?.ReplyLength?.Choice())
             {
                case "Balanced": return NpcMemoryService.Core.Prompts.ReplyLength.Balanced;
                case "Short": return NpcMemoryService.Core.Prompts.ReplyLength.Short;
@@ -854,7 +854,7 @@ namespace CalradiaRemembers.Foundation
 
             if (s?.RelationshipWarmth == null) return RelationWarmth.Normal;
 
-            switch (s.RelationshipWarmth.SelectedValue)
+            switch (s.RelationshipWarmth.Choice())
             {
                // Current labels (experience-oriented — tester feedback: this is a
                // philosophy of interaction, not a difficulty).
@@ -906,7 +906,7 @@ namespace CalradiaRemembers.Foundation
       {
          get
          {
-            string v = CrSettings.Instance?.WitnessDensity?.SelectedValue;
+            string v = CrSettings.Instance?.WitnessDensity?.Choice();
 
             switch (v)
             {

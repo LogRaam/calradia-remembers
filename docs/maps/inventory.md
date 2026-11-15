@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 667 types in 66 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 669 types in 66 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1601 types in 57 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
@@ -429,7 +429,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `FollowMeBehavior` | public class | Persists active follow_me escorts (a lord's own party riding with the player) and advances/ends each daily. |
 
-### CalradiaRemembers.Foundation (9)
+### CalradiaRemembers.Foundation (11)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -437,6 +437,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LocalContextState` | public static class | The session's record of fitting requests to the local model's window. |
 | `MainThreadAwaitable` | public struct | Custom awaiter that resumes its continuation on the main-thread dispatcher. |
 | `MainThreadDispatcher` | public static class | Marshals work back onto Bannerlord's main thread. |
+| `McmChoice` | public class | One choice of an MCM drop-down: shown translated, read back in English. |
+| `McmChoiceExtensions` | public static class | Reading and setting a translated drop-down by its English value. |
 | `ModLog` | internal static class | Writes timestamped log entries to a file in the Bannerlord Logs folder AND shows them in the in-game console. |
 | `ModSettings` | public static class | Mod-wide settings façade. |
 | `SafeRun` | public static class | Shared guard for campaign tick handlers. |

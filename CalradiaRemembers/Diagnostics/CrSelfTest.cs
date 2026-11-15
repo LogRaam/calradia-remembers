@@ -18924,14 +18924,14 @@ namespace CalradiaRemembers.Diagnostics
          Hero victim = ArrangedCompanion.Get(behavior)?.Companion;
          if (t.Abort(victim == null || captor == null, "no companion could be arranged or no lord stands as the captor")) return t.Line();
 
-         string keep = CrSettings.Instance.AdultContentLevel.SelectedValue;
+         string keep = CrSettings.Instance.AdultContentLevel.Choice();
          try
          {
             Mapping.TraumaLedgerBehavior.Record(victim, captor, Logic.Trauma.TraumaKind.Tortured, Logic.Trauma.TraumaAuthor.Captor);
             Mapping.TraumaLedgerBehavior.Record(victim, captor, Logic.Trauma.TraumaKind.Tortured, Logic.Trauma.TraumaAuthor.Captor);
             Mapping.TraumaLedgerBehavior.Record(victim, null, Logic.Trauma.TraumaKind.Robbed, Logic.Trauma.TraumaAuthor.Player);
 
-            CrSettings.Instance.AdultContentLevel.SelectedValue = "Hardcore";
+            CrSettings.Instance.AdultContentLevel.Pick("Hardcore");
             IReadOnlyList<string> hardcore = Mapping.TraumaPageReader.LinesFor(victim);
             t.Note($"{victim.Name}: {string.Join(" | ", hardcore)}");
             string when = Mapping.HeartPageReader.When((int) CampaignTime.Now.ToDays);
@@ -18940,12 +18940,12 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("theRobberyIsThePlayersOwnDeed", hardcore.Count(l => l == $"{she} was robbed at swordpoint by you, in {when}."), 1);
             t.Expect("neverOnThePlayersOwnPage", Mapping.TraumaPageReader.LinesFor(Hero.MainHero).Count, 0);
 
-            CrSettings.Instance.AdultContentLevel.SelectedValue = "Explicit";
+            CrSettings.Instance.AdultContentLevel.Pick("Explicit");
             t.Expect("belowHardcoreNothingShows", Mapping.TraumaPageReader.LinesFor(victim).Count, 0);
          }
          finally
          {
-            CrSettings.Instance.AdultContentLevel.SelectedValue = keep;
+            CrSettings.Instance.AdultContentLevel.Pick(keep);
          }
 
          return t.Line();
@@ -18969,10 +18969,10 @@ namespace CalradiaRemembers.Diagnostics
          behavior.Store.Set(profile);
          Mapping.TraumaLedgerBehavior.Record(prisoner, null, Logic.Trauma.TraumaKind.Assaulted, Logic.Trauma.TraumaAuthor.Player);
 
-         string keep = CrSettings.Instance.AdultContentLevel.SelectedValue;
+         string keep = CrSettings.Instance.AdultContentLevel.Choice();
          try
          {
-            CrSettings.Instance.AdultContentLevel.SelectedValue = "Hardcore";
+            CrSettings.Instance.AdultContentLevel.Pick("Hardcore");
             IReadOnlyList<string> herPage = Mapping.HeartPageReader.LinesFor(lover);
             IReadOnlyList<string> playersPage = Mapping.HeartPageReader.LinesFor(Hero.MainHero);
             t.Note($"{lover.Name}: {string.Join(" | ", herPage)}");
@@ -18985,14 +18985,14 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("thePlayersMisdeedsTellTheForcedAct", misdeeds.Any(l => l.StartsWith($"You took {prisoner.Name} by force while", StringComparison.Ordinal)), true);
             t.Expect("noMisdeedsOnHerPage", Mapping.MisdeedsPageReader.LinesFor(lover).Count, 0);
 
-            CrSettings.Instance.AdultContentLevel.SelectedValue = "Explicit";
+            CrSettings.Instance.AdultContentLevel.Pick("Explicit");
             t.Expect("belowHardcoreNoNightOnHerPage", Mapping.HeartPageReader.LinesFor(lover).Any(l => l.Contains("night")), false);
             t.Expect("belowHardcoreNothingOnThePlayersPage", Mapping.HeartPageReader.LinesFor(Hero.MainHero).Any(l => l.Contains("night")), false);
             t.Expect("belowHardcoreNoForcedActInMisdeeds", Mapping.MisdeedsPageReader.LinesFor(Hero.MainHero).Any(l => l.Contains("by force while")), false);
          }
          finally
          {
-            CrSettings.Instance.AdultContentLevel.SelectedValue = keep;
+            CrSettings.Instance.AdultContentLevel.Pick(keep);
          }
 
          return t.Line();
@@ -19259,10 +19259,10 @@ namespace CalradiaRemembers.Diagnostics
          Mapping.MisdeedLedgerBehavior.OnVillageStateChanged(village, TaleWorlds.CampaignSystem.Settlements.Village.VillageStates.Normal, TaleWorlds.CampaignSystem.Settlements.Village.VillageStates.BeingRaided, MobileParty.MainParty);
          Mapping.MisdeedLedgerBehavior.OnSiegeAftermath(MobileParty.MainParty, town.Settlement, SiegeAftermathAction.SiegeAftermath.Devastate, null, null);
 
-         string keep = CrSettings.Instance.AdultContentLevel.SelectedValue;
+         string keep = CrSettings.Instance.AdultContentLevel.Choice();
          try
          {
-            CrSettings.Instance.AdultContentLevel.SelectedValue = "Off";
+            CrSettings.Instance.AdultContentLevel.Pick("Off");
             IReadOnlyList<string> off = Mapping.MisdeedsPageReader.LinesFor(Hero.MainHero);
             t.Note($"off: {string.Join(" | ", off)}");
             t.Expect("theRaidedVillageIsNamed", off.Any(l => l.Contains(village.Name.ToString()) && (l.StartsWith("You raided ", StringComparison.Ordinal) || l.StartsWith("You fell on ", StringComparison.Ordinal))), true);
@@ -19273,14 +19273,14 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("theRealmForsakenShows", off.Any(l => l.StartsWith($"You forsook your oath to {realm.Name}", StringComparison.Ordinal)), true);
             t.Expect("theActOfForceWaitsForHardcore", off.Any(l => l.Contains("by force while")), false);
 
-            CrSettings.Instance.AdultContentLevel.SelectedValue = "Hardcore";
+            CrSettings.Instance.AdultContentLevel.Pick("Hardcore");
             IReadOnlyList<string> hardcore = Mapping.MisdeedsPageReader.LinesFor(Hero.MainHero);
             t.Expect("atHardcoreTheActOfForceShows", hardcore.Any(l => l.StartsWith($"You took {prisoner.Name} by force while", StringComparison.Ordinal)), true);
             t.Expect("aCharactersPageHasNoMisdeeds", Mapping.MisdeedsPageReader.LinesFor(wronged).Count, 0);
          }
          finally
          {
-            CrSettings.Instance.AdultContentLevel.SelectedValue = keep;
+            CrSettings.Instance.AdultContentLevel.Pick(keep);
          }
 
          return t.Line();
@@ -23374,7 +23374,7 @@ namespace CalradiaRemembers.Diagnostics
          if (t.Skip(pace == null || lords == null, "the MCM is not ready")) return t.Line();
 
          int priorPace = pace.SelectedIndex, priorLords = lords.SelectedIndex;
-         int Index(MCM.Common.Dropdown<string> d, string value) => d.ToList().IndexOf(value);
+         int Index(MCM.Common.Dropdown<McmChoice> d, string value) => d.ToList().FindIndex(c => c.Value == value);
          try
          {
             pace.SelectedIndex = Index(pace, "Occasionally");

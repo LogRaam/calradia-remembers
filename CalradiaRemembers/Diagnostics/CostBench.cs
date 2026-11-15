@@ -696,7 +696,7 @@ namespace CalradiaRemembers.Diagnostics
          private readonly string _priorProseOverride;
          private readonly bool _priorCompact;
          private readonly int _priorReasoning;
-         private readonly Dropdown<string> _reasoning;
+         private readonly Dropdown<McmChoice> _reasoning;
          private readonly ManualModelMode _priorMode;
          private readonly string _priorNsfw;
 
@@ -719,16 +719,14 @@ namespace CalradiaRemembers.Diagnostics
             {
                settings.LeanPrompt = row.Compact;
                if (!string.IsNullOrWhiteSpace(row.FallbackModel)) settings.CncModel = row.FallbackModel;
-               if (_reasoning != null && !string.IsNullOrWhiteSpace(row.Reasoning)
-                   && _reasoning.Any(v => string.Equals(v, row.Reasoning, StringComparison.OrdinalIgnoreCase)))
-                  _reasoning.SelectedValue = _reasoning.First(v => string.Equals(v, row.Reasoning, StringComparison.OrdinalIgnoreCase));
+               if (_reasoning != null && !string.IsNullOrWhiteSpace(row.Reasoning)) _reasoning.Pick(row.Reasoning);
             }
 
             services.Invalidate();
          }
 
          /// <summary>The PROSE reasoning effort this run is measured at.</summary>
-         public string Reasoning => _reasoning?.SelectedValue ?? "";
+         public string Reasoning => _reasoning?.Choice() ?? "";
 
          /// <summary>The NSFW (fallback) model this run is measured with.</summary>
          public string FallbackModel => CrSettings.Instance?.CncModel ?? "";

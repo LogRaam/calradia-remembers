@@ -286,10 +286,10 @@ namespace CalradiaRemembers.Diagnostics
       private sealed class ForcedAdultLevel
       {
          private readonly NpcMemoryCampaignBehavior _behavior;
-         private readonly Dropdown<string> _dropdown;
+         private readonly Dropdown<McmChoice> _dropdown;
          private readonly int _priorIndex;
 
-         public ForcedAdultLevel(Dropdown<string> dropdown, int priorIndex, NpcMemoryCampaignBehavior behavior)
+         public ForcedAdultLevel(Dropdown<McmChoice> dropdown, int priorIndex, NpcMemoryCampaignBehavior behavior)
          {
             _dropdown = dropdown;
             _priorIndex = priorIndex;
@@ -884,7 +884,7 @@ namespace CalradiaRemembers.Diagnostics
       /// </summary>
       private static ForcedAdultLevel ForceHardcore(NpcMemoryCampaignBehavior behavior, out string note)
       {
-         Dropdown<string> dropdown = CrSettings.Instance?.AdultContentLevel;
+         Dropdown<McmChoice> dropdown = CrSettings.Instance?.AdultContentLevel;
 
          if (dropdown == null)
          {
@@ -895,7 +895,7 @@ namespace CalradiaRemembers.Diagnostics
 
          note = "";
          int priorIndex = dropdown.SelectedIndex;
-         dropdown.SelectedValue = "Hardcore";
+         dropdown.Pick("Hardcore");
          behavior.LlmServices.Invalidate();
 
          return new ForcedAdultLevel(dropdown, priorIndex, behavior);

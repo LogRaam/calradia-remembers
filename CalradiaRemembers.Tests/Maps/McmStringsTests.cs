@@ -61,6 +61,40 @@ namespace CalradiaRemembers.Tests.Maps
                   .Select(s => $"{s.Id}={s.Text.Length}").Should().BeEmpty();
       }
 
+      // STAKE (D.C.Michael, Discord 14/11/2026, translating CR into Chinese): a drop-down whose choices carry no id shows
+      // English in the middle of a translated page.
+      [Test]
+      public void GIVEN_the_mcm_page_WHEN_read_THEN_every_drop_down_choice_carries_a_translation_id()
+      {
+         string source = Settings();
+
+         foreach (Match list in Regex.Matches(source, @"McmChoice\.List\(\d+,(.*?)\);", RegexOptions.Singleline))
+            Regex.Matches(list.Groups[1].Value, @"""(?!\{=CR_MCM_)").Cast<Match>().Count(m => IsOpeningQuote(list.Groups[1].Value, m.Index))
+                 .Should().Be(0, $"every choice opens on a {{=id}}: {list.Value}");
+      }
+
+      // STAKE: a word left as a plain string list is a choice nobody can translate. Only the lists the code fills itself
+      // (the prompt profiles) and those of names that are the same in every language (the providers) stay plain.
+      [Test]
+      public void GIVEN_the_mcm_page_WHEN_read_THEN_only_the_lists_of_names_stay_plain_strings()
+      {
+         var plain = Regex.Matches(Settings(), @"public Dropdown<string> (\w+)").Cast<Match>().Select(m => m.Groups[1].Value).OrderBy(x => x).ToList();
+
+         plain.Should().BeEquivalentTo("ActionInterpreterProvider", "CncProvider", "ConsensualProvider", "HousekeepingProvider", "PromptProfile", "Provider");
+      }
+
+      // STAKE: the code reads a choice back by its English; a choice whose English drifted from the label the code compares
+      // with would be chosen and never obeyed (the composition mode, the NSFW reasoning that follows the prose one).
+      [Test]
+      public void GIVEN_choices_the_code_compares_with_a_label_WHEN_read_THEN_their_english_is_that_label()
+      {
+         List<(string Id, string Text)> strings = Strings();
+
+         strings.Should().Contain(("CR_MCM_NsfwReasoningEffort_SameAsProse", CalradiaRemembers.Logic.Providers.ModelModePolicy.SameAsProse));
+         strings.Should().Contain(("CR_MCM_ChatCompositionModeSetting_Standard", CalradiaRemembers.Logic.Chat.ChatCompositionModePolicy.StandardLabel));
+         strings.Should().Contain(("CR_MCM_ChatCompositionModeSetting_Enhanced", CalradiaRemembers.Logic.Chat.ChatCompositionModePolicy.EnhancedLabel));
+      }
+
       // STAKE: the template a translator copies is the page as it stands, every id once.
       [Test]
       public void GIVEN_the_mcm_page_as_it_stands_WHEN_the_english_template_is_regenerated_THEN_it_matches_the_shipped_one()
@@ -140,6 +174,9 @@ namespace CalradiaRemembers.Tests.Maps
 
          return i + 1;
       }
+
+      // Whether the quote at index i of a list's arguments opens a literal (an even number of quotes before it).
+      private static bool IsOpeningQuote(string s, int i) => s.Substring(0, i).Count(c => c == '"') % 2 == 0;
 
       private static int SkipSpace(string s, int i)
       {
