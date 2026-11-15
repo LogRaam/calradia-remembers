@@ -585,7 +585,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 #### `CalradiaRemembers` and `CalradiaRemembers.Mapping`
 
-- `CalradiaRemembers` uses `CalradiaRemembers.Mapping` in 27 files: `Extension/CrAims.cs`, `Extension/CrLetters.cs`, `Extension/CrNpcMemory.cs`, and 24 more
+- `CalradiaRemembers` uses `CalradiaRemembers.Mapping` in 28 files: `Extension/CrAims.cs`, `Extension/CrLetters.cs`, `Extension/CrNpcMemory.cs`, and 25 more
 - `CalradiaRemembers.Mapping` uses `CalradiaRemembers` in 2 file(s): `Mapping/EncounterContextBuilder.cs`, `Mapping/PairRegardReader.cs`
 
 #### `CalradiaRemembers` and `CalradiaRemembers.Marriage`

@@ -5,6 +5,7 @@
 using TaleWorlds.ModuleManager;
 using CalradiaRemembers.Storage;
 using System;
+using System.IO;
 using CalradiaRemembers.Logic.WorldAlmanac;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -295,6 +296,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("character_text", Severity.Light, "Bhelogan (Discord, 14/11/2026): \"The per-character text source you described, yes please ... Appearance: shown in the panel, given to the model; Private: model only, never in the panel ... the same for the player\". Registers a CrCharacterText source for one lord and the player, then through the real readers asserts: the lord's appearance block and panel carry the mod's appearance, the prompt carries the secret and the panel never does, the player's text reaches the prompt. Unregisters the source", TestCharacterText),
          new SelfTest("player_report", Severity.Light, "Gabriel (14/11/2026): a report-a-problem button whose report carries the whole context, saved to a file and written into the log. Records one exchange through the real recorder (a prompt holding a fake key), gathers and composes a report through the real service, writes it, and asserts the file holds the player text, the prompt and the reply with the key masked, and that the log holds the report. Deletes the file (the log keeps a [SELFTEST] report)", TestPlayerReport),
          new SelfTest("diplomacy_door", Severity.Light, "VonLemberg's Bellum Civile bridge RFC (14/11/2026, P0-B): every war, peace and change of realm CR makes asks the registered authorities first. With a [SELFTEST] authority over two realms at war: Rejected and Pending leave the change unmade and give an honest line, Applied is not applied again, PassThrough applies it; the request carries both realms and this save. The change itself is a stand-in (nothing in the world moves). Unregisters the authority", TestDiplomacyDoor),
+         new SelfTest("prompt_stock_sections", Severity.Light, "Bhelogan (Muh Prompts, 14/11/2026): 'read-only stock text of a prompt section (for the profile editor)'. For a real lord, through CrPrompt.StockSections: every keyed section is listed in the stock order (the keys of CrPrompt.Sections), the identity section writes something and names him, StockSectionText reads the same text, and an unknown hero gives nothing", TestPromptStockSections),
+         new SelfTest("portrait_source", Severity.Light, "Bhelogan (14/11/2026): 'a portrait source for chat portraits, so a mod can supply a picture per hero without naming files by runtime id'. Writes two tiny PNGs in a temp folder and registers a [SELFTEST] source through CrPortraits: its picture is shown for the lord it answers for and not for another, it wins over a realm portrait, the player's own ChatPortraits file (in a temp Custom folder) still wins over it, and a source that throws is passed over. Unregisters, restores the hooks and deletes the temp folder", TestPortraitSource),
          new SelfTest("feed_secrets", Severity.Light, "VonLemberg's Bellum Civile bridge RFC (14/11/2026, P0-C): a council's secret must not become everyone's news, and another mod must read what a given character knows. Feeds a [SELFTEST] secret naming one lord with a second as confidant, and a great public event hidden from the first: through CrWorld, the named lord and the confidant know the secret, an unrelated lord does not, the first lord does not hear the hidden news, and his known events mark the secret as such. Retracts both", TestFeedSecrets),
          new SelfTest("clan_task_no_coin", Severity.Light, "Aporo (Discord, 13/11/2026): \"I don't need that 100 denars for bringing 20 grain when it's my money either way\"; Gabriel: \"tout le clan\". A member of the player's own clan offers a task promising 100 denars and 3 regard, through the real ApplyResponse and the consent seam: the task put to the player carries 0 denars and keeps the 3 regard. The player declines; the giver's memories and outstanding tasks are put back", TestClanTaskNoCoin),
          new SelfTest("quest_consent", Severity.Light, "Schmidt (Discord, 11/11/2026): \"NPC's give you quests that you didn't agree to ... Same with asking NPC's to do something but it shows up for you as a quest.\" Gabriel: \"Tu peux faire 11.\" Through the REAL QuestService.ApplyResponse with a [QUEST] a lord of another realm puts to the player (scout a castle of a third realm), the Accept/Decline window answered through its test seam: while the offer waits nothing is recorded; declined, no task and no journal entry, the giver remembers the refusal and the model is told; accepted, the task is the player's with its journal entry. The giver's outstanding tasks are set aside first and restored, and the accepted task is cancelled and removed", TestQuestConsent),
@@ -7042,6 +7045,84 @@ namespace CalradiaRemembers.Diagnostics
          finally
          {
             CrDiplomacy.UnregisterAuthority(source);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestPromptStockSections(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("prompt_stock_sections");
+         if (t.Skip(behavior.LlmServices?.ChatService?.PromptBuilder == null, "no model connection set up")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(lord == null, "no lord in the world")) return t.Line();
+
+         IReadOnlyList<CrPromptSection> sections = CrPrompt.StockSections(lord.StringId);
+         // THE REPORT: the editor lists the sections a profile names, in the stock order.
+         t.Expect("everyKeyedSectionInTheStockOrder", string.Join(",", sections.Select(s => s.Key)), string.Join(",", CrPrompt.Sections().Select(s => s.Key)));
+
+         // STAKE: the stock text is the character's own, not a template: his identity names him.
+         string identity = sections.FirstOrDefault(s => s.Key == "identity")?.Text ?? "";
+         t.Expect("theIdentityNamesHim", identity.Contains(lord.FirstName?.ToString() ?? lord.Name.ToString()), true);
+         t.Expect("oneSectionReadsTheSame", CrPrompt.StockSectionText("identity", lord.StringId), identity);
+         // STAKE: an unknown hero gives nothing rather than another character's text.
+         t.Expect("anUnknownHeroGivesNothing", CrPrompt.StockSections("selftest_no_such_hero").Count, 0);
+
+         return t.Line();
+      }
+
+      private static string TestPortraitSource(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("portrait_source");
+
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h.IsLord && h != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(h)
+                                                            && Portraits.ChatPortraitResolver.ResolveForHero(h.StringId, h.Name?.ToString()) == null)
+                                .Take(2).ToList();
+         if (t.Skip(lords.Count < 2, "two lords without a portrait of their own are needed")) return t.Line();
+
+         // A 1x1 PNG: enough for a path that exists; nothing is drawn.
+         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==");
+         string root = Path.Combine(Path.GetTempPath(), "cr_selftest_portraits_" + Guid.NewGuid().ToString("N"));
+         string fromMod = Path.Combine(root, "mod_picture.png"), realm = Path.Combine(root, "realm_face.png");
+         string playersOwn = Path.Combine(root, "Custom", Logic.ChatPortraitFolders.FolderName, lords[0].StringId + ".png");
+         Func<string, string> keepByHero = Portraits.ChatPortraitResolver.ByHero;
+         Func<string> keepCustom = Portraits.ChatPortraitResolver.CustomBaseFolder;
+         try
+         {
+            Directory.CreateDirectory(Path.GetDirectoryName(playersOwn));
+            File.WriteAllBytes(fromMod, png);
+            File.WriteAllBytes(realm, png);
+
+            CrPortraits.RegisterSource("SelfTest_Portraits", id => id == lords[0].StringId ? fromMod : null);
+            // THE REPORT: a mod gives a hero a picture without naming a file by his runtime id.
+            t.Expect("theSourcesPictureIsShown", CrPortraits.Resolve(lords[0].StringId), fromMod);
+            t.Expect("notForAnotherLord", CrPortraits.Resolve(lords[1].StringId), null);
+
+            // STAKE: a mod's picture wins over the realm portrait CR gives a queen.
+            Portraits.ChatPortraitResolver.ByHero = id => realm;
+            t.Expect("itWinsOverARealmPortrait", CrPortraits.Resolve(lords[0].StringId), fromMod);
+            t.Expect("theRealmPortraitStillServesTheOthers", CrPortraits.Resolve(lords[1].StringId), realm);
+            Portraits.ChatPortraitResolver.ByHero = keepByHero;
+
+            // STAKE: the player's own file is their choice and wins over any mod.
+            File.WriteAllBytes(playersOwn, png);
+            Portraits.ChatPortraitResolver.CustomBaseFolder = () => Path.Combine(root, "Custom");
+            t.Expect("thePlayersOwnFileStillWins", CrPortraits.Resolve(lords[0].StringId, lords[0].Name?.ToString()), playersOwn);
+            Portraits.ChatPortraitResolver.CustomBaseFolder = keepCustom;
+
+            // STAKE: a broken source never takes a portrait away from another one.
+            CrPortraits.RegisterSource("AaSelfTest_Throws", id => throw new InvalidOperationException("selftest"));
+            t.Expect("aThrowingSourceIsPassedOver", CrPortraits.Resolve(lords[0].StringId), fromMod);
+         }
+         finally
+         {
+            CrPortraits.UnregisterSource("AaSelfTest_Throws");
+            CrPortraits.UnregisterSource("SelfTest_Portraits");
+            Portraits.ChatPortraitResolver.ByHero = keepByHero;
+            Portraits.ChatPortraitResolver.CustomBaseFolder = keepCustom;
+            try { Directory.Delete(root, true); }
+            catch { /* a temp folder left behind is harmless */ }
          }
 
          return t.Line();

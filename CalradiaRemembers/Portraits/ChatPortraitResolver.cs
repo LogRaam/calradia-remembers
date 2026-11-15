@@ -93,8 +93,9 @@ namespace CalradiaRemembers.Portraits
         }
 
         /// <summary>
-        ///   Full path of the image for this hero, or null when none exists. The player's own drop wins; else a queen CR
-        ///   dressed in her realm's face shows that realm's portrait (Gabriel, 12/10/2026: a chat portrait per queen).
+        ///   Full path of the image for this hero, or null when none exists. The player's own drop wins; then a mod's portrait
+        ///   source (ChatPortraitSources); else a queen CR dressed in her realm's face shows that realm's portrait (Gabriel,
+        ///   12/10/2026: a chat portrait per queen).
         /// </summary>
         public static string ResolveForHero(string stringId, string displayName)
         {
@@ -109,7 +110,8 @@ namespace CalradiaRemembers.Portraits
                                 if (File.Exists(path)) return path;
                             }
 
-                return ByHero?.Invoke(stringId);
+                // Then a picture another mod gives this hero (CrPortraits, since 2.8.10), before CR's own realm face.
+                return ChatPortraitSources.Resolve(stringId) ?? ByHero?.Invoke(stringId);
             }
             catch
             {

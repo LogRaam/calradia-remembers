@@ -392,13 +392,33 @@ _The companion patrols, read-only, and their public events._
 - `static event Action<CrPatrolBattle> Fought`
 - `static event Action<CrPatrolEnd> Ended`
 
+### CrPortraits
+
+_The door through which another mod gives heroes their chat portrait._
+
+- `static bool UnregisterSource(string sourceMod)`
+- `static string Resolve(string heroId, string displayName = null)`
+- `static void RegisterSource(string sourceMod, Func<string, string> source)`
+
 ### CrPrompt
 
 _The public facade a third-party mod calls to register (or unregister) one live prompt variable._
 
+- `static IReadOnlyList<CrPromptSection> Sections()`
+- `static IReadOnlyList<CrPromptSection> StockSections(string heroId)`
 - `static IReadOnlyList<string> Reload()`
 - `static bool Unregister(string name)`
+- `static string StockSectionText(string key, string heroId)`
 - `static void RegisterVariable(string name, Func<PromptVarFacts, string> provider)`
+
+### CrPromptSection
+
+_One section of the character prompt (CrPrompt.Sections, CrPrompt.StockSections)._
+
+- `string Key { get; set; }`
+- `string Lock { get; set; }`
+- `string Text { get; set; }`
+- `string Zone { get; set; }`
 
 ### CrRegardChange
 

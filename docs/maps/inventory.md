@@ -6,9 +6,9 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 664 types in 66 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 667 types in 66 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1601 types in 57 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 288 types in 17 namespaces, 9 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -48,7 +48,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (71)
+### CalradiaRemembers (73)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -93,7 +93,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrPatrolEndKind` | public enum | How a patrol ended. |
 | `CrPatrolInfo` | public class | A patrol as it stood when copied. |
 | `CrPatrols` | public static class | The companion patrols, read-only, and their public events. |
+| `CrPortraits` | public static class | The door through which another mod gives heroes their chat portrait. |
 | `CrPrompt` | public static class | The public facade a third-party mod calls to register (or unregister) one live prompt variable. |
+| `CrPromptSection` | public class | One section of the character prompt (CrPrompt.Sections, CrPrompt.StockSections). |
 | `CrRegardChange` | public class | One change of a character's personal regard for the player (see CrNpcMemory.RegardChanged). |
 | `CrRomance` | public static class | Reads and records intimacy with the player, held to the bar CR's own chat holds; reads the bond and its changes. |
 | `CrRomanceStatus` | public class | A character's bond with the player (see CrRomance.GetStatus). |
@@ -755,11 +757,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `ModulePaths` | public static class | The module's own folder, as the engine found it. |
 
-### CalradiaRemembers.Portraits (8)
+### CalradiaRemembers.Portraits (9)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ChatPortraitResolver` | internal static class | Finds a player-dropped chat portrait for a hero, by StringId then by normalized name. |
+| `ChatPortraitSources` | internal static class | The registered portrait sources, asked in the order of their names. |
 | `CrButtonArtWidget` | public class | Shows {ArtStem}_normal/_hover/_pressed/_disabled.png by the state of the parent button. |
 | `CrHoverGlowWidget` | public class | Place as a child of a fixed-size ButtonWidget: fades in around the button when it is hovered or held. |
 | `CrRuntimeImageWidget` | public class | A widget that renders a runtime image loaded from ImagePath (bindable string). |
@@ -3211,7 +3214,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpeakerScriptVerdict` | public class | What a reply had to have removed from it, if anything. |
 | `StageDirectionDedupe` | public static class | Drops the second and later copies of the same *stage direction* in a reply. |
 
-### NpcMemoryService.Core.Prompts (47)
+### NpcMemoryService.Core.Prompts (48)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -3250,6 +3253,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PromptLore` | public static class | The setting's name, adjective, and which cultures read as patriarchal — used by the prompt sections. |
 | `PromptSection` | public enum | The heavy, always-on system-prompt sections a lean prompt may drop to save tokens. |
 | `PromptSectionLock` | public enum | How far a power user's layout may change a section (DESIGN.md, "Locks": only where the game breaks or safety is at stake). |
+| `PromptSectionRendering` | public class | One section of the character prompt as one build wrote it (PromptBuilder.RenderStockSections). |
 | `PromptSectionSpec` | public class | One section of the character prompt: its key, its zone, its lock, and how it is written. |
 | `PromptSectionText` | public class | A profile's rewording of one section (a sections/<key>.txt). |
 | `PromptSectionTextApplier` | public static class | Applies a section's rewording to the stock text the section rendered. |

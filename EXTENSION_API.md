@@ -145,6 +145,15 @@ an entry replaces the shared entry with the same key (its id, or its name when i
 character_overrides.json is read there; stations, folklore and the prompt files stay shared. `cr.lore_status` shows the
 folder and how many entries it laid over.
 
+**The stock text of a section** (`CrPrompt.Sections()`, `CrPrompt.StockSections(heroId)`, since 2.8.10): for a profile
+editor that shows what a `sections/<key>.txt` would replace. `Sections()` lists every key of the character prompt in the
+stock order, with its zone (`Prefix`, `Marker`, `Tail`) and lock (`None`, `Required`, `Sealed`). `StockSections(heroId)`
+gives the same list with the text the STOCK prompt writes in each section for that character right now (no profile's
+layout or rewording), built the way a conversation with them is; `StockSectionText(key, heroId)` reads one. A section's
+text follows the character and the moment (rank, adult content level, Compact...), so an empty text means it writes
+nothing for them now, not that it has no words. Joined, the texts are the stock prompt. Only the one-to-one character
+prompt is keyed (not the commoner's or the council's). Game thread, campaign loaded.
+
 ### Scenario packs (`ModuleData/cr_scenarios`, since 2.7.9)
 
 A scenario is a rule that makes the world react: when a trigger fires (`ON_DEATH`, `ON_MARRIAGE`, `ON_WAR_DECLARED`,
@@ -364,6 +373,22 @@ A realm can also carry her chat portrait: `"<realm id>": { "face": "<BodyPropert
 the faces file's own folder, never outside it. It follows the face: the woman wearing it shows it in chat, letters and
 the council, and a former queen goes back to her usual portrait. A picture the player dropped in `ChatPortraits` for
 that hero still wins.
+
+### Chat portraits from your mod (`CrPortraits.RegisterSource`, since 2.8.10)
+
+A picture dropped in `ChatPortraits` is named by the hero's StringId, and a hero born or spawned in play has a runtime id
+(`CharacterObject_2526`) that names someone else in the next campaign. A source answers in code instead:
+
+```csharp
+CrPortraits.RegisterSource("MyMod", heroId => MyPictures.PathFor(heroId)); // full path to a PNG or JPG, or null
+```
+
+CR asks it each time it shows a hero's portrait (chat lines, council seats, letters) and shows the image when the path
+exists and ends in .png, .jpg or .jpeg. Order: the player's own `ChatPortraits` file first (their choice), then the
+sources in the order of their names, then the realm portrait CR gives a queen, then the 3D render. Answer fast and
+without side effects: it runs while a window is drawn. A source that throws is passed over and logged once. CR keeps a
+loaded image by its path for the session, so write a changed picture under a new file name. `CrPortraits.Resolve(heroId)`
+tells which image CR would show; `UnregisterSource(name)` removes yours. Game thread.
 
 ### Reading regard (`CrNpcMemory.GetRegard`, since 2.7.4)
 

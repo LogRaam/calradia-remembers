@@ -389,7 +389,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 
 | Constant | Value | What it is |
 |---|---|---|
-| `Version` | 1 | Raised by one at each release that adds a door; never lowered, and a door once shipped stays. 1 = Calradia Remembers 2.8.10 (CrDiplomacy, CrWorld, CrCharacterText, CrLore, Feed secrecy fields, CrPrompt.Reload, Feed.List,... |
+| `Version` | 1 | Raised by one at each release that adds a door; never lowered, and a door once shipped stays. 1 = Calradia Remembers 2.8.10 (CrDiplomacy, CrWorld, CrCharacterText, CrLore, CrPortraits, Feed secrecy fields, CrPrompt.Reloa... |
 
 ### CrFolklore
 

@@ -90,7 +90,8 @@ namespace CalradiaRemembers
    {
       /// <summary>
       ///   Raised by one at each release that adds a door; never lowered, and a door once shipped stays. 1 = Calradia Remembers
-      ///   2.8.10 (CrDiplomacy, CrWorld, CrCharacterText, CrLore, Feed secrecy fields, CrPrompt.Reload, Feed.List, CrAims.List).
+      ///   2.8.10 (CrDiplomacy, CrWorld, CrCharacterText, CrLore, CrPortraits, Feed secrecy fields, CrPrompt.Reload,
+      ///   CrPrompt.StockSections, Feed.List, CrAims.List).
       ///   Older doors keep their own version constants (CrNpcMemory.ApiVersion, Feed.ApiVersion). A mod without a compile-time
       ///   reference reads this field by reflection: absent means older than 2.8.10.
       /// </summary>
