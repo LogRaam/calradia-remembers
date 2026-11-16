@@ -61,7 +61,7 @@ _The door through which other mods give lords aims of their own._
 
 _The version of CR's whole extension surface, for a mod that detects what it can use._
 
-- `const int Version = 2`
+- `const int Version = 3`
 
 ### CrAppearance
 
@@ -115,9 +115,11 @@ _Lets another mod forbid the conceptions Calradia Remembers creates._
 _The public conversation-lifecycle events other mods subscribe to._
 
 - `static bool PromptReply(string outcomeHint)`
+- `static bool ShowPicture(string sessionId, string imagePath, string caption)`
 - `static event Action<CrConversationInfo> Started`
 - `static event Action<CrConversationLog> Ended`
 - `static event Action<CrSpeechLine> LineSpoken`
+- `static string OpenSessionId { get; }`
 
 ### CrConversationInfo
 

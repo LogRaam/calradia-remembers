@@ -76,6 +76,71 @@ namespace CalradiaRemembers
          }
       }
 
+      /// <summary>
+      ///   The id of the conversation open NOW, the same <see cref="CrSpeechLine.SessionId" /> every line of it carries, or
+      ///   null when no conversation is open. Hand it back to <see cref="ShowPicture" /> so a picture finished after the
+      ///   player left is dropped rather than shown in the next conversation.
+      /// </summary>
+      public static string OpenSessionId
+         => Chat.ChatManager.IsOpen && Chat.ChatManager.ActiveViewModel != null ? _sequencer.SessionId : null;
+
+      /// <summary>
+      ///   Shows a picture your mod made (an illustration of a line, a scene) in the open conversation's picture panel,
+      ///   the one CR's tales use: fitted without distortion, under <paramref name="caption" /> (one line, at most 120
+      ///   characters). <paramref name="sessionId" /> is the conversation it was made for (<see cref="OpenSessionId" />, or
+      ///   the <see cref="CrSpeechLine.SessionId" /> of the line you illustrated): if that conversation has closed or
+      ///   another is open, nothing is shown. A .png, .jpg or .jpeg file that exists; one picture at a time, the latest
+      ///   replacing the one before. Write each picture under a NEW file name: CR keeps a loaded image by its path for the
+      ///   session.
+      ///   <para>
+      ///     Returns false, showing nothing, when the picture is refused (the reason is logged as [EXT PICTURE]); true when
+      ///     it is accepted, and it is then drawn on the game thread at the next frame, so you may call this from any
+      ///     thread, including the continuation of your own generation task. Never throws. Since 2.8.13 (CrApi.Version 3).
+      ///   </para>
+      /// </summary>
+      public static bool ShowPicture(string sessionId, string imagePath, string caption)
+      {
+         try
+         {
+            string why = PictureRefusal(sessionId, imagePath);
+            if (why != null)
+            {
+               ModLog.Info($"[EXT PICTURE] refused ({why}): {System.IO.Path.GetFileName(imagePath ?? "")}");
+
+               return false;
+            }
+
+            string title = ExternalPicturePolicy.Caption(caption);
+            MainThreadDispatcher.Enqueue(() =>
+            {
+               // The conversation may have closed between the call and this frame.
+               if (PictureRefusal(sessionId, imagePath) != null) return;
+               Chat.ChatManager.ActiveViewModel?.ShowSceneImage(imagePath, title);
+               ModLog.Info($"[EXT PICTURE] shown: {System.IO.Path.GetFileName(imagePath)}");
+            });
+
+            return true;
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[EXT PICTURE] ShowPicture threw and was isolated: {ex.GetType().Name}: {ex.Message}");
+
+            return false;
+         }
+      }
+
+      private static string PictureRefusal(string sessionId, string imagePath)
+      {
+         string open = OpenSessionId;
+
+         return ExternalPicturePolicy.WhyRefused(new ExternalPictureFacts {
+            ConversationOpen = open != null,
+            SessionMatches = open != null && string.Equals(open, sessionId, StringComparison.Ordinal),
+            FileExists = !string.IsNullOrWhiteSpace(imagePath) && System.IO.File.Exists(imagePath),
+            Extension = string.IsNullOrWhiteSpace(imagePath) ? "" : System.IO.Path.GetExtension(imagePath)
+         });
+      }
+
       // Raised by CR (internal). A caller only subscribes; it never raises.
       internal static void RaiseStarted(string npcId, int gameDay)
       {

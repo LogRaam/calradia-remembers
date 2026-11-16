@@ -418,6 +418,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("companion_news_fresh", Severity.Light, "LapitaPolata (Nexus, 17/10/2026): a companion told of a castle being besieged after it had fallen, and of a war breaking out while the player was already riding to a siege in it. Records test news and reads it through the real glue (CompanionAudienceTopicResolver.FreshnessFacts): a siege fight at a place recorded as fallen since is overtaken; a war naming the player's own realm or clan is theirs; news ten days old is too old; fresh news of two other realms may still be brought with NPCs Raise World News on. Lordfadooboo (Nexus, 16/11/2026): with the switch off, companions still came to tell of a random castle taken; the same fresh news is now held back when it is off. Removes the test news and restores the switch.", TestCompanionNewsFresh),
          new SelfTest("mentioned_names_bounded", Severity.Light, "VonLemberg and Goeth (Discord, 16/11/2026, source audits of 2.8.12): one shared word admitted every hero bearing it into NAMES MENTIONED, uncapped (about 6,000 characters), and the line gave a culture but never the realm. Through the REAL ContextualNameResolver.Resolve, spoken to a lord: a message naming twelve lords by their own names describes at most eight and counts the rest; a message that is only a culture word describes nobody of that culture; a lord of a realm named alone is said to serve (or rule) the realm his house serves now, with the line that a culture is not an allegiance. The verbs' ResolveMentionedHeroes still returns all twelve. Reads only, changes nothing", TestMentionedNamesBounded),
          new SelfTest("resident_not_a_guest", Severity.Light, "VonLemberg and Goeth (Discord, 16/11/2026, source audit of 2.8.12): a merchant in his own home town was told \"It is NOT your holding, you are here as a guest\", and a governor of another clan's town too. Through the REAL EncounterContextBuilder.BuildLocationNote: a town notable standing in his home town owned by another clan lives there and is no guest; a governor of another clan's town governs it in its owner's name; a lord of another house in a town is still its guest. Reads only, changes nothing; skips a case the world does not offer", TestResidentNotAGuest),
+         new SelfTest("external_picture", Severity.Light, "VonLemberg (Discord, 16/11/2026): his mod illustrates a chat line and asks CR to show the picture, linked to its conversation, stale results dropped; Gabriel: reuse the tales' picture panel, videos later. With a staged conversation open on a lord, through the REAL CrConversation.ShowPicture: a picture named for another session and a video are refused; a .png named for the open session is accepted and, once the frame's queue runs, is the panel's picture under its caption; after the conversation closes, OpenSessionId is null and the same picture is refused. Removes its temporary file, closes the conversation", TestExternalPicture),
          new SelfTest("realm_bond_asked_first", Severity.Light, "Lordfadooboo (Nexus, 16/11/2026): \"ive been shanghaied more than once in a conversation about handling bandits\"; Gabriel: the oath of vassalage too. With the ruler of a realm other than the player's, the REAL ActionConfirmationController holds a join_as_mercenary and a join_as_vassal for the player's yes, each question naming the realm (and 'vassal' for the oath), the player's clan unchanged while they wait; the same contract emitted again is dropped. Nothing is confirmed, so no clan moves", TestRealmBondAskedFirst),
          new SelfTest("reply_language_everywhere", Severity.Light, "RaveN017Mod (Nexus, 17/10/2026): French game, Reply Language French, yet a character who came to him on the map and every council opened in English; he asked whether the mod could read the game's language. With the setting blank, the language resolved is the game's (none for an English game); with it set to Spanish, an opening cue ends naming Spanish and the council prompt carries Spanish. Restores the setting.", TestReplyLanguageEverywhere),
          new SelfTest("gossip_once_per_news", Severity.Light, "froggyluv (Nexus, 17/10/2026): with NPCs Raise World News on, notable after notable stopped him to ask what he knew of the same war, then the same capture. Turns the option on, records a great piece of news of two lords' realm, and drives the real candidate gathering (BuildRecentMatters): both lords could ask about it; once the first has offered it (an invitation naming it), the second no longer can, and the first still can, for when the player accepts. Restores the option, the news and the ledger.", TestGossipOncePerNews),
@@ -5730,6 +5731,51 @@ namespace CalradiaRemembers.Diagnostics
                                                                 && h.GovernorOf?.Settlement != h.CurrentSettlement);
          if (visitor != null) t.Expect("aVisitingLordIsStillAGuest", (EncounterContextBuilder.BuildLocationNote(visitor) ?? "").Contains("as a guest"), true);
          else t.Note("no lord visiting another clan's settlement: that case skipped");
+
+         return t.Line();
+      }
+
+      private static string TestExternalPicture(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("external_picture");
+         if (t.Skip(Chat.ChatManager.IsOpen || Chat.ExplorationBackdrop.IsOpen || UI.CrPanelHost.AnyPanelOwnsScreen, "a window or panel already owns the screen")) return t.Line();
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && Mapping.HeroPresence.IsInTheWorld(h) && !h.IsPrisoner);
+         if (t.Skip(lord == null, "no lord to speak with")) return t.Line();
+
+         // A 2x1 PNG, enough for the panel to read its size and draw it (as scene_image_shown).
+         const string png = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAADklEQVR4nGNoSHD4D8IAEcMEPz986fMAAAAASUVORK5CYII=";
+         string path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "cr_selftest_ext_picture_" + Guid.NewGuid().ToString("N") + ".png");
+         CampaignTimeControlMode timeBefore = Campaign.Current.TimeControlMode;
+         string session = null;
+         try
+         {
+            System.IO.File.WriteAllBytes(path, Convert.FromBase64String(png));
+            GetOrCreate(behavior, lord);
+            Chat.ChatManager.Open(lord.Name.ToString(), opening: Chat.ChatOpening.Staged);
+            Chat.ChatViewModel vm = Chat.ChatManager.ActiveViewModel;
+            if (t.Skip(vm == null, "the conversation did not open")) return t.Line();
+            vm.SetNpcHero(lord);
+
+            session = CrConversation.OpenSessionId;
+            t.Expect("theOpenConversationHasAnId", !string.IsNullOrEmpty(session), true);
+            t.Expect("aPictureOfAnotherSessionIsRefused", CrConversation.ShowPicture("not-this-session", path, "x"), false);
+            t.Expect("aVideoIsRefusedForNow", CrConversation.ShowPicture(session, System.IO.Path.ChangeExtension(path, ".crvid"), "x"), false);
+
+            t.Expect("thePictureIsAccepted", CrConversation.ShowPicture(session, path, "(selftest) Lucon at the ford"), true);
+            MainThreadDispatcher.Pump();
+            t.Expect("itIsThePanelsPicture", vm.SceneImagePath, path);
+         }
+         finally
+         {
+            if (Chat.ChatManager.IsOpen) Chat.ChatManager.Close();
+            MainThreadDispatcher.Pump();
+            Campaign.Current.TimeControlMode = timeBefore;
+         }
+
+         t.Expect("noSessionOnceClosed", CrConversation.OpenSessionId, null);
+         t.Expect("aLatePictureIsRefused", session != null && CrConversation.ShowPicture(session, path, "x"), false);
+         try { System.IO.File.Delete(path); }
+         catch (Exception ex) { t.Note("temporary picture not removed: " + ex.Message); }
 
          return t.Line();
       }

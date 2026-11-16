@@ -739,10 +739,32 @@ if (CrLlm.IsReady)   // else CrLlm.Unavailable() says why
   CR never calls on its own because you registered: only your `CompleteAsync` spends.
 - `Turns` alternate: `FromModel = false` for a line put to the character, `true` for one it said before.
 
+### A picture from your mod, in the conversation (`CrConversation.ShowPicture`, since 2.8.13)
+
+Your mod makes a picture (an illustration of a line, a scene) and CR shows it in the open conversation's picture panel,
+the one its tales use, fitted without distortion, in both chat skins:
+
+```csharp
+string session = CrConversation.OpenSessionId;          // or the SessionId of the CrSpeechLine you illustrate
+// ... generate the picture on your side, write it to a NEW file name ...
+bool shown = CrConversation.ShowPicture(session, @"C:\...\line_0042.png", "Lucon at the ford");
+```
+
+- `sessionId` names the conversation the picture was made for. If the player has left it, or another is open, nothing is
+  shown: a picture that took a minute to make never lands in the wrong conversation. `OpenSessionId` is null when no
+  conversation is open; every `CrSpeechLine` from `LineSpoken` carries the same id, with its `LineIndex`, so you can tie
+  a picture to the line it shows.
+- A .png, .jpg or .jpeg that exists. One picture at a time: the latest replaces the one before. CR keeps a loaded image by
+  its path for the session, so write each new picture under a new name. Videos are not taken by this door yet.
+- The caption is one line, cut at 120 characters.
+- Call it from any thread (the continuation of your generation task is fine): it is drawn on the game thread at the next
+  frame. False means refused, with the reason in CR's log as `[EXT PICTURE]`; it never throws.
+- The button that asks for a picture is yours (your own prefab, a hotkey): CR adds none.
+
 ### Detecting what CR offers (`CrApi.Version`, since 2.8.10)
 
 `CrApi.Version` is raised by one at each release that adds a door, never lowered. 1 = 2.8.10, 2 = 2.8.12 (`CrPrompt.Persona`,
-`CrLlm`). Absent (read by reflection) means older than 2.8.10. Read it by reflection or at run time: a constant compiled
+`CrLlm`), 3 = 2.8.13 (`CrConversation.ShowPicture`, `OpenSessionId`). Absent (read by reflection) means older than 2.8.10. Read it by reflection or at run time: a constant compiled
 into your mod keeps the value it was built with. The older `CrNpcMemory.ApiVersion` and `Feed.ApiVersion` keep their own meaning.
 
 ### Regard changes (`CrNpcMemory.RegardChanged`, since 2.6.7)
