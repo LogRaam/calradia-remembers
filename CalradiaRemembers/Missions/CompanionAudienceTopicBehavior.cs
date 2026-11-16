@@ -436,7 +436,8 @@ namespace CalradiaRemembers.Missions
          // state being restored under the dismissing inquiry, left the inquiry undismissed and the engine
          // re-presented it every frame (the "million popups" cascade). One frame later the inquiry is gone and
          // the menu has settled, so the overlay opens cleanly. See NpcMemoryServiceSubmodule.OnApplicationTick.
-         MainThreadDispatcher.Enqueue(() =>
+         // The campaign's queue (VonLemberg, 16/11/2026): the pending audience is already cleared, so a chat close must not drop it.
+         MainThreadDispatcher.EnqueueForCampaign(() =>
          {
             // "granted", not "opened": this line used to say opened and was written whatever happened next,
             // so a log could assert an audience had opened when no window ever appeared. Whether it opened is

@@ -1516,7 +1516,7 @@ namespace CalradiaRemembers.Interception
          AudienceInquiry.Show(pursuer, $"{pursuer.Name} bars your way",
             $"{pursuer.Name}, of a realm at war with yours, rides up and demands a word with you{why}.",
             "Speak with them", "Not now",
-            () => MainThreadDispatcher.Enqueue(() =>
+            () => MainThreadDispatcher.EnqueueForCampaign(() =>
             {
                // One frame later, as the fief audience does: opening the chat inside the inquiry's consequence left the
                // inquiry on screen and the engine showed it again every frame.

@@ -110,7 +110,7 @@ namespace CalradiaRemembers.Interception
          InquiryData data = Showing;
          if (data == null || !HeroOf.TryGetValue(data, out string heroId)) return;
 
-         MainThreadDispatcher.Enqueue(() => StartDetour(data, heroId, openPage: true));
+         MainThreadDispatcher.EnqueueForCampaign(() => StartDetour(data, heroId, openPage: true));
       }
 
       /// <summary>Each frame: raises the invitation again once its encyclopedia detour is over.</summary>

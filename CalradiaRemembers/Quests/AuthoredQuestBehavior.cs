@@ -634,7 +634,7 @@ namespace CalradiaRemembers.Quests
             AuthoredQuestEngine.ConversationClosed(_run, log?.NpcId);
             // A scene that came due while another conversation was open opens now that it has ended.
             if (_sceneWaiting && _run != null && _quests.TryGetValue(_run.QuestId, out AuthoredQuest waiting))
-               MainThreadDispatcher.Enqueue(() => OpenScene(waiting));
+               MainThreadDispatcher.EnqueueForCampaign(() => OpenScene(waiting));
             if (_offer == null || _offerHeroId != log?.NpcId) return;
 
             AuthoredQuestRun offer = _offer;
@@ -1408,7 +1408,7 @@ namespace CalradiaRemembers.Quests
          if (text.Count > 0)
          {
             string body = string.Join(Environment.NewLine + Environment.NewLine, text);
-            MainThreadDispatcher.Enqueue(() => InformationManager.ShowInquiry(new InquiryData(q.Title, body, true, false, "Go on", "", null, null)));
+            MainThreadDispatcher.EnqueueForCampaign(() => InformationManager.ShowInquiry(new InquiryData(q.Title, body, true, false, "Go on", "", null, null)));
          }
 
          Apply(q, step);
@@ -1439,7 +1439,7 @@ namespace CalradiaRemembers.Quests
                // so both see an elopement the stage carried out as done.
                List<CrTaleConsequence> entered = CarryOutConsequences(q, AuthoredQuestEngine.OnEnter(_run, q));
                FireTaleEvent(q, step.ToStage, entered);
-               if (AuthoredQuestEngine.Current(_run, q)?.Objective?.Type == "explore") MainThreadDispatcher.Enqueue(() => OpenScene(q));
+               if (AuthoredQuestEngine.Current(_run, q)?.Objective?.Type == "explore") MainThreadDispatcher.EnqueueForCampaign(() => OpenScene(q));
 
                break;
             case AuthoredStepKind.Completed:
@@ -1670,9 +1670,10 @@ namespace CalradiaRemembers.Quests
 
       // Waits frame by frame (at most a few seconds' worth) for the chat to be closed, then stages the meeting, if the tale
       // still waits for it.
+      // On the campaign's queue (VonLemberg, 16/11/2026): waiting out a chat in the queue its close clears lost the meeting.
       private void StageWhenFree(string questId, Hero who, int framesLeft)
       {
-         MainThreadDispatcher.Enqueue(() =>
+         MainThreadDispatcher.EnqueueForCampaign(() =>
          {
             if (_run is not {Status: AuthoredQuestStatus.Active} || _run.QuestId != questId) return;
             // The scene that led here closes its backdrop on a later frame: the meeting waits for it to be gone.

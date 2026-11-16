@@ -14,6 +14,10 @@
 // deliver/refuse decision. The CONTINUOUS daily surveillance COUNCIL_ACTIONS.md describes (RewardPremiseGone,
 // notifying the player the moment a promise breaks rather than only at completion) is a documented FOLLOW-UP,
 // not built here.
+//
+// Aporo (Discord, 16/11/2026): Queen Rhagaea paid a castle of her realm, as a task's reward, to a player who was not her
+// vassal; he became an independent lord of land cut out of her kingdom. Gabriel (16/11/2026): "b" - a ruler's land goes
+// only to a lord sworn to her realm; to anyone else the promise degrades to the amends, as for any promise the world broke.
 namespace CalradiaRemembers.Logic.Quests
 {
     /// <summary>The binary outcome of re-validating a heavy quest reward (fief or marriage) at payout.</summary>
@@ -102,6 +106,12 @@ namespace CalradiaRemembers.Logic.Quests
            ///   absurd, and vanilla's own ChangeOwnerOfSettlementAction carries no such guard.
            /// </summary>
            public bool PlayerAtWarWithGiverClan { get; set; }
+
+           /// <summary>
+           ///   The giver's clan serves a realm and the player's clan is not sworn to it as a vassal (outside it, or there
+           ///   for pay only). A realm's land is held by its own lords (Aporo, 16/11/2026). False when the giver serves none.
+           /// </summary>
+           public bool PlayerNotSwornToGiversRealm { get; set; }
         }
 
         /// <summary>
@@ -126,6 +136,7 @@ namespace CalradiaRemembers.Logic.Quests
             if (!giverLeadsOwnClan) return QuestRewardPayoutVerdict.Refuse;
             if (!fiefStillOwnedByGiverClan) return QuestRewardPayoutVerdict.Refuse;
             if (playerAtWarWithGiverClan) return QuestRewardPayoutVerdict.Refuse;
+            if (facts.PlayerNotSwornToGiversRealm) return QuestRewardPayoutVerdict.Refuse;
 
             return QuestRewardPayoutVerdict.Deliver;
         }

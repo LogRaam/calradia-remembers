@@ -5503,11 +5503,15 @@ namespace CalradiaRemembers.GameState
          bool giverLeadsOwnClan = giverAlive && npcHero.Clan != null && npcHero.Clan.Leader == npcHero;
          bool fiefStillOwned = fief != null && (fief.IsTown || fief.IsCastle) && fief.OwnerClan == npcHero.Clan;
          bool atWar = IsAtWarWithPlayer(npcHero);
+         // Aporo (16/11/2026): a realm's land goes only to a lord sworn to it, not to an outsider or a mercenary.
+         Kingdom giversRealm = npcHero?.Clan?.Kingdom;
+         bool notSworn = giversRealm != null && (Clan.PlayerClan?.Kingdom != giversRealm || Clan.PlayerClan.IsUnderMercenaryService);
 
-         QuestRewardPayoutVerdict verdict = QuestRewardGatePolicy.DecideFiefPayout(new QuestRewardGatePolicy.FiefRewardFacts {ToggleOn = ModSettings.AllowFiefAndMarriageQuestRewards, GiverAlive = giverAlive, GiverLeadsOwnClan = giverLeadsOwnClan, FiefStillOwnedByGiverClan = fiefStillOwned, PlayerAtWarWithGiverClan = atWar});
+         QuestRewardPayoutVerdict verdict = QuestRewardGatePolicy.DecideFiefPayout(new QuestRewardGatePolicy.FiefRewardFacts {ToggleOn = ModSettings.AllowFiefAndMarriageQuestRewards, GiverAlive = giverAlive, GiverLeadsOwnClan = giverLeadsOwnClan, FiefStillOwnedByGiverClan = fiefStillOwned, PlayerAtWarWithGiverClan = atWar, PlayerNotSwornToGiversRealm = notSworn});
 
          if (verdict != QuestRewardPayoutVerdict.Deliver)
-            return DegradeHeavyReward(npcHero, profile, $"the fief of {quest.PromisedSettlementName ?? "the promised land"}", atWar);
+            return DegradeHeavyReward(npcHero, profile, $"the fief of {quest.PromisedSettlementName ?? "the promised land"}", atWar,
+                                      !atWar && notSworn && giverAlive && fiefStillOwned ? $"the land of {giversRealm.Name} is held only by a lord sworn to it" : null);
 
          // v1.34.2 governance hardening (finding 3): release the giver's own governor before the fief passes to
          // the player, or that hostile hero would keep governing a fief that is no longer theirs. Same shared
@@ -5559,15 +5563,15 @@ namespace CalradiaRemembers.GameState
       ///   here, at payout) is a documented FOLLOW-UP: this method only covers the payout-time half of the
       ///   promise's lifecycle.
       /// </summary>
-      private static ActionOutcome DegradeHeavyReward(Hero npcHero, NpcProfile profile, string promiseLabel, bool atWar)
+      private static ActionOutcome DegradeHeavyReward(Hero npcHero, NpcProfile profile, string promiseLabel, bool atWar, string knownCause = null)
       {
          const int compensationGold = 500;
          const int compensationRelation = 5;
 
          var day = (int) CampaignTime.Now.ToDays;
-         string cause = atWar
+         string cause = knownCause ?? (atWar
             ? "the two of you are now at war"
-            : "the world has since moved against it";
+            : "the world has since moved against it");
 
          profile?.Events.Add(new NotableEvent(day, NotableEventType.Conflict,
             $"Could not honor the promise of {promiseLabel}: {cause}. The debt remains unpaid."));

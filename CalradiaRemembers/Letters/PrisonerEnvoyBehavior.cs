@@ -272,7 +272,7 @@ namespace CalradiaRemembers.Letters
          Interception.AudienceInquiry.Show(lord, "An envoy under a flag of truce",
             $"An envoy of {lord.Name} rides up under a flag of truce and asks to speak with you about {envoy.Audience.Mandate.WantedCaptiveName}, whom you hold.",
             "Receive the envoy", "Send them away",
-            () => MainThreadDispatcher.Enqueue(() => ChatSceneStager.StageEnvoyAudience(envoyName, portrait, envoy.Audience)),
+            () => MainThreadDispatcher.EnqueueForCampaign(() => ChatSceneStager.StageEnvoyAudience(envoyName, portrait, envoy.Audience)),
             () => ModLog.Info($"[ENVOY] the player sent {lord.Name}'s envoy away."));
       }
 

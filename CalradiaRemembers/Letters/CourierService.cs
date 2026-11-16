@@ -1346,8 +1346,9 @@ namespace CalradiaRemembers.Letters
          {
             PendingLetter carried = reply;
             NpcProfile writer = profile;
+            Campaign asked = Campaign.Current; // VonLemberg (16/11/2026): the envelope belongs to this campaign
             System.Threading.Tasks.Task<string> writing = LetterGenerationService.WriteEnvelopeAsync(carried, writer);
-            writing.ContinueWith(t => LetterMutationQueue.Post(() =>
+            writing.ContinueWith(t => LetterMutationQueue.Post(asked, () =>
             {
                string text = t.Status == System.Threading.Tasks.TaskStatus.RanToCompletion ? t.Result : null;
                if (string.IsNullOrWhiteSpace(text)) return;

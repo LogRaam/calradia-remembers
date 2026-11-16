@@ -6,6 +6,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using CalradiaRemembers.Foundation;
+using TaleWorlds.CampaignSystem;
 
 #endregion
 
@@ -49,6 +50,31 @@ namespace CalradiaRemembers.Foundation
       public static void EnqueueLasting(Action action)
       {
          if (action != null) Lasting.Enqueue(action);
+      }
+
+      /// <summary>
+      ///   Queues work the CAMPAIGN owns (a tale's meeting, an audience granted, an envoy received, a scene due): it survives
+      ///   a chat closing, and is set aside, logged, if another campaign is loaded before it runs. VonLemberg (Discord
+      ///   16/11/2026, addendum "Dispatcher Quest Audience Blast Radius"; Gabriel: "oui fait 2 et 3"): a tale's summoned
+      ///   meeting waits frame by frame while a chat is open, in the queue that chat's close clears, so the close that would
+      ///   have freed it dropped it for good. Call it on the game thread (it reads the loaded campaign).
+      /// </summary>
+      public static void EnqueueForCampaign(Action action)
+      {
+         if (action == null) return;
+
+         Campaign asked = Campaign.Current;
+         Lasting.Enqueue(() =>
+         {
+            if (!ReferenceEquals(asked, Campaign.Current))
+            {
+               ModLog.Info("[dispatcher] campaign work queued under another campaign was set aside.");
+
+               return;
+            }
+
+            action();
+         });
       }
 
       /// <summary>Queues a continuation to run on the next main-thread drain. Thread-safe.</summary>

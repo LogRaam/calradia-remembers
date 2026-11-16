@@ -300,7 +300,7 @@ across two conversations. A NEW LINE here is a new lifetime to decide, not just 
 | `LetterBoxWindow` | `_vm` | `LetterBoxViewModel` | field |
 | `LetterFontResolver` | `LanguageIdProvider` | `Func<string>` | field |
 | `LetterIntentionResolver` | `WarDutyOpenFor` | `Func<string, bool>` | field |
-| `LetterMutationQueue` | `Pending` | `ConcurrentQueue<Action>` | collection, contents change |
+| `LetterMutationQueue` | `Pending` | `ConcurrentQueue<(Campaign Owner, Action Mutation)>` | collection, contents change |
 | `LetterPleas` | `Desk` | `ILetterPleaDesk` | settable property |
 | `LetterWindowManager` | `_pendingSetup` | `Action<LetterViewModel>` | field |
 | `LiveSprites` | `Sprites` | `Dictionary<string, Sprite>` | collection, contents change |

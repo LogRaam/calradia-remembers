@@ -141,6 +141,15 @@ namespace CalradiaRemembers.Tests
                 .Should().Be(QuestRewardPayoutVerdict.Refuse);
         }
 
+        // STAKE: Aporo, not her vassal, was handed a castle of Queen Rhagaea's realm for clearing a hideout and became an
+        // independent lord of her land. A realm's land goes to a lord sworn to it; anyone else gets the amends.
+        [Test]
+        public void GIVEN_a_player_not_sworn_to_the_givers_realm_WHEN_deciding_the_fief_payout_THEN_it_refuses()
+        {
+            QuestRewardGatePolicy.DecideFiefPayout(new QuestRewardGatePolicy.FiefRewardFacts {ToggleOn = true, GiverAlive = true, GiverLeadsOwnClan = true, FiefStillOwnedByGiverClan = true, PlayerNotSwornToGiversRealm = true})
+                .Should().Be(QuestRewardPayoutVerdict.Refuse);
+        }
+
         [Test]
         public void GIVEN_every_marriage_precondition_still_holds_WHEN_deciding_the_payout_THEN_it_delivers()
         {

@@ -310,7 +310,8 @@ namespace CalradiaRemembers.Interception
          // it every frame (the "million popups" cascade). One frame later the inquiry is gone and the menu has
          // settled, so the chat opens cleanly. The stash rides with the open so the one-shot reason it feeds is
          // set right before it is consumed. See NpcMemoryServiceSubmodule.OnApplicationTick.
-         MainThreadDispatcher.Enqueue(() =>
+         // The campaign's queue (VonLemberg, 16/11/2026): the pending audience is already cleared, so a chat close must not drop it.
+         MainThreadDispatcher.EnqueueForCampaign(() =>
          {
             InterceptionBehavior.Instance?.StashFiefAudienceReason(npc, trigger, detail);
             if (trigger == InterceptionTrigger.StandingAim) Aims.AimsBehavior.Instance?.ExpectAudience(npc);

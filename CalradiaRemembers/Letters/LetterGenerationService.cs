@@ -534,6 +534,8 @@ namespace CalradiaRemembers.Letters
       {
          if (llmServices?.ChatService == null) return;
          if (string.IsNullOrWhiteSpace(playerLetter.Content)) return;
+         // VonLemberg (16/11/2026): what this letter changes belongs to the campaign it was written in (LetterMutationQueue).
+         Campaign asked = Campaign.Current;
 
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
          string writtenBy = CorrespondenceRank.WrittenByFor(senderHero, profile, LetterReason.PlayerLetterReply);
@@ -549,13 +551,13 @@ namespace CalradiaRemembers.Letters
 
          // The letter has reached them: a stop order is obeyed now, whether or not they write back.
          if (onPatrol && PatrolLetterText.OrdersStop(rawDecision))
-            LetterMutationQueue.Post(() => Missions.CompanionPatrolBehavior.Instance?.ObeyLetterToStop(profile.Id));
+            LetterMutationQueue.Post(asked, () => Missions.CompanionPatrolBehavior.Instance?.ObeyLetterToStop(profile.Id));
          rawDecision = PatrolLetterText.StripOrderLine(rawDecision);
 
          // Lordfadooboo (28/09/2026): the reader's judgement of the letter moves their regard, reply or not (an
          // insult is the letter most often passed over, and the one most worth judging).
          LetterTone tone = LetterRegardPolicy.ParseTone(rawDecision);
-         LetterMutationQueue.Post(() =>
+         LetterMutationQueue.Post(asked, () =>
          {
             LetterRegardService.Apply(profile, tone, today);
             store.Set(profile);
@@ -598,7 +600,7 @@ namespace CalradiaRemembers.Letters
          };
 
          // 3.1: thread-pool continuation; apply the list/store mutation on the main thread.
-         LetterMutationQueue.Post(() =>
+         LetterMutationQueue.Post(asked, () =>
          {
             profile.SentLetters.Add(reply);
 
@@ -643,6 +645,8 @@ namespace CalradiaRemembers.Letters
          int today)
       {
          if (llmServices?.ChatService == null) return;
+         // VonLemberg (16/11/2026): what this reply changes belongs to the campaign it was written in (LetterMutationQueue).
+         Campaign asked = Campaign.Current;
 
          string playerName = Hero.MainHero?.Name?.ToString() ?? "the player";
          // IdentityCrysys (08/10/2026): a reply to the "why no reply?" follow-up is about the thread, not the silence the
@@ -661,7 +665,7 @@ namespace CalradiaRemembers.Letters
 
          // The player answered the monthly letter: "come back" rides the courier (Gabriel, 16/10/2026).
          if (onPatrol && PatrolLetterText.OrdersStop(raw))
-            LetterMutationQueue.Post(() =>
+            LetterMutationQueue.Post(asked, () =>
             {
                Hero companion = Hero.FindFirst(h => h.StringId == profile.Id);
                if (companion != null) Missions.CompanionPatrolBehavior.Instance?.OrderRecallByLetter(companion);
@@ -687,7 +691,7 @@ namespace CalradiaRemembers.Letters
          };
 
          // 3.1: thread-pool continuation; apply the list/store mutation on the main thread.
-         LetterMutationQueue.Post(() =>
+         LetterMutationQueue.Post(asked, () =>
          {
             profile.SentLetters.Add(reply);
             LetterRegardService.Apply(profile, tone, today);
