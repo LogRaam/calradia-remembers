@@ -61,18 +61,28 @@ namespace CalradiaRemembers.Mapping
 
          if (mentioned.Count == 0 && lost.Count == 0) return null;
 
-         var matches = new List<(string FullName, string Gender, string Relationship, string Whereabouts, string Prisoner)>();
+         var matches = new List<(string FullName, string Gender, string Relationship, string Allegiance, string Whereabouts, string Prisoner)>();
 
          // The speaker's own dead first: the one a grieving father means when a living namesake shares the name.
          foreach (var (dead, fullName, tie) in lost)
-            matches.Add((fullName, ThirdPartyDescriptor.GenderNoun(dead.IsFemale), tie, null, null));
+            matches.Add((fullName, ThirdPartyDescriptor.GenderNoun(dead.IsFemale), tie, null, null, null));
 
-         foreach (var (other, fullName, relationship) in mentioned)
-            matches.Add((fullName, ThirdPartyDescriptor.GenderNoun(other.IsFemale),
-               relationship, ResolveWhereabouts(npc, other, bridge), PrisonerStatusClause(npc, other, fullName)));
+         // VonLemberg / Goeth (16/11/2026): one shared word admitted every hero bearing it, uncapped. The prompt now carries
+         // the most likely meant (MentionedPeoplePolicy) and counts the rest; the verbs' entity resolution still reads the
+         // full list from ResolveMentionedHeroes.
+         MentionSelection chosen = SelectForPrompt(npc, mentioned, playerMessage);
+         var byKey = mentioned.GroupBy(m => m.Hero.StringId).ToDictionary(g => g.Key, g => g.First());
+         foreach (string key in chosen.Shown)
+         {
+            var (other, fullName, relationship) = byKey[key];
+            matches.Add((fullName, ThirdPartyDescriptor.GenderNoun(other.IsFemale), relationship, AllegianceOf(other),
+               ResolveWhereabouts(npc, other, bridge), PrisonerStatusClause(npc, other, fullName)));
+         }
 
-         string hint = BuildHint(matches);
-         if (lost.Count > 0 && mentioned.Count > 0)
+         if (matches.Count == 0) return null;
+
+         string hint = BuildHint(matches, chosen.Omitted);
+         if (lost.Count > 0 && chosen.Shown.Count > 0)
             hint += $"\n{lost[0].FullName} is {lost[0].Tie.Split('(')[0].Trim()}: unless the player says otherwise, that is who they mean; never ask which one.";
 
          return hint;
@@ -173,7 +183,42 @@ namespace CalradiaRemembers.Mapping
 
       #region private
 
-      private static string BuildHint(List<(string FullName, string Gender, string Relationship, string Whereabouts, string Prisoner)> matches)
+      /// <summary>The facts MentionedPeoplePolicy weighs for each person found: how they were found and what ties them to the speaker.</summary>
+      private static MentionSelection SelectForPrompt(Hero npc, List<(Hero Hero, string FullName, string Relationship)> mentioned, string playerMessage)
+      {
+         HashSet<string> tokens = ExtractTokens(playerMessage ?? "");
+         var candidates = new List<MentionCandidate>();
+         foreach (var (other, fullName, _) in mentioned)
+            candidates.Add(new MentionCandidate {
+               Key = other.StringId,
+               IsKin = npc.Spouse == other || npc.Father == other || npc.Mother == other || npc.Children != null && npc.Children.Any(c => c == other),
+               IsKnown = npc.Clan != null && npc.Clan == other.Clan || PairBondReader.Points(npc, other) != 0,
+               MatchedPersonalName = MatchedTokens(other.Name?.ToString(), tokens).Count > 0,
+               MatchedHouse = MatchedTokens(other.Clan?.Name?.ToString(), tokens).Count > 0,
+               MatchedCulture = MatchedTokens(other.Culture?.Name?.ToString(), tokens).Count > 0,
+               MatchedWords = MatchedTokens(fullName, tokens).Count
+            });
+
+         return MentionedPeoplePolicy.Select(candidates);
+      }
+
+      /// <summary>The realm the person's house serves now (VonLemberg / Goeth, 16/11/2026: a culture is not an allegiance).</summary>
+      private static string AllegianceOf(Hero other)
+      {
+         Clan clan = other?.Clan;
+         if (clan == null) return null;
+
+         return MentionedPeoplePolicy.AllegianceClause(new AllegianceFacts {
+            HouseName = clan.Name?.ToString(),
+            RealmName = clan.Kingdom?.Name?.ToString(),
+            IsMercenary = clan.IsUnderMercenaryService,
+            RulesTheRealm = clan.Kingdom != null && clan.Kingdom.Leader == other,
+            IsFreeCompany = clan.IsMinorFaction,
+            IsOutlawBand = clan.IsBanditFaction
+         });
+      }
+
+      private static string BuildHint(List<(string FullName, string Gender, string Relationship, string Allegiance, string Whereabouts, string Prisoner)> matches, int omitted)
       {
          var sb = new StringBuilder();
          sb.AppendLine("NAMES MENTIONED IN THE PLAYER'S MESSAGE:");
@@ -182,7 +227,8 @@ namespace CalradiaRemembers.Mapping
          {
             sb.Append(
                $"The player appears to be referring to {matches[0].FullName}" +
-               $", {matches[0].Gender}, {matches[0].Relationship}.");
+               $", {matches[0].Gender}, {matches[0].Relationship}" +
+               (string.IsNullOrEmpty(matches[0].Allegiance) ? "." : $"; {matches[0].Allegiance}."));
             if (!string.IsNullOrEmpty(matches[0].Whereabouts))
                sb.Append($" Whereabouts: {matches[0].Whereabouts}.");
             if (!string.IsNullOrEmpty(matches[0].Prisoner))
@@ -192,11 +238,12 @@ namespace CalradiaRemembers.Mapping
          {
             sb.AppendLine(
                "The following people may be relevant to what the player just said:");
-            foreach (var (name, gender, rel, where, prisoner) in matches)
+            foreach (var (name, gender, rel, allegiance, where, prisoner) in matches)
             {
+               string who = string.IsNullOrEmpty(allegiance) ? $"  - {name}, {gender}, {rel}" : $"  - {name}, {gender}, {rel}; {allegiance}";
                sb.AppendLine(string.IsNullOrEmpty(where)
-                  ? $"  - {name}, {gender}, {rel}"
-                  : $"  - {name}, {gender}, {rel}. Whereabouts: {where}");
+                  ? who
+                  : $"{who}. Whereabouts: {where}");
                if (!string.IsNullOrEmpty(prisoner))
                   sb.AppendLine($"    {prisoner}");
             }
@@ -204,7 +251,13 @@ namespace CalradiaRemembers.Mapping
             if (HasAmbiguousFirstName(matches))
                sb.AppendLine(
                   "If uncertain which person the player means, ask for clarification in character.");
+
+            string left = MentionedPeoplePolicy.OmittedLine(omitted);
+            if (left != null) sb.AppendLine(left);
          }
+
+         if (matches.Any(m => !string.IsNullOrEmpty(m.Allegiance)))
+            sb.Append("\n" + MentionedPeoplePolicy.CultureIsNotAllegiance);
 
          // Anti-correction reminder: the gender stated above is fact. Names in Calradia are often
          // gender-ambiguous, and the NPC must not guess gender from a name or "correct" the player.
@@ -286,7 +339,7 @@ namespace CalradiaRemembers.Mapping
       }
 
       private static bool HasAmbiguousFirstName(
-         List<(string FullName, string Gender, string Relationship, string Whereabouts, string Prisoner)> matches)
+         List<(string FullName, string Gender, string Relationship, string Allegiance, string Whereabouts, string Prisoner)> matches)
       {
          List<string> firstNames = matches
                                    .Select(m => m.FullName.Split(' ')[0])

@@ -994,7 +994,7 @@ namespace CalradiaRemembers.Mapping
       ///   another lord's settlement does not claim the hall as their own (tester report). Null when
       ///   the NPC is not in a settlement or ownership is unknown.
       /// </summary>
-      private static string BuildLocationNote(Hero hero)
+      internal static string BuildLocationNote(Hero hero)
       {
          try
          {
@@ -1003,28 +1003,19 @@ namespace CalradiaRemembers.Mapping
             if (s == null) return null;
 
             Clan ownerClan = s.OwnerClan;
-
-            if (ownerClan != null && hero.Clan != null && ownerClan == hero.Clan)
-               return $"You are in {s.Name}, a holding of your own clan.";
-
             Hero owner = ownerClan?.Leader;
 
-            // The PLAYER holds this settlement. Naming the owner by name below would tell the NPC the town
-            // "belongs to <PlayerName>" without their ever connecting that name to the person in front of them,
-            // so a notable or garrisoned lord in the player's OWN town asked "what brings you here?" as if to a
-            // stranger (player report). Say plainly that their interlocutor is this place's lord.
-            if (owner != null && owner == Hero.MainHero)
-               return $"You are in {s.Name}, which the player before you holds: they are its lord, and you " +
-                      "dwell here under their rule. Address them as the holder of this place, not a passing stranger.";
-
-            if (owner != null && owner != hero)
-               return $"You are in {s.Name}, which belongs to {owner.Name}" +
-                      (ownerClan.Name != null
-                         ? $" of clan {ownerClan.Name}"
-                         : "") +
-                      ". It is NOT your holding — you are here as a guest, not its lord.";
-
-            return $"You are in {s.Name}.";
+            // VonLemberg / Goeth (16/11/2026): a resident notable and a governor were called guests; the standing is said
+            // as it is (LocationStandingPolicy).
+            return LocationStandingPolicy.Note(new LocationStandingFacts {
+               PlaceName = s.Name?.ToString(),
+               OwnClanHolds = ownerClan != null && hero.Clan != null && ownerClan == hero.Clan,
+               PlayerHolds = owner != null && owner == Hero.MainHero,
+               OwnerName = owner != null && owner != hero ? owner.Name?.ToString() : null,
+               OwnerClanName = ownerClan?.Name?.ToString(),
+               Governs = s.Town != null && hero.GovernorOf == s.Town,
+               LivesHere = hero.IsNotable && hero.HomeSettlement == s
+            });
          }
          catch
          {

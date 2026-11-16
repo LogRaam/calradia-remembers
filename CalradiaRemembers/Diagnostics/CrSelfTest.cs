@@ -416,6 +416,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("pair_regard_source", Severity.Light, "tashmetu (18/10/2026): two lords R&S made close showed as neither on the page, beside its own tooltip. A source registered through CrPairRegard, for two lords of different houses with nothing between them here, makes the first a friend of the second with its reason, leaves the other way round untouched, counts at most PairRegardPolicy.OutsideCap however much it claims, and is gone once unregistered. Since 2.7.19 the same through the function form (tashmetu, 20/10/2026: for a mod that keeps CR optional), registered and taken away by its id.", TestPairRegardSource),
          new SelfTest("npc_regard_reason", Severity.Light, "Gabriel (17/10/2026): every friend or enemy carries its reason (docs/design/NPC_REGARD.md section 9). Without touching the author's file, syncs a test betrayal of the past in which one lord wronged another, and drives the real name resolution (ContextualNameResolver.Resolve) on a message naming the betrayer: the wronged lord is told the betrayer is an enemy, for what lies between them, with the betrayal and how long ago; a lord of another house and realm asked the same is told nothing of it. The wronged lord's encyclopedia page (built here, then refreshed) lists the betrayer among his enemies and not his friends; as rows (Gabriel, 22/10/2026), the betrayer has his portrait row marked red with the betrayal as reason, and his house its banner in a red row, named through him. Then the author's file alone is synced back.", TestNpcRegardReason),
          new SelfTest("companion_news_fresh", Severity.Light, "LapitaPolata (Nexus, 17/10/2026): a companion told of a castle being besieged after it had fallen, and of a war breaking out while the player was already riding to a siege in it. Records test news and reads it through the real glue (CompanionAudienceTopicResolver.FreshnessFacts): a siege fight at a place recorded as fallen since is overtaken; a war naming the player's own realm or clan is theirs; news ten days old is too old; fresh news of two other realms may still be brought with NPCs Raise World News on. Lordfadooboo (Nexus, 16/11/2026): with the switch off, companions still came to tell of a random castle taken; the same fresh news is now held back when it is off. Removes the test news and restores the switch.", TestCompanionNewsFresh),
+         new SelfTest("mentioned_names_bounded", Severity.Light, "VonLemberg and Goeth (Discord, 16/11/2026, source audits of 2.8.12): one shared word admitted every hero bearing it into NAMES MENTIONED, uncapped (about 6,000 characters), and the line gave a culture but never the realm. Through the REAL ContextualNameResolver.Resolve, spoken to a lord: a message naming twelve lords by their own names describes at most eight and counts the rest; a message that is only a culture word describes nobody of that culture; a lord of a realm named alone is said to serve (or rule) the realm his house serves now, with the line that a culture is not an allegiance. The verbs' ResolveMentionedHeroes still returns all twelve. Reads only, changes nothing", TestMentionedNamesBounded),
+         new SelfTest("resident_not_a_guest", Severity.Light, "VonLemberg and Goeth (Discord, 16/11/2026, source audit of 2.8.12): a merchant in his own home town was told \"It is NOT your holding, you are here as a guest\", and a governor of another clan's town too. Through the REAL EncounterContextBuilder.BuildLocationNote: a town notable standing in his home town owned by another clan lives there and is no guest; a governor of another clan's town governs it in its owner's name; a lord of another house in a town is still its guest. Reads only, changes nothing; skips a case the world does not offer", TestResidentNotAGuest),
          new SelfTest("realm_bond_asked_first", Severity.Light, "Lordfadooboo (Nexus, 16/11/2026): \"ive been shanghaied more than once in a conversation about handling bandits\"; Gabriel: the oath of vassalage too. With the ruler of a realm other than the player's, the REAL ActionConfirmationController holds a join_as_mercenary and a join_as_vassal for the player's yes, each question naming the realm (and 'vassal' for the oath), the player's clan unchanged while they wait; the same contract emitted again is dropped. Nothing is confirmed, so no clan moves", TestRealmBondAskedFirst),
          new SelfTest("reply_language_everywhere", Severity.Light, "RaveN017Mod (Nexus, 17/10/2026): French game, Reply Language French, yet a character who came to him on the map and every council opened in English; he asked whether the mod could read the game's language. With the setting blank, the language resolved is the game's (none for an English game); with it set to Spanish, an opening cue ends naming Spanish and the council prompt carries Spanish. Restores the setting.", TestReplyLanguageEverywhere),
          new SelfTest("gossip_once_per_news", Severity.Light, "froggyluv (Nexus, 17/10/2026): with NPCs Raise World News on, notable after notable stopped him to ask what he knew of the same war, then the same capture. Turns the option on, records a great piece of news of two lords' realm, and drives the real candidate gathering (BuildRecentMatters): both lords could ask about it; once the first has offered it (an invitation naming it), the second no longer can, and the first still can, for when the player accepts. Restores the option, the news and the ledger.", TestGossipOncePerNews),
@@ -5658,6 +5660,76 @@ namespace CalradiaRemembers.Diagnostics
             store.Remove(fell.Id);
             if (settings != null) settings.NpcsRaiseWorldNews = priorSwitch;
          }
+
+         return t.Line();
+      }
+
+      private static string TestMentionedNamesBounded(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("mentioned_names_bounded");
+
+         List<Hero> lords = Hero.AllAliveHeroes.Where(h => h.IsLord && !h.IsHumanPlayerCharacter && h.Clan?.Kingdom != null && h.Name != null)
+                                .GroupBy(h => h.FirstName?.ToString() ?? h.Name.ToString()).Select(g => g.First()).Take(13).ToList();
+         if (t.Skip(lords.Count < 13, "fewer than thirteen lords of distinct names in a realm")) return t.Line();
+
+         Hero speaker = lords[0];
+         List<Hero> named = lords.Skip(1).ToList();
+         string many = "What of " + string.Join(", ", named.Select(h => h.FirstName?.ToString() ?? h.Name.ToString())) + "?";
+         string block = ContextualNameResolver.Resolve(speaker, many) ?? "";
+         int lines = block.Split((char) 10).Count(l => l.StartsWith("  - ", StringComparison.Ordinal));
+         t.Note($"{lines} lines, {block.Length} chars");
+         t.Expect("atMostEightAreDescribed", lines <= Logic.MentionedPeoplePolicy.MaxShown, true);
+         t.Expect("theRestAreCounted", block.Contains("ask which in character rather than guess"), true);
+         t.Expect("theVerbsStillSeeEveryone", ContextualNameResolver.ResolveMentionedHeroes(speaker, many).Count >= named.Count, true);
+
+         string culture = named[0].Culture?.Name?.ToString();
+         if (!string.IsNullOrWhiteSpace(culture))
+         {
+            string people = ContextualNameResolver.Resolve(speaker, "Tell me of the " + culture + " folk.") ?? "";
+            t.Expect("aCultureWordAloneNamesNobody", people.Split((char) 10).Count(l => l.StartsWith("  - ", StringComparison.Ordinal)), 0);
+         }
+
+         Hero one = named[0];
+         string single = ContextualNameResolver.Resolve(speaker, "What of " + one.Name + "?") ?? "";
+         t.Note(single.Split((char) 10).FirstOrDefault(l => l.Contains(one.Name.ToString())));
+         string realm = one.Clan.Kingdom.Name.ToString();
+         t.Expect("theRealmHisHouseServesIsNamed", single.Contains("serves " + realm) || single.Contains("rules " + realm) || single.Contains("fights for " + realm), true);
+         t.Expect("aCultureIsNotAnAllegiance", single.Contains("not whom they serve"), true);
+
+         return t.Line();
+      }
+
+      private static string TestResidentNotAGuest(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("resident_not_a_guest");
+
+         Hero notable = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsNotable && h.HomeSettlement != null && h.HomeSettlement.IsTown
+                                                                && h.CurrentSettlement == h.HomeSettlement && h.HomeSettlement.OwnerClan != null
+                                                                && h.HomeSettlement.OwnerClan != h.Clan && h.HomeSettlement.OwnerClan != Clan.PlayerClan);
+         if (t.Skip(notable == null, "no town notable at home in a town held by another clan")) return t.Line();
+         {
+            string note = EncounterContextBuilder.BuildLocationNote(notable) ?? "";
+            t.Note(note);
+            t.Expect("theResidentLivesThere", note.Contains("your home") && note.Contains("no guest"), true);
+            t.Expect("theResidentIsNotCalledAGuest", note.Contains("as a guest"), false);
+         }
+
+         Hero governor = Hero.AllAliveHeroes.FirstOrDefault(h => h.GovernorOf?.Settlement != null && h.CurrentSettlement == h.GovernorOf.Settlement
+                                                                 && h.GovernorOf.Settlement.OwnerClan != null && h.GovernorOf.Settlement.OwnerClan != h.Clan
+                                                                 && h.GovernorOf.Settlement.OwnerClan != Clan.PlayerClan);
+         if (governor != null)
+         {
+            string note = EncounterContextBuilder.BuildLocationNote(governor) ?? "";
+            t.Note(note);
+            t.Expect("theGovernorGovernsForItsOwner", note.Contains("You govern it in their name"), true);
+         }
+         else t.Note("no governor of another clan's town standing in it: that case skipped");
+
+         Hero visitor = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsNotable && h.CurrentSettlement != null && h.CurrentSettlement.OwnerClan != null
+                                                                && h.CurrentSettlement.OwnerClan != h.Clan && h.CurrentSettlement.OwnerClan != Clan.PlayerClan
+                                                                && h.GovernorOf?.Settlement != h.CurrentSettlement);
+         if (visitor != null) t.Expect("aVisitingLordIsStillAGuest", (EncounterContextBuilder.BuildLocationNote(visitor) ?? "").Contains("as a guest"), true);
+         else t.Note("no lord visiting another clan's settlement: that case skipped");
 
          return t.Line();
       }

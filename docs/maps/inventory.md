@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 677 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1654 types in 61 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1660 types in 61 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1057,7 +1057,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (497)
+### CalradiaRemembers.Logic (503)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1070,6 +1070,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ActorFacts` | public class | The facts the gate reads about the character who would act. |
 | `AddressedSpeakerDetector` | public static class | Heuristic detection of WHICH conversation participant the player is addressing in a typed message. |
 | `AffairDiscoveryPolicy` | public static class | Pure rules for a SECRET affair being discovered by the player: the tryst-scaled discovery chance and the gate that only a hidden, not-yet-known affair can be discovered. |
+| `AllegianceFacts` | public class | A mentioned person's house and the realm it serves now, as the game holds it. |
 | `AmbushEntryOutcome` | public enum | Why a player's town entry did or did not spring an armed ambush (host-logged for diagnosis). |
 | `AmbushForce` | public struct | The make-up of an ambush party: one elite chief (a real soldier of the paymaster's faction, the tell that a lord is behind it) and a body of cutthroats in disguise. |
 | `AmbushPolicy` | public static class | When an armed assassination springs in town, and how heavy it is. |
@@ -1281,6 +1282,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LlmCompatibilityMode` | public enum | How the host wants chat-completion sampling parameters shaped for the target model. |
 | `LlmParameterPolicy` | public static class | Resolves the chat-completion parameter wire shape for a target model. |
 | `LlmWireParameters` | public struct | The wire shape the request must use for its sampling parameters. |
+| `LocationStandingFacts` | public class | Where the speaker is and what ties them to the place. |
+| `LocationStandingPolicy` | public static class | Words the speaker's standing in the place they are in: owner, governor, resident or guest. |
 | `LongTermHistoryPolicy` | public static class | Pure rules of the world's long-term memory (Gabriel, 17/10/2026; design 7.7a): which aged-out events are kept, who knows a kept one, and what goes first when the tier is full. |
 | `LordRecruitment` | public static class | Decides whether a lord could be persuaded to defect into the player's clan. |
 | `LordRecruitmentBlock` | public enum | Why a lord cannot (yet) be recruited — LordRecruitmentBlock.None means they can. |
@@ -1304,6 +1307,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryCompressionPolicy` | public static class | Pure timing policy for when to run the LLM memory compressor: below the threshold it never runs, and above it, it runs at most once per handful of new events so a fruitless pass (the model kept everything) cannot turn in... |
 | `MemoryDayFormatter` | public static class | Renders a memory event's absolute game day as player-readable text: the raw day number plus a relative hint ("today", "yesterday", "N days ago"). |
 | `MemoryRemovalFacts` | public class | A stored memory, and the removal a mod asks for. |
+| `MentionCandidate` | public class | One person found in the player's message, and how they were found. |
+| `MentionSelection` | public class | The people written into the prompt, in order, and how many were found but left out. |
+| `MentionedPeoplePolicy` | public static class | Which mentioned people reach the prompt, and how their allegiance is said. |
 | `MercenaryDepartureFacts` | public class | The realm's situation when the contract ended. |
 | `MercenaryDepartureNames` | public class | Who left which realm, and for whom: the names a departure line is written with. |
 | `MercenaryDeparturePolicy` | public static class | The rules of a mercenary's departure. |
