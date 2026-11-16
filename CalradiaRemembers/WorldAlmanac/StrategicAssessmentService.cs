@@ -184,8 +184,9 @@ namespace CalradiaRemembers.WorldAlmanac
 
             if (!string.IsNullOrWhiteSpace(counsel)) Cache[signature] = counsel;
 
-            // Swap the bound text on the main thread; it lands even if the panel was closed before the call returned.
-            MainThreadDispatcher.Enqueue(() => vm.StrategicAssessment = final);
+            // Swap the bound text on the main thread; it lands even if the panel was closed before the call returned, and
+            // even if a chat closed in that frame (the lasting queue: VonLemberg, 16/11/2026).
+            MainThreadDispatcher.EnqueueLasting(() => vm.StrategicAssessment = final);
          });
       }
 

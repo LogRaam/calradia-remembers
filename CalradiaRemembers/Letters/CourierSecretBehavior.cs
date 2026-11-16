@@ -400,6 +400,7 @@ namespace CalradiaRemembers.Letters
             ILlmClient client = behavior?.LlmServices?.HousekeepingClient;
             Hero reader = Hero.FindFirst(h => h != null && h.StringId == readerId);
             if (client == null || reader == null) return;
+            Campaign asked = Campaign.Current;
 
             string liege = reader.MapFaction?.Leader != null && reader.MapFaction.Leader != reader ? reader.MapFaction.Leader.Name.ToString() : null;
             string prompt = SeverityPrompt(reader.Name.ToString(), liege, secret);
@@ -418,7 +419,15 @@ namespace CalradiaRemembers.Letters
                if (resp is {IsSuccess: true}) answer = resp.Content;
             }
 
-            await MainThreadDispatcher.SwitchToMainThread();
+            // VonLemberg (16/11/2026): the conversation's queue is cleared when a chat closes, and this judgement is the
+            // campaign's, not the conversation's; and a campaign left meanwhile must not be acted upon.
+            await MainThreadDispatcher.SwitchToMainThreadLasting();
+            if (!ReferenceEquals(asked, Campaign.Current))
+            {
+               ModLog.Info($"[SECRET] {secret.SenderName}'s letter was judged after the campaign changed: set aside.");
+
+               return;
+            }
 
             SecretSeverity severity = SecretReactionPolicy.Parse(answer);
             ModLog.Info($"[SECRET] {reader.Name} reads {secret.SenderName}'s letter as {severity} (\"{answer?.Trim()}\").");

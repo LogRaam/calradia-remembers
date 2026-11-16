@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 677 types in 66 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 678 types in 66 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1663 types in 61 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
@@ -434,11 +434,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `FollowMeBehavior` | public class | Persists active follow_me escorts (a lord's own party riding with the player) and advances/ends each daily. |
 
-### CalradiaRemembers.Foundation (11)
+### CalradiaRemembers.Foundation (12)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `CrSettings` | public class | MCM (Mod Configuration Menu) global settings for Calradia Remembers. |
+| `LastingMainThreadAwaitable` | public struct | Custom awaiter that resumes its continuation on the main thread, in the queue a chat close does not clear. |
 | `LocalContextState` | public static class | The session's record of fitting requests to the local model's window. |
 | `MainThreadAwaitable` | public struct | Custom awaiter that resumes its continuation on the main-thread dispatcher. |
 | `MainThreadDispatcher` | public static class | Marshals work back onto Bannerlord's main thread. |

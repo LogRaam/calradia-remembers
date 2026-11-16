@@ -27,10 +27,28 @@ namespace CalradiaRemembers.Foundation
    {
       private static readonly ConcurrentQueue<Action> Queue = new();
 
-      /// <summary>Drops all queued continuations — called when the chat closes so none leak into a later session.</summary>
+      // Work that belongs to the CAMPAIGN, not to the open conversation (VonLemberg, Discord 16/11/2026, audit "Dispatcher
+      // Clear Drops Unrelated Async Work"): a letter reader's judgement of a secret came back from the model in the same
+      // frame a chat closed, and Clear() dropped it with the conversation's own replies: no grudge, no confrontation letter,
+      // no treason charge, nothing logged, while "the reader now knows" was already written. Clear() never touches this queue.
+      private static readonly ConcurrentQueue<Action> Lasting = new();
+
+      /// <summary>
+      ///   Drops the conversation's queued continuations, called when the chat closes so none leak into a later session.
+      ///   Work queued with <see cref="EnqueueLasting" /> or <see cref="SwitchToMainThreadLasting" /> is kept.
+      /// </summary>
       public static void Clear()
       {
          while (Queue.TryDequeue(out _)) { }
+      }
+
+      /// <summary>
+      ///   Queues work that must run whatever happens to the open conversation (a campaign consequence, a panel's late
+      ///   text). Thread-safe. The caller checks for itself that its campaign is still the one loaded.
+      /// </summary>
+      public static void EnqueueLasting(Action action)
+      {
+         if (action != null) Lasting.Enqueue(action);
       }
 
       /// <summary>Queues a continuation to run on the next main-thread drain. Thread-safe.</summary>
@@ -45,8 +63,14 @@ namespace CalradiaRemembers.Foundation
       /// </summary>
       public static void Pump()
       {
-         int budget = Queue.Count;
-         for (var i = 0; i < budget && Queue.TryDequeue(out Action action); i++)
+         Drain(Queue);
+         Drain(Lasting);
+      }
+
+      private static void Drain(ConcurrentQueue<Action> queue)
+      {
+         int budget = queue.Count;
+         for (var i = 0; i < budget && queue.TryDequeue(out Action action); i++)
             try { action(); }
             catch (Exception ex) { ModLog.Error($"[dispatcher] continuation threw {ex.GetType().Name}: {ex.Message}"); }
       }
@@ -57,6 +81,22 @@ namespace CalradiaRemembers.Foundation
       ///   simply defers to the next drain).
       /// </summary>
       public static MainThreadAwaitable SwitchToMainThread() => default;
+
+      /// <summary>
+      ///   As <see cref="SwitchToMainThread" />, for work that belongs to the campaign rather than to the open conversation:
+      ///   its continuation survives the chat closing (<see cref="Clear" />). Check after it that the campaign is still the
+      ///   one you started in.
+      /// </summary>
+      public static LastingMainThreadAwaitable SwitchToMainThreadLasting() => default;
+   }
+
+   /// <summary>Custom awaiter that resumes its continuation on the main thread, in the queue a chat close does not clear.</summary>
+   public readonly struct LastingMainThreadAwaitable : INotifyCompletion
+   {
+      public LastingMainThreadAwaitable GetAwaiter() => this;
+      public bool IsCompleted => false;
+      public void OnCompleted(Action continuation) => MainThreadDispatcher.EnqueueLasting(continuation);
+      public void GetResult() { }
    }
 
    /// <summary>Custom awaiter that resumes its continuation on the main-thread dispatcher.</summary>

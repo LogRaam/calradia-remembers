@@ -419,6 +419,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("mentioned_names_bounded", Severity.Light, "VonLemberg and Goeth (Discord, 16/11/2026, source audits of 2.8.12): one shared word admitted every hero bearing it into NAMES MENTIONED, uncapped (about 6,000 characters), and the line gave a culture but never the realm. Through the REAL ContextualNameResolver.Resolve, spoken to a lord: a message naming twelve lords by their own names describes at most eight and counts the rest; a message that is only a culture word describes nobody of that culture; a lord of a realm named alone is said to serve (or rule) the realm his house serves now, with the line that a culture is not an allegiance; a merchant asked of by a notable of his own town is 'a merchant of' it, and a far-off lord with no tie is not told. The verbs' ResolveMentionedHeroes still returns all twelve. Reads only, changes nothing", TestMentionedNamesBounded),
          new SelfTest("resident_not_a_guest", Severity.Light, "VonLemberg and Goeth (Discord, 16/11/2026, source audit of 2.8.12): a merchant in his own home town was told \"It is NOT your holding, you are here as a guest\", and a governor of another clan's town too. Through the REAL EncounterContextBuilder.BuildLocationNote: a town notable standing in his home town owned by another clan lives there and is no guest; a governor of another clan's town governs it in its owner's name; a lord of another house in a town is still its guest. Reads only, changes nothing; skips a case the world does not offer", TestResidentNotAGuest),
          new SelfTest("external_picture", Severity.Light, "VonLemberg (Discord, 16/11/2026): his mod illustrates a chat line and asks CR to show the picture, linked to its conversation, stale results dropped; Gabriel: reuse the tales' picture panel, videos later. With a staged conversation open on a lord, through the REAL CrConversation.ShowPicture: a picture named for another session and a video are refused; a .png named for the open session is accepted and, once the frame's queue runs, is the panel's picture under its caption; after the conversation closes, OpenSessionId is null and the same picture is refused. Removes its temporary file, closes the conversation", TestExternalPicture),
+         new SelfTest("lasting_work_survives_close", Severity.Light, "VonLemberg (Discord, 16/11/2026, audit 'Dispatcher Clear Drops Unrelated Async Work'): a chat closing cleared every queued main-thread continuation, a letter reader's judgement of a secret included (no grudge, no letter, no charge, nothing logged). With the REAL MainThreadDispatcher: work queued as the conversation's and work queued as lasting, then Clear() as a chat close calls it, then Pump(): the conversation's work is dropped, the lasting work runs. Changes nothing in the world", TestLastingWorkSurvivesClose),
          new SelfTest("realm_bond_asked_first", Severity.Light, "Lordfadooboo (Nexus, 16/11/2026): \"ive been shanghaied more than once in a conversation about handling bandits\"; Gabriel: the oath of vassalage too. With the ruler of a realm other than the player's, the REAL ActionConfirmationController holds a join_as_mercenary and a join_as_vassal for the player's yes, each question naming the realm (and 'vassal' for the oath), the player's clan unchanged while they wait; the same contract emitted again is dropped. Nothing is confirmed, so no clan moves", TestRealmBondAskedFirst),
          new SelfTest("reply_language_everywhere", Severity.Light, "RaveN017Mod (Nexus, 17/10/2026): French game, Reply Language French, yet a character who came to him on the map and every council opened in English; he asked whether the mod could read the game's language. With the setting blank, the language resolved is the game's (none for an English game); with it set to Spanish, an opening cue ends naming Spanish and the council prompt carries Spanish. Restores the setting.", TestReplyLanguageEverywhere),
          new SelfTest("gossip_once_per_news", Severity.Light, "froggyluv (Nexus, 17/10/2026): with NPCs Raise World News on, notable after notable stopped him to ask what he knew of the same war, then the same capture. Turns the option on, records a great piece of news of two lords' realm, and drives the real candidate gathering (BuildRecentMatters): both lords could ask about it; once the first has offered it (an invitation naming it), the second no longer can, and the first still can, for when the player accepts. Restores the option, the news and the ledger.", TestGossipOncePerNews),
@@ -5793,6 +5794,24 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("aLatePictureIsRefused", session != null && CrConversation.ShowPicture(session, path, "x"), false);
          try { System.IO.File.Delete(path); }
          catch (Exception ex) { t.Note("temporary picture not removed: " + ex.Message); }
+
+         return t.Line();
+      }
+
+      private static string TestLastingWorkSurvivesClose(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("lasting_work_survives_close");
+
+         MainThreadDispatcher.Pump(); // start from an empty queue: nothing of anyone else's is dropped by this test
+         bool conversationWorkRan = false, lastingWorkRan = false;
+         MainThreadDispatcher.Enqueue(() => conversationWorkRan = true);
+         MainThreadDispatcher.EnqueueLasting(() => lastingWorkRan = true);
+
+         MainThreadDispatcher.Clear();
+         MainThreadDispatcher.Pump();
+
+         t.Expect("theConversationsWorkIsDroppedAtClose", conversationWorkRan, false);
+         t.Expect("lastingWorkSurvivesTheClose", lastingWorkRan, true);
 
          return t.Line();
       }
