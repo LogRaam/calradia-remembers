@@ -120,6 +120,11 @@ prompt's sections in order, every verb with each place it must be declared, and 
   type; `engine-facts.md` shows the same CONCEPT under another name, by the fact of the game it reads: rank
   was a prestige score, a stature, a station and a tier, and all of them read `Clan.Tier`). Say in the commit message what you found, even when it is "nothing like it exists". Gabriel's words: "je
   ne vois pas si on est en train de creer un doublon parce que le concept existe deja ailleurs."
+- **A road that does what an MCM setting governs obeys that setting.** Before adding a new way to approach, write,
+  pick a model or spawn something, find the setting in `docs/maps/settings.md` and make the new road one of its
+  readers. The family has shipped three times (froggyluv's hunters with "Arrests and outlaws" off, the NSFW model
+  taking over with adult content off, Lordfadooboo's companions bringing news with "NPCs Raise World News" off, 16/11/2026).
+  When a player writes "I turned it off and it still happens", the road doing it is the one missing from that list.
 - **A character acting toward the player asks the one gate.** Any new path where an NPC takes the initiative (writes
   first, asks for an audience, rides out, threatens, sends killers) calls `Mapping.ActionGate.Allows(hero, ActionKind.X)`
   (alive, of age, free, not the player; `IsLord` is an occupation, never an age). `docs/maps/actions.md` lists every

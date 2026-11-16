@@ -67,6 +67,12 @@ namespace CalradiaRemembers.Tests.Maps
       public void GIVEN_the_source_as_it_stands_WHEN_the_event_listeners_are_regenerated_THEN_they_match_the_committed_map()
          => ApprovedMap.Verify(EventListenersMap.Path, Generated(EventListenersMap.Generate));
 
+      // Lordfadooboo (Nexus, 16/11/2026): "NPCs Raise World News" off, and companions still brought news; the third switch
+      // obeyed by one road and not another. Every MCM setting and every place that reads it, rules and glue alike.
+      [Test]
+      public void GIVEN_the_source_as_it_stands_WHEN_the_settings_readers_are_regenerated_THEN_they_match_the_committed_map()
+         => ApprovedMap.Verify(SettingsReadersMap.Path, Generated(SettingsReadersMap.Generate));
+
       [Test]
       public void GIVEN_the_source_as_it_stands_WHEN_the_prompt_sections_are_regenerated_THEN_they_match_the_committed_map()
          => ApprovedMap.Verify(PromptSectionsMap.Path, Generated(PromptSectionsMap.Generate));
