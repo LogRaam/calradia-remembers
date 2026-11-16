@@ -1,0 +1,33 @@
+Version 2.8.13
+
+Mercenary contracts and oaths wait for your yes (and an oath now brings the ruler's gifts), the "NPCs Raise World News" switch also quiets your companions, and characters know better who the people you name are and who you are.
+
+Fixed
+
+- With "NPCs Raise World News" off, your companions no longer ask to speak with you about some castle a lord took somewhere. The switch now covers their news too; their other reasons to talk to you are unchanged. (Thank you, Lordfadooboo.)
+- Naming a single word no longer floods the character with everyone who bears it. A word of a people ("the Battanians") names nobody; otherwise the most likely people come first (their own kin, those you named by name, those they know), at most eight, and the character asks which one you mean rather than guess. (Thank you, VonLemberg and Goeth.)
+- A character named in your message now comes with the realm their house serves today ("their house serves Vlandia", "rules Vlandia", "fights for Battania for pay", "sworn to no realm"), so a culture is no longer mistaken for an allegiance. (Thank you, VonLemberg and Goeth.)
+- A notable named in your message is known for his trade and town ("a merchant of Pravend", "the headman of ...") by those who could know it: people of that town and those tied to him, not a lord across the continent. (Thank you, VonLemberg and Goeth.)
+- A merchant, artisan or headman in their own town is at home there, no longer "a guest", and a governor governs a town for its owner. A notable's town is their home, not their property, and a revolt there is against its lord, not against them. (Thank you, VonLemberg and Goeth.)
+- A lord no longer compares his realm with a realm you do not have ("5 fiefs to their 0" said to an independent player). (Thank you, VonLemberg.)
+- A stranger who has never heard your name is no longer told to call you by it, nor handed the names of your parents. Once you give your name in the conversation, they can use it. (Thank you, VonLemberg.)
+- Closing a conversation at the wrong moment could swallow a letter reader's reaction to a secret they had read (the grudge, the confrontation letter, the charge of treason). It no longer can. (Thank you, VonLemberg.)
+- An oath of vassalage sworn in the chat now gives what the game's own oath gives: the influence of joining, and, once per campaign, the ruler's goodwill and the ruler's gift of arms and men, shown in the game's own screens when you leave the conversation. (Thank you, Aporo.)
+
+Changed
+
+- A mercenary contract or an oath of vassalage is struck only on your yes: the chat asks "Enlist your clan as mercenaries of Vlandia, on Count Aldric's word? [Y/n]" or "Swear your clan to Vlandia as King Derthert's vassal? [Y/n]". Say no and nothing happens; the character is told you declined. (Thank you, Lordfadooboo.)
+
+For modders
+
+- CrConversation.ShowPicture: your mod can show a picture it made (an illustration of a line, a scene) in the open conversation's picture panel, the one tales use, under a short caption. A picture made for a conversation the player has left is refused, so it never lands in the wrong one; callable from any thread. CrConversation.OpenSessionId gives the open conversation's id, the same SessionId every LineSpoken line carries. Pictures only for now. (Thank you, VonLemberg.)
+- CrWorld.KnownEvents and IsAwareOf are documented as what a character would plausibly know today (recomputed from distance, realm and age), not a record of what they were told. (Thank you, VonLemberg.)
+- EXTENSION_API.md: "A picture from your mod, in the conversation". CrApi.Version is 3.
+
+Developer tools
+
+- cr.test all gains realm_bond_asked_first, mentioned_names_bounded, resident_not_a_guest, external_picture, lasting_work_survives_close and vassal_rewards_ready; companion_news_fresh runs with the world news switch on and off, and player_fame checks that a stranger is not bid to use your name.
+
+Notes
+
+- Saves from 2.8.12 and older load as they are, and your MCM choices are kept.
