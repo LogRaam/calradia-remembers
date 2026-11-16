@@ -245,6 +245,38 @@ namespace CalradiaRemembers.Tests
          PowerBalance.DescribeFor(f).Should().Contain("prisoner");
       }
 
+      // VonLemberg (Discord, 16/11/2026): an independent player was told "Your kingdom outmatches the player's realm, 5 fiefs
+      // to their 0": a missing kingdom was counted as a realm of nothing. A lord of a realm facing a player of none makes
+      // no realm-against-realm claim.
+      [Test]
+      public void GIVEN_a_player_of_no_realm_facing_a_lord_of_a_strong_one_WHEN_describing_THEN_no_realm_comparison_is_made()
+      {
+         PowerBalanceFacts f = Facts(npcInKingdom: true, playerInKingdom: false, npcFiefs: 5, playerFiefs: 0, npcClanHasFiefs: true);
+
+         string note = PowerBalance.DescribeFor(f);
+
+         (note ?? "").Should().NotContain("realm").And.NotContain("their 0");
+      }
+
+      // The mirror case of the same audit: a lord of no realm was told the player's realm held "N fiefs to your kingdom's 0".
+      [Test]
+      public void GIVEN_a_lord_of_no_realm_facing_a_player_of_a_strong_one_WHEN_describing_THEN_no_realm_comparison_is_made()
+      {
+         PowerBalanceFacts f = Facts(npcInKingdom: false, playerInKingdom: true, npcFiefs: 0, playerFiefs: 6, npcClanHasFiefs: true);
+
+         (PowerBalance.DescribeFor(f) ?? "").Should().NotContain("your kingdom's 0");
+      }
+
+      // An independent player whose own clan holds a town still weighs on a landless lord: the clan-level gap still speaks
+      // when the realm comparison does not apply.
+      [Test]
+      public void GIVEN_an_independent_player_whose_clan_holds_a_fief_WHEN_a_landless_lord_of_a_realm_speaks_THEN_the_clan_gap_is_spoken()
+      {
+         PowerBalanceFacts f = Facts(npcInKingdom: true, playerInKingdom: false, npcFiefs: 5, npcClanHasFiefs: false, playerClanHasFiefs: true);
+
+         PowerBalance.DescribeFor(f).Should().Contain("Your clan currently holds no fiefs");
+      }
+
       #region private
 
       private static PowerBalanceFacts Facts(

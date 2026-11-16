@@ -68,7 +68,13 @@ namespace CalradiaRemembers
                      .ToList();
       }
 
-      /// <summary>Whether <paramref name="heroId" /> would by now have heard of the event <paramref name="eventId" />. False when either is unknown.</summary>
+      /// <summary>
+      ///   Whether <paramref name="heroId" /> would by now have heard of the event <paramref name="eventId" />. False when either is
+      ///   unknown. This is plausibility TODAY, recomputed at each call from where the hero stands, the realm they serve and the
+      ///   event's age; nothing is recorded, so the answer can turn false as the news ages (it fades over 40 days), as the hero
+      ///   rides away or changes realm. It is not a record of what they were told (VonLemberg, 16/11/2026): keep your own if you
+      ///   need one.
+      /// </summary>
       public static bool IsAwareOf(string heroId, string eventId)
       {
          WorldEventStore store = WorldEventStore.Instance;

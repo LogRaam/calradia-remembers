@@ -74,6 +74,19 @@ namespace CalradiaRemembers.Tests
          Band(new PlayerFameFacts {PlayerRenown = 60, Observer = FameObserver.Notable, LivesUnderThePlayer = true}).Should().Be(FameBand.ByReputation);
       }
 
+      // STAKE: VonLemberg (Discord, 16/11/2026): a stranger told "You have never heard the name Aldric" was also bid to
+      // address him by it. Never heard, or heard only in passing, the name is news; known by reputation or famous, it is not;
+      // and someone who knows the player in person (no reading) is never told it is news.
+      [Test]
+      public void GIVEN_how_far_the_name_has_reached_WHEN_asked_whether_it_is_news_THEN_only_the_two_lowest_bands_are()
+      {
+         PlayerFamePolicy.NameIsNews(new PlayerFameReading {Band = FameBand.Unknown}).Should().BeTrue();
+         PlayerFamePolicy.NameIsNews(new PlayerFameReading {Band = FameBand.NameHeard}).Should().BeTrue();
+         PlayerFamePolicy.NameIsNews(new PlayerFameReading {Band = FameBand.ByReputation}).Should().BeFalse();
+         PlayerFamePolicy.NameIsNews(new PlayerFameReading {Band = FameBand.Famous}).Should().BeFalse();
+         PlayerFamePolicy.NameIsNews(null).Should().BeFalse();
+      }
+
       // STAKE: what is said of the player comes with the name: a merciless lord is said to be merciless, but only by
       // those who know the name, never by someone who has not heard it.
       [Test]

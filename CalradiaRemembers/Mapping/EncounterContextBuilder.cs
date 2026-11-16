@@ -823,6 +823,7 @@ namespace CalradiaRemembers.Mapping
                                     .ToleratesSharedPartners(StatureReader.Player.ClanTier),
             PlayerDeedsHeard = ResolvePlayerDeedsHeard(hero),
             PlayerFameLine = PlayerFameResolver.Resolve(hero, profile, bridge, historyKnownThrough),
+            PlayerNameIsNewsToSpeaker = PlayerFameResolver.NameIsNewsTo(hero, profile, bridge, historyKnownThrough),
             EdictsNote = EdictNoteResolver.Resolve(hero),
             QueryRelevantFactsBlock = ResolveQueryRelevantFacts(hero, playerMessage, (int) CampaignTime.Now.ToDays),
             PastOnMentionBlock = ResolvePastOnMention(hero, playerMessage, (int) CampaignTime.Now.ToDays),

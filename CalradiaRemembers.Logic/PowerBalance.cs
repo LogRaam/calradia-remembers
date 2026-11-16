@@ -97,6 +97,12 @@ namespace CalradiaRemembers.Logic
          // A territorial comparison means nothing unless at least one side belongs to a kingdom.
          if (!f.PlayerInKingdom && !f.NpcInKingdom) return null;
 
+         // Realm against realm only when BOTH have one. VonLemberg (Discord, 16/11/2026, source audit of 2.8.12): with one
+         // side sworn to no realm, its missing kingdom counted as a kingdom of 0 fiefs, and a lord told an independent player
+         // "Your kingdom outmatches the player's realm, 5 fiefs to their 0" (even one whose own clan holds a town). A house
+         // with no realm is not a realm of nothing: the clan-level gap below still speaks.
+         if (!f.PlayerInKingdom || !f.NpcInKingdom) return ClanGap(f);
+
          int playerFiefs = f.PlayerKingdomFiefs;
          int npcFiefs = f.NpcKingdomFiefs;
 
@@ -128,13 +134,14 @@ namespace CalradiaRemembers.Logic
             return $"Your kingdom outmatches the player's realm — {npcFiefs} fiefs to their {playerFiefs}. " +
                    "You hold the stronger position.";
 
-         // Clan-level: the NPC holds nothing while the player's clan does.
-         if (!f.NpcClanHasFiefs && f.PlayerClanHasFiefs)
-            return "Your clan currently holds no fiefs, while the player's clan does. That gap in standing " +
-                   "is not lost on you.";
-
-         return null;
+         return ClanGap(f);
       }
+
+      /// <summary>Clan-level: the NPC holds nothing while the player's clan does.</summary>
+      private static string ClanGap(PowerBalanceFacts f)
+         => !f.NpcClanHasFiefs && f.PlayerClanHasFiefs
+            ? "Your clan currently holds no fiefs, while the player's clan does. That gap in standing is not lost on you."
+            : null;
 
       #endregion
    }

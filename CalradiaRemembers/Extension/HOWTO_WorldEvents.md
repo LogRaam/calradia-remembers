@@ -47,7 +47,11 @@ but it loses that tag. The log says so for a place.
 ## 2. Who hears it
 
 Nothing is copied into any character's memory. Every time a character's prompt is built, CR scores
-each stored event for that character:
+each stored event for that character. So "has heard" is what is plausible TODAY, not a record of what
+they were once told: the same character can stop knowing an event as it ages, as they ride away from
+the place, or when they change realm. Consequential events (battles, sieges, fiefs taken, wars,
+marriages, executions) also pass into the long-term history, kept for those concerned whatever their
+position. A mod that needs "this character was told X" keeps its own record.
 
 ```
 score = (Magnitude + 25 if one of FactionIds is their realm + up to 25 for being near PlaceId)

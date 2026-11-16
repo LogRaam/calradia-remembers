@@ -45,6 +45,26 @@ namespace CalradiaRemembers.Mapping
          }
       }
 
+      /// <summary>
+      ///   Whether the player's name is news to this speaker (PlayerFamePolicy.NameIsNews): a stranger who never heard it,
+      ///   or heard it only in passing. False for anyone who knows the player in person.
+      /// </summary>
+      public static bool NameIsNewsTo(Hero npc, NpcProfile profile, IGameStateBridge bridge, int? memoriesAtOpening = null)
+      {
+         try
+         {
+            PlayerFameFacts facts = Facts(npc, profile, bridge, memoriesAtOpening);
+
+            return facts != null && PlayerFamePolicy.NameIsNews(PlayerFamePolicy.Read(facts));
+         }
+         catch (Exception ex)
+         {
+            Foundation.ModLog.Error($"[FAME] reading whether the player's name is news to {npc?.Name} failed: {ex.Message}");
+
+            return false;
+         }
+      }
+
       /// <summary>What the policy reads for this speaker; null when they know the player in person (no line).</summary>
       internal static PlayerFameFacts Facts(Hero npc, NpcProfile profile, IGameStateBridge bridge, int? memoriesAtOpening = null)
       {

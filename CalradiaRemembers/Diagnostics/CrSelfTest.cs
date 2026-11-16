@@ -15380,8 +15380,12 @@ namespace CalradiaRemembers.Diagnostics
          try
          {
             clan.ResetClanRenown();
-            string modest = EncounterContextBuilder.Build(stranger, profile, behavior.GameStateBridge, "Well met.").PlayerFameLine;
+            var modestContext = EncounterContextBuilder.Build(stranger, profile, behavior.GameStateBridge, "Well met.");
+            string modest = modestContext.PlayerFameLine;
             t.Note($"{stranger.Name} at renown 0: {modest}");
+            // VonLemberg (16/11/2026): a stranger who never heard the name is not bid to use it.
+            bool faint = modest != null && (modest.Contains("never heard") || modest.Contains("faintly familiar"));
+            t.Expect("aNameNeverHeardIsNews", modestContext.PlayerNameIsNewsToSpeaker, faint);
             t.Expect("aStrangerIsToldOfTheName", modest?.Contains(player) == true, true);
             t.Expect("anUnknownHouseIsNoBannerHeKnows", modest?.Contains("know the banner") == true, false);
 
@@ -15389,6 +15393,7 @@ namespace CalradiaRemembers.Diagnostics
             string famous = EncounterContextBuilder.Build(stranger, profile, behavior.GameStateBridge, "Well met.").PlayerFameLine;
             t.Note($"{stranger.Name} at renown 1000: {famous}");
             t.Expect("aGreatNameIsKnownAbroad", famous?.Contains("know the banner") == true, true);
+            t.Expect("aGreatNameIsNoNews", EncounterContextBuilder.Build(stranger, profile, behavior.GameStateBridge, "Well met.").PlayerNameIsNewsToSpeaker, false);
 
             Hero own = clan.Heroes.FirstOrDefault(h => h != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(h));
             if (own != null)

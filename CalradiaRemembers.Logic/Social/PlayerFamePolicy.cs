@@ -148,6 +148,15 @@ namespace CalradiaRemembers.Logic.Social
       }
 
       /// <summary>
+      ///   The name is news to this character: never heard, or heard only in passing with nothing attached. VonLemberg
+      ///   (Discord, 16/11/2026): the line said "You have never heard the name X" while THE PLAYER bid them "address them
+      ///   by this name"; such a character is not bid to use it until the player gives it. False with no reading (they know
+      ///   the player in person) and from "by reputation" up (they know who bears it).
+      /// </summary>
+      public static bool NameIsNews(PlayerFameReading r)
+         => r != null && (r.Band == FameBand.Unknown || r.Band == FameBand.NameHeard);
+
+      /// <summary>
       ///   The one line the character is given, naming the player's character; null when no line is due. The line
       ///   tells them what they know of the name, never that they met.
       /// </summary>

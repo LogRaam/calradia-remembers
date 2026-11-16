@@ -670,7 +670,10 @@ IReadOnlyList<CrKnownEvent> known = CrWorld.KnownEvents(hero.StringId, max: 10);
 bool heard = CrWorld.IsAwareOf(hero.StringId, "mybridge_treaty_42");
 ```
 
-It is the same selection a conversation with them is built from. Game thread, campaign loaded.
+It is the same selection a conversation with them is built from. Game thread, campaign loaded. Both are what is plausible
+TODAY, recomputed at each call (distance, realm, age): nothing is recorded, so a hero can stop knowing an event as it ages
+(it fades over 40 days), as they ride away or change realm. It is not a record of what they were told; keep your own if your
+mod needs one.
 
 **Secrets from your mod.** A `Feed` event is public news by default. Since 2.8.10 it can be a secret:
 `KnownOnlyToThoseInvolved = true` keeps it to the heroes it names (`HeroIds`, `ActorHeroIds`) plus `KnownToHeroIds`, however
