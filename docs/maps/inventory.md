@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 678 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1663 types in 61 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 679 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1666 types in 61 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -460,7 +460,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PortraitData` | public struct | The flat portrait binding a widget renders from: image id, texture provider name, extra args. |
 | `PortraitTextureGuard` | public static class | The single gate for every character portrait the mod shows (chat lines, the courier letter). |
 
-### CalradiaRemembers.GameState (43)
+### CalradiaRemembers.GameState (44)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -506,6 +506,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TroopHandOver` | public class | What a troop hand-over task records when the men have moved: one close for the garrison and the recruit tasks (IGameStateBridge.SettleTroopHandOver), each saying in its own words what was brought. |
 | `TroopTierBucket` | public enum | The three coarse troop-quality buckets council lend_troops reasons over (see TroopTierBucketer's own header). |
 | `TroopTierBucketer` | public static class | The engine-coupled half of council lend_troops (COUNCIL_ACTIONS.md's Kimi review, "CouncilTroopLoanPolicy"): reads a live TroopRoster into the tier-bucketed counts the pure CouncilTroopLoanPolicy reasons over, and moves... |
+| `VassalRewards` | internal static class | The game's oath rewards for an oath sworn through CR. |
 | `WarLevyDesk` | internal static class | The one door to the war levy for the conversation's hand-overs and context. |
 
 ### CalradiaRemembers.Grudges (6)
@@ -1058,7 +1059,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (504)
+### CalradiaRemembers.Logic (507)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1561,6 +1562,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `UndeliverableCause` | public enum | Why a letter could not be delivered, in the order the courier would learn of it. |
 | `UndeliverableReasonDescriber` | public static class | Turns an undeliverable letter's cause into the specific line the player is told. |
 | `UnknownActionNotice` | public static class | Builds the wording and the diagnostic record for an [ACTION] the bridge refused because its type is not a real mod verb. |
+| `VassalRewardFacts` | public class | What CR knows when the player's clan has just sworn fealty through it. |
+| `VassalRewardGrant` | public class | Which of the game's oath rewards an oath sworn through CR gives. |
+| `VassalRewardPolicy` | public static class | Mirrors the game's own oath: influence every time, the gift and the goodwill once per campaign. |
 | `VassalageOfferPolicy` | public static class | Pure gate for the join_as_vassal action: whether the speaking NPC truly rules a kingdom, and the player's clan is not already a full vassal of one, the two facts both the prompt teaching and the bridge's execution guard... |
 | `VentriloquizedReactionPolicy` | public static class | Decides when a speaker's witness reactions must yield to the round-table lap. |
 | `WorldEventPruner` | public static class | Keeps the world-event log bounded, with two lifetimes on purpose: third-party events are rumour fodder and age out (a window, plus a hard cap), while the player's own deeds are the chronicle and are kept long-term (only... |

@@ -3716,7 +3716,10 @@ namespace CalradiaRemembers.GameState
 
             ModLog.Info($"[ACTION] join_as_vassal: player clan sworn as vassal of {kingdom.Name}.");
 
-            return new ActionOutcome($"Your clan is sworn as a vassal of {kingdom.Name}.", true);
+            // Aporo (15/11/2026) / Gabriel (16/11/2026): the game's oath rewards, at the player's yes.
+            string gift = VassalRewards.Grant(kingdom);
+
+            return new ActionOutcome($"Your clan is sworn as a vassal of {kingdom.Name}." + (gift == null ? "" : " " + gift), true);
          }
          catch (Exception ex)
          {
