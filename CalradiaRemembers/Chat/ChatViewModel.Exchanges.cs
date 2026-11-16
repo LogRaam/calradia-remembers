@@ -71,6 +71,9 @@ namespace CalradiaRemembers.Chat
       ///   The dedicated log for unknown-verb [ACTION] attempts, written next to the main mod log so the whole
       ///   record can be sent to the author as one file (see <see cref="LogUnknownAction" />).
       /// </summary>
+      /// <summary>The verbs that settle a task of men and pay its reward themselves (SettleTroopHandOver), give_troops when read as one.</summary>
+      private static readonly HashSet<string> HandOverTypes = new(StringComparer.OrdinalIgnoreCase) {"reinforce_garrison", "deliver_recruits", "give_troops"};
+
       private static readonly string UnknownActionLogPath = Path.Combine(
          Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
          "Mount and Blade II Bannerlord",
@@ -1693,11 +1696,24 @@ namespace CalradiaRemembers.Chat
                      // M-R3 (regard audit): a quest completed this turn already pays its fixed, verified
                      // RewardRelation. A POSITIVE change_relation the model also emits for "completing the task"
                      // would double-count the same deed, so drop it on a quest-completion turn. Negatives still
-                     // apply: an offense given during a turn-in is real.
-                     if (response.QuestCompleted != null
+                     // apply: an offense given during a turn-in is real. Only when the reward is REALLY paid
+                     // (Aporo, 16/11/2026: a refused claim lost him the warmth and paid nothing): QuestClaimRegardPolicy.
+                     QuestCompletionClaim claim = response.QuestCompleted;
+                     if (claim != null
                          && action.Parameters != null
                          && action.Parameters.TryGetValue("delta", out string qds)
-                         && int.TryParse(qds, out int qdv) && qdv > 0)
+                         && int.TryParse(qds, out int qdv)
+                         && QuestClaimRegardPolicy.IsPaidByTheQuestReward(new QuestClaimRegardFacts {
+                            CompletionClaimed = true,
+                            Delta = qdv,
+                            ClaimWillBePaid = !claim.TypeUnrecognized && profile?.ActiveQuests != null
+                                                                      && profile.ActiveQuests.Any(q => (q.IsAwaitingReward || EscapedTargetPolicy.MaySettleByVictory(q))
+                                                                                                       && (claim.Type == null || q.Type == claim.Type.Value)),
+                            HandOverSettlesATask = actionTypesThisTurn.Any(t => HandOverTypes.Contains(t ?? ""))
+                                                   && profile?.ActiveQuests != null
+                                                   && profile.ActiveQuests.Any(q => (q.IsOutstanding || q.SatisfiedOnDay == (int) CampaignTime.Now.ToDays)
+                                                                                    && (q.Type == QuestType.ReinforceGarrison || q.Type == QuestType.RecruitTroops))
+                         }))
                      {
                         ModLog.Info("[ACTION] change_relation (positive) dropped: the quest reward this turn already covers the goodwill (M-R3).");
 

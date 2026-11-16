@@ -99,5 +99,57 @@ namespace CalradiaRemembers.Tests.Actions
          TroopHandOverReadingPolicy.IsTheRecruitTask(new TroopHandOverFacts {RecruitTaskOutstanding = false, PlayerHoldsTheRecruitsAsked = true})
             .Should().BeFalse();
       }
+
+      // ── Men for the walls are the garrison task ──
+
+      // STAKE: Aporo stands in Onira with the men Queen Rhagaea asked for her walls and the reader writes give_troops;
+      // read as a field party's reinforcement it was refused "no room or need" and the task never closed.
+      [Test]
+      public void GIVEN_a_garrison_task_waiting_where_the_player_stands_WHEN_read_as_give_troops_THEN_it_is_the_hand_over()
+      {
+         TroopHandOverReadingPolicy.IsTheGarrisonTask(new GarrisonHandOverFacts {GarrisonTaskWaitingHere = true}).Should().BeTrue();
+      }
+
+      // STAKE: away from the place, or with no such task, soldiers given are a reinforcement as offered.
+      [Test]
+      public void GIVEN_no_garrison_task_waiting_here_WHEN_soldiers_are_given_THEN_they_reinforce_as_offered()
+      {
+         TroopHandOverReadingPolicy.IsTheGarrisonTask(new GarrisonHandOverFacts {GarrisonTaskWaitingHere = false}).Should().BeFalse();
+      }
+
+      // ── A warmth is "paid by the quest" only when the quest pays ──
+
+      // STAKE: Aporo's queen claimed her task was done, the game refused the claim and paid nothing, and her +3 warmth
+      // was dropped as "already covered": he lost both. A refused claim must leave the warmth to its own gate.
+      [Test]
+      public void GIVEN_a_completion_claim_the_game_refuses_WHEN_warmth_is_written_THEN_the_warmth_is_kept()
+      {
+         QuestClaimRegardPolicy.IsPaidByTheQuestReward(new QuestClaimRegardFacts {CompletionClaimed = true, ClaimWillBePaid = false, HandOverSettlesATask = false, Delta = 3})
+            .Should().BeFalse();
+      }
+
+      // STAKE: M-R3: a claim the game pays brings its own fixed relation reward; the warmth beside it is the same goodwill twice.
+      [Test]
+      public void GIVEN_a_completion_claim_the_game_pays_WHEN_warmth_is_written_THEN_it_is_dropped()
+      {
+         QuestClaimRegardPolicy.IsPaidByTheQuestReward(new QuestClaimRegardFacts {CompletionClaimed = true, ClaimWillBePaid = true, Delta = 3})
+            .Should().BeTrue();
+      }
+
+      // STAKE: men handed over in the same reply settle the task and pay its reward themselves, so the warmth is a double count.
+      [Test]
+      public void GIVEN_a_hand_over_that_settles_the_task_in_the_same_reply_WHEN_warmth_is_written_THEN_it_is_dropped()
+      {
+         QuestClaimRegardPolicy.IsPaidByTheQuestReward(new QuestClaimRegardFacts {CompletionClaimed = true, HandOverSettlesATask = true, Delta = 2})
+            .Should().BeTrue();
+      }
+
+      // STAKE: an offence given during a turn-in is real; only warmth is ever taken for the reward's goodwill.
+      [Test]
+      public void GIVEN_a_paid_claim_WHEN_anger_is_written_THEN_it_still_counts()
+      {
+         QuestClaimRegardPolicy.IsPaidByTheQuestReward(new QuestClaimRegardFacts {CompletionClaimed = true, ClaimWillBePaid = true, Delta = -4})
+            .Should().BeFalse();
+      }
    }
 }

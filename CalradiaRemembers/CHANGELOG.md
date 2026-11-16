@@ -4,6 +4,12 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.8.14.. unreleased
 
+### Fixed
+
+- **Men brought for a garrison task are handed over even when the reader writes give_troops** (Aporo, Discord 16/11/2026; Gabriel: "go"): Queen Rhagaea's task asked for men for the walls of Onira; the reader wrote `give_troops` (a thin field party's reinforcement), refused "no room or need for more soldiers", and the manual "Give them troops" was locked, so the task could never close. `TroopHandOverReadingPolicy.IsTheGarrisonTask`: when the character's garrison task waits in the place the player stands, `GiveTroopsVerb` carries it out as `reinforce_garrison` (which counts the men and says how many are missing), and `GiveTroopsVerb.IsEligible` opens the manual button. Still needs the player inside the place. cr.test `garrison_men_read_as_give_troops`.
+- **A warmth is dropped as "already paid by the quest" only when the quest pays** (Aporo, same log): M-R3 dropped a positive change_relation on every turn that claimed a completion, even when the claim was then refused ("no verified quest to match"), so the player lost the warmth and the reward. `QuestClaimRegardPolicy.IsPaidByTheQuestReward`: dropped only when the claim matches a task awaiting its reward (or a victory accepted in its place), or a hand-over of men in the same reply settles the task.
+- **The grant_fief refusal no longer tells a player who never ruled that they "no longer rule a kingdom"** (Aporo): a ruler promising the player a castle wrote `grant_fief`, the sovereign's own decree. The refusal now says a crown fief is granted by the player's decree as a sovereign, and, with fief quest rewards on, that a fief given to the player comes as a task's promised reward. revoke_fief's line reads "You rule no kingdom".
+
 ## v2.8.13.. 2026-11-16
 
 ### For modders

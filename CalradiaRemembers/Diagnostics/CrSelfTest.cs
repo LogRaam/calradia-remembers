@@ -506,6 +506,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("envoy_pacing", Severity.Light, "fkasad (Nexus, 12/10/2026): eight envoys about one prisoner in half an hour, each from another lord of his realm, the same offer every time. Drives the REAL envoy bookkeeping on made-up captives: after lord A's envoy, lord B waits out the captive's spacing and may come after it, and an envoy about another prisoner waits out the quiet days after any envoy (Gabriel, 12/10/2026); once enough envoys came and left without the captive, nobody comes even a year on. Touches no hero; the made-up captive's records are forgotten.", TestEnvoyPacing),
          new SelfTest("ransom_envoy_quest", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Here is 5000 denars. Bring my lad alive. You can keep the change.' Finds a captive lord held by a realm the player is at peace with, whose own lord can afford the purse; issues the task through the real QuestFactory and expects it bound to him with the purse at half again his ransom value. SKIP when no such captive exists. Pays nothing, frees nobody.", TestRansomEnvoyQuest),
          new SelfTest("prison_break_rescue", Severity.Light, "01/10/2026: the game's own prison break names the player as the one who freed the captive, but the release event does not carry it. Expects CR's prefix to be attached to EndCaptivityAction.ApplyByEscape (a game update renaming it would silently lose every prison-break rescue), the mark to answer for the marked lord only and to clear, and the rescue evidence to name the prison. Frees nobody.", TestPrisonBreakRescue),
+         new SelfTest("garrison_men_read_as_give_troops", Severity.Light, "Aporo (Discord, 16/11/2026): Queen Rhagaea's task asked for men for the garrison of Onira; the reader wrote give_troops (a thin field party's reinforcement), refused 'no room or need', and the manual 'Give them troops' was locked, so the task could never close. Standing in a town or castle held by another house, a garrison task for that place is set on its holder's profile: ReinforceGarrisonVerb sees it waiting, GiveTroopsVerb is eligible (the manual menu opens) and TroopHandOverReadingPolicy carries a give_troops out as reinforce_garrison. SKIP outside a town or castle. Moves no troops; the task is taken back.", TestGarrisonMenReadAsGiveTroops),
          new SelfTest("garrison_reinforcement", Severity.Light, "fkasad (Nexus, 01/10/2026): 'Works for garrison reinforcement too.' Finds a place whose garrison is thin by the seat pack's own bands, issues a reinforce_garrison task through the real QuestFactory for its governor or holder, and expects it bound to that place with a number of men within the band and the room on its walls. SKIP when no held garrison is thin. Moves no troops, records nothing.", TestGarrisonReinforcement),
          new SelfTest("town_needs_supply", Severity.Light, "fkasad (Nexus, 01/10/2026): a governor asks for what his town lacks. Reads a real town's market for the good it lacks most (twice its worth or more), issues a provide_goods task for it through the real QuestFactory for the town's holder, and expects it keyed to that good, an item of that category to count toward it, and the delivery to go to that town's market. SKIP when no held town lacks anything. Records nothing.", TestTownNeedsSupply),
          new SelfTest("plead_case_quest", Severity.Light, "Lordfadooboo and fkasad (Nexus, 01/10/2026): a lord asks the player to plead his case before another. Issues the task through the real QuestFactory, expects a sway AGAINST the giver and a sway toward someone else NOT to answer it, and a sway toward the giver by that person to complete it, through the same credit the bridge calls; then removes the task. Moves no regard.", TestPleadCaseQuest),
@@ -18489,6 +18490,43 @@ namespace CalradiaRemembers.Diagnostics
          finally { Mapping.PlayerPrisonBreakPatch.DebugMark(null, null); }
 
          t.Expect("theMarkClears", Mapping.PlayerPrisonBreakPatch.IsUnderway(lord, out _), false);
+
+         return t.Line();
+      }
+
+      private static string TestGarrisonMenReadAsGiveTroops(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("garrison_men_read_as_give_troops");
+         if (t.Skip(behavior.Store == null || MobileParty.MainParty == null, "no campaign")) return t.Line();
+
+         Settlement here = Settlement.CurrentSettlement;
+         Hero holder = here?.OwnerClan?.Leader;
+         if (t.Skip(here?.Town?.GarrisonParty == null, "the player stands in no town or castle with a garrison (enter one and run again)")) return t.Line();
+         if (t.Skip(holder == null || holder == Hero.MainHero, $"{here.Name} is held by no other house")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, holder);
+         var quest = new InformalQuest {
+            Type = QuestType.ReinforceGarrison,
+            Description = $"[SELFTEST] Bring soldiers for the garrison of {here.Name}.",
+            TargetSettlement = here.Name.ToString(),
+            RequiredItemCount = ReinforceGarrisonPolicy.MinTroops,
+            IssuedOnDay = behavior.GameStateBridge.GetCurrentGameDay(),
+            Status = QuestStatus.Active
+         };
+         profile.ActiveQuests.Add(quest);
+         try
+         {
+            var ctx = new VerbContext(holder, profile, behavior.GameStateBridge, null, null);
+            bool waiting = new Verbs.ReinforceGarrisonVerb().IsEligible(ctx);
+            t.Note($"{holder.Name}'s task: {quest.RequiredItemCount} men for {here.Name}");
+            t.Expect("theTaskWaitsHere", waiting, true);
+            t.Expect("giveTroopsOpens", new Verbs.GiveTroopsVerb().IsEligible(ctx), true);
+            t.Expect("readAsTheGarrisonTask", TroopHandOverReadingPolicy.IsTheGarrisonTask(new GarrisonHandOverFacts {GarrisonTaskWaitingHere = waiting}), true);
+         }
+         finally
+         {
+            profile.ActiveQuests.Remove(quest);
+         }
 
          return t.Line();
       }

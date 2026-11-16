@@ -400,7 +400,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - SilentRefusalMessages.GrantFiefMissingFief()
   - $"({npcHero.Name} cannot receive a fief right now.)"
   - $"({npcHero.Name} is not a vassal of your kingdom; a crown fief passes only to a lord sworn to your realm.)"
-  - "(You no longer rule a kingdom, and cannot grant a crown fief.)"
+  - "(A crown fief is granted by your own decree as a sovereign, and you rule no kingdom." + (ModSettings.AllowFiefAndMarriageQuestRewards ? $" A fief {np...
   - $"(Your clan holds no crown fief called '{fiefName}' to grant.)"
 
 ### grant_stipend
@@ -685,7 +685,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - $"({npcHero.Name} holds no separate house whose fief you could revoke.)"
   - SilentRefusalMessages.RevokeFiefMissingFief()
   - $"({npcHero.Name} is not a vassal of your kingdom; you cannot revoke a fief that lies outside your realm.)"
-  - "(You no longer rule a kingdom, and cannot revoke a fief in its name.)"
+  - "(You rule no kingdom, and cannot revoke a fief in its name.)"
   - $"({npcHero.Name} holds no fief called '{fiefName}' to revoke.)"
 
 ### ride_with_me

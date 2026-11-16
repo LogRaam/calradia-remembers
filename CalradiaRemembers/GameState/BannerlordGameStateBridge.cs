@@ -3128,7 +3128,10 @@ namespace CalradiaRemembers.GameState
                case GrantFiefResult.RecipientNotVassal:
                   return ActionOutcome.Refused($"({npcHero.Name} is not a vassal of your kingdom; a crown fief passes only to a lord sworn to your realm.)");
                case GrantFiefResult.PlayerNotKingdomLeader:
-                  return ActionOutcome.Refused("(You no longer rule a kingdom, and cannot grant a crown fief.)");
+                  // Aporo (16/11/2026): a queen promising HIM a castle wrote grant_fief, the sovereign's decree, and he
+                  // read "You no longer rule a kingdom" though he never had one. Say what the verb is, and the real way.
+                  return ActionOutcome.Refused("(A crown fief is granted by your own decree as a sovereign, and you rule no kingdom."
+                                               + (ModSettings.AllowFiefAndMarriageQuestRewards ? $" A fief {npcHero.Name} gives you comes only as a task's promised reward, paid when the task is done.)" : ")"));
                case GrantFiefResult.NoSuchFief:
                   return ActionOutcome.Refused($"(Your clan holds no crown fief called '{fiefName}' to grant.)");
             }
@@ -3188,7 +3191,7 @@ namespace CalradiaRemembers.GameState
                case RevokeFiefResult.VassalNotInKingdom:
                   return ActionOutcome.Refused($"({npcHero.Name} is not a vassal of your kingdom; you cannot revoke a fief that lies outside your realm.)");
                case RevokeFiefResult.PlayerNotKingdomLeader:
-                  return ActionOutcome.Refused("(You no longer rule a kingdom, and cannot revoke a fief in its name.)");
+                  return ActionOutcome.Refused("(You rule no kingdom, and cannot revoke a fief in its name.)");
                case RevokeFiefResult.NoSuchFief:
                   return ActionOutcome.Refused($"({npcHero.Name} holds no fief called '{fiefName}' to revoke.)");
             }

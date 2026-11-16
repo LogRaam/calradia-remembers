@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 679 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1666 types in 61 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1669 types in 61 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 28500+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 29000+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 9500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 6000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -1571,7 +1571,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WorldFactRelevance` | public struct | The result of scoring one world-fact candidate against the player's message. |
 | `WorldFactRelevancePolicy` | public static class | Pure, engine-free scoring of how much a world fact bears on what the player just said. |
 
-### CalradiaRemembers.Logic.Actions (28)
+### CalradiaRemembers.Logic.Actions (31)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1580,6 +1580,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BountyConfirmationFacts` | public class | What the question about paying off a bounty names (pay_bounty, froggyluv and Gabriel 23/10/2026). |
 | `ConfirmationAnswer` | public enum | How the player answered a pending in-chat confirmation prompt. |
 | `EdictConfirmationFacts` | public class | What the question about an edict the player decrees names (enact_edict, Gabriel 21/10/2026). |
+| `GarrisonHandOverFacts` | public class | The facts about a give_troops, as far as the character's garrison task is concerned. |
 | `HandConfirmationFacts` | public class | What the arrange_match confirmation names (BuildHandQuestion). |
 | `ItemConfirmationFacts` | public class | What the question about an item leaving the player's hands names. |
 | `ManualActionAvailability` | public static class | Decides, from a ManualActionFacts snapshot, exactly which ManualActionCatalog entries the manual menu may offer for THIS conversation right now. |
@@ -1592,6 +1593,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ManualActionStatus` | public class | One catalogue entry with where it stands, and why when it is closed. |
 | `OfferConfirmationFacts` | public class | What the question about a captive's counter_offer names. |
 | `ProseActionVocabulary` | public static class | The action vocabulary of the prose prompt (Standard composition): what its GAME ACTIONS list may name. |
+| `QuestClaimRegardFacts` | public class | The facts about a positive change_relation written on a turn that claims a task is done. |
+| `QuestClaimRegardPolicy` | public static class | Whether a warmth is the same goodwill a quest reward of the same turn already pays. |
 | `RealmBondConfirmationFacts` | public class | What the question about binding the player's clan to a realm names (join_as_mercenary, join_as_vassal; Lordfadooboo, Nexus 16/11/2026: "ive been shanghaied more than once in a conversation about handling bandits"). |
 | `SaleFromParts` | public class | A give_gold and a give_item of one turn read as the one sale they are. |
 | `TaughtActionFacts` | public struct | The eligibility facts that decide which conditional 1:1 [ACTION] verbs a single conversation turn teaches. |
@@ -1600,7 +1603,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TradeBatchFacts` | public class | A turn's actions, and whether the player picked the item from the bag this turn. |
 | `TradeBatchPolicy` | public static class | Which actions of a turn a sale makes redundant. |
 | `TroopHandOverFacts` | public class | The facts about a give_troops toward a lord, as far as his recruit task is concerned. |
-| `TroopHandOverReadingPolicy` | public static class | Whether a give_troops is the hand-over of a lord's recruit task. |
+| `TroopHandOverReadingPolicy` | public static class | Whether a give_troops is the hand-over of a lord's recruit task, or of a garrison task. |
 | `TurnRegardFacts` | public class | The facts about one action of a turn, as far as a regard cost is concerned. |
 | `TurnRegardPolicy` | public static class | Whether a change_relation is the same regard cost as a deed of the same turn. |
 

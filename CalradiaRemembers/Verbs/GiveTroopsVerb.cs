@@ -31,8 +31,11 @@ namespace CalradiaRemembers.Verbs
     {
         public string Name => "give_troops";
 
+        // Also open while their garrison task waits where the player stands (Aporo, 16/11/2026: "give them troops is
+        // locked"), so the manual menu's "Give them troops" hands those men over; Execute carries it out as reinforce_garrison.
         public bool IsEligible(VerbContext ctx)
-            => ctx?.Npc != null && ctx.Profile != null && (LevyTroops(ctx.Npc).Men > 0 || CourtActionResolver.TryGiveTroops(ctx.Npc, ctx.Profile, out _));
+            => ctx?.Npc != null && ctx.Profile != null
+                                && (LevyTroops(ctx.Npc).Men > 0 || CourtActionResolver.TryGiveTroops(ctx.Npc, ctx.Profile, out _) || new ReinforceGarrisonVerb().IsEligible(ctx));
 
         public string TeachingText(VerbContext ctx)
         {
@@ -87,6 +90,16 @@ namespace CalradiaRemembers.Verbs
                     ModLog.Info($"[ACTION] give_troops toward {npcHero.Name} carried out as deliver_recruits: his recruit task is open and the player holds the men.");
 
                     return new DeliverRecruitsVerb().Execute(action, ctx);
+                }
+
+                // Men for the walls are the garrison task (Aporo, 16/11/2026): give_troops reinforces a thin field party
+                // and refused Queen Rhagaea's garrison task "for want of need", leaving it open for good.
+                var garrison = new ReinforceGarrisonVerb();
+                if (TroopHandOverReadingPolicy.IsTheGarrisonTask(new GarrisonHandOverFacts {GarrisonTaskWaitingHere = garrison.IsEligible(ctx)}))
+                {
+                    ModLog.Info($"[ACTION] give_troops toward {npcHero.Name} carried out as reinforce_garrison: their garrison task waits where the player stands.");
+
+                    return garrison.Execute(action, ctx);
                 }
 
                 // The vassal war duty (Gabriel, 15/10/2026): a liege the player owes a levy takes soldiers toward it,
