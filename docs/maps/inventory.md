@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 677 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1662 types in 61 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1663 types in 61 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1057,7 +1057,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (503)
+### CalradiaRemembers.Logic (504)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1329,6 +1329,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `NewsDestinationSelector` | public static class | Chooses which town a "bring me news about X" errand rides to. |
 | `NotableRecruitmentBlock` | public enum | Why a notable cannot (yet) be recruited as a companion, or None when they can. |
 | `NotableRecruitmentPolicy` | public static class | The pure gate behind recruit_notable. |
+| `NotableTradeFacts` | public class | A mentioned notable's trade and home, and whether the speaker could know them. |
 | `NpcActionGate` | public static class | The base conditions of every action a character takes. |
 | `NpcMemoryInjection` | public static class | The door rules an externally-injected NPC memory passes through before it enters the store. |
 | `NpcStance` | public class | A per-NPC stance toward the player. |

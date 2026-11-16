@@ -61,11 +61,11 @@ namespace CalradiaRemembers.Mapping
 
          if (mentioned.Count == 0 && lost.Count == 0) return null;
 
-         var matches = new List<(string FullName, string Gender, string Relationship, string Allegiance, string Whereabouts, string Prisoner)>();
+         var matches = new List<(string FullName, string Gender, string Relationship, string Standing, string Allegiance, string Whereabouts, string Prisoner)>();
 
          // The speaker's own dead first: the one a grieving father means when a living namesake shares the name.
          foreach (var (dead, fullName, tie) in lost)
-            matches.Add((fullName, ThirdPartyDescriptor.GenderNoun(dead.IsFemale), tie, null, null, null));
+            matches.Add((fullName, ThirdPartyDescriptor.GenderNoun(dead.IsFemale), tie, null, null, null, null));
 
          // VonLemberg / Goeth (16/11/2026): one shared word admitted every hero bearing it, uncapped. The prompt now carries
          // the most likely meant (MentionedPeoplePolicy) and counts the rest; the verbs' entity resolution still reads the
@@ -75,7 +75,7 @@ namespace CalradiaRemembers.Mapping
          foreach (string key in chosen.Shown)
          {
             var (other, fullName, relationship) = byKey[key];
-            matches.Add((fullName, ThirdPartyDescriptor.GenderNoun(other.IsFemale), relationship, AllegianceOf(other),
+            matches.Add((fullName, ThirdPartyDescriptor.GenderNoun(other.IsFemale), relationship, TradeOf(npc, other), AllegianceOf(other),
                ResolveWhereabouts(npc, other, bridge), PrisonerStatusClause(npc, other, fullName)));
          }
 
@@ -218,7 +218,23 @@ namespace CalradiaRemembers.Mapping
          });
       }
 
-      private static string BuildHint(List<(string FullName, string Gender, string Relationship, string Allegiance, string Whereabouts, string Prisoner)> matches, int omitted)
+      /// <summary>
+      ///   A notable's trade and home, said only to a speaker who could know them (VonLemberg / Goeth, 16/11/2026; Gabriel: his
+      ///   town and those tied to him): the speaker lives in or stands in that place, or a tie lets them place the notable.
+      /// </summary>
+      private static string TradeOf(Hero npc, Hero other)
+      {
+         if (other == null || !other.IsNotable) return null;
+
+         Settlement home = other.HomeSettlement;
+         bool couldKnow = home != null && (npc.CurrentSettlement == home || npc.HomeSettlement == home || KnowledgeOf(npc, other) != KnowledgeTier.None);
+
+         return MentionedPeoplePolicy.TradeClause(new NotableTradeFacts {
+            OccupationName = other.Occupation.ToString(), HomeName = home?.Name?.ToString(), SpeakerCouldKnow = couldKnow
+         });
+      }
+
+      private static string BuildHint(List<(string FullName, string Gender, string Relationship, string Standing, string Allegiance, string Whereabouts, string Prisoner)> matches, int omitted)
       {
          var sb = new StringBuilder();
          sb.AppendLine("NAMES MENTIONED IN THE PLAYER'S MESSAGE:");
@@ -228,6 +244,7 @@ namespace CalradiaRemembers.Mapping
             sb.Append(
                $"The player appears to be referring to {matches[0].FullName}" +
                $", {matches[0].Gender}, {matches[0].Relationship}" +
+               (string.IsNullOrEmpty(matches[0].Standing) ? "" : $"; {matches[0].Standing}") +
                (string.IsNullOrEmpty(matches[0].Allegiance) ? "." : $"; {matches[0].Allegiance}."));
             if (!string.IsNullOrEmpty(matches[0].Whereabouts))
                sb.Append($" Whereabouts: {matches[0].Whereabouts}.");
@@ -238,9 +255,9 @@ namespace CalradiaRemembers.Mapping
          {
             sb.AppendLine(
                "The following people may be relevant to what the player just said:");
-            foreach (var (name, gender, rel, allegiance, where, prisoner) in matches)
+            foreach (var (name, gender, rel, standing, allegiance, where, prisoner) in matches)
             {
-               string who = string.IsNullOrEmpty(allegiance) ? $"  - {name}, {gender}, {rel}" : $"  - {name}, {gender}, {rel}; {allegiance}";
+               string who = $"  - {name}, {gender}, {rel}" + (string.IsNullOrEmpty(standing) ? "" : $"; {standing}") + (string.IsNullOrEmpty(allegiance) ? "" : $"; {allegiance}");
                sb.AppendLine(string.IsNullOrEmpty(where)
                   ? who
                   : $"{who}. Whereabouts: {where}");
@@ -339,7 +356,7 @@ namespace CalradiaRemembers.Mapping
       }
 
       private static bool HasAmbiguousFirstName(
-         List<(string FullName, string Gender, string Relationship, string Allegiance, string Whereabouts, string Prisoner)> matches)
+         List<(string FullName, string Gender, string Relationship, string Standing, string Allegiance, string Whereabouts, string Prisoner)> matches)
       {
          List<string> firstNames = matches
                                    .Select(m => m.FullName.Split(' ')[0])

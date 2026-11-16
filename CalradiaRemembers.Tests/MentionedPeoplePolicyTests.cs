@@ -129,6 +129,34 @@ namespace CalradiaRemembers.Tests
             MentionedPeoplePolicy.AllegianceClause(new AllegianceFacts {HouseName = "Jawwal", IsFreeCompany = true}).Should().Be("Jawwal, a free company sworn to no realm");
         }
 
+        // STAKE: Goeth: asked about Bryn, a speaker of Pravend did not know Bryn keeps a shop in his own town.
+        [Test]
+        public void GIVEN_a_notable_of_the_speakers_town_WHEN_worded_THEN_his_trade_and_home_are_said()
+        {
+            MentionedPeoplePolicy.TradeClause(new NotableTradeFacts {OccupationName = "Merchant", HomeName = "Pravend", SpeakerCouldKnow = true})
+                .Should().Be("a merchant of Pravend");
+            MentionedPeoplePolicy.TradeClause(new NotableTradeFacts {OccupationName = "Headman", HomeName = "Ezbiran", SpeakerCouldKnow = true})
+                .Should().Be("the headman of Ezbiran");
+        }
+
+        // STAKE: Gabriel (16/11/2026): known in his town and to those tied to him, no further: a lord across the continent
+        // is not handed the shops of a town he never visits.
+        [Test]
+        public void GIVEN_a_speaker_who_could_not_know_WHEN_worded_THEN_no_trade_is_said()
+        {
+            MentionedPeoplePolicy.TradeClause(new NotableTradeFacts {OccupationName = "Merchant", HomeName = "Pravend", SpeakerCouldKnow = false}).Should().BeNull();
+        }
+
+        // STAKE: VonLemberg's point 3: an epithet is not a trade. Only the game's notable occupations are worded; a lord or a
+        // wanderer, whatever his name says, gets no trade.
+        [Test]
+        public void GIVEN_someone_who_is_no_town_or_village_notable_WHEN_worded_THEN_no_trade_is_said()
+        {
+            MentionedPeoplePolicy.TradeClause(new NotableTradeFacts {OccupationName = "Lord", HomeName = "Pravend", SpeakerCouldKnow = true}).Should().BeNull();
+            MentionedPeoplePolicy.TradeClause(new NotableTradeFacts {OccupationName = "Wanderer", HomeName = "Pravend", SpeakerCouldKnow = true}).Should().BeNull();
+            MentionedPeoplePolicy.TradeClause(new NotableTradeFacts {OccupationName = "Merchant", SpeakerCouldKnow = true}).Should().BeNull();
+        }
+
         // STAKE: a notable or a wanderer has no house; nothing is invented, and an outlaw band has no allegiance to word.
         [Test]
         public void GIVEN_no_house_or_an_outlaw_band_WHEN_worded_THEN_nothing_is_said()

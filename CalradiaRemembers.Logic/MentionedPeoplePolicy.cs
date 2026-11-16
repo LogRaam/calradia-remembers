@@ -77,6 +77,26 @@ namespace CalradiaRemembers.Logic
         public bool IsOutlawBand { get; init; }
     }
 
+    /// <summary>
+    ///   A mentioned notable's trade and home, and whether the speaker could know them. VonLemberg and Goeth (Discord,
+    ///   16/11/2026, "Third-Party Notable Trade and Local Knowledge"): the line said who a notable was to the speaker, never
+    ///   that he is the merchant of Pravend; Gabriel (16/11/2026): known in his town and to those tied to him, no further.
+    /// </summary>
+    public sealed class NotableTradeFacts
+    {
+        /// <summary>The game's occupation name ("Merchant", "Artisan", "RuralNotable", "Headman", "Preacher"); others say nothing.</summary>
+        public string OccupationName { get; init; }
+
+        /// <summary>The notable's home settlement. Blank: nothing is said.</summary>
+        public string HomeName { get; init; }
+
+        /// <summary>
+        ///   The speaker could know it: they live in or stand in that place, or something ties them to the notable. A lord
+        ///   across the continent does not know who keeps the shops of a town he never visits.
+        /// </summary>
+        public bool SpeakerCouldKnow { get; init; }
+    }
+
     /// <summary>Which mentioned people reach the prompt, and how their allegiance is said.</summary>
     public static class MentionedPeoplePolicy
     {
@@ -136,6 +156,27 @@ namespace CalradiaRemembers.Logic
             if (f.IsMercenary) return $"their {(f.IsFreeCompany ? "company" : "house")}, {house}, fights for {realm} for pay";
 
             return $"their house, {house}, serves {realm}";
+        }
+
+        /// <summary>
+        ///   "a merchant of Pravend", "the headman of Ezbiran"; null when the speaker could not know it, the person is no town or
+        ///   village notable, or has no home. Read from the game's occupation, never from an epithet: "the Brewer" in a name
+        ///   is a name (VonLemberg's audit, point 3).
+        /// </summary>
+        public static string TradeClause(NotableTradeFacts f)
+        {
+            if (f == null || !f.SpeakerCouldKnow || string.IsNullOrWhiteSpace(f.HomeName)) return null;
+
+            string home = f.HomeName.Trim();
+            switch (f.OccupationName)
+            {
+                case "Merchant": return $"a merchant of {home}";
+                case "Artisan": return $"an artisan of {home}";
+                case "RuralNotable": return $"a landowner of {home}";
+                case "Headman": return $"the headman of {home}";
+                case "Preacher": return $"a preacher of {home}";
+                default: return null;
+            }
         }
 
         /// <summary>Said once under the list: a culture is where someone comes from, the allegiance is whom they serve now.</summary>
