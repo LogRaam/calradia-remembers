@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-804 rules read 596 facts.
+805 rules read 598 facts.
 
 ## Facts read by more than one rule
 
@@ -298,6 +298,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Ledger.LastDay` (2) | `ExtortionPolicy.MayPressAgain`, `LegendPolicy.MayRaise` |
 | `Ledger.Legends` (2) | `LegendPolicy.Closest`, `LegendPolicy.PromptLine` |
 | `Ledger.OpenCase` (2) | `StandingAim`, `SummonsFacts` |
+| `List.Last` (2) | `QuestMenuEntry`, `TaleJournalFacts` |
 | `LocationComplex.GetLocationWithId` (2) | `DuelStagingSupport.CanHoldATownDuel`, `DuelVenuePolicy.Choose` |
 | `MapEventSide.LeaderParty` (2) | `SkirmishFacts`, `SkirmishFoe` |
 | `MarriageModel.IsClanSuitableForMarriage` (2) | `LeaveHouseFacts`, `LeaveHouseForRulerPolicy.WhyNot` |
@@ -572,6 +573,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `CourtshipLapsePolicy.After`: `Romantic.Status`
 - `CourtshipLapsePolicy.EndsForAPastWedding`: `Romantic.StatusSinceDay`
 - `CraftWeaponPolicy.Answers`: `ItemObject.IsCraftedByPlayer`
+- `CraftWeaponPolicy.KindOfClass`: `EquipmentIndex.WeaponItemBeginSlot`
 - `CredulityFacts`: `Hero.Age`, `SocialStationReader.StationOf`
 - `CustodyReleaseFacts`: `EndCaptivityDetail.ReleasedByChoice`
 - `DayMoodFactsPolicy.From`: `Clan.Kingdom`, `Hero.Clan`, `Hero.CurrentSettlement`, `Hero.IsPrisoner`, `Settlement.IsCastle`, `Settlement.IsTown`, `Settlement.IsUnderSiege`
@@ -968,7 +970,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `ProviderRolePolicy.ResolveRoleKind`: `Provider.SelectedValue`
 - `QuestFailureLeniencyPolicy.Resolve`: `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`
 - `QuestJournalText.Title`: `ActiveQuests.Find`
-- `QuestMenuEntry`: `Book.ForNpc`, `Clan.Name`, `Culture.Name`, `FactionManager.IsAtWarAgainstFaction`, `Good.Name`, `Hero.Clan`, `Hero.CurrentSettlement`, `Hero.MapFaction`, `Hero.Name`, `Kingdom.Leader`, `MarriageModel.IsCoupleSuitableForMarriage`, `Place.Name`, `Settlement.GetPosition2D`, `Settlement.Name`, `Vec2.Clan`, `Vec2.IsPrisoner`, `Vec2.MapFaction`, `Vec2.Spouse`, `Vec2.x`, `Vec2.y`
+- `QuestMenuEntry`: `Book.ForNpc`, `Clan.Name`, `Culture.Name`, `FactionManager.IsAtWarAgainstFaction`, `Good.Name`, `Hero.Clan`, `Hero.CurrentSettlement`, `Hero.MapFaction`, `Hero.Name`, `Kingdom.Leader`, `List.Last`, `List.Take`, `MarriageModel.IsCoupleSuitableForMarriage`, `Place.Name`, `Settlement.GetPosition2D`, `Settlement.Name`, `Vec2.Clan`, `Vec2.IsPrisoner`, `Vec2.MapFaction`, `Vec2.Spouse`, `Vec2.x`, `Vec2.y`
 - `QuestOfferFacts`: `Description.TrimEnd`, `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`
 - `QuestOfferText.Body`: `Description.TrimEnd`, `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`
 - `QuestOfferText.Pending`: `Description.TrimEnd`, `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`

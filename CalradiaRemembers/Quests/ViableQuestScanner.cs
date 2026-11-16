@@ -140,10 +140,50 @@ namespace CalradiaRemembers.Quests
          }
 
          // 7. A weapon forged by the player's own hand, of the kind you name (Lordfadooboo, 01/10/2026).
+         // Schmidt (16/11/2026): the weapon he asks for is his own kind, what he fights with and his people forge
+         // (ForgePreferencePolicy), not any the smithy makes.
          if (giver.IsLord)
-            entries.Add(new QuestMenuEntry {TypeToken = "craft_weapon", TargetField = null, TargetName = null, Cue = "have the player forge you a weapon at a smithy (set category to the weapon you want)"});
+         {
+            List<string> suited = ForgePreferencePolicy.Suited(ForgeAsker(giver)).Select(CraftWeaponPolicy.Label).ToList();
+            string want = suited.Count <= 1 ? suited.FirstOrDefault() ?? "weapon" : string.Join(", ", suited.Take(suited.Count - 1)) + " or " + suited.Last();
+            entries.Add(new QuestMenuEntry {TypeToken = "craft_weapon", TargetField = null, TargetName = null,
+               Cue = $"have the player forge you a weapon at a smithy: a {want}, the kind you fight with and your people forge (set category to it)"});
+         }
 
          return entries;
+      }
+
+      /// <summary>
+      ///   What the game says about <paramref name="lord" /> as one who would ask for a forged weapon: his people, the smithy
+      ///   kinds among his battle weapons, and his weapon skills best first (ForgePreferencePolicy). Internal for the self-test.
+      /// </summary>
+      internal static ForgeAskerFacts ForgeAsker(Hero lord)
+      {
+         var wields = new List<string>();
+         try
+         {
+            for (var slot = TaleWorlds.Core.EquipmentIndex.WeaponItemBeginSlot; slot < TaleWorlds.Core.EquipmentIndex.NumPrimaryWeaponSlots; slot++)
+            {
+               string kind = CraftWeaponPolicy.KindOfClass(lord?.BattleEquipment?[slot].Item?.WeaponComponent?.PrimaryWeapon?.WeaponClass.ToString());
+               if (kind != null) wields.Add(kind);
+            }
+         }
+         catch { /* an unreadable kit names nothing */ }
+
+         var skills = new List<(WeaponSkillFamily Family, int Value)>();
+         if (lord != null)
+         {
+            skills.Add((WeaponSkillFamily.OneHanded, lord.GetSkillValue(TaleWorlds.Core.DefaultSkills.OneHanded)));
+            skills.Add((WeaponSkillFamily.TwoHanded, lord.GetSkillValue(TaleWorlds.Core.DefaultSkills.TwoHanded)));
+            skills.Add((WeaponSkillFamily.Polearm, lord.GetSkillValue(TaleWorlds.Core.DefaultSkills.Polearm)));
+            skills.Add((WeaponSkillFamily.Throwing, lord.GetSkillValue(TaleWorlds.Core.DefaultSkills.Throwing)));
+         }
+
+         return new ForgeAskerFacts {
+            CultureId = lord?.Culture?.StringId,
+            KindsHeWields = wields,
+            SkillsBestFirst = skills.OrderByDescending(s => s.Value).Select(s => s.Family).ToList()
+         };
       }
 
       /// <summary>

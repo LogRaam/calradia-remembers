@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 679 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1672 types in 61 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1675 types in 61 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1059,7 +1059,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (510)
+### CalradiaRemembers.Logic (513)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1215,6 +1215,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FoodTradeFacts` | public class | One visit's food trade in a town. |
 | `FoodTradeVerdict` | public enum | What the town remembers of a visit's food trade. |
 | `ForeignDivorceDetection` | public static class | Finds the marriages another mod ended. |
+| `ForgeAskerFacts` | public class | What the game says about the man who would ask for a forged weapon. |
+| `ForgePreferencePolicy` | public static class | The smithy kinds a lord would ask for, best suited first (at most MaxSuggested). |
 | `GameCalendar` | public class | The game's own calendar, as the running campaign set it (0 when no campaign has set it yet). |
 | `GameRelationFacts` | public class | The game's relations with the player that one character's standing is read from. |
 | `GameRelationReading` | public static class | Reads a character's clan standing and own relation with the player. |
@@ -1570,6 +1572,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `VassalRewardPolicy` | public static class | Mirrors the game's own oath: influence every time, the gift and the goodwill once per campaign. |
 | `VassalageOfferPolicy` | public static class | Pure gate for the join_as_vassal action: whether the speaking NPC truly rules a kingdom, and the player's clan is not already a full vassal of one, the two facts both the prompt teaching and the bridge's execution guard... |
 | `VentriloquizedReactionPolicy` | public static class | Decides when a speaker's witness reactions must yield to the round-table lap. |
+| `WeaponSkillFamily` | public enum | The weapon families of the smithy, by the skill that wields them. |
 | `WorldEventPruner` | public static class | Keeps the world-event log bounded, with two lifetimes on purpose: third-party events are rumour fodder and age out (a window, plus a hard cap), while the player's own deeds are the chronicle and are kept long-term (only... |
 | `WorldFactRelevance` | public struct | The result of scoring one world-fact candidate against the player's message. |
 | `WorldFactRelevancePolicy` | public static class | Pure, engine-free scoring of how much a world fact bears on what the player just said. |
