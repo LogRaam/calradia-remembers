@@ -9,6 +9,11 @@
 // weeks for a war), and nothing checked it against the world when it was spoken. This decides whether a piece of news
 // is still news to bring to the player: fresh, not something the player lived or their own realm did, not overtaken by
 // what came after, and still true. And it words how old it is, so it is told as past.
+//
+// Lordfadooboo (Nexus bug tracker, 16/11/2026, 2.8.12): "whether i play with the toggle set to on or set to off, my
+// companions still ask to speak with me to tell me about a random castle that was taken by a random lord." The MCM
+// switch "NPCs Raise World News" promises, when off, that "an NPC approaches you only about something between the two
+// of you"; it held only the lords' gossip, never a companion's news. Gabriel (16/11/2026): every companion rumour obeys it.
 
 namespace CalradiaRemembers.Logic.Companions
 {
@@ -29,6 +34,12 @@ namespace CalradiaRemembers.Logic.Companions
 
         /// <summary>It is no longer so: a war since made peace, a peace since broken.</summary>
         public bool NoLongerTrue { get; init; }
+
+        /// <summary>
+        ///   The player turned "NPCs Raise World News" off (the default): no one comes to bring distant news, a companion
+        ///   included. Everything this topic brings is news the player had no part in, so off means none of it.
+        /// </summary>
+        public bool WorldNewsTurnedOff { get; init; }
     }
 
     /// <summary>Whether a companion still brings a piece of news to the player, and how its age is said.</summary>
@@ -45,6 +56,7 @@ namespace CalradiaRemembers.Logic.Companions
         public static string WhyNotNews(CompanionRumourFreshnessFacts f)
         {
             if (f == null) return "no news";
+            if (f.WorldNewsTurnedOff) return "NPCs Raise World News is off";
             if (f.InvolvesThePlayer) return "the player was part of it";
             if (f.IsThePlayersOwnWarOrPeace) return "a war or peace of the player's own realm";
             if (f.OvertakenSince) return "overtaken since (the place has fallen)";

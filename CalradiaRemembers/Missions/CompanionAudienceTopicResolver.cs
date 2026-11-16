@@ -358,7 +358,8 @@ namespace CalradiaRemembers.Missions
             IsThePlayersOwnWarOrPeace = warOrPeace && ev.FactionIds != null
                                         && (playerRealm != null && ev.FactionIds.Contains(playerRealm) || playerClan != null && ev.FactionIds.Contains(playerClan)),
             OvertakenSince = overtaken,
-            NoLongerTrue = noLongerTrue
+            NoLongerTrue = noLongerTrue,
+            WorldNewsTurnedOff = !CalradiaRemembers.Foundation.ModSettings.NpcsRaiseWorldNews
          };
       }
 

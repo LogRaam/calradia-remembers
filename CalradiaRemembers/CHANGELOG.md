@@ -4,6 +4,14 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.8.13.. unreleased
 
+### Fixed
+
+- **"NPCs Raise World News" off now holds back your companions' news too** (Lordfadooboo, Nexus bug tracker 16/11/2026, on 2.8.12: "whether i play with the toggle set to on or set to off, my companions still ask to speak with me to tell me about a random castle that was taken by a random lord."; Gabriel: "oui vas-y"). The switch promised, when off (the default), that "an NPC approaches you only about something between the two of you", but it held only a lord's gossip (`InterceptionBehavior.BuildRecentMatters`); a companion's rumour report (`CompanionAudienceTopicResolver.ResolveRumourReport`) never read it. Every piece of news a companion comes to bring is something the player had no part in, so with the switch off none of it is brought (`CompanionRumourFreshnessPolicy`, `WorldNewsTurnedOff`, tested; the reason shows in cr.audience_topics). Their other reasons to ask for a word (tasks, gratitude, a callback, a scheme warning) are untouched. cr.test companion_news_fresh now runs with the switch on and off. Not play-verified.
+
+### Changed
+
+- **A mercenary contract or an oath of vassalage is struck only on your yes** (Lordfadooboo, Nexus 16/11/2026: "love the addition of being able to accept missions instead of having them thrust upon us. could we also get the same thing for mercenary contracts? ive been shanghaied more than once in a conversation about handling bandits."; Gabriel: "inclus join_as_vassal"). `join_as_mercenary` and `join_as_vassal` bound the clan in the very reply where the character spoke of it. Both now wait in the chat's Y/n confirmation, as a hire or a payment does: "Enlist your clan as mercenaries of Vlandia, on Count Aldric's word? [Y/n]" / "Swear your clan to Vlandia as King Derthert's vassal? [Y/n]". No: nothing happens and the character is told you declined. The bridge still re-checks every guard when you say yes. The same contract emitted again in one conversation is not asked twice. `ActionConfirmationPolicy.BuildRealmBondQuestion` (tested); cr.test realm_bond_asked_first. Not play-verified.
+
 ## v2.8.12.. 2026-11-15
 
 ### New

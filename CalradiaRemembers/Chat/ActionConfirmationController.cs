@@ -104,6 +104,27 @@ namespace CalradiaRemembers.Chat
             return ActionDisposition.Queued;
          }
 
+         // join_as_mercenary / join_as_vassal (Lordfadooboo, Nexus 16/11/2026: "ive been shanghaied more than once in a
+         // conversation about handling bandits"; Gabriel: both): the clan is bound to a realm only on the player's own yes,
+         // naming the realm and whether it is a contract or an oath. A speaker of no realm runs inline, where the bridge
+         // says why; the bridge re-checks every other guard when the yes comes.
+         if (type.Equals("join_as_mercenary", StringComparison.OrdinalIgnoreCase) || type.Equals("join_as_vassal", StringComparison.OrdinalIgnoreCase))
+         {
+            TaleWorlds.CampaignSystem.Kingdom realm = npc?.Clan?.Kingdom;
+            if (realm == null) return ActionDisposition.ExecuteInline;
+            string bondKey = $"{type.ToLowerInvariant()}:{realm.StringId}";
+            if (_resolvedKeys.Contains(bondKey)) return ActionDisposition.Skip;
+            _resolvedKeys.Add(bondKey);
+            _pending.Enqueue(new PendingConfirmation {
+               Action = action, Npc = npc, Profile = profile, Context = context,
+               Question = ActionConfirmationPolicy.BuildRealmBondQuestion(new RealmBondConfirmationFacts {
+                  ActionType = type, RealmName = realm.Name?.ToString(), NpcName = npc.Name?.ToString() ?? profile?.Name
+               })
+            });
+
+            return ActionDisposition.Queued;
+         }
+
          // arrange_match asking the player for a woman of his house (tashmetu, 20/10/2026): the player's own yes, always.
          if (type.Equals("arrange_match", StringComparison.OrdinalIgnoreCase) && BannerlordGameStateBridge.HandAskedOfThePlayer(npc) is { } hand)
          {

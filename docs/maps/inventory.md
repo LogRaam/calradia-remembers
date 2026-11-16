@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 677 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1653 types in 61 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1654 types in 61 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1559,7 +1559,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WorldFactRelevance` | public struct | The result of scoring one world-fact candidate against the player's message. |
 | `WorldFactRelevancePolicy` | public static class | Pure, engine-free scoring of how much a world fact bears on what the player just said. |
 
-### CalradiaRemembers.Logic.Actions (27)
+### CalradiaRemembers.Logic.Actions (28)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1580,6 +1580,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ManualActionStatus` | public class | One catalogue entry with where it stands, and why when it is closed. |
 | `OfferConfirmationFacts` | public class | What the question about a captive's counter_offer names. |
 | `ProseActionVocabulary` | public static class | The action vocabulary of the prose prompt (Standard composition): what its GAME ACTIONS list may name. |
+| `RealmBondConfirmationFacts` | public class | What the question about binding the player's clan to a realm names (join_as_mercenary, join_as_vassal; Lordfadooboo, Nexus 16/11/2026: "ive been shanghaied more than once in a conversation about handling bandits"). |
 | `SaleFromParts` | public class | A give_gold and a give_item of one turn read as the one sale they are. |
 | `TaughtActionFacts` | public struct | The eligibility facts that decide which conditional 1:1 [ACTION] verbs a single conversation turn teaches. |
 | `TaughtActionSet` | public static class | BEST-EFFORT, LOG-ONLY. Returns the set of 1:1 [ACTION] type keys taught on a single ordinary (non-council) conversation turn, so the host can OBSERVE, without refusing, an [ACTION] that executed yet was never taught (aud... |

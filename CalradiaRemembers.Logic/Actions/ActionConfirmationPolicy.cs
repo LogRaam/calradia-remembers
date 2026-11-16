@@ -86,6 +86,22 @@ namespace CalradiaRemembers.Logic.Actions
       public int Influence { get; init; }
    }
 
+   /// <summary>
+   ///   What the question about binding the player's clan to a realm names (join_as_mercenary, join_as_vassal;
+   ///   Lordfadooboo, Nexus 16/11/2026: "ive been shanghaied more than once in a conversation about handling bandits").
+   /// </summary>
+   public sealed class RealmBondConfirmationFacts
+   {
+      /// <summary>"join_as_mercenary" (paid swords, a contract) or "join_as_vassal" (an oath of fealty).</summary>
+      public string ActionType { get; init; }
+
+      /// <summary>The realm the player's clan would serve.</summary>
+      public string RealmName { get; init; }
+
+      /// <summary>The character who struck it with the player (the ruler, for an oath).</summary>
+      public string NpcName { get; init; }
+   }
+
    /// <summary>What the question about paying off a bounty names (pay_bounty, froggyluv and Gabriel 23/10/2026).</summary>
    public sealed class BountyConfirmationFacts
    {
@@ -173,7 +189,8 @@ namespace CalradiaRemembers.Logic.Actions
       /// <summary>
       ///   True only for the action types the PLAYER spends or commits on, so those alone are confirmed:
       ///   "take_gold" (the player pays), "join_party" (the player hires and pays), and "free_prisoner"
-      ///   (the player gives up a prisoner they hold, an irreversible commitment). Case-insensitive.
+      ///   (the player gives up a prisoner they hold, an irreversible commitment), and "join_as_mercenary" /
+      ///   "join_as_vassal" (the player's clan bound to a realm, Lordfadooboo 16/11/2026). Case-insensitive.
       ///   False for everything else, including "give_gold" (the NPC gives the player coin, which is the
       ///   NPC's initiative, not the player's, so it is never gated), null, and empty. Consequences the
       ///   player must not be able to veto (relation changes, grudges, and so on) are never routed here.
@@ -184,7 +201,8 @@ namespace CalradiaRemembers.Logic.Actions
 
          return string.Equals(actionType, "take_gold", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "join_party", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "free_prisoner", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(actionType, "sell_item", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "counter_offer", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(actionType, "enact_edict", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "pay_bounty", StringComparison.OrdinalIgnoreCase);
+                || string.Equals(actionType, "enact_edict", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "pay_bounty", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(actionType, "join_as_mercenary", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "join_as_vassal", StringComparison.OrdinalIgnoreCase);
       }
 
       /// <summary>
@@ -235,6 +253,21 @@ namespace CalradiaRemembers.Logic.Actions
          string name = string.IsNullOrWhiteSpace(f?.EdictName) ? $"a {title}" : $"{f.EdictName.Trim()} (a {title})";
 
          return $"Decree {name} for {f?.Where ?? "your town"}: {f?.Effects}, for {f?.Days} days, at {f?.Influence} influence?";
+      }
+
+      /// <summary>
+      ///   "Enlist your clan as mercenaries of Vlandia, on Count Aldric's word?" or "Swear your clan to Vlandia as King
+      ///   Derthert's vassal?": the player's own yes before the clan is bound to a realm, the contract or the oath said as
+      ///   what it is, and the realm named.
+      /// </summary>
+      public static string BuildRealmBondQuestion(RealmBondConfirmationFacts f)
+      {
+         string realm = string.IsNullOrWhiteSpace(f?.RealmName) ? "their realm" : f.RealmName.Trim();
+         string npc = string.IsNullOrWhiteSpace(f?.NpcName) ? "them" : f.NpcName.Trim();
+
+         return string.Equals(f?.ActionType, "join_as_vassal", StringComparison.OrdinalIgnoreCase)
+            ? $"Swear your clan to {realm} as {npc}'s vassal?"
+            : $"Enlist your clan as mercenaries of {realm}, on {npc}'s word?";
       }
 
       /// <summary>"Pay Count Aldric 3000 denars to lift the price on your head in Vlandia?": who is paid, how much, for which realm.</summary>

@@ -415,7 +415,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("letter_from_another_mod", Severity.Light, "tashmetu (18/10/2026): R&S's tournament invitations, written as the lord's own letter, opened in the game's plain popup. CrLetters.Deliver from a lord CR knows queues the letter with its body as given and a courier riding out today, as CR's own letters ride; the player as sender and an empty body are refused. Since 2.7.19 (tashmetu, 20/10/2026: R&S read the reply by reflection and could not tell 'set aside' from 'not read yet'): DeliverWithId gives an id, GetStatus follows it on the road, delivered, set aside (raised once through the letter window's own notice) and answered, and Replied carries the id, the sender and the reply's text, read again by GetReply. Removes the letters after.", TestLetterFromAnotherMod),
          new SelfTest("pair_regard_source", Severity.Light, "tashmetu (18/10/2026): two lords R&S made close showed as neither on the page, beside its own tooltip. A source registered through CrPairRegard, for two lords of different houses with nothing between them here, makes the first a friend of the second with its reason, leaves the other way round untouched, counts at most PairRegardPolicy.OutsideCap however much it claims, and is gone once unregistered. Since 2.7.19 the same through the function form (tashmetu, 20/10/2026: for a mod that keeps CR optional), registered and taken away by its id.", TestPairRegardSource),
          new SelfTest("npc_regard_reason", Severity.Light, "Gabriel (17/10/2026): every friend or enemy carries its reason (docs/design/NPC_REGARD.md section 9). Without touching the author's file, syncs a test betrayal of the past in which one lord wronged another, and drives the real name resolution (ContextualNameResolver.Resolve) on a message naming the betrayer: the wronged lord is told the betrayer is an enemy, for what lies between them, with the betrayal and how long ago; a lord of another house and realm asked the same is told nothing of it. The wronged lord's encyclopedia page (built here, then refreshed) lists the betrayer among his enemies and not his friends; as rows (Gabriel, 22/10/2026), the betrayer has his portrait row marked red with the betrayal as reason, and his house its banner in a red row, named through him. Then the author's file alone is synced back.", TestNpcRegardReason),
-         new SelfTest("companion_news_fresh", Severity.Light, "LapitaPolata (Nexus, 17/10/2026): a companion told of a castle being besieged after it had fallen, and of a war breaking out while the player was already riding to a siege in it. Records test news and reads it through the real glue (CompanionAudienceTopicResolver.FreshnessFacts): a siege fight at a place recorded as fallen since is overtaken; a war naming the player's own realm or clan is theirs; news ten days old is too old; fresh news of two other realms may still be brought. Removes the test news.", TestCompanionNewsFresh),
+         new SelfTest("companion_news_fresh", Severity.Light, "LapitaPolata (Nexus, 17/10/2026): a companion told of a castle being besieged after it had fallen, and of a war breaking out while the player was already riding to a siege in it. Records test news and reads it through the real glue (CompanionAudienceTopicResolver.FreshnessFacts): a siege fight at a place recorded as fallen since is overtaken; a war naming the player's own realm or clan is theirs; news ten days old is too old; fresh news of two other realms may still be brought with NPCs Raise World News on. Lordfadooboo (Nexus, 16/11/2026): with the switch off, companions still came to tell of a random castle taken; the same fresh news is now held back when it is off. Removes the test news and restores the switch.", TestCompanionNewsFresh),
+         new SelfTest("realm_bond_asked_first", Severity.Light, "Lordfadooboo (Nexus, 16/11/2026): \"ive been shanghaied more than once in a conversation about handling bandits\"; Gabriel: the oath of vassalage too. With the ruler of a realm other than the player's, the REAL ActionConfirmationController holds a join_as_mercenary and a join_as_vassal for the player's yes, each question naming the realm (and 'vassal' for the oath), the player's clan unchanged while they wait; the same contract emitted again is dropped. Nothing is confirmed, so no clan moves", TestRealmBondAskedFirst),
          new SelfTest("reply_language_everywhere", Severity.Light, "RaveN017Mod (Nexus, 17/10/2026): French game, Reply Language French, yet a character who came to him on the map and every council opened in English; he asked whether the mod could read the game's language. With the setting blank, the language resolved is the game's (none for an English game); with it set to Spanish, an opening cue ends naming Spanish and the council prompt carries Spanish. Restores the setting.", TestReplyLanguageEverywhere),
          new SelfTest("gossip_once_per_news", Severity.Light, "froggyluv (Nexus, 17/10/2026): with NPCs Raise World News on, notable after notable stopped him to ask what he knew of the same war, then the same capture. Turns the option on, records a great piece of news of two lords' realm, and drives the real candidate gathering (BuildRecentMatters): both lords could ask about it; once the first has offered it (an invitation naming it), the second no longer can, and the first still can, for when the player accepts. Restores the option, the news and the ledger.", TestGossipOncePerNews),
          new SelfTest("history_on_mention", Severity.Light, "Gabriel (17/10/2026): the long-term memory serves conversations about the past, and the authored history file stages events from before the campaign. Without touching the author's file, syncs one secret test event naming two real lords, nine years before the start. Drives the real conversation path (EncounterContextBuilder.ResolvePastOnMention): the first lord, asked about the second by name, gets the event with its age, the secret tag and that he was part of it; a lord of another house and realm asked the same gets nothing; the first lord asked about a battle yesterday, naming no one, gets nothing. Then the author's file alone is synced back.", TestHistoryOnMention),
@@ -5630,10 +5631,13 @@ namespace CalradiaRemembers.Diagnostics
          var fresh = new WorldEvent {Id = "selftest_news_fresh_" + suffix, Type = WorldEventType.Other, Day = today, Magnitude = 70, Summary = "[SELFTEST] fresh news.",
             FactionIds = new List<string> {others[0].StringId, others[1].StringId}};
 
+         CrSettings settings = CrSettings.Instance;
+         bool priorSwitch = settings?.NpcsRaiseWorldNews ?? false;
          try
          {
             store.Record(siege);
             store.Record(fell);
+            if (settings != null) settings.NpcsRaiseWorldNews = true;
 
             string Why(WorldEvent e) => CalradiaRemembers.Logic.Companions.CompanionRumourFreshnessPolicy.WhyNotNews(CompanionAudienceTopicResolver.FreshnessFacts(e, today));
 
@@ -5641,12 +5645,49 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("thePlayersOwnWarIsNoNews", mine != null && Why(ownWar) != null, true);
             t.Expect("tenDayOldNewsIsTooOld", Why(old) != null, true);
             t.Expect("freshNewsOfOtherRealmsMayCome", Why(fresh), null);
+
+            if (settings != null)
+            {
+               settings.NpcsRaiseWorldNews = false;
+               t.Expect("worldNewsOffHoldsBackTheFreshNewsToo", Why(fresh) != null, true);
+            }
          }
          finally
          {
             store.Remove(siege.Id);
             store.Remove(fell.Id);
+            if (settings != null) settings.NpcsRaiseWorldNews = priorSwitch;
          }
+
+         return t.Line();
+      }
+
+      private static string TestRealmBondAskedFirst(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("realm_bond_asked_first");
+
+         Kingdom realm = Kingdom.All.FirstOrDefault(k => k != null && !k.IsEliminated && k != Clan.PlayerClan?.Kingdom && k.Leader != null && k.Leader != Hero.MainHero);
+         Hero ruler = realm?.Leader;
+         if (t.Skip(ruler == null, "no realm other than the player's with a ruler")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, ruler);
+         var ctx = new ActionContext(profile, null);
+         Kingdom before = Clan.PlayerClan?.Kingdom;
+         var confirmation = new ActionConfirmationController();
+
+         t.Expect("theContractIsAskedFirst", confirmation.Preprocess(new GameAction {Type = "join_as_mercenary"}, ruler, profile, ctx), ActionDisposition.Queued);
+         string contract = confirmation.DebugNextQuestion;
+         t.Note(contract);
+         t.Expect("theContractQuestionNamesTheRealm", contract?.Contains(realm.Name.ToString()) == true && contract.Contains("mercenaries"), true);
+         t.Expect("theSameContractAgainIsDropped", confirmation.Preprocess(new GameAction {Type = "join_as_mercenary"}, ruler, profile, ctx), ActionDisposition.Skip);
+
+         var oath = new ActionConfirmationController();
+         t.Expect("theOathIsAskedFirst", oath.Preprocess(new GameAction {Type = "join_as_vassal"}, ruler, profile, ctx), ActionDisposition.Queued);
+         string sworn = oath.DebugNextQuestion;
+         t.Note(sworn);
+         t.Expect("theOathQuestionNamesTheRealmAndSaysVassal", sworn?.Contains(realm.Name.ToString()) == true && sworn.Contains("vassal"), true);
+
+         t.Expect("theClanIsUnchangedWhileItWaits", Clan.PlayerClan?.Kingdom == before, true);
 
          return t.Line();
       }

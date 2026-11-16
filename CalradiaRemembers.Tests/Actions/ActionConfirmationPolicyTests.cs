@@ -29,6 +29,8 @@ namespace CalradiaRemembers.Tests.Actions
         [TestCase("free_prisoner")]
         [TestCase("Take_Gold")]
         [TestCase("Free_Prisoner")]
+        [TestCase("join_as_mercenary")]
+        [TestCase("join_as_vassal")]
         public void GIVEN_an_action_the_player_spends_or_commits_on_WHEN_checked_THEN_it_requires_confirmation(string actionType)
         {
             ActionConfirmationPolicy.RequiresConfirmation(actionType).Should().BeTrue();
@@ -137,6 +139,31 @@ namespace CalradiaRemembers.Tests.Actions
             string question = ActionConfirmationPolicy.BuildQuestion("free_prisoner", "Garios", 0);
 
             question.Should().Be("Set Garios free?");
+        }
+
+        // Lordfadooboo (Nexus, 16/11/2026): "ive been shanghaied more than once in a conversation about handling bandits".
+        // A mercenary contract is struck only on the player's yes, and the question must say it is a contract and with
+        // which realm, or the player cannot tell what he is agreeing to.
+        [Test]
+        public void GIVEN_a_mercenary_contract_WHEN_building_the_question_THEN_it_names_the_realm_and_who_offers_it()
+        {
+            string question = ActionConfirmationPolicy.BuildRealmBondQuestion(new RealmBondConfirmationFacts {
+                ActionType = "join_as_mercenary", RealmName = "Vlandia", NpcName = "Count Aldric"
+            });
+
+            question.Should().Be("Enlist your clan as mercenaries of Vlandia, on Count Aldric's word?");
+        }
+
+        // Gabriel (16/11/2026): the oath of vassalage is asked too, a permanent bond weightier than a contract, so its
+        // question says oath (vassal), not service for pay.
+        [Test]
+        public void GIVEN_an_oath_of_vassalage_WHEN_building_the_question_THEN_it_asks_to_swear_the_clan_as_the_rulers_vassal()
+        {
+            string question = ActionConfirmationPolicy.BuildRealmBondQuestion(new RealmBondConfirmationFacts {
+                ActionType = "join_as_vassal", RealmName = "Vlandia", NpcName = "King Derthert"
+            });
+
+            question.Should().Be("Swear your clan to Vlandia as King Derthert's vassal?");
         }
 
         // Any action type the caller has not special-cased still needs SOME confirmation line rather than a

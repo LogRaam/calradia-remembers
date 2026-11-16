@@ -61,6 +61,15 @@ namespace CalradiaRemembers.Tests
          CompanionRumourFreshnessPolicy.WhyNotNews(new CompanionRumourFreshnessFacts {AgeDays = CompanionRumourFreshnessPolicy.MaxAgeDays + 1}).Should().NotBeNull();
       }
 
+      // STAKE: Lordfadooboo (16/11/2026): with "NPCs Raise World News" off, companions still came to tell of a random
+      // castle taken by a random lord. The MCM promises that off means an NPC approaches only about something between the
+      // two of them; the freshest news of a distant realm is exactly what off must silence.
+      [Test]
+      public void GIVEN_world_news_turned_off_WHEN_fresh_news_of_a_distant_realm_is_weighed_THEN_the_companion_does_not_bring_it()
+      {
+         CompanionRumourFreshnessPolicy.WhyNotNews(new CompanionRumourFreshnessFacts {AgeDays = 0, WorldNewsTurnedOff = true}).Should().NotBeNull();
+      }
+
       // STAKE: the age is said, so the news is told as past, not as something under way.
       [Test]
       public void GIVEN_an_age_WHEN_worded_THEN_it_reads_as_past()
