@@ -419,6 +419,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("mentioned_names_bounded", Severity.Light, "VonLemberg and Goeth (Discord, 16/11/2026, source audits of 2.8.12): one shared word admitted every hero bearing it into NAMES MENTIONED, uncapped (about 6,000 characters), and the line gave a culture but never the realm. Through the REAL ContextualNameResolver.Resolve, spoken to a lord: a message naming twelve lords by their own names describes at most eight and counts the rest; a message that is only a culture word describes nobody of that culture; a lord of a realm named alone is said to serve (or rule) the realm his house serves now, with the line that a culture is not an allegiance; a merchant asked of by a notable of his own town is 'a merchant of' it, and a far-off lord with no tie is not told. The verbs' ResolveMentionedHeroes still returns all twelve. Reads only, changes nothing", TestMentionedNamesBounded),
          new SelfTest("resident_not_a_guest", Severity.Light, "VonLemberg and Goeth (Discord, 16/11/2026, source audit of 2.8.12): a merchant in his own home town was told \"It is NOT your holding, you are here as a guest\", and a governor of another clan's town too. Through the REAL EncounterContextBuilder.BuildLocationNote: a town notable standing in his home town owned by another clan lives there and is no guest; a governor of another clan's town governs it in its owner's name; a lord of another house in a town is still its guest. Reads only, changes nothing; skips a case the world does not offer", TestResidentNotAGuest),
          new SelfTest("external_picture", Severity.Light, "VonLemberg (Discord, 16/11/2026): his mod illustrates a chat line and asks CR to show the picture, linked to its conversation, stale results dropped; Gabriel: reuse the tales' picture panel, videos later. With a staged conversation open on a lord, through the REAL CrConversation.ShowPicture: a picture named for another session and a video are refused; a .png named for the open session is accepted and, once the frame's queue runs, is the panel's picture under its caption; after the conversation closes, OpenSessionId is null and the same picture is refused. Removes its temporary file, closes the conversation", TestExternalPicture),
+         new SelfTest("news_stops_at_cell_door", Severity.Light, "Schmidt (Discord, 16/11/2026): 'even if they were locked up the same day, they have no idea what happened outside'; and three channels were never cut, so a captive could hear today's events. On a lord held prisoner since an earlier day, with the REAL WorldEventStore: two great events of his own realm are recorded, one on the day he was taken and one today; he knows the first and not the second, and his last day of news is his capture day. SKIP when no lord has been held since an earlier day. The two events are removed.", TestNewsStopsAtCellDoor),
          new SelfTest("campaign_work_survives_close", Severity.Light, "VonLemberg (Discord, 16/11/2026, addendum 'Dispatcher Quest Audience Blast Radius'): a tale's summoned meeting waiting out an open chat, and audiences granted, sat in the queue a chat close clears. With the REAL MainThreadDispatcher: work queued with EnqueueForCampaign, then Clear() as a chat close calls it, then Pump(): it runs, under the campaign that queued it. Changes nothing in the world", TestCampaignWorkSurvivesClose),
          new SelfTest("late_letter_other_campaign", Severity.Light, "VonLemberg (Discord, 16/11/2026, audit 'Late Letter Completion Cross Campaign'): a letter reply still being written when another save loaded posted its closure after the session-launch clear, and that campaign ran it (a companion recalled by a letter it never sent). With the REAL LetterMutationQueue: a mutation owned by the loaded campaign and one owned by none (as from a campaign since unloaded), then a drain: the first runs, the second is set aside. Also drains any real pending letter work, which would have run at the next hour", TestLateLetterOtherCampaign),
          new SelfTest("lasting_work_survives_close", Severity.Light, "VonLemberg (Discord, 16/11/2026, audit 'Dispatcher Clear Drops Unrelated Async Work'): a chat closing cleared every queued main-thread continuation, a letter reader's judgement of a secret included (no grudge, no letter, no charge, nothing logged). With the REAL MainThreadDispatcher: work queued as the conversation's and work queued as lasting, then Clear() as a chat close calls it, then Pump(): the conversation's work is dropped, the lasting work runs. Changes nothing in the world", TestLastingWorkSurvivesClose),
@@ -5798,6 +5799,42 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("aLatePictureIsRefused", session != null && CrConversation.ShowPicture(session, path, "x"), false);
          try { System.IO.File.Delete(path); }
          catch (Exception ex) { t.Note("temporary picture not removed: " + ex.Message); }
+
+         return t.Line();
+      }
+
+      private static string TestNewsStopsAtCellDoor(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("news_stops_at_cell_door");
+         WorldEventStore store = WorldEventStore.Instance;
+         if (t.Skip(store == null, "no world-event store")) return t.Line();
+
+         var today = (int) CampaignTime.Now.ToDays;
+         Hero held = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h.IsPrisoner && h.MapFaction != null
+                                                             && (int) h.CaptivityStartTime.ToDays > 0 && (int) h.CaptivityStartTime.ToDays < today);
+         if (t.Skip(held == null, "no lord held prisoner since an earlier day")) return t.Line();
+
+         var captureDay = (int) held.CaptivityStartTime.ToDays;
+         t.Note($"{held.Name}, held since day {captureDay} (today {today})");
+         t.Expect("lastNewsDayIsTheCaptureDay", WorldEventStore.LastNewsDay(held, today), (int?) captureDay);
+
+         var before = new WorldEvent {Type = WorldEventType.Other, Day = captureDay, Magnitude = 100, Summary = "[SELFTEST] great news of his realm, the day he was taken.", FactionIds = new List<string> {held.MapFaction.StringId}};
+         var after = new WorldEvent {Type = WorldEventType.Other, Day = today, Magnitude = 100, Summary = "[SELFTEST] great news of his realm, today.", FactionIds = new List<string> {held.MapFaction.StringId}};
+         store.Record(before);
+         store.Record(after);
+         try
+         {
+            // The news tier prunes what is older than its window; a capture that old has left the news (only history keeps it).
+            if (store.GetById(before.Id) != null) t.Expect("heKnowsTheNewsOfHisCaptureDay", store.IsAwareOf(held, before, today), true);
+            else t.Note("his capture day is older than the news window: that day's news has already left the store");
+            t.Expect("noNewsSinceReachesTheCell", store.IsAwareOf(held, after, today), false);
+            t.Expect("noKnownEventIsAfterTheDoor", store.GetKnownEventsRated(held, today, 50).All(r => r.Event.Day <= captureDay), true);
+         }
+         finally
+         {
+            store.Remove(before.Id);
+            store.Remove(after.Id);
+         }
 
          return t.Line();
       }

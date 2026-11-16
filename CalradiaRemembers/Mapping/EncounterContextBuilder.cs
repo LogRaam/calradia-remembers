@@ -2894,7 +2894,11 @@ namespace CalradiaRemembers.Mapping
 
             // No courier reaches a cell (Gabriel, 2026-09-12). The packs that are TODAY'S news are simply not
             // carried; the ones that are durable, or that he is standing in, still are.
-            IsCutOff = hero.IsPrisoner
+            IsCutOff = hero.IsPrisoner,
+            // ...but what he knew the day he was taken is still his (Schmidt, Gabriel 16/11/2026): the world-event store
+            // stops a prisoner's news at that day (CellDoorPolicy) and his house's wars are those of that day, so the
+            // realm news and the war line come back framed as what he last heard. Unknown capture day: still cut.
+            NewsStoppedOnCaptureDay = hero.IsPrisoner && WorldEventStore.LastNewsDay(hero, (int) CampaignTime.Now.ToDays) != null
          };
       }
 
@@ -2909,6 +2913,34 @@ namespace CalradiaRemembers.Mapping
       ///     confusion is the fkasad class of bug.
       ///   </para>
       /// </summary>
+      /// <summary>
+      ///   The realms <paramref name="mine" /> was at war with on the day <paramref name="hero" /> was taken
+      ///   (CellDoorPolicy.AtWarWhenTaken), from today's wars and the dated war and peace events since; today's when the
+      ///   capture day is unknown (the pack then names no war at all for a man cut off).
+      /// </summary>
+      private static List<string> WarsWhenTaken(Hero hero, IFaction mine, List<string> atWarNow)
+      {
+         try
+         {
+            int? lastDay = WorldEventStore.LastNewsDay(hero, (int) CampaignTime.Now.ToDays);
+            WorldEventStore store = WorldEventStore.Instance;
+            if (lastDay == null || store == null) return atWarNow;
+
+            Dictionary<string, string> names = Kingdom.All?.Where(k => k?.StringId != null).ToDictionary(k => k.StringId, k => k.Name?.ToString()) ?? new Dictionary<string, string>();
+            List<RealmChangeSinceCapture> since = store.All().Concat(store.AllHistory())
+                                                       .Where(e => e != null && e.Day > lastDay.Value && e.FactionIds != null && e.FactionIds.Contains(mine.StringId)
+                                                                   && (e.Type == WorldEventType.WarDeclared || e.Type == WorldEventType.PeaceDeclared))
+                                                       .GroupBy(e => e.Id).Select(g => g.First())
+                                                       .Select(e => (e, other: e.FactionIds.FirstOrDefault(id => id != mine.StringId)))
+                                                       .Where(t => t.other != null && names.TryGetValue(t.other, out string n) && !string.IsNullOrWhiteSpace(n))
+                                                       .Select(t => new RealmChangeSinceCapture {Day = t.e.Day, OtherRealm = names[t.other], WarBegan = t.e.Type == WorldEventType.WarDeclared})
+                                                       .ToList();
+
+            return CellDoorPolicy.AtWarWhenTaken(atWarNow, since).ToList();
+         }
+         catch { return atWarNow; }
+      }
+
       private static HouseStandingFacts BuildHouseStanding(Hero hero)
       {
          Clan clan = hero?.Clan;
@@ -2933,6 +2965,10 @@ namespace CalradiaRemembers.Mapping
                string name = other.Name?.ToString();
                if (!string.IsNullOrWhiteSpace(name)) wars.Add(name);
             }
+
+         // A prisoner's wars are those of the day he was taken (CellDoorPolicy, Schmidt 16/11/2026): today's, undone by
+         // the wars declared and peaces struck since.
+         if (hero.IsPrisoner && mine != null) wars = WarsWhenTaken(hero, mine, wars);
 
          return new HouseStandingFacts {
             HouseName = clan.Name.ToString(),

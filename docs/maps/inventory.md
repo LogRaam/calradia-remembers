@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 679 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1669 types in 61 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1672 types in 61 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1059,7 +1059,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (507)
+### CalradiaRemembers.Logic (510)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1114,6 +1114,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptorReleasePolicy` | public static class | Pure gate for chat-negotiated player release. |
 | `CaptorReleaseVerdict` | public class | What release paths (if any) a captor is open to for THIS captive player. |
 | `CardinalDirectionPolicy` | public static class | Pure 8-point compass bearing from one campaign-map position to another, for phrasing a quest's direction ("the hideout lies to the north of Town X"). |
+| `CellDoorFacts` | public class | What decides the last day of news a character can know. |
+| `CellDoorPolicy` | public static class | The cell door: the last day of news a character knows, and the wars his realm fought that day. |
 | `CharacterOverride` | public class | One author's override for a single NPC: optional trait values (null = leave the vanilla value untouched) and an optional backstory. |
 | `CharacterOverrideSet` | public class | The authored overrides as a whole, with the rule for picking one for a hero. |
 | `ChatPortraitFolders` | public static class | The folders a player's chat portraits are read from, in the order a file is looked for. |
@@ -1423,6 +1425,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestVoidReason` | public enum | Why QuestTargetVoidPolicy.ReasonToVoid would cancel a hero-bound quest, or None when it stands. |
 | `RansomEnvoyFacts` | public class | Who a giver may send the player to buy back. |
 | `RansomEnvoyPolicy` | public static class | The rules of a ransom_envoy task. |
+| `RealmChangeSinceCapture` | public class | A change of war or peace between the character's realm and another, after he was taken. |
 | `RealmPeopleFacts` | public class | A realm and whether it is of a character's own people. |
 | `RealmStanding` | public class | One realm as the world-state line tells it. |
 | `RealmStandingFormatter` | public static class | Renders the realms line of the world state. |

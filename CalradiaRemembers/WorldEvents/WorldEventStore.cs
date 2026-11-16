@@ -89,7 +89,9 @@ namespace CalradiaRemembers.WorldEvents
       public IReadOnlyList<WorldEvent> GetKnownEvents(Hero observer, int today, int max)
          => observer == null
             ? Array.Empty<WorldEvent>()
-            : GetKnown(ObserverPosition(observer), observer.MapFaction?.StringId, today, max, observer.StringId);
+            : LastNewsDay(observer, today) is int lastDay
+               ? GetKnown(ObserverPosition(observer), observer.MapFaction?.StringId, lastDay, max, observer.StringId, lastDay)
+               : Array.Empty<WorldEvent>();
 
       /// <summary>The events a settlement's locals would have heard of (commoner intel).</summary>
       public IReadOnlyList<WorldEvent> GetKnownEventsAt(Settlement settlement, int today, int max)
@@ -101,7 +103,9 @@ namespace CalradiaRemembers.WorldEvents
       public IReadOnlyList<(WorldEvent Event, RumorConfidence Confidence)> GetKnownEventsRated(Hero observer, int today, int max)
          => observer == null
             ? Array.Empty<(WorldEvent, RumorConfidence)>()
-            : GetKnownRated(ObserverPosition(observer), observer.MapFaction?.StringId, today, max, observer.StringId);
+            : LastNewsDay(observer, today) is int lastDay
+               ? GetKnownRated(ObserverPosition(observer), observer.MapFaction?.StringId, lastDay, max, observer.StringId, lastDay)
+               : Array.Empty<(WorldEvent, RumorConfidence)>();
 
       /// <summary>Known events tagged with confidence for a settlement's locals.</summary>
       public IReadOnlyList<(WorldEvent Event, RumorConfidence Confidence)> GetKnownEventsRatedAt(Settlement settlement, int today, int max)
@@ -156,7 +160,7 @@ namespace CalradiaRemembers.WorldEvents
       public RumorAwarenessBreakdown Explain(Hero observer, WorldEvent e, int today)
          => observer == null || e == null
             ? null
-            : Explain(e, today, ObserverPosition(observer), observer.MapFaction?.StringId, observer.StringId);
+            : ExplainBehindTheDoor(e, LastNewsDay(observer, today), ObserverPosition(observer), observer.MapFaction?.StringId, observer.StringId);
 
       /// <summary>
       ///   Every stored event with <paramref name="observer" />'s verdict on it, best score first. Diagnostic only:
@@ -168,9 +172,10 @@ namespace CalradiaRemembers.WorldEvents
 
          Vec2? pos = ObserverPosition(observer);
          string factionId = observer.MapFaction?.StringId;
+         int? lastDay = LastNewsDay(observer, today);
 
          return _events
-                .Select(e => (e, v: Explain(e, today, pos, factionId, observer.StringId)))
+                .Select(e => (e, v: ExplainBehindTheDoor(e, lastDay, pos, factionId, observer.StringId)))
                 .OrderByDescending(t => t.v.Score)
                 .ToList();
       }
@@ -226,9 +231,11 @@ namespace CalradiaRemembers.WorldEvents
          if (observer == null || namedIds == null || namedIds.Count == 0 || _history.Count == 0) return Array.Empty<(WorldEvent, PastTie)>();
 
          var found = new List<(WorldEvent, PastTie)>();
+         int? lastDay = LastNewsDay(observer, (int) CampaignTime.Now.ToDays);
          foreach (WorldEvent e in _history)
          {
             if (!NamesAnyOf(e, namedIds)) continue;
+            if (!CellDoorPolicy.Admits(e.Day, lastDay)) continue; // nothing after the cell door (CellDoorPolicy)
 
             HistoryKnowledgeFacts facts = KnowledgeFacts(observer, e);
             if (!LongTermHistoryPolicy.WouldKnow(facts)) continue;
@@ -463,6 +470,31 @@ namespace CalradiaRemembers.WorldEvents
          return (int) (RumorAwareness.GeoBonusMax * (1f - (d - 50f) / 250f));
       }
 
+      /// <summary>
+      ///   The last day of news <paramref name="h" /> can know (CellDoorPolicy): today, or for a prisoner the day he was
+      ///   taken (Hero.CaptivityStartTime), or null for a prisoner whose capture day the game does not give.
+      /// </summary>
+      internal static int? LastNewsDay(Hero h, int today)
+      {
+         int? captureDay = null;
+         if (h is {IsPrisoner: true})
+         {
+            var day = (int) h.CaptivityStartTime.ToDays;
+            if (day > 0) captureDay = day;
+         }
+
+         return CellDoorPolicy.LastNewsDay(new CellDoorFacts {IsPrisoner = h?.IsPrisoner == true, CaptureDay = captureDay, Today = today});
+      }
+
+      // The awareness verdict for a hero, with the cell door first: an event after his last day of news is not known,
+      // whatever its reach; one before it is aged from that day, so a long captivity does not fade what he knew.
+      private RumorAwarenessBreakdown ExplainBehindTheDoor(WorldEvent e, int? lastDay, Vec2? obsPos, string factionId, string observerId)
+      {
+         if (lastDay is int day && CellDoorPolicy.Admits(e.Day, day)) return Explain(e, day, obsPos, factionId, observerId);
+
+         return new RumorAwarenessBreakdown {Knows = false, Withheld = "it happened after the cell door shut on them"};
+      }
+
       private static Vec2? ObserverPosition(Hero h)
       {
          if (h?.PartyBelongedTo != null) return h.PartyBelongedTo.GetPosition2D;
@@ -495,11 +527,12 @@ namespace CalradiaRemembers.WorldEvents
          return verdict;
       }
 
-      private IReadOnlyList<WorldEvent> GetKnown(Vec2? pos, string factionId, int today, int max, string observerId = null)
+      private IReadOnlyList<WorldEvent> GetKnown(Vec2? pos, string factionId, int today, int max, string observerId = null, int? lastDay = null)
       {
          if (_events.Count == 0) return Array.Empty<WorldEvent>();
 
          return _events
+                .Where(e => lastDay == null || CellDoorPolicy.Admits(e.Day, lastDay))
                 .Select(e => (e, v: Explain(e, today, pos, factionId, observerId)))
                 .Where(t => t.v.Knows)
                 .OrderByDescending(t => t.v.Score)
@@ -508,11 +541,12 @@ namespace CalradiaRemembers.WorldEvents
                 .ToList();
       }
 
-      private IReadOnlyList<(WorldEvent Event, RumorConfidence Confidence)> GetKnownRated(Vec2? pos, string factionId, int today, int max, string observerId = null)
+      private IReadOnlyList<(WorldEvent Event, RumorConfidence Confidence)> GetKnownRated(Vec2? pos, string factionId, int today, int max, string observerId = null, int? lastDay = null)
       {
          if (_events.Count == 0) return Array.Empty<(WorldEvent, RumorConfidence)>();
 
          return _events
+                .Where(e => lastDay == null || CellDoorPolicy.Admits(e.Day, lastDay))
                 .Select(e => (e, v: Explain(e, today, pos, factionId, observerId)))
                 .Where(t => t.v.Knows)
                 .OrderByDescending(t => t.v.Score)
