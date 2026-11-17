@@ -1,0 +1,28 @@
+Version 2.8.14
+
+A lord asks for a weapon of his own kind at the forge, a prisoner remembers the world as it was the day he was taken, and a batch of fixes to garrison tasks, fief rewards, regard and discoveries.
+
+Fixed
+
+- Men you bring for a garrison task are handed over even when the character reads it as giving troops, and the "Give them troops" button opens for that task, so the task can close. You still need to be inside the town or castle. (Thank you, Aporo.)
+- Claiming a task done no longer costs you the character's warmth when the claim is refused: the warmth is only skipped when the task's reward actually pays. (Thank you, Aporo.)
+- A ruler promising you a castle no longer gets told that you "no longer rule a kingdom" when you never ruled one. (Thank you, Aporo.)
+- A ruler's land promised as a task's reward goes only to a lord sworn to her realm. If you are not her vassal, you get the usual amends instead, and she is taught to make the fief wait on your oath. (Thank you, Aporo.)
+- A letter's reply still being written when you load another save can no longer change something in the new campaign. (Thank you, VonLemberg.)
+- A tale's meeting, an audience or an envoy is no longer lost when a conversation closes at that moment. (Thank you, VonLemberg.)
+- Offering help (clearing a bandit camp, a warning, useful news) no longer costs regard in Standard play, even when the character answers coldly. Regard drops only for a real wrong. (Thank you, Lordfadooboo.)
+- A player whose name holds a common word ("Arwa the Swift") no longer silently loses what they learn about characters when a discovery opens with "The" or "Swift". (Thank you, VonLemberg.)
+
+Changed
+
+- A lord who asks you to have a weapon forged asks for his own kind: first what he carries into battle, then what his people forge and he fights best with. (Thank you, Schmidt.)
+- A prisoner's news stops at the cell door instead of vanishing: he remembers the talk of the realm and his house's wars as they stood the day he was taken, and knows nothing of what happened since. His war with you stays current. (Thank you, Schmidt.)
+
+Developer tools
+
+- cr.test all gains garrison_men_read_as_give_troops, late_letter_other_campaign, campaign_work_survives_close, news_stops_at_cell_door and forge_wish_is_his_own.
+- The action bench accepts every answer the game itself would carry out (either lover for a secret, an edict's words in either order).
+
+Notes
+
+- Saves from 2.8.13 and older load as they are, and your MCM choices are kept.

@@ -655,6 +655,17 @@ MUST = [
     ("sdk",   b"IntimateActNames"),
     ("sdk",   b"LessFondActs"),
     ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
+    # 2.8.14
+    ("logic", b"TroopHandOverReadingPolicy"),
+    ("logic", b"IsPaidByTheQuestReward"),
+    ("logic", b"PlayerNotSwornToGiversRealm"),
+    ("logic", b"CellDoorPolicy"),
+    ("logic", b"AtWarWhenTaken"),
+    ("logic", b"ForgePreferencePolicy"),
+    ("mod",   b"EnqueueForCampaign"),
+    ("mod",   b"ForgeAsker"),
+    ("sdk",   b"NewsStoppedOnCaptureDay"),
+    ("sdk",   "an offer of help never lowers it".encode("utf-16-le")),
     # 2.8.13
     ("logic", b"MentionedPeoplePolicy"),
     ("logic", b"LocationStandingPolicy"),
