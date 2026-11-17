@@ -39,6 +39,10 @@ namespace CalradiaRemembers.Logic.StoryArchive
 
       /// <summary>The most characters of recalled words.</summary>
       public int BudgetChars { get; init; } = LongMemoryRecall.DefaultBudgetChars;
+
+      /// <summary>The threads this turn is on before any search: the people and places the player's line names, and the
+      ///   threads of the conversation under way.</summary>
+      public IReadOnlyCollection<string> QueryThreads { get; init; }
    }
 
    /// <summary>One recalled passage: consecutive lines of one earlier conversation.</summary>
@@ -58,6 +62,12 @@ namespace CalradiaRemembers.Logic.StoryArchive
 
       /// <summary>The others who heard these lines, besides the recalling character (hero ids).</summary>
       public IReadOnlyList<string> AlsoPresentIds { get; init; }
+
+      /// <summary>The threads of this turn its conversation is on ("place:town_V1"...).</summary>
+      public IReadOnlyList<string> ThreadKeys { get; init; }
+
+      /// <summary>The newest of several passages on one of those threads: how the matter stands now.</summary>
+      public bool IsLatestOnThread { get; set; }
    }
 
    /// <summary>Finds the few passages of earlier conversations that bear on this turn. Pure.</summary>
@@ -82,14 +92,22 @@ namespace CalradiaRemembers.Logic.StoryArchive
          "too", "very", "just", "here", "when", "where", "why", "how", "yes", "well", "said", "say", "says", "tell", "told", "know"
       };
 
-      /// <summary>The passages to recall, oldest first; empty when nothing bears on this turn.</summary>
+      /// <summary>
+      ///   The passages to recall, oldest first; empty when nothing bears on this turn. Two roads lead to a passage: the
+      ///   words (BM25 over the lines the character heard) and the THREADS (Gabriel, 17/11/2026: a mission spoken of in
+      ///   several conversations must link them). The best word match seeds the threads the turn is on, with those the
+      ///   player's own line names; every earlier conversation on one of them then gives its best passage, newest first,
+      ///   before the remaining word matches, all within the budget. On each thread the newest passage is marked: it says
+      ///   how the matter stands now.
+      /// </summary>
       public static IReadOnlyList<LongMemoryPassage> Find(LongMemoryRecallFacts facts)
       {
          var none = new List<LongMemoryPassage>();
          if (facts?.Records == null || string.IsNullOrEmpty(facts.CharacterId) || facts.BudgetChars <= 0) return none;
 
          HashSet<string> query = new HashSet<string>(Tokens(facts.Query));
-         if (query.Count == 0) return none;
+         HashSet<string> queryThreads = new HashSet<string>((facts.QueryThreads ?? new string[0]).Where(k => !string.IsNullOrEmpty(k)));
+         if (query.Count == 0 && queryThreads.Count == 0) return none;
 
          // The lines this character may recall, by conversation, in the order said.
          Dictionary<string, List<StoryArchiveRecord>> byEpisode = facts.Records
@@ -101,6 +119,12 @@ namespace CalradiaRemembers.Logic.StoryArchive
             .ToDictionary(g => g.Key, g => g.ToList());
          if (byEpisode.Count == 0) return none;
 
+         // The threads each of those conversations is on: its lines' own, and those learned after (Thread records).
+         Dictionary<string, HashSet<string>> episodeThreads = byEpisode.ToDictionary(e => e.Key, e => new HashSet<string>(e.Value.SelectMany(l => l.Threads ?? new List<string>())));
+         foreach (StoryArchiveRecord r in facts.Records)
+            if (r?.Kind == StoryArchiveKind.Thread && r.Threads != null && r.EpisodeId != null && episodeThreads.TryGetValue(r.EpisodeId, out HashSet<string> set))
+               set.UnionWith(r.Threads);
+
          var docs = new List<(string Episode, int Index, List<string> Tokens)>();
          foreach (KeyValuePair<string, List<StoryArchiveRecord>> e in byEpisode)
             for (var i = 0; i < e.Value.Count; i++)
@@ -108,15 +132,33 @@ namespace CalradiaRemembers.Logic.StoryArchive
 
          double avgLen = docs.Average(d => (double) Math.Max(1, d.Tokens.Count));
          Dictionary<string, int> docFreq = query.ToDictionary(t => t, t => docs.Count(d => d.Tokens.Contains(t)));
-         var scored = docs.Select(d => (d.Episode, d.Index, Score: Bm25(d.Tokens, query, docFreq, docs.Count, avgLen)))
-                          .Where(s => s.Score > 0)
-                          .OrderByDescending(s => s.Score)
-                          .ToList();
+         var scores = new Dictionary<(string, int), double>();
+         foreach ((string episode, int index, List<string> tokens) in docs)
+            scores[(episode, index)] = query.Count == 0 ? 0 : Bm25(tokens, query, docFreq, docs.Count, avgLen);
+         List<(string Episode, int Index)> scored = scores.Where(s => s.Value > 0).OrderByDescending(s => s.Value).Select(s => s.Key).ToList();
 
-         // Windows around the best matches, merged when they touch, until the budget is spent.
+         // The threads this turn is on: those the player's line names, and those of the best word match.
+         var onThreads = new HashSet<string>(queryThreads);
+         if (scored.Count > 0) onThreads.UnionWith(byEpisode[scored[0].Episode][scored[0].Index].Threads ?? new List<string>());
+
+         var candidates = new List<(string Episode, int Index)>();
+         if (scored.Count > 0) candidates.Add(scored[0]);
+         foreach (string episode in byEpisode.Keys.Where(e => onThreads.Count > 0 && episodeThreads[e].Overlaps(onThreads))
+                                                 .OrderByDescending(e => byEpisode[e][0].Time))
+         {
+            List<StoryArchiveRecord> lines = byEpisode[episode];
+            List<int> onIt = Enumerable.Range(0, lines.Count).Where(i => lines[i].Threads?.Any(onThreads.Contains) == true).ToList();
+            List<int> pool = onIt.Count > 0 ? onIt : Enumerable.Range(0, lines.Count).ToList();
+            int best = pool.OrderByDescending(i => scores[(episode, i)]).ThenByDescending(i => i).First();
+            candidates.Add((episode, best));
+         }
+
+         candidates.AddRange(scored.Skip(1));
+
+         // Windows around the candidates, merged when they touch, until the budget is spent.
          var windows = new Dictionary<string, List<(int From, int To)>>();
          var spent = 0;
-         foreach ((string episode, int index, double _) in scored)
+         foreach ((string episode, int index) in candidates)
          {
             List<StoryArchiveRecord> lines = byEpisode[episode];
             int from = Math.Max(0, index - Radius), to = Math.Min(lines.Count - 1, index + Radius);
@@ -131,9 +173,20 @@ namespace CalradiaRemembers.Logic.StoryArchive
             windows[episode] = merged;
          }
 
-         return windows.SelectMany(e => e.Value.Select(w => Passage(facts.CharacterId, byEpisode[e.Key], w)))
-                       .OrderBy(p => p.Time)
-                       .ToList();
+         List<LongMemoryPassage> passages = windows
+            .SelectMany(e => e.Value.Select(w => Passage(facts.CharacterId, byEpisode[e.Key], w,
+               episodeThreads[e.Key].Where(onThreads.Contains).OrderBy(k => k, StringComparer.Ordinal).ToList())))
+            .OrderBy(p => p.Time)
+            .ToList();
+
+         // On each thread more than one passage carries, the newest says how the matter stands now.
+         foreach (string key in onThreads)
+         {
+            List<LongMemoryPassage> on = passages.Where(p => p.ThreadKeys.Contains(key)).ToList();
+            if (on.Count > 1) on[on.Count - 1].IsLatestOnThread = true;
+         }
+
+         return passages;
       }
 
       /// <summary>
@@ -212,14 +265,15 @@ namespace CalradiaRemembers.Logic.StoryArchive
          return sum;
       }
 
-      private static LongMemoryPassage Passage(string characterId, List<StoryArchiveRecord> lines, (int From, int To) w)
+      private static LongMemoryPassage Passage(string characterId, List<StoryArchiveRecord> lines, (int From, int To) w, IReadOnlyList<string> threadKeys)
       {
          List<StoryArchiveRecord> taken = lines.Skip(w.From).Take(w.To - w.From + 1).ToList();
 
          return new LongMemoryPassage {
             EpisodeId = taken[0].EpisodeId, Time = taken[0].Time, PlaceName = taken.Select(l => l.PlaceName).FirstOrDefault(p => !string.IsNullOrWhiteSpace(p)),
             Lines = taken,
-            AlsoPresentIds = taken.SelectMany(l => l.Audience ?? new List<string>()).Where(id => id != characterId).Distinct().ToList()
+            AlsoPresentIds = taken.SelectMany(l => l.Audience ?? new List<string>()).Where(id => id != characterId).Distinct().ToList(),
+            ThreadKeys = threadKeys
          };
       }
    }

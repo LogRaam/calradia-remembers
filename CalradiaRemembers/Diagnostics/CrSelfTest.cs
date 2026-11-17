@@ -16418,6 +16418,24 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("theLivePromptCarriesThem", prompt.Contains("WORDS FROM EARLIER TALKS") && prompt.Contains("longsword before the snows"), true);
             // STAKE: the compact prompt and a player who left the switch off pay nothing.
             t.Expect("compactRecallsNothing", LongMemoryRecaller.For(lord.StringId, "About that longsword?", LeanPromptLevel.Lean, store) == null, true);
+
+            // STAKE (Gabriel, 17/11/2026, threads): a mission told over two talks comes back linked by the place it names, even
+            // where the second talk shares no word with the question; the newest is marked as how things stand.
+            Settlement town = Settlement.All.FirstOrDefault(s => s.IsTown && (s.Name?.ToString().Length ?? 0) >= 4);
+            if (town != null)
+            {
+               vm.SetNpcHero(lord);
+               vm.RecordPlayerLineForDiagnostics($"[SELFTEST] Clear the bandits camped near {town.Name} for me.");
+               vm.SetNpcHero(lord);
+               vm.RecordPlayerLineForDiagnostics($"[SELFTEST] The {town.Name} lot moved up into the hills.");
+               vm.SetNpcHero(lord);
+               IReadOnlyList<RecalledExchange> thread = LongMemoryRecaller.For(lord.StringId, "How goes it with those bandits?", LeanPromptLevel.Full, store);
+               t.Expect("theLaterTalkComesBackByItsPlace", thread?.SelectMany(r => r.Lines).Any(l => l.Text.Contains("moved up into the hills")) == true, true);
+               t.Expect("theNewestIsMarkedLatest", thread?.Any(r => r.Latest && r.Lines.Any(l => l.Text.Contains("moved up"))) == true, true);
+               t.Expect("thePlaceIsNamedAsTheMatter", thread?.Any(r => r.About?.Contains(town.Name.ToString()) == true) == true, true);
+            }
+            else t.Note("no town to name: the thread check was skipped");
+
             settings.LongMemory = false;
             t.Expect("offRecallsNothing", LongMemoryRecaller.For(lord.StringId, "About that longsword?", LeanPromptLevel.Full, store) == null, true);
          }

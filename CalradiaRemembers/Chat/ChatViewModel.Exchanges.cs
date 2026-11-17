@@ -1392,7 +1392,11 @@ namespace CalradiaRemembers.Chat
                playerName: playerName);
 
             if (responseForMutator.DiscussedMemories.Count > 0)
+            {
                ModLog.Info($"[MEMORY] {profile.Name} spoke of {string.Join(", ", responseForMutator.DiscussedMemories)}.");
+               // The story archive links this talk to every other one that spoke of the same memory (Gabriel, 17/11/2026).
+               ArchiveThreads(responseForMutator.DiscussedMemories.Select(code => $"memory:{profile.Id}:{code}"));
+            }
 
             NotableEvent turnEvent = profile.Events.Count > eventsBeforeApply
                ? profile.Events[profile.Events.Count - 1]

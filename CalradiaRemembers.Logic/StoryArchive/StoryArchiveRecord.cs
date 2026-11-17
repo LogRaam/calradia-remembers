@@ -46,7 +46,13 @@ namespace CalradiaRemembers.Logic.StoryArchive
       Letter,
 
       /// <summary>Something the mod itself told the player (a marriage settled, a house left).</summary>
-      Notice
+      Notice,
+
+      /// <summary>
+      ///   Threads an episode is on, learned after its lines were written (the memories a reply spoke of, [DISCUSSED]).
+      ///   Carries no words; the novel shows nothing for it.
+      /// </summary>
+      Thread
    }
 
    /// <summary>One person present when an episode opened.</summary>
@@ -118,11 +124,18 @@ namespace CalradiaRemembers.Logic.StoryArchive
       /// <summary>Search tags (hero ids, the place, the faction...).</summary>
       public List<string> Tags { get; init; }
 
+      /// <summary>
+      ///   The subjects this record is about, as thread keys ("place:town_V1", "hero:lord_1_1", "memory:lord_1_1:m3"): what
+      ///   links conversations held weeks apart about the same matter (Gabriel, 17/11/2026: "je peux parler de ma mission a
+      ///   un NPC a plusieurs reprises ... la memoire devrait lier ces conversations").
+      /// </summary>
+      public List<string> Threads { get; init; }
+
       /// <summary>This record placed on a branch: the same content under <paramref name="id" />, after <paramref name="parentId" />.</summary>
       public StoryArchiveRecord Chained(string id, string parentId) => new StoryArchiveRecord {
          Id = id, ParentId = parentId, Kind = Kind, EpisodeId = EpisodeId, SceneKind = SceneKind, Time = Time, PlaceId = PlaceId,
          PlaceName = PlaceName, SpeakerId = SpeakerId, SpeakerName = SpeakerName, IsPlayer = IsPlayer, Text = Text, Audience = Audience,
-         Participants = Participants, ActionType = ActionType, Refused = Refused, Tags = Tags
+         Participants = Participants, ActionType = ActionType, Refused = Refused, Tags = Tags, Threads = Threads
       };
 
       /// <summary>One line of the archive file.</summary>

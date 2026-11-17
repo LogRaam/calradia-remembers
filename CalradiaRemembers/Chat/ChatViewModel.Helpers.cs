@@ -624,7 +624,9 @@ namespace CalradiaRemembers.Chat
                Kind = kind, EpisodeId = ArchiveEpisodeId, SceneKind = ArchiveSceneKind(), Time = CampaignTime.Now.ToDays,
                PlaceId = ArchivePlaceId(), PlaceName = _storyLocation, SpeakerId = speakerId,
                SpeakerName = isPlayer ? Hero.MainHero?.Name?.ToString() ?? name : name, IsPlayer = isPlayer, Text = text,
-               Audience = audience, ActionType = actionType, Refused = refused, Tags = tags
+               Audience = audience, ActionType = actionType, Refused = refused, Tags = tags,
+               // The people and places it names: what links this talk to others about the same matter (Gabriel, 17/11/2026).
+               Threads = kind == StoryArchiveKind.Line || kind == StoryArchiveKind.Action ? Mapping.StoryThreadKeys.For(_npcHero, text) : null
             });
          }
          catch (Exception ex)
@@ -633,6 +635,29 @@ namespace CalradiaRemembers.Chat
 
             _archiveComplained = true;
             ModLog.Error($"[STORY ARCHIVE] recording failed (said once per conversation): {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   Threads this conversation is on, learned after its lines were written: the memories a reply spoke of
+      ///   ([DISCUSSED]), so a later talk that brings up the same memory recalls this one too. Never throws.
+      /// </summary>
+      private void ArchiveThreads(IEnumerable<string> keys)
+      {
+         try
+         {
+            List<string> list = keys?.Where(k => !string.IsNullOrEmpty(k)).Distinct().ToList();
+            StoryArchiveStore store = _archiveOverride ?? NpcMemoryCampaignBehavior.Instance?.StoryArchive;
+            if (list == null || list.Count == 0 || store == null || Campaign.Current == null) return;
+
+            EnsureArchiveEpisode(store);
+            store.Append(new StoryArchiveRecord {
+               Kind = StoryArchiveKind.Thread, EpisodeId = ArchiveEpisodeId, SceneKind = ArchiveSceneKind(), Time = CampaignTime.Now.ToDays, Threads = list
+            });
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[STORY ARCHIVE] threads not recorded: {ex.GetType().Name}: {ex.Message}");
          }
       }
 

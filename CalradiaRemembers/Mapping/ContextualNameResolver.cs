@@ -141,6 +141,17 @@ namespace CalradiaRemembers.Mapping
       ///   tokenisation/matching this class already does, rather than reimplementing it. Never null; empty
       ///   when <paramref name="npc" /> is null, the message is blank, or nothing matches.
       /// </summary>
+      /// <summary>
+      ///   The heroes <paramref name="text" /> names, as the prompt's hint would show them (the likeliest meant, the
+      ///   speaker's namesakes skipped): the story archive's thread keys for people (StoryThreadKeys, 17/11/2026).
+      /// </summary>
+      internal static IReadOnlyList<string> NamedHeroIds(Hero npc, string text)
+      {
+         List<(Hero Hero, string FullName, string Relationship)> mentioned = ResolveMentionedHeroes(npc, text);
+
+         return mentioned.Count == 0 ? new List<string>() : SelectForPrompt(npc, mentioned, text).Shown;
+      }
+
       internal static List<(Hero Hero, string FullName, string Relationship)> ResolveMentionedHeroes(Hero npc, string playerMessage)
       {
          var result = new List<(Hero Hero, string FullName, string Relationship)>();

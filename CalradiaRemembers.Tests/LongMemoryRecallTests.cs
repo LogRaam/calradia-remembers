@@ -139,5 +139,96 @@ namespace CalradiaRemembers.Tests
 
          Find(records, "longsword")[0].AlsoPresentIds.Should().Equal("comp_martira");
       }
+
+      // -- Threads (Gabriel, 17/11/2026: "je peux parler de ma mission a un NPC a plusieurs reprises dans differentes
+      //    conversations, et la memoire devrait lier ces conversations") --
+
+      private static StoryArchiveRecord On(StoryArchiveRecord line, params string[] threads)
+      {
+         return new StoryArchiveRecord {
+            Id = line.Id, Kind = line.Kind, EpisodeId = line.EpisodeId, Time = line.Time, Text = line.Text, IsPlayer = line.IsPlayer,
+            SpeakerId = line.SpeakerId, Audience = line.Audience, Threads = threads.ToList()
+         };
+      }
+
+      private static List<StoryArchiveRecord> Mission()
+         => new List<StoryArchiveRecord> {
+            Line("first", "Small talk about the road.", time: 10), On(Line("first", "Clear the bandits camped near Varcheg and I will pay you well.", time: 10), "place:varcheg"),
+            Line("first", "More small talk.", time: 10),
+            Line("second", "How is your sister?", time: 20), On(Line("second", "The Varcheg lot moved up into the hills, mind.", time: 20), "place:varcheg"),
+            Line("second", "Safe roads.", time: 20),
+            Line("third", "Cold today.", time: 30), On(Line("third", "For Varcheg I can now offer two thousand, not one.", time: 30), "place:varcheg"),
+            Line("third", "Go well.", time: 30),
+            Line("other", "We spoke of bandits once, near Pravend, long ago.", time: 5)
+         };
+
+      // STAKE: the mission told over three conversations comes back as one story, not as the single line whose words match.
+      [Test]
+      public void GIVEN_a_mission_spoken_of_in_three_conversations_WHEN_the_player_asks_about_the_bandits_THEN_all_three_are_recalled_in_order()
+      {
+         IReadOnlyList<LongMemoryPassage> found = Find(Mission(), "How goes it with those bandits?");
+
+         found.Where(p => p.ThreadKeys.Contains("place:varcheg")).Select(p => p.EpisodeId).Should().Equal("first", "second", "third");
+      }
+
+      // STAKE: terms changed in the third talk; the character must know which passage says how things stand now.
+      [Test]
+      public void GIVEN_a_thread_over_several_conversations_WHEN_recalled_THEN_only_the_newest_is_marked_latest()
+      {
+         IReadOnlyList<LongMemoryPassage> found = Find(Mission(), "How goes it with those bandits?");
+
+         found.Where(p => p.IsLatestOnThread).Select(p => p.EpisodeId).Should().Equal("third");
+      }
+
+      // STAKE: the player names the place without any word the old lines share: the thread alone finds them.
+      [Test]
+      public void GIVEN_no_word_in_common_WHEN_the_players_line_names_the_threads_subject_THEN_the_thread_is_recalled()
+      {
+         IReadOnlyList<LongMemoryPassage> found = LongMemoryRecall.Find(new LongMemoryRecallFacts {
+            Records = Mission(), CharacterId = Her, Query = "Any news?", QueryThreads = new[] {"place:varcheg"}, CurrentEpisodeId = "now"
+         });
+
+         found.Select(p => p.EpisodeId).Should().Contain(new[] {"first", "second", "third"});
+      }
+
+      // STAKE: the memories a reply spoke of ([DISCUSSED]) link a conversation whose lines carry no key at all.
+      [Test]
+      public void GIVEN_a_thread_learned_after_the_lines_WHEN_recalled_THEN_that_conversation_joins_the_thread()
+      {
+         var records = new List<StoryArchiveRecord> {
+            On(Line("a", "The ford, that night, the arrow in my shoulder.", time: 3), "memory:comp_ira:m2"),
+            Line("b", "I still feel it when the weather turns.", time: 9),
+            new StoryArchiveRecord {Id = "t", Kind = StoryArchiveKind.Thread, EpisodeId = "b", Threads = new List<string> {"memory:comp_ira:m2"}}
+         };
+
+         Find(records, "Tell me again about the ford.").Select(p => p.EpisodeId).Should().Contain("b");
+      }
+
+      // STAKE: a thread never hands a character a conversation they did not hear.
+      [Test]
+      public void GIVEN_a_conversation_on_the_thread_she_did_not_hear_WHEN_recalled_THEN_it_stays_out()
+      {
+         List<StoryArchiveRecord> records = Mission();
+         records.Add(new StoryArchiveRecord {
+            Id = "x", Kind = StoryArchiveKind.Line, EpisodeId = "elsewhere", Time = 25, Text = "Varcheg is mine to clear.", SpeakerId = "lord_x",
+            Audience = new List<string> {"lord_x"}, Threads = new List<string> {"place:varcheg"}
+         });
+
+         Find(records, "How goes it with those bandits?").Select(p => p.EpisodeId).Should().NotContain("elsewhere");
+      }
+
+      // STAKE: threads spend the same budget; a long thread never swells the prompt past it.
+      [Test]
+      public void GIVEN_a_long_thread_WHEN_recalled_THEN_the_budget_holds()
+      {
+         var records = new List<StoryArchiveRecord>();
+         for (var e = 0; e < 30; e++)
+         {
+            records.Add(Line($"ep{e}", $"plain words {e}", time: e));
+            records.Add(On(Line($"ep{e}", $"the Varcheg matter, part {e}, and more words to make it long enough to count", time: e), "place:varcheg"));
+         }
+
+         Find(records, "Varcheg?", budget: 800).SelectMany(p => p.Lines).Sum(l => l.Text.Length + 12).Should().BeLessThanOrEqualTo(800);
+      }
    }
 }

@@ -36,8 +36,17 @@ namespace CalradiaRemembers.Behaviors
 
             HashSet<string> already = new HashSet<string>((ChatManager.ActiveViewModel?.Transcript?.Lines ?? Enumerable.Empty<Logic.TranscriptLine>())
                                                           .Select(l => l?.Text).Where(t => !string.IsNullOrEmpty(t)));
+            IReadOnlyList<StoryArchiveRecord> branch = store.ReadBranch();
+            string current = ChatManager.ActiveViewModel?.ArchiveEpisodeForRecall;
+            // The threads this turn is on before any search: what the player's line names, and what this talk is already about.
+            Hero speaker = Hero.FindFirst(h => h != null && h.StringId == characterId);
+            var queryThreads = new HashSet<string>(Mapping.StoryThreadKeys.For(speaker, query));
+            if (current != null)
+               foreach (StoryArchiveRecord r in branch)
+                  if (r?.EpisodeId == current && r.Threads != null)
+                     queryThreads.UnionWith(r.Threads);
             IReadOnlyList<LongMemoryPassage> passages = LongMemoryRecall.Find(new LongMemoryRecallFacts {
-               Records = store.ReadBranch(), CharacterId = characterId, Query = query, CurrentEpisodeId = ChatManager.ActiveViewModel?.ArchiveEpisodeForRecall,
+               Records = branch, CharacterId = characterId, Query = query, CurrentEpisodeId = current, QueryThreads = queryThreads,
                AlreadyInContext = already, BudgetChars = ModSettings.LongMemoryBudget
             });
             if (passages.Count == 0) return null;
@@ -45,6 +54,7 @@ namespace CalradiaRemembers.Behaviors
             double now = CampaignTime.Now.ToDays;
             List<RecalledExchange> recalled = passages.Select(p => new RecalledExchange {
                When = Elapsed(now - p.Time), Place = p.PlaceName,
+               About = About(p), Latest = p.IsLatestOnThread,
                AlsoPresent = p.AlsoPresentIds.Select(NameOf).Where(n => !string.IsNullOrWhiteSpace(n)).ToList(),
                Lines = p.Lines.Select(l => new RecalledLine {
                   Speaker = l.IsPlayer ? "PLAYER" : l.SpeakerId == characterId ? "YOU" : NameOf(l.SpeakerId) ?? l.SpeakerName ?? "someone",
@@ -61,6 +71,13 @@ namespace CalradiaRemembers.Behaviors
 
             return null;
          }
+      }
+
+      private static string About(LongMemoryPassage p)
+      {
+         List<string> labels = (p.ThreadKeys ?? new List<string>()).Select(Mapping.StoryThreadKeys.LabelOf).Where(l => !string.IsNullOrWhiteSpace(l)).Distinct().Take(3).ToList();
+
+         return labels.Count == 0 ? null : string.Join(", ", labels);
       }
 
       private static string NameOf(string heroId)

@@ -388,7 +388,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 #### `CalradiaRemembers.Chat` and `CalradiaRemembers.Mapping`
 
-- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Mapping` in 13 files: `Chat/ActionConfirmationController.cs`, `Chat/ChatManager.cs`, `Chat/ChatMessageViewModel.cs`, and 10 more
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Mapping` in 14 files: `Chat/ActionConfirmationController.cs`, `Chat/ChatManager.cs`, `Chat/ChatMessageViewModel.cs`, and 11 more
 - `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Chat` in 1 file(s): `Mapping/EncounterContextBuilder.cs`
 
 #### `CalradiaRemembers.Chat` and `CalradiaRemembers.Quests`
@@ -611,11 +611,6 @@ files first: a side resting on ONE file is one file away from untangling the pai
 - `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Chat` in 2 file(s): `Behaviors/LongMemoryRecaller.cs`, `Behaviors/NpcMemoryCampaignBehavior.cs`
 - `CalradiaRemembers.Chat` uses `CalradiaRemembers.Behaviors` in 20 files: `Chat/ActionConfirmationController.cs`, `Chat/ChatManager.cs`, `Chat/ChatSceneStager.cs`, and 17 more
 
-#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Mapping`
-
-- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Mapping` in 2 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`, `Behaviors/WorkshopSaleMemoryBehavior.cs`
-- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Behaviors` in 8 files: `Mapping/DayMoodReader.cs`, `Mapping/DeedRegardApplier.cs`, `Mapping/EncounterContextBuilder.cs`, and 5 more
-
 #### `CalradiaRemembers.Chat` and `CalradiaRemembers.Duels`
 
 - `CalradiaRemembers.Chat` uses `CalradiaRemembers.Duels` in 4 files: `Chat/ChatManager.cs`, `Chat/ChatViewModel.Helpers.cs`, `Chat/ChatViewModel.cs`, and 1 more
@@ -675,6 +670,11 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 - `CalradiaRemembers.Verbs` uses `CalradiaRemembers.Violence` in 2 file(s): `Verbs/ExtortReadiness.cs`, `Verbs/VerbRegistry.cs`
 - `CalradiaRemembers.Violence` uses `CalradiaRemembers.Verbs` in 3 file(s): `Violence/ExposeSecretVerb.cs`, `Violence/ExtortVerb.cs`, `Violence/PlayerViolenceVerb.cs`
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Mapping`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Mapping` in 3 file(s): `Behaviors/LongMemoryRecaller.cs`, `Behaviors/NpcMemoryCampaignBehavior.cs`, `Behaviors/WorkshopSaleMemoryBehavior.cs`
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Behaviors` in 8 files: `Mapping/DayMoodReader.cs`, `Mapping/DeedRegardApplier.cs`, `Mapping/EncounterContextBuilder.cs`, and 5 more
 
 #### `CalradiaRemembers.Chat` and `CalradiaRemembers.Diagnostics`
 
