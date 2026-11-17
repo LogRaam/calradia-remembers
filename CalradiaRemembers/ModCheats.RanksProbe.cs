@@ -43,23 +43,25 @@ namespace CalradiaRemembers
 
          var sb = new StringBuilder();
          sb.AppendLine($"[RANKS PROBE] {humans.Count} living humans; showing up to {perGroup} per group.");
-         sb.AppendLine("[RANKS PROBE] columns: group | troop | age weight build | agentScale | headBoneScale (s,f,u) | head-neck | neck-pelvis | stature | head/torso");
+         sb.AppendLine("[RANKS PROBE] columns: group | troop | age weight build | agentScale | headBoneScale (s,f,u) | head-neck | neck-pelvis | stature | head/torso | voice");
          var summary = new List<string>();
          foreach ((string group, List<Agent> agents) in new[] {("CR woman", crWomen), ("game woman", gameWomen), ("man", men)})
          {
             var ratios = new List<float>();
             var scales = new List<float>();
+            var voices = new List<string>();
             foreach (Agent a in agents)
             {
                string line = Measure(group, a, out float ratio, out float headScale);
                sb.AppendLine(line);
+               voices.Add(Voice(a));
                if (ratio > 0) ratios.Add(ratio);
                if (headScale > 0) scales.Add(headScale);
             }
 
             summary.Add(agents.Count == 0
                ? $"{group}: none in this battle"
-               : $"{group}: {agents.Count} measured, mean head/torso {Mean(ratios)}, mean head bone scale {Mean(scales)}");
+               : $"{group}: {agents.Count} measured, mean head/torso {Mean(ratios)}, mean head bone scale {Mean(scales)}, voices {string.Join(", ", voices.Distinct())}");
          }
 
          foreach (string s in summary) sb.AppendLine("[RANKS PROBE] SUMMARY " + s);
@@ -93,14 +95,21 @@ namespace CalradiaRemembers
             headToTorso = neckPelvis > 0.0001f ? headNeck / neckPelvis : 0;
 
             return string.Format(CultureInfo.InvariantCulture,
-               "[RANKS PROBE] {0} | {1} | {2:0} {3:0.00} {4:0.00} | {5:0.000} | ({6:0.000},{7:0.000},{8:0.000}) | {9:0.000} | {10:0.000} | {11:0.000} | {12:0.000}",
+               "[RANKS PROBE] {0} | {1} | {2:0} {3:0.00} {4:0.00} | {5:0.000} | ({6:0.000},{7:0.000},{8:0.000}) | {9:0.000} | {10:0.000} | {11:0.000} | {12:0.000} | {13}",
                group, troop, body.Age, body.Weight, body.Build, a.AgentScale, head.rotation.s.Length, head.rotation.f.Length, head.rotation.u.Length,
-               headNeck, neckPelvis, stature, headToTorso);
+               headNeck, neckPelvis, stature, headToTorso, Voice(a));
          }
          catch (Exception ex)
          {
             return $"[RANKS PROBE] {group} | {troop} | failed: {ex.GetType().Name}: {ex.Message}";
          }
+      }
+
+      // The voice the engine gave the soldier (Gabriel, 17/11/2026: "est-ce que les femmes que l'on cree avec CR ont une voix feminine?").
+      private static string Voice(Agent a)
+      {
+         try { return a.GetAgentVoiceDefinition() ?? "-"; }
+         catch (Exception ex) { return "? " + ex.GetType().Name; }
       }
 
       private static string Mean(List<float> values)
