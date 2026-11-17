@@ -7639,6 +7639,14 @@ namespace CalradiaRemembers.Diagnostics
          float heaviest = Enumerable.Range(0, 40).Select(seed => Mapping.WomenInRanksPatch.FaceFor(true, recruit, recruit.Equipment, seed))
                                     .Max(b => Math.Max(b.Weight, b.Build));
          t.Expect("aWomanSoldierIsLean", heaviest <= Logic.Troops.WomenInRanksPolicy.LeanFrameHighest + 0.001f, true);
+         // STAKE (EvilPoptart1987, 16/11/2026, "still attack of the killer shrunken heads"): the body set on the soldier is
+         // her woman's body, drawn under the helmet her seed gives her, never the man's the game would compute.
+         at("drawing the body set on her");
+         BodyProperties set = Mapping.WomenInRanksPatch.HerBody(recruit, 7, false);
+         Equipment helmetFor7 = Equipment.GetRandomEquipmentElements(recruit, false, Equipment.EquipmentType.Battle, 7);
+         t.Expect("theBodySetOnHerIsHers", set.ToString(), Mapping.WomenInRanksPatch.FaceFor(true, recruit, helmetFor7, 7).ToString());
+         t.Expect("theBodySetOnHerIsNotTheMans", set.ToString() != recruit.GetBodyProperties(helmetFor7, 7).ToString(), true);
+         t.Note("faces are no longer answered through OnComputeTroopBodyProperties (that turned the face cache on for every soldier); check heads in a battle.");
          t.Note($"table from {Mapping.WomenInRanksLoader.LoadedFrom}; check a Sturgian or Khuzait battle for faces and armour.");
 
          return t.Line();

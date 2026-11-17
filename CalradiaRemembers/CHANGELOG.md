@@ -4,6 +4,10 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.8.15.. unreleased
 
+### Fixed
+
+- **Women in the ranks: the tiny heads, second try** (EvilPoptart1987, Nexus 16/11/2026, after the 2.8.13 lean fix: "Still attack of the killer shrunken heads"; women from Retinues look right; Gabriel 17/11/2026: build it). CR answered `Mission.OnComputeTroopBodyProperties` to give her a woman's face, and answering it makes the game turn its face cache on for every non-hero soldier (1.5.7 `Mission.SpawnAgent`: `UseFaceCache = !IsHero`, all on cache id 0), a path no module of the game runs in single player. CR no longer subscribes: her body is set on the prepared soldier (`AgentBuildData.BodyProperties`, `WomenInRanksPatch.HerBody`), where the game leaves the cache off, and every man spawns exactly as without CR. Her hair is drawn under the helmet her seed gives her (`Equipment.GetRandomEquipmentElements`, the game's own draw). The cache as the cause is SUSPECTED (native code), not proven. cr.test `women_in_ranks` extended (the body set on her is hers, not the man's). Not play-verified.
+
 ### New
 
 - **For modders: `CrLlm` can send a request to a model of the caller's own** (VonLemberg, Discord 17/11/2026, RFC "Independent LLM Routes for External Diplomacy and World Events"; Gabriel 17/11/2026: yes, and CR holds no option for another mod's features). `CrLlmRequest.Model` (optional) goes as the request's model on the player's connection, `CrLlmResult.Model` and the `[EXT LLM]` line name it; null keeps the player's prose model exactly as before; an unknown id fails at the provider, never falls back; an id with spaces is refused unsent (`ExternalLlmRefusal.MalformedModel`). SDK: the player's OpenRouter provider pin is not sent with a model other than the configured one (`OpenRouterClient.TargetsAnotherModel`). No named routes and no per-route MCM settings in CR. `CrApi.Version` 4. cr.test `persona_surface` extended (a malformed model refused unsent).

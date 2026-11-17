@@ -9,6 +9,14 @@
 // only from the result, and switched off with a log line when the game moves it (the 1.5.5 SpawnAgent change, tashmetu).
 // Her weight and build are then made lean (WomenInRanksPolicy.LeanFrame): the townswoman range gave stout frames under which
 // her head looked tiny (EvilPoptart1987, Nexus 15/11/2026).
+//
+// EvilPoptart1987 (Nexus, 16/11/2026), after the lean fix: "Still attack of the killer shrunken heads." Women from Retinues,
+// whose troops are women in the game's own data, look right. What set ours apart: answering OnComputeTroopBodyProperties
+// makes the game turn its face cache on for EVERY non-hero soldier (Mission.SpawnAgent, 1.5.7: UseFaceCache = !IsHero,
+// all on cache id 0), a path no module of the game runs in single player. So CR no longer subscribes: her body is set
+// on the prepared soldier itself (AgentBuildData.BodyProperties), the road on which the game leaves the cache off, and
+// every man is spawned exactly as without CR. The cache as the cause is SUSPECTED (native code), not proven.
+// Her helmet is read from the equipment the game will draw for her seed, so her hair still fits under it.
 
 #region
 
@@ -33,7 +41,6 @@ namespace CalradiaRemembers.Mapping
       private const string TargetMethod = "GetAgentBuildDataToSpawnTroop";
 
       private static Harmony _harmony;
-      private static WeakReference<Mission> _subscribed = new WeakReference<Mission>(null);
       private static bool _complained;
       private static bool _faceComplained;
 
@@ -97,7 +104,7 @@ namespace CalradiaRemembers.Mapping
             if (!WomenInRanksPolicy.IsWoman(WomenInRanksLoader.Table, soldier)) return;
 
             __result.IsFemale(true);
-            SubscribeFaces(__instance);
+            __result.BodyProperties(HerBody(troop, __result.AgentEquipmentSeed, __result.AgentCivilianEquipment));
          }
          catch (Exception ex)
          {
@@ -108,17 +115,24 @@ namespace CalradiaRemembers.Mapping
          }
       }
 
-      private static void SubscribeFaces(Mission mission)
+      /// <summary>
+      ///   Her whole body, set on the prepared soldier: the equipment the game will draw for this seed (Mission.
+      ///   DecideAgentSpawnEquipment draws it the same way) decides how much hair her helmet shows.
+      /// </summary>
+      public static BodyProperties HerBody(CharacterObject troop, int equipmentSeed, bool civilian)
       {
-         if (_subscribed.TryGetTarget(out Mission done) && ReferenceEquals(done, mission)) return;
+         Equipment drawn = null;
+         try
+         {
+            drawn = Equipment.GetRandomEquipmentElements(troop, false, civilian ? Equipment.EquipmentType.Civilian : Equipment.EquipmentType.Battle, equipmentSeed);
+         }
+         catch
+         {
+            // only her hair under the helmet depends on it; the troop's first set will do
+         }
 
-         mission.OnComputeTroopBodyProperties += ComputeBody;
-         _subscribed = new WeakReference<Mission>(mission);
+         return FaceFor(true, troop, drawn ?? (civilian ? troop.FirstCivilianEquipment : troop.FirstBattleEquipment), equipmentSeed);
       }
-
-      /// <summary>A woman's face for a soldier CR made a woman; for every other soldier, exactly the game's own computation.</summary>
-      public static BodyProperties ComputeBody(AgentBuildData data, BasicCharacterObject character, Equipment equipment, int seed) =>
-         FaceFor(data != null && data.GenderOverriden && data.AgentIsFemale, character, equipment, seed);
 
       /// <summary>
       ///   The face itself, apart from the prepared soldier: an AgentBuildData cannot be built outside a battle (its
