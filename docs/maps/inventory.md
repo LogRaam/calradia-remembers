@@ -6,9 +6,9 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 681 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1685 types in 62 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 682 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1688 types in 62 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -210,10 +210,11 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroTally` | public class | One hero's raw part in one mission, by hero id; CombatTally is its worded form. |
 | `PrisonerMemoryBehavior` | public class | Writes the memories of the player's prisoners: taken, left in a dungeon, and how it ended. |
 
-### CalradiaRemembers.Behaviors (3)
+### CalradiaRemembers.Behaviors (4)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `LongMemoryRecaller` | public static class | Finds, for one character's turn, the words of earlier conversations worth recalling, ready for the prompt. |
 | `NpcMemoryCampaignBehavior` | public class | Bridges the NpcMemoryService SDK to the Bannerlord campaign lifecycle. |
 | `StoryArchiveWriter` | public static class | Writes letters and the mod's notices into the campaign's story archive. |
 | `WorkshopSaleMemoryBehavior` | public class | Gives a character who sold the player a workshop the memory of the sale. |
@@ -2829,10 +2830,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SocialStationFacts` | public class | What a character's station is read from. |
 | `SocialStationPolicy` | public static class | Resolves a character's station and composes its definition for the player's rung. |
 
-### CalradiaRemembers.Logic.StoryArchive (8)
+### CalradiaRemembers.Logic.StoryArchive (11)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `LongMemoryPassage` | public class | One recalled passage: consecutive lines of one earlier conversation. |
+| `LongMemoryRecall` | public static class | Finds the few passages of earlier conversations that bear on this turn. |
+| `LongMemoryRecallFacts` | public class | What the recall reads for one character on one turn. |
 | `StoryArchiveBranch` | public static class | Reads the branch of the archive a save belongs to. |
 | `StoryArchiveDeed` | public static class | Turns a deed's outcome into its archive sentence. |
 | `StoryArchiveDeedEntry` | public class | The sentence a deed enters the archive with, and whether it enters at all. |
@@ -3219,7 +3223,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryRecall` | public static class | Which memories carry a short code, and which of them a character has already discussed with the player. |
 | `SharedRecall` | public class | What a character may be shown to REMEMBER in front of others: their own memories, minus anything held in confidence, folded to a bounded recall. |
 
-### NpcMemoryService.Core.Models (83)
+### NpcMemoryService.Core.Models (85)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -3286,6 +3290,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestProposal` | public class | A quest the LLM proposed in a [QUEST] block, as parsed from the raw response. |
 | `QuestStatus` | public enum | Lifecycle state of an InformalQuest. |
 | `QuestType` | public enum | The kind of deed an InformalQuest asks the player to accomplish. |
+| `RecalledExchange` | public class | A short passage of an earlier conversation the character took part in or heard. |
+| `RecalledLine` | public class | One line of a recalled passage. |
 | `ReputationDelta` | public record | A reputation change declared by the LLM via the [REPUTATION] section. |
 | `ResolutionProposal` | public class | A resolution the table took, as parsed from a [RESOLUTION] block. |
 | `RewardGrant` | public enum | What the NPC does for the player when a conditional bargain is fulfilled — the reward side of the negotiation framework. |

@@ -443,6 +443,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("birth_house_known", Severity.Light, "Maifailun (Nexus, 07/10/2026): Lidia, wed into the Takhi, named her father but not the house she was born into, and claimed she was born a Takhi. Finds a married character living in another house than the one they were born into and checks their family line, as the prompt gets it, names the birth house.", TestBirthHouseKnown),
          new SelfTest("tale_local_band", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's last band was always looters, the weakest troop in the game. A \"local\" band is made of the bandits of the nearest hideout. Reads them for a few villages across the map and checks each finds real bandits; the log names them.", TestTaleLocalBand),
          new SelfTest("scene_surroundings_read", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's scene should read differently to an Aserai in a forest at night and a Battanian at noon. Reads the ground under the player, the season, the hour and the player's people from the live game, as the scene's narrator gets them, and checks the narrator's block is written from them.", TestSceneSurroundingsRead),
+         new SelfTest("long_memory", Severity.Light, "Goeth (Discord, 17/11/2026): recall the actual words of earlier talks; Gabriel: off by default, Full prompt only. On a throwaway story archive: a player line said to a lord in one conversation is recalled, labelled [PLAYER], when a later conversation mentions its subject, and the LIVE PromptBuilder writes it under WORDS FROM EARLIER TALKS; the compact prompt and the switch off recall nothing. Restores the switch, deletes its file", TestLongMemory),
          new SelfTest("story_archive", Severity.Light, "Gabriel (17/11/2026): the Story Log replaced by a story archive written always, outside the save, the long memory's source. On a throwaway archive: a real ChatViewModel's player line enters it word for word after an episode opening, with the lord in its audience; a save head taken, a line written, the head re-attached as a reload does, another line written: walking the branch reads the new line and never the abandoned one. Asserts the player's own archive is paused while self-tests run. Deletes its file", TestStoryArchive),
          new SelfTest("scene_narration_switch", Severity.Light, "1Enfant (Nexus, 16/11/2026): \"How do I disable the description of the surrounding environment? (purple section)\". Sets the MCM switch Scene Narration off then on (restored after) and asserts, on the LIVE PromptBuilder the chat runs on (LlmServices.DebugBuildPromptBuilder), that off means an ordinary opening turn neither teaches the [NARRATION] block nor asks for the opening tableau, and on brings both back; and that SceneNarrationPolicy hides an ordinary turn's narration when off, but keeps a captive scene's and a reply made only of narration", TestSceneNarrationSwitch),
          new SelfTest("scene_opener", Severity.Light, "Lordfadooboo (Nexus, 21/10/2026): a conversation opened cold; Gabriel (22/10/2026): the character sets the scene by default, as captive scenes do. Reads the LIVE opening facts (LlmDialogFlow.SceneFacts) and asserts a conversation opened by the greeting gets a scene while one opened any other way (an interception, a tale meeting) does not, nor one put back from earlier today, nor one carrying the game's own dialogue, nor any with the MCM switch off (set off for a moment, restored). Then, with a model available and nothing on screen, opens a REAL conversation with a lord, starts the scene on a test greeting and plays the player speaking first: the scene is set aside, the greeting stays on screen and is the line remembered, and the call is aborted. Closes the conversation", TestSceneOpener),
@@ -16385,6 +16386,51 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      private static string TestLongMemory(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("long_memory");
+         CrSettings settings = CrSettings.Instance;
+         if (t.Abort(settings == null, "no MCM settings instance")) return t.Line();
+         if (t.Skip(behavior?.LlmServices == null, "no LLM services to build the live prompt")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(lord == null, "no lord to talk to")) return t.Line();
+
+         var store = new StoryArchiveStore();
+         string file = null;
+         bool before = settings.LongMemory;
+         try
+         {
+            // An earlier night with the lord, then a new conversation (a new episode) where the player picks the thread up.
+            var vm = new ChatViewModel();
+            vm.SetNpcHero(lord);
+            vm.ArchiveToForDiagnostics(store);
+            vm.RecordPlayerLineForDiagnostics("[SELFTEST] You swore to teach me the longsword before the snows.");
+            file = store.FilePath;
+            vm.SetNpcHero(lord);
+
+            settings.LongMemory = true;
+            IReadOnlyList<RecalledExchange> recalled = LongMemoryRecaller.For(lord.StringId, "About that longsword?", LeanPromptLevel.Full, store);
+            // STAKE (Goeth): the thread the player picks up brings back the very words, labelled as the player's.
+            t.Expect("theEarlierWordsAreRecalled", recalled?.SelectMany(r => r.Lines).Any(l => l.Speaker == "PLAYER" && l.Text.Contains("longsword")) == true, true);
+            var context = new EncounterContext {LeanLevel = LeanPromptLevel.Full, RecalledExchanges = recalled};
+            string prompt = behavior.LlmServices.DebugBuildPromptBuilder().BuildSystemPrompt(new NpcProfile {Id = lord.StringId, Name = lord.Name.ToString(), Faction = "x", Clan = "x"}, new WorldState {CurrentDay = 1}, context);
+            t.Expect("theLivePromptCarriesThem", prompt.Contains("WORDS FROM EARLIER TALKS") && prompt.Contains("longsword before the snows"), true);
+            // STAKE: the compact prompt and a player who left the switch off pay nothing.
+            t.Expect("compactRecallsNothing", LongMemoryRecaller.For(lord.StringId, "About that longsword?", LeanPromptLevel.Lean, store) == null, true);
+            settings.LongMemory = false;
+            t.Expect("offRecallsNothing", LongMemoryRecaller.For(lord.StringId, "About that longsword?", LeanPromptLevel.Full, store) == null, true);
+         }
+         finally
+         {
+            settings.LongMemory = before;
+            try { if (file != null && File.Exists(file)) File.Delete(file); }
+            catch { /* a leftover temp file in the archive folder is harmless */ }
+         }
+
+         return t.Line();
+      }
+
       private static string TestStoryArchive(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("story_archive");
@@ -19329,6 +19375,8 @@ namespace CalradiaRemembers.Diagnostics
                "capped at MarriageEligibilityThreshold: the setting may only make marriage EASIER, never harder"),
             ["ReplyTokenBudget"] = ("ReplyTokenBudget", SettingShape.Reshapes,
                "0 is Auto (no budget chosen: 3000, or Compact's own), and a pick under 500 is raised to 500, too small for any reply"),
+            ["LongMemoryBudget"] = ("LongMemoryBudget", SettingShape.Honours,
+               "the budget the player set is the most characters of earlier words a reply recalls"),
             ["LlmTimeoutSeconds"] = ("LlmResponseTimeoutSeconds", SettingShape.Honours,
                "a timeout the player set is the timeout the request gets"),
             ["ChatTextSizePercent"] = ("ChatTextSizeStep", SettingShape.Reshapes,

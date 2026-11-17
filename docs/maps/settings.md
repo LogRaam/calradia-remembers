@@ -11,7 +11,7 @@ player says "I turned it off and it still happens", the readers listed here are 
 it is missing from the list. Read from syntax; blind spots in the header of `SettingsReadersMap.cs` (a value handed
 on to the SDK or a helper shows only where it is read).
 
-116 settings; a reader is `Type.Member`. Console and cr.test reads are counted apart (they exercise a switch, they do not obey it).
+118 settings; a reader is `Type.Member`. Console and cr.test reads are counted apart (they exercise a switch, they do not obey it).
 
 ## Read by one member only
 
@@ -49,6 +49,8 @@ Fine when the setting governs one thing. Worth a look when its hint promises mor
 | Interpret provider (`ActionInterpreterProvider`) | `LlmServices.ResolveKindForRole` |
 | Invulnerable Couriers (`InvulnerableCouriers`) | `CourierService.ScanForWaylayers` |
 | Letter Riders on the Map (`LetterRidersOnMap`) | `CourierService.NoRiderWanted` |
+| Long Memory (`LongMemory`) | `LongMemoryRecaller.For` |
+| Long Memory Budget (characters) (`LongMemoryBudget`) | `LongMemoryRecaller.For` |
 | Lords Hold Their Course (`LordsHoldTheirCourse`) | `InterceptionBehavior.SteerTowardPlayer` |
 | Lords can ride in your party (`EnableRideWithMe`) | `RetainerBehavior.Enabled` |
 | NPC Cross-Talk (`NpcCrossTalkRounds`) | `ChatViewModel.WitnessExchangeCap` |
@@ -120,6 +122,8 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Invulnerable Couriers (`InvulnerableCouriers`) | `CourierService.ScanForWaylayers` | 0 |
 | Legends (`Legends`) | `LegendBehavior.LineFor`, `LegendBehavior.OnMapEventEnded` | 2 |
 | Letter Riders on the Map (`LetterRidersOnMap`) | `CourierService.NoRiderWanted` | 1 |
+| Long Memory (`LongMemory`) | `LongMemoryRecaller.For` | 1 |
+| Long Memory Budget (characters) (`LongMemoryBudget`) | `LongMemoryRecaller.For` | 0 |
 | Lords Approaching You (`InterceptionPacing`) | `FiefAudienceBehavior.SelectBestCandidate`, `FiefAudienceBehavior.TryOfferOnSettlementEntry`, `InterceptionBehavior.CooldownDays`, `InterceptionBehavior.DailyInterceptChancePercent`, `InterceptionBehavior.OnDailyTick`, `WorldInitiativeBehavior.MayKnock`, `WorldInitiativeBehavior.Prune` | 2 |
 | Lords Hold Their Course (`LordsHoldTheirCourse`) | `InterceptionBehavior.SteerTowardPlayer` | 1 |
 | Lords can ride in your party (`EnableRideWithMe`) | `RetainerBehavior.Enabled` | 0 |

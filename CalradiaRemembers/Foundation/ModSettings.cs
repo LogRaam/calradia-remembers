@@ -367,6 +367,12 @@ namespace CalradiaRemembers.Foundation
       /// </summary>
       public static bool SceneNarration => CrSettings.Instance?.SceneNarration ?? true;
 
+      /// <summary>Whether a reply recalls the words of earlier talks (Goeth, 17/11/2026). Off by default; with no MCM, off.</summary>
+      public static bool LongMemory => CrSettings.Instance?.LongMemory ?? false;
+
+      /// <summary>The most characters of earlier words one reply may recall (LongMemoryRecall budget).</summary>
+      public static int LongMemoryBudget => CrSettings.Instance?.LongMemoryBudget ?? 4000;
+
       /// <summary>
       ///   A lord riding out to the player is held on course (on, the 2.6.8 behaviour Lordfadooboo asked for) or only
       ///   given the order, his own AI free to change its mind (off, as before; Fakade, 03/10/2026). On when MCM has

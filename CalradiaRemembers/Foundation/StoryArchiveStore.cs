@@ -34,6 +34,7 @@ namespace CalradiaRemembers.Foundation
       private string _archiveId;
       private string _headId;
       private bool _complained;
+      private List<StoryArchiveRecord> _branch; // the loaded branch, read once, then extended on every append
 
       /// <summary>While true nothing is written: a self-test's lines are not the player's story.</summary>
       public bool Paused { get; set; }
@@ -84,6 +85,7 @@ namespace CalradiaRemembers.Foundation
                Directory.CreateDirectory(Folder);
                File.AppendAllText(path, written.Serialize() + "\n", Encoding.UTF8);
                _headId = written.Id;
+               _branch?.Add(written);
             }
             catch (Exception ex)
             {
@@ -102,8 +104,26 @@ namespace CalradiaRemembers.Foundation
          return written;
       }
 
-      /// <summary>The loaded save's branch, oldest first. Reads the file; empty when there is none yet.</summary>
+      /// <summary>
+      ///   The loaded save's branch, oldest first: read from the file once, then kept and extended as records are written
+      ///   (the long memory asks every turn). Empty when there is none yet.
+      /// </summary>
       public IReadOnlyList<StoryArchiveRecord> ReadBranch()
+      {
+         lock (_gate)
+            if (_branch != null) return _branch.ToList();
+
+         IReadOnlyList<StoryArchiveRecord> read = ReadBranchFromFile();
+         lock (_gate)
+         {
+            // A record appended while the file was read is already in it, or arrives with the next append.
+            if (_branch == null && read.Count > 0 && read[read.Count - 1].Id == _headId) _branch = read.ToList();
+         }
+
+         return read;
+      }
+
+      private IReadOnlyList<StoryArchiveRecord> ReadBranchFromFile()
       {
          string path, head;
          lock (_gate)
@@ -160,6 +180,7 @@ namespace CalradiaRemembers.Foundation
          {
             _archiveId = string.IsNullOrEmpty(p?.ArchiveId) ? null : p.ArchiveId;
             _headId = _archiveId == null ? null : p.HeadId;
+            _branch = null;
          }
 
          if (_archiveId != null) ModLog.Info($"[STORY ARCHIVE] loaded pointer: archive {_archiveId}, head {_headId ?? "-"}.");
@@ -172,6 +193,7 @@ namespace CalradiaRemembers.Foundation
          {
             _archiveId = archiveId;
             _headId = headId;
+            _branch = null;
          }
       }
 

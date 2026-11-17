@@ -625,6 +625,8 @@ namespace CalradiaRemembers.Mapping
             CaptiveNotoriety = knowledge.CaptiveNotoriety,
             // An authored quest this character is part of now (docs/design/AUTHORED_QUESTS.md).
             AuthoredQuestBlock = Quests.AuthoredQuestBehavior.Instance?.PromptBlockFor(hero),
+            // Goeth (17/11/2026): the words of earlier talks this character was present for, when they bear on this turn.
+            RecalledExchanges = LongMemoryRecaller.For(hero?.StringId, playerMessage, leanLevel),
             // Its choices by words open with this character, taught to whoever reads this turn's actions; and, at
             // Hardcore in a lovemaking the game permits, the gestures this character loves or dislikes (Gabriel,
             // 26/10/2026). Never in a captive scene: a forced act belongs to Trauma and Misdeeds.

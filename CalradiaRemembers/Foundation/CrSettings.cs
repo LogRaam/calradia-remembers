@@ -612,6 +612,18 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool SceneNarration { get; set; } = true;
 
+      // Goeth (Discord, 17/11/2026): long memory, the actual words of earlier talks. Gabriel (17/11/2026): off by default;
+      // the story is kept either way, this decides only what is sent ("pour epargner des tokens").
+      [SettingPropertyBool("{=CR_MCM_LongMemory}Long Memory", RequireRestart = false, Order = 4,
+         HintText = "{=CR_MCM_LongMemory_Hint}Off (default). On: before each reply, a character recalls the exact words of earlier talks they were present for, when they bear on what is said now. Costs prompt tokens (see the budget). Full prompt only.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
+      public bool LongMemory { get; set; } = false;
+
+      [SettingPropertyInteger("{=CR_MCM_LongMemoryBudget}Long Memory Budget (characters)", 1000, 12000, "0", RequireRestart = false, Order = 5,
+         HintText = "{=CR_MCM_LongMemoryBudget_Hint}How many characters of earlier words a reply may recall, at most. 4000 (default) is about 1,000 tokens per reply. Used only with Long Memory on.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
+      public int LongMemoryBudget { get; set; } = 4000;
+
       [SettingPropertyDropdown("{=CR_MCM_InterceptionPacing}Lords Approaching You", RequireRestart = false, Order = 2,
          HintText = "{=CR_MCM_InterceptionPacing_Hint}How often a lord rides out to have a word with you on the road. Never switches it off " +
                     "entirely. Occasionally is the shipped feel. With The World's Initiative on, it sets how much of its turns lords get.")]

@@ -548,6 +548,9 @@ namespace CalradiaRemembers.Chat
       /// <summary>cr.test seam: this chat writes into <paramref name="store" /> instead of the campaign's archive.</summary>
       internal void ArchiveToForDiagnostics(StoryArchiveStore store) => _archiveOverride = store;
 
+      /// <summary>The story archive episode this conversation writes into: the long memory never recalls it.</summary>
+      internal string ArchiveEpisodeForRecall => _archiveEpisodeOpenedFor ?? CrConversation.OpenSessionId;
+
       private string ArchiveEpisodeId => CrConversation.OpenSessionId ?? _archiveEpisodeOpenedFor ?? (_archiveFallbackEpisodeId ??= "chat-" + Guid.NewGuid().ToString("N").Substring(0, 12));
 
       private string ArchiveSceneKind()

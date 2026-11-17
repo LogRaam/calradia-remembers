@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-810 rules read 600 facts.
+811 rules read 603 facts.
 
 ## Facts read by more than one rule
 
@@ -815,6 +815,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `LiberationFacts`: `LeaderParty.LeaderHero`, `MapEvent.GetMapEventSide`, `MapEvent.WinningSide`, `Party.LeaderHero`
 - `LlmParameterPolicy.Resolve`: `ModSettings.CustomParameterCompatibility`
 - `LocationStandingFacts`: `Clan.Leader`, `Hero.Clan`, `Hero.CurrentSettlement`, `Hero.GovernorOf`, `Hero.HomeSettlement`, `Hero.IsNotable`, `Settlement.OwnerClan`, `Settlement.Town`
+- `LongMemoryRecallFacts`: `ActiveViewModel.ArchiveEpisodeForRecall`, `ModSettings.LongMemoryBudget`, `Transcript.Lines`
 - `LongTermHistoryPolicy.WouldKnow`: `Hero.Clan`, `Hero.Find`, `Hero.HomeSettlement`, `Hero.MapFaction`, `Settlement.Find`, `Settlement.OwnerClan`
 - `LordRecruitmentFacts`: `Clan.IsEliminated`, `Clan.Kingdom`, `Clan.Leader`, `Clan.Settlements`, `Hero.Clan`, `Hero.GetRelation`, `Kingdom.Leader`, `PairBondReader.Points`, `StatureReader.OfClan`, `StatureReader.Player`
 - `LoverCandidateFacts`: `Hero.MapFaction`, `PairBondReader.Points`, `Romantic.IsCompatibleWith`

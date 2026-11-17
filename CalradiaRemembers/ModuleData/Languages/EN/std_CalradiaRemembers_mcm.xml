@@ -212,6 +212,10 @@
     <string id="CR_MCM_CharactersSetTheScene_Hint" text="On (default): when you start a conversation, the character opens it, what they were doing and their first words, while you may already type. One more model call per conversation. Off: the short greeting alone." />
     <string id="CR_MCM_SceneNarration" text="Scene Narration" />
     <string id="CR_MCM_SceneNarration_Hint" text="On (default): conversations carry short purple descriptions of the place, the light and the sounds. Off: the characters' words and gestures alone. Captive scenes keep their narration either way." />
+    <string id="CR_MCM_LongMemory" text="Long Memory" />
+    <string id="CR_MCM_LongMemory_Hint" text="Off (default). On: before each reply, a character recalls the exact words of earlier talks they were present for, when they bear on what is said now. Costs prompt tokens (see the budget). Full prompt only." />
+    <string id="CR_MCM_LongMemoryBudget" text="Long Memory Budget (characters)" />
+    <string id="CR_MCM_LongMemoryBudget_Hint" text="How many characters of earlier words a reply may recall, at most. 4000 (default) is about 1,000 tokens per reply. Used only with Long Memory on." />
     <string id="CR_MCM_InterceptionPacing" text="Lords Approaching You" />
     <string id="CR_MCM_InterceptionPacing_Hint" text="How often a lord rides out to have a word with you on the road. Never switches it off entirely. Occasionally is the shipped feel. With The World's Initiative on, it sets how much of its turns lords get." />
     <string id="CR_MCM_InterceptionPacing_Never" text="Never" />
