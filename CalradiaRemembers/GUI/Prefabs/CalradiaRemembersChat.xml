@@ -71,10 +71,11 @@
                             Brush.TextHorizontalAlignment="Center" Text="?" IsDisabled="true" />
               </Children>
             </ButtonWidget>
-            <!-- Report a problem (Gabriel, 14/11/2026): beside the help, shown when the MCM option is on. -->
+            <!-- Report a problem (Gabriel, 14/11/2026): beside the help, shown when the MCM option is on. Its "!" glyph drew
+                 nothing (Gabriel, 17/11/2026: an empty box beside the "?"), so it is told in words, as Request Private is. -->
             <ButtonWidget Id="ReportButton"
                           WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
-                          SuggestedWidth="34" SuggestedHeight="34"
+                          SuggestedWidth="64" SuggestedHeight="34"
                           HorizontalAlignment="Right" VerticalAlignment="Top"
                           MarginTop="8" MarginRight="52"
                           DoNotPassEventsToChildren="true"
@@ -83,8 +84,9 @@
                           Command.Click="ExecuteReportProblem">
               <Children>
                 <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
-                            Brush="Popup.Button.Text" Brush.FontSize="20"
-                            Brush.TextHorizontalAlignment="Center" Text="!" IsDisabled="true" />
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Brush="Popup.Button.Text" Brush.FontSize="14"
+                            Brush.TextHorizontalAlignment="Center" Text="Report" IsDisabled="true" />
               </Children>
             </ButtonWidget>
             <!-- The witnesses line opens the participants panel (29/10/2026). -->
