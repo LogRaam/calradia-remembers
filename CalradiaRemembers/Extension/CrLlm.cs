@@ -56,6 +56,14 @@ namespace CalradiaRemembers
 
       /// <summary>Sampling temperature, 0 to 2; default 0.8.</summary>
       public float Creativity { get; set; } = 0.8f;
+
+      /// <summary>
+      ///   The model id to use instead of the player's prose model, sent as is on the player's connection (same endpoint,
+      ///   same key): an OpenRouter id such as "z-ai/glm-5.2", or whatever name a relay the player runs maps to a model.
+      ///   Null or blank: the player's prose model, as before. An id the provider does not know fails; CR never falls back
+      ///   to another model. Since 2.8.15.
+      /// </summary>
+      public string Model { get; set; }
    }
 
    /// <summary>What came back from <see cref="CrLlm.CompleteAsync" />. Since 2.8.12.</summary>
@@ -90,6 +98,9 @@ namespace CalradiaRemembers
 
       /// <summary>The cost in dollars, when the provider reports it (OpenRouter does).</summary>
       public double? Cost { get; set; }
+
+      /// <summary>The model id the request was sent to: the request's Model, or the player's prose model. Empty when nothing was sent. Since 2.8.15.</summary>
+      public string Model { get; set; } = "";
    }
 
    /// <summary>
@@ -126,7 +137,8 @@ namespace CalradiaRemembers
                HasSomethingToAnswer = messages.Count > 0 || !string.IsNullOrWhiteSpace(request?.SystemPrompt),
                AskedMaxOutputTokens = request?.MaxOutputTokens ?? 0,
                PlayerAllowsOtherMods = ModSettings.AllowOtherModsLlm,
-               ConnectionReady = ConnectionReady()
+               ConnectionReady = ConnectionReady(),
+               AskedModel = request?.Model
             });
             if (!ruling.Allowed)
             {
@@ -141,11 +153,14 @@ namespace CalradiaRemembers
             if (messages.Count == 0) messages.Add(new LlmMessage(MessageRole.User, "Continue."));
 
             ILlmClient client = NpcMemoryCampaignBehavior.Instance.LlmServices.LlmClient;
+            result.Model = ruling.Model ?? NpcMemoryCampaignBehavior.Instance.LlmServices.ModelId ?? "";
             Campaign asked = Campaign.Current;
             LlmResponse reply = await client.CompleteAsync(new LlmRequest {
                SystemPrompt = request.SystemPrompt ?? "",
                Messages = messages,
-               Parameters = new LlmParameters {MaxTokens = ruling.MaxOutputTokens, Creativity = Math.Max(0f, Math.Min(2f, request.Creativity))}
+               Parameters = new LlmParameters {MaxTokens = ruling.MaxOutputTokens, Creativity = Math.Max(0f, Math.Min(2f, request.Creativity))},
+               // VonLemberg (17/11/2026): a model of the caller's own; the SDK drops the player's provider pin for it.
+               ModelOverride = ruling.Model
             }, cancellationToken).ConfigureAwait(false);
 
             result.PromptTokens = reply?.Usage?.PromptTokens ?? 0;
@@ -157,7 +172,7 @@ namespace CalradiaRemembers
             result.Error = result.Succeeded ? ""
                : result.CampaignChanged ? "The campaign that asked is no longer loaded."
                : reply?.ErrorMessage ?? "No answer.";
-            ModLog.Info($"[EXT LLM] {request.SourceMod} id={request.RequestId ?? "-"}: {(result.Succeeded ? "answered" : "failed: " + result.Error)}, " +
+            ModLog.Info($"[EXT LLM] {request.SourceMod} id={request.RequestId ?? "-"} model={result.Model}{(ruling.Model != null ? " (asked)" : "")}: {(result.Succeeded ? "answered" : "failed: " + result.Error)}, " +
                         $"{result.PromptTokens}+{result.CompletionTokens} tokens{(result.Cost.HasValue ? $", ${result.Cost.Value:0.0000}" : "")}");
          }
          catch (OperationCanceledException)

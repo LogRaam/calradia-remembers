@@ -725,9 +725,10 @@ if (CrLlm.IsReady)   // else CrLlm.Unavailable() says why
         RequestId = "treaty-42-reply",                      // handed back unchanged
         SystemPrompt = myInstructions + "\n\n" + CrPrompt.PersonaText(king.StringId),
         Turns = { new CrLlmTurn { Text = "The envoy of Sturgia reads: ..." } },
-        MaxOutputTokens = 400                               // 0 = 600; never more than 4000
+        MaxOutputTokens = 400,                              // 0 = 600; never more than 4000
+        Model = "z-ai/glm-5.2"                              // optional, since 2.8.15: null = the player's prose model
     }, cancellationToken);
-    // r.Succeeded, r.Text, r.Error, r.Refused, r.Cancelled, r.CampaignChanged, r.PromptTokens, r.CompletionTokens, r.Cost
+    // r.Succeeded, r.Text, r.Error, r.Refused, r.Cancelled, r.CampaignChanged, r.PromptTokens, r.CompletionTokens, r.Cost, r.Model
 }
 ```
 
@@ -741,6 +742,14 @@ if (CrLlm.IsReady)   // else CrLlm.Unavailable() says why
 - It spends the player's credit and counts in CR's usage figures; every call is logged (`[EXT LLM]`) with your mod's name.
   CR never calls on its own because you registered: only your `CompleteAsync` spends.
 - `Turns` alternate: `FromModel = false` for a line put to the character, `true` for one it said before.
+- **Another model (`Model`, since 2.8.15).** Name a model id and the request goes to that model instead of the player's
+  prose model, on the same connection (same endpoint, same key): an OpenRouter id, or whatever name a relay the player
+  runs maps to a model, so one id per feature of yours ("diplomacy", "world_events") is routing done on your side. An
+  id the provider does not know comes back as a failure: CR never falls back to another model. An id with spaces is
+  refused unsent. The player's OpenRouter provider pin is not sent with another model (the providers they pinned may
+  not host it). `r.Model` says which model answered your request, and the `[EXT LLM]` log line names it.
+- **CR holds no setting for your features.** Which model your diplomacy or your news uses is your mod's option (or
+  your relay's), never a line in CR's menu: CR cannot carry an option for each feature of each mod built on it.
 
 ### A picture from your mod, in the conversation (`CrConversation.ShowPicture`, since 2.8.13)
 
@@ -767,7 +776,7 @@ bool shown = CrConversation.ShowPicture(session, @"C:\...\line_0042.png", "Lucon
 ### Detecting what CR offers (`CrApi.Version`, since 2.8.10)
 
 `CrApi.Version` is raised by one at each release that adds a door, never lowered. 1 = 2.8.10, 2 = 2.8.12 (`CrPrompt.Persona`,
-`CrLlm`), 3 = 2.8.13 (`CrConversation.ShowPicture`, `OpenSessionId`). Absent (read by reflection) means older than 2.8.10. Read it by reflection or at run time: a constant compiled
+`CrLlm`), 3 = 2.8.13 (`CrConversation.ShowPicture`, `OpenSessionId`), 4 = 2.8.15 (`CrLlmRequest.Model`). Absent (read by reflection) means older than 2.8.10. Read it by reflection or at run time: a constant compiled
 into your mod keeps the value it was built with. The older `CrNpcMemory.ApiVersion` and `Feed.ApiVersion` keep their own meaning.
 
 ### Regard changes (`CrNpcMemory.RegardChanged`, since 2.6.7)

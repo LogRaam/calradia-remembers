@@ -7,6 +7,11 @@
 //
 // If this is wrong: another mod spends the player's credit after the player turned the door off, an unnamed caller spends it
 // with no trace of who, or a request asks for 50,000 tokens on the player's key.
+//
+// VonLemberg (Discord, 17/11/2026, RFC "Independent LLM Routes"): his diplomacy and world-event calls need models of
+// their own, "Unknown or unavailable explicitly requested routes must return a clear failure, not silently use another
+// model." Gabriel (17/11/2026): yes, as one optional model id the caller names; CR holds no setting for another mod's
+// features. A model id carries no spaces; one that does is refused here rather than sent.
 
 namespace CalradiaRemembers.Logic.Extension
 {
@@ -27,6 +32,9 @@ namespace CalradiaRemembers.Logic.Extension
 
         /// <summary>Whether CR's connection is set up (a key, a model); false outside a campaign or before setup.</summary>
         public bool ConnectionReady { get; init; }
+
+        /// <summary>The model id the caller named (null or blank: the player's own prose model).</summary>
+        public string AskedModel { get; init; }
     }
 
     /// <summary>Why a request from another mod was not sent.</summary>
@@ -45,7 +53,10 @@ namespace CalradiaRemembers.Logic.Extension
         NoSourceMod,
 
         /// <summary>Neither a system prompt nor a message: nothing to answer.</summary>
-        NothingToAnswer
+        NothingToAnswer,
+
+        /// <summary>The named model id is not one: it carries spaces or is too long.</summary>
+        MalformedModel
     }
 
     /// <summary>The ruling on one request: whether it goes, and the answer length it may have.</summary>
@@ -56,6 +67,9 @@ namespace CalradiaRemembers.Logic.Extension
 
         /// <summary>The answer length sent to the model, in tokens.</summary>
         public int MaxOutputTokens { get; init; }
+
+        /// <summary>The model id sent in place of the player's prose model; null sends the player's own.</summary>
+        public string Model { get; init; }
 
         /// <summary>Whether the request may go.</summary>
         public bool Allowed => Refusal == ExternalLlmRefusal.None;
@@ -70,6 +84,9 @@ namespace CalradiaRemembers.Logic.Extension
         /// <summary>The longest answer a caller may ask for on the player's key: a long letter, never a book.</summary>
         public const int CeilingMaxOutputTokens = 4000;
 
+        /// <summary>The longest model id accepted; real ids ("z-ai/glm-5.2") are a few dozen characters.</summary>
+        public const int MaxModelLength = 200;
+
         /// <summary>Whether the request goes, and how long its answer may be.</summary>
         public static ExternalLlmRuling Rule(ExternalLlmRequestFacts facts)
         {
@@ -78,12 +95,26 @@ namespace CalradiaRemembers.Logic.Extension
                 : !facts.ConnectionReady ? ExternalLlmRefusal.ConnectionNotReady
                 : string.IsNullOrWhiteSpace(facts.SourceMod) ? ExternalLlmRefusal.NoSourceMod
                 : !facts.HasSomethingToAnswer ? ExternalLlmRefusal.NothingToAnswer
+                : !ModelIsWellFormed(facts.AskedModel) ? ExternalLlmRefusal.MalformedModel
                 : ExternalLlmRefusal.None;
 
             int asked = facts.AskedMaxOutputTokens;
             int max = asked <= 0 ? DefaultMaxOutputTokens : asked > CeilingMaxOutputTokens ? CeilingMaxOutputTokens : asked;
 
-            return new ExternalLlmRuling {Refusal = refusal, MaxOutputTokens = max};
+            string model = string.IsNullOrWhiteSpace(facts.AskedModel) ? null : facts.AskedModel.Trim();
+
+            return new ExternalLlmRuling {Refusal = refusal, MaxOutputTokens = max, Model = model};
+        }
+
+        private static bool ModelIsWellFormed(string asked)
+        {
+            if (string.IsNullOrWhiteSpace(asked)) return true;
+            string model = asked.Trim();
+            if (model.Length > MaxModelLength) return false;
+            foreach (char c in model)
+                if (char.IsWhiteSpace(c) || char.IsControl(c)) return false;
+
+            return true;
         }
 
         /// <summary>The reason a refused request reports to its caller, in plain English.</summary>
@@ -95,6 +126,7 @@ namespace CalradiaRemembers.Logic.Extension
                 case ExternalLlmRefusal.ConnectionNotReady: return "Calradia Remembers has no LLM connection ready (no API key or model set, or no campaign loaded).";
                 case ExternalLlmRefusal.NoSourceMod: return "The request names no SourceMod.";
                 case ExternalLlmRefusal.NothingToAnswer: return "The request carries neither a system prompt nor a message.";
+                case ExternalLlmRefusal.MalformedModel: return "The request's Model is not a model id (it carries spaces or is longer than 200 characters).";
                 default: return "";
             }
         }

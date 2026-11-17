@@ -17309,6 +17309,10 @@ namespace CalradiaRemembers.Diagnostics
 
             CrLlmResult unsigned = CrLlm.CompleteAsync(new CrLlmRequest {SourceMod = " ", SystemPrompt = "x"}).GetAwaiter().GetResult();
             t.Expect("anUnsignedRequestIsRefusedUnsent", unsigned.Refused, true);
+            // VonLemberg (17/11/2026): a named model that is not a model id is refused, never sent to the player's model.
+            CrLlmResult malformed = CrLlm.CompleteAsync(new CrLlmRequest {SourceMod = "cr_selftest", SystemPrompt = "x", Model = "not a model"}).GetAwaiter().GetResult();
+            t.Expect("aMalformedModelIsRefusedUnsent", malformed.Refused, true);
+            t.Expect("aRefusedRequestNamesNoModel", malformed.Model, "");
          }
          finally
          {

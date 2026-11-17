@@ -61,7 +61,7 @@ _The door through which other mods give lords aims of their own._
 
 _The version of CR's whole extension surface, for a mod that detects what it can use._
 
-- `const int Version = 3`
+- `const int Version = 4`
 
 ### CrAppearance
 
@@ -263,6 +263,7 @@ _One request a mod sends through CrLlm._
 - `IList<CrLlmTurn> Turns { get; set; }`
 - `float Creativity { get; set; }`
 - `int MaxOutputTokens { get; set; }`
+- `string Model { get; set; }`
 - `string RequestId { get; set; }`
 - `string SourceMod { get; set; }`
 - `string SystemPrompt { get; set; }`
@@ -279,6 +280,7 @@ _What came back from CrLlm.CompleteAsync._
 - `int CompletionTokens { get; set; }`
 - `int PromptTokens { get; set; }`
 - `string Error { get; set; }`
+- `string Model { get; set; }`
 - `string RequestId { get; set; }`
 - `string Text { get; set; }`
 

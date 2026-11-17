@@ -78,5 +78,37 @@ namespace CalradiaRemembers.Tests
       {
          ExternalLlmRequestPolicy.Rule(Good(asked)).MaxOutputTokens.Should().Be(sent);
       }
+
+      // STAKE: VonLemberg's diplomacy calls need a model of their own; the id they name is the one sent, trimmed.
+      [Test]
+      public void GIVEN_a_named_model_WHEN_ruled_THEN_it_goes_and_that_model_is_sent()
+      {
+         ExternalLlmRuling ruling = ExternalLlmRequestPolicy.Rule(new ExternalLlmRequestFacts {
+            SourceMod = "BellumDiplomacy", HasSomethingToAnswer = true, PlayerAllowsOtherMods = true, ConnectionReady = true, AskedModel = " diplomacy "
+         });
+
+         ruling.Allowed.Should().BeTrue();
+         ruling.Model.Should().Be("diplomacy");
+      }
+
+      // STAKE: a request that names no model behaves exactly as before: the player's own prose model.
+      [Test]
+      public void GIVEN_no_named_model_WHEN_ruled_THEN_the_players_own_model_is_used()
+      {
+         ExternalLlmRequestPolicy.Rule(Good()).Model.Should().BeNull();
+      }
+
+      // STAKE: "a clear failure, not silently another model": a malformed id is refused before a cent is spent.
+      [TestCase("glm 5.2")]
+      [TestCase("z-ai/\tglm")]
+      public void GIVEN_a_malformed_model_id_WHEN_ruled_THEN_it_is_refused_and_says_why(string asked)
+      {
+         ExternalLlmRuling ruling = ExternalLlmRequestPolicy.Rule(new ExternalLlmRequestFacts {
+            SourceMod = "BellumDiplomacy", HasSomethingToAnswer = true, PlayerAllowsOtherMods = true, ConnectionReady = true, AskedModel = asked
+         });
+
+         ruling.Refusal.Should().Be(ExternalLlmRefusal.MalformedModel);
+         ExternalLlmRequestPolicy.Explain(ruling.Refusal).Should().Contain("Model");
+      }
    }
 }
