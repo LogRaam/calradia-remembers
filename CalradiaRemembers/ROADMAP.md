@@ -32,6 +32,23 @@ Cleaned up 2026-06-23 (the many already-shipped "Also planned" entries collapsed
 
 ---
 
+## ROADMAPPED 2026-11-16 (Gabriel, after the bench), NOT DESIGNED: Jev as a speed-only option for reading actions
+
+Dutch (Discord, AI Influence ecosystem) proposed Jev (TypeSafe AI decision model, AIML API `typesafe/jev`) as the
+Enhanced composition's second call. Measured on the 311-case action bench (SDK live lane, `JevActionBenchLiveLlmTests`,
+16/11/2026, one pass each): action TYPE right on ~233/263 positive cases for Jev against 249 for Grok 4.20 and 260
+for DeepSeek V4.1 Flash with reasoning off (255 with parameters right); 48/48 look-alikes withheld for Jev and
+DeepSeek; Jev ~0.2 s a case, DeepSeek 1.6 s; Jev $0.00036 a case, DeepSeek in the same range. Jev names no
+parameters (no target, amount, fief), so on its own it cannot drive a verb that needs one.
+
+Gabriel's ruling: offer it as an OPTION for speed only, never the default. Open design points: its own interface
+beside `ILlmClient` (a decision call, not chat), an MCM choice and key, and how parameters get filled (a second
+cheap call only when the chosen verb needs one, or Jev choice questions over game-known candidates). Its misses
+are mostly "none" on governance and intrigue verbs (dispatch_mission, revoke_fief, expel_from_clan, extort,
+expose_secret, assault_npc, decline_divorce), so a player choosing it trades those away for latency.
+
+---
+
 ## RULED 2026-10-27 (Gabriel: "On va le faire maintenant"), BUILDING: What You Know of them
 
 Gabriel (27/10/2026), after the widened tastes in bed: "un NPC pourrait aimer faire certaines activitees ou encore
