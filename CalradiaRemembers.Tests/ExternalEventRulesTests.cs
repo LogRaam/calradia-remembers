@@ -113,5 +113,65 @@ namespace CalradiaRemembers.Tests
             ExternalEventRules.IsPlayersOwnDeed(null, "main_hero").Should().BeFalse();
             ExternalEventRules.IsPlayersOwnDeed(new string[0], "main_hero").Should().BeFalse();
         }
+
+        // ── Details: the full text, kept outside the save (Bellum Civile / AI Rebel Relay request, 17/11/2026) ──
+
+        // STAKE: the request was "no silent truncation" of a kingdom digest; every size up to the cap is kept exactly.
+        [TestCase(300)]
+        [TestCase(1000)]
+        [TestCase(5000)]
+        [TestCase(20000)]
+        public void GIVEN_details_up_to_the_cap_WHEN_normalized_THEN_they_are_kept_whole(int length)
+        {
+            string text = new string('a', length - 1) + "z";
+
+            string kept = ExternalEventRules.NormalizeDetails(text);
+
+            kept.Should().Be(text);
+            ExternalEventRules.DetailsFit(kept).Should().BeTrue();
+        }
+
+        // STAKE: beyond the cap the text is refused whole, never cut: a bridge learns it was too long instead of losing its end.
+        [Test]
+        public void GIVEN_details_over_the_cap_WHEN_checked_THEN_they_do_not_fit()
+        {
+            ExternalEventRules.DetailsFit(new string('a', ExternalEventRules.MaxDetailsChars + 1)).Should().BeFalse();
+        }
+
+        // STAKE: an event with no details must stay an ordinary event, with nothing written outside the save.
+        [Test]
+        public void GIVEN_blank_details_WHEN_normalized_THEN_there_are_none()
+        {
+            ExternalEventRules.NormalizeDetails("   ").Should().BeNull();
+            ExternalEventRules.DetailsFit(null).Should().BeTrue();
+            ExternalEventRules.DetailsKey("bellum", null).Should().BeNull();
+        }
+
+        // STAKE: a save loaded later must read the text IT wrote; a key that did not change with the text would hand an older
+        // save the digest a later Update wrote on another branch of the campaign.
+        [Test]
+        public void GIVEN_two_texts_WHEN_keyed_THEN_the_same_text_keeps_its_key_and_a_changed_one_gets_a_new_key()
+        {
+            string first = ExternalEventRules.DetailsKey("Bellum", "The crown of Vlandia passed to Derthert's niece.");
+
+            ExternalEventRules.DetailsKey("bellum", "The crown of Vlandia passed to Derthert's niece.").Should().Be(first);
+            ExternalEventRules.DetailsKey("Bellum", "The crown of Vlandia passed to Derthert's nephew.").Should().NotBe(first);
+            first.Should().MatchRegex("^[0-9a-f]{32}$");
+        }
+
+        // STAKE: two mods writing the same words must not share one file, or one's Retract could reach the other's text.
+        [Test]
+        public void GIVEN_the_same_text_from_two_mods_WHEN_keyed_THEN_the_keys_differ()
+        {
+            ExternalEventRules.DetailsKey("bellum", "A harvest feast.").Should().NotBe(ExternalEventRules.DetailsKey("relay", "A harvest feast."));
+        }
+
+        // STAKE: the summary's cut stays (it is what every aware character hears), but the host must be able to say so.
+        [Test]
+        public void GIVEN_a_long_summary_WHEN_checked_THEN_the_cut_is_seen()
+        {
+            ExternalEventRules.SummaryIsCut(new string('a', ExternalEventRules.MaxSummaryChars + 1)).Should().BeTrue();
+            ExternalEventRules.SummaryIsCut(new string('a', ExternalEventRules.MaxSummaryChars)).Should().BeFalse();
+        }
     }
 }

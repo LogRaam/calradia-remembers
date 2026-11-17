@@ -35,9 +35,15 @@ reads what a given character knows (EXTENSION_API.md, "What a character knows of
 what your mod recorded that CR still holds (a faded rumor is gone; `HeroIds` carries every hero named; `Category` is not
 kept), so a mod can rebuild its own view after a load without keeping a second list.
 
+Since 2.8.15, `Summary` stays the short line characters hear (300 characters; a longer one is cut, and the log says so),
+and `Details` holds the full text: up to 20,000 characters, kept outside the save, never cut (longer is refused whole),
+returned whole by `Feed.List`. On `Update`, null `Details` keep what was kept and `""` removes it. `CrWorld.RealmEvents`
+lists a realm's public events, CR's own included, for a mod writing its own digest.
+
 `FeedResult` tells you what happened: `Recorded`, `RejectedDuplicate` (that `Id` is already stored),
 `RejectedThrottled` (more than 20 records from your `SourceMod` today), `RejectedInvalid` (no
-`SourceMod`, or an empty summary), `RejectedNoStore` (no campaign running).
+`SourceMod`, an empty summary, or `Details` over 20,000 characters), `RejectedNoStore` (no campaign running, or the
+details could not be written).
 
 Ids that do not resolve are dropped quietly (heroes, factions, place). The event is still recorded,
 but it loses that tag. The log says so for a place.

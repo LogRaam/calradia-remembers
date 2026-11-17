@@ -193,6 +193,12 @@ namespace CalradiaRemembers.WorldEvents
       /// </summary>
       public string AuthoredId { get; set; }
 
+      /// <summary>
+      ///   Where a fed event's full text is kept outside the save (EventDetailsStore); null when it has none. The key follows the
+      ///   text, so this save reads the text it wrote. Absent on an older save, so null. Since 2.8.15.
+      /// </summary>
+      public string DetailsKey { get; set; }
+
       /// <summary>Written by the campaign's author, so never evicted (LongTermHistoryPolicy.Evict).</summary>
       [Newtonsoft.Json.JsonIgnore]
       public bool IsAuthored => !string.IsNullOrEmpty(AuthoredId);

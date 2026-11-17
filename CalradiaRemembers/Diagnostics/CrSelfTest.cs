@@ -589,6 +589,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("bastard_claim", Severity.Heavy, "force a grown bastard's claim -> assert hostility + claim world-event", TestBastardClaim),
          new SelfTest("bastard_scandal_culture", Severity.Heavy, "discover a bastard -> assert the scandal magnitude is culture-scaled", TestBastardScandalCulture),
          new SelfTest("feed_ingest", Severity.Light, "Feed.Record an external event -> assert stored + a re-send is deduped", TestFeedIngest),
+         new SelfTest("feed_details", Severity.Light, "Bellum Civile / AI Rebel Relay integration request (17/11/2026): a fed event's text was cut to 300 characters for good, and a bridge wants the full text back to digest it. Through the REAL Feed door, in a scratch folder (never the player's): 5,000 characters of Details come back whole from Feed.List; an Update with no Details keeps them; an Update with new Details reads the new text and the earlier text stays where an older save would read it; 20,001 characters are refused whole. CrWorld.RealmEvents lists a public event of a realm and never a secret one. Retracts all and removes the folder", TestFeedDetails),
          new SelfTest("feed_update", Severity.Light, "Feed.Update upserts a fed fact by id, Feed.Retract removes it (mutable entries)", TestFeedUpdate),
          new SelfTest("heard_diagnostic", Severity.Light, "Asked by a bridge author (tashmetu, 23/09/2026): how to check that a fed event reached a given character without talking to them. Feeds through the REAL Feed door and asserts: a real PlaceId is kept and a bogus one dropped, a realm tag reaches a lord of that realm, cr.heard's verdict agrees with the prompt's own query, and a lord NAMED in HeroIds can now speak of a faint fact a bystander has not heard (the M-G6 lift reached only the sway and jealousy checks before 2.5.22). Retracts what it feeds.", TestHeardDiagnostic),
          new SelfTest("feed_player_named", Severity.Light, "tashmetu's Bellum bridge names a besieged town's OWNER in HeroIds (23/09/2026). When that owner was the player, CR filed the siege as the player's own deed: out of the news, into the chronicle, told back to the player as something they did. Feeds through the REAL Feed door and asserts: naming the player alone leaves it news (not in the chronicle, heard by a lord of the realm as news), and only the player among ActorHeroIds (the one who DID it) makes it the player's deed, with the actor still counted as concerned. Retracts what it feeds.", TestFeedPlayerNamed),
@@ -5237,6 +5238,60 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("countRose", afterFirst, before + 1);
          t.Expect("dedupRejected", second, FeedResult.RejectedDuplicate);
          t.Expect("noDoubleCount", afterSecond, afterFirst);
+
+         return t.Line();
+      }
+
+      private static string TestFeedDetails(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("feed_details");
+         if (t.Abort(WorldEventStore.Instance == null, "WorldEventStore not active")) return t.Line();
+         Kingdom realm = Kingdom.All.FirstOrDefault(k => !k.IsEliminated);
+         if (t.Skip(realm == null, "no realm")) return t.Line();
+
+         const string source = "CrSelfTest";
+         string folder = Path.Combine(Path.GetTempPath(), "cr_selftest_details_" + Guid.NewGuid().ToString("N"));
+         string id = "selftest_details_" + Guid.NewGuid().ToString("N");
+         string secretId = id + "_secret";
+         string longText = "[SELFTEST] " + new string('d', 4988) + " end.";
+         Foundation.EventDetailsStore.FolderOverride = folder;
+         try
+         {
+            FeedResult recorded = Feed.Record(new ExternalWorldEvent {
+               Id = id, SourceMod = source, Summary = "[SELFTEST] a digest of the realm", Magnitude = 40, FactionIds = new List<string> {realm.StringId}, Details = longText
+            });
+            t.Expect("recorded", recorded, FeedResult.Recorded);
+            t.Expect("theFullTextComesBackWhole", Feed.List(source).FirstOrDefault(x => x.Id == id)?.Details, longText);
+
+            Feed.Update(new ExternalWorldEvent {Id = id, SourceMod = source, Summary = "[SELFTEST] a digest, corrected", FactionIds = new List<string> {realm.StringId}});
+            t.Expect("anUpdateWithoutDetailsKeepsThem", Feed.List(source).FirstOrDefault(x => x.Id == id)?.Details, longText);
+
+            string olderKey = WorldEventStore.Instance.GetById(id)?.DetailsKey;
+            Feed.Update(new ExternalWorldEvent {Id = id, SourceMod = source, Summary = "[SELFTEST] a digest, compressed", FactionIds = new List<string> {realm.StringId}, Details = "[SELFTEST] compressed."});
+            t.Expect("newDetailsAreRead", Feed.List(source).FirstOrDefault(x => x.Id == id)?.Details, "[SELFTEST] compressed.");
+            Foundation.EventDetailsStore.ClearCache();
+            t.Expect("theEarlierTextStaysForAnOlderSave", Foundation.EventDetailsStore.Read(olderKey), longText);
+
+            FeedResult tooLong = Feed.Record(new ExternalWorldEvent {
+               Id = id + "_long", SourceMod = source, Summary = "[SELFTEST] too long", Details = new string('x', ExternalEventRules.MaxDetailsChars + 1)
+            });
+            t.Expect("overTheCapIsRefusedWhole", tooLong, FeedResult.RejectedInvalid);
+
+            Feed.Record(new ExternalWorldEvent {
+               Id = secretId, SourceMod = source, Summary = "[SELFTEST] a council's secret", Magnitude = 40, FactionIds = new List<string> {realm.StringId}, KnownOnlyToThoseInvolved = true
+            });
+            IReadOnlyList<CrRealmEvent> digest = CrWorld.RealmEvents(realm.StringId, 0, 1000);
+            t.Expect("theRealmsPublicEventIsListed", digest.Any(x => x.Id == id), true);
+            t.Expect("aSecretIsNeverListed", digest.Any(x => x.Id == secretId), false);
+         }
+         finally
+         {
+            Feed.Retract(id);
+            Feed.Retract(secretId);
+            Foundation.EventDetailsStore.FolderOverride = null;
+            Foundation.EventDetailsStore.ClearCache();
+            try { if (Directory.Exists(folder)) Directory.Delete(folder, true); } catch { /* a temp folder left behind costs nothing */ }
+         }
 
          return t.Line();
       }

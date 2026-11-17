@@ -6,8 +6,11 @@
 
 #region
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 
 #endregion
 
@@ -61,5 +64,42 @@ namespace CalradiaRemembers.Logic
 
         /// <summary>True while a source is still within its daily quota (the host counts its sends this day).</summary>
         public static bool WithinDailyQuota(int sentToday) => sentToday < MaxPerSourcePerDay;
+
+        /// <summary>
+        ///   The longest an event's Details may be. A request (Bellum Civile / AI Rebel Relay integration, 17/11/2026) to
+        ///   keep "complete event information" (kingdom digests of 10 to 20 developments, an old homeland's fall): the full
+        ///   text is kept OUTSIDE the save, never cut, and refused whole beyond this. With the daily quota of events it
+        ///   bounds how much a source can write in a day. Tuning.
+        /// </summary>
+        public const int MaxDetailsChars = 20000;
+
+        /// <summary>True when a summary is longer than <see cref="MaxSummaryChars" /> and BoundSummary will cut it (the host says so in its log).</summary>
+        public static bool SummaryIsCut(string summary) => summary != null && summary.Trim().Length > MaxSummaryChars;
+
+        /// <summary>
+        ///   Details as they will be kept: trimmed, or null when blank (no details). Never cut: a text longer than
+        ///   <see cref="MaxDetailsChars" /> is refused whole by <see cref="DetailsFit" />, so nothing is silently lost.
+        /// </summary>
+        public static string NormalizeDetails(string details) => string.IsNullOrWhiteSpace(details) ? null : details.Trim();
+
+        /// <summary>True when normalized details (null included) fit under <see cref="MaxDetailsChars" />.</summary>
+        public static bool DetailsFit(string normalized) => normalized == null || normalized.Length <= MaxDetailsChars;
+
+        /// <summary>
+        ///   The name a text is kept under: the same source and text always give the same key, a changed text a new one. A
+        ///   save holds only the key, so a save loaded later reads exactly the text it wrote, never a newer one written on
+        ///   another branch of the same campaign (the story archive's lesson). Null for no text.
+        /// </summary>
+        public static string DetailsKey(string sourceMod, string normalized)
+        {
+            if (normalized == null) return null;
+
+            using (SHA256 sha = SHA256.Create())
+            {
+                byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes((sourceMod ?? "").Trim().ToLowerInvariant() + "" + normalized));
+
+                return BitConverter.ToString(hash, 0, 16).Replace("-", "").ToLowerInvariant();
+            }
+        }
     }
 }

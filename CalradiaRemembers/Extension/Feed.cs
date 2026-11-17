@@ -49,6 +49,9 @@ namespace CalradiaRemembers
 
          if (summary == null) return FeedResult.RejectedInvalid;
 
+         string details = ExternalEventRules.NormalizeDetails(e.Details);
+         if (!DetailsAccepted(e, details)) return FeedResult.RejectedInvalid;
+
          var store = WorldEventStore.Instance;
 
          if (store == null) return FeedResult.RejectedNoStore;
@@ -61,7 +64,9 @@ namespace CalradiaRemembers
          if (!ConsumeQuota(e.SourceMod, today)) return FeedResult.RejectedThrottled;
 
          WorldEvent worldEvent = Build(e, summary, today);
+         if (!KeepDetails(worldEvent, e.SourceMod, details)) return FeedResult.RejectedNoStore;
          store.Record(worldEvent);
+         NoteSummaryCut(e);
          ModLog.Info($"[FEED] {e.SourceMod} recorded a world event (id {worldEvent.Id}, mag {worldEvent.Magnitude}, {worldEvent.ActorIds.Count} hero ref(s), {worldEvent.FactionIds.Count} faction ref(s), place {worldEvent.PlaceId ?? "none"}): {summary}");
 
          if (!string.IsNullOrEmpty(e.PlaceId) && worldEvent.PlaceId == null)
@@ -106,13 +111,22 @@ namespace CalradiaRemembers
 
          if (summary == null) return FeedResult.RejectedInvalid;
 
+         string details = ExternalEventRules.NormalizeDetails(e.Details);
+         if (!DetailsAccepted(e, details)) return FeedResult.RejectedInvalid;
+
          var store = WorldEventStore.Instance;
 
          if (store == null) return FeedResult.RejectedNoStore;
 
-         bool replaced = store.Remove(e.Id); // drop the stale entry, then re-record the corrected one
+         // Null details keep what was kept (a bridge correcting only the summary must not lose its digest); "" removes them.
+         string keptKey = e.Details == null ? store.GetById(e.Id)?.DetailsKey : null;
          var today = (int) CampaignTime.Now.ToDays;
-         store.Record(Build(e, summary, today));
+         WorldEvent updated = Build(e, summary, today);
+         if (keptKey != null) updated.DetailsKey = keptKey;
+         else if (!KeepDetails(updated, e.SourceMod, details)) return FeedResult.RejectedNoStore;
+         bool replaced = store.Remove(e.Id); // drop the stale entry, then re-record the corrected one
+         store.Record(updated);
+         NoteSummaryCut(e);
          ModLog.Info($"[FEED] {e.SourceMod} {(replaced ? "updated" : "recorded")} '{e.Id}': {summary}");
 
          return replaced
@@ -144,9 +158,38 @@ namespace CalradiaRemembers
                         HeroIds = (w.ActorIds ?? new List<string>()).ToList(), FactionIds = (w.FactionIds ?? new List<string>()).ToList(),
                         Lifetime = w.IsPersistentDeed ? ExternalEventLifetime.Deed : ExternalEventLifetime.Rumor,
                         KnownOnlyToThoseInvolved = w.KnownOnlyToThoseInvolved, KnownToHeroIds = (w.KnownToIds ?? new List<string>()).ToList(),
-                        HiddenFromHeroIds = (w.HiddenFromIds ?? new List<string>()).ToList()
+                        HiddenFromHeroIds = (w.HiddenFromIds ?? new List<string>()).ToList(),
+                        Details = EventDetailsStore.Read(w.DetailsKey)
                      })
                      .ToList();
+      }
+
+      // Details beyond the cap are refused whole: the request was "no silent truncation" (17/11/2026).
+      private static bool DetailsAccepted(ExternalWorldEvent e, string details)
+      {
+         if (ExternalEventRules.DetailsFit(details)) return true;
+
+         ModLog.Info($"[FEED] {e.SourceMod}: details of {details.Length} characters refused whole (at most {ExternalEventRules.MaxDetailsChars}); the event was not recorded.");
+
+         return false;
+      }
+
+      private static bool KeepDetails(WorldEvent worldEvent, string sourceMod, string details)
+      {
+         if (details == null) return true;
+
+         string key = ExternalEventRules.DetailsKey(sourceMod, details);
+         if (!EventDetailsStore.Write(key, details)) return false;
+
+         worldEvent.DetailsKey = key;
+
+         return true;
+      }
+
+      private static void NoteSummaryCut(ExternalWorldEvent e)
+      {
+         if (ExternalEventRules.SummaryIsCut(e.Summary))
+            ModLog.Info($"[FEED] {e.SourceMod}: the summary of '{e.Id ?? "(no id)"}' was cut to {ExternalEventRules.MaxSummaryChars} characters (what characters hear); put the full text in Details.");
       }
 
       private static WorldEvent Build(ExternalWorldEvent e, string summary, int today)

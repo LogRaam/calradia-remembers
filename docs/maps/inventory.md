@@ -6,7 +6,7 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 683 types in 66 namespaces, 4 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 685 types in 66 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1691 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
@@ -48,7 +48,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (77)
+### CalradiaRemembers (78)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -100,6 +100,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrPortraits` | public static class | The door through which another mod gives heroes their chat portrait. |
 | `CrPrompt` | public static class | The public facade a third-party mod calls to register (or unregister) one live prompt variable. |
 | `CrPromptSection` | public class | One section of the character prompt (CrPrompt.Sections, CrPrompt.StockSections). |
+| `CrRealmEvent` | public class | One public event of a realm, for a mod writing its own digest. |
 | `CrRegardChange` | public class | One change of a character's personal regard for the player (see CrNpcMemory.RegardChanged). |
 | `CrRomance` | public static class | Reads and records intimacy with the player, held to the bar CR's own chat holds; reads the bond and its changes. |
 | `CrRomanceStatus` | public class | A character's bond with the player (see CrRomance.GetStatus). |
@@ -436,11 +437,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `FollowMeBehavior` | public class | Persists active follow_me escorts (a lord's own party riding with the player) and advances/ends each daily. |
 
-### CalradiaRemembers.Foundation (13)
+### CalradiaRemembers.Foundation (14)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `CrSettings` | public class | MCM (Mod Configuration Menu) global settings for Calradia Remembers. |
+| `EventDetailsStore` | public static class | Writes and reads the full text of fed world events, outside the save. |
 | `LastingMainThreadAwaitable` | public struct | Custom awaiter that resumes its continuation on the main thread, in the queue a chat close does not clear. |
 | `LocalContextState` | public static class | The session's record of fitting requests to the local model's window. |
 | `MainThreadAwaitable` | public struct | Custom awaiter that resumes its continuation on the main-thread dispatcher. |

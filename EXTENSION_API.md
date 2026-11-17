@@ -680,6 +680,24 @@ mod needs one.
 great or near; `HiddenFromHeroIds` keeps chosen heroes out of any event. A council's private deliberation stays with its
 members; feed the outcome later as news when it becomes public.
 
+**A realm's public events (`CrWorld.RealmEvents`, since 2.8.15).** For a mod writing its own digest of a kingdom:
+
+```csharp
+IReadOnlyList<CrRealmEvent> news = CrWorld.RealmEvents(kingdom.StringId, sinceDay: 900, max: 100); // Id, Summary, Day, Magnitude, HeroIds, FactionIds, PlaceId, SourceMod
+```
+
+Every event CR still holds (its own and every mod's, recent news and long-term history) that names the realm, one of its
+clans, or a hero of them, oldest first. Never a secret: an event known only to those involved, let in on by a few, hidden
+from anyone, or only a guess stays out, so a digest cannot spread what CR keeps hidden. The short summary only; another
+mod's `Details` stay with that mod.
+
+**The full text of your own events (`ExternalWorldEvent.Details`, since 2.8.15).** `Summary` stays the short line characters
+hear (300 characters; a longer one is cut and the log says so). Put the whole text in `Details`: up to 20,000 characters,
+kept outside the save, never cut (longer is refused whole, `RejectedInvalid`), returned whole by `Feed.List`, so you can
+digest or compress it on your side and `Update` the record. On `Update`, null `Details` keep what was kept and `""`
+removes it. A save reads the text it wrote: an older save of the same campaign never reads a text a later `Update` wrote.
+Details are not put in any character's prompt yet.
+
 ### A character's persona, for your own LLM call (`CrPrompt.Persona`, since 2.8.12)
 
 For a mod that makes a character speak outside a conversation with the player (a ruler writing to another ruler, a
@@ -776,7 +794,8 @@ bool shown = CrConversation.ShowPicture(session, @"C:\...\line_0042.png", "Lucon
 ### Detecting what CR offers (`CrApi.Version`, since 2.8.10)
 
 `CrApi.Version` is raised by one at each release that adds a door, never lowered. 1 = 2.8.10, 2 = 2.8.12 (`CrPrompt.Persona`,
-`CrLlm`), 3 = 2.8.13 (`CrConversation.ShowPicture`, `OpenSessionId`), 4 = 2.8.15 (`CrLlmRequest.Model`). Absent (read by reflection) means older than 2.8.10. Read it by reflection or at run time: a constant compiled
+`CrLlm`), 3 = 2.8.13 (`CrConversation.ShowPicture`, `OpenSessionId`), 4 = 2.8.15 (`CrLlmRequest.Model`,
+`ExternalWorldEvent.Details`, `CrWorld.RealmEvents`). Absent (read by reflection) means older than 2.8.10. Read it by reflection or at run time: a constant compiled
 into your mod keeps the value it was built with. The older `CrNpcMemory.ApiVersion` and `Feed.ApiVersion` keep their own meaning.
 
 ### Regard changes (`CrNpcMemory.RegardChanged`, since 2.6.7)
@@ -829,7 +848,8 @@ variable provider.
   noble's own affair as `Other`.
 - **No quota on AddMemory.** Unlike `Feed.Record` (20 events per mod per day), nothing limits how many memories a
   mod injects; news of the world belongs in `Feed.Record`, and a memory is for what touches that character.
-- **Summary length** is bounded (300 chars) to keep the save blob safe; longer lines are trimmed.
+- **Summary length** is bounded (300 chars) to keep the save blob safe; longer lines are trimmed (logged). A world event's
+  full text goes in `ExternalWorldEvent.Details` (since 2.8.15), kept outside the save.
 - **`Started` fires for every conversation type** (ordinary, captive, companion, commoner). v1 does not
   tag which; ask if you need that distinction.
 - **No update/remove yet.** v1 is read + inject. Targeted edit/remove and a `Discovery`-based recall path

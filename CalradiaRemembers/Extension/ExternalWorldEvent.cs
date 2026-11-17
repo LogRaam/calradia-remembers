@@ -113,5 +113,15 @@ namespace CalradiaRemembers
 
       /// <summary>Heroes (StringIds) who never hear of this event, secret or news. Since 2.8.10.</summary>
       public List<string> HiddenFromHeroIds { get; set; } = new();
+
+      /// <summary>
+      ///   The event's full text, beyond the short <see cref="Summary" /> characters hear (a kingdom digest of many developments,
+      ///   a homeland's fall and who survived it). Kept whole, OUTSIDE the save, up to 20,000 characters; longer is refused
+      ///   whole (RejectedInvalid), never cut. Comes back whole through <see cref="Feed.List" />, so a mod can digest or compress
+      ///   it on its side and Update the record. Not put in any character's prompt today. On <see cref="Feed.Update" />, null
+      ///   keeps the details already kept and an empty string removes them. Since 2.8.15 (Bellum Civile / AI Rebel Relay
+      ///   integration request, 17/11/2026).
+      /// </summary>
+      public string Details { get; set; }
    }
 }

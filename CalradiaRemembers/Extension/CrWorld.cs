@@ -43,6 +43,34 @@ namespace CalradiaRemembers
       public string SourceMod { get; set; }
    }
 
+   /// <summary>One public event of a realm, for a mod writing its own digest. Since 2.8.15.</summary>
+   public sealed class CrRealmEvent
+   {
+      /// <summary>The event's id (a Feed event keeps the id its mod gave it).</summary>
+      public string Id { get; set; }
+
+      /// <summary>What happened, as CR tells it (the short line characters hear).</summary>
+      public string Summary { get; set; }
+
+      /// <summary>The game day it happened.</summary>
+      public int Day { get; set; }
+
+      /// <summary>How much it weighs, 0 to 100.</summary>
+      public int Magnitude { get; set; }
+
+      /// <summary>The heroes it names (StringIds).</summary>
+      public List<string> HeroIds { get; set; } = new();
+
+      /// <summary>The kingdoms and clans it concerns (StringIds).</summary>
+      public List<string> FactionIds { get; set; } = new();
+
+      /// <summary>The settlement where it happened (StringId), or null.</summary>
+      public string PlaceId { get; set; }
+
+      /// <summary>The mod that fed it, or null for CR's own.</summary>
+      public string SourceMod { get; set; }
+   }
+
    /// <summary>The door to what characters know of the world. Read only; game thread. Since 2.8.10.</summary>
    public static class CrWorld
    {
@@ -84,6 +112,52 @@ namespace CalradiaRemembers
          return store != null && hero != null && e != null && store.IsAwareOf(hero, e, (int) CampaignTime.Now.ToDays);
       }
 
+      /// <summary>
+      ///   The PUBLIC events of a realm since <paramref name="sinceDay" />, oldest first, at most <paramref name="max" /> (the newest
+      ///   kept): what CR recorded (wars, sieges, marriages, executions, its own and every mod's feed) and still holds, recent
+      ///   news and the long-term history alike, that names the realm or one of its clans, or a hero of it. For a mod writing
+      ///   its own digest of a kingdom (Bellum Civile / AI Rebel Relay integration request, 17/11/2026). Never a secret: an event
+      ///   known only to those involved, let in on by a few, hidden from anyone, or only a guess, stays out, so a digest
+      ///   cannot spread what CR keeps hidden. The short summary only; another mod's full Details stay with that mod.
+      ///   Empty for an unknown realm or outside a campaign. Since 2.8.15.
+      /// </summary>
+      public static IReadOnlyList<CrRealmEvent> RealmEvents(string factionId, int sinceDay = 0, int max = 100)
+      {
+         WorldEventStore store = WorldEventStore.Instance;
+         if (store == null || Campaign.Current == null || string.IsNullOrEmpty(factionId) || max <= 0) return Array.Empty<CrRealmEvent>();
+
+         Kingdom kingdom = Kingdom.All?.FirstOrDefault(k => k.StringId == factionId);
+         Clan clan = kingdom == null ? Clan.All?.FirstOrDefault(c => c.StringId == factionId) : null;
+         if (kingdom == null && clan == null) return Array.Empty<CrRealmEvent>();
+
+         var ofRealm = new HashSet<string> {factionId};
+         if (kingdom != null)
+            foreach (Clan c in kingdom.Clans ?? Enumerable.Empty<Clan>())
+               if (c != null) ofRealm.Add(c.StringId);
+
+         bool Concerns(WorldEvent w)
+         {
+            if (w.FactionIds?.Any(ofRealm.Contains) == true) return true;
+
+            return w.ActorIds?.Any(id => Hero.FindFirst(h => h.StringId == id)?.Clan is { } hc && ofRealm.Contains(hc.StringId)) == true;
+         }
+
+         return store.All().Concat(store.AllHistory())
+                     .Where(w => w != null && w.Day >= sinceDay && IsPublic(w) && Concerns(w))
+                     .GroupBy(w => w.Id ?? w.GetHashCode().ToString()).Select(g => g.First())
+                     .OrderByDescending(w => w.Day).Take(max).OrderBy(w => w.Day)
+                     .Select(w => new CrRealmEvent {
+                        Id = w.Id, Summary = w.Summary, Day = w.Day, Magnitude = w.Magnitude, PlaceId = w.PlaceId, SourceMod = w.SourceMod,
+                        HeroIds = (w.ActorIds ?? new List<string>()).ToList(), FactionIds = (w.FactionIds ?? new List<string>()).ToList()
+                     })
+                     .ToList();
+      }
+
+      // What a whole realm may be told: nothing kept to a few, kept from anyone, or only guessed.
+      internal static bool IsPublic(WorldEvent w)
+         => !w.KnownOnlyToThoseInvolved && !w.OnlyAGuess && (w.HiddenFromIds == null || w.HiddenFromIds.Count == 0)
+            && (w.KnownToIds == null || w.KnownToIds.Count == 0);
+
       private static string Word(RumorConfidence confidence) => confidence switch {
          RumorConfidence.WellKnown => "well known",
          RumorConfidence.Secondhand => "secondhand",
@@ -98,7 +172,8 @@ namespace CalradiaRemembers
       ///   Raised by one at each release that adds a door; never lowered, and a door once shipped stays. 1 = Calradia Remembers
       ///   2.8.10 (CrDiplomacy, CrWorld, CrCharacterText, CrLore, CrPortraits, Feed secrecy fields, CrPrompt.Reload,
       ///   CrPrompt.StockSections, Feed.List, CrAims.List). 2 = 2.8.12 (CrPrompt.Persona and PersonaText, CrLlm). 3 = 2.8.13
-      ///   (CrConversation.ShowPicture and OpenSessionId). 4 = 2.8.15 (CrLlmRequest.Model, CrLlmResult.Model).
+      ///   (CrConversation.ShowPicture and OpenSessionId). 4 = 2.8.15 (CrLlmRequest.Model, CrLlmResult.Model,
+      ///   ExternalWorldEvent.Details, CrWorld.RealmEvents).
       ///   Older doors keep their own version constants (CrNpcMemory.ApiVersion, Feed.ApiVersion). A mod without a compile-time
       ///   reference reads this field by reflection: absent means older than 2.8.10.
       /// </summary>

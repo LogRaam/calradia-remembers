@@ -467,6 +467,19 @@ _One section of the character prompt (CrPrompt.Sections, CrPrompt.StockSections)
 - `string Text { get; set; }`
 - `string Zone { get; set; }`
 
+### CrRealmEvent
+
+_One public event of a realm, for a mod writing its own digest._
+
+- `List<string> FactionIds { get; set; }`
+- `List<string> HeroIds { get; set; }`
+- `int Day { get; set; }`
+- `int Magnitude { get; set; }`
+- `string Id { get; set; }`
+- `string PlaceId { get; set; }`
+- `string SourceMod { get; set; }`
+- `string Summary { get; set; }`
+
 ### CrRegardChange
 
 _One change of a character's personal regard for the player (see CrNpcMemory.RegardChanged)._
@@ -582,6 +595,7 @@ _One attributed line of a conversation, as delivered in CrConversationLog._
 _The door to what characters know of the world._
 
 - `static IReadOnlyList<CrKnownEvent> KnownEvents(string heroId, int max = 10)`
+- `static IReadOnlyList<CrRealmEvent> RealmEvents(string factionId, int sinceDay = 0, int max = 100)`
 - `static bool IsAwareOf(string heroId, string eventId)`
 
 ### ExternalActionParam
@@ -654,6 +668,7 @@ _One world fact a third-party mod wants CR to know about._
 - `int Day { get; set; }`
 - `int Magnitude { get; set; }`
 - `string Category { get; set; }`
+- `string Details { get; set; }`
 - `string Id { get; set; }`
 - `string PlaceId { get; set; }`
 - `string SourceMod { get; set; }`
