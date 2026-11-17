@@ -119,5 +119,23 @@ namespace CalradiaRemembers.Tests
          WomenInRanksPolicy.PercentFor(table, "a", null).Should().Be(100);
          WomenInRanksPolicy.PercentFor(table, "b", null).Should().Be(0);
       }
+
+      // STAKE (Gabriel, 17/11/2026): cr.ranks_probe measured every woman soldier at 41 while the men ran 20 to 41; a woman
+      // takes the age the game drew for the man she stands in for, so the ranks show the same spread of ages.
+      [Test]
+      public void GIVEN_the_man_she_stands_in_for_WHEN_her_age_is_set_THEN_she_has_his_age()
+      {
+         WomenInRanksPolicy.SoldierAge(27f).Should().Be(27f);
+         WomenInRanksPolicy.SoldierAge(35.5f).Should().Be(35.5f);
+      }
+
+      // STAKE: the spread stays the men's own, 20 to 41: no girl in the ranks, no grandmother either.
+      [Test]
+      public void GIVEN_an_age_outside_the_ranks_WHEN_set_THEN_it_is_held_between_20_and_41()
+      {
+         WomenInRanksPolicy.SoldierAge(15f).Should().Be(20f);
+         WomenInRanksPolicy.SoldierAge(63f).Should().Be(41f);
+         WomenInRanksPolicy.SoldierAge(float.NaN).Should().Be(20f);
+      }
    }
 }

@@ -76,6 +76,21 @@ namespace CalradiaRemembers.Logic.Troops
             return LeanFrameLowest + (LeanFrameHighest - LeanFrameLowest) * t;
         }
 
+        /// <summary>The youngest a woman soldier is (the men of the ranks start at 20, cr.ranks_probe 17/11/2026).</summary>
+        public const float SoldierAgeLowest = 20f;
+
+        /// <summary>The oldest a woman soldier is (the oldest man of the ranks measured, 41).</summary>
+        public const float SoldierAgeHighest = 41f;
+
+        /// <summary>
+        ///   A woman soldier's age: the age the game drew for the man she stands in for, held to
+        ///   <see cref="SoldierAgeLowest" />..<see cref="SoldierAgeHighest" />. Gabriel (17/11/2026), after cr.ranks_probe showed
+        ///   all twenty women at 41 (her culture's village-woman range gave one age) while the men ran 20 to 41: "J'aimerais
+        ///   que tu ajustes l'age des femmes aligne sur l'age des hommes, donc entre 20 et 41."
+        /// </summary>
+        public static float SoldierAge(float hisAge)
+            => float.IsNaN(hisAge) ? SoldierAgeLowest : hisAge < SoldierAgeLowest ? SoldierAgeLowest : hisAge > SoldierAgeHighest ? SoldierAgeHighest : hisAge;
+
         /// <summary>The share for a soldier of <paramref name="cultureId" /> in an army of <paramref name="realmId" />: the realm's when listed, else the culture's, else 0; held to 0..100.</summary>
         public static int PercentFor(WomenInRanksTable table, string cultureId, string realmId)
         {

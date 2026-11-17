@@ -150,8 +150,10 @@ namespace CalradiaRemembers.Mapping
                                                       face.BodyPropertyRange?.HairTags, face.BodyPropertyRange?.BeardTags, face.BodyPropertyRange?.TattooTags, 0f);
 
                // The townswoman range reaches a stout peasant's frame, under which her head looked tiny (EvilPoptart1987,
-               // 15/11/2026): her face and age stay as drawn, her weight and build are carried into a lean band.
-               return new BodyProperties(new DynamicBodyProperties(drawn.Age, WomenInRanksPolicy.LeanFrame(drawn.Weight), WomenInRanksPolicy.LeanFrame(drawn.Build)),
+               // 15/11/2026): her face stays as drawn, her weight and build are carried into a lean band. Her age is the man's
+               // she stands in for (Gabriel, 17/11/2026: every woman measured 41, the men 20 to 41).
+               float hisAge = character.GetBodyProperties(equipment, seed).Age;
+               return new BodyProperties(new DynamicBodyProperties(WomenInRanksPolicy.SoldierAge(hisAge), WomenInRanksPolicy.LeanFrame(drawn.Weight), WomenInRanksPolicy.LeanFrame(drawn.Build)),
                                          drawn.StaticProperties);
             }
          }

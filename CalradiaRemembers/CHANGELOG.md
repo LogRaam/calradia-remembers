@@ -6,6 +6,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ### Fixed
 
+- **Women in the ranks: their ages are the men's, 20 to 41** (Gabriel, 17/11/2026, after cr.ranks_probe in a Khuzait battle: all 20 women measured 41 while the men ran 20 to 41; the skeletons of women and men measured alike, head bone scale 1.000, head/torso 0.201 for both). A woman soldier now takes the age the game drew for the man she stands in for, held to 20..41 (WomenInRanksPolicy.SoldierAge, WomenInRanksPatch.FaceFor). cr.test women_in_ranks extended.
+
 - **Captive scenes: the narration no longer makes the player obey** (Gabriel, 17/11/2026, screenshot: the captor ordered "look at me... your hand travels down" and the narration lifted the player's head and moved her hand). The captive voice block now says an order is not a deed: the narration never shows the prisoner obeying, only hands laid on them move them, and their own gestures go no further than the player wrote (SDK PromptBuilder.AppendCaptiveVoiceAndPerspective). Not play-verified.
 
 - **The chat's report button showed an empty box** (Gabriel, 17/11/2026, screenshot: a blank button beside the "?"). Its "!" glyph drew nothing; it now reads "Report", in the same brush as Request Private (CalradiaRemembersChat.xml, ReportButton). Not play-verified.
