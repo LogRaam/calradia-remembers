@@ -54,6 +54,12 @@ namespace CalradiaRemembers.Logic
          ///   line is omitted rather than guessed from a meaningless fraction.
          /// </summary>
          public int TotalDurationDays { get; set; }
+
+         /// <summary>
+         ///   Children she bore before this pregnancy. bdionysis80 (Nexus, 17/11/2026): pregnant a second time, his wife
+         ///   "kept going back to the first pregnancy"; above zero the line says this one is new and the earlier is over.
+         /// </summary>
+         public int EarlierChildren { get; set; }
       }
 
       /// <summary>
@@ -95,7 +101,13 @@ namespace CalradiaRemembers.Logic
                fatherClause = $", carrying {fatherName}'s child";
          }
 
-         return $"You are {stage}{fatherClause}. You are aware of this and never deny being with child, " +
+         string newOne = facts.EarlierChildren <= 0
+            ? ""
+            : facts.EarlierChildren == 1
+               ? " This is a new pregnancy: the child you bore before is already born, and that pregnancy is long over."
+               : " This is a new pregnancy: the children you bore before are already born, and those pregnancies are long over.";
+
+         return $"You are {stage}{fatherClause}.{newOne} You are aware of this and never deny being with child, " +
                 "though you may be private about the details.";
       }
 

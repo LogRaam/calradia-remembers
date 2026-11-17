@@ -334,7 +334,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 #### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.GameState`
 
 - `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.GameState` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
-- `CalradiaRemembers.GameState` uses `CalradiaRemembers.Behaviors` in 4 files: `GameState/BannerlordGameStateBridge.cs`, `GameState/CourtActionResolver.cs`, `GameState/ExchangeService.cs`, and 1 more
+- `CalradiaRemembers.GameState` uses `CalradiaRemembers.Behaviors` in 5 files: `GameState/BannerlordGameStateBridge.cs`, `GameState/CourtActionResolver.cs`, `GameState/ExchangeService.cs`, and 2 more
 
 #### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Grudges`
 
@@ -576,11 +576,6 @@ files first: a side resting on ONE file is one file away from untangling the pai
 - `CalradiaRemembers` uses `CalradiaRemembers.Chat` in 19 files: `Extension/CrConversation.cs`, `ModCheats.Assembly.cs`, `ModCheats.BarterSpike.cs`, and 16 more
 - `CalradiaRemembers.Chat` uses `CalradiaRemembers` in 2 file(s): `Chat/ChatViewModel.Helpers.cs`, `Chat/ChatViewModel.cs`
 
-#### `CalradiaRemembers` and `CalradiaRemembers.GameState`
-
-- `CalradiaRemembers` uses `CalradiaRemembers.GameState` in 17 files: `Extension/CrActions.cs`, `Extension/CrConception.cs`, `ModCheats.Acts.cs`, and 14 more
-- `CalradiaRemembers.GameState` uses `CalradiaRemembers` in 2 file(s): `GameState/BannerlordGameStateBridge.cs`, `GameState/DiplomacyCommit.cs`
-
 #### `CalradiaRemembers` and `CalradiaRemembers.Mapping`
 
 - `CalradiaRemembers` uses `CalradiaRemembers.Mapping` in 28 files: `Extension/CrAims.cs`, `Extension/CrLetters.cs`, `Extension/CrNpcMemory.cs`, and 25 more
@@ -670,6 +665,11 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 - `CalradiaRemembers.Verbs` uses `CalradiaRemembers.Violence` in 2 file(s): `Verbs/ExtortReadiness.cs`, `Verbs/VerbRegistry.cs`
 - `CalradiaRemembers.Violence` uses `CalradiaRemembers.Verbs` in 3 file(s): `Violence/ExposeSecretVerb.cs`, `Violence/ExtortVerb.cs`, `Violence/PlayerViolenceVerb.cs`
+
+#### `CalradiaRemembers` and `CalradiaRemembers.GameState`
+
+- `CalradiaRemembers` uses `CalradiaRemembers.GameState` in 17 files: `Extension/CrActions.cs`, `Extension/CrConception.cs`, `ModCheats.Acts.cs`, and 14 more
+- `CalradiaRemembers.GameState` uses `CalradiaRemembers` in 3 file(s): `GameState/BannerlordGameStateBridge.cs`, `GameState/DiplomacyCommit.cs`, `GameState/PregnancyBirthBehavior.cs`
 
 #### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Mapping`
 

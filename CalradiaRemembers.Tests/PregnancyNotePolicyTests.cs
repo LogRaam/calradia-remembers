@@ -183,5 +183,35 @@ namespace CalradiaRemembers.Tests
             PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = true, FatherName = "PlayerName", FatherNamable = true, DaysRemaining = 10, TotalDurationDays = TotalDuration})
                 .Should().Contain("You are aware of this and never deny being with child");
         }
+
+        // ── A second pregnancy is a new one (bdionysis80, Nexus, 17/11/2026) ────
+
+        // STAKE: pregnant a second time, his wife kept talking of the first pregnancy as if it were still under way;
+        // a mother who already bore a child must be told this pregnancy is new and the earlier one is over.
+        [Test]
+        public void GIVEN_a_mother_who_bore_a_child_before_WHEN_describing_THEN_the_pregnancy_is_said_to_be_new()
+        {
+            string note = PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = true, FatherName = "PlayerName", FatherNamable = true, DaysRemaining = 70, TotalDurationDays = TotalDuration, EarlierChildren = 1});
+
+            note.Should().Contain("This is a new pregnancy");
+            note.Should().Contain("the child you bore before is already born");
+            note.Should().Contain("never deny being with child");
+        }
+
+        // STAKE: a first pregnancy has no earlier one to set aside; saying "a new pregnancy" would invent a past child.
+        [Test]
+        public void GIVEN_a_first_pregnancy_WHEN_describing_THEN_nothing_speaks_of_an_earlier_child()
+        {
+            PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, DaysRemaining = 70, TotalDurationDays = TotalDuration})
+                .Should().NotContain("new pregnancy");
+        }
+
+        // STAKE: with several children before, the line speaks of them all, not of one.
+        [Test]
+        public void GIVEN_several_earlier_children_WHEN_describing_THEN_they_are_all_said_to_be_born()
+        {
+            PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, DaysRemaining = 70, TotalDurationDays = TotalDuration, EarlierChildren = 3})
+                .Should().Contain("the children you bore before are already born");
+        }
     }
 }

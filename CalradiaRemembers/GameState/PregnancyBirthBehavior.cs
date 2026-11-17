@@ -28,6 +28,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Marriage;
@@ -135,6 +136,7 @@ namespace CalradiaRemembers.GameState
 
       private void OnGivenBirth(Hero mother, List<Hero> aliveChildren, int stillbornCount)
       {
+         RememberBirth(mother, aliveChildren, stillbornCount);
          if (mother == null || aliveChildren == null) return;
 
          // A LOVER-CHILD (Inc 3c) is resolved FIRST and by its own rule: it belongs to the genetic father (the
@@ -168,6 +170,43 @@ namespace CalradiaRemembers.GameState
             ModLog.Info($"[PREGNANCY] CR birth: moved {child.Name} into the mother's clan ({motherClan?.Name?.ToString() ?? "—"}).");
          }
       }
+
+      /// <summary>
+      ///   The mother remembers the birth (bdionysis80, Nexus, 17/11/2026: pregnant a second time, his wife "kept going
+      ///   back to the first pregnancy"; no birth was ever remembered, so an old "I am with child" stood unanswered).
+      ///   Only a mother CR already knows (a profile): every birth in Calradia would otherwise open a profile. Never throws.
+      /// </summary>
+      internal static void RememberBirth(Hero mother, List<Hero> aliveChildren, int stillbornCount)
+      {
+         try
+         {
+            if (mother == null || mother == Hero.MainHero || NpcMemoryCampaignBehavior.Instance?.Store?.Get(mother.StringId) == null) return;
+
+            Record(mother.StringId, new BirthFacts {
+               Alive = (aliveChildren ?? new List<Hero>()).Where(c => c != null).Select(c => new BornChild {Name = c.Name?.ToString(), IsFemale = c.IsFemale}).ToList(),
+               Stillborn = stillbornCount
+            });
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[PREGNANCY] birth memory not written: {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>Writes the mother's memory of a birth (cr.test all drives it with facts of its own).</summary>
+      internal static MemoryResult Record(string motherId, BirthFacts facts)
+      {
+         string text = BirthMemoryText.Compose(facts);
+         if (text == null) return MemoryResult.RejectedInvalid;
+
+         MemoryResult result = CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = motherId, Summary = text, Kind = "Other", DaysAgo = 0, SourceMod = BirthMemorySource});
+         ModLog.Info($"[PREGNANCY] {motherId} remembers the birth: {result}.");
+
+         return result;
+      }
+
+      /// <summary>The source a birth memory is kept under, so a self-test can take its own back.</summary>
+      internal const string BirthMemorySource = "CalradiaRemembers (birth)";
 
       /// <summary>
       ///   Inc 3c: places a lover-child in the genetic father's line, never the player-husband's clan. The line

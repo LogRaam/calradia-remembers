@@ -437,6 +437,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("clan_standing_is_the_leaders", Severity.Light, "tashmetu (Nexus, 04/10/2026), Personal Relations: the prompt's clan standing was the character's own game relation, so under a per-hero relation mod a lord read +100 'clan' and 0 personal. Takes a real lord who is not his clan's leader: the clan standing must be the leader's relation, and his own is said apart only when it differs. Changes nothing.", TestClanStandingIsTheLeaders),
          new SelfTest("calendar_follows_the_game", Severity.Light, "tashmetu (Nexus, 04/10/2026): fast mode shortens the game's year and CR kept 21 x 4, so 'half a year ago' meant two of the game's years. Reads the game's own calendar and setting.json as loaded: the mod's calendar must be the game's wherever setting.json names nothing. Changes nothing.", TestCalendarFollowsTheGame),
          new SelfTest("capture_memory", Severity.Light, "Windmolen (Nexus, 08/10/2026): taken after a battle of a hundred men a side, his captor called him a lone spy; nothing told the captor how he took him. Writes a captor's memory of the capture through the real door (a lord with no profile gets one), checks it tells the battle, the place and the men, and removes it.", TestCaptureMemory),
+         new SelfTest("birth_memory", Severity.Light, "bdionysis80 (Nexus, 17/11/2026): pregnant a second time, his wife kept going back to the first pregnancy; no birth was ever remembered. Drives the REAL birth handler's memory step: a mother CR knows remembers her child by name and that the pregnancy is over; a mother CR never met gets no profile. Removes what it wrote and any profile it seeded.", TestBirthMemory),
          new SelfTest("partners_know_each_other", Severity.Light, "Windmolen (Nexus, 08/10/2026): his first wife never knew her mother was his second wife. When the player has two partners or more, each one's family knowledge, as the prompt gets it, names the others.", TestPartnersKnowEachOther),
          new SelfTest("native_quest_memory", Severity.Light, "tashmetu and Maifailun (Nexus, 08/10/2026): a native quest left no memory with the lord who set it. Writes the giver's memory of a quest begun through the real door (CrNpcMemory), checks it landed as an agreement in their words, and removes it.", TestNativeQuestMemory),
          new SelfTest("romance_api_held_to_the_chats_bar", Severity.Light, "tashmetu (Nexus, 08/10/2026): another mod may read whether CR's chat would allow intimacy, and record a night only when it would. Reads the verdict for a real lord; when the chat would not allow it, a reported night must be refused and write nothing. Never records one.", TestRomanceApi),
@@ -16185,6 +16186,48 @@ namespace CalradiaRemembers.Diagnostics
                behavior.Store.Set(profile);
             }
             if (!hadProfile && behavior.Store.Get(lord.StringId) is {Events.Count: 0}) t.Note("the lord keeps the empty profile the capture made for him.");
+         }
+
+         return t.Line();
+      }
+
+      private static string TestBirthMemory(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("birth_memory");
+         List<Hero> women = Hero.AllAliveHeroes.Where(h => h.IsFemale && h.IsLord && h != Hero.MainHero).ToList();
+         Hero child = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsChild && h.Name != null);
+         Hero stranger = women.FirstOrDefault(h => behavior.Store.Get(h.StringId) == null);
+         Hero mother = women.FirstOrDefault(h => h != stranger);
+         if (t.Skip(mother == null || child == null, "no lady or no child in the world")) return t.Line();
+
+         if (stranger != null)
+         {
+            GameState.PregnancyBirthBehavior.RememberBirth(stranger, new List<Hero> {child}, 0);
+            t.Expect("aMotherNeverMetGetsNoProfile", behavior.Store.Get(stranger.StringId) == null, true);
+         }
+         else t.Note("every lady has a profile: the stranger check was skipped");
+
+         // The gate is a profile: seed one when this lady has none, and take it back after.
+         bool seeded = behavior.Store.Get(mother.StringId) == null;
+         if (seeded) behavior.Store.Set(HeroProfileMapper.FromHero(mother));
+         NotableEvent written = null;
+         try
+         {
+            GameState.PregnancyBirthBehavior.RememberBirth(mother, new List<Hero> {child}, 0);
+            NpcProfile profile = behavior.Store.Get(mother.StringId);
+            written = profile?.Events.LastOrDefault(e => e.SourceMod == GameState.PregnancyBirthBehavior.BirthMemorySource);
+            t.Expect("sheRemembersTheChildByName", written?.summary?.Contains(child.Name.ToString()) == true, true);
+            t.Expect("andThatThePregnancyIsOver", written?.summary?.Contains("That pregnancy is over") == true, true);
+         }
+         finally
+         {
+            if (seeded) behavior.Store.Remove(mother.StringId);
+            else if (written != null)
+            {
+               NpcProfile profile = behavior.Store.Get(mother.StringId);
+               profile.Events.Remove(written);
+               behavior.Store.Set(profile);
+            }
          }
 
          return t.Line();

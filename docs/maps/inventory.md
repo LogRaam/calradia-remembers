@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 683 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1688 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1691 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1063,7 +1063,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (513)
+### CalradiaRemembers.Logic (516)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1106,10 +1106,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BattleRecordText` | public static class | Pure: names a battle's sides and its scale for the world's record. |
 | `BattleSideFacts` | public class | One side of a recorded battle, as the game knows it. |
 | `BattleWorthFacts` | public class | What a won battle was worth (fkasad, 01/10/2026: "fighting half a dozen looters" is no feat). |
+| `BirthFacts` | public class | What is known of one birth. |
 | `BirthHouseFacts` | public class | What is known of the house a character was born into. |
 | `BirthHouseText` | public static class | The family line's note on the birth house. |
 | `BirthLetterPolicy` | public static class | Pure rules for which letters a birth to the player's child should trigger. |
+| `BirthMemoryText` | public static class | The mother's memory of a birth. |
 | `BodyHurtPolicy` | public static class | How badly hurt somebody is, on the SDK's four bands, from the engine's own numbers. |
+| `BornChild` | public class | One child born alive. |
 | `Bounty` | public class | A realm's price on the player's head. |
 | `BountyReason` | public enum | Why a realm has put a price on the player's head. |
 | `BrigandageFacts` | public class | What was attacked, for brigandage. |

@@ -1394,7 +1394,10 @@ namespace CalradiaRemembers.Mapping
                : "";
             var totalDuration = (int) (Campaign.Current?.Models?.PregnancyModel?.PregnancyDurationInDays ?? 0f);
 
-            return PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = fatherIsPlayer, FatherName = fatherName, FatherNamable = fatherNamable, DaysRemaining = daysRemaining, TotalDurationDays = totalDuration});
+            // The children she already bore: this pregnancy is then a new one (bdionysis80, 17/11/2026).
+            int earlier = npcHero.Children?.Count(c => c != null && c.Mother == npcHero) ?? 0;
+
+            return PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = fatherIsPlayer, FatherName = fatherName, FatherNamable = fatherNamable, DaysRemaining = daysRemaining, TotalDurationDays = totalDuration, EarlierChildren = earlier});
          }
          catch { return ""; }
       }
