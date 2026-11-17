@@ -136,7 +136,25 @@ namespace CalradiaRemembers.Logic.StoryArchive
                        .ToList();
       }
 
-      /// <summary>The words of a text that can carry a match: lower case, three letters or more, not a stop word.</summary>
+      /// <summary>
+      ///   A word cut to its stem, so "promised" finds "promise" (the A/B of 17/11/2026: "about what you promised me that
+      ///   night" recalled the goat story instead of the promise, because no line said "promised"). A light English cut:
+      ///   plural and verb endings, then a final e. Over-cutting only merges near words, which BM25 tolerates.
+      /// </summary>
+      public static string Stem(string word)
+      {
+         string w = word ?? "";
+         if (w.Length > 4 && w.EndsWith("ies", StringComparison.Ordinal)) w = w.Substring(0, w.Length - 3) + "y";
+         else if (w.Length > 5 && w.EndsWith("ing", StringComparison.Ordinal)) w = w.Substring(0, w.Length - 3);
+         else if (w.Length > 4 && w.EndsWith("ed", StringComparison.Ordinal)) w = w.Substring(0, w.Length - 2);
+         else if (w.Length > 4 && w.EndsWith("es", StringComparison.Ordinal)) w = w.Substring(0, w.Length - 2);
+         else if (w.Length > 3 && w.EndsWith("s", StringComparison.Ordinal) && !w.EndsWith("ss", StringComparison.Ordinal)) w = w.Substring(0, w.Length - 1);
+         if (w.Length > 4 && w.EndsWith("e", StringComparison.Ordinal)) w = w.Substring(0, w.Length - 1);
+
+         return w;
+      }
+
+      /// <summary>The words of a text that can carry a match: lower case, three letters or more, not a stop word, stemmed.</summary>
       public static IEnumerable<string> Tokens(string text)
       {
          if (string.IsNullOrWhiteSpace(text)) yield break;
@@ -151,7 +169,7 @@ namespace CalradiaRemembers.Logic.StoryArchive
                continue;
             }
 
-            if (word.Length >= 3 && !StopWords.Contains(word.ToString())) yield return word.ToString();
+            if (word.Length >= 3 && !StopWords.Contains(word.ToString())) yield return Stem(word.ToString());
             word.Clear();
          }
       }

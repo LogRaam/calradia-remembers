@@ -52,6 +52,20 @@ namespace CalradiaRemembers.Tests
          found[0].Lines.Count.Should().Be(2 * LongMemoryRecall.Radius + 1);
       }
 
+      // STAKE (A/B, 17/11/2026): "about what you promised me that night" recalled the goat story, not the promise,
+      // because the night said "promise" and the player said "promised".
+      [Test]
+      public void GIVEN_the_player_says_promised_WHEN_the_night_said_promise_THEN_the_promise_is_recalled()
+      {
+         var records = new List<StoryArchiveRecord> {
+            Line("night", "One night the goat ate his boots."), Line("night", "filler one"), Line("night", "filler two"),
+            Line("night", "filler three"), Line("night", "filler four"), Line("night", "filler five"),
+            Line("night", "I will teach you the longsword. That is a promise.")
+         };
+
+         Find(records, "So, about what you promised me that night...").SelectMany(p => p.Lines).Should().Contain(l => l.Text.Contains("longsword"));
+      }
+
       // STAKE: a character never quotes words said where they were not.
       [Test]
       public void GIVEN_words_said_without_her_WHEN_recalled_THEN_she_does_not_have_them()
