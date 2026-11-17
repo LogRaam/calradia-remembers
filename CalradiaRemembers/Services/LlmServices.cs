@@ -73,6 +73,7 @@ namespace CalradiaRemembers.Services
       private float _builtTemperature;
       private int? _builtReplyBudget;
       private float _builtPresencePenalty;
+      private bool _builtSceneNarration;
       private NpcChatService _chatService;
 
       private HttpClient _httpClient;
@@ -137,6 +138,7 @@ namespace CalradiaRemembers.Services
             float temperature = ModSettings.ChatTemperature;
             int? replyBudget = ModSettings.ReplyTokenBudget;
             float presencePenalty = ModSettings.PresencePenalty;
+            bool sceneNarration = ModSettings.SceneNarration;
 
             string playerFaction = Hero.MainHero?.MapFaction?.Name?.ToString() ?? "";
             string playerClan = Hero.MainHero?.Clan?.Name?.ToString() ?? "";
@@ -146,7 +148,8 @@ namespace CalradiaRemembers.Services
                                       && _builtReplyLanguage == replyLanguage && _builtReplyLength == replyLength
                                       && _builtPlayerFaction == playerFaction && _builtPlayerClan == playerClan
                                       && _builtTemperature == temperature && _builtReplyBudget == replyBudget
-                                      && _builtPresencePenalty == presencePenalty && _builtPlayerIdentity == playerIdentity)
+                                      && _builtPresencePenalty == presencePenalty && _builtPlayerIdentity == playerIdentity
+                                      && _builtSceneNarration == sceneNarration)
                return _chatService;
             _chatService = BuildChatService();
             _builtAdultLevel = current;
@@ -158,6 +161,7 @@ namespace CalradiaRemembers.Services
             _builtTemperature = temperature;
             _builtReplyBudget = replyBudget;
             _builtPresencePenalty = presencePenalty;
+            _builtSceneNarration = sceneNarration;
             _builtPlayerIdentity = playerIdentity;
 
             return _chatService;
@@ -1097,7 +1101,9 @@ namespace CalradiaRemembers.Services
             EnableMemoryBlock = false,
             // The mod can verify deeds (QuestDeedTracker) and pay rewards, so the
             // NPC is allowed to offer and resolve informal quests.
-            EnableQuests = true
+            EnableQuests = true,
+            // 1Enfant (Nexus, 16/11/2026): the player may turn the purple scene narration off.
+            EnableSceneNarration = ModSettings.SceneNarration
          };
       }
 

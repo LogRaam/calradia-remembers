@@ -443,6 +443,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("birth_house_known", Severity.Light, "Maifailun (Nexus, 07/10/2026): Lidia, wed into the Takhi, named her father but not the house she was born into, and claimed she was born a Takhi. Finds a married character living in another house than the one they were born into and checks their family line, as the prompt gets it, names the birth house.", TestBirthHouseKnown),
          new SelfTest("tale_local_band", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's last band was always looters, the weakest troop in the game. A \"local\" band is made of the bandits of the nearest hideout. Reads them for a few villages across the map and checks each finds real bandits; the log names them.", TestTaleLocalBand),
          new SelfTest("scene_surroundings_read", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's scene should read differently to an Aserai in a forest at night and a Battanian at noon. Reads the ground under the player, the season, the hour and the player's people from the live game, as the scene's narrator gets them, and checks the narrator's block is written from them.", TestSceneSurroundingsRead),
+         new SelfTest("scene_narration_switch", Severity.Light, "1Enfant (Nexus, 16/11/2026): \"How do I disable the description of the surrounding environment? (purple section)\". Sets the MCM switch Scene Narration off then on (restored after) and asserts, on the LIVE PromptBuilder the chat runs on (LlmServices.DebugBuildPromptBuilder), that off means an ordinary opening turn neither teaches the [NARRATION] block nor asks for the opening tableau, and on brings both back; and that SceneNarrationPolicy hides an ordinary turn's narration when off, but keeps a captive scene's and a reply made only of narration", TestSceneNarrationSwitch),
          new SelfTest("scene_opener", Severity.Light, "Lordfadooboo (Nexus, 21/10/2026): a conversation opened cold; Gabriel (22/10/2026): the character sets the scene by default, as captive scenes do. Reads the LIVE opening facts (LlmDialogFlow.SceneFacts) and asserts a conversation opened by the greeting gets a scene while one opened any other way (an interception, a tale meeting) does not, nor one put back from earlier today, nor one carrying the game's own dialogue, nor any with the MCM switch off (set off for a moment, restored). Then, with a model available and nothing on screen, opens a REAL conversation with a lord, starts the scene on a test greeting and plays the player speaking first: the scene is set aside, the greeting stays on screen and is the line remembered, and the call is aborted. Closes the conversation", TestSceneOpener),
          new SelfTest("scene_image_shown", Severity.Light, "Gabriel (08/10/2026): a tale's stage may carry a picture, opening by itself beside the chat when its scene opens. Writes a small picture to a temporary file, opens a scene with it through the real door (its narration refused before any model call), checks the left panel shows that very file and, in Dark Leather, that it steps aside when the chat yields to the pause menu, then closes the scene and deletes the file.", TestSceneImageShown),
          new SelfTest("intimate_acts", Severity.Light, "Gabriel (26/10/2026): 'chaque NPC avait des preferences pour certains gestes sexuels, et meme parfois des gestes qu'il n'aime pas', and 'un geste impose que le NPC n'aime pas devrait reduire le personal regard'. At Hardcore, with a lord arranged as the player's lover (regard 60, intimate; put back after) who loves oral given and dislikes anal received: the turn's reader is taught both from the real EncounterContextBuilder seam; the disliked gesture only asked for costs nothing and is learned; performed, it costs 4 personal regard and leaves a memory; performed again the same day, nothing more; the loved gesture found warms them by 1; one they are less fond of costs nothing; the Heart section names a taste only once it is learned; a profile rolled before the list widened (27/10/2026: 'd'en mettre beaucoup') is completed through the real load path, keeping what she loved and what the player learned. Skips below Hardcore", TestIntimateActs),
@@ -16363,6 +16364,43 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("thePlayersPeopleAreKnown", string.IsNullOrWhiteSpace(f.PlayerCulture), false);
          t.Expect("theHourIsKnown", f.Hour >= 0 && f.Hour <= 23, true);
          t.Expect("theNarratorIsToldOfThem", Logic.AuthoredQuests.SceneSurroundingsText.Compose(f) != null, true);
+
+         return t.Line();
+      }
+
+      private static string TestSceneNarrationSwitch(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("scene_narration_switch");
+         CrSettings settings = CrSettings.Instance;
+         if (t.Abort(settings == null, "no MCM settings instance")) return t.Line();
+         if (t.Skip(behavior?.LlmServices == null, "no LLM services to build the live prompt")) return t.Line();
+
+         bool before = settings.SceneNarration;
+         var npc = new NpcProfile {Id = "cr_selftest_narration", Name = "Selftest", Faction = "Vlandia", Clan = "Selftest"};
+         var opening = new EncounterContext {IsConversationOpening = true};
+         try
+         {
+            settings.SceneNarration = false;
+            PromptBuilder off = behavior.LlmServices.DebugBuildPromptBuilder();
+            string offPrompt = off.BuildSystemPrompt(npc, new WorldState {CurrentDay = 1}, opening);
+            // STAKE: 1Enfant turned the description off and still reads it on the very first reply.
+            t.Expect("offTheBuilderIsTold", off.EnableSceneNarration, false);
+            t.Expect("offNoNarrationBlockTaught", offPrompt.Contains("[/NARRATION]"), false);
+            t.Expect("offNoOpeningTableau", offPrompt.Contains("THIS TURN OPENS THE SCENE"), false);
+            // STAKE: a narration a model writes anyway still reaches the chat.
+            t.Expect("offOrdinaryNarrationHidden", Logic.Chat.SceneNarrationPolicy.Shows(new Logic.Chat.SceneNarrationFacts {SettingOn = ModSettings.SceneNarration}), false);
+            // STAKE: a captive scene loses what is done to the prisoner.
+            t.Expect("offCaptiveNarrationKept", Logic.Chat.SceneNarrationPolicy.Shows(new Logic.Chat.SceneNarrationFacts {SettingOn = ModSettings.SceneNarration, CaptiveScene = true}), true);
+            t.Expect("offNarrationOnlyReplyKept", Logic.Chat.SceneNarrationPolicy.Shows(new Logic.Chat.SceneNarrationFacts {SettingOn = ModSettings.SceneNarration, NothingSpoken = true}), true);
+
+            settings.SceneNarration = true;
+            PromptBuilder on = behavior.LlmServices.DebugBuildPromptBuilder();
+            string onPrompt = on.BuildSystemPrompt(npc, new WorldState {CurrentDay = 1}, opening);
+            // STAKE: a player who kept the default loses the opening tableau.
+            t.Expect("onNarrationBlockTaught", onPrompt.Contains("[/NARRATION]"), true);
+            t.Expect("onOpeningTableau", onPrompt.Contains("THIS TURN OPENS THE SCENE"), true);
+         }
+         finally { settings.SceneNarration = before; }
 
          return t.Line();
       }

@@ -188,7 +188,7 @@ namespace CalradiaRemembers.Chat
             string line = string.IsNullOrWhiteSpace(parsed.Dialogue) ? "(The envoy inclines their head.)" : parsed.Dialogue;
 
             _messages.Remove(placeholder);
-            if (!string.IsNullOrWhiteSpace(parsed.Narration)) AppendNarration(parsed.Narration);
+            if (!string.IsNullOrWhiteSpace(parsed.Narration)) AppendModelNarration(parsed.Narration, line);
             _messages.Add(MakeSpeakerMessage(EnvoySpeaker(), line));
             RecordTranscript(false, _npcName, null, line);
             StoryLog.WriteNpcLine(_npcName, line);

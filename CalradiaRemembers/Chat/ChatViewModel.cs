@@ -1959,6 +1959,32 @@ namespace CalradiaRemembers.Chat
       ///   LED its turn with the narration, so the emitted order survives at render.
       /// </summary>
       public void AppendNarration(string text, ChatMessageViewModel insertBefore = null)
+         => AppendNarrationLine(text, insertBefore);
+
+      /// <summary>
+      ///   A narration the MODEL wrote in an ordinary turn: shown (and recorded) only when SceneNarrationPolicy allows,
+      ///   so a player who turned "Scene Narration" off does not see one a model wrote anyway (1Enfant, Nexus,
+      ///   16/11/2026). <paramref name="spoken" /> is the same reply's dialogue: a narration that is the whole reply stays.
+      /// </summary>
+      private void AppendModelNarration(string text, string spoken, ChatMessageViewModel insertBefore = null)
+      {
+         if (string.IsNullOrWhiteSpace(text)) return;
+         var facts = new SceneNarrationFacts {
+            SettingOn = ModSettings.SceneNarration,
+            CaptiveScene = IsCaptiveEncounter || _captorScene,
+            NothingSpoken = string.IsNullOrWhiteSpace(spoken)
+         };
+         if (!SceneNarrationPolicy.Shows(facts))
+         {
+            ModLog.Info($"[NARRATION] hidden (Scene Narration off): {text.Length} chars.");
+
+            return;
+         }
+
+         AppendNarrationLine(text, insertBefore);
+      }
+
+      private void AppendNarrationLine(string text, ChatMessageViewModel insertBefore)
       {
          if (string.IsNullOrWhiteSpace(text)) return;
          try

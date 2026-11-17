@@ -605,6 +605,13 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public bool CharactersSetTheScene { get; set; } = true;
 
+      // 1Enfant (Nexus, 16/11/2026): "How do I disable the description of the surrounding environment?". Gabriel
+      // (17/11/2026): "oui". On by default; captive scenes keep their narration either way.
+      [SettingPropertyBool("{=CR_MCM_SceneNarration}Scene Narration", RequireRestart = false, Order = 3,
+         HintText = "{=CR_MCM_SceneNarration_Hint}On (default): conversations carry short purple descriptions of the place, the light and the sounds. Off: the characters' words and gestures alone. Captive scenes keep their narration either way.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
+      public bool SceneNarration { get; set; } = true;
+
       [SettingPropertyDropdown("{=CR_MCM_InterceptionPacing}Lords Approaching You", RequireRestart = false, Order = 2,
          HintText = "{=CR_MCM_InterceptionPacing_Hint}How often a lord rides out to have a word with you on the road. Never switches it off " +
                     "entirely. Occasionally is the shipped feel. With The World's Initiative on, it sets how much of its turns lords get.")]

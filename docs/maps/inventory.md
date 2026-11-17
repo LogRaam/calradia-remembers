@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 679 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1675 types in 61 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1677 types in 61 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2017,7 +2017,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RosterItemKey` | public static class | Names one stack of goods by item and quality, and finds it again among what the party holds. |
 | `ScoreToSettle` | public class | Whether a character has a score to settle, and whether the player may be told so. |
 
-### CalradiaRemembers.Logic.Chat (31)
+### CalradiaRemembers.Logic.Chat (33)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2049,6 +2049,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PromptPlayerIdentity` | public static class | The player identity a built character prompt is tied to. |
 | `PurseOfferText` | public static class | The words of the purse's windows: what giving coin from the bag does, and how a transaction is read. |
 | `ReplyBudgetPolicy` | public static class | Pure: the reply budget the player picked, or none when they left it on Auto. |
+| `SceneNarrationFacts` | public class | What the chat knows about one narration the model wrote. |
+| `SceneNarrationPolicy` | public static class | Decides whether a model-written scene narration is shown (and kept in the conversation's record). |
 | `SceneOpenerFacts` | public class | What a conversation's opening knows when it decides whether the character sets the scene. |
 | `SceneOpenerOutcome` | public enum | How the character's scene-setting turn ended. |
 | `SceneOpenerPolicy` | public static class | Decides whether the character sets the scene, the direction they are given, and what becomes of the greeting. |

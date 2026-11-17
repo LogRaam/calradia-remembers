@@ -1238,7 +1238,7 @@ namespace CalradiaRemembers.Chat
             // written before the spoken line's below (AppendNarration records all three).
             bool narrationFirst = response.NarrationBeforeDialogue && !string.IsNullOrWhiteSpace(response.Narration);
             if (narrationFirst)
-               AppendNarration(response.Narration, placeholder);
+               AppendModelNarration(response.Narration, response.Dialogue, placeholder);
 
             // Render the turn: dialogue bubble, or a narration-only turn (no empty bubble), or
             // a "(silence...)" fallback. npcLine is empty for a narration-only turn.
@@ -1280,7 +1280,7 @@ namespace CalradiaRemembers.Chat
             // shown after the speaker's dialogue unless the model led with it
             // (handled above). Recorded to transcript + story log.
             if (!narrationFirst && !string.IsNullOrWhiteSpace(response.Narration))
-               AppendNarration(response.Narration);
+               AppendModelNarration(response.Narration, response.Dialogue);
 
             // Witness reactions — displayed immediately after the speaker's line.
             // recordTranscript: false here; the 15C path commits them inside
@@ -2623,7 +2623,7 @@ namespace CalradiaRemembers.Chat
                StoryLog.WriteNpcLine(mainSpeaker.Name, npcReply);
 
                if (!string.IsNullOrWhiteSpace(result.Response?.Narration))
-                  AppendNarration(result.Response.Narration);
+                  AppendModelNarration(result.Response.Narration, npcReply);
 
                ModLog.Info($"[15C:{_witnessExchangesThisRound}] {mainSpeaker.Name}: \"{npcReply}\"");
                if (result.Usage != null)

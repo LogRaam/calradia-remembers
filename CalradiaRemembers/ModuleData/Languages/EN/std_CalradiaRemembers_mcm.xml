@@ -210,6 +210,8 @@
     <string id="CR_MCM_NpcsRaiseWorldNews_Hint" text="Off (default): an NPC approaches you only about something between the two of you. On: they may also stop you to ask what you make of distant news. Their own deeds and yours are always allowed either way." />
     <string id="CR_MCM_CharactersSetTheScene" text="Characters Set The Scene" />
     <string id="CR_MCM_CharactersSetTheScene_Hint" text="On (default): when you start a conversation, the character opens it, what they were doing and their first words, while you may already type. One more model call per conversation. Off: the short greeting alone." />
+    <string id="CR_MCM_SceneNarration" text="Scene Narration" />
+    <string id="CR_MCM_SceneNarration_Hint" text="On (default): conversations carry short purple descriptions of the place, the light and the sounds. Off: the characters' words and gestures alone. Captive scenes keep their narration either way." />
     <string id="CR_MCM_InterceptionPacing" text="Lords Approaching You" />
     <string id="CR_MCM_InterceptionPacing_Hint" text="How often a lord rides out to have a word with you on the road. Never switches it off entirely. Occasionally is the shipped feel. With The World's Initiative on, it sets how much of its turns lords get." />
     <string id="CR_MCM_InterceptionPacing_Never" text="Never" />

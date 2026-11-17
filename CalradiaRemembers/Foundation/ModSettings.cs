@@ -362,6 +362,12 @@ namespace CalradiaRemembers.Foundation
       public static bool CharactersSetTheScene => CrSettings.Instance?.CharactersSetTheScene ?? true;
 
       /// <summary>
+      ///   Whether ordinary conversations carry the purple scene narration (1Enfant, Nexus, 16/11/2026). Read by the
+      ///   prompt (PromptBuilder.EnableSceneNarration) and the chat (SceneNarrationPolicy). On by default; with no MCM, on.
+      /// </summary>
+      public static bool SceneNarration => CrSettings.Instance?.SceneNarration ?? true;
+
+      /// <summary>
       ///   A lord riding out to the player is held on course (on, the 2.6.8 behaviour Lordfadooboo asked for) or only
       ///   given the order, his own AI free to change its mind (off, as before; Fakade, 03/10/2026). On when MCM has
       ///   not loaded.

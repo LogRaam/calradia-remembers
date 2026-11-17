@@ -11,7 +11,7 @@ player says "I turned it off and it still happens", the readers listed here are 
 it is missing from the list. Read from syntax; blind spots in the header of `SettingsReadersMap.cs` (a value handed
 on to the SDK or a helper shows only where it is read).
 
-115 settings; a reader is `Type.Member`. Console and cr.test reads are counted apart (they exercise a switch, they do not obey it).
+116 settings; a reader is `Type.Member`. Console and cr.test reads are counted apart (they exercise a switch, they do not obey it).
 
 ## Read by one member only
 
@@ -132,6 +132,7 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Relationship Pacing (`RelationshipWarmth`) | `BannerlordGameStateBridge.BuildConsentFacts`, `BannerlordGameStateBridge.ExecuteChangeRelation`, `CompanionAffectionBehavior.EligibilityOf`, `CompanionAffectionBehavior.OnWeeklyTick`, `EncounterContextBuilder.SecretBondFactsFor`, `LetterRegardService.Apply`, `LlmServices.BuildChatService`, `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService` | 3 |
 | Reply Language (`ReplyLanguage`) | `ChatViewModel.BuildCouncilPromptInput`, `ChatViewModel.EnsureTranscriptCompressedAsync`, `ChatViewModel.FinalizeConversationMemory`, `ChatViewModel.FinalizeWitnessMemories`, `ChatViewModel.RunLlmExchangeAsync`, `ChronicleIlluminationService.Run`, `ConversationSummaryService.GenerateAndApplyCaptiveSummaryAsync`, `ConversationSummaryService.GenerateAndApplyConversationSummaryAsync`, `LetterBox.WillTranslate`, `LetterGenerationService.TranslateFixedLetterAsync`, `LetterMemoryFinalizer.GenerateAndApplyAsync`, `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService`, `MemoryCompressionService.CompressAsync` | 4 |
 | Reply Length (`ReplyLength`) | `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService` | 1 |
+| Scene Narration (`SceneNarration`) | `ChatViewModel.AppendModelNarration`, `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService` | 1 |
 | Strategic Assessment (AI) (`EnableStrategicAssessment`) | `StrategicAssessmentService.Populate` | 0 |
 | Unasked Letters (`UnaskedLetters`) | `LetterBox.IsSilenced`, `LetterTriggerEvaluator.EvaluateDaily`, `StanceConsequenceBehavior.TryWrite` | 2 |
 | Witness Density (`WitnessDensity`) | `WitnessResolver.ResolveAutoWitnesses` | 0 |

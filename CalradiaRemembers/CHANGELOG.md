@@ -4,6 +4,10 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.8.15.. unreleased
 
+### New
+
+- **The purple scene narration can be turned off** (1Enfant, Nexus 16/11/2026: "How do I disable the description of the surrounding environment? (purple section in the conversation)"; Gabriel 17/11/2026: "oui"). MCM Content, "Scene Narration" (on by default). Off: the prompt no longer teaches the [NARRATION] block nor asks the opening turn for a tableau, and the setting lives in the character's gestures (SDK 49e6557, `PromptBuilder.EnableSceneNarration`); a narration a model writes anyway is hidden and not kept (`SceneNarrationPolicy`, `ChatViewModel.AppendModelNarration`: ordinary turns, witness replies, envoys), except a reply made only of narration. Captive scenes keep their narration (it carries what is done to the prisoner); the council narrator and mod-written lines are unchanged. cr.test `scene_narration_switch`. Not play-verified.
+
 ## v2.8.14.. 2026-11-16
 
 ### Changed
