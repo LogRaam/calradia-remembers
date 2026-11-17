@@ -384,15 +384,8 @@ namespace CalradiaRemembers.Chat
                catch (Exception ex) { ModLog.Error($"[CONFIRM] refusal note failed: {ex.GetType().Name}: {ex.Message}"); }
             }
 
-            // Story log: only when the coin ACTUALLY moved, and the amount the bridge APPLIED (clamped to the
-            // real purse), never the raw proposed sum, so the journal agrees with the purse.
-            if (outcome != null && !outcome.WasRefused && outcome.AppliedGoldAmount is int moved && moved > 0)
-            {
-               if (string.Equals(p.Action.Type, "give_gold", StringComparison.OrdinalIgnoreCase))
-                  StoryLog.WriteGoldTransfer(p.Profile?.Name, moved, true);
-               else if (string.Equals(p.Action.Type, "take_gold", StringComparison.OrdinalIgnoreCase))
-                  StoryLog.WriteGoldTransfer(p.Profile?.Name, moved, false);
-            }
+            // Story archive: the deed as the game did it (the coin the bridge APPLIED, never the raw proposed sum).
+            host.ArchiveDeed(p.Action, outcome, p.Profile?.Name, p.Profile?.Id);
          }
          catch (Exception ex)
          {

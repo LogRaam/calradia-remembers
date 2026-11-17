@@ -298,7 +298,7 @@ namespace CalradiaRemembers.Marriage
 
          string msg = $"{old.Name} has left {(old.IsFemale ? "her" : "his")} house to wed {ruler.Name}. {heir.Name} now leads it, and you play on as {heir.Name}.";
          MBInformationManager.AddQuickInformation(new TextObject(msg));
-         StoryLog.WriteNarration(msg);
+         StoryArchiveWriter.Notice(msg, ruler.StringId, heir.StringId);
          Campaign.Current.TimeControlMode = CampaignTimeControlMode.Stop;
          ModLog.Info($"[LEAVE_HOUSE] sealed: {old.Name} wed {ruler.Name} and joined {ruler.Clan?.Name}; {heir.Name} leads {Clan.PlayerClan?.Name}.");
       }

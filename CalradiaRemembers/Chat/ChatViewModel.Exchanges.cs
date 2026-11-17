@@ -242,7 +242,6 @@ namespace CalradiaRemembers.Chat
             if (!string.IsNullOrEmpty(npcLine))
             {
                RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
-               StoryLog.WriteNpcLine(speaker.Name, npcLine);
             }
 
             if (!narrationFirst && !string.IsNullOrWhiteSpace(result.Response?.Narration))
@@ -398,8 +397,6 @@ namespace CalradiaRemembers.Chat
             // Record to transcript and story log (same as NPC path).
             RecordTranscript(true, "You", null, playerMessage);
             RecordTranscript(false, _commonerProfile.Name, _commonerProfile.Id, npcLine);
-            StoryLog.WritePlayerLine(playerMessage);
-            StoryLog.WriteNpcLine(_commonerProfile.Name, npcLine);
 
             // Only take_gold is honoured for commoners — nothing else persists.
             if (response?.Actions != null)
@@ -413,8 +410,7 @@ namespace CalradiaRemembers.Chat
                   if (outcome != null)
                      AppendSystemMessage(outcome.Message, outcome.IsPositive);
 
-                  if (action.Parameters.TryGetValue("amount", out string ats) && int.TryParse(ats, out int at))
-                     StoryLog.WriteGoldTransfer(_commonerProfile.Name, at, false);
+                  ArchiveDeed(action, outcome, _commonerProfile.Name, null);
                }
          }
          catch (Exception ex)
@@ -510,7 +506,6 @@ namespace CalradiaRemembers.Chat
             {
                ReplacePlaceholder(placeholder, npcLine, speaker);
                RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
-               StoryLog.WriteNpcLine(speaker.Name, npcLine);
                if (!string.IsNullOrWhiteSpace(result.Response?.Narration))
                   AppendNarration(result.Response.Narration);
             }
@@ -1268,13 +1263,8 @@ namespace CalradiaRemembers.Chat
                MaybeLearnPlayerNameFromCaptive(playerMessage);
             }
 
-            // Story log: intro (lazy, once per conversation) + player line + NPC line.
-            if (IsLiveConversation)
-            {
-               EnsureStoryIntro();
-               if (!suppressPlayerLine) StoryLog.WritePlayerLine(playerMessage);
-               if (!string.IsNullOrEmpty(npcLine)) StoryLog.WriteNpcLine(speaker.Name, npcLine);
-            }
+            // The lines themselves reach the story archive (and the Story Log) through RecordTranscript above.
+            if (IsLiveConversation) EnsureStoryIntro();
 
             // Scene narration ([NARRATION]) — neutral-narrator physical action,
             // shown after the speaker's dialogue unless the model led with it
@@ -1816,31 +1806,13 @@ namespace CalradiaRemembers.Chat
                       outcome?.IsPositive == true)
                      nemesisTurned = true;
 
-                  // Story log: narrative description of game-world consequences. Attributed to the ACTOR
-                  // (which is the anchor's own profile when no "actor" was named, see actorProfile above).
-                  if (string.Equals(action.Type, "change_relation", StringComparison.OrdinalIgnoreCase))
-                  {
-                     // 2.1: log the regard ACTUALLY applied (from the outcome), never the raw proposal. A change
-                     // gated to 0 returns a null outcome, so it leaves no "seems to appreciate your words" line.
-                     if (outcome?.AppliedRelationDelta is int applied && applied != 0)
-                     {
-                        StoryLog.WriteRelationChange(actorProfile.Name, applied);
-                        if (applied < worstAppliedRelation) worstAppliedRelation = applied;
-                     }
-                  }
-                  else if (string.Equals(action.Type, "give_gold", StringComparison.OrdinalIgnoreCase))
-                  {
-                     // Pattern 3: log the coin ACTUALLY moved (clamped to the giver's purse at the bridge),
-                     // never the raw proposal, and only when the transfer really happened. A refused or
-                     // insolvent give leaves no "hands you N denars" line the purse cannot back.
-                     if (outcome != null && !outcome.WasRefused && outcome.AppliedGoldAmount is int given && given > 0)
-                        StoryLog.WriteGoldTransfer(actorProfile.Name, given, true);
-                  }
-                  else if (string.Equals(action.Type, "take_gold", StringComparison.OrdinalIgnoreCase))
-                  {
-                     if (outcome != null && !outcome.WasRefused && outcome.AppliedGoldAmount is int taken && taken > 0)
-                        StoryLog.WriteGoldTransfer(actorProfile.Name, taken, false);
-                  }
+                  // Story archive (Gabriel, 17/11/2026): the deed as the game did it, told as a sentence, attributed to the
+                  // ACTOR (the anchor's own profile when no "actor" was named). The regard and coin ACTUALLY applied, never
+                  // the raw proposal (StoryArchiveDeed); a change gated to 0 returns a null outcome and leaves no line.
+                  ArchiveDeed(action, outcome, actorProfile?.Name, actorHero?.StringId);
+                  if (string.Equals(action.Type, "change_relation", StringComparison.OrdinalIgnoreCase)
+                      && outcome?.AppliedRelationDelta is int applied && applied != 0 && applied < worstAppliedRelation)
+                     worstAppliedRelation = applied;
                }
 
                // The personal score may have moved — refresh the header (main NPC only;
@@ -2620,7 +2592,6 @@ namespace CalradiaRemembers.Chat
 
                ReplacePlaceholder(placeholder, npcReply, mainSpeaker);
                RecordTranscript(false, mainSpeaker.Name, mainSpeaker.Hero?.StringId, npcReply);
-               StoryLog.WriteNpcLine(mainSpeaker.Name, npcReply);
 
                if (!string.IsNullOrWhiteSpace(result.Response?.Narration))
                   AppendModelNarration(result.Response.Narration, npcReply);

@@ -41,7 +41,7 @@ namespace CalradiaRemembers.Letters
             bool silenced = LetterBox.IsSilenced(senderProfile, letter.Reason);
             bool unwritten = Logic.Letters.LetterEnvelopePolicy.IsUnwritten(letter); // an envelope waits to be opened
             int arrival = (int)CampaignTime.Now.ToDays;
-            if (!unwritten) StoryLog.WriteLetterReceived(letter.SenderName, letter.Content ?? "(The letter is blank.)", arrival);
+            if (!unwritten) StoryArchiveWriter.Letter(false, letter.SenderName, senderProfile.Id, letter.Content);
             MarkReceived(letter, senderProfile, arrival);
 
             if (letter.Reason == LetterReason.ReinforcementRequest)

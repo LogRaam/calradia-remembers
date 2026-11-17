@@ -187,7 +187,6 @@ namespace CalradiaRemembers.Chat
                if (!string.IsNullOrEmpty(reply))
                {
                   host.RecordTranscriptLine(false, speaker.Name, speaker.Hero?.StringId, reply);
-                  StoryLog.WriteNpcLine(speaker.Name, reply);
                }
 
                if (!narrationFirst && !string.IsNullOrWhiteSpace(result.Response?.Narration))

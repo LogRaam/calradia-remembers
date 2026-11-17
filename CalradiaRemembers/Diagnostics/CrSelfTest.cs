@@ -443,6 +443,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("birth_house_known", Severity.Light, "Maifailun (Nexus, 07/10/2026): Lidia, wed into the Takhi, named her father but not the house she was born into, and claimed she was born a Takhi. Finds a married character living in another house than the one they were born into and checks their family line, as the prompt gets it, names the birth house.", TestBirthHouseKnown),
          new SelfTest("tale_local_band", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's last band was always looters, the weakest troop in the game. A \"local\" band is made of the bandits of the nearest hideout. Reads them for a few villages across the map and checks each finds real bandits; the log names them.", TestTaleLocalBand),
          new SelfTest("scene_surroundings_read", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's scene should read differently to an Aserai in a forest at night and a Battanian at noon. Reads the ground under the player, the season, the hour and the player's people from the live game, as the scene's narrator gets them, and checks the narrator's block is written from them.", TestSceneSurroundingsRead),
+         new SelfTest("story_archive", Severity.Light, "Gabriel (17/11/2026): the Story Log replaced by a story archive written always, outside the save, the long memory's source. On a throwaway archive: a real ChatViewModel's player line enters it word for word after an episode opening, with the lord in its audience; a save head taken, a line written, the head re-attached as a reload does, another line written: walking the branch reads the new line and never the abandoned one. Asserts the player's own archive is paused while self-tests run. Deletes its file", TestStoryArchive),
          new SelfTest("scene_narration_switch", Severity.Light, "1Enfant (Nexus, 16/11/2026): \"How do I disable the description of the surrounding environment? (purple section)\". Sets the MCM switch Scene Narration off then on (restored after) and asserts, on the LIVE PromptBuilder the chat runs on (LlmServices.DebugBuildPromptBuilder), that off means an ordinary opening turn neither teaches the [NARRATION] block nor asks for the opening tableau, and on brings both back; and that SceneNarrationPolicy hides an ordinary turn's narration when off, but keeps a captive scene's and a reply made only of narration", TestSceneNarrationSwitch),
          new SelfTest("scene_opener", Severity.Light, "Lordfadooboo (Nexus, 21/10/2026): a conversation opened cold; Gabriel (22/10/2026): the character sets the scene by default, as captive scenes do. Reads the LIVE opening facts (LlmDialogFlow.SceneFacts) and asserts a conversation opened by the greeting gets a scene while one opened any other way (an interception, a tale meeting) does not, nor one put back from earlier today, nor one carrying the game's own dialogue, nor any with the MCM switch off (set off for a moment, restored). Then, with a model available and nothing on screen, opens a REAL conversation with a lord, starts the scene on a test greeting and plays the player speaking first: the scene is set aside, the greeting stays on screen and is the line remembered, and the call is aborted. Closes the conversation", TestSceneOpener),
          new SelfTest("scene_image_shown", Severity.Light, "Gabriel (08/10/2026): a tale's stage may carry a picture, opening by itself beside the chat when its scene opens. Writes a small picture to a temporary file, opens a scene with it through the real door (its narration refused before any model call), checks the left panel shows that very file and, in Dark Leather, that it steps aside when the chat yields to the pause menu, then closes the scene and deletes the file.", TestSceneImageShown),
@@ -1947,6 +1948,10 @@ namespace CalradiaRemembers.Diagnostics
       private static string SafeRun(SelfTest test, NpcMemoryCampaignBehavior behavior, int budgetSeconds)
       {
          _running++;
+         // A self-test's lines and deeds are not the player's story: the campaign's archive is paused while it runs.
+         StoryArchiveStore archive = behavior?.StoryArchive;
+         bool archiveWasPaused = archive?.Paused ?? false;
+         if (archive != null) archive.Paused = true;
          try
          {
             Dictionary<string, int> before = PlayerPrisonHeroes();
@@ -1954,7 +1959,11 @@ namespace CalradiaRemembers.Diagnostics
 
             return WithLeftovers(line, Logic.SelfTestLeftoverPolicy.Leftovers(before, PlayerPrisonHeroes()));
          }
-         finally { _running--; }
+         finally
+         {
+            _running--;
+            if (archive != null) archive.Paused = archiveWasPaused;
+         }
       }
 
       /// <summary>The heroes in the player's prison, each labelled by name and id, with how many times the roster holds him.</summary>
@@ -16372,6 +16381,49 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("thePlayersPeopleAreKnown", string.IsNullOrWhiteSpace(f.PlayerCulture), false);
          t.Expect("theHourIsKnown", f.Hour >= 0 && f.Hour <= 23, true);
          t.Expect("theNarratorIsToldOfThem", Logic.AuthoredQuests.SceneSurroundingsText.Compose(f) != null, true);
+
+         return t.Line();
+      }
+
+      private static string TestStoryArchive(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("story_archive");
+         if (t.Skip(behavior?.StoryArchive == null, "no story archive on the behavior")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(lord == null, "no lord to talk to")) return t.Line();
+
+         // A throwaway archive: the player's own is paused during every self-test and never receives these lines.
+         var store = new StoryArchiveStore();
+         string file = null;
+         try
+         {
+            // STAKE: the lines of a real conversation reach the archive, with who heard them and the episode opening.
+            var vm = new ChatViewModel();
+            vm.SetNpcHero(lord);
+            vm.ArchiveToForDiagnostics(store);
+            vm.RecordPlayerLineForDiagnostics("[SELFTEST] You said you would teach me the sword.");
+            file = store.FilePath;
+            IReadOnlyList<Logic.StoryArchive.StoryArchiveRecord> chat = store.ReadBranch();
+            t.Expect("theEpisodeOpensFirst", chat.Count > 0 && chat[0].Kind == Logic.StoryArchive.StoryArchiveKind.EpisodeStart, true);
+            t.Expect("thePlayersLineIsKeptWordForWord", chat.Any(r => r.IsPlayer && r.Text == "[SELFTEST] You said you would teach me the sword."), true);
+            t.Expect("theLordIsWrittenAsHavingHeardIt", chat.Last().Audience?.Contains(lord.StringId) == true, true);
+
+            // STAKE (the reload): a save made here, then a talk, then that save reloaded: the talk is not that save's past.
+            string savedHead = store.HeadId;
+            vm.RecordPlayerLineForDiagnostics("[SELFTEST] words of a future the player will abandon");
+            store.AttachForDiagnostics(store.ArchiveId, savedHead);
+            vm.RecordPlayerLineForDiagnostics("[SELFTEST] words after the reload");
+            IReadOnlyList<Logic.StoryArchive.StoryArchiveRecord> branch = store.ReadBranch();
+            t.Expect("theAbandonedFutureIsNotRead", branch.Any(r => r.Text == "[SELFTEST] words of a future the player will abandon"), false);
+            t.Expect("theNewBranchIsRead", branch.Any(r => r.Text == "[SELFTEST] words after the reload"), true);
+            t.Expect("thePlayersOwnArchiveIsPausedDuringTests", behavior.StoryArchive.Paused, true);
+         }
+         finally
+         {
+            try { if (file != null && File.Exists(file)) File.Delete(file); }
+            catch { /* a leftover temp file in the archive folder is harmless */ }
+         }
 
          return t.Line();
       }

@@ -16,12 +16,15 @@ using CalradiaRemembers.Logic.Assemblies;
 using CalradiaRemembers.Logic.Captivity;
 using CalradiaRemembers.Logic.Conversation;
 using CalradiaRemembers.Logic.Duels;
+using CalradiaRemembers.Logic.StoryArchive;
 using CalradiaRemembers.Logic.Witnesses;
 using CalradiaRemembers.Stance;
 using CalradiaRemembers.Witnesses;
+using CalradiaRemembers.GameState;
 using NpcMemoryService.Core.Memory;
 using NpcMemoryService.Core.Models;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 
@@ -434,7 +437,6 @@ namespace CalradiaRemembers.Chat
 
          ReplacePlaceholder(placeholder, closingLine, speaker);
          RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, closingLine);
-         StoryLog.WriteNpcLine(speaker.Name, closingLine);
          AppendNarration(closingNarration);
 
          _conversationEnded = true;
@@ -532,6 +534,119 @@ namespace CalradiaRemembers.Chat
          ModLog.Info($"[ESCAPE] scene ended — player escaped from {profile?.Name}.");
       }
 
+      // -- Story archive (Gabriel, 17/11/2026) --------------------------------------------------------------
+      // Every line, narration, note and deed of a conversation enters the story archive, always, whatever the switches
+      // say: "le joueur peut activer, desactiver, reactiver"; a switch governs only what reaches a prompt. The episode is
+      // the conversation's session (CrConversation.SessionId, the id LineSpoken and ShowPicture carry). Who heard a line
+      // is written on the line: the room changes inside a scene (a private audience clears it, a companion steps out).
+
+      private string _archiveEpisodeOpenedFor;
+      private string _archiveFallbackEpisodeId;
+      private bool _archiveComplained;
+      private StoryArchiveStore _archiveOverride;
+
+      /// <summary>cr.test seam: this chat writes into <paramref name="store" /> instead of the campaign's archive.</summary>
+      internal void ArchiveToForDiagnostics(StoryArchiveStore store) => _archiveOverride = store;
+
+      private string ArchiveEpisodeId => CrConversation.OpenSessionId ?? _archiveEpisodeOpenedFor ?? (_archiveFallbackEpisodeId ??= "chat-" + Guid.NewGuid().ToString("N").Substring(0, 12));
+
+      private string ArchiveSceneKind()
+         => _envoy != null ? "envoy"
+            : _exploration != null ? "exploration"
+            : _councilParticipants.Count > 0 ? "council"
+            : _mode == ChatMode.CaptiveEncounter || IsCaptiveEncounter ? "captive"
+            : _mode == ChatMode.Commoner ? "commoner"
+            : "conversation";
+
+      private static string ArchivePlaceId()
+      {
+         try { return (MobileParty.MainParty?.CurrentSettlement ?? Hero.MainHero?.CurrentSettlement)?.StringId; }
+         catch { return null; }
+      }
+
+      /// <summary>The heroes in the room right now, the player excepted: the host, then each witness.</summary>
+      private List<string> ArchiveAudience()
+      {
+         var heard = new List<string>();
+         if (!string.IsNullOrEmpty(_npcHero?.StringId)) heard.Add(_npcHero.StringId);
+         foreach (WitnessEntry w in _witnesses)
+            if (!string.IsNullOrEmpty(w?.HeroStringId) && !heard.Contains(w.HeroStringId))
+               heard.Add(w.HeroStringId);
+
+         return heard;
+      }
+
+      /// <summary>Opens this conversation's episode in the archive once: the scene, the place, who is present and why.</summary>
+      private void EnsureArchiveEpisode(StoryArchiveStore store)
+      {
+         string episode = ArchiveEpisodeId;
+         if (_archiveEpisodeOpenedFor == episode) return;
+
+         _archiveEpisodeOpenedFor = episode;
+         var present = new List<StoryArchiveParticipant>();
+         string hostName = _mode == ChatMode.Commoner ? _commonerProfile?.Name : _npcName;
+         if (!string.IsNullOrWhiteSpace(hostName) && _envoy == null && _exploration == null)
+            present.Add(new StoryArchiveParticipant {HeroId = _npcHero?.StringId, Name = hostName, Role = "host"});
+         foreach (WitnessEntry w in _witnesses)
+            if (w != null)
+               present.Add(new StoryArchiveParticipant {
+                  HeroId = w.HeroStringId, Name = w.Name,
+                  Role = w.IsCaptiveVictim || w.IsBroughtCaptive ? "captive" : w.IsPlayerCompanion ? "companion" : "witness"
+               });
+
+         List<string> audience = ArchiveAudience();
+         store.Append(new StoryArchiveRecord {
+            Kind = StoryArchiveKind.EpisodeStart, EpisodeId = episode, SceneKind = ArchiveSceneKind(), Time = CampaignTime.Now.ToDays,
+            PlaceId = ArchivePlaceId(), PlaceName = _storyLocation, Participants = present, Audience = audience,
+            Tags = new List<string>(audience), Text = _envoy != null || _exploration != null ? _npcName : null
+         });
+      }
+
+      /// <summary>Writes one record of this conversation into the story archive. Never throws.</summary>
+      private void ArchiveRecord(StoryArchiveKind kind, bool isPlayer, string name, string heroId, string text, string actionType = null, bool refused = false)
+      {
+         try
+         {
+            StoryArchiveStore store = _archiveOverride ?? NpcMemoryCampaignBehavior.Instance?.StoryArchive;
+            if (store == null || Campaign.Current == null || string.IsNullOrWhiteSpace(text)) return;
+
+            EnsureArchiveEpisode(store);
+            List<string> audience = ArchiveAudience();
+            var tags = new List<string>(audience);
+            string speakerId = isPlayer ? Hero.MainHero?.StringId : heroId;
+            if (!string.IsNullOrEmpty(speakerId) && !tags.Contains(speakerId)) tags.Add(speakerId);
+            store.Append(new StoryArchiveRecord {
+               Kind = kind, EpisodeId = ArchiveEpisodeId, SceneKind = ArchiveSceneKind(), Time = CampaignTime.Now.ToDays,
+               PlaceId = ArchivePlaceId(), PlaceName = _storyLocation, SpeakerId = speakerId,
+               SpeakerName = isPlayer ? Hero.MainHero?.Name?.ToString() ?? name : name, IsPlayer = isPlayer, Text = text,
+               Audience = audience, ActionType = actionType, Refused = refused, Tags = tags
+            });
+         }
+         catch (Exception ex)
+         {
+            if (_archiveComplained) return;
+
+            _archiveComplained = true;
+            ModLog.Error($"[STORY ARCHIVE] recording failed (said once per conversation): {ex.GetType().Name}: {ex.Message}");
+         }
+      }
+
+      /// <summary>
+      ///   A deed the game carried out (or refused), into the story archive as the sentence of what the game did
+      ///   (StoryArchiveDeed). Every road that executes a deed in a conversation calls it: the model's actions, a
+      ///   confirmed spend, the manual action menu.
+      /// </summary>
+      public void ArchiveDeed(GameAction action, ActionOutcome outcome, string actorName, string actorId)
+      {
+         if (action == null || outcome == null) return;
+
+         StoryArchiveDeedEntry entry = StoryArchiveDeed.Entry(new StoryArchiveDeedFacts {
+            ActionType = action.Type, ActorName = actorName, Message = outcome.Message, AppliedRegard = outcome.AppliedRelationDelta,
+            AppliedCoin = outcome.AppliedGoldAmount, Refused = outcome.WasRefused, UnknownVerb = outcome.WasUnknownVerb
+         });
+         if (entry != null) ArchiveRecord(StoryArchiveKind.Action, false, actorName, actorId, entry.Text, action.Type, entry.Refused);
+      }
+
       // ── Story Log helpers ─────────────────────────────────────────────────
 
       // Writes the conversation intro once — deferred until the first player
@@ -540,11 +655,7 @@ namespace CalradiaRemembers.Chat
       {
          if (_storyIntroWritten) return;
          _storyIntroWritten = true;
-
-         if (!StoryLog.IsEnabled) return;
-         var day = (int) CampaignTime.Now.ToDays;
-         string[] witnesses = _witnesses.Select(w => w.Name).ToArray();
-         StoryLog.WriteConversationIntro(_npcName, witnesses, _storyLocation, day);
+         // The meeting itself is now the story archive's episode opening (EnsureArchiveEpisode), which the Story Log renders.
       }
 
       /// <summary>
@@ -611,7 +722,6 @@ namespace CalradiaRemembers.Chat
             // knows they are gone and the NPC doesn't keep addressing them.
             RecordTranscript(false, match.Name, match.HeroStringId,
                "*leaves the conversation at the player's request*");
-            StoryLog.WriteNpcLine(match.Name, "*leaves the conversation*");
             ModLog.Info($"[WITNESSES] companion '{match.Name}' left (witness_leaves).");
          }
       }
@@ -688,6 +798,7 @@ namespace CalradiaRemembers.Chat
       {
          _transcript.Record(new TranscriptLine {IsPlayer = isPlayer, SpeakerName = name, SpeakerHeroId = heroId, Text = text, IsNarration = isNarration});
          RaiseSpeechLine(isPlayer, name, heroId, text, isNarration);
+         ArchiveRecord(StoryArchiveDeed.KindOfTranscriptLine(isPlayer, isNarration, text), isPlayer, name, heroId, text);
       }
 
       /// <summary>
@@ -963,7 +1074,6 @@ namespace CalradiaRemembers.Chat
             AppendNarration(response.Narration, placeholder);
          ReplacePlaceholder(placeholder, npcLine, speaker);
          RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
-         StoryLog.WriteNpcLine(speaker.Name, npcLine);
          if (!narrationFirst && !string.IsNullOrWhiteSpace(response?.Narration))
             AppendNarration(response.Narration);
 
@@ -1039,7 +1149,6 @@ namespace CalradiaRemembers.Chat
             AppendNarration(response.Narration, placeholder);
          ReplacePlaceholder(placeholder, npcLine, speaker);
          RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
-         StoryLog.WriteNpcLine(speaker.Name, npcLine);
          if (!narrationFirst && !string.IsNullOrWhiteSpace(response?.Narration))
             AppendNarration(response.Narration);
 
@@ -1081,7 +1190,6 @@ namespace CalradiaRemembers.Chat
             AppendNarration(response.Narration, placeholder);
          ReplacePlaceholder(placeholder, npcLine, speaker);
          RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
-         StoryLog.WriteNpcLine(speaker.Name, npcLine);
          if (!narrationFirst && !string.IsNullOrWhiteSpace(response?.Narration))
             AppendNarration(response.Narration);
 

@@ -419,7 +419,7 @@ namespace CalradiaRemembers.Marriage
             : $"You wed {spouse.Name} without {clan}'s blessing — the family is affronted.{aside}";
 
          MBInformationManager.AddQuickInformation(new TextObject(msg));
-         StoryLog.WriteNarration(msg);
+         StoryArchiveWriter.Notice(msg, spouse.StringId);
          ModLog.Info($"[MARRIAGE] {(approved ? "APPROVED" : "UNAPPROVED")} marriage to {spouse.Name}: " +
                      $"{clan} — {affected} kin moved ({warmed} warmed, {cooled} cooled).");
       }

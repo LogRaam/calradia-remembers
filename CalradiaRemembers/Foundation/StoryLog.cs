@@ -31,90 +31,15 @@ namespace CalradiaRemembers.Foundation
         }
 
         /// <summary>
-        ///   Writes the opening line of a conversation: who is present and where.
-        ///   Example: "You meet Alympia and Martira in the castle of Poros."
+        ///   Appends one paragraph the story archive rendered (StoryArchiveNovel.Render) when the Story Log is on.
+        ///   Since 17/11/2026 every line, deed and letter reaches this file through the story archive (Gabriel: "remplacer
+        ///   le Story log par ce nouveau systeme"), which is written always; this switch only decides whether the
+        ///   novel-like copy is written too.
         /// </summary>
-        internal static void WriteConversationIntro(
-            string   npcName,
-            string[] witnessNames,
-            string   location,
-            int      day)
+        internal static void WriteRendered(string paragraph)
         {
-            if (!IsEnabled) return;
-
-            string others = witnessNames == null || witnessNames.Length == 0
-                ? ""
-                : witnessNames.Length == 1
-                    ? $" and {witnessNames[0]}"
-                    : ", " + string.Join(", ", witnessNames, 0, witnessNames.Length - 1)
-                      + " and " + witnessNames[witnessNames.Length - 1];
-
-            string where = string.IsNullOrEmpty(location) ? "" : $" in {location}";
-
-            Write($"{Environment.NewLine}[Day {day}]{Environment.NewLine}");
-            Write($"{Environment.NewLine}You meet {npcName}{others}{where}.{Environment.NewLine}");
-        }
-
-        internal static void WritePlayerLine(string text)
-        {
-            if (!IsEnabled || string.IsNullOrWhiteSpace(text)) return;
-            Write($"{Environment.NewLine}You: {text}{Environment.NewLine}");
-        }
-
-        internal static void WriteNpcLine(string npcName, string text)
-        {
-            if (!IsEnabled || string.IsNullOrWhiteSpace(text)) return;
-            Write($"{Environment.NewLine}{npcName}: {text}{Environment.NewLine}");
-        }
-
-        internal static void WriteWitnessLine(string witnessName, string text)
-        {
-            if (!IsEnabled || string.IsNullOrWhiteSpace(text)) return;
-            Write($"{Environment.NewLine}{witnessName}: {text}{Environment.NewLine}");
-        }
-
-        /// <summary>Scene narration — written as a standalone paragraph, no speaker prefix.</summary>
-        internal static void WriteNarration(string text)
-        {
-            if (!IsEnabled || string.IsNullOrWhiteSpace(text)) return;
-            Write($"{Environment.NewLine}{text}{Environment.NewLine}");
-        }
-
-        internal static void WriteRelationChange(string npcName, int delta)
-        {
-            if (!IsEnabled || delta == 0) return;
-            string desc = delta >=  3 ? $"{npcName} is visibly moved by your words."
-                        : delta >=  1 ? $"{npcName} seems to appreciate your words."
-                        : delta >= -2 ? $"{npcName}'s expression cools slightly."
-                        : delta >= -5 ? $"{npcName} takes offense at your words."
-                        : delta >= -8 ? $"{npcName}'s regard for you drops sharply."
-                        :               $"A cold distance settles over {npcName}.";
-            Write($"{Environment.NewLine}{desc}{Environment.NewLine}");
-        }
-
-        internal static void WriteGoldTransfer(string npcName, int amount, bool npcGives)
-        {
-            if (!IsEnabled || amount <= 0) return;
-            string desc = npcGives
-                ? $"{npcName} hands you {amount} denars."
-                : $"You hand {npcName} {amount} denars.";
-            Write($"{Environment.NewLine}{desc}{Environment.NewLine}");
-        }
-
-        internal static void WriteLetterReceived(string senderName, string content, int day)
-        {
-            if (!IsEnabled) return;
-            Write($"{Environment.NewLine}--- Letter from {senderName} (Day {day}) ---"
-                + $"{Environment.NewLine}{Environment.NewLine}{content}"
-                + $"{Environment.NewLine}{Environment.NewLine}---{Environment.NewLine}");
-        }
-
-        internal static void WriteLetterSent(string recipientName, string content, int day)
-        {
-            if (!IsEnabled) return;
-            Write($"{Environment.NewLine}--- You send a letter to {recipientName} (Day {day}) ---"
-                + $"{Environment.NewLine}{Environment.NewLine}{content}"
-                + $"{Environment.NewLine}{Environment.NewLine}---{Environment.NewLine}");
+            if (!IsEnabled || string.IsNullOrEmpty(paragraph)) return;
+            Write(paragraph);
         }
 
         /// <summary>

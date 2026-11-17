@@ -84,6 +84,9 @@ namespace CalradiaRemembers.Behaviors
       // mid-negotiation steps back into it rather than starting the bargain again (fkasad, 20/09/2026).
       public readonly ConversationResumeStore ConvResume = new();
 
+      // ONE story archive per campaign (Gabriel, 17/11/2026): the player's story kept outside the save, its pointer inside.
+      public readonly StoryArchiveStore StoryArchive = new();
+
       // ONE QuestDeedTracker, owned by the behavior.
       public readonly QuestDeedTracker QuestTracker = new();
       public readonly BannerlordNpcMemoryStore Store = new();
@@ -159,6 +162,8 @@ namespace CalradiaRemembers.Behaviors
          // The words of the last conversation, so an interrupted one can be stepped back into. Same additive
          // key and same tolerant load: an older save has nothing kept, which is exactly the old behaviour.
          ConvResume.SyncData(dataStore);
+         // The story archive's pointer (which file, which branch). Additive key; an older save starts a new archive.
+         StoryArchive.SyncData(dataStore);
          // B1: persisted subject/global correspondence-interest dampers. Same additive/graceful contract.
          LetterEvaluator.SyncData(dataStore);
          // Writes the oversize test block once when cr.save_rescue_probe armed it; reads it back on load. Nothing otherwise.

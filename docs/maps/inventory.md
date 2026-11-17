@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 679 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1677 types in 61 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 681 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1685 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 289 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -28,6 +28,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 2000+ | Sdk | `Models/EncounterContext.cs` |
 | 1500+ | Sdk | `Actions/ActionBenchCatalog.cs` |
 | 1500+ | Mod | `Chat/ChatManager.cs` |
+| 1500+ | Mod | `Chat/ChatViewModel.Helpers.cs` |
 | 1500+ | Mod | `GameState/CourtActionResolver.cs` |
 | 1500+ | Mod | `Interception/InterceptionBehavior.cs` |
 | 1500+ | Mod | `Letters/CourierService.cs` |
@@ -36,7 +37,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 1000+ | Logic | `Assemblies/ResolutionCatalog.cs` |
 | 1000+ | Mod | `Chat/ChatSceneStager.cs` |
 | 1000+ | Mod | `Chat/ChatViewModel.Council.cs` |
-| 1000+ | Mod | `Chat/ChatViewModel.Helpers.cs` |
 | 1000+ | Mod | `Diagnostics/RoleplayBench.cs` |
 | 1000+ | Mod | `Letters/LetterTriggerEvaluator.cs` |
 | 1000+ | Mod | `Missions/CompanionMissionBehavior.cs` |
@@ -210,11 +210,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroTally` | public class | One hero's raw part in one mission, by hero id; CombatTally is its worded form. |
 | `PrisonerMemoryBehavior` | public class | Writes the memories of the player's prisoners: taken, left in a dungeon, and how it ended. |
 
-### CalradiaRemembers.Behaviors (2)
+### CalradiaRemembers.Behaviors (3)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `NpcMemoryCampaignBehavior` | public class | Bridges the NpcMemoryService SDK to the Bannerlord campaign lifecycle. |
+| `StoryArchiveWriter` | public static class | Writes letters and the mod's notices into the campaign's story archive. |
 | `WorkshopSaleMemoryBehavior` | public class | Gives a character who sold the player a workshop the memory of the sale. |
 
 ### CalradiaRemembers.Chat (51)
@@ -434,7 +435,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 |---|---|---|
 | `FollowMeBehavior` | public class | Persists active follow_me escorts (a lord's own party riding with the player) and advances/ends each daily. |
 
-### CalradiaRemembers.Foundation (12)
+### CalradiaRemembers.Foundation (13)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -449,6 +450,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ModSettings` | public static class | Mod-wide settings façade. |
 | `SafeRun` | public static class | Shared guard for campaign tick handlers. |
 | `SaveBlob` | internal static class | Saves and loads a CR store's JSON, compressed, kept under the size past which a save never loads. |
+| `StoryArchiveStore` | public class | Appends the player's story to its campaign's archive file and reads back the branch the loaded save belongs to. |
 | `StoryLog` | internal static class | Writes a clean, narrative-style transcript of conversations and letters to CalradiaRemembers_story.log. |
 
 ### CalradiaRemembers.GUI (4)
@@ -2826,6 +2828,19 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PresenceTier` | public enum | Where an NPC stands relative to the player at this moment, from closest to farthest. |
 | `SocialStationFacts` | public class | What a character's station is read from. |
 | `SocialStationPolicy` | public static class | Resolves a character's station and composes its definition for the player's rung. |
+
+### CalradiaRemembers.Logic.StoryArchive (8)
+
+| Type | Kind | What it is |
+|---|---|---|
+| `StoryArchiveBranch` | public static class | Reads the branch of the archive a save belongs to. |
+| `StoryArchiveDeed` | public static class | Turns a deed's outcome into its archive sentence. |
+| `StoryArchiveDeedEntry` | public class | The sentence a deed enters the archive with, and whether it enters at all. |
+| `StoryArchiveDeedFacts` | public class | What the game reported for one deed, as the archive needs it. |
+| `StoryArchiveKind` | public enum | What kind of thing one archive record holds. |
+| `StoryArchiveNovel` | public static class | Tells archive records as the Story Log's novel-like paragraphs. |
+| `StoryArchiveParticipant` | public class | One person present when an episode opened. |
+| `StoryArchiveRecord` | public class | One thing that happened in the player's story, as the archive keeps it. |
 
 ### CalradiaRemembers.Logic.Strategy (14)
 

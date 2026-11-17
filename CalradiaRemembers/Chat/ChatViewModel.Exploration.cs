@@ -290,7 +290,6 @@ namespace CalradiaRemembers.Chat
             AppendNarration(markers.Text);
             _sceneNarrationIsLast = true;
             _sceneLines.Add("(narrator) " + markers.Text);
-            StoryLog.WriteNpcLine(_exploration.Title, markers.Text);
 
             foreach (string note in _exploration.Apply?.Invoke(markers) ?? Array.Empty<string>())
                AppendSystemMessage(note, false);

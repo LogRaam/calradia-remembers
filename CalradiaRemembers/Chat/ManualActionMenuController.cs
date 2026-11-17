@@ -411,6 +411,7 @@ namespace CalradiaRemembers.Chat
          if (outcome == null) return;
 
          host.AppendSystemMessageLine(outcome.Message, outcome.IsPositive);
+         host.ArchiveDeed(action, outcome, host.Npc?.Name?.ToString(), host.Npc?.StringId);
 
          string refusalNote = ActionRefusalNote.For(outcome.WasRefused, outcome.Message);
          if (refusalNote != null)

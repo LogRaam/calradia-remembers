@@ -1996,7 +1996,6 @@ namespace CalradiaRemembers.Chat
             else
                _messages.Add(message);
             ChatManager.ScrollToBottom();
-            StoryLog.WriteNarration(text);
             // Adult-prompt audit C4: attributed to the SPEAKING NPC, not to a nameless third party. The
             // narration is that NPC's own output, and recording it with no hero id made the rebuild replay
             // it as a USER message ("[Scene]: ..."), so the model never saw [NARRATION] in its own assistant
@@ -2135,7 +2134,6 @@ namespace CalradiaRemembers.Chat
                ? new ChatMessageViewModel(witnessFace, witnessName, text, color)
                : new ChatMessageViewModel(witnessHero, witnessName, text, color));
             ChatManager.ScrollToBottom();
-            StoryLog.WriteWitnessLine(witnessName, text);
 
             // Record into the attributed transcript so every speaker's next rebuilt
             // session sees this reaction as a "[Name]: …" line. Skip letter/compose.
@@ -3326,8 +3324,7 @@ namespace CalradiaRemembers.Chat
       public void FinalizeStoryLog()
       {
          if (_mode != ChatMode.Conversation || _conversationEnded || !_storyIntroWritten) return;
-         if (!StoryLog.IsEnabled) return;
-         StoryLog.WriteNarration($"You take your leave of {_npcName}.");
+         ArchiveRecord(Logic.StoryArchive.StoryArchiveKind.Notice, true, null, null, $"You take your leave of {_npcName}.");
       }
 
       public void FinalizeWitnessMemories()

@@ -322,7 +322,7 @@ namespace CalradiaRemembers.Letters
          }
 
          if (string.IsNullOrWhiteSpace(boxed.Letter.Content)) boxed.Letter.Content = text;
-         StoryLog.WriteLetterReceived(boxed.Letter.SenderName, boxed.Letter.Content, (int)CampaignTime.Now.ToDays);
+         StoryArchiveWriter.Letter(false, boxed.Letter.SenderName, boxed.Sender?.Id, boxed.Letter.Content);
          if (boxed.Letter.InBox) Show(boxed);
       }
 
@@ -354,7 +354,7 @@ namespace CalradiaRemembers.Letters
 
             done.Boxed.Letter.Content = done.Text;
             Store?.Set(done.Boxed.Sender);
-            StoryLog.WriteLetterReceived(done.Boxed.Letter.SenderName, done.Boxed.Letter.Content, (int) CampaignTime.Now.ToDays);
+            StoryArchiveWriter.Letter(false, done.Boxed.Letter.SenderName, done.Boxed.Sender?.Id, done.Boxed.Letter.Content);
             ModLog.Info($"[LETTERBOX] {done.Boxed.Sender?.Name}'s letter written on arrival.");
          }
 

@@ -1314,7 +1314,6 @@ namespace CalradiaRemembers.Chat
          {
             _messages.Add(MakeSpeakerMessage(anchor, text));
             RecordTranscript(false, anchor.Name, anchor.Hero.StringId, text);
-            StoryLog.WriteNpcLine(anchor.Name, text);
 
             return;
          }

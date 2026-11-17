@@ -1,5 +1,12 @@
 // Code written by Gabriel Mailhot, 11/07/2026.
 
+#region
+
+using CalradiaRemembers.GameState;
+using NpcMemoryService.Core.Models;
+
+#endregion
+
 namespace CalradiaRemembers.Chat
 {
    /// <summary>
@@ -23,5 +30,8 @@ namespace CalradiaRemembers.Chat
 
       /// <summary>The recompose path: restores the typed text as the player's input and sends it as a fresh LLM turn.</summary>
       void SendPlayerMessage(string raw);
+
+      /// <summary>Writes a deed the game carried out or refused into the story archive (Gabriel, 17/11/2026).</summary>
+      void ArchiveDeed(GameAction action, ActionOutcome outcome, string actorName, string actorId);
    }
 }

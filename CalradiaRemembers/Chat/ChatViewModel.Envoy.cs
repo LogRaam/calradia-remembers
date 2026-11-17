@@ -191,7 +191,6 @@ namespace CalradiaRemembers.Chat
             if (!string.IsNullOrWhiteSpace(parsed.Narration)) AppendModelNarration(parsed.Narration, line);
             _messages.Add(MakeSpeakerMessage(EnvoySpeaker(), line));
             RecordTranscript(false, _npcName, null, line);
-            StoryLog.WriteNpcLine(_npcName, line);
 
             SettleEnvoyDeal(parsed.Actions, lord, lordProfile, behavior, isOpener ? null : playerMessage);
 

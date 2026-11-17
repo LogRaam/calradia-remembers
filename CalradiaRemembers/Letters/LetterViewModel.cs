@@ -891,7 +891,7 @@ namespace CalradiaRemembers.Letters
             : $"{deliveryDays} days";
          MBInformationManager.AddQuickInformation(new TextObject(
             $"Your courier departs. The letter will reach {_profile.Name} in approximately {days}."));
-         StoryLog.WriteLetterSent(_profile.Name, content, today);
+         StoryArchiveWriter.Letter(true, _profile.Name, _profile.Id, content);
          ModLog.Info($"[PLAYER LETTER] sealed to {_profile.Name} ({deliveryDays}d delivery).");
 
          OnCloseRequested?.Invoke();
@@ -919,7 +919,7 @@ namespace CalradiaRemembers.Letters
 
          MBInformationManager.AddQuickInformation(new TextObject(
             $"Your reply to {_profile.Name} has been sealed and sent."));
-         StoryLog.WriteLetterSent(_profile.Name, content, today);
+         StoryArchiveWriter.Letter(true, _profile.Name, _profile.Id, content);
          ModLog.Info($"[LETTER] reply to {_profile.Name} sealed; NPC response queued as a new letter.");
 
          OnCloseRequested?.Invoke();

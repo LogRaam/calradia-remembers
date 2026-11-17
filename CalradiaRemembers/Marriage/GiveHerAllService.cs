@@ -10,6 +10,7 @@
 
 using System;
 using System.Linq;
+using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic.Marriage;
 using TaleWorlds.CampaignSystem;
@@ -129,7 +130,7 @@ namespace CalradiaRemembers.Marriage
             string msg = $"{player.Name} has given {ruler.Name} {fiefs} fief(s), {(union.BringsARealm ? "a realm, " : "")}and all {(player.IsFemale ? "her" : "his")} gold, "
                          + $"and wed {(ruler.IsFemale ? "her" : "him")}. {house.Name} now serves {herRealm?.Name?.ToString() ?? ruler.Clan?.Name?.ToString()}.";
             MBInformationManager.AddQuickInformation(new TextObject(msg));
-            StoryLog.WriteNarration(msg);
+            StoryArchiveWriter.Notice(msg, ruler.StringId);
             Campaign.Current.TimeControlMode = CampaignTimeControlMode.Stop;
             ModLog.Info($"[LEAVE_HOUSE] gave all: {fiefs} fief(s), realm={union.BringsARealm}, wed {ruler.Name}; influence restored to {house.Influence:0}.");
 
