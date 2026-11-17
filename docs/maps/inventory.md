@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 685 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1691 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1695 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1065,7 +1065,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (516)
+### CalradiaRemembers.Logic (520)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1199,6 +1199,10 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EnvoyTurnFacts` | public class | What the turn that produced a deal said: the facts a gift and a plain acceptance are read from. |
 | `EscapedTargetPolicy` | public static class | The rules for a capture or delivery task whose target escaped. |
 | `EscortCostPolicy` | public static class | Pure pricing for the per-correspondent armed-escort premium (a distance-scaled one-off fee). |
+| `EventDetailPassage` | public class | The passages of one event's full text that bear on the turn. |
+| `EventDetailRecall` | public static class | Picks, from the full texts of events a character knows, the passages that answer the player's words. |
+| `EventDetailRecallFacts` | public class | What the host knows for one turn. |
+| `EventDetailSource` | public class | One event a character knows that has a full text. |
 | `ExchangeKind` | public enum | What kind of exchange is being settled. |
 | `ExchangeRecord` | public class | One exchange as the log reads it. |
 | `ExecutionerlessDeathPolicy` | public static class | Whether the engine's execution bookkeeping (blood feuds) may treat a death as an execution. |

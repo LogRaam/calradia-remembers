@@ -37,7 +37,8 @@ kept), so a mod can rebuild its own view after a load without keeping a second l
 
 Since 2.8.15, `Summary` stays the short line characters hear (300 characters; a longer one is cut, and the log says so),
 and `Details` holds the full text: up to 20,000 characters, kept outside the save, never cut (longer is refused whole),
-returned whole by `Feed.List`. On `Update`, null `Details` keep what was kept and `""` removes it. `CrWorld.RealmEvents`
+returned whole by `Feed.List`. A character who knows the event and is asked about it hears the passages of it that answer
+the player (full prompt only, bounded). On `Update`, null `Details` keep what was kept and `""` removes it. `CrWorld.RealmEvents`
 lists a realm's public events, CR's own included, for a mod writing its own digest.
 
 `FeedResult` tells you what happened: `Recorded`, `RejectedDuplicate` (that `Id` is already stored),

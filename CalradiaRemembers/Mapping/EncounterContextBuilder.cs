@@ -827,7 +827,8 @@ namespace CalradiaRemembers.Mapping
             PlayerFameLine = PlayerFameResolver.Resolve(hero, profile, bridge, historyKnownThrough),
             PlayerNameIsNewsToSpeaker = PlayerFameResolver.NameIsNewsTo(hero, profile, bridge, historyKnownThrough),
             EdictsNote = EdictNoteResolver.Resolve(hero),
-            QueryRelevantFactsBlock = ResolveQueryRelevantFacts(hero, playerMessage, (int) CampaignTime.Now.ToDays),
+            QueryRelevantFactsBlock = JoinBlocks(ResolveQueryRelevantFacts(hero, playerMessage, (int) CampaignTime.Now.ToDays),
+                                                 ResolveEventDetails(hero, playerMessage, (int) CampaignTime.Now.ToDays, leanLevel)),
             PastOnMentionBlock = ResolvePastOnMention(hero, playerMessage, (int) CampaignTime.Now.ToDays),
             CompanionOnErrand = ResolveCompanionOnErrand(hero),
             CompanionNewsReport = CompanionMissionBehavior.Instance?.ConsumeNewsReport(hero),
@@ -4615,6 +4616,50 @@ namespace CalradiaRemembers.Mapping
       ///   too, they are already covered, attributed, by <see cref="ResolvePlayerDeedsHeard" />. Null when
       ///   nothing relevant surfaces.
       /// </summary>
+      /// <summary>
+      ///   The passages of fed events' full texts (ExternalWorldEvent.Details) that answer the player's words, for events this
+      ///   character already knows (the same awareness gate, run first). Bellum Civile / AI Rebel Relay request (17/11/2026):
+      ///   "full details when genuinely needed", never every full text in every conversation. Full prompt only; a distant
+      ///   rumour gives none (the character barely holds its summary); bounded by EventDetailRecall's budget. Null when
+      ///   nothing bears on the turn (the common case). Never throws.
+      /// </summary>
+      internal static string ResolveEventDetails(Hero hero, string playerMessage, int today, LeanPromptLevel lean)
+      {
+         if (hero == null || lean != LeanPromptLevel.Full || string.IsNullOrWhiteSpace(playerMessage)) return null;
+
+         try
+         {
+            IReadOnlyList<(WorldEvent Event, RumorConfidence Confidence)> known =
+               WorldEventStore.Instance?.GetKnownEventsRated(hero, today, QueryRelevantCandidatePool);
+            if (known == null) return null;
+
+            List<EventDetailSource> sources = known
+               .Where(k => k.Event != null && !string.IsNullOrEmpty(k.Event.DetailsKey) && k.Confidence != RumorConfidence.Distant)
+               .Select(k => new EventDetailSource {
+                  Summary = k.Event.Summary, Details = EventDetailsStore.Read(k.Event.DetailsKey),
+                  Hedge = RumorDiscretion.TagFor(k.Event.KnownOnlyToThoseInvolved) + (k.Confidence == RumorConfidence.Secondhand ? "(heard secondhand) " : "")
+                          + RumorHedge.TagFor(k.Event.OnlyAGuess)
+               })
+               .Where(s => !string.IsNullOrWhiteSpace(s.Details))
+               .ToList();
+            if (sources.Count == 0) return null;
+
+            IReadOnlyList<EventDetailPassage> passages = EventDetailRecall.Find(new EventDetailRecallFacts {Events = sources, Query = playerMessage});
+            if (passages.Count > 0) ModLog.Info($"[FEED] {hero.Name} hears {passages.Sum(p => p.Passages.Count)} passage(s) of {passages.Count} event text(s) on this turn.");
+
+            return EventDetailRecall.Render(passages);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[FEED] event details not recalled: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      private static string JoinBlocks(string a, string b)
+         => string.IsNullOrWhiteSpace(a) ? b : string.IsNullOrWhiteSpace(b) ? a : a + "\n" + b;
+
       internal static string ResolveQueryRelevantFacts(Hero hero, string playerMessage, int today)
       {
          if (hero == null || string.IsNullOrWhiteSpace(playerMessage)) return null;

@@ -227,7 +227,8 @@ namespace CalradiaRemembers.Logic.StoryArchive
          }
       }
 
-      private static double Bm25(List<string> doc, HashSet<string> query, Dictionary<string, int> docFreq, int n, double avgLen)
+      /// <summary>BM25 of one passage against the query's words (shared with EventDetailRecall, so both rank alike).</summary>
+      internal static double Bm25(List<string> doc, HashSet<string> query, Dictionary<string, int> docFreq, int n, double avgLen)
       {
          double score = 0;
          int len = Math.Max(1, doc.Count);

@@ -123,7 +123,7 @@ Used by the most: `CalradiaRemembers.Logic` (79), `NpcMemoryService.Core.Models`
 | `CalradiaRemembers.Items` | 4 | 4 |
 | `CalradiaRemembers.Jealousy` | 16 | 10 |
 | `CalradiaRemembers.Letters` | 43 | 13 |
-| `CalradiaRemembers.Logic` | 10 | 79 |
+| `CalradiaRemembers.Logic` | 11 | 79 |
 | `CalradiaRemembers.Logic.Actions` | 4 | 4 |
 | `CalradiaRemembers.Logic.Aims` | 0 | 6 |
 | `CalradiaRemembers.Logic.Appreciations` | 1 | 17 |
@@ -173,7 +173,7 @@ Used by the most: `CalradiaRemembers.Logic` (79), `NpcMemoryService.Core.Models`
 | `CalradiaRemembers.Logic.Saving` | 0 | 4 |
 | `CalradiaRemembers.Logic.Scenarios` | 2 | 2 |
 | `CalradiaRemembers.Logic.Social` | 2 | 7 |
-| `CalradiaRemembers.Logic.StoryArchive` | 0 | 4 |
+| `CalradiaRemembers.Logic.StoryArchive` | 0 | 5 |
 | `CalradiaRemembers.Logic.Strategy` | 2 | 4 |
 | `CalradiaRemembers.Logic.Styles` | 0 | 1 |
 | `CalradiaRemembers.Logic.Tournaments` | 0 | 3 |
@@ -865,7 +865,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### CalradiaRemembers.Logic
 
-- uses: `CalradiaRemembers.Logic.Appreciations`, `CalradiaRemembers.Logic.Assemblies`, `CalradiaRemembers.Logic.Hashing`, `CalradiaRemembers.Logic.Violence`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.Knowledge`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Mood`, `NpcMemoryService.Core.Prompts`, `NpcMemoryService.Core.Standing`
+- uses: `CalradiaRemembers.Logic.Appreciations`, `CalradiaRemembers.Logic.Assemblies`, `CalradiaRemembers.Logic.Hashing`, `CalradiaRemembers.Logic.StoryArchive`, `CalradiaRemembers.Logic.Violence`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.Knowledge`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Mood`, `NpcMemoryService.Core.Prompts`, `NpcMemoryService.Core.Standing`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Appearance`, `CalradiaRemembers.Arrests`, `CalradiaRemembers.Assemblies`, `CalradiaRemembers.Bastards`, `CalradiaRemembers.Battles`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Chronicle`, `CalradiaRemembers.Commitments`, `CalradiaRemembers.Commoners`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Duels`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Escort`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.GUI`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.HelpPleas`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Items`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic.Actions`, `CalradiaRemembers.Logic.Assemblies`, `CalradiaRemembers.Logic.AuthoredQuests`, `CalradiaRemembers.Logic.Bastards`, `CalradiaRemembers.Logic.Battles`, `CalradiaRemembers.Logic.Captivity`, `CalradiaRemembers.Logic.Character`, `CalradiaRemembers.Logic.Companions`, `CalradiaRemembers.Logic.Conditions`, `CalradiaRemembers.Logic.Conversation`, `CalradiaRemembers.Logic.Diagnostics`, `CalradiaRemembers.Logic.Duels`, `CalradiaRemembers.Logic.Extortion`, `CalradiaRemembers.Logic.Initiative`, `CalradiaRemembers.Logic.Items`, `CalradiaRemembers.Logic.Letters`, `CalradiaRemembers.Logic.Marriage`, `CalradiaRemembers.Logic.Narrative`, `CalradiaRemembers.Logic.Nemesis`, `CalradiaRemembers.Logic.Raids`, `CalradiaRemembers.Logic.RealmTidings`, `CalradiaRemembers.Logic.Relations`, `CalradiaRemembers.Logic.Romance`, `CalradiaRemembers.Logic.Scenarios`, `CalradiaRemembers.Logic.Social`, `CalradiaRemembers.Logic.Strategy`, `CalradiaRemembers.Logic.WarDuty`, `CalradiaRemembers.Logic.Witnesses`, `CalradiaRemembers.Logic.WorldAlmanac`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Memory`, `CalradiaRemembers.Missions`, `CalradiaRemembers.Nemesis`, `CalradiaRemembers.OpenPartnerLover`, `CalradiaRemembers.Portraits`, `CalradiaRemembers.Quests`, `CalradiaRemembers.RealmTidings`, `CalradiaRemembers.Rescue`, `CalradiaRemembers.Retainer`, `CalradiaRemembers.Scenarios`, `CalradiaRemembers.Services`, `CalradiaRemembers.Stance`, `CalradiaRemembers.Standing`, `CalradiaRemembers.Strategy`, `CalradiaRemembers.Tournaments`, `CalradiaRemembers.Travel`, `CalradiaRemembers.UI`, `CalradiaRemembers.Verbs`, `CalradiaRemembers.Violence`, `CalradiaRemembers.Witnesses`, `CalradiaRemembers.WorldAlmanac`, `CalradiaRemembers.WorldEvents`
 
 ### CalradiaRemembers.Logic.Actions
@@ -1116,7 +1116,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### CalradiaRemembers.Logic.StoryArchive
 
 - uses: nothing
-- used by: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Foundation`
+- used by: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Logic`
 
 ### CalradiaRemembers.Logic.Strategy
 

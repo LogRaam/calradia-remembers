@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-811 rules read 603 facts.
+814 rules read 604 facts.
 
 ## Facts read by more than one rule
 
@@ -96,6 +96,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Town.Prosperity` (8) | `EdictCounselPolicy.Answer`, `EdictTownFacts`, `FiefCandidate`, `HardshipPolicy.ShouldRecord`, `LevyFacts`, `TermsFacts`, `WarDutyConfiscation.HasTakeable`, `WarDutyInput` |
 | `Clan.Influence` (7) | `ClaimantBackerFacts`, `CourtActionPolicy.CanAffordInfluenceGrant`, `CourtActionPolicy.ClanNeedsInfluence`, `EdictDecreeFacts`, `KingdomPowerFacts`, `PressForWarFacts`, `PressForWarPolicy.WhyNot` |
 | `DayMoodReader.Draw` (7) | `CorrespondencePreferenceParser.Parse`, `LetterRegardPolicy.ParseTone`, `LetterRegardPolicy.StripToneLine`, `LetterReplyDecisionParser.Parse`, `PatrolLetterText.OrdersStop`, `PatrolLetterText.StripOrderLine`, `PerceivedImageFacts` |
+| `Event.Summary` (7) | `EventDetailRecall.Render`, `EventDetailRecallFacts`, `EventDetailSource`, `PastCandidateFacts`, `PastOnMentionPolicy.Block`, `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
 | `Hero.IsDead` (7) | `KillAttemptResult`, `MattersMostFacts`, `MattersMostPolicy.Resolve`, `MattersMostPolicy.StillKnown`, `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession`, `WorkshopSaleFacts` |
 | `Hero.Siblings` (7) | `MeetingGapDescriber.Describe`, `PairBondFacts`, `PairBondPolicy.Assess`, `PairRegardFacts`, `PairRegardPolicy.Assess`, `PredecessorFacts`, `SuccessionMemoryPolicy.Reframe` |
 | `IFaction.IsKingdomFaction` (7) | `FirstImpressionDescriber.Describe`, `FirstImpressionInputs`, `FirstImpressionPolicy.Resolve`, `PlayerFameFacts`, `PlayerFamePolicy.Line`, `PlayerFamePolicy.NameIsNews`, `PlayerFamePolicy.Read` |
@@ -106,6 +107,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Clan.MapFaction` (6) | `CourierLossFacts`, `CourierSecretPolicy.BecomesSecret`, `CourierSecretPolicy.IsResent`, `CourierSecretPolicy.SenderLossMemory`, `HostageBreachFacts`, `HostageBreachPolicy.IsPledgerAtFault` |
 | `CurrentSettlement.GetPosition2D` (6) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `HeldTournament`, `JealousyHearingPolicy.WithinEarshot` |
 | `Event.InvolvesPlayer` (6) | `PlayerFameFacts`, `PlayerFamePolicy.Line`, `PlayerFamePolicy.NameIsNews`, `PlayerFamePolicy.Read`, `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
+| `Event.KnownOnlyToThoseInvolved` (6) | `EventDetailRecall.Render`, `EventDetailRecallFacts`, `EventDetailSource`, `PastCandidateFacts`, `PastOnMentionPolicy.Block`, `RumorDiscretion.TagFor` |
 | `Kingdom.IsEliminated` (6) | `PressForWarFacts`, `PressForWarPolicy.WhyNot`, `StrategistActFacts`, `StrategistAimPolicy.ChooseDeed`, `StrategistAimPolicy.DeedStands`, `StrategistTargetFacts` |
 | `Kingdom.RulingClan` (6) | `CaptiveOfferFacts`, `OutlawPolicy.IsBrigandage`, `UnionFacts`, `WarDutyLive`, `WarDutyPolicy.Decide`, `WarLoomingPolicy.ShouldRecord` |
 | `MobileParty.IsBandit` (6) | `CaptorAudiencePolicy.HardcoreShare`, `CaptorAudiencePolicy.Select`, `CourierSecretPolicy.WhoGetsTheSecret`, `RansomOfferFacts`, `SecretDefeaterFacts`, `SightedForce` |
@@ -145,7 +147,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `EndCaptivityDetail.ReleasedAfterBattle` (4) | `EnvoyReleaseFacts`, `PrisonerMemoryText.Released`, `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
 | `EndCaptivityDetail.ReleasedByChoice` (4) | `CustodyReleaseFacts`, `EnvoyReleaseFacts`, `QuestRescueCreditPolicy.CreditsPlayerRescue`, `RescueEligibilityPolicy.CanBeARescue` |
 | `Event.Day` (4) | `PastCandidateFacts`, `PastOnMentionPolicy.Block`, `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
-| `Event.Summary` (4) | `PastCandidateFacts`, `PastOnMentionPolicy.Block`, `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
+| `Event.OnlyAGuess` (4) | `EventDetailRecall.Render`, `EventDetailRecallFacts`, `EventDetailSource`, `RumorHedge.TagFor` |
 | `Facts.Exposure` (4) | `KillAttemptPolicy.FallbackNarration`, `KillAttemptPolicy.NarratorTask`, `KillAttemptPolicy.ReactionHint`, `KillNarrationFacts` |
 | `Found.Amount` (4) | `GiftBundlePolicy.WholeLotHeld`, `ItemSaleFacts`, `ItemSalePolicy.DifferenceNote`, `LaidOutGood` |
 | `Found.EquipmentElement` (4) | `GiftBundlePolicy.Describe`, `GiftLine`, `ItemSaleFacts`, `ItemSalePolicy.DifferenceNote` |
@@ -188,7 +190,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `EndCaptivityDetail.ReleasedAfterEscape` (3) | `EnvoyReleaseFacts`, `PrisonerMemoryText.Released`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
 | `EndCaptivityDetail.ReleasedAfterPeace` (3) | `EnvoyReleaseFacts`, `PrisonerMemoryText.Released`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
 | `EndCaptivityDetail.ReleasedByCompensation` (3) | `EnvoyReleaseFacts`, `PrisonerMemoryText.Released`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
-| `Event.KnownOnlyToThoseInvolved` (3) | `PastCandidateFacts`, `PastOnMentionPolicy.Block`, `RumorDiscretion.TagFor` |
+| `Event.DetailsKey` (3) | `EventDetailRecall.Render`, `EventDetailRecallFacts`, `EventDetailSource` |
 | `Father.IsDead` (3) | `MattersMostFacts`, `MattersMostPolicy.Resolve`, `MattersMostPolicy.StillKnown` |
 | `GameStateBridge.GetCurrentGameDay` (3) | `ConversationResumeIdentity`, `JealousyTriggerPolicy.IsPlausibleCourtship`, `PendingSummaryJob` |
 | `HeartPageReader.When` (3) | `LegendPolicy.PromptLine`, `MisdeedsPagePolicy.Line`, `TraumaPagePolicy.Line` |
@@ -627,6 +629,9 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `EscortEligibilityPolicy.ShouldWarnOfMuster`: `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`, `Hero.PartyBelongedTo`, `MobileParty.Army`, `MobileParty.LeaderHero`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`
 - `EscortFacts`: `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`, `Hero.PartyBelongedTo`, `MobileParty.Army`, `MobileParty.LeaderHero`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`
 - `EscortStandingFacts`: `FactionManager.IsAtWarAgainstFaction`, `Hero.IsPrisoner`, `Hero.MapFaction`, `Hero.PartyBelongedTo`, `MobileParty.Army`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`
+- `EventDetailRecall.Render`: `Event.DetailsKey`, `Event.KnownOnlyToThoseInvolved`, `Event.OnlyAGuess`, `Event.Summary`
+- `EventDetailRecallFacts`: `Event.DetailsKey`, `Event.KnownOnlyToThoseInvolved`, `Event.OnlyAGuess`, `Event.Summary`
+- `EventDetailSource`: `Event.DetailsKey`, `Event.KnownOnlyToThoseInvolved`, `Event.OnlyAGuess`, `Event.Summary`
 - `ExecutionFacts`: `CampaignOptions.IsLifeDeathCycleDisabled`, `ModSettings.AdultContentLevel`, `ModSettings.AllowCaptorExecutions`, `PartyBelongedToAsPrisoner.LeaderHero`
 - `ExpulsionFacts`: `Clan.Leader`, `Hero.IsAlive`, `Hero.IsPlayerCompanion`, `Hero.Spouse`
 - `ExternalLlmRequestFacts`: `ModSettings.AllowOtherModsLlm`

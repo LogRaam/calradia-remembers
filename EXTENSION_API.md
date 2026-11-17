@@ -696,7 +696,9 @@ hear (300 characters; a longer one is cut and the log says so). Put the whole te
 kept outside the save, never cut (longer is refused whole, `RejectedInvalid`), returned whole by `Feed.List`, so you can
 digest or compress it on your side and `Update` the record. On `Update`, null `Details` keep what was kept and `""`
 removes it. A save reads the text it wrote: an older save of the same campaign never reads a text a later `Update` wrote.
-Details are not put in any character's prompt yet.
+A character who KNOWS the event (the same awareness gate) and is asked about it hears the passages of `Details` that answer
+the player's words (BM25, about 1,600 characters at most, full prompt only, never for a distant rumour); talk on other
+matters brings none.
 
 ### A character's persona, for your own LLM call (`CrPrompt.Persona`, since 2.8.12)
 

@@ -118,7 +118,8 @@ namespace CalradiaRemembers
       ///   The event's full text, beyond the short <see cref="Summary" /> characters hear (a kingdom digest of many developments,
       ///   a homeland's fall and who survived it). Kept whole, OUTSIDE the save, up to 20,000 characters; longer is refused
       ///   whole (RejectedInvalid), never cut. Comes back whole through <see cref="Feed.List" />, so a mod can digest or compress
-      ///   it on its side and Update the record. Not put in any character's prompt today. On <see cref="Feed.Update" />, null
+      ///   it on its side and Update the record. A character who knows the event hears, when asked about it, the passages that
+      ///   answer the player (full prompt only, bounded). On <see cref="Feed.Update" />, null
       ///   keeps the details already kept and an empty string removes them. Since 2.8.15 (Bellum Civile / AI Rebel Relay
       ///   integration request, 17/11/2026).
       /// </summary>
