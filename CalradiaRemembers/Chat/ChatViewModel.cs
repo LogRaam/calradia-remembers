@@ -3732,6 +3732,10 @@ namespace CalradiaRemembers.Chat
          RebuildCast();
          _storyIntroWritten = false;
          _storyLocation = CaptiveSceneText.BuildStoryLocation();
+         // A new conversation is a new episode of the story archive, even on a reused view-model.
+         _archiveEpisodeOpenedFor = null;
+         _archiveFallbackEpisodeId = null;
+         _archiveComplained = false;
 
          // Extension Surface: announce the conversation to third-party listeners now that the NPC is known and
          // before the first exchange, so a listener can inject relevant memories in time for the first prompt.

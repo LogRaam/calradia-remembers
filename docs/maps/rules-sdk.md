@@ -2022,9 +2022,9 @@ _Marriage bugfix: after cr.marry the NPC's own spouse IS the player, but the REL
 
 _VonLemberg (Discord, 17/11/2026, RFC "Independent LLM Routes"): another mod sends a request through the player's CR connection but aimed at a model of its own (LlmRequest.ModelOverride, exposed as CrLlmRequest.Model). The player's provider pin was chosen for the player's model; sent along with another model it can name providers that do not host it, and with fallbacks off (the default) every such call fails. If this breaks one way, the other mod's calls fail for a reason nobody can see; the other way, the player's own conversations lose the pin they set against moderated providers._
 
-- GIVEN a pin, WHEN a request names another model, THEN that model is sent without the pin
+- GIVEN a pin, WHEN another mods request names its own model, THEN that model is sent without the pin
 - GIVEN a pin, WHEN a request names no model, THEN the pin is kept
-- GIVEN a pin, WHEN a request names the players own model, THEN the pin is kept
+- GIVEN a pin, WHEN the mod itself overrides the model, THEN the pin is kept
 
 ### OpenRouterModelOverrideTests.cs
 

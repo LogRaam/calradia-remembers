@@ -569,6 +569,8 @@ namespace CalradiaRemembers.Chat
       {
          var heard = new List<string>();
          if (!string.IsNullOrEmpty(_npcHero?.StringId)) heard.Add(_npcHero.StringId);
+         // A brigand captor has no hero, but a recurring nemesis keeps a profile: he heard every word of his own scene.
+         else if (!string.IsNullOrEmpty(_captiveEncounterProfile?.Id)) heard.Add(_captiveEncounterProfile.Id);
          foreach (WitnessEntry w in _witnesses)
             if (!string.IsNullOrEmpty(w?.HeroStringId) && !heard.Contains(w.HeroStringId))
                heard.Add(w.HeroStringId);
@@ -586,7 +588,7 @@ namespace CalradiaRemembers.Chat
          var present = new List<StoryArchiveParticipant>();
          string hostName = _mode == ChatMode.Commoner ? _commonerProfile?.Name : _npcName;
          if (!string.IsNullOrWhiteSpace(hostName) && _envoy == null && _exploration == null)
-            present.Add(new StoryArchiveParticipant {HeroId = _npcHero?.StringId, Name = hostName, Role = "host"});
+            present.Add(new StoryArchiveParticipant {HeroId = _npcHero?.StringId ?? _captiveEncounterProfile?.Id, Name = hostName, Role = "host"});
          foreach (WitnessEntry w in _witnesses)
             if (w != null)
                present.Add(new StoryArchiveParticipant {

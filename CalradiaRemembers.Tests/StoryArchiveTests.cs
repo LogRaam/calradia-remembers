@@ -71,6 +71,30 @@ namespace CalradiaRemembers.Tests
          back.Should().BeEquivalentTo(line);
       }
 
+      // STAKE: an episode opening is the first kind of the enum; it must still be written by name, or a later reordering
+      // of the kinds would silently turn every episode already on disk into something else.
+      [Test]
+      public void GIVEN_an_episode_opening_WHEN_written_THEN_its_kind_is_in_the_file_and_comes_back()
+      {
+         var start = new StoryArchiveRecord {
+            Id = "e1", Kind = StoryArchiveKind.EpisodeStart, Participants = new List<StoryArchiveParticipant> {new StoryArchiveParticipant {HeroId = "lord_1_1", Name = "Lucon", Role = "host"}}
+         };
+
+         string line = start.Serialize();
+
+         line.Should().Contain("\"Kind\":\"EpisodeStart\"");
+         StoryArchiveRecord.Deserialize(line).Should().BeEquivalentTo(start);
+      }
+
+      // STAKE: an envoy or an exploration has nobody to "meet"; the Story Log never writes "You meet someone."
+      [Test]
+      public void GIVEN_an_episode_without_participants_WHEN_told_THEN_it_never_meets_someone()
+      {
+         StoryArchiveNovel.Render(new StoryArchiveRecord {Kind = StoryArchiveKind.EpisodeStart, Time = 9, Text = "the envoy of Lucon"})
+                          .Should().Contain("You meet the envoy of Lucon.");
+         StoryArchiveNovel.Render(new StoryArchiveRecord {Kind = StoryArchiveKind.EpisodeStart, Time = 9}).Should().NotContain("meet");
+      }
+
       // STAKE: a crash mid-write leaves a torn last line; it is skipped, the rest of the story stays readable.
       [TestCase("")]
       [TestCase("{\"Id\":\"r1\",\"Kind\":\"Li")]

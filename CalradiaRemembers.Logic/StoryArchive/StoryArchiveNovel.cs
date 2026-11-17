@@ -31,7 +31,9 @@ namespace CalradiaRemembers.Logic.StoryArchive
          switch (record.Kind)
          {
             case StoryArchiveKind.EpisodeStart:
-               return $"{nl}[Day {(int) record.Time}]{nl}{nl}{MeetingSentence(record)}{nl}";
+               string meeting = MeetingSentence(record);
+
+               return meeting == null ? $"{nl}[Day {(int) record.Time}]{nl}" : $"{nl}[Day {(int) record.Time}]{nl}{nl}{meeting}{nl}";
             case StoryArchiveKind.Line:
                if (string.IsNullOrEmpty(text)) return null;
 
@@ -52,13 +54,18 @@ namespace CalradiaRemembers.Logic.StoryArchive
          }
       }
 
-      /// <summary>"You meet Alympia and Martira in the castle of Poros." from an episode's participants and place.</summary>
+      /// <summary>
+      ///   "You meet Alympia and Martira in the castle of Poros." from an episode's participants and place; an episode with
+      ///   no participant (an envoy, an exploration) is told by the name its Text carries, or not at all (null).
+      /// </summary>
       public static string MeetingSentence(StoryArchiveRecord episode)
       {
          List<string> names = (episode?.Participants ?? new List<StoryArchiveParticipant>())
                               .Select(p => p?.Name).Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
-         string who = names.Count == 0 ? "someone"
-            : names.Count == 1 ? names[0]
+         if (names.Count == 0 && !string.IsNullOrWhiteSpace(episode?.Text)) names.Add(episode.Text.Trim());
+         if (names.Count == 0) return null;
+
+         string who = names.Count == 1 ? names[0]
             : string.Join(", ", names.Take(names.Count - 1)) + " and " + names[names.Count - 1];
          string where = string.IsNullOrWhiteSpace(episode?.PlaceName) ? "" : $" in {episode.PlaceName}";
 

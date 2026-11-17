@@ -160,7 +160,8 @@ namespace CalradiaRemembers
                Messages = messages,
                Parameters = new LlmParameters {MaxTokens = ruling.MaxOutputTokens, Creativity = Math.Max(0f, Math.Min(2f, request.Creativity))},
                // VonLemberg (17/11/2026): a model of the caller's own; the SDK drops the player's provider pin for it.
-               ModelOverride = ruling.Model
+               ModelOverride = ruling.Model,
+               OmitProviderPin = ruling.Model != null
             }, cancellationToken).ConfigureAwait(false);
 
             result.PromptTokens = reply?.Usage?.PromptTokens ?? 0;

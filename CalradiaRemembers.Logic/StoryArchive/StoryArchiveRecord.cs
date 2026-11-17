@@ -71,8 +71,9 @@ namespace CalradiaRemembers.Logic.StoryArchive
       /// <summary>The id of the record before it on the same branch; null for the first.</summary>
       public string ParentId { get; init; }
 
-      /// <summary>What kind of record this is.</summary>
+      /// <summary>What kind of record this is. Always written, even the first kind: the file outlives any reordering of the enum.</summary>
       [JsonConverter(typeof(StringEnumConverter))]
+      [JsonProperty(DefaultValueHandling = DefaultValueHandling.Include)]
       public StoryArchiveKind Kind { get; init; }
 
       /// <summary>The episode it belongs to (the conversation's session id); null outside a conversation.</summary>
