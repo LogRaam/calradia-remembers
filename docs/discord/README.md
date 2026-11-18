@@ -23,6 +23,7 @@ a default), update the tutorial in the same commit, as for the CHANGELOG. The ta
 | `prompt-profiles.md` | Prompt Composer | `Logic/PromptProfiles.cs` (profile.json, layouts, sections), `docs/maps/prompt-sections.md` (locks, shipped as `Docs/PROMPT_SECTIONS.md`), `docs/maps/prompt-pipelines.md` (shipped as `Docs/PROMPT_PIPELINES.md`), `cr.prompt_check` |
 | `translation.md` | Translating the mod | `ModuleData/Languages/` (README, EN template), what is translatable today (the MCM page only) |
 | `modders.md` | Plugging a mod into CR | `EXTENSION_API.md`, `Extension/HOWTO_*.md`, the `cr_*` data folders, `cr.api_probe`, `cr.heard` |
+| `console.md` | Console commands for players | `Diagnostics/ConsoleCommandHelp.cs` (every command named exists there), `CalradiaRemembers/CONSOLE_COMMANDS_GUIDE.md`, MCM Diagnostics "Report button in the chat" (on by default) |
 
 ## Before 2.8.8 is live
 

@@ -132,7 +132,8 @@ These help me see what you saw. They change nothing.
 | `cr.save_sizes` | What each part of CR weighed at your last save (save first): useful when a save feels slow or large. | `cr.save_sizes` |
 
 The log itself is `Documents\Mount and Blade II Bannerlord\Logs\CalradiaRemembers.log`. The chat window's **Report**
-button (when its MCM option is on) saves the whole conversation and its context to a file for you to send.
+button (on by default; MCM, Diagnostics, "Report button in the chat") saves the whole conversation and its context to a file
+for you to send. Nothing is sent by itself.
 
 ### Your edited prompt files
 
