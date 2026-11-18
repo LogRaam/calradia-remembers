@@ -655,6 +655,11 @@ MUST = [
     ("sdk",   b"IntimateActNames"),
     ("sdk",   b"LessFondActs"),
     ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
+    # 2.8.16
+    ("logic", b"StandardActionCases"),
+    ("logic", b"StandardGate"),
+    ("mod",   b"PickOutsider"),
+    ("logic", "Tagged right (95%)".encode("utf-16-le")),
     # 2.8.15
     ("logic", b"SceneFindingEcho"),
     ("logic", b"SceneTranscriptWindow"),

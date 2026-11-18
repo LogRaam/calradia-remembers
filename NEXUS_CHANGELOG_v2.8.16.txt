@@ -1,0 +1,15 @@
+Version 2.8.16
+
+The console benchmark now gives, for every model you test, the four things that decide a choice: whether it does the deeds right, how long you wait, what it costs, and how much its cache saves.
+
+Developer tools
+
+- cr.cost_bench shows, for each interpret model, how much of every reading came from the provider's cache, beside its accuracy, cost and speed. Every reading sends the same long list of deeds first, so the cache is most of an interpreter's price.
+- cr.cost_bench now scores Standard models (one call writes and acts) on the deeds they tag in their own replies. After its conversation, a [standard] row plays about thirty short staged scenes: a price agreed then paid, a sword handed over or sold, a lesson given, riding together and parting, an escort taken and sent home, a wedding, a lord joining your house, and look-alikes that must NOT count (a payment only promised for later, a "not yet"). Its own table gives the deeds tagged right with a margin of error, the deeds invented, the cost and wait per reply, and the share from cache. Nothing is carried out in your game. The wedding and the joining are played by an unwed lord of another house; a scene the game would not teach that character is skipped and named, never counted.
+- cr.cost_bench plan counts the extra calls a Standard row now makes before anything is spent.
+- The Discord benchmark tutorial is rewritten: how to choose the models for your composition, how to read the tables, and what a run costs (about $2 to $3 for the default file, a few cents for a small run).
+
+Notes
+
+- Nothing changes in play: this version only adds to the benchmark command.
+- Saves from 2.8.15 and older load as they are, and your MCM choices are kept.
