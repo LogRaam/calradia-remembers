@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 685 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1699 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1702 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2180,7 +2180,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SummaryEnqueueOutcome` | public enum | What ConversationSummaryQueue.Enqueue actually did with the new job. |
 | `WitnessExchangePolicy` | public static class | Decides whether the bystander exchange must stop and leave the floor to the player. |
 
-### CalradiaRemembers.Logic.Diagnostics (34)
+### CalradiaRemembers.Logic.Diagnostics (37)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2218,6 +2218,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RecapSignal` | public static class | Whether a late reply found what the folded recap holds: the levies agreed early in the conversation. |
 | `ReportExchange` | public class | One exchange with the model, as the report shows it. |
 | `SermonSignal` | public static class | The fearente signal: a reply that still warns or lectures after the player has answered the concern. |
+| `StandardActionCase` | public class | One staged case: the turns that settle the deed, the line that calls for it, and what must be tagged. |
+| `StandardActionCases` | public static class | The staged cases, their gates and their scoring. |
+| `StandardGate` | public enum | The context gate a staged case opens so its verb is taught, as the game would for a character who could do it. |
 
 ### CalradiaRemembers.Logic.Diplomacy (3)
 

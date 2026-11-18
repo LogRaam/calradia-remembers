@@ -49,7 +49,13 @@ namespace CalradiaRemembers.Logic.Diagnostics
       Letter,
 
       /// <summary>The older part of a long conversation folded into a recap (the Background model).</summary>
-      Fold
+      Fold,
+
+      /// <summary>
+      ///   A [standard] row answering one staged case (StandardActionCases), its tags scored: turn 0, kept out of the row's
+      ///   conversation columns, its own table beside the interpreters (Gabriel, 18/11/2026).
+      /// </summary>
+      Tagging
    }
 
    /// <summary>Which pass a row of the scenario file belongs to.</summary>
@@ -576,7 +582,8 @@ namespace CalradiaRemembers.Logic.Diagnostics
       /// <summary>A prose or standard row's costs from its billed attempts and its replies (by turn, from 1).</summary>
       public static ProseRowResult SummarizeProse(CostScenario row, IReadOnlyList<CostCall> calls, IReadOnlyList<string> replies, string note = "")
       {
-         List<CostCall> mine = Mine(calls, row);
+         // The staged tagging cases have their own table: their many short calls would skew the conversation's shares.
+         List<CostCall> mine = Mine(calls, row).Where(c => c.Phase != CostPhase.Tagging).ToList();
          Dictionary<int, double> perTurn = mine.Where(c => c.Turn > 0 && c.Phase != CostPhase.Fold).GroupBy(c => c.Turn)
                                                .ToDictionary(g => g.Key, g => g.Sum(c => c.Cost ?? 0));
          List<CostCall> letter = mine.Where(c => c.Phase == CostPhase.Letter).ToList();
@@ -649,7 +656,7 @@ namespace CalradiaRemembers.Logic.Diagnostics
             string work = r.Pass switch
             {
                CostPass.Prose => $"the scene opener, {CostWindows.OpeningTurns} replies played, then the middle and a long conversation (a warm-up and a measured reply each), a letter; about {turns} calls",
-               CostPass.Standard => $"the same in one call each; about {turns} calls",
+               CostPass.Standard => $"the same in one call each, then {StandardActionCases.All.Count} staged deeds to tag in its own reply; about {turns + StandardActionCases.All.Count} calls",
                CostPass.Interpret => r.CasesPerDifficulty > 0
                   ? $"{r.CasesPerDifficulty} readings of each of 4 difficulties; {r.CasesPerDifficulty * 4} calls"
                   : $"the whole catalog and {casesPerDifficulty} ordinary replies; about {casesPerDifficulty + 300} calls",
@@ -663,7 +670,8 @@ namespace CalradiaRemembers.Logic.Diagnostics
 
       /// <summary>The full report for the log and the repository (Markdown).</summary>
       public static string Markdown(IReadOnlyList<ProseRowResult> prose, IReadOnlyList<InterpretRowResult> interpret,
-                                    IReadOnlyList<FoldRowResult> folds, string version, DateTime measuredOn)
+                                    IReadOnlyList<FoldRowResult> folds, string version, DateTime measuredOn,
+                                    IReadOnlyList<InterpretRowResult> tagging = null)
       {
          var sb = new StringBuilder();
          sb.AppendLine($"Measured with Calradia Remembers {version} on {measuredOn:yyyy-MM-dd}, OpenRouter's own bill for each call.");
@@ -684,6 +692,16 @@ namespace CalradiaRemembers.Logic.Diagnostics
             sb.AppendLine($"| {r.Row.Name} ({r.Row.Model}) | {Cell(r, InterpretDifficulty.NoAction)} | {Cell(r, InterpretDifficulty.Simple)} | {Cell(r, InterpretDifficulty.Oblique)} | {Cell(r, InterpretDifficulty.FalseLead)} | {AccuracyText(r)} | ${Money(r.PerReading)}, {Secs(r.SecondsPerReading)} | {Percent(r.CachedShare)} |{Flags(r.Unpriced, r.Note)}");
          sb.AppendLine();
 
+         if (tagging != null && tagging.Count > 0)
+         {
+            sb.AppendLine("STANDARD, deeds tagged in its own reply: staged cases (the deed settled in earlier turns, then called for, or only spoken of for later), the verb's gate opened by the bench; right out of cases (and deeds invented):");
+            sb.AppendLine("| Model | No action | Simple | Oblique | False lead | Tagged right (95%) | Per reply | From cache |");
+            sb.AppendLine("|---|---|---|---|---|---|---|---|");
+            foreach (InterpretRowResult r in tagging)
+               sb.AppendLine($"| {r.Row.Name} ({r.Row.Model}) | {Cell(r, InterpretDifficulty.NoAction)} | {Cell(r, InterpretDifficulty.Simple)} | {Cell(r, InterpretDifficulty.Oblique)} | {Cell(r, InterpretDifficulty.FalseLead)} | {AccuracyText(r)} | ${Money(r.PerReading)}, {Secs(r.SecondsPerReading)} | {Percent(r.CachedShare)} |{Flags(r.Unpriced, r.Note)}");
+            sb.AppendLine();
+         }
+
          sb.AppendLine("FOLD, one fold of the same recap, per Background model:");
          sb.AppendLine("| Model | One fold |");
          sb.AppendLine("|---|---|");
@@ -700,7 +718,8 @@ namespace CalradiaRemembers.Logic.Diagnostics
       ///   The tables for the Nexus description, as [code] blocks: monospace keeps the columns aligned whatever the page's
       ///   bbcode supports.
       /// </summary>
-      public static string NexusCode(IReadOnlyList<ProseRowResult> prose, IReadOnlyList<InterpretRowResult> interpret, string version, DateTime measuredOn)
+      public static string NexusCode(IReadOnlyList<ProseRowResult> prose, IReadOnlyList<InterpretRowResult> interpret, string version, DateTime measuredOn,
+                                     IReadOnlyList<InterpretRowResult> tagging = null)
       {
          var sb = new StringBuilder();
          sb.AppendLine($"[b]Measured costs[/b] (Calradia Remembers {version}, {measuredOn:yyyy-MM-dd}, OpenRouter's own bill for each call)");
@@ -712,6 +731,9 @@ namespace CalradiaRemembers.Logic.Diagnostics
                        }))));
          sb.Append(Code(new[] {new[] {"Interpret model", "Per reply", "Read right", "From cache"}}
                        .Concat(interpret.Select(i => new[] {i.Row.Name, $"${Money(i.PerReading)} {Secs(i.SecondsPerReading)}", AccuracyText(i), Percent(i.CachedShare)}))));
+         if (tagging != null && tagging.Count > 0)
+            sb.Append(Code(new[] {new[] {"Standard model", "Per reply", "Tagged right", "From cache"}}
+                          .Concat(tagging.Select(t => new[] {t.Row.Name, $"${Money(t.PerReading)} {Secs(t.SecondsPerReading)}", AccuracyText(t), Percent(t.CachedShare)}))));
          sb.Append(Grid(prose, interpret, nexus: true));
 
          return sb.ToString();

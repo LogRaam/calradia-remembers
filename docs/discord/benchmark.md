@@ -4,7 +4,7 @@
 **What is it for?**
 Before you settle on a model, you want to know: **what will it cost me, how long will I wait, and does it play well?** The mod can measure that for you, in your own game, with OpenRouter's real prices. No guessing from a price list.
 
-The main tool is `cr.cost_bench`. It plays the **same conversation** on each model you list: the scene opening, a reply eight turns in, a reply eighteen turns in (after the conversation is summed up), and a letter. Then it gives you tables: **cost per reply, seconds waited, how much of each call the provider served from its cache** (cached tokens cost far less), and warning signs (repetitions, refusals, sermons, mentions of Earth, whether it remembered what was agreed). It also scores **interpret models** on how many deeds they read right.
+The main tool is `cr.cost_bench`. It plays the **same conversation** on each model you list: the scene opening, a reply eight turns in, a reply eighteen turns in (after the conversation is summed up), and a letter. Then it gives you tables: **cost per reply, seconds waited, how much of each call the provider served from its cache** (cached tokens cost far less), and warning signs (repetitions, refusals, sermons, mentions of Earth, whether it remembered what was agreed). It also scores **interpret models** on how many deeds they read right, and **Standard models** on the deeds they tag in their own replies.
 
 **Nothing in your game changes**: nothing is saved, no letter is sent, and every setting it borrows is put back. It picks the character itself (your spouse, otherwise a lord of your realm).
 
@@ -32,7 +32,7 @@ DeepSeek V4 Flash | deepseek/deepseek-v4-flash
 ```
 - **[prose]**: `name | model id | Full or Compact | reasoning effort | NSFW fallback model` (the last one optional).
 - **[interpret]**: `name | model id | cases per difficulty`. A number tests a sample; blank tests the whole catalog (about 300 cases, dearer).
-- **[standard]**: the same as prose, in Standard mode (one call instead of two).
+- **[standard]**: the same as prose, in Standard mode (one call instead of two). Then about twenty short staged scenes (a price agreed then paid, a lesson promised then given, a payment only promised for later) check that the model **tags the deed itself**, and only when it is truly done.
 - **[fold]**: background models, timed on summing up a long conversation.
 The name is what the tables show; the model id is copied from the model's page on OpenRouter. **Delete the rows you don't need**: fewer rows, cheaper run.
 
@@ -47,7 +47,7 @@ The game waits while it runs. Long rows take a few minutes.
 
 Everything goes to:
 `Documents/Mount and Blade II Bannerlord/Logs/CalradiaRemembers_cost_bench.log`
-- the **tables**: per prose model, the cost and the wait for the opening, an early reply, a long-talk reply and a letter; per interpret model, how many cases it read right (with a margin of error), the cost and wait of one reading, and its share **from cache**; then a grid of every prose + interpret pair, in dollars and in seconds;
+- the **tables**: per prose model, the cost and the wait for the opening, an early reply, a long-talk reply and a letter; per interpret model, how many cases it read right (with a margin of error), the cost and wait of one reading, and its share **from cache**; per Standard model, the same for the deeds it tagged in its own replies; then a grid of every prose + interpret pair, in dollars and in seconds;
 - **every billed call**;
 - the **transcripts**: what each model actually wrote. **Read them**: the price says nothing about the writing.
 

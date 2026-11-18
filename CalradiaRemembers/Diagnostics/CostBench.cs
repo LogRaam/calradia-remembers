@@ -7,7 +7,8 @@
 //   PROSE      each model plays the same twenty-line conversation in Enhanced with no interpreter, the conversation
 //              folded exactly as the chat folds it (ConversationCompressionPolicy, ConversationHistoryCompressor on the
 //              Background client), then writes one letter. Fearente's own case is lines 2 and 3.
-//   STANDARD   the same conversation in one call that writes and tags.
+//   STANDARD   the same conversation in one call that writes and tags, then staged deeds (Logic/Diagnostics/
+//              StandardActionCases) whose tags are scored like an interpreter's readings (Gabriel, 18/11/2026).
 //   INTERPRET  each model reads the same scripted replies (cr.action_bench's catalog, by difficulty, plus ordinary
 //              replies in which nothing is done) and is scored against what each reply really did.
 //   FOLD       each Background model folds the same recap once.
@@ -220,6 +221,8 @@ namespace CalradiaRemembers.Diagnostics
          var interpret = new List<InterpretRowResult>();
          var folds = new List<FoldRowResult>();
          var outcomes = new List<InterpretOutcome>();
+         var tagging = new List<InterpretRowResult>();
+         var tagOutcomes = new List<InterpretOutcome>();
          var transcripts = new StringBuilder();
          ConversationTranscript reference = null;
          string version = ModVersion();
@@ -249,6 +252,12 @@ namespace CalradiaRemembers.Diagnostics
                   out List<string> replies, out ConversationTranscript transcript);
                reference ??= transcript;
                prose.Add(CostBenchReport.SummarizeProse(played, recorder.Calls, replies, note));
+               if (row.Pass != CostPass.Standard) continue;
+
+               string tagNote = CostBenchReport.CapReached(recorder.Spent, cap)
+                  ? $"not run: the ${CostBenchReport.Money(cap)} cap was reached"
+                  : TagCases(behavior, services, played, speaker, recorder, tagOutcomes, transcripts, cap);
+               tagging.Add(CostBenchReport.SummarizeInterpret(played, recorder.Calls.Where(c => c.Phase == CostPhase.Tagging).ToList(), tagOutcomes, tagNote));
             }
 
             foreach (CostScenario row in rows.Where(r => r.Pass == CostPass.Interpret))
@@ -275,7 +284,7 @@ namespace CalradiaRemembers.Diagnostics
             try { File.WriteAllText(CapturePath, prefixWatch.Capture.ToJson()); }
             catch (Exception ex) { ModLog.Error($"[COST] capture not written: {ex.Message}"); }
 
-         string report = BuildReport(prose, interpret, folds, recorder, transcripts, version, speaker, prefixWatch);
+         string report = BuildReport(prose, interpret, folds, tagging, recorder, transcripts, version, speaker, prefixWatch);
          try { File.AppendAllText(ReportPath, report); }
          catch (Exception ex) { ModLog.Error($"[COST] report not written: {ex.Message}"); }
 
@@ -515,6 +524,88 @@ namespace CalradiaRemembers.Diagnostics
          transcripts.AppendLine(written ? $"[letter] {(text.Length > 400 ? text.Substring(0, 400) + "..." : text)}" : "[letter] not written in time");
       }
 
+      // ── STANDARD, deeds tagged in its own reply ──────────────────────
+
+      // Each staged case on a fresh session: the earlier turns that settle the deed, the gate that teaches its verb opened on
+      // the context as the game would open it, then the player's last line. Only read: ChatAsync parses the tags and executes
+      // nothing. A case whose verb the prompt does not teach after all is skipped and named, never scored.
+      private static string TagCases(NpcMemoryCampaignBehavior behavior, LlmServices services, CostScenario row, Hero speaker, CostRecorder recorder,
+                                     List<InterpretOutcome> outcomes, StringBuilder transcripts, double cap)
+      {
+         using var forced = new ForcedSetup(services, row, false);
+         NpcProfile profile = CopyOf(behavior.Store.Get(speaker.StringId) ?? HeroProfileMapper.FromHero(speaker));
+         var skipped = new List<string>();
+         transcripts.AppendLine($"--- [standard tags] {row.Name}: {row.Model}; {row.Setup} ---");
+         foreach (StandardActionCase test in StandardActionCases.All)
+         {
+            if (CostBenchReport.CapReached(recorder.Spent, cap)) return "stopped early: cap reached";
+
+            var session = new ChatSession();
+            foreach ((string player, string character) in test.Earlier)
+            {
+               session.AddPlayerMessage(player);
+               session.AddNpcMessage(character);
+            }
+
+            recorder.Begin(row, CostPhase.Tagging, 0, test.Difficulty);
+            string error = null;
+            string reply = "";
+            IReadOnlyList<GameAction> tags = new List<GameAction>();
+            try
+            {
+               EncounterContext ctx = EncounterContextBuilder.Build(speaker, profile, behavior.GameStateBridge, test.Line);
+               foreach (KeyValuePair<string, object> fact in StandardActionCases.GateFacts(test.Gate))
+                  typeof(EncounterContext).GetProperty(fact.Key)?.SetValue(ctx, fact.Value);
+               var world = new WorldState {CurrentDay = behavior.GameStateBridge.GetCurrentGameDay()};
+               using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(Math.Max(15, ModSettings.LlmResponseTimeoutSeconds) * 3));
+               CancellationToken ct = cts.Token;
+               NpcChatResult result = Task.Run(() => services.ChatService.ChatAsync(profile, world, session, test.Line, ctx, ct, allowTruncationRetry: true), ct)
+                                          .GetAwaiter().GetResult();
+               if (result is {IsSuccess: true})
+               {
+                  tags = result.Response?.Actions ?? new List<GameAction>();
+                  reply = (result.Response?.Dialogue ?? "").Replace("\r", " ").Replace("\n", " ");
+               }
+               else error = result?.ErrorMessage ?? "no reply";
+            }
+            catch (Exception ex)
+            {
+               Exception inner = (ex as AggregateException)?.InnerException ?? ex;
+               error = $"{inner.GetType().Name}: {inner.Message}";
+            }
+
+            transcripts.AppendLine($"> [{test.Id}] {test.Line}");
+            if (error == null && !StandardActionCases.Taught(test, _watch?.LastPrompt))
+            {
+               skipped.Add(test.Id);
+               transcripts.AppendLine($"  (skipped: the prompt did not teach {test.Verb})");
+
+               continue;
+            }
+
+            (bool right, bool invented) = error == null ? StandardActionCases.Score(test, tags) : (false, false);
+            string tagged = tags.Count == 0
+               ? "nothing"
+               : string.Join(" + ", tags.Select(a => a.Type + (a.Parameters == null || a.Parameters.Count == 0
+                                                                   ? ""
+                                                                   : "(" + string.Join(", ", a.Parameters.Select(p => p.Key + "=" + p.Value)) + ")")));
+            string forbidden = test.Scoring.ForbiddenType;
+            string expected = test.Scoring.Expected.Count == 0
+               ? "nothing" + (forbidden != null && forbidden != "none" ? " (forbidden: " + forbidden + ")" : "")
+               : string.Join(" + ", test.Scoring.Expected.Select(e => e.Type));
+            outcomes.Add(new InterpretOutcome {
+               ScenarioName = row.Name, Difficulty = test.Difficulty, Right = right, Invented = invented,
+               Miss = right ? "" : $"{test.Id} expected {expected}, tagged {(error == null ? tagged : "(call failed: " + error + ")")}"
+            });
+            transcripts.AppendLine(error == null ? $"< {reply}" : $"! {error}");
+            transcripts.AppendLine($"  [{(right ? "right" : "WRONG")}] expected {expected}, tagged {tagged}");
+         }
+
+         transcripts.AppendLine();
+
+         return skipped.Count == 0 ? "" : $"skipped, verb not taught: {string.Join(", ", skipped)}";
+      }
+
       // ── INTERPRET ─────────────────────────────────────────────────────
 
       private static string ReadCases(LlmServices services, CostScenario row, CostRecorder recorder, List<InterpretOutcome> outcomes, double cap)
@@ -544,7 +635,7 @@ namespace CalradiaRemembers.Diagnostics
 
       // ── Report ────────────────────────────────────────────────────────
 
-      private static string BuildReport(List<ProseRowResult> prose, List<InterpretRowResult> interpret, List<FoldRowResult> folds, CostRecorder recorder,
+      private static string BuildReport(List<ProseRowResult> prose, List<InterpretRowResult> interpret, List<FoldRowResult> folds, List<InterpretRowResult> tagging, CostRecorder recorder,
                                         StringBuilder transcripts, string version, Hero speaker, PrefixWatch prefixWatch)
       {
          var sb = new StringBuilder();
@@ -555,9 +646,9 @@ namespace CalradiaRemembers.Diagnostics
          sb.AppendLine($"  Spent: ${CostBenchReport.Money(recorder.Spent)}");
          sb.AppendLine("========================================================================");
          sb.AppendLine();
-         sb.AppendLine(CostBenchReport.Markdown(prose, interpret, folds, version, DateTime.Now));
+         sb.AppendLine(CostBenchReport.Markdown(prose, interpret, folds, version, DateTime.Now, tagging));
          sb.AppendLine("For the Nexus description:");
-         sb.AppendLine(CostBenchReport.NexusCode(prose, interpret, version, DateTime.Now));
+         sb.AppendLine(CostBenchReport.NexusCode(prose, interpret, version, DateTime.Now, tagging));
          sb.AppendLine("Cacheable prefix, prose calls compared with the previous one of their row (a change near the top makes the whole prompt full price):");
          if (prefixWatch.Findings.Count == 0) sb.AppendLine("  unchanged on every call.");
          foreach (string f in prefixWatch.Findings) sb.AppendLine("  " + f);
@@ -622,6 +713,9 @@ namespace CalradiaRemembers.Diagnostics
 
          public List<string> Findings { get; } = new List<string>();
 
+         /// <summary>The whole system prompt of the last request, to check that a staged case's verb was taught.</summary>
+         public string LastPrompt { get; private set; } = "";
+
          /// <summary>What the run's prose and standard rows sent, call by call.</summary>
          public CostCaptureFile Capture { get; } = new CostCaptureFile();
 
@@ -629,6 +723,7 @@ namespace CalradiaRemembers.Diagnostics
          {
             if (snapshot == null) return;
 
+            LastPrompt = snapshot.Request?.SystemPrompt ?? (snapshot.StablePrefix ?? "") + (snapshot.DynamicTail ?? "");
             CostPhase phase = _recorder.Phase;
             if (phase == CostPhase.Prose || phase == CostPhase.Opener || phase == CostPhase.Letter) Record(snapshot, phase);
             if (phase != CostPhase.Prose && phase != CostPhase.Opener) return;

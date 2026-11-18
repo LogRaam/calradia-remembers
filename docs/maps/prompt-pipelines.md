@@ -53,6 +53,7 @@ them gets the editable files that reach the character prompt.
 - `ChatViewModel.RunNpcWitnessExchangeAsync` (ChatAsync)
 - `CostBench.PlayTurn` (ChatAsync), tool
 - `CostBench.SetTheScene` (ChatAsync), tool
+- `CostBench.TagCases` (ChatAsync), tool
 - `CrSelfTest.AskLlmParsed` (ChatAsync), tool
 - `CrSelfTest.AskLlm` (ChatAsync), tool
 - `CrSelfTest.TestLocalContext` (ChatAsync), tool
