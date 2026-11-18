@@ -9,8 +9,8 @@ console. There are **two families**, and telling them apart is the whole point o
   internal state for testing. They are **not gameplay features**; running them won't break anything,
   but they are not how you "play" the mod, and a few of them only make sense to a developer.
 
-> **The live reference is in-game.** Type **`cr.help`** for the full command list and **`cr.test list`**
-> for the self-tests. This file explains what they're *for* and how to use the useful ones well; the
+> **The live reference is in-game.** Type **`cr.help`** for the full command list (`cr.help <word>` filters it,
+> e.g. `cr.help letter`) and **`cr.test list`** for the self-tests. This file explains what they're *for* and how to use the useful ones well; the
 > in-game lists are always current even if this document drifts.
 
 ---
@@ -61,6 +61,7 @@ memory directly. These write **straight into one NPC's memory**, so that charact
 | `cr.memory_set <index> <new text> [name]` | Replace the text of one event (fix a bad AI line). **(save)** | `cr.memory_set 2 She remembered me warmly. Liena` |
 | `cr.forget <index> [name]` | Delete one event. **(save)** | `cr.forget 1 Liena` |
 | `cr.forget_all [name]` | Wipe an NPC's whole memory for a clean slate. **(save)** | `cr.forget_all Liena` |
+| `cr.memory_repair_accents` | Mend memories whose accents the console mangled before 2.6.11 (`Ã©` where `é` was typed). Safe to run twice. **(save)** | `cr.memory_repair_accents` |
 
 > The `[name]` is optional: with a CR conversation open it targets that NPC; otherwise the last word is
 > tried as a name, and if it doesn't match a hero the whole text after the index is the new memory.
@@ -77,6 +78,30 @@ heard it.. distance, faction, recency.. and as hearsay when it fits, never recit
 about recent news** to draw it out. To make ONE specific NPC know a precise fact, use `cr.memory_add`
 instead.
 
+### What you know of a character
+
+| Command | What it does | Example |
+|---|---|---|
+| `cr.matters [name]` | What matters most to a character (children, spouse, the honour of their house, a score to settle...), their fear, their superstition, the gifts they love or shrug at, and which of these you have learned. Read-only. | `cr.matters Liena` |
+| `cr.station [name]` | How the mod voices a character (ruler, lord, companion, wanderer, a notable's trade...) and where it thinks you stand in the world. Read-only. | `cr.station` |
+
+### Letters
+
+| Command | What it does | Example |
+|---|---|---|
+| `cr.letterbox [show\|open N\|throw N]` | List the unopened letters (oldest first), open the letter box, read the Nth, or throw it away. | `cr.letterbox open 1` |
+| `cr.awaited [name]` | Mark or unmark a correspondence as awaited (the letter book's ribbon): that character's letters come first. **(save)** | `cr.awaited Liena` |
+
+### Your campaign at a glance (read-only; some spoil)
+
+| Command | Shows |
+|---|---|
+| `cr.legends` | Every legend of the campaign: the day, the name and the deed. |
+| `cr.help_pleas` | Calls for help in progress: who wrote, what they ask, the deadline, your answer. |
+| `cr.raid_restraint` | Which friends or relatives at war with you spare your villages, and whose restraint broke and why. |
+| `cr.extortions [name]` | Every extortion you tried and every secret told; with a name, the hold you have over that character today. |
+| `cr.affairs` | Every hidden affair between lords. **Spoils** what a companion has not found yet. |
+
 ### Your saga (the Chronicle)
 
 | Command | What it does | Example |
@@ -89,6 +114,25 @@ instead.
 | Command | What it does | Example |
 |---|---|---|
 | `cr.model` | Show which model each part of the mod is talking to, and which in-chat mode is active. | `cr.model` |
+
+### The chat window and your portraits
+
+| Command | What it does | Example |
+|---|---|---|
+| `cr.style_ui [on\|off]` | Show or hide the style picker (the quill) in the chat header, until the game restarts. | `cr.style_ui off` |
+| `cr.portrait_id [name]` | The exact file name to drop in ChatPortraits (your Custom folder first) to give a character your own picture. | `cr.portrait_id Liena` |
+
+### When you report a problem
+
+These help me see what you saw. They change nothing.
+
+| Command | What it does | Example |
+|---|---|---|
+| `cr.prompt_dump [name]` | Writes the exact prompt a character would be sent to a text file beside the log, and tells you where. No model is called. | `cr.prompt_dump Liena` |
+| `cr.save_sizes` | What each part of CR weighed at your last save (save first): useful when a save feels slow or large. | `cr.save_sizes` |
+
+The log itself is `Documents\Mount and Blade II Bannerlord\Logs\CalradiaRemembers.log`. The chat window's **Report**
+button (when its MCM option is on) saves the whole conversation and its context to a file for you to send.
 
 ### Your edited prompt files
 
@@ -124,7 +168,7 @@ One harness drives the mod's systems end to end and reports PASS / FAIL / MANUAL
 |---|---|
 | `cr.test all [llmBudgetSeconds]` | Run the routine sweep: every self-test except the irreversible ones, mechanical tests first. |
 | `cr.test list` | List the registered self-tests (name + severity + description). |
-| `cr.test <name>` | Run one self-test (e.g. `cr.test pregnancy`, `cr.test bastard_claim`). |
+| `cr.test <name>` | Run one self-test (e.g. `cr.test pregnancy`, `cr.test long_memory`, `cr.test feed_details`). |
 | `cr.test chat` | Run only the conversation smoke tests (real LLM calls; full replies shown). |
 | `cr.test mech` | Run only the mechanical tests (no LLM call, no API cost). |
 | `cr.test full` | Run **everything**, including the irreversible tests. **Throwaway save only.** |
@@ -164,6 +208,11 @@ Safe to peek at internal state; they change nothing.
 | `cr.kinks [name]` | An NPC's kinks + the valid kink names. |
 | `cr.profile_check [name]` / `cr.journal_check` | A profile's romantic-compatibility diagnosis / the quest journal mirror. |
 | `cr.rumor [settlement]` | The current world events a settlement's commoners would repeat. |
+| `cr.knocks` | The world's initiative: who waits to come to you unasked, the budget spent, the settings in force. |
+| `cr.strategy [plan]` | Each realm's strength, which one dominates, and the step every other realm would take against it now. |
+| `cr.wire <on\|off\|dump>` | What each LLM request costs: how much of the prompt is cached, how much is sent fresh. |
+| `cr.ranks_probe [count]` | In a battle: the proportions, age and voice the engine gave women in the ranks, the game's own women, and men. |
+| `cr.story_check [name]` | Reloads the authored quest files and lists every problem found; with a name, whether that character could give each quest now. For quest writers. |
 
 ### Seed / force / simulate (for hand-testing a feature)
 
@@ -185,6 +234,12 @@ Each of these stages a feature so it can be checked in one step. They mutate the
 | Adult scenes (Hardcore) | `cr.crc_scene`, `cr.captor_scene`, `cr.bandit_scene`, `cr.bandit_queen`, `cr.add_kink`, `cr.remove_kink` |
 | Witnesses / world events | `cr.witness`, `cr.witnesses`, `cr.deed_heard`, `cr.realm_news`, **`cr.feed_test`**, **`cr.heard`** |
 | Chronicle (regenerate) | `cr.chronicle_illuminate`, `cr.chronicle_rewrite` |
+| Realm strategy | `cr.strategy run` (one weekly pass now: a real decision is filed), `cr.strategy aims` |
+| Letters and pleas | `cr.help_plea <name> [coin\|food]` (a real plea, written now), `cr.letter_sound` |
+| Legends | `cr.legend <lord>` (makes up a siege held by that lord, dated a month ago; it stays in the save) |
+| Killing window | `cr.kill_roll [chance] [roll]` (plays the killing window in the open conversation) |
+| Modders | `cr.reload_prompts` (prompt and lore data files, without relaunching), `cr.video ...` (CR's .crvid player), `cr.feed_test` |
+| Save size (copies only) | `cr.inflate_history <MB> confirm`, `cr.save_rescue_probe [arm\|disarm\|status]`, `cr.dump_stores` |
 
 > **`cr.feed_test`** is the developer test of CR's *inbound Feed API*.. the door **other mods** use to
 > push world events into CR. It is the test counterpart of the player-facing `cr.world_event` (Part 1).
@@ -197,5 +252,5 @@ Each of these stages a feature so it can be checked in one step. They mutate the
 
 ---
 
-*The systems this mod drives change quickly. When in doubt, `cr.help` and `cr.test list` are the source
+*Last brought up to date for 2.8.15. The systems this mod drives change quickly. When in doubt, `cr.help` and `cr.test list` are the source
 of truth in-game.*
