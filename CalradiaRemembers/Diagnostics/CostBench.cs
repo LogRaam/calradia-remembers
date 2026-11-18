@@ -1,5 +1,8 @@
 // Code written by Gabriel Mailhot, 24/10/2026.
-// cr.cost_bench: what the mod costs to play, measured through the real pipeline and priced from OpenRouter's own bill.
+// cr.cost_bench: what the mod costs to play, measured through the real pipeline and priced from the provider's own bill.
+// Gabriel (18/11/2026): any provider, not only OpenRouter (local servers, Player2, NanoGPT). Each row runs on the provider
+// its role has in the MCM; a provider that sends no bill is priced from the row's prices or marked free (Logic/Diagnostics/
+// CostPricing), and a row with neither is not run.
 // fearente (Nexus, 24/10/2026) spent $3.19 in a week the page priced at about $1; Gabriel (24/10/2026) asked for a
 // script that tests several models and MCM setups and a table in the description naming the version, then for the
 // PROSE and INTERPRET roles measured apart, by the length of the conversation, with quality beside cost.
@@ -166,7 +169,7 @@ namespace CalradiaRemembers.Diagnostics
          if (rows.Count == 0) return $"cr.cost_bench: no row to run. {fileNote}";
 
          if (mode != "run")
-            return CostBenchReport.Plan(rows, RepliesPerRow + 1, CasesPerDifficulty, cap) + fileNote
+            return CostBenchReport.Plan(rows, RepliesPerRow + 1, CasesPerDifficulty, cap, ProviderOf) + fileNote
                    + $"\nType 'cr.cost_bench run {cap.ToString(System.Globalization.CultureInfo.InvariantCulture)}' to spend at most that much.";
 
          return Run(behavior, rows, cap) + (string.IsNullOrEmpty(fileNote) ? "" : " " + fileNote);
@@ -209,9 +212,6 @@ namespace CalradiaRemembers.Diagnostics
       {
          LlmServices services = behavior?.LlmServices;
          if (services is not {IsAvailable: true}) return "cr.cost_bench: the LLM is not configured.";
-         if (LlmServices.KindForRole(ServiceRole.Prose) != ProviderKind.OpenRouter || LlmServices.KindForRole(ServiceRole.Interpret) != ProviderKind.OpenRouter
-             || LlmServices.KindForRole(ServiceRole.Housekeeping) != ProviderKind.OpenRouter)
-            return "cr.cost_bench: prices come from OpenRouter's own bill, so the PROSE, Interpret and Background roles must all be on OpenRouter.";
 
          Hero speaker = PickSpeaker();
          if (speaker == null) return "cr.cost_bench: no adult character to talk to.";
@@ -243,6 +243,12 @@ namespace CalradiaRemembers.Diagnostics
          {
             foreach (CostScenario row in rows.Where(r => r.Pass == CostPass.Prose || r.Pass == CostPass.Standard))
             {
+               if (!Priceable(row))
+               {
+                  prose.Add(CostBenchReport.SummarizeProse(row, recorder.Calls, null, CostBenchReport.NotPriced(ProviderOf(row.Pass).Provider)));
+                  continue;
+               }
+
                if (CostBenchReport.CapReached(recorder.Spent, cap))
                {
                   prose.Add(CostBenchReport.SummarizeProse(row, recorder.Calls, null, $"not run: the ${CostBenchReport.Money(cap)} cap was reached"));
@@ -265,14 +271,16 @@ namespace CalradiaRemembers.Diagnostics
 
             foreach (CostScenario row in rows.Where(r => r.Pass == CostPass.Interpret))
             {
-               string note = CostBenchReport.CapReached(recorder.Spent, cap)
+               string note = !Priceable(row) ? CostBenchReport.NotPriced(ProviderOf(row.Pass).Provider)
+                  : CostBenchReport.CapReached(recorder.Spent, cap)
                   ? $"not run: the ${CostBenchReport.Money(cap)} cap was reached"
                   : ReadCases(services, row, recorder, outcomes, cap);
                interpret.Add(CostBenchReport.SummarizeInterpret(row, recorder.Calls, outcomes, note));
             }
 
             foreach (CostScenario row in rows.Where(r => r.Pass == CostPass.Fold))
-               folds.Add(CostBenchReport.CapReached(recorder.Spent, cap)
+               folds.Add(!Priceable(row) ? new FoldRowResult {Row = row, Note = CostBenchReport.NotPriced(ProviderOf(row.Pass).Provider)}
+                  : CostBenchReport.CapReached(recorder.Spent, cap)
                   ? new FoldRowResult {Row = row, Note = "not run: cap reached"}
                   : FoldReference(services, row, reference, recorder));
          }
@@ -295,6 +303,18 @@ namespace CalradiaRemembers.Diagnostics
 
          return $"cr.cost_bench: {rows.Count} row(s) measured with {speaker.Name}, ${CostBenchReport.Money(recorder.Spent)} spent. Tables and transcripts in {ReportPath}";
       }
+
+      // The provider a row runs on (its role's, as set in the MCM), and whether that provider bills each call itself: only
+      // OpenRouter's usage.cost is known to; NanoGPT and a direct endpoint are priced from the row.
+      private static (string Provider, bool Bills) ProviderOf(CostPass pass)
+      {
+         ServiceRole role = pass == CostPass.Interpret ? ServiceRole.Interpret : pass == CostPass.Fold ? ServiceRole.Housekeeping : ServiceRole.Prose;
+         ProviderKind kind = LlmServices.KindForRole(role);
+
+         return (kind == ProviderKind.OpenAiCompatible ? "your OpenAI-compatible endpoint" : kind.ToString(), kind == ProviderKind.OpenRouter);
+      }
+
+      private static bool Priceable(CostScenario row) => CostPricing.CanCap(row, ProviderOf(row.Pass).Bills);
 
       // ── PROSE and STANDARD ─────────────────────────────────────────────
 

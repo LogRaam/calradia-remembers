@@ -15,8 +15,8 @@ The tool is `cr.cost_bench`. For each model you list, it gives you:
 
 **What you need**
 - A loaded save.
-- The **PROSE**, **Interpret** and **Background** roles all on **OpenRouter** (the prices come from OpenRouter's own bill).
-- Some credit: **it spends real money**, up to a limit you set (see the costs below).
+- Any provider the mod supports: **OpenRouter**, **NanoGPT**, or an **OpenAI-compatible endpoint** (LM Studio, Ollama, Player2...). Each row uses the provider of its role in the MCM (see the next message).
+- Some credit, unless your model runs locally: **it spends real money**, up to a limit you set (see the costs below).
 
 ===== MESSAGE 2 =====
 ## Step 1: choose the models
@@ -40,9 +40,17 @@ Which section to use depends on your **Chat Composition** in the MCM:
 - **Standard** (one call writes and tags): test it in **[standard]**. It plays the same conversation, then about **thirty short staged scenes** (a price agreed then paid, a sword handed over, a lesson given, a wedding, a lord joining your house, a payment only promised for later) to check that the model **tags the deed itself**, and only when it is truly done.
 - **[fold]**: background models, timed on summing up a long conversation.
 
-`Full or Compact` and the reasoning effort are your MCM choices. The name is what the tables show; the model id is copied from the model's page on OpenRouter. **Delete the rows you don't need**: fewer rows, cheaper run.
+`Full or Compact` and the reasoning effort are your MCM choices. The name is what the tables show. **Delete the rows you don't need**: fewer rows, cheaper run.
 
 ===== MESSAGE 3 =====
+## Local models, NanoGPT, Player2
+
+Each row runs on the provider of its role in the MCM ([prose] and [standard]: PROSE, [interpret]: Interpret, [fold]: Background), so the **model id is that provider's**: a NanoGPT id, or the name your local server shows (`llama3.1:8b`). Only OpenRouter sends a price with each call, so end the row with one of:
+- `| free` for a model on your own machine (LM Studio, Ollama, Player2): costs show $0.
+- `| $0.20/0.05/0.80` for a paid provider: dollars per million tokens **sent / read from cache / written**, from its price page (`$0.20/0.80` if it has no cache price).
+A row with neither is **not run**, so your limit always holds. `cr.cost_bench plan` says which provider and which price each row uses.
+
+===== MESSAGE 4 =====
 ## Step 2: check, then run
 
 - `cr.cost_bench` (or `cr.cost_bench plan`) shows **what would run and how many calls**, and spends nothing. A row with a typo is named and skipped.
@@ -61,7 +69,7 @@ Everything goes to:
 
 One run is one sample: one evening, one character, the prices of the day. Run it again before deciding on a close call.
 
-===== MESSAGE 4 =====
+===== MESSAGE 5 =====
 ## 💰 What a run costs
 
 From the prices measured on 24/10/2026 (OpenRouter's bill). A guide, not a quote: prices move, and a model that thinks longer costs more.
@@ -83,7 +91,7 @@ The low end is a cheap model (DeepSeek V4.1 Flash, GPT-6 Luna), the high end Gro
 - Two or three models at a time, then `cr.cost_bench plan` to see the calls, then `cr.cost_bench run 1`.
 - Your **OpenRouter Activity page** shows each call and its price, if you want to check the log against your bill.
 
-===== MESSAGE 5 =====
+===== MESSAGE 6 =====
 ## Other benches
 
 Each uses the models set in your MCM, spends tokens, and writes a log in the same `Logs` folder:

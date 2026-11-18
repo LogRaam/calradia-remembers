@@ -90,6 +90,22 @@ namespace CalradiaRemembers.Logic.Diagnostics
       FalseLead
    }
 
+   /// <summary>Where a call's price came from.</summary>
+   public enum PriceSource
+   {
+      /// <summary>No price known: the provider sent none and the row names none.</summary>
+      None,
+
+      /// <summary>The provider's own bill for the call (OpenRouter's usage.cost).</summary>
+      Bill,
+
+      /// <summary>The row's own prices per million tokens, times the tokens the provider reported.</summary>
+      RowPrices,
+
+      /// <summary>The row says the model costs nothing (a local server).</summary>
+      Free
+   }
+
    /// <summary>One row of the scenario file.</summary>
    public sealed class CostScenario
    {
@@ -117,6 +133,21 @@ namespace CalradiaRemembers.Logic.Diagnostics
       /// </summary>
       public int CasesPerDifficulty { get; init; }
 
+      /// <summary>
+      ///   The row's model costs nothing (a local server: LM Studio, Ollama, Player2), written <c>free</c> in the row. Gabriel
+      ///   (18/11/2026): players on local setups, Player2 or NanoGPT must be able to run the bench, not only OpenRouter's.
+      /// </summary>
+      public bool Free { get; init; }
+
+      /// <summary>Dollars per million tokens sent, for a provider that sends no bill (<c>$in/cached/out</c> in the row); null when none.</summary>
+      public double? InPerMillion { get; init; }
+
+      /// <summary>Dollars per million tokens read from cache; the sent price when the row names only two prices.</summary>
+      public double? CachedPerMillion { get; init; }
+
+      /// <summary>Dollars per million tokens written, thinking included.</summary>
+      public double? OutPerMillion { get; init; }
+
       /// <summary>How the row's setup reads in a table.</summary>
       public string Setup
          => (Compact ? "Compact prompt" : "full prompt")
@@ -124,7 +155,7 @@ namespace CalradiaRemembers.Logic.Diagnostics
             + (string.IsNullOrWhiteSpace(FallbackModel) ? "" : $", fallback {FallbackModel}");
    }
 
-   /// <summary>One billed attempt, as OpenRouter reported it.</summary>
+   /// <summary>One billed attempt, as its provider reported it.</summary>
    public sealed class CostCall
    {
       /// <summary>The row's name.</summary>
@@ -159,6 +190,9 @@ namespace CalradiaRemembers.Logic.Diagnostics
 
       /// <summary>The bill in US dollars; null when the provider did not say (the row then says it undercounts).</summary>
       public double? Cost { get; init; }
+
+      /// <summary>Where <see cref="Cost" /> came from.</summary>
+      public PriceSource Source { get; init; }
 
       /// <summary>How long the player waited for this attempt, in seconds (Gabriel, 24/10/2026: response time beside cost).</summary>
       public double Seconds { get; init; }
@@ -330,7 +364,11 @@ namespace CalradiaRemembers.Logic.Diagnostics
       public static string Template()
       {
          var sb = new StringBuilder();
-         sb.AppendLine("# cr.cost_bench scenarios. Model ids are OpenRouter's. Lines starting with # are ignored.");
+         sb.AppendLine("# cr.cost_bench scenarios. Lines starting with # are ignored.");
+         sb.AppendLine("# Each row uses the provider its role has in the MCM (prose and standard: PROSE; interpret: Interpret; fold: Background),");
+         sb.AppendLine("# and its model id is that provider's (an OpenRouter id, a NanoGPT id, the name your local server shows).");
+         sb.AppendLine("# OpenRouter bills each call itself. For any other provider, end the row with its prices in dollars per million");
+         sb.AppendLine("# tokens, | $sent/cached/written (or $sent/written), or with | free for a local model; a row with neither is not run.");
          sb.AppendLine("# [prose]     name | model | Full or Compact | reasoning | NSFW fallback model   (blank = yours)");
          sb.AppendLine("# [interpret] name | model | readings per difficulty (blank = the whole catalog, about 300)");
          sb.AppendLine("# [standard]  name | model | Full or Compact | reasoning");
@@ -372,7 +410,15 @@ namespace CalradiaRemembers.Logic.Diagnostics
                continue;
             }
 
-            string[] f = line.Split('|').Select(x => x.Trim()).ToArray();
+            string[] all = line.Split('|').Select(x => x.Trim()).ToArray();
+            // Prices and 'free' may close any row; they are read apart, so the positional fields keep their places.
+            if (!CostPricing.TryRead(all.Skip(2), out RowPrice price, out string priceProblem))
+            {
+               problems.Add($"line {i + 1}: {priceProblem}");
+               continue;
+            }
+
+            string[] f = all.Where((x, n) => n < 2 || !CostPricing.IsPriceField(x)).ToArray();
             if (section == null || f.Length < 2 || f[0].Length == 0 || f[1].Length == 0)
             {
                problems.Add(section == null ? $"line {i + 1}: a row before any [section]" : $"line {i + 1}: expected at least 'name | model'");
@@ -388,7 +434,10 @@ namespace CalradiaRemembers.Logic.Diagnostics
                   continue;
                }
 
-               rows.Add(new CostScenario {Name = f[0], Pass = CostPass.Interpret, Model = f[1], CasesPerDifficulty = perClass});
+               rows.Add(new CostScenario {
+                  Name = f[0], Pass = CostPass.Interpret, Model = f[1], CasesPerDifficulty = perClass,
+                  Free = price.Free, InPerMillion = price.In, CachedPerMillion = price.Cached, OutPerMillion = price.Out
+               });
                continue;
             }
 
@@ -401,7 +450,8 @@ namespace CalradiaRemembers.Logic.Diagnostics
 
             rows.Add(new CostScenario {
                Name = f[0], Pass = section.Value, Model = f[1], Compact = compact, Reasoning = f.Length > 3 ? f[3] : "",
-               FallbackModel = section == CostPass.Prose && f.Length > 4 ? f[4] : ""
+               FallbackModel = section == CostPass.Prose && f.Length > 4 ? f[4] : "",
+               Free = price.Free, InPerMillion = price.In, CachedPerMillion = price.Cached, OutPerMillion = price.Out
             });
          }
 
@@ -615,7 +665,7 @@ namespace CalradiaRemembers.Logic.Diagnostics
                RecapRecalled = said.Count > 0 && RecapSignal.Recalled(said[said.Count - 1])
             },
             Unpriced = mine.Any(c => c.Cost == null),
-            Note = note ?? ""
+            Note = PricedBy(mine, note)
          };
       }
 
@@ -642,12 +692,13 @@ namespace CalradiaRemembers.Logic.Diagnostics
             Accuracy = Wilson(read.Count(o => o.Right), read.Count),
             CachedShare = Share(mine.Sum(c => c.CachedTokens), mine.Sum(c => c.PromptTokens)),
             Unpriced = mine.Any(c => c.Cost == null),
-            Note = note ?? ""
+            Note = PricedBy(mine, note)
          };
       }
 
       /// <summary>What a run would do, with no call made.</summary>
-      public static string Plan(IReadOnlyList<CostScenario> rows, int turns, int casesPerDifficulty, double cap)
+      public static string Plan(IReadOnlyList<CostScenario> rows, int turns, int casesPerDifficulty, double cap,
+                                Func<CostPass, (string Provider, bool Bills)> providerOf = null)
       {
          var sb = new StringBuilder();
          sb.AppendLine($"cr.cost_bench plan: {rows.Count} row(s), spend cap ${Money(cap)}.");
@@ -663,10 +714,21 @@ namespace CalradiaRemembers.Logic.Diagnostics
                _ => "one fold of the reference recap; 1 call"
             };
             sb.AppendLine($"  [{r.Pass.ToString().ToLowerInvariant()}] {r.Name}: {r.Model}; {(r.Pass == CostPass.Interpret || r.Pass == CostPass.Fold ? "" : r.Setup + "; ")}{work}");
+            if (providerOf == null) continue;
+
+            (string provider, bool bills) = providerOf(r.Pass);
+            sb.AppendLine("      " + (!CostPricing.CanCap(r, bills) ? NotPriced(provider)
+                                     : bills ? $"on {provider}, priced by its own bill"
+                                     : r.Free ? $"on {provider}, free"
+                                     : $"on {provider}, priced from the row"));
          }
 
          return sb.ToString();
       }
+
+      /// <summary>Why a row of a provider that sends no bill, with no prices and not marked free, is not run.</summary>
+      public static string NotPriced(string provider)
+         => $"NOT RUN: {provider} sends no bill, so the spend cap could not hold; end the row with | $sent/cached/written (dollars per million tokens) or with | free";
 
       /// <summary>The full report for the log and the repository (Markdown).</summary>
       public static string Markdown(IReadOnlyList<ProseRowResult> prose, IReadOnlyList<InterpretRowResult> interpret,
@@ -674,7 +736,7 @@ namespace CalradiaRemembers.Logic.Diagnostics
                                     IReadOnlyList<InterpretRowResult> tagging = null)
       {
          var sb = new StringBuilder();
-         sb.AppendLine($"Measured with Calradia Remembers {version} on {measuredOn:yyyy-MM-dd}, OpenRouter's own bill for each call.");
+         sb.AppendLine($"Measured with Calradia Remembers {version} on {measuredOn:yyyy-MM-dd}, each call priced by its provider's own bill, or by the row's prices where a row says so.");
          sb.AppendLine();
 
          sb.AppendLine("PROSE (Enhanced: the reply alone) and STANDARD (one call writes and tags), per reply:");
@@ -722,7 +784,7 @@ namespace CalradiaRemembers.Logic.Diagnostics
                                      IReadOnlyList<InterpretRowResult> tagging = null)
       {
          var sb = new StringBuilder();
-         sb.AppendLine($"[b]Measured costs[/b] (Calradia Remembers {version}, {measuredOn:yyyy-MM-dd}, OpenRouter's own bill for each call)");
+         sb.AppendLine($"[b]Measured costs[/b] (Calradia Remembers {version}, {measuredOn:yyyy-MM-dd}, each call priced by its provider's own bill or the row's prices)");
          sb.Append(Code(new[] {new[] {"Prose model", "Setup", "Scene", "1st reply", "Middle", "Long talk", "Letter"}}
                        .Concat(prose.Where(p => p.Row.Pass == CostPass.Prose).Select(p => new[] {
                           p.Row.Name, p.Row.Setup, p.Opener == null ? "-" : $"${Money(p.Opener.Value)} {Secs(p.OpenerSeconds)}",
@@ -831,6 +893,15 @@ namespace CalradiaRemembers.Logic.Diagnostics
 
       private static string Flags(bool unpriced, string note)
          => (unpriced ? " some calls unpriced, undercounts" : "") + (string.IsNullOrEmpty(note) ? "" : $" {note}");
+
+      // Says how a row was priced when it was not by its provider's own bill: a reader must know a local row's $0 is not a bill.
+      private static string PricedBy(IEnumerable<CostCall> calls, string note)
+      {
+         List<PriceSource> sources = calls.Select(c => c.Source).Distinct().ToList();
+         string how = sources.Contains(PriceSource.Free) ? "free (local)" : sources.Contains(PriceSource.RowPrices) ? "priced from the row" : "";
+
+         return string.Join("; ", new[] {note ?? "", how}.Where(s => s.Length > 0));
+      }
 
       /// <summary>Dollars at a precision a reply's price needs: four decimals under a cent, two above a dollar.</summary>
       public static string Money(double dollars)

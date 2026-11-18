@@ -261,12 +261,13 @@ namespace CalradiaRemembers.Logic.Diagnostics
 
          lock (_gate)
          {
+            (double? cost, PriceSource source) = CostPricing.Price(_row, new CallTokens {Prompt = u.PromptTokens, Cached = u.CachedPromptTokens ?? 0, Completion = u.CompletionTokens}, u.Cost);
             Calls.Add(new CostCall {
                ScenarioName = _row.Name, Pass = _row.Pass, Phase = _phase, Turn = _turn, Difficulty = _difficulty, Model = model ?? "",
                PromptTokens = u.PromptTokens, CachedTokens = u.CachedPromptTokens ?? 0, CompletionTokens = u.CompletionTokens,
-               ReasoningTokens = u.ReasoningTokens ?? 0, Cost = u.Cost, Seconds = _clock.Elapsed.TotalSeconds
+               ReasoningTokens = u.ReasoningTokens ?? 0, Cost = cost, Source = source, Seconds = _clock.Elapsed.TotalSeconds
             });
-            Spent += u.Cost ?? 0;
+            Spent += cost ?? 0;
             _clock.Restart();
          }
       }

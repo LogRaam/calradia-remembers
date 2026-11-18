@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 685 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1702 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1706 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2180,19 +2180,21 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SummaryEnqueueOutcome` | public enum | What ConversationSummaryQueue.Enqueue actually did with the new job. |
 | `WitnessExchangePolicy` | public static class | Decides whether the bystander exchange must stop and leave the floor to the player. |
 
-### CalradiaRemembers.Logic.Diagnostics (37)
+### CalradiaRemembers.Logic.Diagnostics (41)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `CallTokens` | public class | The tokens a provider reported for one call. |
 | `CaptureMessage` | public class | One message of a captured request. |
 | `CaptureRow` | public class | One played row: its setup, and each call it made in order. |
 | `CaptureStep` | public class | One call: the request as it went, and the reply the conversation kept. |
 | `ConsoleTextRepair` | public static class | Undoes the console's UTF-8-read-as-Windows-1252 mangling of a command's text. |
 | `CostBenchReport` | public static class | The sums and the tables. |
-| `CostCall` | public class | One billed attempt, as OpenRouter reported it. |
+| `CostCall` | public class | One billed attempt, as its provider reported it. |
 | `CostCaptureFile` | public class | Everything one cr.cost_bench run sent for its prose and standard rows, request by request. |
 | `CostPass` | public enum | Which pass a row of the scenario file belongs to. |
 | `CostPhase` | public enum | Which kind of call a billed attempt belonged to. |
+| `CostPricing` | public static class | Reads a row's prices and prices a call from them. |
 | `CostRecorder` | public class | Records every billed attempt under the row, phase and turn being played. |
 | `CostReplayPolicy` | public static class | The pure part of a replay: which messages were the captured model's own words, and what replaces them. |
 | `CostReplayRunner` | public static class | Plays a captured conversation again through a client, and reads the interpreter's cases. |
@@ -2213,10 +2215,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PlayerReportComposer` | public static class | Composes a player report and masks anything that looks like a secret. |
 | `PlayerReportFacts` | public class | What a player report is made of. |
 | `PngHeader` | public static class | Reads a PNG's colour type. |
+| `PriceSource` | public enum | Where a call's price came from. |
 | `ProseRowResult` | public class | A prose (or standard) row's costs and signals. |
 | `ProseSignals` | public class | Advisory signals over a prose row's replies: they point the eye, the reader judges. |
 | `RecapSignal` | public static class | Whether a late reply found what the folded recap holds: the levies agreed early in the conversation. |
 | `ReportExchange` | public class | One exchange with the model, as the report shows it. |
+| `RowPrice` | public class | The price fields a row closes with. |
 | `SermonSignal` | public static class | The fearente signal: a reply that still warns or lectures after the player has answered the concern. |
 | `StandardActionCase` | public class | One staged case: the turns that settle the deed, the line that calls for it, and what must be tagged. |
 | `StandardActionCases` | public static class | The staged cases, their gates and their scoring. |
