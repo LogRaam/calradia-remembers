@@ -1,0 +1,39 @@
+Version 2.8.15
+
+Characters can recall the exact words of earlier talks (optional), women in the ranks have their proper heads, ages and voices, the purple narration can be turned off, and a batch of fixes to tale scenes, pregnancies, captive scenes and the mood of the day.
+
+New
+
+- Long Memory (MCM, Content, off by default): before each reply, a character searches the earlier conversations they were present for and recalls, word for word, the few passages that bear on what you say now. A matter spoken of over several talks (a task whose terms changed, a promise) comes back as one story, and the newest talk says how it stands now. If your words name nothing, the matter you last spoke of comes back. A budget slider keeps the cost in check. (Thank you, Goeth.)
+- Every conversation is now kept word for word in a story archive outside your save, whether Long Memory is on or off, so you can turn it on later and still have your past. Each save reads only its own story, even after loading an older one.
+- The purple scene narration can be turned off (MCM, Content, Scene Narration). With it off, the setting shows in the characters' own gestures instead. Captive scenes keep theirs. (Thank you, 1Enfant.)
+
+Fixed
+
+- Women in the ranks no longer have tiny heads. (Thank you, EvilPoptart1987 and Hitmanjpitty.)
+- Women in the ranks now take the ages of the men they stand in for, 20 to 41, instead of all looking 41.
+- A tale scene no longer runs forever when the narrator forgets to mark a clue it described: a clue the narration plainly shows now counts as found, so the scene can end. (Thank you, Schmidt.)
+- A long tale scene no longer forgets what happened in it (a companion's spear, where you found someone): the narrator now rereads far more of the scene. (Thank you, Schmidt.)
+- Someone you met in a tale scene and left behind no longer walks back in as a stranger. (Thank you, Schmidt.)
+- A wife pregnant a second time no longer talks about her first pregnancy as if it were still going: a mother now remembers each birth, by the child's name. (Thank you, bdionysis80.)
+- People outside your household no longer invent tales about its secrets (who fathered a child, your spouse's affairs). They say they know nothing unless they truly heard it. (Thank you, bdionysis80.)
+- In captive scenes, the narration no longer makes you obey an order. Only the captor's own hands move you, and your gestures go no further than what you wrote.
+- A character's mood of the day now names the real cause: a death in the family before coin worries, a tournament won before the war going well.
+- The chat's report button showed an empty box; it now reads "Report".
+
+For modders
+
+- A world event fed through the Feed can carry its full text (up to 20,000 characters), kept outside the save and returned whole. A character who already knows the event hears the passages of it that answer the player's words, never the whole. (Thank you, the AI Rebel Relay team.)
+- CrWorld.RealmEvents lists a realm's public events.
+- CrLlm can send a request to a model of your own choosing, on the player's connection. (Thank you, VonLemberg.)
+
+Developer tools
+
+- cr.ranks_probe writes the body proportions, ages and voices the game gave the soldiers of a battle to the log.
+- cr.test all gains birth_memory, feed_details, long_memory, story_archive and scene_narration_switch, and extends women_in_ranks, realms_and_armies, mood_of_the_day and authored_quest_opening.
+- The console guide and a new Discord tutorial list the console commands meant for players.
+
+Notes
+
+- Two new folders under Documents\Mount and Blade II Bannerlord\CalradiaRemembers: StoryArchive (your conversations, one file per campaign) and EventDetails (full texts other mods feed). They are yours to keep or delete; deleting them only loses the recalled words.
+- Saves from 2.8.14 and older load as they are, and your MCM choices are kept.
