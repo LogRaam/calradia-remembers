@@ -6,6 +6,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ### Fixed
 
+- **The mood of the day: a named blow is its cause** (Gabriel, 17/11/2026, after cr.test all: a lord whose brother had just died gave "coin running short" for his guarded day; "la cause devrait etre le sujet"). A blow the game can name (a death, a lost fief) is now the cause of any low day, over coin, wounds and war (SDK MoodCause, 507c5ba). Two self-tests fixed: realms_and_armies picked the player's own party as "another lord" while the player led the army; mood_of_the_day kept its strict check.
+
 - **Women in the ranks: their ages are the men's, 20 to 41** (Gabriel, 17/11/2026, after cr.ranks_probe in a Khuzait battle: all 20 women measured 41 while the men ran 20 to 41; the skeletons of women and men measured alike, head bone scale 1.000, head/torso 0.201 for both). A woman soldier now takes the age the game drew for the man she stands in for, held to 20..41 (WomenInRanksPolicy.SoldierAge, WomenInRanksPatch.FaceFor). cr.test women_in_ranks extended.
 
 - **Captive scenes: the narration no longer makes the player obey** (Gabriel, 17/11/2026, screenshot: the captor ordered "look at me... your hand travels down" and the narration lifted the player's head and moved her hand). The captive voice block now says an order is not a deed: the narration never shows the prisoner obeying, only hands laid on them move them, and their own gestures go no further than the player wrote (SDK PromptBuilder.AppendCaptiveVoiceAndPerspective). Not play-verified.

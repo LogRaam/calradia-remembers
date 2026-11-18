@@ -21891,10 +21891,9 @@ namespace CalradiaRemembers.Diagnostics
                t.Note($"{mourner.Name} after a death: {day}, cause {why?.Text}");
                t.Expect("theBlowIsKept", met.LastPersonalBlowKind == nameof(SelfEsteemEvent.KinDied) && met.LastPersonalBlowSubject == "your brother [SELFTEST]", true);
                bool leaned = day == NpcMemoryService.Core.Mood.DayMood.Grim || day == NpcMemoryService.Core.Mood.DayMood.Guarded;
-               // The cause is the fact that leaned the day the most (MoodCause): on a guarded day, coffers running dry lean it more
-               // (3) than a blow (2), and are then its cause (Gabriel ran this with Ajin's house short of coin, 17/11/2026).
-               bool heavierLean = day == NpcMemoryService.Core.Mood.DayMood.Guarded && DayMoodFactsPolicy.From(Mapping.DayMoodReader.Read(mourner)).CoffersAreEmpty;
-               t.Expect("aGrimOrGuardedDayNamesTheDeath", !leaned || heavierLean || (why?.IsReal == true && why.Text.Contains("your brother [SELFTEST]")), true);
+               // A named blow is the cause of any low day, coin running short included (Gabriel, 17/11/2026: "la cause devrait
+               // etre le sujet", after Ajin, his house short of coin, named the coin over his brother's death).
+               t.Expect("aGrimOrGuardedDayNamesTheDeath", !leaned || (why?.IsReal == true && why.Text.Contains("your brother [SELFTEST]")), true);
                t.Expect("aBlowLeavesNoOrdinaryDay", day != NpcMemoryService.Core.Mood.DayMood.Even, true);
             }
             finally
