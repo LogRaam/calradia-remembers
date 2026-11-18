@@ -170,9 +170,11 @@ namespace CalradiaRemembers.Logic.Diagnostics
                   {nameof(EncounterContext.NpcIsRidingWithPlayer), true}, {nameof(EncounterContext.NpcCanRideWithPlayer), false}
                };
             case StandardGate.CanEscortPlayer:
+               // The real lord's context may carry the closed door on escort (EncounterContextBuilder.EscortRefusalNote: "your
+               // men are already committed"); told both "you may" and "you cannot", a refusal would be scored as the model's.
                return new Dictionary<string, object> {
                   {nameof(EncounterContext.NpcCanEscortPlayer), true}, {nameof(EncounterContext.NpcIsEscortingPlayer), false},
-                  {nameof(EncounterContext.NpcCanRideWithPlayer), false}
+                  {nameof(EncounterContext.NpcCanRideWithPlayer), false}, {nameof(EncounterContext.UnavailableDeeds), null}
                };
             case StandardGate.EscortsPlayer:
                return new Dictionary<string, object> {
@@ -185,9 +187,20 @@ namespace CalradiaRemembers.Logic.Diagnostics
          }
       }
 
-      /// <summary>Whether the prompt the model read teaches the case's verb; an untaught verb cannot be scored fairly.</summary>
+      /// <summary>
+      ///   Whether the prompt the model read teaches the case's verb; an untaught verb cannot be scored fairly. A gated verb is
+      ///   taught by its own section, which carries its "type: verb" line (another section may only name it in passing); the
+      ///   verbs every character has stand in the action list.
+      /// </summary>
       public static bool Taught(StandardActionCase test, string prompt)
-         => string.IsNullOrEmpty(test?.Verb) || (prompt ?? "").Contains(test.Verb);
+      {
+         if (string.IsNullOrEmpty(test?.Verb)) return true;
+
+         return (prompt ?? "").Contains(test.Gate == StandardGate.None ? test.Verb : TypeLine(test.Verb));
+      }
+
+      /// <summary>The line a verb's own teaching section carries.</summary>
+      public static string TypeLine(string verb) => "type: " + verb;
 
       /// <summary>
       ///   A reply's tags scored: an ordinary line by what it emitted (only a change of regard allowed), a staged deed by the

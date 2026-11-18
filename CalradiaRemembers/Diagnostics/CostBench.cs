@@ -223,6 +223,7 @@ namespace CalradiaRemembers.Diagnostics
          var outcomes = new List<InterpretOutcome>();
          var tagging = new List<InterpretRowResult>();
          var tagOutcomes = new List<InterpretOutcome>();
+         var unscored = new HashSet<CostCall>();
          var transcripts = new StringBuilder();
          ConversationTranscript reference = null;
          string version = ModVersion();
@@ -256,8 +257,10 @@ namespace CalradiaRemembers.Diagnostics
 
                string tagNote = CostBenchReport.CapReached(recorder.Spent, cap)
                   ? $"not run: the ${CostBenchReport.Money(cap)} cap was reached"
-                  : TagCases(behavior, services, played, speaker, recorder, tagOutcomes, transcripts, cap);
-               tagging.Add(CostBenchReport.SummarizeInterpret(played, recorder.Calls.Where(c => c.Phase == CostPhase.Tagging).ToList(), tagOutcomes, tagNote));
+                  : TagCases(behavior, services, played, speaker, recorder, tagOutcomes, transcripts, cap, unscored);
+               // A skipped case was billed but not scored: its calls stay out, or each reply would carry its cost.
+               tagging.Add(CostBenchReport.SummarizeInterpret(played, recorder.Calls.Where(c => c.Phase == CostPhase.Tagging && !unscored.Contains(c)).ToList(),
+                  tagOutcomes, tagNote));
             }
 
             foreach (CostScenario row in rows.Where(r => r.Pass == CostPass.Interpret))
@@ -530,7 +533,7 @@ namespace CalradiaRemembers.Diagnostics
       // the context as the game would open it, then the player's last line. Only read: ChatAsync parses the tags and executes
       // nothing. A case whose verb the prompt does not teach after all is skipped and named, never scored.
       private static string TagCases(NpcMemoryCampaignBehavior behavior, LlmServices services, CostScenario row, Hero speaker, CostRecorder recorder,
-                                     List<InterpretOutcome> outcomes, StringBuilder transcripts, double cap)
+                                     List<InterpretOutcome> outcomes, StringBuilder transcripts, double cap, HashSet<CostCall> unscored)
       {
          using var forced = new ForcedSetup(services, row, false);
          NpcProfile profile = CopyOf(behavior.Store.Get(speaker.StringId) ?? HeroProfileMapper.FromHero(speaker));
@@ -548,6 +551,7 @@ namespace CalradiaRemembers.Diagnostics
             }
 
             recorder.Begin(row, CostPhase.Tagging, 0, test.Difficulty);
+            int billedBefore = recorder.Calls.Count;
             string error = null;
             string reply = "";
             IReadOnlyList<GameAction> tags = new List<GameAction>();
@@ -578,6 +582,7 @@ namespace CalradiaRemembers.Diagnostics
             if (error == null && !StandardActionCases.Taught(test, _watch?.LastPrompt))
             {
                skipped.Add(test.Id);
+               foreach (CostCall billed in recorder.Calls.Skip(billedBefore)) unscored.Add(billed);
                transcripts.AppendLine($"  (skipped: the prompt did not teach {test.Verb})");
 
                continue;

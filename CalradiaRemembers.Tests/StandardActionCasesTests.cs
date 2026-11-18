@@ -16,6 +16,7 @@ using System.Linq;
 using CalradiaRemembers.Logic.Diagnostics;
 using FluentAssertions;
 using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Prompts;
 using NUnit.Framework;
 
 #endregion
@@ -40,7 +41,8 @@ namespace CalradiaRemembers.Tests
                var property = typeof(EncounterContext).GetProperty(fact.Key);
                property.Should().NotBeNull($"{gate} sets {fact.Key}");
                property.SetValue(ctx, fact.Value);
-               property.GetValue(ctx).Should().BeEquivalentTo(fact.Value);
+               if (fact.Value == null) property.GetValue(ctx).Should().BeNull();
+               else property.GetValue(ctx).Should().BeEquivalentTo(fact.Value);
             }
          }
       }
@@ -112,8 +114,26 @@ namespace CalradiaRemembers.Tests
       public void GIVEN_a_prompt_WHEN_the_case_verb_is_absent_THEN_the_case_is_not_taught_and_an_ordinary_line_always_is()
       {
          StandardActionCases.Taught(Case("ride_with_me_asked"), "GAME ACTIONS: give_gold, take_gold").Should().BeFalse();
-         StandardActionCases.Taught(Case("ride_with_me_asked"), "... ride_with_me: the character rides in your party ...").Should().BeTrue();
+         StandardActionCases.Taught(Case("ride_with_me_asked"), "unlike follow_me or ride_with_me, which you cannot do").Should().BeFalse();
+         StandardActionCases.Taught(Case("ride_with_me_asked"), "[ACTION]\ntype: ride_with_me\n[/ACTION]").Should().BeTrue();
          StandardActionCases.Taught(Case("ordinary_tax"), "").Should().BeTrue();
+      }
+
+      // STAKE: option B rests on the gate opening the verb's real teaching. A gate that only sets a field the prompt ignores
+      // would skip every case of its verb in a paid run; the SDK's own prompt must teach each gated verb with its facts set
+      // and not without them.
+      [Test]
+      public void GIVEN_each_gated_case_WHEN_the_real_prompt_is_built_THEN_its_gate_teaches_its_verb_and_nothing_else_does()
+      {
+         foreach (StandardActionCase c in StandardActionCases.All.Where(c => c.Gate != StandardGate.None))
+         {
+            var open = new EncounterContext {PlayerStatus = PlayerStatusVsNpc.Free};
+            foreach (KeyValuePair<string, object> fact in StandardActionCases.GateFacts(c.Gate))
+               typeof(EncounterContext).GetProperty(fact.Key).SetValue(open, fact.Value);
+
+            StandardActionCases.Taught(c, Prompt(open)).Should().BeTrue($"{c.Id}: the {c.Gate} gate must teach {c.Verb}");
+            StandardActionCases.Taught(c, Prompt(new EncounterContext {PlayerStatus = PlayerStatusVsNpc.Free})).Should().BeFalse($"{c.Id}: {c.Verb} is taught only through its gate");
+         }
       }
 
       // STAKE: the staged cases are many short calls; counted in the conversation's columns they would change every
@@ -147,6 +167,10 @@ namespace CalradiaRemembers.Tests
 
          plan.Should().Contain($"{StandardActionCases.All.Count} staged deeds").And.Contain($"about {10 + StandardActionCases.All.Count} calls");
       }
+
+      private static string Prompt(EncounterContext context)
+         => new PromptBuilder {AdultLevel = AdultContentLevel.Off}
+            .BuildSystemPrompt(new NpcProfile {Id = "npc_test", Name = "Test Lord", Faction = "Vlandia", Clan = "dey Meroc"}, new WorldState {CurrentDay = 10}, context);
 
       private static StandardActionCase Case(string id) => StandardActionCases.All.Single(c => c.Id == id);
 
