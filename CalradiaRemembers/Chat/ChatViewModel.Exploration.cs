@@ -237,7 +237,8 @@ namespace CalradiaRemembers.Chat
             }
 
             string prompt = _exploration.BuildPrompt?.Invoke() ?? "";
-            if (_sceneLines.Count > 0) prompt += "\n\nTHE SCENE SO FAR:\n" + string.Join("\n", _sceneLines.Skip(Math.Max(0, _sceneLines.Count - 24)));
+            // Schmidt (18/11/2026): the last 24 lines only, and by turn 109 Gunjadrid had never carried a spear. A budget now.
+            if (_sceneLines.Count > 0) prompt += "\n\nTHE SCENE SO FAR:\n" + string.Join("\n", SceneTranscriptWindow.Compose(_sceneLines));
 
             var request = new LlmRequest {
                SystemPrompt = prompt,

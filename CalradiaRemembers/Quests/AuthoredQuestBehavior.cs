@@ -1342,6 +1342,24 @@ namespace CalradiaRemembers.Quests
       private IReadOnlyList<string> ApplyMarkers(AuthoredQuest q, SceneMarkers m, Action endTheScene)
       {
          var notes = new List<string>();
+         // Schmidt (18/11/2026): a finding the narration plainly shows counts even when its marker was forgotten.
+         AuthoredScene echoScene = AuthoredQuestEngine.Current(_run, q)?.Objective?.Scene;
+         if (echoScene != null)
+         {
+            IReadOnlyList<string> echoed = SceneFindingEcho.Seen(new SceneFindingEchoFacts {
+               Narration = m.Text,
+               Left = echoScene.Findings.Where(f => !_run.Findings.Contains(f.Id) && !m.Found.Contains(f.Id))
+                               .Select(f => new SceneFindingText {Id = f.Id, Text = AuthoredQuestEngine.Fill(_run, f.Text)}).ToList(),
+               SceneWords = AuthoredQuestEngine.Fill(_run, echoScene.Opening?.Canvas) + " "
+                            + string.Join(" ", (echoScene.Opening?.Facts ?? new List<string>()).Select(f => AuthoredQuestEngine.Fill(_run, f)))
+            });
+            foreach (string f in echoed)
+            {
+               ModLog.Info($"[TALE] finding '{f}' shown in the narration without its marker: counted as found.");
+               m.Found.Add(f);
+            }
+         }
+
          // Gabriel (08/10/2026): what this narration reveals, springs or brings in may carry a picture; read before the
          // markers move the tale on, and taken by the chat once the narration is shown.
          _pendingSceneImage = ImagePath(q, AuthoredTaleImages.ImageForMarkers(new TaleMarkersSeen {Run = _run, Tale = q, Found = m.Found, Sprung = m.Hazards, Met = m.Met}));
@@ -1379,6 +1397,14 @@ namespace CalradiaRemembers.Quests
             {
                string who = AuthoredQuestEngine.Current(_run, q)?.Objective?.Scene?.Encounters.FirstOrDefault(x => x.Id == id)?.Name;
                notes.Add($"{AuthoredQuestEngine.Fill(_run, who) ?? "Someone"} is with you now.");
+            }
+
+         foreach (string id in m.Parted)
+            if (AuthoredQuestEngine.Part(_run, q, id))
+            {
+               string who = AuthoredQuestEngine.Current(_run, q)?.Objective?.Scene?.Encounters.FirstOrDefault(x => x.Id == id)?.Name;
+               ModLog.Info($"[TALE] '{id}' parted from the player.");
+               notes.Add($"{AuthoredQuestEngine.Fill(_run, who) ?? "Someone"} is no longer with you.");
             }
 
          foreach (string c in m.Choices)

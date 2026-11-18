@@ -61,6 +61,12 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       /// <summary>explore: the people of the scene met so far (the narrator voices them in increment 1).</summary>
       public List<string> Met { get; set; } = new();
 
+      /// <summary>
+      ///   explore: the people met who have since left the player (Schmidt, 18/11/2026: the girl stayed by the fire in the
+      ///   village, and was still told as "with the player now" until the narrator walked her out of the trees again).
+      /// </summary>
+      public List<string> Parted { get; set; } = new();
+
       /// <summary>defeat_party: the StringId of the party spawned for this stage.</summary>
       public string SpawnedPartyId { get; set; }
 
@@ -517,6 +523,18 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          if (e == null || run.Met.Contains(encounterId)) return false;
          run.Met.Add(encounterId);
          SetFlags(run, e.Sets);
+
+         return true;
+      }
+
+      /// <summary>explore: someone met has left the player (stayed behind, gone their own way). True once, for someone met.</summary>
+      public static bool Part(AuthoredQuestRun run, AuthoredQuest q, string encounterId)
+      {
+         AuthoredScene scene = Active(run, q)?.Objective?.Scene;
+         if (scene?.Encounters.Any(x => x.Id == encounterId) != true || !run.Met.Contains(encounterId)) return false;
+         run.Parted ??= new List<string>();
+         if (run.Parted.Contains(encounterId)) return false;
+         run.Parted.Add(encounterId);
 
          return true;
       }

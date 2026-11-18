@@ -168,5 +168,53 @@ namespace CalradiaRemembers.Tests
          m.Hazards.Should().Equal("snare");
          m.Met.Should().BeEmpty();
       }
+
+      // STAKE (Schmidt, 18/11/2026): the girl left by the fire in the village was still told as with the player, and walked out
+      // of the trees again as a stranger. Once she parts, she is told as met and left behind, never as with the player.
+      [Test]
+      public void GIVEN_the_girl_met_then_parted_WHEN_the_narrator_is_told_THEN_she_is_known_but_no_longer_with_the_player()
+      {
+         AuthoredQuest q = Wolf();
+         AuthoredQuestRun run = Run(q, "the_tracks");
+         AuthoredQuestEngine.Meet(run, q, "escaped_girl");
+         AuthoredQuestPrompt.Narrator(run, q).Should().Contain("[[parted:escaped_girl]]");
+
+         AuthoredQuestEngine.Part(run, q, "escaped_girl").Should().BeTrue();
+         AuthoredQuestEngine.Part(run, q, "escaped_girl").Should().BeFalse();
+
+         string prompt = AuthoredQuestPrompt.Narrator(run, q);
+         prompt.Should().NotContain("WHO IS WITH THE PLAYER NOW").And.Contain("ALREADY MET, AND NO LONGER WITH THE PLAYER").And.Contain("a girl from Ortongard");
+         prompt.Should().NotContain("[[meet:escaped_girl]]");
+      }
+
+      // STAKE: only someone actually met can part; a marker for a stranger changes nothing.
+      [Test]
+      public void GIVEN_someone_never_met_WHEN_parted_THEN_nothing_changes()
+      {
+         AuthoredQuest q = Wolf();
+         AuthoredQuestRun run = Run(q, "the_tracks");
+
+         AuthoredQuestEngine.Part(run, q, "escaped_girl").Should().BeFalse();
+         AuthoredQuestPrompt.Narrator(run, q).Should().Contain("[[meet:escaped_girl]]");
+      }
+
+      // STAKE: the parted marker is the game's, read and taken out of what the player reads.
+      [Test]
+      public void GIVEN_narration_with_a_parted_marker_WHEN_extracted_THEN_it_is_read_and_removed()
+      {
+         SceneMarkers m = SceneMarkers.Extract("She stays by the fire. [[parted:escaped_girl]]");
+
+         m.Text.Should().Be("She stays by the fire.");
+         m.Parted.Should().Equal("escaped_girl");
+      }
+
+      // STAKE (Schmidt): the narrator is told plainly that a finding shown needs its marker in that same reply.
+      [Test]
+      public void GIVEN_findings_left_WHEN_the_narrator_is_told_THEN_it_learns_the_marker_goes_in_the_same_reply()
+      {
+         AuthoredQuest q = Wolf();
+
+         AuthoredQuestPrompt.Narrator(Run(q, "the_tracks"), q).Should().Contain("its marker goes in that same reply");
+      }
    }
 }

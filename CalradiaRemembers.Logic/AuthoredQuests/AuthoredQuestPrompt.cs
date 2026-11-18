@@ -115,7 +115,9 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          if (left.Count > 0)
          {
             sb.AppendLine();
-            sb.AppendLine("WHAT IS THERE TO BE FOUND (reveal each only when the player's own actions bring them to it, and write its marker on its own when you do):");
+            // Schmidt (18/11/2026): the pelt was described over three turns and its marker never written; the scene never ended.
+            sb.AppendLine("WHAT IS THERE TO BE FOUND (reveal each only when the player's own actions bring them to it, and write its marker on its own when you do; "
+                          + "the first time your narration shows one, its marker goes in that same reply, or the game never learns it was found):");
             foreach (AuthoredFinding f in left) sb.AppendLine($"- {AuthoredQuestEngine.Fill(run, f.Text)} Marker: [[found:{f.Id}]]");
          }
 
@@ -136,16 +138,26 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
                sb.AppendLine($"- {AuthoredQuestEngine.Fill(run, e.Name)}: {AuthoredQuestEngine.Fill(run, e.Persona)}. Marker: [[meet:{e.Id}]]");
          }
 
-         List<AuthoredEncounter> met = scene.Encounters.Where(e => run.Met.Contains(e.Id)).ToList();
+         List<string> parted = run.Parted ?? new List<string>();
+         List<AuthoredEncounter> met = scene.Encounters.Where(e => run.Met.Contains(e.Id) && !parted.Contains(e.Id)).ToList();
          if (met.Count > 0)
          {
             sb.AppendLine();
             sb.AppendLine("WHO IS WITH THE PLAYER NOW (give them their own voice, in quotes, as themselves; they say only what they know):");
             foreach (AuthoredEncounter e in met)
             {
-               sb.AppendLine($"- {AuthoredQuestEngine.Fill(run, e.Name)}: {AuthoredQuestEngine.Fill(run, e.Persona)}.");
+               sb.AppendLine($"- {AuthoredQuestEngine.Fill(run, e.Name)}: {AuthoredQuestEngine.Fill(run, e.Persona)}. If they leave the player (stay behind, go their own way), write: [[parted:{e.Id}]]");
                foreach (string k in e.Knows ?? new List<string>()) sb.AppendLine("  They know: " + AuthoredQuestEngine.Fill(run, k));
             }
+         }
+
+         // Schmidt (18/11/2026): the girl left by the fire in the village walked out of the trees again, as a stranger.
+         List<AuthoredEncounter> gone = scene.Encounters.Where(e => run.Met.Contains(e.Id) && parted.Contains(e.Id)).ToList();
+         if (gone.Count > 0)
+         {
+            sb.AppendLine();
+            sb.AppendLine("ALREADY MET, AND NO LONGER WITH THE PLAYER (the player knows them; they are where they were left, and come back only if the player goes to them):");
+            foreach (AuthoredEncounter e in gone) sb.AppendLine($"- {AuthoredQuestEngine.Fill(run, e.Name)}");
          }
 
          IReadOnlyList<AuthoredChoice> ways = AuthoredQuestEngine.SceneChoices(run, q);
@@ -232,12 +244,15 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
    /// <summary>A narration with its game markers taken out.</summary>
    public sealed class SceneMarkers
    {
-      private static readonly Regex Marker = new(@"\[\[(found|hazard|meet|choice):([A-Za-z0-9_]+)\]\]", RegexOptions.Compiled);
+      private static readonly Regex Marker = new(@"\[\[(found|hazard|meet|parted|choice):([A-Za-z0-9_]+)\]\]", RegexOptions.Compiled);
 
       public string Text { get; private set; } = "";
       public List<string> Found { get; } = new();
       public List<string> Hazards { get; } = new();
       public List<string> Met { get; } = new();
+
+      /// <summary>The people met who left the player in this narration (Schmidt, 18/11/2026).</summary>
+      public List<string> Parted { get; } = new();
 
       /// <summary>The ways out of the scene the narration took (branching tales, 04/10/2026); the engine accepts only the first open one.</summary>
       public List<string> Choices { get; } = new();
@@ -254,6 +269,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
                "found" => m.Found,
                "hazard" => m.Hazards,
                "choice" => m.Choices,
+               "parted" => m.Parted,
                _ => m.Met
             };
             into.Add(x.Groups[2].Value);

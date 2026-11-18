@@ -130,7 +130,7 @@ Used by the most: `CalradiaRemembers.Logic` (79), `NpcMemoryService.Core.Models`
 | `CalradiaRemembers.Logic.Appreciations.TraitFacts` | 0 | 1 |
 | `CalradiaRemembers.Logic.Assemblies` | 4 | 10 |
 | `CalradiaRemembers.Logic.AuthoredHistory` | 1 | 2 |
-| `CalradiaRemembers.Logic.AuthoredQuests` | 4 | 5 |
+| `CalradiaRemembers.Logic.AuthoredQuests` | 5 | 5 |
 | `CalradiaRemembers.Logic.Bastards` | 1 | 6 |
 | `CalradiaRemembers.Logic.Battles` | 1 | 9 |
 | `CalradiaRemembers.Logic.Captivity` | 4 | 12 |
@@ -173,7 +173,7 @@ Used by the most: `CalradiaRemembers.Logic` (79), `NpcMemoryService.Core.Models`
 | `CalradiaRemembers.Logic.Saving` | 0 | 4 |
 | `CalradiaRemembers.Logic.Scenarios` | 2 | 2 |
 | `CalradiaRemembers.Logic.Social` | 2 | 7 |
-| `CalradiaRemembers.Logic.StoryArchive` | 0 | 5 |
+| `CalradiaRemembers.Logic.StoryArchive` | 0 | 6 |
 | `CalradiaRemembers.Logic.Strategy` | 2 | 4 |
 | `CalradiaRemembers.Logic.Styles` | 0 | 1 |
 | `CalradiaRemembers.Logic.Tournaments` | 0 | 3 |
@@ -900,7 +900,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### CalradiaRemembers.Logic.AuthoredQuests
 
-- uses: `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Hashing`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.Models`
+- uses: `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Hashing`, `CalradiaRemembers.Logic.StoryArchive`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.Models`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Quests`
 
 ### CalradiaRemembers.Logic.Bastards
@@ -1116,7 +1116,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### CalradiaRemembers.Logic.StoryArchive
 
 - uses: nothing
-- used by: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Logic`
+- used by: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.AuthoredQuests`
 
 ### CalradiaRemembers.Logic.Strategy
 

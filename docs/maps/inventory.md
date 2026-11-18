@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 685 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1695 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1699 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1807,7 +1807,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HistoryRelationStep` | public class | One relation move to make now. |
 | `HistoryWorldFacts` | public class | The campaign as the validation sees it. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (102)
+### CalradiaRemembers.Logic.AuthoredQuests (106)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1888,11 +1888,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SceneChoiceMenuFacts` | public class | What the chat knows when it asks whether, and what, to list under the narration. |
 | `SceneChoiceMenuItem` | public class | One line of the list. |
 | `SceneCompanionMemory` | public static class | What a companion who walked a scene with the player remembers of it. |
+| `SceneFindingEcho` | public static class | Finds the findings a narration shows without having written their marker. |
+| `SceneFindingEchoFacts` | public class | What one narration is checked against. |
+| `SceneFindingText` | public class | A finding still to be found, as the narrator was told it. |
 | `SceneImageLayout` | public static class | The size of a tale's picture beside the chat, kept to its own proportions. |
 | `SceneLeavePolicy` | public static class | Whether ending a scene asks first. |
 | `SceneMarkers` | public class | A narration with its game markers taken out. |
 | `SceneSurroundingsFacts` | public class | What the game knows of a scene's surroundings. |
 | `SceneSurroundingsText` | public static class | The narrator's block about the scene's surroundings. |
+| `SceneTranscriptWindow` | public static class | The "scene so far" a narrator reads each turn. |
 | `TaleArc` | public static class | Where a tale's arc stands, what the character and the reader are told of it, and what one exchange does. |
 | `TaleConceptionPolicy` | public static class | Who would carry a child from a tale's ending, and on what chance. |
 | `TaleElopementPolicy` | public static class | When a tale's elopement and return can really happen. |

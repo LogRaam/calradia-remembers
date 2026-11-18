@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-814 rules read 604 facts.
+815 rules read 606 facts.
 
 ## Facts read by more than one rule
 
@@ -339,6 +339,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `NavigationType.Default` (2) | `CourierGateFacts`, `EscortCostPolicy.EscortPremium` |
 | `NewEventData.Type` (2) | `CoerciveSceneEventPolicy.ShouldDropRomanticEvent`, `JealousyTriggerPolicy.IsPlausibleCourtship` |
 | `Npc.Gold` (2) | `ExtortionPolicy.MostTaken`, `PrisonerTradePolicy.MostABuyerCanPay` |
+| `Objective.Scene` (2) | `AuthoredQuestEngine.Fill`, `SceneFindingEchoFacts` |
+| `Opening.Canvas` (2) | `AuthoredQuestEngine.Fill`, `SceneFindingEchoFacts` |
 | `Owner.Clan` (2) | `CourierSecretPolicy.WhoGetsTheSecret`, `SecretDefeaterFacts` |
 | `PartyBase.NumberOfHealthyMembers` (2) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.TroopsToAsk` |
 | `PartyBase.PartySizeLimit` (2) | `GarrisonStrength.BandOf`, `ReinforceGarrisonPolicy.TroopsToAsk` |
@@ -429,7 +431,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `AuthoredPlayerPolicy.WhyNot`: `Requires.Player`
 - `AuthoredQuestEngine.Bound`: `Objective.Spawn`
 - `AuthoredQuestEngine.ConversationOpened`: `Hero.CurrentSettlement`, `Hero.HomeSettlement`
-- `AuthoredQuestEngine.Fill`: `Failure.Journal`, `Objective.Scene`, `Objective.Spawn`, `OnDefeat.Journal`, `OnMap.Accept`, `OnMap.Decline`, `OnMap.Invitation`, `OnScenario.Accept`, `OnScenario.Decline`, `OnScenario.Invitation`, `Scene.Title`
+- `AuthoredQuestEngine.Fill`: `Failure.Journal`, `Objective.Scene`, `Objective.Spawn`, `OnDefeat.Journal`, `OnMap.Accept`, `OnMap.Decline`, `OnMap.Invitation`, `OnScenario.Accept`, `OnScenario.Decline`, `OnScenario.Invitation`, `Opening.Canvas`, `Scene.Title`
 - `AuthoredQuestEngine.NightPassed`: `GetPosition2D.Distance`, `Objective.Place`, `Objective.Radius`, `Settlement.Find`, `Settlement.GetPosition2D`
 - `AuthoredQuestEngine.Start`: `Quest.Weight`
 - `AuthoredQuestOfferPolicy.PickByWeight`: `Quest.Weight`, `q.Weight`
@@ -1042,6 +1044,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `SceneChoiceMenu.Read`: `Array.Empty`, `Ways.Invoke`
 - `SceneChoiceMenuFacts`: `Array.Empty`
 - `SceneCompanionMemory.Compose`: `FoundSoFar.Invoke`
+- `SceneFindingEchoFacts`: `Objective.Scene`, `Opening.Canvas`, `Opening.Facts`
 - `SceneNarrationFacts`: `ModSettings.SceneNarration`
 - `SceneNarrationPolicy.Shows`: `ModSettings.SceneNarration`
 - `SceneOpenerPolicy.ShouldOpen`: `ModSettings.CharactersSetTheScene`
