@@ -536,13 +536,26 @@ namespace CalradiaRemembers.Diagnostics
                                      List<InterpretOutcome> outcomes, StringBuilder transcripts, double cap, HashSet<CostCall> unscored)
       {
          using var forced = new ForcedSetup(services, row, false);
-         NpcProfile profile = CopyOf(behavior.Store.Get(speaker.StringId) ?? HeroProfileMapper.FromHero(speaker));
+         NpcProfile own = CopyOf(behavior.Store.Get(speaker.StringId) ?? HeroProfileMapper.FromHero(speaker));
+         Hero outsider = PickOutsider();
+         NpcProfile outsiderProfile = outsider == null ? null : CopyOf(behavior.Store.Get(outsider.StringId) ?? HeroProfileMapper.FromHero(outsider));
          var skipped = new List<string>();
          transcripts.AppendLine($"--- [standard tags] {row.Name}: {row.Model}; {row.Setup} ---");
          foreach (StandardActionCase test in StandardActionCases.All)
          {
             if (CostBenchReport.CapReached(recorder.Spent, cap)) return "stopped early: cap reached";
 
+            bool outside = StandardActionCases.NeedsOutsider(test.Gate);
+            if (outside && outsider == null)
+            {
+               skipped.Add(test.Id);
+               transcripts.AppendLine($"> [{test.Id}] (skipped: no unwed lord of another house to play it)");
+
+               continue;
+            }
+
+            Hero who = outside ? outsider : speaker;
+            NpcProfile profile = outside ? outsiderProfile : own;
             var session = new ChatSession();
             foreach ((string player, string character) in test.Earlier)
             {
@@ -557,7 +570,7 @@ namespace CalradiaRemembers.Diagnostics
             IReadOnlyList<GameAction> tags = new List<GameAction>();
             try
             {
-               EncounterContext ctx = EncounterContextBuilder.Build(speaker, profile, behavior.GameStateBridge, test.Line);
+               EncounterContext ctx = EncounterContextBuilder.Build(who, profile, behavior.GameStateBridge, test.Line);
                foreach (KeyValuePair<string, object> fact in StandardActionCases.GateFacts(test.Gate))
                   typeof(EncounterContext).GetProperty(fact.Key)?.SetValue(ctx, fact.Value);
                var world = new WorldState {CurrentDay = behavior.GameStateBridge.GetCurrentGameDay()};
@@ -578,7 +591,7 @@ namespace CalradiaRemembers.Diagnostics
                error = $"{inner.GetType().Name}: {inner.Message}";
             }
 
-            transcripts.AppendLine($"> [{test.Id}] {test.Line}");
+            transcripts.AppendLine($"> [{test.Id}]{(outside ? " (" + who.Name + ")" : "")} {test.Line}");
             if (error == null && !StandardActionCases.Taught(test, _watch?.LastPrompt))
             {
                skipped.Add(test.Id);
@@ -681,6 +694,17 @@ namespace CalradiaRemembers.Diagnostics
          List<Hero> lords = Hero.AllAliveHeroes.Where(h => h != null && h != Hero.MainHero && h.IsLord && !h.IsChild && !h.IsPrisoner && HeroPresence.IsInTheWorld(h)).ToList();
 
          return lords.FirstOrDefault(h => h.MapFaction != null && h.MapFaction == Hero.MainHero?.MapFaction) ?? lords.FirstOrDefault();
+      }
+
+      // For a wedding or a defection: an adult lord of another house, unwed, of the other sex, free and in the world.
+      private static Hero PickOutsider()
+      {
+         Hero main = Hero.MainHero;
+         if (main == null) return null;
+
+         return Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != main && h.IsLord && !h.IsChild && !h.IsPrisoner && h.Spouse == null
+                                                        && h.IsFemale != main.IsFemale && h.Clan != null && h.Clan != main.Clan
+                                                        && h.Clan.Leader != h && HeroPresence.IsInTheWorld(h));
       }
 
       private static NpcProfile CopyOf(NpcProfile profile)

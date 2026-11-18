@@ -136,6 +136,18 @@ namespace CalradiaRemembers.Tests
          }
       }
 
+      // STAKE: an item handed over or sold is taught to any free character by its own section; the check must find that
+      // section, not the word in passing (the language rule names give_item in every prompt).
+      [Test]
+      public void GIVEN_the_item_cases_WHEN_the_real_prompt_of_a_free_player_is_built_THEN_their_own_sections_teach_them()
+      {
+         string prompt = Prompt(new EncounterContext {PlayerStatus = PlayerStatusVsNpc.Free});
+
+         StandardActionCases.Taught(Case("give_item_handed"), prompt).Should().BeTrue();
+         StandardActionCases.Taught(Case("sell_item_paid"), prompt).Should().BeTrue();
+         StandardActionCases.Taught(Case("give_item_handed"), "Keep every action keyword (change_relation, give_gold, give_item) in English.").Should().BeFalse();
+      }
+
       // STAKE: the staged cases are many short calls; counted in the conversation's columns they would change every
       // Standard row's thinking and cache shares. They stay in their own table.
       [Test]

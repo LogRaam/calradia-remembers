@@ -40,7 +40,13 @@ namespace CalradiaRemembers.Logic.Diagnostics
       EscortsPlayer,
 
       /// <summary>The character could teach the player One Handed (<c>teach_skill</c>).</summary>
-      CanTeachOneHanded
+      CanTeachOneHanded,
+
+      /// <summary>The character could wed the player, with the family's blessing (<c>marry</c>). Played by an outsider.</summary>
+      CanMarryPlayer,
+
+      /// <summary>The character could leave their house for the player's (<c>join_clan</c>). Played by an outsider.</summary>
+      CanJoinPlayerClan
    }
 
    /// <summary>One staged case: the turns that settle the deed, the line that calls for it, and what must be tagged.</summary>
@@ -95,6 +101,18 @@ namespace CalradiaRemembers.Logic.Diagnostics
          ("How do you find life in my column?", "Dusty, and the cook is a menace. But I am glad to ride with you.")
       };
 
+      private static readonly (string, string)[] SwordSale = {
+         ("Would you buy my Vlandian Noble Sword? I have no more use for it.", "Three hundred denars, and not a coin more.")
+      };
+
+      private static readonly (string, string)[] Betrothed = {
+         ("Will you marry me?", "Yes. Before the priest, today, if you will have it so.")
+      };
+
+      private static readonly (string, string)[] CastOut = {
+         ("Your liege has cast you out, and your house is broken. Come and join mine.", "Ask me plainly once more, and I will swear to your house.")
+      };
+
       private static readonly (string, string)[] Escorting = {
          ("Your men have kept good order on the road.", "They are used to it. No raider has come near us since we set out together.")
       };
@@ -127,6 +145,16 @@ namespace CalradiaRemembers.Logic.Diagnostics
          FalseLead("end_one_more_question", StandardGate.None, "end_conversation", new (string, string)[0],
             "Before I go, one more question: who holds the bridge at Epicrotea now?"),
 
+         // An item the player gives or sells (give_item is the player's gift TO the character): taught to anyone free.
+         Positive("give_item_handed", InterpretDifficulty.Simple, StandardGate.None, "give_item", new (string, string)[0],
+            "*I hand you my Vlandian Noble Sword, hilt first.* Take it. You have earned a fine blade.", "give_item", ("item", "Vlandian Noble Sword")),
+         Positive("give_item_oblique", InterpretDifficulty.Oblique, StandardGate.None, "give_item", new (string, string)[0],
+            "*I unstrap the Aserai War Bow from my saddle and lay it across your knees.* It will serve you better than it ever served me.", "give_item", ("item", "Aserai War Bow")),
+         FalseLead("give_item_later", StandardGate.None, "give_item", new (string, string)[0],
+            "When I am back from Pravend, I will bring you the Vlandian Noble Sword I spoke of."),
+         Positive("sell_item_paid", InterpretDifficulty.Simple, StandardGate.None, "sell_item", SwordSale,
+            "*I lay the Vlandian Noble Sword on the table before you.* Three hundred, then. It is yours.", "sell_item", ("item", "Vlandian Noble Sword")),
+
          // Riding in the player's party.
          Positive("ride_with_me_asked", InterpretDifficulty.Simple, StandardGate.CanRideWithPlayer, "ride_with_me", RideOffer,
             "I ask it again, plainly: ride with me. We leave at dawn.", "ride_with_me"),
@@ -149,7 +177,17 @@ namespace CalradiaRemembers.Logic.Diagnostics
          Positive("teach_skill_lesson", InterpretDifficulty.Simple, StandardGate.CanTeachOneHanded, "teach_skill", LessonOffer,
             "*I draw my sword in the yard.* I am ready for the lesson you promised.", "teach_skill", ("skill", "One Handed")),
          FalseLead("teach_skill_someday", StandardGate.CanTeachOneHanded, "teach_skill", LessonOffer,
-            "Not today, my arm still aches from the ride. Some other day you must show me.")
+            "Not today, my arm still aches from the ride. Some other day you must show me."),
+
+         // A wedding and a defection: played by an unwed lord of another house, never the player's own spouse or kin.
+         Positive("marry_rites", InterpretDifficulty.Simple, StandardGate.CanMarryPlayer, "marry", Betrothed,
+            "The priest is here and the hall is ready. Before your gods and mine, I take you to be wed to me from this day.", "marry"),
+         FalseLead("marry_someday", StandardGate.CanMarryPlayer, "marry", Betrothed,
+            "Not yet, though. When this war is done, I will come back and ask for your hand before your kin."),
+         Positive("join_clan_sworn", InterpretDifficulty.Simple, StandardGate.CanJoinPlayerClan, "join_clan", CastOut,
+            "Then I ask it plainly: forsake the old banner and join my house.", "join_clan"),
+         FalseLead("join_clan_later", StandardGate.CanJoinPlayerClan, "join_clan", CastOut,
+            "Think on it. When the season turns, I may ask you to join my house.")
       };
 
       /// <summary>
@@ -180,6 +218,14 @@ namespace CalradiaRemembers.Logic.Diagnostics
                return new Dictionary<string, object> {
                   {nameof(EncounterContext.NpcIsEscortingPlayer), true}, {nameof(EncounterContext.NpcCanEscortPlayer), false}
                };
+            case StandardGate.CanMarryPlayer:
+               // Blessed and not reluctant: the staged yes is the character's own, so a refusal is the model's.
+               return new Dictionary<string, object> {
+                  {nameof(EncounterContext.LoveMatchEligible), true}, {nameof(EncounterContext.LoveMatchBlessed), true},
+                  {nameof(EncounterContext.LoveMatchReluctant), false}
+               };
+            case StandardGate.CanJoinPlayerClan:
+               return new Dictionary<string, object> {{nameof(EncounterContext.LordRecruitEligible), true}};
             case StandardGate.CanTeachOneHanded:
                return new Dictionary<string, object> {{nameof(EncounterContext.TeachableSkills), (IReadOnlyList<string>) new List<string> {"One Handed"}}};
             default:
@@ -189,15 +235,25 @@ namespace CalradiaRemembers.Logic.Diagnostics
 
       /// <summary>
       ///   Whether the prompt the model read teaches the case's verb; an untaught verb cannot be scored fairly. A gated verb is
-      ///   taught by its own section, which carries its "type: verb" line (another section may only name it in passing); the
-      ///   verbs every character has stand in the action list.
+      ///   taught by its own section, which carries its "type: verb" line (another section may only name it in passing: the
+      ///   language rule names give_item, and a Compact prompt drops sell_item's teaching); only the verbs of the action list
+      ///   every character has (<see cref="ActionListVerbs" />) are found by name.
       /// </summary>
       public static bool Taught(StandardActionCase test, string prompt)
       {
          if (string.IsNullOrEmpty(test?.Verb)) return true;
 
-         return (prompt ?? "").Contains(test.Gate == StandardGate.None ? test.Verb : TypeLine(test.Verb));
+         return (prompt ?? "").Contains(ActionListVerbs.Contains(test.Verb) ? test.Verb : TypeLine(test.Verb));
       }
+
+      /// <summary>The verbs taught in the action list rather than by a section of their own (ProseActionVocabulary).</summary>
+      public static readonly IReadOnlyCollection<string> ActionListVerbs = new HashSet<string> {"give_gold", "take_gold", "end_conversation"};
+
+      /// <summary>
+      ///   Whether the case needs a character of another house, unwed: the bench's usual speaker is the player's spouse,
+      ///   who can neither wed the player again nor leave a house that is already the player's.
+      /// </summary>
+      public static bool NeedsOutsider(StandardGate gate) => gate == StandardGate.CanMarryPlayer || gate == StandardGate.CanJoinPlayerClan;
 
       /// <summary>The line a verb's own teaching section carries.</summary>
       public static string TypeLine(string verb) => "type: " + verb;

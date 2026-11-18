@@ -32,7 +32,7 @@ DeepSeek V4 Flash | deepseek/deepseek-v4-flash
 ```
 - **[prose]**: `name | model id | Full or Compact | reasoning effort | NSFW fallback model` (the last one optional).
 - **[interpret]**: `name | model id | cases per difficulty`. A number tests a sample; blank tests the whole catalog (about 300 cases, dearer).
-- **[standard]**: the same as prose, in Standard mode (one call instead of two). Then about twenty short staged scenes (a price agreed then paid, a lesson promised then given, a payment only promised for later) check that the model **tags the deed itself**, and only when it is truly done.
+- **[standard]**: the same as prose, in Standard mode (one call instead of two). Then about thirty short staged scenes (a price agreed then paid, a sword handed over, a lesson given, a wedding, a lord joining your house, a payment only promised for later) check that the model **tags the deed itself**, and only when it is truly done.
 - **[fold]**: background models, timed on summing up a long conversation.
 The name is what the tables show; the model id is copied from the model's page on OpenRouter. **Delete the rows you don't need**: fewer rows, cheaper run.
 
