@@ -3528,6 +3528,11 @@ namespace CalradiaRemembers.GameState
                PregnancyService.TryConceive(npcHero, player); // mother = NPC, father = player
 
                break;
+            default:
+               // Kámen (18/11/2026): a tag that met no fertile pair used to leave no trace at all.
+               ModLog.Info($"[PREGNANCY] impregnation_risk with {npcHero.Name}: no child can come of this pair (it needs a woman of 18 to 45 and a living man).");
+
+               break;
          }
 
          return null;

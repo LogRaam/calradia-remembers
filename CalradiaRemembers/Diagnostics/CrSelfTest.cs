@@ -576,7 +576,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("stance_intercept", Severity.Heavy, "stance with teeth increment 2: force an Intercept-verdict lord (traits forced honourable+bold) -> weekly eval -> assert InterceptionBehavior actually begins a pursuit (skips MANUAL if its own cooldown/army guard legitimately blocks it)", TestStanceIntercept),
          new SelfTest("stance_warning", Severity.Heavy, "stance with teeth increment 2: seed a secret scheme against the player -> force a friendly Warning-verdict lord -> assert the letter NAMES the real plotter", TestStanceWarning),
          new SelfTest("scheme_assist", Severity.Heavy, "plot + regard -> PlayerAssists -> assert the plot advanced", TestSchemeAssist),
-         new SelfTest("pregnancy", Severity.Heavy, "fertile female -> TryConceive(force) -> assert pregnant", TestPregnancy),
+         new SelfTest("pregnancy", Severity.Heavy, "fertile female -> TryConceive(force) -> assert pregnant; Kámen 18/11: MCM Conception Chance at 0 -> an unforced act conceives nothing", TestPregnancy),
          new SelfTest("parley_entry", Severity.Light, "timicu 28/10: the parley with an enemy ruler (peace, tribute, prisoners, hostage, non-aggression) was reachable only from the console. Reads the council picker's parley lines from the live game: every realm offered is at war with the player's faction and has a ruler, and none is offered unless the player leads their faction. Opens no council", TestParleyEntry),
          new SelfTest("brawl_initiative", Severity.Light, "avalanche24 28/10: a companion hired hours before called him out for being told to follow orders; Gabriel 28/10: nobles duel, a companion only brawls. Asks the real resolver (the gate the prompt and the bridge both ask): a lord fights with steel, a companion with fists; a companion with no grudge and a plain regard may not call the player out; soured to -30 she may, unless the player is far the better fighter and she is not reckless. Restores her regard; arms nothing", TestBrawlInitiative),
          new SelfTest("station_definitions", Severity.Light, "Gabriel 28/10: one definition per social status, adjusting to the player's rung; avalanche24 28/10: companions and a landowner spoke above their station. Reads every station definition as the game loaded it (ModuleData/stations, Custom and patches applied): each says who the character is and meets each of the five rungs. Then finds a living companion, notable or lord and expects the prompt's station lines for them to be the definition's. Changes no game state", TestStationDefinitions),
@@ -10635,6 +10635,19 @@ namespace CalradiaRemembers.Diagnostics
 
          if (t.Skip(mother == null, "no CR-eligible (fertile, not already carrying, birth-enabled) female NPC")) return t.Line();
 
+         // Kámen (18/11/2026): the roll obeys the MCM Conception Chance; at 0 an unforced act never conceives.
+         CrSettings settings = CrSettings.Instance;
+         if (settings != null)
+         {
+            int prior = settings.ConceptionChancePercent;
+            try
+            {
+               settings.ConceptionChancePercent = 0;
+               t.Expect("zeroChanceConceivesNothing", PregnancyService.TryConceive(mother, Hero.MainHero) == null, true);
+            }
+            finally { settings.ConceptionChancePercent = prior; }
+         }
+
          // Assert on CR's own success signal (a non-null note = the reflective MakePregnant created
          // the pregnancy), NOT Hero.IsPregnant — a vanilla flag CR's reflective path may not flip.
          string note = PregnancyService.TryConceive(mother, Hero.MainHero, true);
@@ -19525,6 +19538,8 @@ namespace CalradiaRemembers.Diagnostics
                "the whole point of the FloatingMammal fix: 0 must reach the gate as 0"),
             ["NpcCrossTalkRounds"] = ("NpcCrossTalkRounds", SettingShape.Honours,
                "0 must mean the witnesses fall silent, 3 must mean three rounds"),
+            ["ConceptionChancePercent"] = ("ConceptionChance", SettingShape.Reshapes,
+               "a percent the player reads becomes the probability the roll uses (Kamen 18/11: 100 must mean every act conceives)"),
             ["MarriageRegardNeeded"] = ("MarriageRegardThreshold", SettingShape.Reshapes,
                "capped at MarriageEligibilityThreshold: the setting may only make marriage EASIER, never harder"),
             ["ReplyTokenBudget"] = ("ReplyTokenBudget", SettingShape.Reshapes,

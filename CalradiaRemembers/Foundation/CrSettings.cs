@@ -42,6 +42,13 @@ namespace CalradiaRemembers.Foundation
       public Dropdown<McmChoice> AdultContentLevel { get; set; } =
          McmChoice.List(1, "{=CR_MCM_AdultContentLevel_Off}Off", "{=CR_MCM_AdultContentLevel_Mature}Mature", "{=CR_MCM_AdultContentLevel_Explicit}Explicit", "{=CR_MCM_AdultContentLevel_Hardcore}Hardcore"); // default: Mature
 
+      // Kámen (Discord, 18/11/2026): a correct tag led to a child one time in seven, with no way to change it.
+      [SettingPropertyInteger("{=CR_MCM_ConceptionChancePercent}Conception Chance (%)", 0, 100, "0 '%'", RequireRestart = false, Order = 1,
+         HintText = "{=CR_MCM_ConceptionChancePercent_Hint}Chance that an intimate act able to make a child (Explicit or above) leads to one. " +
+                    "15 is the shipped chance; 100 makes every such act conceive. Her age and a recent birth still count. Applies immediately.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
+      public int ConceptionChancePercent { get; set; } = ConceptionChancePolicy.DefaultPercent;
+
       // The Prompt Composer (Gabriel, 11/10/2026: "Un param MCM pourrait designer l'ordonnanceur a utiliser"). Filled with the
       // profiles found at the main menu and at each session launch (Mapping.PromptProfileService); MCM saves only the place
       // in this list, so the service also keeps the pick by id.

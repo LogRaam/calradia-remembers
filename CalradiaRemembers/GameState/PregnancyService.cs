@@ -35,8 +35,6 @@ namespace CalradiaRemembers.GameState
    /// </summary>
    public static class PregnancyService
    {
-      private const float ConceptionChance = 0.15f;
-
       /// <summary>The vetoes other mods registered through CrConception, asked before every conception.</summary>
       internal static readonly PairVetoBook<Hero> Vetoes = new();
       private const float MaxFertileAge = 45f;
@@ -90,9 +88,11 @@ namespace CalradiaRemembers.GameState
                return null;
             }
 
-            if (!force && MBRandom.RandomFloat >= ConceptionChance)
+            // Kámen (18/11/2026): the chance is the player's to set (MCM Conception Chance, 15% shipped).
+            float chance = ModSettings.ConceptionChance;
+            if (!force && MBRandom.RandomFloat >= chance)
             {
-               ModLog.Info($"[PREGNANCY] no conception: the roll failed ({ConceptionChance:P0} chance), mother {mother.Name}.");
+               ModLog.Info($"[PREGNANCY] no conception: the roll failed ({chance:P0} chance), mother {mother.Name}.");
 
                return null;
             }

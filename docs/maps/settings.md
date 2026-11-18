@@ -11,7 +11,7 @@ player says "I turned it off and it still happens", the readers listed here are 
 it is missing from the list. Read from syntax; blind spots in the header of `SettingsReadersMap.cs` (a value handed
 on to the SDK or a helper shows only where it is read).
 
-118 settings; a reader is `Type.Member`. Console and cr.test reads are counted apart (they exercise a switch, they do not obey it).
+119 settings; a reader is `Type.Member`. Console and cr.test reads are counted apart (they exercise a switch, they do not obey it).
 
 ## Read by one member only
 
@@ -32,6 +32,7 @@ Fine when the setting governs one thing. Worth a look when its hint promises mor
 | Chat Composition (`ChatCompositionModeSetting`) | `LlmServices.SeedModelModeFromSettings` |
 | Chat Window Style (`ChatSkin`) | `ChatManager.MenuSkinPrefab` |
 | Clan standing warms first meetings (`ClanStandingWarmsFirstMeetings`) | `ClanStandingSeedService.Apply` |
+| Conception Chance (%) (`ConceptionChancePercent`) | `PregnancyService.TryConceive` |
 | Contentment Pacing (`ContentmentPacing`) | `CompanionHappinessBehavior.OnWeeklyTick` |
 | Council Size (%) (`CouncilZoomPercent`) | `ChatManager.ArbitrateFocus` |
 | Council Text Size (%) (`CouncilTextSizePercent`) | `ChatMessageViewModel.CouncilMessageFontBrush` |
@@ -112,6 +113,7 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Characters can add news to the world (`EnableNpcWorldClaims`) | `ConversationSummaryService.HarvestWorldClaimsAsync` | 1 |
 | Chat Text Size (%) (`ChatTextSizePercent`) | `ChatMessageViewModel.ClassicMessageFontBrush`, `ChatMessageViewModel.ManuscriptMessageFontBrush`, `SceneChoiceItemViewModel.ClassicChoiceBrush`, `SceneChoiceItemViewModel.ManuscriptChoiceBrush` | 0 |
 | Chat Window Style (`ChatSkin`) | `ChatManager.MenuSkinPrefab` | 0 |
+| Conception Chance (%) (`ConceptionChancePercent`) | `PregnancyService.TryConceive` | 1 |
 | Council Size (%) (`CouncilZoomPercent`) | `ChatManager.ArbitrateFocus` | 0 |
 | Council Text Size (%) (`CouncilTextSizePercent`) | `ChatMessageViewModel.CouncilMessageFontBrush` | 0 |
 | Council Voices (`CouncilVoices`) | `ChatViewModel.ActivateCouncil` | 0 |

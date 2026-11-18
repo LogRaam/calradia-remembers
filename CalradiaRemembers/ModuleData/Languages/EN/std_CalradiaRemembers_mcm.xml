@@ -13,6 +13,8 @@
     <string id="CR_MCM_AdultContentLevel_Mature" text="Mature" />
     <string id="CR_MCM_AdultContentLevel_Explicit" text="Explicit" />
     <string id="CR_MCM_AdultContentLevel_Hardcore" text="Hardcore" />
+    <string id="CR_MCM_ConceptionChancePercent" text="Conception Chance (%)" />
+    <string id="CR_MCM_ConceptionChancePercent_Hint" text="Chance that an intimate act able to make a child (Explicit or above) leads to one. 15 is the shipped chance; 100 makes every such act conceive. Her age and a recent birth still count. Applies immediately." />
     <string id="CR_MCM_PromptProfile" text="Prompt Profile" />
     <string id="CR_MCM_PromptProfile_Hint" text="Which prompt profile composes what characters read: stock, your own (Custom/Prompts) or one a mod ships (cr_prompts). Stock is the reset. cr.prompt_check lists what each profile changes." />
     <string id="CR_MCM_ChatSkin" text="Chat Window Style" />

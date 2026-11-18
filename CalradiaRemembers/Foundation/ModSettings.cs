@@ -280,6 +280,9 @@ namespace CalradiaRemembers.Foundation
          }
       }
 
+      /// <summary>The probability (0 to 1) that an act able to conceive does (MCM Conception Chance, 15% shipped).</summary>
+      public static float ConceptionChance => ConceptionChancePolicy.Chance(CrSettings.Instance?.ConceptionChancePercent);
+
       public static int MarriageRegardThreshold
       {
          get

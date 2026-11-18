@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 685 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1706 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1707 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1065,7 +1065,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (520)
+### CalradiaRemembers.Logic (521)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1158,6 +1158,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CompressionMerge` | public class | One compression pass coming back: what it read, what it kept, and the history as it stands now. |
 | `CompressionMergeOutcome` | public class | What to write back after a compression pass. |
 | `CompressionMergePolicy` | public static class | Applies a compression pass to the history as it stands now, never to the one the pass started from. |
+| `ConceptionChancePolicy` | public static class | Turns the MCM's conception chance into the roll's probability. |
 | `ConceptionChroniclePolicy` | public static class | Decides whether a conception involving the player is a PUBLIC heir worth chronicling, or a private matter the chronicle must stay silent about (the seed of a hidden bastard). |
 | `ConceptionResolver` | public static class | Decides, from the two participants' sex / life / age, which (if either) could conceive from a completed vaginal act. |
 | `ConceptionRole` | public enum | Which participant, if either, becomes the mother of a conception in this scene. |
