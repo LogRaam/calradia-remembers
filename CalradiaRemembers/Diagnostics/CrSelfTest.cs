@@ -7943,7 +7943,10 @@ namespace CalradiaRemembers.Diagnostics
 
             IReadOnlyList<string> roster = Mapping.ArmyRosterReader.Read(member.LeaderHero);
             // The player's own party is told as "You lead it", never by name (Gabriel ran this leading an army, 17/11/2026).
-            MobileParty other = member.Army.Parties.FirstOrDefault(p => p != member && p != MobileParty.MainParty && p.LeaderHero != null);
+            // The roster names the biggest parties and folds the rest into "And N lesser parties" (Gabriel's army of 14,
+            // 18/11/2026: the first party found was a lesser one), so the lord checked is the biggest other one.
+            MobileParty other = member.Army.Parties.Where(p => p != member && p != MobileParty.MainParty && p.LeaderHero != null)
+                                      .OrderByDescending(p => p.MemberRoster.TotalManCount).FirstOrDefault();
             t.Note(roster == null ? "no roster" : string.Join(" | ", roster));
             t.Expect("theArmyIsTold", roster != null && roster.Any(l => l.StartsWith("In all,")), true);
             t.Expect("anotherLordOfTheArmyIsNamed", other != null && roster != null && roster.Any(l => l.Contains(other.LeaderHero.Name.ToString())), true);
