@@ -4,6 +4,8 @@ All notable changes to the mod, newest first. Dates are calendar dates.
 
 ## v2.8.16.. unreleased
 
+- **cr.cost_bench shows the INTERPRET cache** (Gabriel 18/11/2026: one benchmark for action accuracy, speed, cost AND cache). `InterpretRowResult.CachedShare` (cached over sent tokens of the row's readings) is a new "From cache" column in the Markdown INTERPRET table and the Nexus `[code]` block; PROSE rows already had theirs. Every reading sends the same action vocabulary first, so the cache is most of an interpreter's price. CostBenchTests +1; `docs/discord/benchmark.md` and the command help say so.
+
 ## v2.8.15.. 2026-11-18
 
 ### Fixed

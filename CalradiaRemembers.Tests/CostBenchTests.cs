@@ -243,6 +243,28 @@ namespace CalradiaRemembers.Tests
          CostBenchReport.NexusCode(new[] {p}, reads, "v2.7.20", new DateTime(2026, 10, 24)).Should().Contain("$0.0070 11.5 s");
       }
 
+      // Gabriel (18/11/2026) asked for the cache beside accuracy, speed and cost. Every reading sends the same long action
+      // vocabulary first, so an interpreter that caches it costs a fraction of one that does not: the share read from cache
+      // is its own column, in the log and on the Nexus page, or two interpreters of equal price look alike when one is cheap.
+      [Test]
+      public void GIVEN_readings_partly_served_from_cache_WHEN_summed_THEN_the_interpreter_row_shows_its_cached_share()
+      {
+         var calls = new List<CostCall> {
+            new CostCall {ScenarioName = "Grok", Pass = CostPass.Interpret, Phase = CostPhase.Interpreter, Difficulty = InterpretDifficulty.Simple, Cost = 0.002, PromptTokens = 4000, CachedTokens = 0},
+            new CostCall {ScenarioName = "Grok", Pass = CostPass.Interpret, Phase = CostPhase.Interpreter, Difficulty = InterpretDifficulty.Simple, Cost = 0.001, PromptTokens = 4000, CachedTokens = 3000}
+         };
+         var outcomes = new List<InterpretOutcome> {
+            new InterpretOutcome {ScenarioName = "Grok", Difficulty = InterpretDifficulty.Simple, Right = true},
+            new InterpretOutcome {ScenarioName = "Grok", Difficulty = InterpretDifficulty.Simple, Right = true}
+         };
+
+         InterpretRowResult r = CostBenchReport.SummarizeInterpret(GrokReads, calls, outcomes);
+
+         r.CachedShare.Should().BeApproximately(0.375, 1e-9);
+         CostBenchReport.Markdown(new ProseRowResult[0], new[] {r}, new FoldRowResult[0], "v2.8.16", new DateTime(2026, 11, 18)).Should().Contain("| 38% |");
+         CostBenchReport.NexusCode(new ProseRowResult[0], new[] {r}, "v2.8.16", new DateTime(2026, 11, 18)).Should().Contain("From cache").And.Contain("38%");
+      }
+
       // Gabriel: the sample an interpreter's score needs. 24 of 24 says much less than 290 of 296; the interval says how
       // much, and stays honest near 100%.
       [Test]

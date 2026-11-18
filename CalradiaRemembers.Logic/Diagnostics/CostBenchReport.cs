@@ -274,6 +274,10 @@ namespace CalradiaRemembers.Logic.Diagnostics
       /// <summary>Right readings over all cases, with its 95% interval (Wilson), so a small sample says how little it knows.</summary>
       public (int Right, int Cases, double Low, double High) Accuracy { get; init; }
 
+      /// <summary>Of the tokens sent, the share read from cache (0 to 1). Every reading sends the same long prefix (the action
+      ///   vocabulary), so a model that caches it pays a fraction of the table price (Gabriel, 18/11/2026).</summary>
+      public double CachedShare { get; init; }
+
       /// <summary>True when some attempt came back without a price.</summary>
       public bool Unpriced { get; init; }
 
@@ -629,6 +633,7 @@ namespace CalradiaRemembers.Logic.Diagnostics
             PerReading = read.Count > 0 ? mine.Sum(c => c.Cost ?? 0) / read.Count : 0,
             SecondsPerReading = read.Count > 0 ? mine.Sum(c => c.Seconds) / read.Count : 0,
             Accuracy = Wilson(read.Count(o => o.Right), read.Count),
+            CachedShare = Share(mine.Sum(c => c.CachedTokens), mine.Sum(c => c.PromptTokens)),
             Unpriced = mine.Any(c => c.Cost == null),
             Note = note ?? ""
          };
@@ -673,10 +678,10 @@ namespace CalradiaRemembers.Logic.Diagnostics
          sb.AppendLine();
 
          sb.AppendLine("INTERPRET, per reading, with right readings out of cases (and deeds invented):");
-         sb.AppendLine("| Model | No action | Simple | Oblique | False lead | Read right (95%) | Per reading |");
-         sb.AppendLine("|---|---|---|---|---|---|---|");
+         sb.AppendLine("| Model | No action | Simple | Oblique | False lead | Read right (95%) | Per reading | From cache |");
+         sb.AppendLine("|---|---|---|---|---|---|---|---|");
          foreach (InterpretRowResult r in interpret)
-            sb.AppendLine($"| {r.Row.Name} ({r.Row.Model}) | {Cell(r, InterpretDifficulty.NoAction)} | {Cell(r, InterpretDifficulty.Simple)} | {Cell(r, InterpretDifficulty.Oblique)} | {Cell(r, InterpretDifficulty.FalseLead)} | {AccuracyText(r)} | ${Money(r.PerReading)}, {Secs(r.SecondsPerReading)} |{Flags(r.Unpriced, r.Note)}");
+            sb.AppendLine($"| {r.Row.Name} ({r.Row.Model}) | {Cell(r, InterpretDifficulty.NoAction)} | {Cell(r, InterpretDifficulty.Simple)} | {Cell(r, InterpretDifficulty.Oblique)} | {Cell(r, InterpretDifficulty.FalseLead)} | {AccuracyText(r)} | ${Money(r.PerReading)}, {Secs(r.SecondsPerReading)} | {Percent(r.CachedShare)} |{Flags(r.Unpriced, r.Note)}");
          sb.AppendLine();
 
          sb.AppendLine("FOLD, one fold of the same recap, per Background model:");
@@ -705,8 +710,8 @@ namespace CalradiaRemembers.Logic.Diagnostics
                           $"${Money(p.Start)} {Secs(p.StartSeconds)}", $"${Money(p.Middle)} {Secs(p.MiddleSeconds)}",
                           $"${Money(p.Long)} {Secs(p.LongSeconds)}", p.Letter == null ? "-" : "$" + Money(p.Letter.Value)
                        }))));
-         sb.Append(Code(new[] {new[] {"Interpret model", "Per reply", "Read right"}}
-                       .Concat(interpret.Select(i => new[] {i.Row.Name, $"${Money(i.PerReading)} {Secs(i.SecondsPerReading)}", AccuracyText(i)}))));
+         sb.Append(Code(new[] {new[] {"Interpret model", "Per reply", "Read right", "From cache"}}
+                       .Concat(interpret.Select(i => new[] {i.Row.Name, $"${Money(i.PerReading)} {Secs(i.SecondsPerReading)}", AccuracyText(i), Percent(i.CachedShare)}))));
          sb.Append(Grid(prose, interpret, nexus: true));
 
          return sb.ToString();
