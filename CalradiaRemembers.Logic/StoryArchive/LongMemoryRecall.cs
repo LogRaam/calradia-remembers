@@ -98,7 +98,8 @@ namespace CalradiaRemembers.Logic.StoryArchive
       ///   several conversations must link them). The best word match seeds the threads the turn is on, with those the
       ///   player's own line names; every earlier conversation on one of them then gives its best passage, newest first,
       ///   before the remaining word matches, all within the budget. On each thread the newest passage is marked: it says
-      ///   how the matter stands now.
+      ///   how the matter stands now. When neither words nor names find anything, the threads of the newest conversation on
+      ///   one are taken: the matter last spoken of.
       /// </summary>
       public static IReadOnlyList<LongMemoryPassage> Find(LongMemoryRecallFacts facts)
       {
@@ -107,7 +108,6 @@ namespace CalradiaRemembers.Logic.StoryArchive
 
          HashSet<string> query = new HashSet<string>(Tokens(facts.Query));
          HashSet<string> queryThreads = new HashSet<string>((facts.QueryThreads ?? new string[0]).Where(k => !string.IsNullOrEmpty(k)));
-         if (query.Count == 0 && queryThreads.Count == 0) return none;
 
          // The lines this character may recall, by conversation, in the order said.
          Dictionary<string, List<StoryArchiveRecord>> byEpisode = facts.Records
@@ -146,6 +146,18 @@ namespace CalradiaRemembers.Logic.StoryArchive
             List<string> bestLine = byEpisode[scored[0].Episode][scored[0].Index].Threads;
             onThreads.UnionWith(bestLine != null && bestLine.Count > 0 ? (IEnumerable<string>) bestLine : episodeThreads[scored[0].Episode]);
          }
+
+         // Nothing in the player's words and no thread named: the matter last spoken of with this character (Gabriel,
+         // 17/11/2026: "oui, rappelle le fil le plus recent", after the A/B left "Remind me, what exactly is the task now?"
+         // with nothing recalled, a line sharing no word and no name with the mission). Only a conversation on a thread: with
+         // none, nothing comes, as before.
+         if (scored.Count == 0 && onThreads.Count == 0)
+         {
+            string last = byEpisode.Keys.Where(e => episodeThreads[e].Count > 0).OrderByDescending(e => byEpisode[e][0].Time).FirstOrDefault();
+            if (last != null) onThreads.UnionWith(episodeThreads[last]);
+         }
+
+         if (scored.Count == 0 && onThreads.Count == 0) return none;
 
          var candidates = new List<(string Episode, int Index)>();
          if (scored.Count > 0) candidates.Add(scored[0]);

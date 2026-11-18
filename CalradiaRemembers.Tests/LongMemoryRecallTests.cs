@@ -286,5 +286,37 @@ namespace CalradiaRemembers.Tests
 
          found.Where(p => p.EpisodeId == "third").SelectMany(p => p.Lines).Count().Should().BeLessThan(41);
       }
+
+      // STAKE (A/B of 17/11/2026, Gabriel: "oui, rappelle le fil le plus recent"): "Remind me, what exactly is the task now?"
+      // shares no word and no name with the mission, so nothing came and the lord guessed. The matter last spoken of comes,
+      // its newest talk marked latest.
+      [Test]
+      public void GIVEN_a_line_sharing_nothing_with_any_talk_WHEN_a_thread_was_spoken_of_THEN_the_most_recent_thread_comes()
+      {
+         List<StoryArchiveRecord> records = Mission();
+         records.Add(On(Line("older", "The tithe of Ocs Hall is late again.", time: 2), "place:ocs_hall"));
+
+         IReadOnlyList<LongMemoryPassage> found = Find(records, "Remind me, what exactly is it now?");
+
+         found.Select(p => p.EpisodeId).Should().Contain("third").And.NotContain("older");
+         found.Single(p => p.EpisodeId == "third").IsLatestOnThread.Should().BeTrue();
+      }
+
+      // STAKE: a line made only of small words ("And now?") is the same question; it must not be dropped before the search.
+      [Test]
+      public void GIVEN_a_line_of_only_small_words_WHEN_a_thread_was_spoken_of_THEN_the_most_recent_thread_comes()
+      {
+         Find(Mission(), "And now?").Select(p => p.EpisodeId).Should().Contain("third");
+      }
+
+      // STAKE: the fallback never steps over the player's words: when they match an old talk, that talk leads, not the last thread.
+      [Test]
+      public void GIVEN_words_that_match_a_talk_off_any_thread_WHEN_recalled_THEN_no_thread_is_pulled_in()
+      {
+         List<StoryArchiveRecord> records = Mission();
+         records.Add(Line("hunt", "The boar in the east wood is huge.", time: 1));
+
+         Find(records, "What of that boar?").Select(p => p.EpisodeId).Should().Equal("hunt");
+      }
    }
 }

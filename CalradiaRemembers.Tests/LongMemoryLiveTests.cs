@@ -252,6 +252,9 @@ namespace CalradiaRemembers.Tests
       // reward (the lord invented one). After seeding threads from the best match's conversation and recalling the newest talk
       // on the thread whole: T 9 latest / 0 stale; A 0 / 2, W 3 / 4. Still missed: "what exactly is the task now?", a line with
       // no word and no name in common (in play the talk under way usually names the matter first). About $0.05 a run.
+      // Then (Gabriel: "oui, rappelle le fil le plus recent") a line matching nothing takes the most recent thread: run of
+      // 18/11/2026 01:53 UTC cut short by the key's limit: T 3/3 latest on the reward, 3/3 on the deadline, 1 of 2 replies on
+      // "the task now" (was 0), 0 stale; the ordinary line got no replies, so its drag with the fallback is still to measure.
       private const string Aldric = "lord_aldric";
       private const string Varcheg = "place:town_varcheg";
 
