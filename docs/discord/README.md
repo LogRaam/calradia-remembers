@@ -10,7 +10,7 @@ a default), update the tutorial in the same commit, as for the CHANGELOG. The ta
 | File | Tutorial | Rests on |
 |---|---|---|
 | `getting-started.md` | Key, models and costs | `Foundation/CrSettings.cs` (LLM Provider, OpenRouter, OpenAI-Compatible groups, defaults); the cost tables of `NEXUS_DESCRIPTION.bbcode.txt` ("WHAT IT COSTS, MEASURED", v2.7.20) |
-| `benchmark.md` | Benchmarks in the console | `Diagnostics/CostBench.cs`, `Logic` `CostScenarioFile` (sections, row format, $10 default cap), `cr.rp_bench`, `cr.action_bench`, `cr.memory_bench` |
+| `benchmark.md` | Benchmarks in the console, and what a run costs | `Diagnostics/CostBench.cs`, `Logic` `CostScenarioFile` (sections, row format, default rows, $10 default cap), `Logic/Diagnostics/StandardActionCases.cs` (about thirty staged scenes), the cost tables of `NEXUS_DESCRIPTION.bbcode.txt` (24/10/2026 prices), `cr.rp_bench`, `cr.action_bench`, `cr.memory_bench` |
 | `portraits.md` | Chat portraits | `Portraits/ChatPortraitResolver.cs`, `Logic/ChatPortraitFolders.cs`, `cr.portrait_id`, `RuntimePortraitFactory` cache (a replaced file needs a restart) |
 | `characters.md` | character_overrides.json | `ModuleData/character_overrides.json` (field list), `Lore/CharacterOverrideLoader.cs`, MCM "Use custom traits", `cr.reload_lore`, `cr.lore_status`, `cr.backstory` |
 | `custom.md` | The Custom folder | `Mapping/NarrativeLoader.cs` (`CustomBaseFolder`, `ResolveCustomFirst`), `ModuleData/Custom/README.txt`, MCM "Custom Folder Path", `cr.lore_status`, `cr.reload_prompts` |
