@@ -230,5 +230,61 @@ namespace CalradiaRemembers.Tests
 
          Find(records, "Varcheg?", budget: 800).SelectMany(p => p.Lines).Sum(l => l.Text.Length + 12).Should().BeLessThanOrEqualTo(800);
       }
+
+      // STAKE (A/B of 17/11/2026): "By when do you need it done?" best matched "see it done before the harvest", a line naming no
+      // place, so the talk that moved the deadline to the snows never came and the lord gave the stale harvest three times in
+      // three. The best match's conversation is on the Varcheg thread, so every later talk on it comes too.
+      [Test]
+      public void GIVEN_the_best_match_names_no_place_WHEN_its_conversation_is_on_a_thread_THEN_the_later_talks_on_it_come_too()
+      {
+         var records = new List<StoryArchiveRecord> {
+            On(Line("first", "Clear the bandits near Varcheg for me.", time: 10), "place:varcheg"),
+            Line("first", "See it done before the harvest.", time: 10),
+            Line("first", "Small talk about wine.", time: 10),
+            On(Line("third", "Those bandits near Varcheg have taken my nephew.", time: 30), "place:varcheg"),
+            Line("third", "You have until the first snows, not the harvest.", time: 30)
+         };
+
+         IReadOnlyList<LongMemoryPassage> found = Find(records, "By when must it be done?");
+
+         found.SelectMany(p => p.Lines).Select(l => l.Text).Should().Contain("You have until the first snows, not the harvest.");
+         found.Last().IsLatestOnThread.Should().BeTrue();
+      }
+
+      // STAKE (A/B of 17/11/2026): the window around "the bandits near Varcheg have taken my nephew" stopped two lines short of the
+      // new reward, and the lord invented one ("a fief", "a thousand"). The newest talk on the thread says how things stand now,
+      // so it comes whole when it fits.
+      [Test]
+      public void GIVEN_the_newest_talk_on_a_thread_WHEN_recalled_THEN_it_comes_whole_with_its_terms()
+      {
+         var records = new List<StoryArchiveRecord> {
+            On(Line("first", "Clear the bandits near Varcheg for one thousand.", time: 10), "place:varcheg"),
+            Line("third", "Come in, shut the door.", time: 30),
+            On(Line("third", "Those bandits near Varcheg have taken my nephew Bran.", time: 30), "place:varcheg"),
+            Line("third", "Alive?", true, time: 30),
+            Line("third", "So their note says. Bring him back alive.", time: 30),
+            Line("third", "His mother has not slept.", time: 30),
+            Line("third", "Two thousand denars and the grey from my stable, before the first snows.", time: 30)
+         };
+
+         IReadOnlyList<LongMemoryPassage> found = Find(records, "What reward for the Varcheg business?");
+
+         LongMemoryPassage newest = found.Single(p => p.EpisodeId == "third");
+         newest.Lines.Should().HaveCount(6);
+         newest.Lines.Last().Text.Should().Contain("Two thousand denars");
+      }
+
+      // STAKE: a long newest talk must not crowd out the rest of the story: it comes whole only within half the budget.
+      [Test]
+      public void GIVEN_a_newest_talk_longer_than_half_the_budget_WHEN_recalled_THEN_only_a_passage_of_it_comes()
+      {
+         var records = new List<StoryArchiveRecord> {On(Line("first", "Clear the bandits near Varcheg.", time: 10), "place:varcheg")};
+         for (var i = 0; i < 40; i++) records.Add(Line("third", $"line {i} of a long talk with plenty of words to fill it up", time: 30));
+         records.Add(On(Line("third", "The Varcheg lot took my nephew.", time: 30), "place:varcheg"));
+
+         IReadOnlyList<LongMemoryPassage> found = Find(records, "Varcheg?", budget: 1200);
+
+         found.Where(p => p.EpisodeId == "third").SelectMany(p => p.Lines).Count().Should().BeLessThan(41);
+      }
    }
 }

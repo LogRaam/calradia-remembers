@@ -137,9 +137,15 @@ namespace CalradiaRemembers.Logic.StoryArchive
             scores[(episode, index)] = query.Count == 0 ? 0 : Bm25(tokens, query, docFreq, docs.Count, avgLen);
          List<(string Episode, int Index)> scored = scores.Where(s => s.Value > 0).OrderByDescending(s => s.Value).Select(s => s.Key).ToList();
 
-         // The threads this turn is on: those the player's line names, and those of the best word match.
+         // The threads this turn is on: those the player's line names, and those of the best word match: its line's own, or,
+         // when that line names nothing, its conversation's (A/B of 17/11/2026: "By when do you need it done?" best matched
+         // "See it done before the harvest", a line naming no place, so the talk that moved the deadline never came).
          var onThreads = new HashSet<string>(queryThreads);
-         if (scored.Count > 0) onThreads.UnionWith(byEpisode[scored[0].Episode][scored[0].Index].Threads ?? new List<string>());
+         if (scored.Count > 0)
+         {
+            List<string> bestLine = byEpisode[scored[0].Episode][scored[0].Index].Threads;
+            onThreads.UnionWith(bestLine != null && bestLine.Count > 0 ? (IEnumerable<string>) bestLine : episodeThreads[scored[0].Episode]);
+         }
 
          var candidates = new List<(string Episode, int Index)>();
          if (scored.Count > 0) candidates.Add(scored[0]);
@@ -155,9 +161,27 @@ namespace CalradiaRemembers.Logic.StoryArchive
 
          candidates.AddRange(scored.Skip(1));
 
+         // The newest conversation on the turn's threads says how the matter stands now: it comes WHOLE when the budget allows
+         // (A/B of 17/11/2026: the window around "the bandits near Varcheg have taken my nephew" stopped two lines short of the
+         // new reward, and the lord invented one).
+         string newest = onThreads.Count == 0 ? null : byEpisode.Keys.Where(e => episodeThreads[e].Overlaps(onThreads))
+                                                                .OrderByDescending(e => byEpisode[e][0].Time).FirstOrDefault();
+
          // Windows around the candidates, merged when they touch, until the budget is spent.
          var windows = new Dictionary<string, List<(int From, int To)>>();
          var spent = 0;
+         if (newest != null)
+         {
+            List<StoryArchiveRecord> lines = byEpisode[newest];
+            int whole = Chars(lines, (0, lines.Count - 1));
+            // At most half the budget, so a long talk never crowds out the rest of the story.
+            if (whole <= facts.BudgetChars / 2)
+            {
+               windows[newest] = new List<(int From, int To)> {(0, lines.Count - 1)};
+               spent += whole;
+            }
+         }
+
          foreach ((string episode, int index) in candidates)
          {
             List<StoryArchiveRecord> lines = byEpisode[episode];
