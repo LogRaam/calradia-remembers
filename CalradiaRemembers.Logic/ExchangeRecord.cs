@@ -27,7 +27,10 @@ namespace CalradiaRemembers.Logic
       ItemGift,
 
       /// <summary>A character pays the player under a threat.</summary>
-      Extortion
+      Extortion,
+
+      /// <summary>The loser of a duel or a brawl pays the wager to the winner (Aporo, Discord, 18/11/2026).</summary>
+      DuelWager
    }
 
    /// <summary>One exchange as the log reads it.</summary>

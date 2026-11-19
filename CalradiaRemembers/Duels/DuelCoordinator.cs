@@ -13,6 +13,7 @@ using System;
 using CalradiaRemembers.Behaviors;
 using CalradiaRemembers.Chat;
 using CalradiaRemembers.Foundation;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Conversation;
 using CalradiaRemembers.Logic.Duels;
 using NpcMemoryService.Core.Models;
@@ -42,6 +43,7 @@ namespace CalradiaRemembers.Duels
       private static int _pendingWitnessCount;
       private static Hero _pendingCourtedHero;      // only meaningful for DuelReason.CourtshipRivalry
       private static ConversationTranscript _pendingTranscript; // the chat that led to the duel, carried into the post-duel scene; null from the console
+      private static int _pendingWager;                // gold staked at the challenge, both purses checked (Aporo, 18/11/2026); 0 = honour alone
       private static bool _endedSettlementMissionForStaging; // guards the once-only EndMission on the per-frame tick
       private static int _framesSinceMissionGone;             // frames since the last mission closed; the town square waits on it
       private static int _framesSinceChatClosed;              // frames since CR's chat closed; the town square waits on it too (Thoragoros1)
@@ -54,9 +56,13 @@ namespace CalradiaRemembers.Duels
 
       /// <summary>The kind of the fight being staged now, read by the missions that stage it (fists strip the weapons).</summary>
       internal static DuelKind StagedKind { get; private set; }
+
+      /// <summary>The gold wager of the duel now being staged; 0 for honour alone.</summary>
+      internal static int StagedWager { get; private set; }
       private static Hero _outcomeCourtedHero;
       private static int _outcomeWitnessCount;
       private static ConversationTranscript _outcomeTranscript; // survives to Phase 2 so the post-duel chat can resume the pre-duel conversation
+      private static int _outcomeWager;
 
       /// <summary>
       ///   Arms a duel from the chat: stores the decision and returns immediately. Must NOT open anything
@@ -67,9 +73,10 @@ namespace CalradiaRemembers.Duels
       ///   <paramref name="courtedHero" /> is only meaningful for <see cref="DuelReason.CourtshipRivalry" />.
       /// </summary>
       public static void Arm(Hero opponent, DuelReason reason, DuelVenue venue, bool npcIssuedChallenge, int witnessCount, Hero courtedHero,
-         ConversationTranscript transcript = null, DuelKind kind = DuelKind.Honour)
+         ConversationTranscript transcript = null, DuelKind kind = DuelKind.Honour, int wager = 0)
       {
          _pendingOpponent = opponent;
+         _pendingWager = wager > 0 ? wager : 0;
          _pendingReason = reason;
          _pendingKind = kind;
          _pendingVenue = venue;
@@ -80,7 +87,7 @@ namespace CalradiaRemembers.Duels
          // where no chat preceded the duel). A process reference: a duel never spans a save.
          _pendingTranscript = transcript;
          ModLog.Info($"[DUEL] armed from chat: opponent={opponent?.Name?.ToString() ?? "(null)"}, reason={reason}, " +
-                     $"venue={venue}, npcIssuedChallenge={npcIssuedChallenge}, witnesses={witnessCount}. Waiting for the chat to close.");
+                     $"venue={venue}, npcIssuedChallenge={npcIssuedChallenge}, witnesses={witnessCount}, wager={_pendingWager}. Waiting for the chat to close.");
       }
 
       /// <summary>TickEvent handler (subscribed at session launch): stages the armed duel and, later, applies its outcome.</summary>
@@ -100,12 +107,21 @@ namespace CalradiaRemembers.Duels
                Hero courtedHero = _outcomeCourtedHero;
                int witnessCount = _outcomeWitnessCount;
                ConversationTranscript transcript = _outcomeTranscript;
+               int wager = _outcomeWager;
+               _outcomeWager = 0;
                _pendingResolution = null;
                _outcomeOpponent = null;
                _outcomeCourtedHero = null;
                _outcomeTranscript = null;
 
-               DuelOutcomeApplier.Apply(reason, resolution, opponent, courtedHero, witnessCount, fightKind);
+               string wagerPaid = DuelOutcomeApplier.Apply(reason, resolution, opponent, courtedHero, witnessCount, fightKind, wager);
+               if (wagerPaid != null)
+               {
+                  InformationManager.DisplayMessage(new InformationMessage(wagerPaid));
+                  // Aporo (18/11/2026): the conversation after the fight knows the wager is paid, so no one asks for it again.
+                  transcript?.Record(new TranscriptLine {SpeakerName = "Scene", SpeakerHeroId = opponent?.StringId, Text = wagerPaid, IsNarration = true});
+               }
+
                // Self-esteem (30/09/2026): a duel with the player is won or lost in front of others.
                if (resolution == DuelResolution.PlayerWon) Standing.SelfEsteemService.Record(opponent, Logic.SelfEsteemEvent.DuelLostToPlayer);
                else if (resolution == DuelResolution.NpcWon) Standing.SelfEsteemService.Record(opponent, Logic.SelfEsteemEvent.DuelWonAgainstPlayer);
@@ -188,6 +204,8 @@ namespace CalradiaRemembers.Duels
                Hero opponent = _pendingOpponent;
                DuelReason reason = _pendingReason;
                StagedKind = _pendingKind;
+               StagedWager = _pendingWager;
+               _pendingWager = 0;
                bool npcIssuedChallenge = _pendingNpcIssuedChallenge;
                int witnessCount = _pendingWitnessCount;
                Hero courtedHero = _pendingCourtedHero;
@@ -270,6 +288,7 @@ namespace CalradiaRemembers.Duels
             _outcomeOpponent = opponent;
             _outcomeReason = reason;
             _outcomeKind = StagedKind;
+            _outcomeWager = StagedWager;
             _outcomeCourtedHero = courtedHero;
             _outcomeWitnessCount = witnessCount;
             _outcomeTranscript = transcript; // carried to Phase 2 so the post-duel chat resumes the pre-duel conversation

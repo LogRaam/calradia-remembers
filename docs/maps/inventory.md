@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 685 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1707 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1710 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2235,7 +2235,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DiplomacyCommitPolicy` | public static class | Reads the authorities' answers to a diplomatic change. |
 | `DiplomacyVerdict` | public enum | What an authority answers to a diplomatic change CR is about to make. |
 
-### CalradiaRemembers.Logic.Duels (31)
+### CalradiaRemembers.Logic.Duels (34)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2267,6 +2267,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `DuelStakesPolicy` | public static class | The rules on what may be wagered, and what abandoning a duel costs before witnesses. |
 | `DuelVenue` | public enum | Where a duel is staged, or that it cannot be staged now. |
 | `DuelVenuePolicy` | public static class | Chooses the venue for a duel from where the player stands. |
+| `DuelWagerFacts` | public class | What a wager asked for at the challenge meets in the two purses. |
+| `DuelWagerPolicy` | public static class | Reads, holds and caps a duel's gold wager. |
+| `DuelWagerRefusal` | public enum | Why a named wager does not ride on the fight. |
 | `SpawnAgentSignaturePolicy` | public static class | Which Mission.SpawnAgent overload spawns a fighter from an AgentBuildData alone, whatever the game version: a public instance SpawnAgent whose first parameter is AgentBuildData and every other one optional (1.4.8 has one... |
 | `SpawnMethodShape` | public class | One method the game's Mission type offers, as reflection sees it. |
 | `SquareReadinessFacts` | public class | What the town square's opening waits on. |

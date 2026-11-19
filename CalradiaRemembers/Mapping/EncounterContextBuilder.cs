@@ -564,6 +564,8 @@ namespace CalradiaRemembers.Mapping
             // fearente (07/11/2026): the answer to the player's challenge, weighed before the character speaks.
             DuelRefusesPlayersChallenge = duelChallengeAvailable && DuelEligibilityResolver.WouldRefusePlayer(hero, profile, witnesses?.Count ?? 0),
             DuelVenueLabel = duelVenueLabel,
+            // Aporo (Discord, 18/11/2026): the most this character may stake is its own purse, never the player's coin.
+            DuelWagerCap = duelChallengeAvailable ? Logic.Duels.DuelWagerPolicy.PromptCap(hero?.Gold ?? 0) : 0,
             // The grounded quest menu (viable-quest referential): the tasks this giver can TRULY hand out,
             // pre-validated against the live world so a spoken offer always registers. Skipped for a captor
             // (quest teaching is suppressed in captive scenes anyway, no point scanning).

@@ -1240,7 +1240,8 @@ namespace CalradiaRemembers.Chat
             return;
          }
 
-         ArmOrRefuseDuel(opponent, profile, speaker.Name, ChallengerIsPlayer(response), SpiritOfTheChallenge(response));
+         ArmOrRefuseDuel(opponent, profile, speaker.Name, ChallengerIsPlayer(response), SpiritOfTheChallenge(response),
+            wagerAsked: WagerOfTheChallenge(response));
       }
 
       /// <summary>
@@ -1300,7 +1301,7 @@ namespace CalradiaRemembers.Chat
       }
 
       private void ArmOrRefuseDuel(Hero opponent, NpcProfile profile, string speakerName, bool playerIssued,
-         DuelReason reason = DuelReason.HonourAffront, bool forceAccept = false)
+         DuelReason reason = DuelReason.HonourAffront, bool forceAccept = false, int wagerAsked = 0)
       {
          // The prompt is advice, the bridge is law. The verb was taught from a context built at the START of
          // the turn, and a model can reach for it several turns later, by which time the two may have moved
@@ -1349,7 +1350,11 @@ namespace CalradiaRemembers.Chat
          // is dismissed rather than fought (ratified 2026-08-26). See DuelStationGap / DuelStation below.
          // Carry the conversation that led here so the post-duel scene resumes it (Transcript is this chat's
          // live source of truth; a duel never spans a save, so the reference travels as-is).
-         DuelCoordinator.Arm(opponent, reason, venue, !playerIssued, _witnesses.Count, null, Transcript, kind);
+         // Aporo (Discord, 18/11/2026): a gold wager named at the challenge rides on the fight when both purses cover it.
+         (int wager, DuelWagerRefusal wagerRefusal) = DuelWagerPolicy.Hold(new DuelWagerFacts {
+            Asked = wagerAsked, NpcPurse = opponent.Gold, PlayerPurse = Hero.MainHero?.Gold ?? 0
+         });
+         DuelCoordinator.Arm(opponent, reason, venue, !playerIssued, _witnesses.Count, null, Transcript, kind, wager);
 
          // Same deliberate transition as the escape: lock the input and leave only the close button. Clicking
          // it closes the chat, and the coordinator stages the duel on the next tick, on the live map.
@@ -1368,6 +1373,8 @@ namespace CalradiaRemembers.Chat
             : playerIssued
                ? $"{profile?.Name ?? speakerName} takes up your challenge. Close this conversation to take the field."
                : $"{profile?.Name ?? speakerName} demands satisfaction of you. Close this conversation to take the field.", false);
+         string wagerLine = WagerLine(wagerRefusal, wager, wagerAsked, profile?.Name ?? speakerName);
+         if (wagerLine != null) AppendSystemMessage(wagerLine, false);
          ModLog.Info($"[DUEL] armed from chat against {speakerName}: venue={venue}, "
                    + $"challenger={(playerIssued ? "player" : "npc")}, {_witnesses.Count} witness(es).");
       }
@@ -1414,6 +1421,35 @@ namespace CalradiaRemembers.Chat
          }
 
          return DuelReason.HonourAffront;
+      }
+
+      /// <summary>
+      ///   The gold the challenge staked, from its <c>wager</c> field (Aporo, Discord, 18/11/2026); 0 when none was named.
+      /// </summary>
+      private static int WagerOfTheChallenge(ParsedResponse response)
+      {
+         if (response?.Actions == null) return 0;
+
+         foreach (GameAction action in response.Actions)
+         {
+            if (!string.Equals(action?.Type, "challenge_duel", StringComparison.OrdinalIgnoreCase)) continue;
+
+            return action.Parameters != null && action.Parameters.TryGetValue("wager", out string raw) ? DuelWagerPolicy.Read(raw) : 0;
+         }
+
+         return 0;
+      }
+
+      /// <summary>What the player is told of the wager when the fight is armed; null when none was named.</summary>
+      private static string WagerLine(DuelWagerRefusal refusal, int wager, int asked, string opponentName)
+      {
+         switch (refusal)
+         {
+            case DuelWagerRefusal.PlayerCannotCover: return $"Your purse cannot cover the {asked:N0}-denar wager: the fight is for honour alone.";
+            case DuelWagerRefusal.NpcCannotCover: return $"{opponentName} cannot cover the {asked:N0}-denar wager: the fight is for honour alone.";
+            case DuelWagerRefusal.HeldAtCeiling: return $"The wager rides at {wager:N0} denars, the most one purse may pass to another, to the winner.";
+            default: return wager > 0 ? $"The wager rides on it: {wager:N0} denars to the winner." : null;
+         }
       }
 
       private static bool ChallengerIsPlayer(ParsedResponse response)

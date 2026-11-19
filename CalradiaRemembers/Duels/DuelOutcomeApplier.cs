@@ -51,10 +51,11 @@ namespace CalradiaRemembers.Duels
       ///   the NPC balks at the player's own challenge), so the cooldown has to close on a duck exactly as it
       ///   does on a real fight.
       /// </summary>
-      public static void Apply(DuelReason reason, DuelResolution resolution, Hero opponent, Hero courtedHero, int witnessCount,
-         DuelKind kind = DuelKind.Honour)
+      /// <returns>The line saying who paid the wager, or null when no wager was paid.</returns>
+      public static string Apply(DuelReason reason, DuelResolution resolution, Hero opponent, Hero courtedHero, int witnessCount,
+         DuelKind kind = DuelKind.Honour, int wager = 0)
       {
-         if (opponent == null || Hero.MainHero == null) return;
+         if (opponent == null || Hero.MainHero == null) return null;
 
          // fkasad (01/10/2026): "0 witness(es)" with fifteen lords in the keep. The conversation's witnesses are only lords
          // the player already knows, capped for the room; a duel's audience is whoever is truly there, capped for its weight.
@@ -68,14 +69,14 @@ namespace CalradiaRemembers.Duels
          Grudge drivingGrudge = GrudgeBehavior.Instance?.LiveGrudgesFor(opponent, (int) CampaignTime.Now.ToDays)
             ?.FirstOrDefault(g => GrudgePolicy.IsResolvable(g) && g.TargetId == Hero.MainHero.StringId);
 
-         // 1. Generic aftermath: the player's renown and the OPPONENT's stance toward them. Honour is the only
-         //    stake for now (no material wager from the console path).
+         // 1. Generic aftermath: the player's renown and the OPPONENT's stance toward them. Aporo (Discord, 18/11/2026): a
+         //    gold wager agreed at the challenge now rides too (DuelWagerPolicy); honour alone otherwise.
          var ctx = new DuelResolutionContext {
             Resolution = resolution,
             Reason = reason, // a friendly bout is settled entirely differently; see DuelOutcomePolicy
             Kind = kind, // a brawl moves only the two who fought (Gabriel, 28/10/2026)
             AGrudgeDroveIt = drivingGrudge != null,
-            Stake = DuelStakeKind.Honour,
+            Stake = wager > 0 ? DuelStakeKind.Gold : DuelStakeKind.Honour,
             WitnessCount = witnessCount
          };
          DuelOutcomeResult generic = DuelOutcomePolicy.Resolve(ctx);
@@ -124,6 +125,35 @@ namespace CalradiaRemembers.Duels
          // A brawl is a settling of scores between two people: it does not travel as the realm's news (Gabriel, 28/10/2026).
          if (kind == DuelKind.Brawl) ModLog.Info($"[DUEL] brawl with {opponent.Name} ended {resolution}; it stays between the two.");
          else RecordDuelEvent(reason, resolution, opponent, courtedHero, witnessCount);
+
+         return PayWager(generic.StakeAward, opponent, wager);
+      }
+
+      /// <summary>
+      ///   Pays a gold wager the fight decided (Aporo, Discord, 18/11/2026): the loser's purse to the winner, through the
+      ///   game's own gold action, never more than the loser holds. The policy awards it only for a fight actually fought.
+      /// </summary>
+      internal static string PayWager(DuelStakeAward award, Hero opponent, int wager)
+      {
+         if (award == DuelStakeAward.None || wager <= 0) return null;
+
+         bool playerWon = award == DuelStakeAward.ToPlayer;
+         Hero payer = playerWon ? opponent : Hero.MainHero;
+         Hero payee = playerWon ? Hero.MainHero : opponent;
+         int paid = DuelWagerPolicy.Payable(wager, payer.Gold);
+         if (paid <= 0)
+         {
+            ModLog.Info($"[DUEL] the {wager}-denar wager went unpaid: {payer.Name} holds no gold.");
+
+            return null;
+         }
+
+         GameState.ExchangeService.Pay(ExchangeKind.DuelWager, payer, payee, paid);
+         ModLog.Info($"[DUEL] wager paid: {payer.Name} -> {payee.Name}, {paid} of {wager} denars.");
+
+         return playerWon
+            ? $"{opponent.Name} pays you {paid:N0} denars, the wager of the fight."
+            : $"You pay {opponent.Name} {paid:N0} denars, the wager of the fight.";
       }
 
       #region private

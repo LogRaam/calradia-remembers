@@ -419,6 +419,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("mentioned_names_bounded", Severity.Light, "VonLemberg and Goeth (Discord, 16/11/2026, source audits of 2.8.12): one shared word admitted every hero bearing it into NAMES MENTIONED, uncapped (about 6,000 characters), and the line gave a culture but never the realm. Through the REAL ContextualNameResolver.Resolve, spoken to a lord: a message naming twelve lords by their own names describes at most eight and counts the rest; a message that is only a culture word describes nobody of that culture; a lord of a realm named alone is said to serve (or rule) the realm his house serves now, with the line that a culture is not an allegiance; a merchant asked of by a notable of his own town is 'a merchant of' it, and a far-off lord with no tie is not told. The verbs' ResolveMentionedHeroes still returns all twelve. Reads only, changes nothing", TestMentionedNamesBounded),
          new SelfTest("resident_not_a_guest", Severity.Light, "VonLemberg and Goeth (Discord, 16/11/2026, source audit of 2.8.12): a merchant in his own home town was told \"It is NOT your holding, you are here as a guest\", and a governor of another clan's town too. Through the REAL EncounterContextBuilder.BuildLocationNote: a town notable standing in his home town owned by another clan lives there and is no guest; a governor of another clan's town governs it in its owner's name; a lord of another house in a town is still its guest. Reads only, changes nothing; skips a case the world does not offer", TestResidentNotAGuest),
          new SelfTest("external_picture", Severity.Light, "VonLemberg (Discord, 16/11/2026): his mod illustrates a chat line and asks CR to show the picture, linked to its conversation, stale results dropped; Gabriel: reuse the tales' picture panel, videos later. With a staged conversation open on a lord, through the REAL CrConversation.ShowPicture: a picture named for another session and a video are refused; a .png named for the open session is accepted and, once the frame's queue runs, is the panel's picture under its caption; after the conversation closes, OpenSessionId is null and the same picture is refused. Removes its temporary file, closes the conversation", TestExternalPicture),
+         new SelfTest("duel_wager_paid", Severity.Light, "Aporo (Discord, 18/11/2026): he bet 30,000 on a duel and the game held no wager at all. With a living lord holding 200 denars or more, the REAL DuelOutcomeApplier.PayWager moves 100 denars from the lord to the player for a won fight, back for a lost one, and nothing for an honour-only fight. Purses end as they began.", TestDuelWagerPaid),
          new SelfTest("forge_wish_is_his_own", Severity.Light, "Schmidt (Discord, 16/11/2026): 'I can't see a Nord lord having much use for Khuzait short bows, or Monchug using a 2 handed axe in battle.' On up to 30 living lords, reads the REAL ViableQuestScanner.ForgeAsker (culture, battle weapons, weapon skills) and ForgePreferencePolicy: every lord gets one to three kinds the craft_weapon task can verify, and a lord who carries a weapon the smithy makes gets one he carries first. Reads only.", TestForgeWishIsHisOwn),
          new SelfTest("news_stops_at_cell_door", Severity.Light, "Schmidt (Discord, 16/11/2026): 'even if they were locked up the same day, they have no idea what happened outside'; and three channels were never cut, so a captive could hear today's events. On a lord held prisoner since an earlier day, with the REAL WorldEventStore: two great events of his own realm are recorded, one on the day he was taken and one today; he knows the first and not the second, and his last day of news is his capture day. SKIP when no lord has been held since an earlier day. The two events are removed.", TestNewsStopsAtCellDoor),
          new SelfTest("campaign_work_survives_close", Severity.Light, "VonLemberg (Discord, 16/11/2026, addendum 'Dispatcher Quest Audience Blast Radius'): a tale's summoned meeting waiting out an open chat, and audiences granted, sat in the queue a chat close clears. With the REAL MainThreadDispatcher: work queued with EnqueueForCampaign, then Clear() as a chat close calls it, then Pump(): it runs, under the campaign that queued it. Changes nothing in the world", TestCampaignWorkSurvivesClose),
@@ -5910,6 +5911,23 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"{sample.Name} ({sample.Culture.StringId}) would ask for: {string.Join(", ", ForgePreferencePolicy.Suited(Quests.ViableQuestScanner.ForgeAsker(sample)))}");
          t.Expect("everyLordGetsKindsTheTaskVerifies", wrongKinds, 0);
          t.Expect("aCarriedWeaponComesFirst", ownWeaponNotFirst, 0);
+
+         return t.Line();
+      }
+
+      private static string TestDuelWagerPaid(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("duel_wager_paid");
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && !h.IsChild && h.Gold >= 200);
+         if (t.Skip(lord == null || Hero.MainHero == null, "no living lord holding 200 denars")) return t.Line();
+
+         int lordBefore = lord.Gold, playerBefore = Hero.MainHero.Gold;
+         t.Expect("honourAlonePaysNothing", DuelOutcomeApplier.PayWager(Logic.Duels.DuelStakeAward.None, lord, 100) == null, true);
+         t.Expect("wonFightPaysThePlayer", DuelOutcomeApplier.PayWager(Logic.Duels.DuelStakeAward.ToPlayer, lord, 100) != null, true);
+         t.Expect("playerGained", Hero.MainHero.Gold - playerBefore, 100);
+         t.Expect("lordLost", lordBefore - lord.Gold, 100);
+         t.Expect("lostFightPaysTheLord", DuelOutcomeApplier.PayWager(Logic.Duels.DuelStakeAward.ToNpc, lord, 100) != null, true);
+         t.Expect("pursesRestored", (lord.Gold, Hero.MainHero.Gold), (lordBefore, playerBefore));
 
          return t.Line();
       }
