@@ -18,9 +18,11 @@ function Split-MapRow([string] $line)
    return , @($inner -split "\|" | ForEach-Object { $_.Trim() })
 }
 
+# The cell that names a row: the first that is not a number or a count ("29000+", "12%"), with a trailing count dropped
+# ("`Hero.Father` (32)" names the same row as "`Hero.Father` (31)": engine-facts.md, 19/11/2026).
 function Get-MapRowKey([string[]] $cells)
 {
-   foreach ($c in $cells) { if ($c -ne "" -and $c -notmatch "^\d+$") { return $c } }
+   foreach ($c in $cells) { if ($c -ne "" -and $c -notmatch "^[\d.,+%\-]+$") { return ($c -replace "\s*\(\d+\)$", "") } }
 
    return ($cells -join "|")
 }
@@ -44,13 +46,19 @@ function Show-MapTableChanges([string[]] $diffLines, [string[]] $newLines)
    $removed = [ordered] @{}
    $added = [ordered] @{}
    $other = 0
+   # A table's header line is not a row (constants.md repeats "| Constant | ..." under every type, 19/11/2026).
+   $headers = New-Object System.Collections.Generic.HashSet[string]
+   for ($h = 0; $h + 1 -lt $newLines.Count; $h++)
+   {
+      if ($newLines[$h].TrimStart().StartsWith("|") -and $newLines[$h + 1] -match "^\s*\|[\s\-:|]+\|\s*$") { [void] $headers.Add($newLines[$h]) }
+   }
    foreach ($d in $diffLines)
    {
       if ($d.StartsWith("+++") -or $d.StartsWith("---")) { continue }
       if ($d -match "^([+-])\s*\|") {
          $sign = $d.Substring(0, 1)
          $text = $d.Substring(1)
-         if ($text -match "^\s*\|[\s\-:|]+\|\s*$") { continue } # a header rule
+         if ($text -match "^\s*\|[\s\-:|]+\|\s*$" -or $headers.Contains($text)) { continue } # a header rule or a header
          $cells = Split-MapRow $text
          $key = Get-MapRowKey $cells
          $bucket = if ($sign -eq "+") { $added } else { $removed }
@@ -91,6 +99,15 @@ function Show-MapTableChanges([string[]] $diffLines, [string[]] $newLines)
          if ($o -ceq $w) { continue }
          if (-not ($c -eq 0 -and $o -match "^\d+$" -and $w -match "^\d+$")) { $onlyRank = $false }
          $name = if ($ctx.Header -and $c -lt $ctx.Header.Count -and $ctx.Header[$c] -ne "") { $ctx.Header[$c] } else { "column $($c + 1)" }
+         # A list cell (names joined by ", ") shows what joined and what left, not two truncated lists (engine-facts.md).
+         if ($o.Contains(", ") -or $w.Contains(", "))
+         {
+            $was = @($o -split ",\s*" | Where-Object { $_ -ne "" })
+            $now = @($w -split ",\s*" | Where-Object { $_ -ne "" })
+            $in = @($now | Where-Object { $was -notcontains $_ } | ForEach-Object { "+$_" })
+            $out = @($was | Where-Object { $now -notcontains $_ } | ForEach-Object { "-$_" })
+            if ($in.Count + $out.Count -gt 0) { $changes += "${name}: " + (($in + $out) -join ", "); continue }
+         }
          $ov = if ($o.Length -gt 60) { $o.Substring(0, 57) + "..." } else { $o }
          $wv = if ($w.Length -gt 60) { $w.Substring(0, 57) + "..." } else { $w }
          $changes += "${name}: $ov -> $wv"
