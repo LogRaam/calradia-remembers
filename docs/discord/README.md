@@ -16,6 +16,7 @@ a default), update the tutorial in the same commit, as for the CHANGELOG. The ta
 | `custom.md` | The Custom folder | `Mapping/NarrativeLoader.cs` (`CustomBaseFolder`, `ResolveCustomFirst`), `ModuleData/Custom/README.txt`, MCM "Custom Folder Path", `cr.lore_status`, `cr.reload_prompts` |
 | `styles.md` | Narrative styles | `ModuleData/Styles/` (the shipped list and its README), `Styles/StyleCatalog.cs`, `Styles/StyleService.cs`, `MaxNarrativeStyleChars` (1500, 1200 at the council) |
 | `scenario.md` | Scenario Composer | `Extension/ScenarioComposer.html` (vocabulary), `Scenarios/`, `EXTENSION_API.md` "Scenario packs", `cr.scenarios`, `cr.scenario_fire` |
+| `long-memory.md` | Long Memory: what it does, what was measured, how to turn it on | MCM "Long Memory" + "Long Memory Budget (characters)" (Content, off, 4000), `Logic` `LongMemoryRecall`, `StoryThreadKeys`, `LongMemoryRecaller` (present-only), SDK `RecalledExchanges` (below the marker, Full only), measurements `CalradiaRemembers.Tests/LongMemoryLiveTests.cs` (19/11/2026, glm-4.6) |
 | `history.md` | History Editor | `Extension/HistoryEditor.html`, `WorldEvents/AuthoredHistoryBehavior.cs`, `docs/design/AUTHORED_HISTORY.md`, `cr.history_file`, `cr.history_reload` |
 | `tale.md` | Tale Editor | `Extension/TaleEditor.html`, `Extension/HOWTO_Quests.md`, MCM "Authored Quests (experimental)" (off by default), `cr.story_*` |
 | `crvid.md` | Making a .crvid | `Extension/CrvidPlayer.html` (SSIM default 0.960, 768x1152, 30 fps), `HOWTO_Quests.md` "A picture that moves", `cr.video show` |
