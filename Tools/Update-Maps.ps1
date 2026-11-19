@@ -54,6 +54,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repo = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot "MapTableDiff.ps1")
 $tests = Join-Path $repo "CalradiaRemembers.Tests"
 
 # A diff this short is printed in full, whatever map it is in: the whole value of this step is READING what moved, and
@@ -80,13 +81,33 @@ finally {
 }
 
 if ($failed) {
-   $output | Select-String -Pattern "no longer written|no longer there|error|Failed" | ForEach-Object { Write-Host $_ -ForegroundColor Red }
+   # Name the real cause (19/11/2026: a namespace-pair ratchet refused, and the message spoke only of save keys and the
+   # modder API, so the cause was found by re-running the suite): the failing tests, their message, then the advice
+   # that fits what refused.
+   $text = $output -join "`n"
+   $output | Select-String -Pattern "^\s+Failed \w|Error Message:|Expected |because |no longer written|no longer there|error CS" |
+      Select-Object -First 30 | ForEach-Object { Write-Host $_ -ForegroundColor Red }
    Write-Host ""
    Write-Host "The regeneration was REFUSED, so nothing was rewritten." -ForegroundColor Red
-   Write-Host "If a save key is listed above, a campaign in progress would lose that data. Re-run with" -ForegroundColor Red
-   Write-Host "-AllowSaveKeyRemoval only if you truly mean to retire it, and say why in the commit." -ForegroundColor Red
-   Write-Host "If a modder API member is listed, a bridge already shipped would break. Re-run with" -ForegroundColor Red
-   Write-Host "-AllowApiRemoval only if it truly goes, and name it under 'For modders' in the release notes." -ForegroundColor Red
+   $known = $false
+   if ($text -match "no longer written") {
+      $known = $true
+      Write-Host "A save key is gone: a campaign in progress would lose that data. Re-run with" -ForegroundColor Red
+      Write-Host "-AllowSaveKeyRemoval only if you truly mean to retire it, and say why in the commit." -ForegroundColor Red
+   }
+   if ($text -match "no longer there") {
+      $known = $true
+      Write-Host "A shipped modder API member is gone: a bridge already shipped would break. Re-run with" -ForegroundColor Red
+      Write-Host "-AllowApiRemoval only if it truly goes, and name it under 'For modders' in the release notes." -ForegroundColor Red
+   }
+   if ($text -match "error CS\d+") {
+      $known = $true
+      Write-Host "The code does not compile: fix the build first." -ForegroundColor Red
+   }
+   if (-not $known) {
+      Write-Host "A guard or ratchet among the Maps tests refused the change (its message is above). It is not" -ForegroundColor Red
+      Write-Host "absorbed by a regeneration: fix the code it names, never widen the ratchet to pass." -ForegroundColor Red
+   }
 
    exit 1
 }
@@ -112,13 +133,23 @@ foreach ($file in $changed) {
    Write-Host ("  {0,5} added, {1,5} removed   {2}" -f $file.Added, $file.Removed, $file.Path)
 }
 
-foreach ($file in $changed | Where-Object { $_.Added + $_.Removed -le $printedInFull }) {
+# Every map, whatever its size: table rows as "column: old -> new" under their table's heading, renumbering counted,
+# then the other changed lines in full when the map moved little (MapTableDiff.ps1).
+foreach ($file in $changed) {
    Write-Host ""
    Write-Host "--- $($file.Path)" -ForegroundColor Cyan
-   & git -C $repo -c core.safecrlf=false --no-pager diff --unified=0 -- $file.Path |
-      Select-String -Pattern "^[+-][^+-]" | ForEach-Object { Write-Host "   $_" }
+   $diff = @(& git -C $repo -c core.safecrlf=false --no-pager diff --unified=0 -- $file.Path)
+   $now = @(Get-Content -LiteralPath (Join-Path $repo $file.Path) -Encoding UTF8)
+   $other = Show-MapTableChanges $diff $now
+   if ($other -eq 0) { continue }
+   if ($file.Added + $file.Removed -le $printedInFull) {
+      $diff | Where-Object { $_ -match "^[+-][^+-]" -and $_ -notmatch "^[+-]\s*\|" } | ForEach-Object { Write-Host "   $_" }
+   }
+   else {
+      Write-Host ("   {0} other lines moved: git diff -- {1}" -f $other, $file.Path) -ForegroundColor DarkGray
+   }
 }
 
 Write-Host ""
 Write-Host "To approve: read the above, then commit the maps WITH the change that moved them." -ForegroundColor Green
-Write-Host ("For anything longer than {0} lines, shown as counts only: git diff -- docs/maps/<the map>" -f $printedInFull) -ForegroundColor DarkGray
+Write-Host ("Lines outside tables are printed in full up to {0} lines a map; beyond, git diff -- docs/maps/<the map>" -f $printedInFull) -ForegroundColor DarkGray
