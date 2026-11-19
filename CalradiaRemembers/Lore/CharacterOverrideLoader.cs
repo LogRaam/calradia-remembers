@@ -228,6 +228,9 @@ namespace CalradiaRemembers.Lore
       public static IReadOnlyList<PastBondEntry> PastBonds()
       {
          if (!ModSettings.UseCustomTraits) return Array.Empty<PastBondEntry>();
+         // Built once per loaded set and campaign (a turn reads it on the main thread): a reload or an injection makes a new set.
+         string campaign = Campaign.Current?.UniqueGameId;
+         if (ReferenceEquals(_bondsFor, Set) && _bondsCampaign == campaign && _bonds != null) return _bonds;
 
          var bonds = new List<PastBondEntry>();
          foreach (CharacterOverride entry in Set.All.Where(e => e != null && e.HasPast))
@@ -246,8 +249,16 @@ namespace CalradiaRemembers.Lore
             }
          }
 
+         _bondsFor = Set;
+         _bondsCampaign = campaign;
+         _bonds = bonds;
+
          return bonds;
       }
+
+      private static CharacterOverrideSet _bondsFor;
+      private static string _bondsCampaign;
+      private static List<PastBondEntry> _bonds;
 
       /// <summary>
       ///   The hero id a past bond's "with" names: the player for "player" (or the player's own id), a hero id, else a name
@@ -268,12 +279,15 @@ namespace CalradiaRemembers.Lore
          return named.Count == 1 ? named[0].StringId : null;
       }
 
-      /// <summary>The living hero an override applies to (by id, template or name, as cr.lore_status matches), or null.</summary>
+      /// <summary>
+      ///   The hero an override applies to (by id, template or name), the living first, then the dead: a lost love written on
+      ///   the dead one's entry is still remembered by the living partner. Null when none.
+      /// </summary>
       public static Hero OwnerOf(CharacterOverride entry)
       {
          if (entry == null) return null;
 
-         return Hero.AllAliveHeroes.FirstOrDefault(h => h != null && For(h) == entry);
+         return Hero.AllAliveHeroes.FirstOrDefault(h => h != null && For(h) == entry) ?? Hero.DeadOrDisabledHeroes.FirstOrDefault(h => h != null && For(h) == entry);
       }
 
       /// <summary>The override that applies to <paramref name="hero" />, or null.</summary>

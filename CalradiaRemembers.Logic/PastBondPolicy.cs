@@ -165,7 +165,7 @@ namespace CalradiaRemembers.Logic
         }
 
         /// <summary>
-        ///   One line of the remembered-past block: the speaker lived it, it is older than the campaign, and it names the other
+        ///   One line of the past-bonds block: the speaker lived it, it is older than the campaign, and it names the other
         ///   person (the player as "the one before you", whose name the speaker may not know).
         /// </summary>
         public static string Line(RecalledBond bond, string otherName)

@@ -5948,7 +5948,10 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("theOtherSideRemembersToo", EncounterContextBuilder.ResolvePastBonds(b, $"And {a.Name}?", null)?.Contains(rivalry) == true, true);
             t.Expect("aPlayerBondFromTheSharedFileIsIgnored", EncounterContextBuilder.ResolvePastBonds(a, "Fine weather today.", null)?.Contains(romance) == true, false);
 
-            CharacterOverrideLoader.For(a).Past[1].FromCampaign = true; // as the campaign overlay marks it
+            // As the campaign overlay marks it; a new set, as a reload makes, so the per-set cache is rebuilt.
+            CharacterOverride ov = CharacterOverrideLoader.For(a);
+            ov.Past[1].FromCampaign = true;
+            CharacterOverrideLoader.InjectRuntimeOverride(ov);
             t.Expect("aPlayerBondFromTheCampaignIsAlwaysThere", EncounterContextBuilder.ResolvePastBonds(a, "Fine weather today.", null)?.Contains(romance) == true, true);
          }
          finally

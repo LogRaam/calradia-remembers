@@ -446,8 +446,13 @@ namespace CalradiaRemembers
 
             // Lufaine (18/11/2026): a past bond naming no one of this campaign is otherwise left out in silence.
             foreach (PastBond bond in (entry.Past ?? new List<PastBond>()).Where(b => b != null && !string.IsNullOrWhiteSpace(b.With) && !PastBondPolicy.NamesThePlayer(b.With)))
-               if (CharacterOverrideLoader.PastBondOtherId(bond.With) == null)
+            {
+               string other = CharacterOverrideLoader.PastBondOtherId(bond.With);
+               if (other == null)
                   sb.AppendLine($"      WARNING: the past bond with \"{bond.With.Trim()}\" names no hero of this campaign (use the hero's id, or a name only one hero bears)");
+               else if (other == Hero.MainHero?.StringId && !bond.FromCampaign)
+                  sb.AppendLine($"      WARNING: the past bond with \"{bond.With.Trim()}\" names your own character and is ignored here: a bond with the player belongs in this campaign's own character_overrides.json");
+            }
          }
 
          return sb.ToString().TrimEnd();

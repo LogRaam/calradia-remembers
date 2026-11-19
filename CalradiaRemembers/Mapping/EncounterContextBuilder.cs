@@ -831,9 +831,9 @@ namespace CalradiaRemembers.Mapping
             EdictsNote = EdictNoteResolver.Resolve(hero),
             QueryRelevantFactsBlock = JoinBlocks(ResolveQueryRelevantFacts(hero, playerMessage, (int) CampaignTime.Now.ToDays),
                                                  ResolveEventDetails(hero, playerMessage, (int) CampaignTime.Now.ToDays, leanLevel)),
-            // Lufaine (Discord, 18/11/2026): the authored past bonds join the remembered past, when the other is named or present.
-            PastOnMentionBlock = JoinBlocks(ResolvePastBonds(hero, playerMessage, witnesses),
-                                            ResolvePastOnMention(hero, playerMessage, (int) CampaignTime.Now.ToDays)),
+            PastOnMentionBlock = ResolvePastOnMention(hero, playerMessage, (int) CampaignTime.Now.ToDays),
+            // Lufaine (Discord, 18/11/2026): authored past bonds, when the other is named or present, under their own heading.
+            PastBondsBlock = ResolvePastBonds(hero, playerMessage, witnesses),
             CompanionOnErrand = ResolveCompanionOnErrand(hero),
             CompanionNewsReport = CompanionMissionBehavior.Instance?.ConsumeNewsReport(hero),
             CompanionMoodNote = ResolveCompanionMoodNote(hero),
