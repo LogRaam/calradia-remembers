@@ -831,7 +831,9 @@ namespace CalradiaRemembers.Mapping
             EdictsNote = EdictNoteResolver.Resolve(hero),
             QueryRelevantFactsBlock = JoinBlocks(ResolveQueryRelevantFacts(hero, playerMessage, (int) CampaignTime.Now.ToDays),
                                                  ResolveEventDetails(hero, playerMessage, (int) CampaignTime.Now.ToDays, leanLevel)),
-            PastOnMentionBlock = ResolvePastOnMention(hero, playerMessage, (int) CampaignTime.Now.ToDays),
+            // Lufaine (Discord, 18/11/2026): the authored past bonds join the remembered past, when the other is named or present.
+            PastOnMentionBlock = JoinBlocks(ResolvePastBonds(hero, playerMessage, witnesses),
+                                            ResolvePastOnMention(hero, playerMessage, (int) CampaignTime.Now.ToDays)),
             CompanionOnErrand = ResolveCompanionOnErrand(hero),
             CompanionNewsReport = CompanionMissionBehavior.Instance?.ConsumeNewsReport(hero),
             CompanionMoodNote = ResolveCompanionMoodNote(hero),
@@ -4764,6 +4766,55 @@ namespace CalradiaRemembers.Mapping
             return PastOnMentionPolicy.Block(known, request);
          }
          catch { return null; }
+      }
+
+      /// <summary>
+      ///   The past bonds the speaker brings to mind this turn (Lufaine, Discord, 18/11/2026: "Past romances, rivalries, etc."
+      ///   written in character_overrides.json): those whose other person the player named, who is in the scene, or who is the
+      ///   player (campaign overlay only). PastBondPolicy decides; null when none.
+      /// </summary>
+      internal static string ResolvePastBonds(Hero hero, string playerMessage, IReadOnlyList<WitnessEntry> witnesses)
+      {
+         if (hero == null) return null;
+
+         try
+         {
+            IReadOnlyList<PastBondEntry> bonds = PastBondSource?.Invoke();
+            if (bonds == null || bonds.Count == 0) return null;
+
+            HashSet<string> named = new();
+            if (!string.IsNullOrWhiteSpace(playerMessage))
+            {
+               HashSet<string> keywords = WorldFactRelevancePolicy.Tokenize(playerMessage);
+               named = ExtractMessageEntityIds(keywords);
+               AddNamedDeadAndPlaces(keywords, named);
+            }
+
+            var present = new HashSet<string>((witnesses ?? Array.Empty<WitnessEntry>()).Select(w => w?.HeroStringId).Where(id => !string.IsNullOrEmpty(id)));
+            IReadOnlyList<RecalledBond> recalled = PastBondPolicy.Recall(new PastBondRecallFacts {
+               SpeakerId = hero.StringId, PlayerId = Hero.MainHero?.StringId, Bonds = bonds, NamedIds = named, PresentIds = present
+            });
+
+            List<string> lines = recalled.Select(b => PastBondPolicy.Line(b, b.WithPlayer ? null : PastBondName(b.OtherId)))
+                                         .Where(l => l != null).ToList();
+
+            return lines.Count == 0 ? null : string.Join("\n", lines);
+         }
+         catch { return null; }
+      }
+
+      /// <summary>
+      ///   Every resolved past bond of character_overrides.json. Plugged in by <c>Lore.CharacterLoreBehavior</c> when it is
+      ///   created, as <see cref="HeroProfileMapper.AuthoredTastesSync" /> is: Lore already uses Mapping, so Mapping calling
+      ///   Lore by name would make the two use each other. Unset, no bond comes to mind, which cr.test past_bonds reports.
+      /// </summary>
+      public static Func<IReadOnlyList<PastBondEntry>> PastBondSource { get; set; }
+
+      private static string PastBondName(string heroId)
+      {
+         Hero h = Hero.FindFirst(x => x.StringId == heroId);
+
+         return h == null ? null : HeroLabel.Describe(new HeroLabel.HeroNaming {Name = h.Name?.ToString(), ClanName = h.Clan?.Name?.ToString(), CultureName = h.Culture?.Name?.ToString()});
       }
 
       // The past names the dead (an executed father, a lord fallen at a siege) and places: added to the names the

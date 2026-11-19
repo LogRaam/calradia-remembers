@@ -103,6 +103,16 @@ namespace CalradiaRemembers.Logic
         /// <summary>Optional lock of the gestures this character is less fond of (JSON "lessFond"), as <see cref="Loves" />.</summary>
         public List<string> LessFond { get; set; }
 
+        /// <summary>
+        ///   Past bonds with other characters or the player, never played out on screen (Lufaine, Discord, 18/11/2026: "Past
+        ///   romances, rivalries, etc." without bloating the backstory). Brought to mind when the other person is named or
+        ///   present (<see cref="PastBondPolicy" />); null when the field was left out.
+        /// </summary>
+        public List<PastBond> Past { get; set; }
+
+        /// <summary>True when the author wrote at least one past bond.</summary>
+        public bool HasPast => Past != null && Past.Any(b => b != null);
+
         /// <summary>True when this override sets at least one trait.</summary>
         public bool HasTraits =>
             Valor.HasValue || Honor.HasValue || Mercy.HasValue || Generosity.HasValue || Calculating.HasValue;
@@ -145,7 +155,7 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public bool HasAnyAuthoredContent =>
             HasTraits || ParsedKinks != null || ParsedPreferences != null || HasBackstory || HasConviction || HasOrientationText
-            || Loves != null || Dislikes != null || LessFond != null;
+            || Loves != null || Dislikes != null || LessFond != null || HasPast;
 
         /// <summary>
         ///   True when the entry locks something kept on the STORED romantic profile and read back as it is: the gestures
@@ -177,6 +187,9 @@ namespace CalradiaRemembers.Logic
             IReadOnlyList<string> badPreferences = UnrecognizedPreferenceNames;
             if (badPreferences.Count > 0)
                 yield return $"romantic preference(s) not recognized and ignored: {string.Join(", ", badPreferences)} (try: MonogamousStrict, MonogamousFlexible, Polyamorous, Casual, Devoted, Possessive, Independent, Reserved, SlowBurn, Intense, Dominant, Submissive, Switch)";
+
+            foreach (string problem in (Past ?? new List<PastBond>()).SelectMany(PastBondPolicy.Problems))
+                yield return problem;
         }
 
         /// <summary>The authored orientation parsed to an enum, or null when unset/unrecognized.</summary>

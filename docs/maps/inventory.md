@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 685 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1710 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1715 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1065,7 +1065,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (521)
+### CalradiaRemembers.Logic (526)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1371,6 +1371,10 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PartnerFacts` | public class | One other partner of the player, as a partner sees them. |
 | `PartnerStanding` | public class | One partner's standing as the competition pass sees it (engine-gathered, pure to reason over). |
 | `PartyMoraleMood` | public static class | Turns the player party's morale into the weekly mood nudge it gives their companions, if any. |
+| `PastBond` | public class | One past bond as the author writes it in character_overrides.json ("past": [ ... ]). |
+| `PastBondEntry` | public class | A bond with both people resolved to hero ids, as the recall reads it. |
+| `PastBondPolicy` | public static class | Which past bonds a character brings to mind, and how each reads in the prompt. |
+| `PastBondRecallFacts` | public class | What the recall needs to know about one turn of conversation. |
 | `PastCandidateFacts` | public class | One long-term event the speaker knows, as the past-on-mention block weighs it. |
 | `PastMentionRequest` | public class | The turn the past is weighed for: what the player named, and when the speaker stands. |
 | `PastOnMentionPolicy` | public static class | Picks and words the past events a speaker brings to a turn in which the player named their people. |
@@ -1447,6 +1451,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RealmStandingFormatter` | public static class | Renders the realms line of the world state. |
 | `RebellionFacts` | public class | A house's rebellion, and its return to the fold. |
 | `RebellionWording` | public static class | How a house's members remember a rebellion, and how the world tells it. |
+| `RecalledBond` | public class | A bond the speaker brings to mind this turn, seen from the speaker's side. |
 | `RecruitIntentDetector` | public static class | Detects a "where can I find / hire a companion?" intent in a free-text player message. |
 | `RecruitTroopsPolicy` | public static class | The rules of a recruit_troops task. |
 | `RefusalFallbackPolicy` | public static class | Whether a beat is redone on the NSFW model. |

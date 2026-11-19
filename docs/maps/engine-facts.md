@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-817 rules read 606 facts.
+819 rules read 607 facts.
 
 ## Facts read by more than one rule
 
@@ -76,6 +76,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `PartyBase.MobileParty` (10) | `BrigandageFacts`, `CaptorAudiencePolicy.HardcoreShare`, `CaptorAudiencePolicy.Select`, `CourierLossFacts`, `CourierSecretPolicy.BecomesSecret`, `CourierSecretPolicy.IsResent`, `CourierSecretPolicy.SenderLossMemory`, `CourierSecretPolicy.WhoGetsTheSecret`, `MeetingLeaveFacts`, `SecretDefeaterFacts` |
 | `Settlement.IsUnderSiege` (10) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts`, `AssemblyTravelFacts`, `AssemblyTravelOutcome.Evaluate`, `ChaseFacts`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `SettlementSafetyFacts` |
 | `Army.LeaderParty` (9) | `ArmyRosterFacts`, `ChaseFacts`, `HuntFacts`, `InterceptionFacts`, `InterceptionPolicy.Choose`, `InterceptionPolicy.IsOutnumbered`, `InterceptionPolicy.IsRoadValid`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `PlayerForcePolicy.Resolve` |
+| `Array.Empty` (9) | `AppreciationPolicy.SelectDominant`, `GrudgePolicy.SelectDominant`, `PastBondRecallFacts`, `PromptProfileFolders.List`, `PromptProfileReader.Read`, `RecentMatterSelector.GossipAlreadyRaisedByAnyone`, `SceneChoiceMenu.Items`, `SceneChoiceMenu.Read`, `SceneChoiceMenuFacts` |
 | `Book.ForNpc` (9) | `AimApproachFacts`, `AimOpening`, `AimRaiseFacts`, `QuestMenuEntry`, `StrategistAimPolicy.MenuCue`, `StrategistAimPolicy.TargetField`, `StrategistAimPolicy.TargetName`, `StrategistAimPolicy.TypeToken`, `StrategistGiverFacts` |
 | `Hero.Culture` (9) | `AuthoredMapTriggerPolicy.WhyNot`, `MapTriggerFacts`, `MercenaryDeparturePolicy.IsAidOfKin`, `MercenaryDeparturePolicy.RegardShift`, `PlayerFameFacts`, `PlayerFamePolicy.Line`, `PlayerFamePolicy.NameIsNews`, `PlayerFamePolicy.Read`, `SharedPastPairFacts` |
 | `IFaction.IsAtWarWith` (9) | `AssemblyHostFacts`, `AssemblyHostValidity.Evaluate`, `AssemblyInvitationFacts`, `HelpPleaPolicy.MayWrite`, `HelpPleaPolicy.WriterRank`, `HelpWriterFacts`, `MarriageStateFacts`, `MisdeedsPagePolicy.RaidKind`, `OutlawPolicy.IsBrigandage` |
@@ -84,7 +85,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MobileParty.ItemRoster` (9) | `CompanionCounselPolicy.Select`, `GiftBundlePolicy.Amount`, `GiftBundlePolicy.Describe`, `GiftBundlePolicy.WholeLotHeld`, `GiftQuantityPolicy.Resolve`, `ItemSaleFacts`, `ItemSalePolicy.DifferenceNote`, `PartyCounselFacts`, `WarLevyPayment.Counts` |
 | `Settlement.IsCastle` (9) | `CommonerChatContext`, `CourierHirePlacePolicy.OfferedInTheMenu`, `DayMoodFactsPolicy.From`, `DayMoodReadings`, `FiefRewardFacts`, `ScoutPlaceFacts`, `ScoutPlacePolicy.MayAsk`, `ScoutPlacePolicy.Report`, `ScoutPlaceSighting` |
 | `Town.FoodStocks` (9) | `EdictCounselPolicy.Answer`, `EdictTownFacts`, `FoodTradeFacts`, `ReliefSeat`, `ScoutPlacePolicy.Report`, `TownFoodFacts`, `TownFoodPolicy.IsHungry`, `TownFoodPolicy.ReliefDestination`, `TownFoodPolicy.StocksAfterRelief` |
-| `Array.Empty` (8) | `AppreciationPolicy.SelectDominant`, `GrudgePolicy.SelectDominant`, `PromptProfileFolders.List`, `PromptProfileReader.Read`, `RecentMatterSelector.GossipAlreadyRaisedByAnyone`, `SceneChoiceMenu.Items`, `SceneChoiceMenu.Read`, `SceneChoiceMenuFacts` |
 | `Character.HeroObject` (8) | `CaptiveNameMatch.Best`, `CompanionCounselPolicy.Select`, `CouncilRosterPolicy.IsOldEnoughToSit`, `Legend`, `PartyCounselFacts`, `PrisonerCustodyPolicy.HeldByPlayer`, `SkirmishLine`, `SkirmishMemoryText.CountIn` |
 | `Hero.IsClanLeader` (8) | `DivorceBlockFacts`, `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible`, `DivorcedSpouseFacts`, `GuidelinesNarrowing`, `PromptKindFacts`, `StationGuidelinesPolicy.ResolveStationKey`, `StationGuidelinesPolicy.SelectStationText` |
 | `MapEvent.MapEventSettlement` (8) | `BattleFacts`, `BattleMemoryText.ChronicleEngagement`, `BattleMemoryText.PlaceClause`, `BattleRecordNames`, `BattleRecordText.Magnitude`, `Legend`, `LegendPolicy.Name`, `SkirmishFacts` |
@@ -195,6 +195,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `GameStateBridge.GetCurrentGameDay` (3) | `ConversationResumeIdentity`, `JealousyTriggerPolicy.IsPlausibleCourtship`, `PendingSummaryJob` |
 | `HeartPageReader.When` (3) | `LegendPolicy.PromptLine`, `MisdeedsPagePolicy.Line`, `TraumaPagePolicy.Line` |
 | `Hero.BattleEquipment` (3) | `GiftEquipFacts`, `PlayerDressPolicy.Classify`, `ScatteredLootItem` |
+| `Hero.DeadOrDisabledHeroes` (3) | `AuthoredHistoryLoader.Validate`, `HistoryRelationLedger.Plan`, `PastBondEntry` |
 | `Hero.Find` (3) | `CombatTally`, `HistoryKnowledgeFacts`, `LongTermHistoryPolicy.WouldKnow` |
 | `Hero.HitPoints` (3) | `BodyHurtPolicy.Read`, `CaptiveActionOutcomePolicy.Succeeds`, `CaptiveActionOutcomePolicy.SuccessChance` |
 | `Hero.IsWounded` (3) | `BodyHurtPolicy.Read`, `DuelChallengeContext`, `DuelChallengePolicy.Evaluate` |
@@ -236,6 +237,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Romantic.LessFondActs` (3) | `IntimateActJudgeFacts`, `IntimateActReaderFacts`, `IntimateTastes` |
 | `Romantic.LovedActs` (3) | `IntimateActJudgeFacts`, `IntimateActReaderFacts`, `IntimateTastes` |
 | `ScreenManager.TopScreen` (3) | `ChatFocusArbitrationPolicy.Decide`, `ChatFocusArbitrationPolicy.ReasonFor`, `EncyclopediaDetourFacts` |
+| `Set.Resolve` (3) | `AuthoredTastesFacts`, `AuthoredTastesPolicy.LockIsInPlace`, `PastBondEntry` |
 | `Spouse.IsDead` (3) | `MattersMostFacts`, `MattersMostPolicy.Resolve`, `MattersMostPolicy.StillKnown` |
 | `StatureReader.OfClan` (3) | `BastardPrestigePolicy.PrestigeScore`, `BastardPrestigePolicy.Resolve`, `LordRecruitmentFacts` |
 | `Status.IsCuriousOrDeeper` (3) | `CorrespondenceRankFacts`, `CorrespondenceRankPolicy.DealsInPerson`, `RegardProposal` |
@@ -282,7 +284,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.CanMarry` (2) | `LeaveHouseFacts`, `LeaveHouseForRulerPolicy.WhyNot` |
 | `Hero.CaptivityStartTime` (2) | `CaptiveKeepingFacts`, `CaptureNorm.Line` |
 | `Hero.CivilianEquipment` (2) | `GiftEquipFacts`, `PlayerDressPolicy.Classify` |
-| `Hero.DeadOrDisabledHeroes` (2) | `AuthoredHistoryLoader.Validate`, `HistoryRelationLedger.Plan` |
 | `Hero.HeroState` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
 | `Hero.IsKingdomLeader` (2) | `PairBondFacts`, `PairBondPolicy.Assess` |
 | `HeroHelper.NPCPersonalityClashWithNPC` (2) | `PairBondFacts`, `PairBondPolicy.Assess` |
@@ -353,7 +354,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Romantic.Kinks` (2) | `CaptiveEncounterPolicy.EncounterProbability`, `CaptiveEncounterPolicy.SelectIntent` |
 | `Romantic.LoverKnownToPlayer` (2) | `AffairDiscoveryPolicy.IsDiscovered`, `MattersMostPageFacts` |
 | `Scan.Strength` (2) | `AudienceCandidate`, `TravellingAudiencePolicy.Choose` |
-| `Set.Resolve` (2) | `AuthoredTastesFacts`, `AuthoredTastesPolicy.LockIsInPlace` |
 | `Settlement.Culture` (2) | `AuthoredMapTriggerPolicy.WhyNot`, `MapTriggerFacts` |
 | `Settlement.Militia` (2) | `ScoutPlacePolicy.Report`, `ScoutPlaceSighting` |
 | `Settlement.Name` (2) | `QuestMenuEntry`, `ThirdPartyDescriptor.WhereaboutsClause` |
@@ -909,6 +909,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `PartnerStanding`: `Romantic.AcceptsPlayersOtherPartners`, `Romantic.IsOpenArrangement`, `StatureReader.Player`
 - `PartyCounselFacts`: `Character.HeroObject`, `EquipmentElement.Item`, `Hero.GetSkillValue`, `MemberRoster.GetTroopRoster`, `MobileParty.InventoryCapacity`, `MobileParty.ItemRoster`, `MobileParty.Morale`, `MobileParty.TotalWeightCarried`
 - `PartyMoraleMood.DriverFor`: `MobileParty.Morale`
+- `PastBondEntry`: `Hero.DeadOrDisabledHeroes`, `Set.Resolve`
+- `PastBondRecallFacts`: `Array.Empty`, `PastBondSource.Invoke`
 - `PastCandidateFacts`: `Event.Day`, `Event.KnownOnlyToThoseInvolved`, `Event.Magnitude`, `Event.Summary`
 - `PastOnMentionPolicy.Block`: `Event.Day`, `Event.KnownOnlyToThoseInvolved`, `Event.Magnitude`, `Event.Summary`
 - `PatrolLeashFacts`: `AiBehavior.EngageParty`, `AiBehavior.FleeToGate`, `AiBehavior.FleeToParty`, `AiBehavior.FleeToPoint`, `AiBehavior.PatrolAroundPoint`, `GatePosition.ToVec2`, `GetPosition2D.Distance`, `MobileParty.DefaultBehavior`, `MobileParty.GetNumDaysForFoodToLast`, `MobileParty.MapEvent`, `MobileParty.ShortTermBehavior`, `MobileParty.SiegeEvent`, `MobileParty.TargetSettlement`, `Settlement.Find`

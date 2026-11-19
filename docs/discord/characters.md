@@ -6,6 +6,7 @@ Every character gets a personality from the game (five traits) and the mod build
 - Make King Derthert a cold accountant who remembers every debt.
 - Give a companion a **conviction**, even a false one: she believes she is secretly a necromancer, and acts on it.
 - Open a romance the game's roll had closed, by setting their **orientation**.
+- Give them a **past** with someone: an old romance, a rivalry, a feud, remembered without bloating the backstory.
 
 **Step 0: turn it on**
 MCM → Calradia Remembers → Character → **Use custom traits**. **Nothing in the file applies while it is off**, and turning it off puts the game's own traits back.
@@ -51,6 +52,20 @@ A conviction **grants no powers** (he may hoard bones, he cannot raise the dead)
 Every valid name is listed at the top of the template.
 
 ===== MESSAGE 4 =====
+## Past bonds: `"past"`
+Old romances, rivalries, friendships, feuds that happened before the game, without stuffing them in the backstory:
+```json
+"past": [
+  { "with": "Rhagaea", "kind": "rivalry", "summary": "They courted the same allies for years before the war, and he still counts her every move." }
+]
+```
+- `"with"`: the other character's name (or their `id` if two share it). `"kind"`: `romance`, `rivalry`, `friendship`, `feud` or `other`.
+- The character remembers it when you **name** that person, or when that person is **in the scene**. A long list never weighs on every conversation.
+- **Both** remember it, even if only one of them has an entry.
+- It is a memory, not a number: no relation moves. For starting relations, use the History Editor (`history.md`).
+- **A past with you**: `"with": "player"`, only in **this campaign's own file**, `ModuleData/Custom/campaigns/<id>/character_overrides.json` (`cr.lore_status` prints its exact path; a shared file cannot know who you will play). That one is remembered in every conversation with them.
+
+===== MESSAGE 5 =====
 ## Step 3: load it and check
 
 Save the file, then in the console (`Alt + ~`):
@@ -61,7 +76,7 @@ Save the file, then in the console (`Alt + ~`):
 ## The usual mistakes
 - **"Use custom traits" is off**: nothing applies.
 - **A missing comma** between two `{ }` blocks, or a missing quote: the whole file is refused. `cr.lore_status` shows the error and where.
-- **The name does not match** (a title in front, a typo), or **two characters share it**: add their `"id"`.
+- **The name does not match** (a title in front, a typo), or **two characters share it**: add their `"id"`. The same goes for a `"with"` in `"past"`: `cr.lore_status` warns when it finds no one.
 - **You edited the file in `ModuleData/` instead of your copy in `Custom/`**: when a copy exists in Custom, it is the only one read.
 
 Share the characters you wrote! 🛡️

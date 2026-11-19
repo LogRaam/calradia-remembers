@@ -443,6 +443,11 @@ namespace CalradiaRemembers
 
             foreach (string problem in entry.AuthoringProblems())
                sb.AppendLine($"      WARNING: {problem}");
+
+            // Lufaine (18/11/2026): a past bond naming no one of this campaign is otherwise left out in silence.
+            foreach (PastBond bond in (entry.Past ?? new List<PastBond>()).Where(b => b != null && !string.IsNullOrWhiteSpace(b.With) && !PastBondPolicy.NamesThePlayer(b.With)))
+               if (CharacterOverrideLoader.PastBondOtherId(bond.With) == null)
+                  sb.AppendLine($"      WARNING: the past bond with \"{bond.With.Trim()}\" names no hero of this campaign (use the hero's id, or a name only one hero bears)");
          }
 
          return sb.ToString().TrimEnd();

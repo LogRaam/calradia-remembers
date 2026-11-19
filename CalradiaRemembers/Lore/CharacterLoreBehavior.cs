@@ -26,6 +26,7 @@ namespace CalradiaRemembers.Lore
       {
          Instance = this;
          HeroProfileMapper.AuthoredTastesSync = (profile, hero) => CharacterOverrideLoader.SyncAuthoredTastes(profile, hero);
+         EncounterContextBuilder.PastBondSource = CharacterOverrideLoader.PastBonds;
       }
 
       public static CharacterLoreBehavior Instance { get; private set; }

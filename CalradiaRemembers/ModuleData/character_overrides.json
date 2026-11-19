@@ -61,6 +61,19 @@
 //                 character's side (oral_giving: their mouth on their partner; restrained: they are held down). Also
 //                 listed by the cr.acts console command.
 //
+//   "past"        OPTIONAL. Past bonds with other characters, never played out on screen: old romances, rivalries,
+//                 friendships, feuds. A list of { "with": ..., "kind": ..., "summary": ... }:
+//                   "with"     the other character's id, or a name only one character bears
+//                   "kind"     romance, rivalry, friendship, feud or other
+//                   "summary"  what lay between them, in your words: the line the character remembers
+//                 The character remembers a bond when the other person is NAMED in your message or is IN THE
+//                 SCENE, so a long list never weighs on every conversation. Both people remember it, even if
+//                 only one of them has an entry here. It is a memory, not a number: it moves no relation (the
+//                 History Editor sets starting relations). Takes effect at once with cr.reload_lore.
+//                 "with": "player" names YOU, and is read ONLY from this campaign's own file
+//                 (ModuleData/Custom/campaigns/<id>/character_overrides.json): a shared file cannot know who the
+//                 player will be. A bond with you is remembered in every conversation with that character.
+//
 [
   // {
   //   "hero": "Derthert",
@@ -73,6 +86,9 @@
   //   "preferences": ["MonogamousStrict", "Possessive"],
   //   "loves": ["kissing", "on_top"],
   //   "lessFond": ["dirty_talk"],
-  //   "dislikes": ["rough_handling"]
+  //   "dislikes": ["rough_handling"],
+  //   "past": [
+  //     { "with": "Rhagaea", "kind": "rivalry", "summary": "They courted the same allies for years before the war, and he still counts her every move." }
+  //   ]
   // }
 ]

@@ -220,6 +220,62 @@ namespace CalradiaRemembers.Lore
       private static bool Same(IntimateTastes a, IntimateTastes b)
          => a.Loved.SequenceEqual(b.Loved) && a.LessFond.SequenceEqual(b.LessFond) && a.Disliked.SequenceEqual(b.Disliked);
 
+      /// <summary>
+      ///   Every past bond of the loaded overrides with both people found in this campaign (Lufaine, Discord, 18/11/2026), read
+      ///   live from the set so cr.reload_lore takes effect at once and nothing is written into the save. Empty while custom
+      ///   traits are off. A bond whose owner or other person is no hero of this campaign is left out (cr.lore_status says so).
+      /// </summary>
+      public static IReadOnlyList<PastBondEntry> PastBonds()
+      {
+         if (!ModSettings.UseCustomTraits) return Array.Empty<PastBondEntry>();
+
+         var bonds = new List<PastBondEntry>();
+         foreach (CharacterOverride entry in Set.All.Where(e => e != null && e.HasPast))
+         {
+            Hero owner = OwnerOf(entry);
+            if (owner == null) continue;
+
+            foreach (PastBond bond in entry.Past.Where(b => b != null && !string.IsNullOrWhiteSpace(b.Summary)))
+            {
+               string other = PastBondOtherId(bond.With);
+               if (other == null) continue;
+
+               bonds.Add(new PastBondEntry {
+                  OwnerId = owner.StringId, OtherId = other, Kind = PastBondPolicy.KindOf(bond.Kind), Summary = bond.Summary, FromCampaign = bond.FromCampaign
+               });
+            }
+         }
+
+         return bonds;
+      }
+
+      /// <summary>
+      ///   The hero id a past bond's "with" names: the player for "player" (or the player's own id), a hero id, else a name
+      ///   only one hero bears (namesakes are different people). Null when it names no one of this campaign.
+      /// </summary>
+      public static string PastBondOtherId(string with)
+      {
+         if (string.IsNullOrWhiteSpace(with)) return null;
+         if (PastBondPolicy.NamesThePlayer(with)) return Hero.MainHero?.StringId;
+
+         string t = with.Trim();
+         List<Hero> all = Hero.AllAliveHeroes.Concat(Hero.DeadOrDisabledHeroes).Where(h => h != null).ToList();
+         Hero byId = all.FirstOrDefault(h => string.Equals(h.StringId, t, StringComparison.OrdinalIgnoreCase));
+         if (byId != null) return byId.StringId;
+
+         List<Hero> named = all.Where(h => string.Equals(h.Name?.ToString(), t, StringComparison.OrdinalIgnoreCase)).GroupBy(h => h.StringId).Select(g => g.First()).ToList();
+
+         return named.Count == 1 ? named[0].StringId : null;
+      }
+
+      /// <summary>The living hero an override applies to (by id, template or name, as cr.lore_status matches), or null.</summary>
+      public static Hero OwnerOf(CharacterOverride entry)
+      {
+         if (entry == null) return null;
+
+         return Hero.AllAliveHeroes.FirstOrDefault(h => h != null && For(h) == entry);
+      }
+
       /// <summary>The override that applies to <paramref name="hero" />, or null.</summary>
       public static CharacterOverride For(Hero hero)
          => hero == null
@@ -263,6 +319,8 @@ namespace CalradiaRemembers.Lore
          {
             List<CharacterOverride> entries =
                JsonConvert.DeserializeObject<List<CharacterOverride>>(File.ReadAllText(LastOverlayPath)) ?? new List<CharacterOverride>();
+            // Lufaine (18/11/2026): only this campaign's own file may name the player in a past bond.
+            foreach (PastBond bond in entries.Where(e => e?.Past != null).SelectMany(e => e.Past).Where(b => b != null)) bond.FromCampaign = true;
             Set = Set.Overlay(entries);
             LastOverlayCount = entries.Count(e => e != null);
             ModLog.Info($"  Laid {LastOverlayCount} campaign character override(s) over the shared file ({LastOverlayPath}).");

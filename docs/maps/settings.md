@@ -89,7 +89,7 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 |---|---|---|
 | Custom Folder Path (`CustomFolderPath`) | `NarrativeLoader.CustomBaseFolder` | 0 |
 | Self-Esteem Climb (`SelfEsteemClimb`) | `SelfEsteemService.Record` | 1 |
-| Use custom traits (`UseCustomTraits`) | `CharacterLoreBehavior.OnSessionLaunched`, `CharacterLoreBehavior.OnSettingChanged`, `CharacterLoreBehavior.ReloadAndReapply`, `CharacterOverrideLoader.ActsFor`, `CharacterOverrideLoader.BackstoryFor`, `CharacterOverrideLoader.ConvictionFor`, `CharacterOverrideLoader.KinksFor`, `CharacterOverrideLoader.OrientationFor`, `CharacterOverrideLoader.PreferencesFor` | 8 |
+| Use custom traits (`UseCustomTraits`) | `CharacterLoreBehavior.OnSessionLaunched`, `CharacterLoreBehavior.OnSettingChanged`, `CharacterLoreBehavior.ReloadAndReapply`, `CharacterOverrideLoader.ActsFor`, `CharacterOverrideLoader.BackstoryFor`, `CharacterOverrideLoader.ConvictionFor`, `CharacterOverrideLoader.KinksFor`, `CharacterOverrideLoader.OrientationFor`, `CharacterOverrideLoader.PastBonds`, `CharacterOverrideLoader.PreferencesFor` | 9 |
 
 ### Companions
 
