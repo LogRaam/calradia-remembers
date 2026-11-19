@@ -94,6 +94,7 @@ namespace CalradiaRemembers.Tests
          var dragged = new Dictionary<string, int> {["A"] = 0, ["B"] = 0};
          var ordinary = new Dictionary<string, int> {["A"] = 0, ["B"] = 0};
          double spent = 0;
+         string refused = null;
 
          foreach ((string line, Regex fact, string label) in Probes)
          {
@@ -122,6 +123,13 @@ namespace CalradiaRemembers.Tests
                   }, CancellationToken.None);
 
                   spent += reply?.Usage?.Cost ?? 0;
+                  // 19/11/2026: the key's own $20 limit refused every call, and the run "passed" on blank replies at $0.
+                  if (string.IsNullOrWhiteSpace(reply?.Content))
+                  {
+                     refused = reply?.ErrorMessage ?? "(no reply)";
+                     report.AppendLine("(the provider gave no reply, stopped: " + refused + ")");
+                     goto done;
+                  }
                   string text = Dialogue(reply?.Content ?? reply?.ErrorMessage ?? "(no reply)");
                   string mark;
                   if (fact != null)
@@ -155,6 +163,7 @@ namespace CalradiaRemembers.Tests
          Directory.CreateDirectory(Path.GetDirectoryName(ReportPath)!);
          File.AppendAllText(ReportPath, report + Environment.NewLine);
          TestContext.Out.WriteLine(report.ToString());
+         if (refused != null) Assert.Fail("The provider refused the calls: " + refused);
       }
 
       /// <summary>The night as the story archive keeps it: 40 lines, the four threads buried among small talk.</summary>
@@ -293,6 +302,7 @@ namespace CalradiaRemembers.Tests
                                  asked = versions.ToDictionary(v => v, v => 0), dragged = versions.ToDictionary(v => v, v => 0),
                                  ordinary = versions.ToDictionary(v => v, v => 0);
          double spent = 0;
+         string refused = null;
 
          foreach ((string line, Regex latestFact, Regex staleFact, string label) in MissionProbes)
          {
@@ -328,6 +338,13 @@ namespace CalradiaRemembers.Tests
                   }, CancellationToken.None);
 
                   spent += reply?.Usage?.Cost ?? 0;
+                  // 19/11/2026: the key's own $20 limit refused every call, and the run "passed" on blank replies at $0.
+                  if (string.IsNullOrWhiteSpace(reply?.Content))
+                  {
+                     refused = reply?.ErrorMessage ?? "(no reply)";
+                     report.AppendLine("(the provider gave no reply, stopped: " + refused + ")");
+                     goto done;
+                  }
                   string text = Dialogue(reply?.Content ?? reply?.ErrorMessage ?? "(no reply)");
                   string mark;
                   if (latestFact != null)
@@ -363,6 +380,7 @@ namespace CalradiaRemembers.Tests
          Directory.CreateDirectory(Path.GetDirectoryName(ReportPath)!);
          File.AppendAllText(ReportPath, report + Environment.NewLine);
          TestContext.Out.WriteLine(report.ToString());
+         if (refused != null) Assert.Fail("The provider refused the calls: " + refused);
       }
 
       /// <summary>The three talks as the story archive keeps them, each line of terms buried among small talk.</summary>
