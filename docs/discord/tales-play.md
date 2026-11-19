@@ -44,6 +44,8 @@ Some steps are a **scene**: the chat opens by itself with a **Narrator** instead
 - If you are in another conversation when it comes due, it waits and opens as soon as that conversation ends.
 - Write what you do, in your own words. Under each narration, a short list offers a few ways; type its **number**, or choose **Something else...** to write your own.
 - The narrator only describes; **you decide** what your character does. What is to be found is found only if you go to it.
+- The narrator knows **what you carry** (your weapons, armour and mount): you can use those, not a weapon you do not have. Someone in the scene may lend you something; it is yours for the scene only.
+- It also knows **your companions** and the **lords and ladies nearby** (the lord of the nearest place, those staying in the nearest town). Name one and the people of the scene take them for that very person (from 2.8.17).
 - Some clues are **needed**. When you have found them all, the chat says so: **"Everything this place had to show you is found. You may end the scene when you wish."** Close the scene then and the story goes on.
 
 ## 🚪 Leaving and coming back
