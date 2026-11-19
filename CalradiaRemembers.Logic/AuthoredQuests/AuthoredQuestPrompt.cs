@@ -92,7 +92,7 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       ///   found), what the player's own choices could spring, who may be met, the ways out of the scene open now; and
       ///   how to report each.
       /// </summary>
-      public static string Narrator(AuthoredQuestRun run, AuthoredQuest q, SceneSurroundingsFacts surroundings = null)
+      public static string Narrator(AuthoredQuestRun run, AuthoredQuest q, SceneSurroundingsFacts surroundings = null, ScenePlayerFacts player = null)
       {
          AuthoredScene scene = AuthoredQuestEngine.Current(run, q)?.Objective?.Scene;
          if (scene == null) return null;
@@ -110,6 +110,13 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
          // fkasad (07/10/2026): the same wood reads differently to an Aserai at night and a Battanian at noon.
          string around = SceneSurroundingsText.Compose(surroundings);
          if (around != null) sb.AppendLine(around);
+         // Schmidt (18/11/2026): the two-handed axe he did not own, and lady Gunjadrid turned into an old man of the wood.
+         string kit = ScenePlayerText.Compose(player);
+         if (kit != null)
+         {
+            sb.AppendLine();
+            sb.AppendLine(kit);
+         }
 
          List<AuthoredFinding> left = scene.Findings.Where(f => !run.Findings.Contains(f.Id)).ToList();
          if (left.Count > 0)

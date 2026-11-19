@@ -367,6 +367,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("tale_arc", Severity.Light, "Gabriel (25/10/2026), on the night in Rhagaea's chamber: 'ca pourrait etre trop court ou trop long', then an arc of beats that 'devrait diriger l'experience que le LLM fait vivre au joueur'. A tale written into this test (a talk that completes as the conversation closes, with an arc of two beats of 2 and 1 exchanges) is opened through the REAL OPEN_TALE path with a lord. The lord's REAL prompt carries the first beat, not the second; after two exchanges counted by the same call the chat makes, the second beat is in the prompt and told it is the LAST reply; the third exchange closes the arc (the chat would close softly) and not before; the close then completes the stage on its ending. Then the signals (Gabriel: 'signaux observes avec tirage en filet'): a second tale whose middle beat goes on only if a signal was seen; through the REAL bridge (tale_signal) a signal the arc does not watch is refused, the watched one is taken and sets its flag, and the arc then skips back nowhere and reaches its last beat; played again with nothing seen and a net roll forced to succeed, the game decides the signal and the lord's prompt tells her to narrate it. The tales are forgotten after.", TestTaleArc),
          new SelfTest("tale_interrupted", Severity.Light, "Gabriel (25/10/2026): 'je fais la quete du loup, mais je suis fait prisonnier par Rhagaea.. je devrais pouvoir vivre la nuit avec elle et reprendre ensuite la quete du loup lorsque je suis libere de prison', with the clock stopped while it waits and one level only. Two tales written into this test, both opened through the REAL OPEN_TALE path with a lord: the second sets the first aside (the first waits, the second plays); the daily journal reconciling leaves the first's entry open; a third summons is refused while one waits; the second ended, the first stays aside while the player is held, and is taken up again once free, at its stage, its first day moved on by the days it waited. The tales are forgotten after.", TestTaleInterrupted),
          new SelfTest("tale_opened_by_scenario", Severity.Light, "Gabriel (24/10/2026): a scenario opens a tale at night while the player is held (ON_CAPTIVE_NIGHT, IF_CAPTOR_IS, IF_PRESENT, IF_CHANCE, OPEN_TALE); the night is judged by the regard it left ('ca s'est bien passe si Rhagaea a gagne plus de Regards qu'elle en a perdu'), the memory stays either way, and each playing shows a new video of the stage's pool. A tale written into this test (on_scenario, a talk that completes as the conversation ends, an image_pool, three memories under regard_rose / regard_fell and a regard reward) is opened through the REAL OPEN_TALE check with a lord; the talk does not complete as the chat opens, and the lord is told the chamber's moment while it lasts; the lord's regard is raised by 4 during it; the close completes it with regard_rose, the warm memory and the +5 reward; a video of the pool is chosen. Then the same tale refused at its popup (decline_ending) ends at once: -2 regard and its memory, and, being the tale's second playing with that lord, it carries what the first left (played_before, ended_before:<the first ending>: Gabriel, 26/10/2026, 'que Rhagaea se souvienne des autres fois'). IF_CHANCE:1 holds and IF_CHANCE:0 does not; IF_CAPTOR_IS fails while the player is free. A lord with an errand merely on offer (Gabriel, 25/10/2026: Rhagaea's night refused with 'they already have a task of their own for you') can still be summoned, when the world holds one. Regard, memories, pools and the tale are put back after.", TestTaleOpenedByScenario),
+         new SelfTest("tale_scene_kit", Severity.Light, "Schmidt (Discord, 18/11/2026): he drew a two-handed axe he did not own in a tale, and 'lady Gunjadrid, daughter of Orvi' in the nearest town was unknown there, the tale making up an old man by that name. Reads the REAL facts the scene narrator is given (AuthoredQuestBehavior.ScenePlayer): the player's main weapon is listed by name as carried (a weapon is put in the first slot for the test when it is empty, and taken back after), every companion in the party is listed as of the company, and a lord or lady staying in the nearest town is listed with that town; the narrator's block names the weapon and carries the rule that a listed name is that very person. Changes nothing else", TestTaleSceneKit),
          new SelfTest("tale_keys", Severity.Light, "tashmetu (20/10/2026), four keys for written tales: requires.player.gender, a notable giver's trade, a town as the bound place, gold the player pays. A tale written into this test asks a merchant of a town and the player's own sex: a real town merchant binds, with the town as its place; a headman or a village notable is refused for the trade; its twin asking the other sex is refused for the player. One gold paid by the player through the REAL payment reaches the merchant, then is given back. Forgets the tales after", TestTaleKeys),
          new SelfTest("edict_effects", Severity.Light, "Gabriel (21/10/2026), edicts on towns and realms, by the player and by the world's lords, and contestable. All six channels must be attached to the live models (tashmetu, 25/10/2026: a mod model inheriting CalculateTownTax left the tax unattached). Picks a real town held by a lord and has its holder decree a Heavy levy through the REAL decree (EdictBehavior.Decree): the influence is spent, the game's OWN loyalty model now carries a line named for the edict at -1 a day and its tax model a +25% factor (what the town's tooltip shows). A second edict on the same town and a decree by someone who does not hold it are refused before anything moves. A notable of the town is told the edict in his own prompt. Then the town is made restless with a long grievance and one day runs: its people force the edict off and the loyalty line is gone. Restores the town's loyalty, the holder's influence, and removes the edict and its news", TestEdictEffects),
          new SelfTest("lord_strategy", Severity.Light, "Gabriel (29-30/10/2026): lords play their realm's strategy, plotting against a house grown too strong (the player's too) and building a counterweight against a realm grown too strong through the game's own war, peace, alliance and call to arms. Reads the live balance (the dominant realm, or the strongest as a stand-in when the balance holds) and prepares, WITHOUT filing, each other realm's step through the REAL path (LordStrategyBehavior.Prepare): the player's own realm is never stepped for, a prepared step is one the game allows, filed by a house that is not the player's and can pay its influence, its news names the realm, and nothing has been filed. Then finds a house head with a house grown too strong over his own (SchemeStore.SelectOvershadowingTargetFor): the target heads a house at least twice as strong, of his own realm or one at war with it, is neither his kin nor a ruler. The prepared step's realm vote is weighed through the game's own KingdomElection, never started. Changes nothing", TestLordStrategy),
@@ -5912,6 +5913,53 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"{sample.Name} ({sample.Culture.StringId}) would ask for: {string.Join(", ", ForgePreferencePolicy.Suited(Quests.ViableQuestScanner.ForgeAsker(sample)))}");
          t.Expect("everyLordGetsKindsTheTaskVerifies", wrongKinds, 0);
          t.Expect("aCarriedWeaponComesFirst", ownWeaponNotFirst, 0);
+
+         return t.Line();
+      }
+
+      private static string TestTaleSceneKit(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("tale_scene_kit");
+         Hero me = Hero.MainHero;
+         if (t.Skip(me?.BattleEquipment == null || MobileParty.MainParty == null, "no player party")) return t.Line();
+
+         EquipmentElement before = me.BattleEquipment[EquipmentIndex.Weapon0];
+         bool injected = false;
+         try
+         {
+            if (before.Item == null)
+            {
+               ItemObject blade = MBObjectManager.Instance.GetObjectTypeList<ItemObject>().FirstOrDefault(i => i != null && i.ItemType == ItemObject.ItemTypeEnum.OneHandedWeapon);
+               if (t.Skip(blade == null, "no one-handed weapon in the game's items")) return t.Line();
+               me.BattleEquipment[EquipmentIndex.Weapon0] = new EquipmentElement(blade);
+               injected = true;
+            }
+
+            string weapon = me.BattleEquipment[EquipmentIndex.Weapon0].Item.Name.ToString();
+            Logic.AuthoredQuests.ScenePlayerFacts facts = AuthoredQuestBehavior.ScenePlayer();
+            t.Expect("theFactsAreRead", facts != null, true);
+            if (facts == null) return t.Line();
+            t.Expect("theMainWeaponIsCarried", facts.Carried.Contains(weapon), true);
+
+            int companions = MobileParty.MainParty.MemberRoster.GetTroopRoster().Count(e => e.Character?.HeroObject is Hero h && h != me && HeroPresence.IsInTheWorld(h));
+            t.Expect("everyCompanionIsOfTheCompany", facts.Company.Count, companions);
+
+            TaleWorlds.Library.Vec2 at = MobileParty.MainParty.GetPosition2D;
+            Settlement town = Settlement.All.Where(s => s != null && s.IsTown).OrderBy(s => s.GetPosition2D.DistanceSquared(at)).FirstOrDefault();
+            Hero staying = town == null ? null : Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != me && h.IsLord && h.CurrentSettlement == town && HeroPresence.IsInTheWorld(h));
+            if (staying != null)
+               t.Expect("aLordInTheNearestTownIsListedWithIt", facts.Nearby.Any(p => p.Name.Contains(staying.Name.ToString()) && p.Note.Contains(town.Name.ToString())), true);
+            else t.Note($"no lord or lady stays in {town?.Name} now: the nearest-town check was skipped");
+
+            string block = Logic.AuthoredQuests.ScenePlayerText.Compose(facts);
+            t.Expect("theNarratorIsToldTheWeapon", block?.Contains(weapon) == true, true);
+            if (facts.Company.Count + facts.Nearby.Count > 0)
+               t.Expect("aListedNameIsThatVeryPerson", block?.Contains("that very person") == true, true);
+         }
+         finally
+         {
+            if (injected) me.BattleEquipment[EquipmentIndex.Weapon0] = before;
+         }
 
          return t.Line();
       }

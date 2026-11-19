@@ -1231,7 +1231,7 @@ namespace CalradiaRemembers.Quests
          var over = false;
          ChatManager.OpenForExploration(new ExplorationSession {
             Title = !string.IsNullOrWhiteSpace(title) ? AuthoredQuestEngine.Fill(_run, title) : place != null ? $"The wood by {place}" : q.Title,
-            BuildPrompt = () => AuthoredQuestPrompt.Narrator(_run, q, Surroundings()),
+            BuildPrompt = () => AuthoredQuestPrompt.Narrator(_run, q, Surroundings(), ScenePlayer()),
             Apply = markers => ApplyMarkers(q, markers, () => over = true),
             IsOver = () => over,
             OnClose = () => CloseScene(q),
@@ -1328,6 +1328,67 @@ namespace CalradiaRemembers.Quests
             return null;
          }
       }
+
+      /// <summary>
+      ///   What the player carries and who of the world they may name (Schmidt, Discord 18/11/2026): the battle gear by item
+      ///   name, the companions in the party, the lord who holds the nearest place, and the lords and ladies in the nearest
+      ///   town. Read once per narrator turn; null when the world cannot be read.
+      /// </summary>
+      internal static ScenePlayerFacts ScenePlayer()
+      {
+         try
+         {
+            Hero me = Hero.MainHero;
+            if (me == null) return null;
+
+            var carried = new List<string>();
+            Equipment gear = me.BattleEquipment;
+            if (gear != null)
+               foreach (EquipmentIndex slot in new[] {EquipmentIndex.Weapon0, EquipmentIndex.Weapon1, EquipmentIndex.Weapon2, EquipmentIndex.Weapon3,
+                                                    EquipmentIndex.Head, EquipmentIndex.Body, EquipmentIndex.Cape, EquipmentIndex.Gloves, EquipmentIndex.Leg, EquipmentIndex.Horse})
+               {
+                  string name = gear[slot].Item?.Name?.ToString();
+                  if (!string.IsNullOrWhiteSpace(name)) carried.Add(slot == EquipmentIndex.Horse ? name + " (your mount, left at the edge of the scene)" : name);
+               }
+
+            var company = new List<ScenePersonFact>();
+            foreach (TroopRosterElement e in MobileParty.MainParty?.MemberRoster?.GetTroopRoster() ?? new List<TroopRosterElement>())
+            {
+               Hero h = e.Character?.HeroObject;
+               if (h == null || h == me || !Mapping.HeroPresence.IsInTheWorld(h)) continue;
+               company.Add(new ScenePersonFact {Name = SceneName(h), Note = "of your company, with your party, not in this scene"});
+            }
+
+            var nearby = new List<ScenePersonFact>();
+            Vec2? at = MobileParty.MainParty?.GetPosition2D;
+            if (at != null)
+            {
+               Settlement place = QuestFactory.NearestTownTo(me); // the nearest town, castle or village
+               Hero holder = place?.OwnerClan?.Leader;
+               if (holder != null && holder != me && Mapping.HeroPresence.IsInTheWorld(holder))
+                  nearby.Add(new ScenePersonFact {Name = SceneName(holder), Note = $"{(holder.IsFemale ? "lady" : "lord")} whose house holds {place.Name}"});
+
+               Settlement town = Settlement.All.Where(s => s != null && s.IsTown).OrderBy(s => s.GetPosition2D.DistanceSquared(at.Value)).FirstOrDefault();
+               if (town != null)
+                  foreach (Hero h in Hero.AllAliveHeroes.Where(h => h != null && h != me && h.IsLord && h.CurrentSettlement == town && Mapping.HeroPresence.IsInTheWorld(h)))
+                  {
+                     string kin = h.Father != null ? $"{(h.IsFemale ? "daughter" : "son")} of {h.Father.Name}, " : "";
+                     nearby.Add(new ScenePersonFact {Name = SceneName(h), Note = $"{kin}in {town.Name} now, the nearest town"});
+                  }
+            }
+
+            return new ScenePlayerFacts {Carried = carried, Company = company, Nearby = nearby};
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[TALE] what the player carries and who is near could not be read: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      private static string SceneName(Hero h)
+         => Logic.HeroLabel.Describe(new Logic.HeroLabel.HeroNaming {Name = h.Name?.ToString(), ClanName = h.Clan?.Name?.ToString(), CultureName = h.Culture?.Name?.ToString()});
 
       /// <summary>The words of the scene's open ways out, names filled: what the chat lists under the narration.</summary>
       private IReadOnlyList<string> SceneWays(AuthoredQuest q)

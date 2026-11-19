@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 685 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1715 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1718 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 29000+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 29500+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 9500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 6000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -1813,7 +1813,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HistoryRelationStep` | public class | One relation move to make now. |
 | `HistoryWorldFacts` | public class | The campaign as the validation sees it. |
 
-### CalradiaRemembers.Logic.AuthoredQuests (106)
+### CalradiaRemembers.Logic.AuthoredQuests (109)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1900,6 +1900,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SceneImageLayout` | public static class | The size of a tale's picture beside the chat, kept to its own proportions. |
 | `SceneLeavePolicy` | public static class | Whether ending a scene asks first. |
 | `SceneMarkers` | public class | A narration with its game markers taken out. |
+| `ScenePersonFact` | public class | A person of the world the narrator is told of: the name as the prompt names them, and who they are. |
+| `ScenePlayerFacts` | public class | What the game knows of the player and of the world near a tale's scene. |
+| `ScenePlayerText` | public static class | The narrator's block about what the player carries and who in the world they may name. |
 | `SceneSurroundingsFacts` | public class | What the game knows of a scene's surroundings. |
 | `SceneSurroundingsText` | public static class | The narrator's block about the scene's surroundings. |
 | `SceneTranscriptWindow` | public static class | The "scene so far" a narrator reads each turn. |

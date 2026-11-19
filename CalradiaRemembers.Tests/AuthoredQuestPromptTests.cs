@@ -119,6 +119,25 @@ namespace CalradiaRemembers.Tests
          prompt.Should().NotContain("{village}");
       }
 
+      // STAKE (Schmidt, Discord 18/11/2026): "you cannot write that you take out your two handed axe despite not even having
+      // one", and "lady Gunjadrid, daughter of Orvi" became an old man of the wood though she was in the nearest town. The
+      // narrator is told what the player carries and who in the world they may name.
+      [Test]
+      public void GIVEN_what_the_player_carries_and_the_lords_nearby_WHEN_the_narrator_is_told_THEN_both_are_in_its_prompt()
+      {
+         AuthoredQuest q = Wolf();
+         var player = new ScenePlayerFacts {
+            Carried = new[] {"Sturgian Axe", "Wolf Cloak"},
+            Nearby = new[] {new ScenePersonFact {Name = "Gunjadrid of the Gundarid clan", Note = "daughter of Orvi, in Varcheg now"}}
+         };
+
+         string prompt = AuthoredQuestPrompt.Narrator(Run(q, "the_tracks"), q, null, player);
+
+         prompt.Should().Contain("WHAT THE PLAYER CARRIES").And.Contain("Sturgian Axe, Wolf Cloak");
+         prompt.Should().Contain("Gunjadrid of the Gundarid clan: daughter of Orvi, in Varcheg now");
+         prompt.IndexOf("WHAT THE PLAYER CARRIES").Should().BeLessThan(prompt.IndexOf("WHAT IS THERE TO BE FOUND"));
+      }
+
       // fkasad (Nexus, 07/10/2026): following cart tracks on the road, he was told of "the dark wood to your left" four
       // times, the narrator pulling him toward what was to be found. A tale the player can miss must stay missable:
       // the narrator describes what is there, and never herds the player to it.
