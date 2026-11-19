@@ -714,7 +714,7 @@ It is CR's own prompt text for that character right now: who they are, how they 
 conviction included), what matters most to them, their fears, family and ties, what they remember (CR's private
 memories included, as CR summarises them), their own aim, their mood today, and the world events that have reached them
 (the same selection as `CrWorld.KnownEvents`: a lord who never heard of a secret does not have it). The keys kept:
-`world_description`, `identity`, `npc_self_appearance`, `authored_backstory`, `authored_conviction`, `mod_backstory`,
+`world_description`, `identity`, `archetype`, `personality`, `npc_self_appearance`, `authored_backstory`, `authored_conviction`, `mod_backstory`,
 `character_voice`, `relationships`, `family_compact`, `matters_most`, `fear_and_superstition`, `inherited_note`,
 `background_context`, `history`, `legend`, `own_aim`, `volatile_knowledge`, `day_mood`. Empty sections are dropped.
 

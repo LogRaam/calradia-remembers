@@ -22,6 +22,10 @@ namespace CalradiaRemembers.Tests
       // STAKE: the persona is the character himself: who he is, how he sounds, what he wants, remembers and knows. Without
       // these the diplomacy mod's ruler is "a generic chatbot" (the RFC's words).
       [TestCase("identity")]
+      // tashmetu (Nexus 19/11/2026): the archetype and personality line left identity for sections of their own; the
+      // persona keeps them as identity did.
+      [TestCase("archetype")]
+      [TestCase("personality")]
       [TestCase("authored_backstory")]
       [TestCase("authored_conviction")]
       [TestCase("character_voice")]

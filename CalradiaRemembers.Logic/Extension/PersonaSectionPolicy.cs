@@ -36,6 +36,8 @@ namespace CalradiaRemembers.Logic.Extension
         private static readonly HashSet<string> Keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
             "world_description",
             "identity",
+            "archetype",
+            "personality",
             "npc_self_appearance",
             "authored_backstory",
             "authored_conviction",
