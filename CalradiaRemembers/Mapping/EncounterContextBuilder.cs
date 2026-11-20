@@ -3831,14 +3831,20 @@ namespace CalradiaRemembers.Mapping
 
             if (bridge == null || hero == null) return EncounterContext.Empty;
 
+            // Vexilary (Nexus, 19/11/2026, v2.8.16, gemma4 E4B/E12B on a 16,000-token local window): letters did not come
+            // with the small models. A letter was always written with the full prompt (about 8,000 tokens), whatever the
+            // "Compact prompt for small models" choice or the session's forced compact; it now follows them, as a talk does.
+            LeanPromptLevel lean = ModSettings.LeanPrompt ? LeanPromptLevel.Lean : LeanPromptLevel.Full;
+
             return new EncounterContext {
+               LeanLevel = lean,
                PlayerIsFemale = Hero.MainHero?.IsFemale,
                PlayerStatus = ResolvePlayerStatus(hero, profile, bridge),
                SharedRealmName = bridge.GetSharedRealmName(hero),
                // Letters take the same Task.Run path as a conversation, so a third-party variable provider must
                // be resolved here, on this thread, exactly as in Build (tashmetu, 21/09/2026).
-               // A letter is built in full (its LeanLevel is left at the default), so its variables are too.
-               ExternalPromptVariables = ResolveExternalPromptVariables(hero, profile, LeanPromptLevel.Full),
+               // A letter's variables are built at the letter's own level.
+               ExternalPromptVariables = ResolveExternalPromptVariables(hero, profile, lean),
                // An envelope written when opened knows only what its sender knew the day he sent it (31/10/2026).
                HistoryKnownThrough = historyKnownThrough,
                HistoryMemoryCap = ModSettings.PromptMemoryLimit > 0 ? ModSettings.PromptMemoryLimit : null

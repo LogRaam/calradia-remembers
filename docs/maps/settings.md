@@ -170,7 +170,7 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Background provider (`HousekeepingProvider`) | `LlmServices.ResolveKindForRole` | 2 |
 | Chat Composition (`ChatCompositionModeSetting`) | `LlmServices.SeedModelModeFromSettings` | 4 |
 | Chat Temperature (`ChatTemperature`) | `ChatViewModel.RunEnvoyTurnAsync`, `LlmServices.BuildChatService`, `LlmServices.ChatService` | 1 |
-| Compact prompt for small models (`LeanPrompt`) | `ActionInterpreterComposer.InterpretAsync`, `BuyPrisonerVerb.TeachingText`, `ChatViewModel.EnsureTranscriptCompressedAsync`, `CouncilSeatNoteResolver.Resolve`, `CrCharacterText.PiecesFor`, `EncounterContextBuilder.Build`, `EncounterContextBuilder.ComposeAppearance`, `EncounterContextBuilder.ModTextFor`, `ExchangeService.MoneyTokensFor` | 6 |
+| Compact prompt for small models (`LeanPrompt`) | `ActionInterpreterComposer.InterpretAsync`, `BuyPrisonerVerb.TeachingText`, `ChatViewModel.EnsureTranscriptCompressedAsync`, `CouncilSeatNoteResolver.Resolve`, `CrCharacterText.PiecesFor`, `EncounterContextBuilder.Build`, `EncounterContextBuilder.ComposeAppearance`, `EncounterContextBuilder.ModTextFor`, `EncounterContextBuilder.StandingContextFor`, `ExchangeService.MoneyTokensFor` | 7 |
 | Compress after (memories) (`MemoryCompressionThreshold`) | `MemoryCompressionService.CompressAsync`, `MemoryCompressionService.PickCandidate` | 2 |
 | Compress old memories (`MemoryCompression`) | `MemoryCompressionBehavior.OnDailyTick`, `MemoryCompressionBehavior.RunNow`, `MemoryCompressionService.CompressAsync` | 1 |
 | Interpret model (`ActionInterpreterModel`) | `LlmServices.DebugDescribeRoleRouting`, `LlmServices.ResolveInterpreterModel`, `LlmServices.ResolveModel` | 3 |
