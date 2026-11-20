@@ -410,7 +410,8 @@ namespace CalradiaRemembers.Mapping
       /// <summary>Names a relative, marking the deceased as "the late …" so the NPC speaks of them accurately.</summary>
       private static string FormatKin(Hero kin)
          => kin.IsAlive
-            ? $"{kin.Name} (age {(int) kin.Age}){CaptiveClause(kin)}"
+            // Eisendrache2 (19/11/2026): a living father read only "(age 61)", and lords said he fell at Pendraic.
+            ? Logic.ParentLineText.Living(kin.Name?.ToString(), (int) kin.Age) + CaptiveClause(kin)
             : $"the late {kin.Name}{DescribeDeath(kin)}";
 
       #endregion
