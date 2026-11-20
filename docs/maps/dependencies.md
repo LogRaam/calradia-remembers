@@ -147,7 +147,7 @@ Used by the most: `CalradiaRemembers.Logic` (79), `NpcMemoryService.Core.Models`
 | `CalradiaRemembers.Logic.Dynasty` | 1 | 3 |
 | `CalradiaRemembers.Logic.Edicts` | 0 | 5 |
 | `CalradiaRemembers.Logic.Escort` | 0 | 3 |
-| `CalradiaRemembers.Logic.Extension` | 0 | 1 |
+| `CalradiaRemembers.Logic.Extension` | 0 | 2 |
 | `CalradiaRemembers.Logic.Extortion` | 2 | 3 |
 | `CalradiaRemembers.Logic.Folklore` | 2 | 3 |
 | `CalradiaRemembers.Logic.Grudges` | 3 | 26 |
@@ -220,7 +220,7 @@ Used by the most: `CalradiaRemembers.Logic` (79), `NpcMemoryService.Core.Models`
 | `CalradiaRemembers.WarCouncil` | 5 | 2 |
 | `CalradiaRemembers.WarDuty` | 13 | 2 |
 | `CalradiaRemembers.Witnesses` | 11 | 6 |
-| `CalradiaRemembers.WorldAlmanac` | 16 | 2 |
+| `CalradiaRemembers.WorldAlmanac` | 17 | 2 |
 | `CalradiaRemembers.WorldEvents` | 25 | 32 |
 | `NpcMemoryService.Core.Actions` | 4 | 8 |
 | `NpcMemoryService.Core.Calendar` | 0 | 15 |
@@ -364,7 +364,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 #### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Quests`
 
 - `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Quests` in 1 file(s): `Behaviors/NpcMemoryCampaignBehavior.cs`
-- `CalradiaRemembers.Quests` uses `CalradiaRemembers.Behaviors` in 6 files: `Quests/AuthoredQuestBehavior.cs`, `Quests/CalradiaRemembersQuest.cs`, `Quests/CaptorTermsBehavior.cs`, and 3 more
+- `CalradiaRemembers.Quests` uses `CalradiaRemembers.Behaviors` in 7 files: `Quests/AuthoredQuestBehavior.cs`, `Quests/CalradiaRemembersQuest.cs`, `Quests/CaptorTermsBehavior.cs`, and 4 more
 
 #### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Services`
 
@@ -986,7 +986,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### CalradiaRemembers.Logic.Extension
 
 - uses: nothing
-- used by: `CalradiaRemembers`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.WorldAlmanac`
 
 ### CalradiaRemembers.Logic.Extortion
 
@@ -1350,7 +1350,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### CalradiaRemembers.WorldAlmanac
 
-- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.GUI`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.WorldAlmanac`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Paths`, `CalradiaRemembers.Portraits`, `CalradiaRemembers.Styles`, `CalradiaRemembers.UI`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.LlmClient`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Prompts`
+- uses: `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.GUI`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Extension`, `CalradiaRemembers.Logic.WorldAlmanac`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Paths`, `CalradiaRemembers.Portraits`, `CalradiaRemembers.Styles`, `CalradiaRemembers.UI`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.LlmClient`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Prompts`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Diagnostics`
 
 ### CalradiaRemembers.WorldEvents

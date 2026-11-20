@@ -269,11 +269,17 @@ namespace CalradiaRemembers.WorldAlmanac
 
       // The four painted buttons along the bottom-left (Detailed View / Diplomacy / History / Rumors & Events). Each
       // is a future screen; for now every one raises the same "Available Soon" popup, named per button so filling one
-      // in later is just replacing its body.
+      // in later is just replacing its body. Since 2.8.17 another mod may put its own screen behind Diplomacy, History
+      // or Rumors & Events (CrBalanceOfPower, the Bellum Civile bridge, 20/11/2026); the popup stays when none does.
       public void ExecuteDetailedView() => ShowComingSoon("Detailed View");
-      public void ExecuteDiplomacy() => ShowComingSoon("Diplomacy");
-      public void ExecuteHistory() => ShowComingSoon("History");
-      public void ExecuteRumors() => ShowComingSoon("Rumors & Events");
+      public void ExecuteDiplomacy() => OpenOrSoon(BalanceOfPowerSlot.Diplomacy, "Diplomacy");
+      public void ExecuteHistory() => OpenOrSoon(BalanceOfPowerSlot.History, "History");
+      public void ExecuteRumors() => OpenOrSoon(BalanceOfPowerSlot.RumorsAndEvents, "Rumors & Events");
+
+      private static void OpenOrSoon(BalanceOfPowerSlot button, string feature)
+      {
+         if (!BalanceOfPowerButtons.TryOpen(button)) ShowComingSoon(feature);
+      }
 
       #region private
 

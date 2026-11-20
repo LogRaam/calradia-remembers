@@ -390,6 +390,21 @@ without side effects: it runs while a window is drawn. A source that throws is p
 loaded image by its path for the session, so write a changed picture under a new file name. `CrPortraits.Resolve(heroId)`
 tells which image CR would show; `UnregisterSource(name)` removes yours. Game thread.
 
+### Your screen behind a Balance of Power button (`CrBalanceOfPower`, since 2.8.17)
+
+The Balance of Power screen has painted Diplomacy, History and Rumors & Events buttons that say "Available Soon". Your mod
+may put its own screen behind any of them:
+
+```csharp
+CrBalanceOfPower.RegisterButton(BalanceOfPowerButton.Diplomacy, "MyMod", () => MyDiplomacyScreen.Open());
+```
+
+When the player clicks it, CR closes the Balance of Power screen and calls your action on the game thread once the map is
+back, so your screen is never stacked over CR's. The first mod to claim a button keeps it (another mod's claim returns
+false, whatever the load order); the same mod may claim it again to replace its action. `UnregisterButton(button, "MyMod")`
+gives it back to "Available Soon" (only the holder may), and `HolderOf(button)` tells who holds it. An action that throws
+is logged and the map stays as it is. Detailed View is CR's own and cannot be claimed.
+
 ### Reading regard (`CrNpcMemory.GetRegard`, since 2.7.4)
 
 ```csharp
@@ -797,7 +812,7 @@ bool shown = CrConversation.ShowPicture(session, @"C:\...\line_0042.png", "Lucon
 
 `CrApi.Version` is raised by one at each release that adds a door, never lowered. 1 = 2.8.10, 2 = 2.8.12 (`CrPrompt.Persona`,
 `CrLlm`), 3 = 2.8.13 (`CrConversation.ShowPicture`, `OpenSessionId`), 4 = 2.8.15 (`CrLlmRequest.Model`,
-`ExternalWorldEvent.Details`, `CrWorld.RealmEvents`). Absent (read by reflection) means older than 2.8.10. Read it by reflection or at run time: a constant compiled
+`ExternalWorldEvent.Details`, `CrWorld.RealmEvents`), 5 = 2.8.17 (`CrBalanceOfPower`). Absent (read by reflection) means older than 2.8.10. Read it by reflection or at run time: a constant compiled
 into your mod keeps the value it was built with. The older `CrNpcMemory.ApiVersion` and `Feed.ApiVersion` keep their own meaning.
 
 ### Regard changes (`CrNpcMemory.RegardChanged`, since 2.6.7)

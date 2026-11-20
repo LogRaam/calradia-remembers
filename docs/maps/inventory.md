@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 685 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1720 types in 62 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 690 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1725 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -48,17 +48,19 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (78)
+### CalradiaRemembers (80)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ActionRegistrationResult` | public enum | The outcome of CrActions.Register. |
 | `AimResult` | public enum | What became of an aim handed to CrAims.Register. |
+| `BalanceOfPowerButton` | public enum | A painted button of the Balance of Power screen that another mod may put its own screen behind. |
 | `CrActions` | public static class | The public facade a third-party mod calls to register (or unregister) one executable conversation action. |
 | `CrAimRaised` | public class | A lord was given the floor for an aim (CrAims.Raised). |
 | `CrAims` | public static class | The door through which other mods give lords aims of their own. |
 | `CrApi` | public static class | The version of CR's whole extension surface, for a mod that detects what it can use. |
 | `CrAppearance` | public static class | The door through which other mods add a line to how a character looks. |
+| `CrBalanceOfPower` | public static class | The door through which another mod opens its own screen from a Balance of Power button. |
 | `CrCharacterText` | public static class | The door through which other mods write text about a character, for the prompt and the panel. |
 | `CrCharacterTextEntry` | public class | One piece of your text about a character. |
 | `CrCharacterTextFacts` | public class | What CR tells your source when it asks for a character's text. |
@@ -789,7 +791,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PortraitSpikeViewModel` | public class | View model for the portrait-spike test overlay: a runtime sprite plus a status line. |
 | `RuntimePortraitFactory` | internal static class | Builds a GauntletUI Sprite from an image file on disk. |
 
-### CalradiaRemembers.Quests (15)
+### CalradiaRemembers.Quests (16)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -798,6 +800,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CalradiaRemembersQuest` | public class | A thin QuestBase wrapper around an InformalQuest that makes it visible in Bannerlord's native quest journal. |
 | `CalradiaRemembersQuestTypeDefiner` | public class | Registers the CR quest types with Bannerlord's save system. |
 | `CaptorTermsBehavior` | public class | A captor's terms made real, and the player's oath held to. |
+| `GarrisonDonationPatch` | public static class | Counts the men the player leaves on a garrison's walls through the game's screen toward a garrison task. |
 | `LetterErrand` | public class | Pairs a letter quest with the giver who issued it, for the delivery flow. |
 | `LlmFeedbackNotes` | internal static class | In-memory, per-hero pending feedback about a block the host refused last turn. |
 | `NativeQuestMemoryBehavior` | public class | Writes the giver's memory of the game's own quests. |
@@ -1023,11 +1026,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PlayerCompany` | internal static class | The player's company: who may be invited into a conversation, and whose presence the player commands. |
 | `WitnessResolver` | public static class | Determines which NPCs are present during a conversation and returns them as WitnessEntry objects for prompt injection. |
 
-### CalradiaRemembers.WorldAlmanac (14)
+### CalradiaRemembers.WorldAlmanac (16)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `BalanceOfPowerButtons` | internal static class | The mods holding Balance of Power buttons, and the click. |
 | `BalanceOfPowerManager` | public static class | Show/hide lifecycle for the Balance of Power window, composed on the shared crash-safe panel host. |
+| `BalanceOfPowerSlot` | internal enum | A Balance of Power button another mod may hold (the public BalanceOfPowerButton, same order). |
 | `BalanceOfPowerViewModel` | public class | The whole "Balance of Power" dashboard as bindable data: the top-3 podium, the full ranked list, the key indicators, and the field totals. |
 | `BalanceSurveyBehavior` | public class | Records the balance of power week by week while switched on. |
 | `ClanBalanceOfPowerButtonVM` | public class | Data source for the Clan-screen Balance of Power button overlay: its label and open command. |
@@ -1065,7 +1070,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (527)
+### CalradiaRemembers.Logic (529)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1234,6 +1239,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GameCalendar` | public class | The game's own calendar, as the running campaign set it (0 when no campaign has set it yet). |
 | `GameRelationFacts` | public class | The game's relations with the player that one character's standing is read from. |
 | `GameRelationReading` | public static class | Reads a character's clan standing and own relation with the player. |
+| `GarrisonDonationCredit` | public class | What a garrison-screen donation did to a garrison task. |
+| `GarrisonDonationFacts` | public class | A donation made through the game's garrison screen, at the place a garrison task names. |
 | `GarrisonStrength` | public static class | A garrison's strength band. |
 | `GeographyDescriber` | public static class | Pure rules for describing a bearing (distance band plus 8-wind direction) between two map points. |
 | `GiftCeilingPolicy` | public static class | The most a character gives away freely. |
@@ -2330,7 +2337,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EscortRefusal` | public enum | Why a lord will not escort the player, or None when he will. |
 | `EscortStandingFacts` | public class | The facts an ending rests on, read off the live campaign by the caller. |
 
-### CalradiaRemembers.Logic.Extension (8)
+### CalradiaRemembers.Logic.Extension (11)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2342,6 +2349,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ExternalPictureFacts` | public class | What CR knows about one picture another mod asks it to show. |
 | `ExternalPicturePolicy` | public static class | Whether another mod's picture is shown in the open conversation, and its caption. |
 | `PersonaSectionPolicy` | public static class | Which sections of the character prompt make up a character's persona for another mod (CrPrompt.Persona). |
+| `ScreenButtonClaim` | public enum | The answer to a claim. |
+| `ScreenButtonClaimFacts` | public class | What a mod asks of a Balance of Power button. |
+| `ScreenButtonClaimPolicy` | public static class | Who may hold a Balance of Power button. |
 
 ### CalradiaRemembers.Logic.Extortion (12)
 

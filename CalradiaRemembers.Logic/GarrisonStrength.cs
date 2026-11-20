@@ -71,5 +71,58 @@ namespace CalradiaRemembers.Logic
         /// <summary>A hand-over is all the men asked or nothing: a short delivery is refused, never faked.</summary>
         public static bool CanHandOver(int playerHealthyRegulars, int required)
             => required > 0 && playerHealthyRegulars >= required;
+
+        /// <summary>The men still owed once earlier donations are counted; never below zero.</summary>
+        public static int StillOwed(int required, int delivered)
+            => required - delivered > 0 ? required - delivered : 0;
+
+        /// <summary>
+        ///   What a donation through the game's own garrison screen does to the task (Lordfadooboo, Nexus, 20/11/2026):
+        ///   the fit men left on the named walls add up across donations, and the task is done once they reach the
+        ///   number asked. Wounded men and companions are not counted, as in the conversation hand-over.
+        /// </summary>
+        public static GarrisonDonationCredit Credit(GarrisonDonationFacts facts)
+        {
+            int required = facts?.Required ?? 0;
+            int before = facts?.AlreadyDelivered > 0 ? facts.AlreadyDelivered : 0;
+            int added = facts?.FitMenDonated > 0 ? facts.FitMenDonated : 0;
+            int delivered = before + added;
+
+            return new GarrisonDonationCredit {
+                Counted = required > 0 && added > 0,
+                Delivered = required > 0 ? delivered : before,
+                Done = required > 0 && added > 0 && delivered >= required,
+                StillOwed = StillOwed(required, required > 0 ? delivered : before)
+            };
+        }
+    }
+
+    /// <summary>A donation made through the game's garrison screen, at the place a garrison task names.</summary>
+    public sealed class GarrisonDonationFacts
+    {
+        /// <summary>The men the task asks for; zero for a task saved without a number, which nothing can complete.</summary>
+        public int Required { get; init; }
+
+        /// <summary>The fit men already left on these walls for this task by earlier donations.</summary>
+        public int AlreadyDelivered { get; init; }
+
+        /// <summary>The fit, non-hero men left in this donation (wounded and companions excluded).</summary>
+        public int FitMenDonated { get; init; }
+    }
+
+    /// <summary>What a garrison-screen donation did to a garrison task.</summary>
+    public sealed class GarrisonDonationCredit
+    {
+        /// <summary>The donation counted toward the task (some fit men, a task with a number).</summary>
+        public bool Counted { get; init; }
+
+        /// <summary>The fit men delivered for the task so far, this donation included.</summary>
+        public int Delivered { get; init; }
+
+        /// <summary>The task now has all the men it asked for.</summary>
+        public bool Done { get; init; }
+
+        /// <summary>The men still owed.</summary>
+        public int StillOwed { get; init; }
     }
 }

@@ -203,7 +203,8 @@ namespace CalradiaRemembers.Logic.Quests
                     return h == null ? null : $"Talk with {h} in the Calradia Remembers chat, name {giver} and speak in their favour until {h} is won over." + report;
                 case QuestType.ReinforceGarrison:
                     return s == null || f.RequiredCount <= 0 ? null
-                        : $"Have at least {f.RequiredCount} fit soldiers in your party, go to {s} and, inside it, tell {giver} in the Calradia Remembers chat that you leave them the men." + onTheSpot;
+                        : $"Go to {s} with {f.RequiredCount} fit soldiers. Inside it, either tell {giver} in the Calradia Remembers chat that you leave them the men"
+                          + $" (settled on the spot), or, if you serve its realm, leave them in its garrison through the game's own troop screen, in one go or several; then talk with {giver} again to collect your reward.";
                 case QuestType.RansomEnvoy:
                     return h == null ? null
                         : $"{giver} gave you {f.AdvanceGold} denars. Buy {h} from those who hold them, then set them free or hand them to {giver}; breaking them out also counts. Keep what you do not spend." + report;

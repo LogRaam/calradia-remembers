@@ -34,14 +34,17 @@ namespace CalradiaRemembers.Verbs
         {
             if (!Pending(ctx, out InformalQuest quest, out Settlement place)) return null;
 
+            int owed = Owed(quest);
             var sb = new StringBuilder();
             sb.AppendLine("REINFORCE_GARRISON, THE MEN YOU ASKED FOR YOUR WALLS:");
             sb.AppendLine($"You asked the player for {quest.RequiredItemCount} soldiers for the garrison of {place.Name}, and they");
+            if (owed < quest.RequiredItemCount)
+                sb.AppendLine($"have already left {quest.RequiredItemCount - owed} of them on your walls; {owed} are still owed. They");
             sb.AppendLine("stand in it now. When the player hands the men over and you accept them, emit:");
             sb.AppendLine("[ACTION]");
             sb.AppendLine("type: reinforce_garrison");
             sb.AppendLine("[/ACTION]");
-            sb.AppendLine($"The game moves {quest.RequiredItemCount} of the player's own healthy soldiers onto your walls, or none");
+            sb.AppendLine($"The game moves {owed} of the player's own healthy soldiers onto your walls, or none");
             sb.AppendLine("if they have fewer; a promise to bring them later is not a hand-over.");
             sb.AppendLine();
 
@@ -60,10 +63,11 @@ namespace CalradiaRemembers.Verbs
                                          .Where(el => el.Character is {IsHero: false})
                                          .Sum(el => el.Number - el.WoundedNumber) ?? 0;
 
-                if (!ReinforceGarrisonPolicy.CanHandOver(healthy, quest.RequiredItemCount))
-                    return ActionOutcome.Refused($"(You have {healthy} fit soldiers; {ctx.Npc.Name} asked for {quest.RequiredItemCount}. Bring more men.)");
+                int owed = Owed(quest);
+                if (!ReinforceGarrisonPolicy.CanHandOver(healthy, owed))
+                    return ActionOutcome.Refused($"(You have {healthy} fit soldiers; {ctx.Npc.Name} still needs {owed}. Bring more men.)");
 
-                int moved = CourtActionResolver.MoveLowestTierTroops(playerParty, place.Town.GarrisonParty, quest.RequiredItemCount);
+                int moved = CourtActionResolver.MoveLowestTierTroops(playerParty, place.Town.GarrisonParty, owed);
                 ModLog.Info($"[ACTION] reinforce_garrison: {moved} of the player's soldiers onto the walls of {place.Name} for {ctx.Npc.Name}.");
 
                 string player = Hero.MainHero?.Name?.ToString() ?? "The player";
@@ -82,6 +86,9 @@ namespace CalradiaRemembers.Verbs
                 return null;
             }
         }
+
+        /// <summary>The men still owed once donations on the game's garrison screen are counted (Lordfadooboo, 20/11/2026).</summary>
+        private static int Owed(InformalQuest quest) => ReinforceGarrisonPolicy.StillOwed(quest.RequiredItemCount, quest.DeliveredCount);
 
         /// <summary>This character's outstanding garrison task for the place the player stands in, with that place.</summary>
         private static bool Pending(VerbContext ctx, out InformalQuest quest, out Settlement place)

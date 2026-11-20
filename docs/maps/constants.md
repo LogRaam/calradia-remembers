@@ -90,7 +90,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 | `TermDays` | `EscortEligibilityPolicy` = 15; `HostagePolicy` = 45; `NonAggressionPactPolicy` = 45 |
 | `TopValue` | `RangeDecoder` = 1 << 24; `RangeEncoder` = 1 << 24 |
 | `ValorWeight` | `CompanionRapport` = 1; `SilenceOrderPolicy` = 3 |
-| `Version` | `CrApi` = 4; `CrvidRules` = 1 |
+| `Version` | `CrApi` = 5; `CrvidRules` = 1 |
 | `WaryTier` | `Regard` = -20; `VanillaRelation` = -20 |
 | `WindowDays` | `CompanionGrievancePolicy` = 60; `GiftCeilingPolicy` = 30 |
 
@@ -393,7 +393,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 
 | Constant | Value | What it is |
 |---|---|---|
-| `Version` | 4 | Raised by one at each release that adds a door; never lowered, and a door once shipped stays. 1 = Calradia Remembers 2.8.10 (CrDiplomacy, CrWorld, CrCharacterText, CrLore, CrPortraits, Feed secrecy fields, CrPrompt.Reloa... |
+| `Version` | 5 | Raised by one at each release that adds a door; never lowered, and a door once shipped stays. 1 = Calradia Remembers 2.8.10 (CrDiplomacy, CrWorld, CrCharacterText, CrLore, CrPortraits, Feed secrecy fields, CrPrompt.Reloa... |
 
 ### CrFolklore
 

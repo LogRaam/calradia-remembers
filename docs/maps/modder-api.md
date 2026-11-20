@@ -31,6 +31,14 @@ _What became of an aim handed to CrAims.Register._
 - `UnknownHero`
 - `Updated`
 
+### BalanceOfPowerButton
+
+_A painted button of the Balance of Power screen that another mod may put its own screen behind._
+
+- `Diplomacy`
+- `History`
+- `RumorsAndEvents`
+
 ### CrActions
 
 _The public facade a third-party mod calls to register (or unregister) one executable conversation action._
@@ -61,7 +69,7 @@ _The door through which other mods give lords aims of their own._
 
 _The version of CR's whole extension surface, for a mod that detects what it can use._
 
-- `const int Version = 4`
+- `const int Version = 5`
 
 ### CrAppearance
 
@@ -69,6 +77,14 @@ _The door through which other mods add a line to how a character looks._
 
 - `static bool UnregisterLineSource(string source)`
 - `static void RegisterLineSource(string source, Func<string, bool, string> line)`
+
+### CrBalanceOfPower
+
+_The door through which another mod opens its own screen from a Balance of Power button._
+
+- `static bool RegisterButton(BalanceOfPowerButton button, string sourceMod, Action open)`
+- `static bool UnregisterButton(BalanceOfPowerButton button, string sourceMod)`
+- `static string HolderOf(BalanceOfPowerButton button)`
 
 ### CrCharacterText
 

@@ -173,10 +173,10 @@ namespace CalradiaRemembers
       ///   2.8.10 (CrDiplomacy, CrWorld, CrCharacterText, CrLore, CrPortraits, Feed secrecy fields, CrPrompt.Reload,
       ///   CrPrompt.StockSections, Feed.List, CrAims.List). 2 = 2.8.12 (CrPrompt.Persona and PersonaText, CrLlm). 3 = 2.8.13
       ///   (CrConversation.ShowPicture and OpenSessionId). 4 = 2.8.15 (CrLlmRequest.Model, CrLlmResult.Model,
-      ///   ExternalWorldEvent.Details, CrWorld.RealmEvents).
+      ///   ExternalWorldEvent.Details, CrWorld.RealmEvents). 5 = 2.8.17 (CrBalanceOfPower).
       ///   Older doors keep their own version constants (CrNpcMemory.ApiVersion, Feed.ApiVersion). A mod without a compile-time
       ///   reference reads this field by reflection: absent means older than 2.8.10.
       /// </summary>
-      public const int Version = 4;
+      public const int Version = 5;
    }
 }
