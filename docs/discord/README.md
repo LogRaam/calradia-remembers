@@ -25,6 +25,7 @@ a default), update the tutorial in the same commit, as for the CHANGELOG. The ta
 | `translation.md` | Translating the mod | `ModuleData/Languages/` (README, EN template), what is translatable today (the MCM page only) |
 | `modders.md` | Plugging a mod into CR | `EXTENSION_API.md`, `Extension/HOWTO_*.md`, the `cr_*` data folders, `cr.api_probe`, `cr.heard` |
 | `tales-play.md` | Playing the Tales | `Quests/AuthoredQuestBehavior.cs` (AskToAccept "Take it on"/"Not now", OpenScene waits for an open chat, CloseScene tells missed clues then moves on, AnnounceStage "Step complete"), `ChatViewModel.Exploration.cs` (the "Everything this place had to show you is found" note), `Logic/AuthoredQuests/SceneChoiceMenu.cs` ("Something else..."), MCM "Authored Quests (experimental)" (off by default), `cr.story_status/step/abandon` |
+| `maps.md` | Maps for modders: keeping control of an AI-built mod | the `generated-maps` skill (github.com/LogRaam/My-Claude-Skills, its SKILL.md and README.md), the article "Keeping Control of Code You No Longer Write" (scripting.pro), `docs/maps/README.md` and the map files it names, `CalradiaRemembers.Tests/Maps/` (`MapsAreCurrentTests`, `RatchetTests`), `Tools/Update-Maps.ps1` |
 | `console.md` | Console commands for players | `Diagnostics/ConsoleCommandHelp.cs` (every command named exists there), `CalradiaRemembers/CONSOLE_COMMANDS_GUIDE.md`, MCM Diagnostics "Report button in the chat" (on by default) |
 
 ## Before 2.8.8 is live
