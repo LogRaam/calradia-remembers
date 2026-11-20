@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 685 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1719 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1720 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2508,7 +2508,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LegendPolicy` | public static class | Which battles pass into legend, who has heard of them, and how each tells it. |
 | `LegendTellerFacts` | public class | What ties one character to a legend. |
 
-### CalradiaRemembers.Logic.Letters (45)
+### CalradiaRemembers.Logic.Letters (46)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2547,6 +2547,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterThreadAssembler` | public static class | Builds the dated, chronological correspondence thread for one contact. |
 | `LetterThreadEntry` | public class | One line of the correspondence thread: a dated header and the letter body. |
 | `LetterTone` | public enum | How a letter left its reader feeling toward the player, as the reader judged it. |
+| `LetterWaitNotice` | public static class | The words shown while an opened letter is being written, and when to repeat them. |
 | `LetterWhereaboutsPolicy` | public static class | The whereabouts wording of a letter. |
 | `LetterWindowMode` | public enum | What the courier window is doing right now. |
 | `ModLetterFacts` | public class | What a mod's letter has become, as far as the player's side of it goes. |

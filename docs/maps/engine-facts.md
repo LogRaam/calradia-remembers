@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-820 rules read 608 facts.
+822 rules read 609 facts.
 
 ## Facts read by more than one rule
 
@@ -355,6 +355,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Romantic.Kinks` (2) | `CaptiveEncounterPolicy.EncounterProbability`, `CaptiveEncounterPolicy.SelectIntent` |
 | `Romantic.LoverKnownToPlayer` (2) | `AffairDiscoveryPolicy.IsDiscovered`, `MattersMostPageFacts` |
 | `Scan.Strength` (2) | `AudienceCandidate`, `TravellingAudiencePolicy.Choose` |
+| `Sender.Name` (2) | `LetterWaitNotice.Opening`, `LetterWaitNotice.Reminder` |
 | `Settlement.Culture` (2) | `AuthoredMapTriggerPolicy.WhyNot`, `MapTriggerFacts` |
 | `Settlement.Militia` (2) | `ScoutPlacePolicy.Report`, `ScoutPlaceSighting` |
 | `Settlement.Notables` (2) | `ScoutTownFacts`, `ScoutTownPolicy.MayAsk` |
@@ -815,6 +816,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `LetterRegardPolicy.ParseTone`: `DayMoodReader.Draw`
 - `LetterRegardPolicy.StripToneLine`: `DayMoodReader.Draw`
 - `LetterReplyDecisionParser.Parse`: `DayMoodReader.Draw`
+- `LetterWaitNotice.Opening`: `Sender.Name`
+- `LetterWaitNotice.Reminder`: `Sender.Name`
 - `LetterWhereaboutsPolicy.ForPlayer`: `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `Hero.StayingInSettlement`, `MemberRoster.TotalManCount`, `MobileParty.Army`
 - `LetterWhereaboutsPolicy.ForWriter`: `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `Hero.StayingInSettlement`, `MemberRoster.TotalManCount`, `MobileParty.Army`
 - `LeverageArchetype`: `Hero.Clan`, `Hero.GetTraitLevel`, `Hero.IsFemale`, `ModSettings.AdultContentLevel`

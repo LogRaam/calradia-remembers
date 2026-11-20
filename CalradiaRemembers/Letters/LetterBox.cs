@@ -223,6 +223,63 @@ namespace CalradiaRemembers.Letters
       private static int _session;
       private static int _writingSession;
 
+      // Vexilary (19/11/2026): while an opened letter is written, a sign of life every LetterWaitNotice.ReminderSeconds.
+      private static readonly System.Diagnostics.Stopwatch WaitClock = new();
+      private static int _remindersShown;
+      private static bool _waitWrites;
+
+      private static void BeginWait(bool writes)
+      {
+         _waitWrites = writes;
+         _remindersShown = 0;
+         WaitClock.Restart();
+      }
+
+      // Shown on the map only, as the letter itself opens there; stops the moment the letter is no longer awaited.
+      private static void TickWaitNotice()
+      {
+         if (!OnTheMap()) return;
+
+         string reminder = DueReminder(WaitClock.Elapsed.TotalSeconds);
+         if (reminder != null) TaleWorlds.Library.InformationManager.DisplayMessage(new TaleWorlds.Library.InformationMessage(reminder));
+      }
+
+      // The reminder due after this long, counted as shown; null when none is due or no letter is being written.
+      private static string DueReminder(double waited)
+      {
+         BoxedLetter waiting = _writing;
+         if (waiting == null || !_waitWrites || !LetterWaitNotice.ReminderDue(waited, _remindersShown)) return null;
+
+         _remindersShown = (int) (waited / LetterWaitNotice.ReminderSeconds);
+
+         return LetterWaitNotice.Reminder(waiting.Sender?.Name, waited);
+      }
+
+      /// <summary>
+      ///   cr.test seam: the reminders a letter being written for <paramref name="boxed" /> would show at each of these
+      ///   seconds, through the real counting; nothing is opened, written or shown, and the box is left as it was.
+      /// </summary>
+      internal static List<string> DebugRemindersAt(BoxedLetter boxed, params double[] seconds)
+      {
+         BoxedLetter writing = _writing;
+         bool writes = _waitWrites;
+         int shown = _remindersShown;
+         try
+         {
+            _writing = boxed;
+            _waitWrites = true;
+            _remindersShown = 0;
+
+            return seconds.Select(DueReminder).ToList();
+         }
+         finally
+         {
+            _writing = writing;
+            _waitWrites = writes;
+            _remindersShown = shown;
+         }
+      }
+
       /// <summary>True while an envelope's text is being written, or a fixed letter translated, for the player who opened it.</summary>
       public static bool IsWriting => _writing != null;
 
@@ -246,7 +303,8 @@ namespace CalradiaRemembers.Letters
             _writing = boxed;
             _writingSession = _session;
             _awaitingPrewrite = boxed;
-            MBInformationManager.AddQuickInformation(new TextObject($"You break the seal of {boxed.Sender.Name}'s letter."));
+            BeginWait(true);
+            MBInformationManager.AddQuickInformation(new TextObject(LetterWaitNotice.Opening(boxed.Sender.Name)));
 
             return true;
          }
@@ -255,7 +313,8 @@ namespace CalradiaRemembers.Letters
          {
             _writing = boxed;
             _writingSession = _session;
-            MBInformationManager.AddQuickInformation(new TextObject($"You break the seal of {boxed.Sender.Name}'s letter."));
+            BeginWait(unwritten);
+            MBInformationManager.AddQuickInformation(new TextObject(unwritten ? LetterWaitNotice.Opening(boxed.Sender.Name) : $"You break the seal of {boxed.Sender.Name}'s letter."));
             ModLog.Info($"[LETTERBOX] {(unwritten ? "writing" : "translating")} {boxed.Sender.Name}'s letter ({boxed.Letter.Reason}) as of day {boxed.Letter.SentOnDay}.");
             (unwritten ? LetterGenerationService.WriteEnvelopeAsync(boxed.Letter, boxed.Sender) : LetterGenerationService.TranslateFixedLetterAsync(boxed.Letter, boxed.Sender))
                .ContinueWith(t => Written.Enqueue(new KeyValuePair<BoxedLetter, string>(boxed, t.Status == TaskStatus.RanToCompletion ? t.Result : null)));
@@ -287,6 +346,7 @@ namespace CalradiaRemembers.Letters
       public static void Tick()
       {
          TickPrewritten();
+         TickWaitNotice();
          if (!Written.TryPeek(out KeyValuePair<BoxedLetter, string> done)) return;
          if (_writing == null || _writingSession != _session)
          {
