@@ -167,6 +167,12 @@
           "description": "When a character could give several tales, they are chosen in proportion to their weights. 0 is never offered. Default 10.",
           "default": 10
         },
+        "party_may_join": {
+          "type": "boolean",
+          "x-kind": "bool",
+          "description": "On: in this tale's scenes the player may send for their companions and men. They come in the telling only: they help, nothing that happens to them is real (no one is hurt, killed or lost), and a fight stays the player's own. Off (the default): each scene is the player's alone.",
+          "default": false
+        },
         "requires": {
           "$ref": "#/$defs/AuthoredRequires",
           "x-kind": "object:AuthoredRequires",

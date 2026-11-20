@@ -37,6 +37,14 @@ namespace CalradiaRemembers.Logic.AuthoredQuests
       [QuestField("When a character could give several tales, they are chosen in proportion to their weights. 0 is never offered. Default 10.")]
       [JsonProperty("weight")] public int Weight { get; set; } = 10;
 
+      /// <summary>
+      ///   Schmidt (Discord 18/11/2026) wanted his army in a tale; a scene written for a lone hero (the wolf's forest) comes
+      ///   undone if a hundred men walk in. Gabriel (20/11/2026): "aussi party_may_join", a flag per tale, off by default,
+      ///   the party coming in the telling only. See ScenePlayerText.
+      /// </summary>
+      [QuestField("On: in this tale's scenes the player may send for their companions and men. They come in the telling only: they help, nothing that happens to them is real (no one is hurt, killed or lost), and a fight stays the player's own. Off (the default): each scene is the player's alone.")]
+      [JsonProperty("party_may_join")] public bool PartyMayJoin { get; set; }
+
       [QuestField("Who may give the tale, and what it needs of the world and of the player.")]
       [JsonProperty("requires")] public AuthoredRequires Requires { get; set; } = new();
 

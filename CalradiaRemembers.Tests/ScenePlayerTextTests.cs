@@ -5,6 +5,8 @@
 // name. Gabriel (19/11/2026) took three answers: the player uses only what they carry; a gift in a scene is the scene's only;
 // a name on the list is that real person, a name on none is never given to an invented one. If this is wrong, the player
 // conjures gear, a gift in a tale fills the real inventory, or a real lady becomes a stranger of the wood.
+// Gabriel (20/11/2026), "aussi party_may_join": a tale may let the player send for their party, in the telling only. If that
+// is wrong, a lone hero's scene fills with soldiers, or a story kills men the player really loses.
 
 #region
 
@@ -59,13 +61,46 @@ namespace CalradiaRemembers.Tests
          nearby[1] = new ScenePersonFact {Name = "Ira", Note = "in Varcheg now"};
 
          string text = ScenePlayerText.Compose(new ScenePlayerFacts {
-            Company = new[] {new ScenePersonFact {Name = "Ira", Note = "of your company, with your party, not in this scene"}},
+            Company = new[] {new ScenePersonFact {Name = "Ira", Note = "of your company, with your party"}},
             Nearby = nearby
          });
 
          text.Should().Contain("- Ira: of your company");
          text.Should().NotContain("- Ira: in Varcheg now");
          System.Text.RegularExpressions.Regex.Matches(text, "(?m)^- ").Count.Should().Be(ScenePlayerText.MaxPeople);
+      }
+
+      // STAKE: a tale written for a lone hero (the wolf's forest) stays one: the party is away and nobody comes when called.
+      [Test]
+      public void GIVEN_a_tale_without_party_may_join_WHEN_composed_THEN_companions_are_not_in_the_scene_and_no_party_comes()
+      {
+         string text = ScenePlayerText.Compose(new ScenePlayerFacts {
+            Company = new[] {new ScenePersonFact {Name = "Ira", Note = "of your company, with your party"}}, MenWithYou = 80
+         });
+
+         text.Should().Contain("- Ira: of your company, with your party, not in this scene");
+         text.Should().NotContain("MAY JOIN THIS SCENE");
+      }
+
+      // STAKE: Gabriel (20/11/2026) let a tale bring the party in, in the telling only: no man is lost to a story, and the
+      // scene never becomes a battle the map did not fight (battles stay the "defeat a band" stage).
+      [Test]
+      public void GIVEN_a_tale_with_party_may_join_and_men_WHEN_composed_THEN_they_may_come_when_sent_for_and_nothing_that_happens_to_them_is_real()
+      {
+         string text = ScenePlayerText.Compose(new ScenePlayerFacts {
+            Company = new[] {new ScenePersonFact {Name = "Ira", Note = "of your company, with your party"}}, MenWithYou = 80, PartyMayJoin = true
+         });
+
+         text.Should().Contain("your companions and 80 fit soldiers").And.Contain("only if the player sends for them");
+         text.Should().Contain("none of them is ever wounded, killed, captured or lost").And.Contain("never turn the scene into a battle");
+         text.Should().Contain("- Ira: of your company, with your party, comes if the player sends for them");
+      }
+
+      // STAKE: a player riding alone is never told an army waits for them because the tale allows one.
+      [Test]
+      public void GIVEN_party_may_join_but_the_player_rides_alone_WHEN_composed_THEN_no_party_is_offered()
+      {
+         ScenePlayerText.Compose(new ScenePlayerFacts {PartyMayJoin = true}).Should().NotContain("MAY JOIN THIS SCENE");
       }
 
       // STAKE: no facts, no block (a tale read without a campaign, the tale editor's preview).

@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-822 rules read 609 facts.
+823 rules read 609 facts.
 
 ## Facts read by more than one rule
 
@@ -100,6 +100,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Hero.IsDead` (7) | `KillAttemptResult`, `MattersMostFacts`, `MattersMostPolicy.Resolve`, `MattersMostPolicy.StillKnown`, `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession`, `WorkshopSaleFacts` |
 | `Hero.Siblings` (7) | `MeetingGapDescriber.Describe`, `PairBondFacts`, `PairBondPolicy.Assess`, `PairRegardFacts`, `PairRegardPolicy.Assess`, `PredecessorFacts`, `SuccessionMemoryPolicy.Reframe` |
 | `IFaction.IsKingdomFaction` (7) | `FirstImpressionDescriber.Describe`, `FirstImpressionInputs`, `FirstImpressionPolicy.Resolve`, `PlayerFameFacts`, `PlayerFamePolicy.Line`, `PlayerFamePolicy.NameIsNews`, `PlayerFamePolicy.Read` |
+| `MobileParty.MemberRoster` (7) | `AuthoredQuestPrompt.Narrator`, `CompanionPatrolPolicy.PrefillMen`, `CouncilTroopLoanPolicy.ComputeLoan`, `CourtActionPolicy.IsPartyWeakened`, `ScenePlayerFacts`, `TroopGiftFacts`, `TroopLoanFacts` |
 | `PartyBase.MapFaction` (7) | `CourierLossFacts`, `CourierSecretPolicy.BecomesSecret`, `CourierSecretPolicy.IsResent`, `CourierSecretPolicy.SenderLossMemory`, `HeroNaming`, `MeetingLeaveFacts`, `RescueCaptorFacts` |
 | `PartyBelongedTo.GetPosition2D` (7) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `EscortCostPolicy.EscortPremium`, `HeldTournament`, `JealousyHearingPolicy.WithinEarshot` |
 | `Settlement.IsVillage` (7) | `CommonerChatContext`, `CourierHirePlacePolicy.OfferedInTheMenu`, `ScoutPlaceFacts`, `ScoutPlacePolicy.MayAsk`, `ScoutPlacePolicy.Report`, `ScoutPlaceSighting`, `SettlementSafetyFacts` |
@@ -132,7 +133,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MapEvent.EventType` (5) | `BattleFacts`, `BattleMemoryText.ChronicleEngagement`, `BattleMemoryText.PlaceClause`, `BattleRecordNames`, `SkirmishFacts` |
 | `MemberRoster.TotalHealthyCount` (5) | `AuthoredBandSizeFacts`, `ExtortionLeverFacts`, `ExtortionPolicy.Yields`, `ExtortionResistanceFacts`, `PatrolReportFacts` |
 | `MobileParty.BesiegedSettlement` (5) | `AuthoredMapTriggerPolicy.WhyNot`, `ChaseFacts`, `InterceptionPolicy.PlayerCanBeApproached`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `MapTriggerFacts` |
-| `MobileParty.MemberRoster` (5) | `CompanionPatrolPolicy.PrefillMen`, `CouncilTroopLoanPolicy.ComputeLoan`, `CourtActionPolicy.IsPartyWeakened`, `TroopGiftFacts`, `TroopLoanFacts` |
 | `Party.LeaderHero` (5) | `BattleRecordNames`, `BattleWorthFacts`, `LiberationFacts`, `SkirmishFacts`, `SkirmishFoe` |
 | `PartyBelongedTo.Army` (5) | `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate`, `ReturnFacts` |
 | `Profile.ReputationWithPlayer` (5) | `DelegatedRiskFacts`, `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion`, `PeaceMediationPolicy.Evaluate`, `PrisonerTradePolicy.MayGiveFreely` |
@@ -438,7 +438,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `AuthoredQuestOfferPolicy.PickByWeight`: `Quest.Weight`, `q.Weight`
 - `AuthoredQuestOfferPolicy.WhyNot`: `Hero.Issue`, `ModSettings.AdultContentLevel`, `Requires.Content`
 - `AuthoredQuestPrompt.ForCharacter`: `Hero.CurrentSettlement`, `Hero.HomeSettlement`
-- `AuthoredQuestPrompt.Narrator`: `Current.MapSceneWrapper`, `MobileParty.Position`
+- `AuthoredQuestPrompt.Narrator`: `Current.MapSceneWrapper`, `MobileParty.MemberRoster`, `MobileParty.Position`
 - `AuthoredRivalPolicy.Choose`: `Clan.Kingdom`, `Hero.Clan`, `Kingdom.Clans`
 - `AuthoredTaleImages.ConversationIsTheStep`: `Hero.CurrentSettlement`, `Hero.HomeSettlement`
 - `AuthoredTastesFacts`: `Hero.Father`, `Hero.Mother`, `ModSettings.UseCustomTraits`, `Set.Resolve`
@@ -1056,6 +1056,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `SceneNarrationPolicy.Shows`: `ModSettings.SceneNarration`
 - `SceneOpenerPolicy.ShouldOpen`: `ModSettings.CharactersSetTheScene`
 - `ScenePersonFact`: `Character.HeroObject`, `Father.Name`, `GetPosition2D.DistanceSquared`, `Hero.Father`, `Hero.IsFemale`, `MobileParty.GetPosition2D`, `OwnerClan.Leader`, `Settlement.Name`
+- `ScenePlayerFacts`: `MobileParty.MemberRoster`
 - `SceneSurroundingsFacts`: `Current.MapSceneWrapper`, `MobileParty.Position`
 - `SchemeAdvancer.Advance`: `Hero.GetTraitLevel`, `PairBondReader.Points`
 - `SchemeAgentPolicy.ApplyPlayerAid`: `Hero.GetRelation`, `Hero.MapFaction`

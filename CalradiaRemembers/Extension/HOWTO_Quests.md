@@ -105,6 +105,7 @@ The log (`CalradiaRemembers.log`) carries every step under `[TALE]`.
 | `unique` | `true` (the default): played once per campaign, won or lost. `false`: it may come back. |
 | `repeat_cooldown_days` | For `unique: false`: how many days after it ended before it may be offered again. |
 | `weight` | When a character could give several quests, they are chosen in proportion to their weights. A weight of 0 is never offered. Default 10. |
+| `party_may_join` | `true`: in this tale's scenes the player may send for their companions and men. They come in the telling only: they help, nothing that happens to them is real (no one is hurt, killed or lost), and a fight stays the player's own. `false` (the default): each scene is the player's alone, as a tale for a lone hero needs. Since 2.8.18. |
 
 The rules around every offer:
 - Only one tale runs at a time.

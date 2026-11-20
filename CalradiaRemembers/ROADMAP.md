@@ -42,7 +42,7 @@ work is one line each under SHIPPED near the end, and the full text of every col
 **Recent, from November 2026 (not yet in a section):**
 - Long Memory steps 3 and 4: world events, then the player's own book, built on the existing Chronicle (ChronicleBehavior, ChronicleWriter, WorldEventStore). Long Memory itself (steps 1-2, threads) SHIPPED 2.8.15, off by default; measured 19/11 (docs/discord/long-memory.md).
 - Witnesses and envoys in memory (Gabriel 17/11, needs more thought): does a speaker know he was heard; a lord remembers what his envoy REPORTED, not the audience; an envoy may leave things out, never invent.
-- Schmidt's ideas (Discord 16/11, awaiting Gabriel): alleys, a parley at a siege, talking in an army, player facts at creation; and party_may_join in tales (18/11).
+- Schmidt's ideas (Discord 16/11, awaiting Gabriel): alleys, a parley at a siege, talking in an army, player facts at creation. party_may_join in tales: BUILT 20/11 for 2.8.18 (Gabriel: "aussi party_may_join").
 - Tale endings chosen by what was found (Schmidt 18/11, for Gabriel).
 - A visible notice when regard is gained (Lordfadooboo 16/11, for Gabriel).
 - Removing CR from a save (Magadon93): test in game, then cr.prepare_removal closing CR journal quests.

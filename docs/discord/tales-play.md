@@ -46,6 +46,7 @@ Some steps are a **scene**: the chat opens by itself with a **Narrator** instead
 - The narrator only describes; **you decide** what your character does. What is to be found is found only if you go to it.
 - The narrator knows **what you carry** (your weapons, armour and mount): you can use those, not a weapon you do not have. Someone in the scene may lend you something; it is yours for the scene only.
 - It also knows **your companions** and the **lords and ladies nearby** (the lord of the nearest place, those staying in the nearest town). Name one and the people of the scene take them for that very person (from 2.8.17).
+- In a tale whose author allows it, you may **send for your companions and men** in a scene. They come in the telling only: they help, but nothing that happens to them is real (no one is hurt or lost), and a fight stays yours. Most tales are written for you alone, and there your party stays away (from 2.8.18).
 - Some clues are **needed**. When you have found them all, the chat says so: **"Everything this place had to show you is found. You may end the scene when you wish."** Close the scene then and the story goes on.
 
 ## 🚪 Leaving and coming back

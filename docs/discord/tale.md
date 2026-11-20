@@ -32,7 +32,7 @@ You can also **Open...** an existing tale, or **Import Twine...** (see the last 
 
 ## Step 2: the header and who gives it
 
-- **Header**: an **id** (unique; prefix it with your name, e.g. `gab_miller_silence`), the **title** shown in the journal, whether it plays once per campaign, and a weight.
+- **Header**: an **id** (unique; prefix it with your name, e.g. `gab_miller_silence`), the **title** shown in the journal, whether it plays once per campaign, a weight, and whether your party may join its scenes (`party_may_join`, off by default: turn it on only when your scenes still work with companions and soldiers around; they come in the telling only, unhurt, and never fight in the player's stead).
 - **Who gives it**: a lord, a notable, a gang leader, your spouse, a companion... with conditions: their regard for you, their culture or realm, not at war with you, and so on.
 - **Roles**: the people and places the tale is bound to when it is offered, written in braces in your text: `{giver}`, `{village}` (one of the giver's villages, or a town), `{rival}` (the head of another house of the same realm), `{husband}`... The game fills in the real names.
 

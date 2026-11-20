@@ -1231,7 +1231,7 @@ namespace CalradiaRemembers.Quests
          var over = false;
          ChatManager.OpenForExploration(new ExplorationSession {
             Title = !string.IsNullOrWhiteSpace(title) ? AuthoredQuestEngine.Fill(_run, title) : place != null ? $"The wood by {place}" : q.Title,
-            BuildPrompt = () => AuthoredQuestPrompt.Narrator(_run, q, Surroundings(), ScenePlayer()),
+            BuildPrompt = () => AuthoredQuestPrompt.Narrator(_run, q, Surroundings(), ScenePlayer(q.PartyMayJoin)),
             Apply = markers => ApplyMarkers(q, markers, () => over = true),
             IsOver = () => over,
             OnClose = () => CloseScene(q),
@@ -1332,9 +1332,10 @@ namespace CalradiaRemembers.Quests
       /// <summary>
       ///   What the player carries and who of the world they may name (Schmidt, Discord 18/11/2026): the battle gear by item
       ///   name, the companions in the party, the lord who holds the nearest place, and the lords and ladies in the nearest
-      ///   town. Read once per narrator turn; null when the world cannot be read.
+      ///   town. Read once per narrator turn; null when the world cannot be read. <paramref name="partyMayJoin" /> is the
+      ///   tale's party_may_join (Gabriel, 20/11/2026), passed through for ScenePlayerText to decide on.
       /// </summary>
-      internal static ScenePlayerFacts ScenePlayer()
+      internal static ScenePlayerFacts ScenePlayer(bool partyMayJoin = false)
       {
          try
          {
@@ -1356,7 +1357,7 @@ namespace CalradiaRemembers.Quests
             {
                Hero h = e.Character?.HeroObject;
                if (h == null || h == me || !Mapping.HeroPresence.IsInTheWorld(h)) continue;
-               company.Add(new ScenePersonFact {Name = SceneName(h), Note = "of your company, with your party, not in this scene"});
+               company.Add(new ScenePersonFact {Name = SceneName(h), Note = "of your company, with your party"});
             }
 
             var nearby = new List<ScenePersonFact>();
@@ -1377,7 +1378,11 @@ namespace CalradiaRemembers.Quests
                   }
             }
 
-            return new ScenePlayerFacts {Carried = carried, Company = company, Nearby = nearby};
+            return new ScenePlayerFacts {
+               Carried = carried, Company = company, Nearby = nearby, PartyMayJoin = partyMayJoin,
+               // The one count of fit regulars the court actions already read.
+               MenWithYou = CalradiaRemembers.GameState.CourtActionResolver.HealthyRegularTroopCount(MobileParty.MainParty?.MemberRoster)
+            };
          }
          catch (Exception ex)
          {
