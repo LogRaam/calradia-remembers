@@ -1,0 +1,31 @@
+Version 2.8.17
+
+Garrison tasks count the soldiers you leave through the game's own screen, tales know what you carry and who lives nearby, duels can carry a gold wager, and small local models get their letters.
+
+New
+
+- A tale's narrator now knows what you carry: your weapons, armour and mount by name. You fight with what you really have, and a character in the scene may lend or give you something for the scene. The narrator also knows your companions, the lord who holds the nearest town and the lords and ladies staying there, so a lady you name from that town is that very lady, never an invented stranger with her name. (Thank you, Schmidt.)
+- Old romances, rivalries, friendships and feuds can be written in character_overrides.json, under "past". A character remembers such a bond when the other person is named or stands in the scene, and both of them remember it. cr.reload_lore applies it at once, and nothing is written into your save. A bond with your own character goes in the campaign's own overrides file. (Thank you, Lufaine.)
+- A duel or a brawl can carry a gold wager. The loser pays once the fight is fought, never more than they hold, and a refused fight settles nothing. Gold is the only stake: characters no longer agree to stake a prisoner, a horse or land that nothing would pay. (Thank you, Aporo.)
+- A new MCM slider, Conception Chance (%), sets how often an intimate moment leads to a child (15% as before). (Thank you, Kamen.)
+- A letter still being written says so: the seal line tells you it opens when ready, and a reminder shows on the map every 15 seconds until it does. (Thank you, Vexilary.)
+
+Fixed
+
+- A garrison task now counts the soldiers you leave through the game's own garrison screen ("Leave troops"), in one go or several, while you serve that realm. Once the number is reached the task is done, and the giver pays you at your next talk, even if they were away. Handing the men over in conversation still works and now asks only for the men still owed. (Thank you, Lordfadooboo.)
+- Lords no longer claim that their father fell at Pendraic. An example line in every prompt said so, and small models took it for their own life. A living parent is now named as alive. (Thank you, Eisendrache2.)
+- Letters follow "Compact prompt for small models", as conversations do, so small local models with a short window can write them. (Thank you, Vexilary.)
+
+For modders
+
+- CrBalanceOfPower: your mod can put its own screen behind the Diplomacy, History or Rumors & Events button of the Balance of Power screen. The first mod to claim a button keeps it; with none registered, the button still says "Available Soon". CrApi.Version is now 5. See EXTENSION_API.md. (Thank you, the Bellum Civile bridge.)
+- The archetype and the personality line are now prompt sections of their own, "archetype" and "personality", so a prompt profile can turn one off and keep the identity. In the stock prompt, CHARACTER: now comes before PERSONALITY:. The action interpreter follows the profile too. (Thank you, tashmetu.)
+
+Developer tools
+
+- cr.cost_bench runs on any provider (local, Player2, NanoGPT, OpenRouter). A provider that sends no bill is priced from the row's own prices, or counted as free for a local model.
+- New cr.test all checks: garrison_donation_counts, bop_button_api, letter_wait_notice, letter_follows_compact, living_parent_marked, tale_scene_kit, past_bonds, duel_wager_paid; pregnancy extended.
+
+Notes
+
+- Saves from 2.8.16 and older load as they are, and your MCM choices are kept.

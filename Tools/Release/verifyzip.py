@@ -655,6 +655,24 @@ MUST = [
     ("sdk",   b"IntimateActNames"),
     ("sdk",   b"LessFondActs"),
     ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
+    # 2.8.17
+    ("logic", b"ScreenButtonClaimPolicy"),
+    ("logic", b"StillOwed"),
+    ("logic", b"LetterWaitNotice"),
+    ("logic", b"ParentLineText"),
+    ("logic", b"ScenePlayerText"),
+    ("logic", b"PastBondPolicy"),
+    ("logic", b"DuelWagerPolicy"),
+    ("logic", b"ConceptionChancePolicy"),
+    ("logic", b"CostPricing"),
+    ("mod",   b"GarrisonDonationPatch"),
+    ("mod",   b"BalanceOfPowerButtons"),
+    ("mod",   b"CrBalanceOfPower"),
+    ("mod",   b"PayWager"),
+    ("sdk",   b"DeliveredCount"),
+    ("sdk",   b"PastBondsBlock"),
+    ("sdk",   b"DuelWagerCap"),
+    ("sdk",   b"AppendArchetype"),
     # 2.8.16
     ("logic", b"StandardActionCases"),
     ("logic", b"StandardGate"),
@@ -968,6 +986,7 @@ MUST = [
     ("sdk",   b"EnvelopeKnownThrough"),
 ]
 MUST_NOT = [
+    ("sdk",   "before he fell at Pendraic".encode("utf-16-le")),   # 2.8.17: the dialogue example small models took for their own life
     ("mod",   b"ResolveKnownGrievances"),   # 2.8.1: moved into DossierReader, shared with the encyclopedia
     ("logic", b"LetterPacing"),   # 2.8.0: the letter box replaced the mailbox budget
     ("logic", b"LetterBudget"),   # 2.8.0: same
