@@ -2,6 +2,8 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.8.18.. unreleased
+
 ## v2.8.17.. 2026-11-20
 
 - **A garrison task counts the men left through the game's own garrison screen** (Lordfadooboo, Nexus 20/11/2026: "i was given a castle that needs 20 sturgian soldiers [...] even when i donated 30 soldiers it still didnt progress and i had to use the quest debug command to finish it"; Gabriel: "oui vas-y"). The task closed only through the chat hand-over, and the game's `DonateGarrisonDoneHandler` raises no event for the player (`OnTroopGivenToSettlement` is raised for AI lords only), so CR never saw the donation. `GarrisonDonationPatch` (Harmony, counted in a Prefix because 1.5.7 clears the donated roster at the handler's end) adds the fit, non-hero men to every garrison task naming that place, oldest first; donations add up (`InformalQuest.DeliveredCount`, SDK); a task that reaches its number is stamped done and the giver pays at the next talk (the reward safety net), even if they were away. The chat hand-over now asks only for the men still owed (`ReinforceGarrisonPolicy.StillOwed`); the journal names both ways. cr.test `garrison_donation_counts`.
