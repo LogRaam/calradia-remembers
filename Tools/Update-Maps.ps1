@@ -80,6 +80,15 @@ finally {
    Remove-Item Env:CR_RECORD_RELEASED_API -ErrorAction SilentlyContinue
 }
 
+# The map files that differ from the last commit (rewritten by this run, or by an earlier one not yet committed).
+function Get-MovedMaps {
+   & git -C $repo -c core.safecrlf=false diff --numstat -- "docs/maps" "RULES.md" "docs/design/quest-editor/quest.schema.json" "CalradiaRemembers/Extension/TaleEditor.html" |
+      ForEach-Object {
+         $parts = $_ -split "\t"
+         [pscustomobject] @{ Added = [int] $parts[0]; Removed = [int] $parts[1]; Path = $parts[2] }
+      }
+}
+
 if ($failed) {
    # Name the real cause (19/11/2026: a namespace-pair ratchet refused, and the message spoke only of save keys and the
    # modder API, so the cause was found by re-running the suite): the failing tests, their message, then the advice
@@ -88,7 +97,16 @@ if ($failed) {
    $output | Select-String -Pattern "^\s+Failed \w|Error Message:|Expected |because |no longer written|no longer there|error CS" |
       Select-Object -First 30 | ForEach-Object { Write-Host $_ -ForegroundColor Red }
    Write-Host ""
-   Write-Host "The regeneration was REFUSED, so nothing was rewritten." -ForegroundColor Red
+   # Each map test writes its own map, so a refusal stops only the map or guard that refused: the others WERE rewritten
+   # (Gabriel, 20/11/2026: this line used to say "nothing was rewritten" while nine maps had been).
+   Write-Host "The regeneration was REFUSED in part: what refused (above) was not absorbed." -ForegroundColor Red
+   $moved = Get-MovedMaps
+   if ($moved) {
+      Write-Host "These map files WERE rewritten and differ from the last commit (this run, or an earlier one):" -ForegroundColor Yellow
+      foreach ($file in $moved) { Write-Host ("  {0,5} added, {1,5} removed   {2}" -f $file.Added, $file.Removed, $file.Path) -ForegroundColor Yellow }
+      Write-Host "Fix the refusal, then run this again: it shows what moved, and the maps go into the commit together." -ForegroundColor Yellow
+   }
+   else { Write-Host "No map file differs from the last commit." -ForegroundColor Red }
    $known = $false
    if ($text -match "no longer written") {
       $known = $true
@@ -112,11 +130,7 @@ if ($failed) {
    exit 1
 }
 
-$changed = & git -C $repo -c core.safecrlf=false diff --numstat -- "docs/maps" "RULES.md" "docs/design/quest-editor/quest.schema.json" "CalradiaRemembers/Extension/TaleEditor.html" |
-   ForEach-Object {
-      $parts = $_ -split "\t"
-      [pscustomobject] @{ Added = [int] $parts[0]; Removed = [int] $parts[1]; Path = $parts[2] }
-   }
+$changed = Get-MovedMaps
 
 if (-not $changed) {
    Write-Host ""
