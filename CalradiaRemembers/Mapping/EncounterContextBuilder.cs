@@ -4151,9 +4151,11 @@ namespace CalradiaRemembers.Mapping
       ///   same judgement (a captive commands no one; a lord who LEADS an army answers for the whole
       ///   army), so this reuses the pure <see cref="PlayerForcePolicy" /> rather than forking it.
       ///   0 when the NPC leads no field party (a governor keeping to a settlement): the prompt
-      ///   stays silent rather than calling him troop-poor.
+      ///   stays silent rather than calling him troop-poor. 0 too for a mere MEMBER of a party (JackJack,
+      ///   21/11/2026: a companion in the player's party was told the player's men were hers):
+      ///   <see cref="OwnCommandPolicy" />.
       /// </summary>
-      private static int ResolveNpcPartyTroopCount(Hero hero)
+      internal static int ResolveNpcPartyTroopCount(Hero hero)
       {
          try
          {
@@ -4164,11 +4166,13 @@ namespace CalradiaRemembers.Mapping
 
             bool leadsArmy = party.Army != null && party.Army.LeaderParty == party;
 
-            return PlayerForcePolicy.Resolve(
-               hero.IsPrisoner,
-               party.MemberRoster?.TotalManCount ?? 0,
-               leadsArmy,
-               leadsArmy ? party.Army.Parties.Sum(p => p?.MemberRoster?.TotalManCount ?? 0) : 0);
+            return OwnCommandPolicy.Resolve(new OwnCommandFacts {
+               IsCaptive = hero.IsPrisoner,
+               LeadsTheParty = party.LeaderHero == hero,
+               PartyTroops = party.MemberRoster?.TotalManCount ?? 0,
+               LeadsArmy = leadsArmy,
+               LedArmyTroops = leadsArmy ? party.Army.Parties.Sum(p => p?.MemberRoster?.TotalManCount ?? 0) : 0
+            });
          }
          catch { return 0; }
       }

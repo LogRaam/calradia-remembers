@@ -369,6 +369,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("tale_opened_by_scenario", Severity.Light, "Gabriel (24/10/2026): a scenario opens a tale at night while the player is held (ON_CAPTIVE_NIGHT, IF_CAPTOR_IS, IF_PRESENT, IF_CHANCE, OPEN_TALE); the night is judged by the regard it left ('ca s'est bien passe si Rhagaea a gagne plus de Regards qu'elle en a perdu'), the memory stays either way, and each playing shows a new video of the stage's pool. A tale written into this test (on_scenario, a talk that completes as the conversation ends, an image_pool, three memories under regard_rose / regard_fell and a regard reward) is opened through the REAL OPEN_TALE check with a lord; the talk does not complete as the chat opens, and the lord is told the chamber's moment while it lasts; the lord's regard is raised by 4 during it; the close completes it with regard_rose, the warm memory and the +5 reward; a video of the pool is chosen. Then the same tale refused at its popup (decline_ending) ends at once: -2 regard and its memory, and, being the tale's second playing with that lord, it carries what the first left (played_before, ended_before:<the first ending>: Gabriel, 26/10/2026, 'que Rhagaea se souvienne des autres fois'). IF_CHANCE:1 holds and IF_CHANCE:0 does not; IF_CAPTOR_IS fails while the player is free. A lord with an errand merely on offer (Gabriel, 25/10/2026: Rhagaea's night refused with 'they already have a task of their own for you') can still be summoned, when the world holds one. Regard, memories, pools and the tale are put back after.", TestTaleOpenedByScenario),
          new SelfTest("letter_wait_notice", Severity.Light, "Vexilary (Nexus, 19/11/2026, small local models): 'Letters from letters box doesn't load'; after 'You break the seal' nothing showed until the slow model answered or timed out. Runs the REAL reminder counting of the letter box (LetterBox.DebugRemindersAt) for a letter from a living lord at 5, 16, 20, 31 and 46 seconds: nothing at 5 and 20, a reminder naming the sender at 16, 31 and 46. Opens, writes and shows nothing; the box is left as it was", TestLetterWaitNotice),
          new SelfTest("letter_follows_compact", Severity.Light, "Vexilary (Nexus, 19/11/2026, v2.8.16, gemma4 E4B/E12B, 16,000-token local window): letters did not come with the small models; a letter was always written with the full prompt whatever the Compact choice. Reads the REAL context a letter is written with (EncounterContextBuilder.StandingContextFor) for a living lord, with Compact prompt for small models off then on: Full, then Lean. The setting is put back after", TestLetterFollowsCompact),
+         new SelfTest("own_command_needs_leader", Severity.Light, "JackJack (Discord, 21/11/2026, 2.8.17): his companion Isilflaed was told 'You command a company of a few dozen soldiers. These are your own men' while the same prompt said the player is her captain: the count was the player's party, with no check that she led it. Reads the REAL count the prompt is given (EncounterContextBuilder.ResolveNpcPartyTroopCount): a companion riding in the player's party commands nobody, and a lord leading his own party of men still commands them. Changes nothing", TestOwnCommandNeedsLeader),
          new SelfTest("living_parent_marked", Severity.Light, "Eisendrache2 (Nexus, 19/11/2026, Gemma 3 12B): lords said their fathers fell at Pendraic while the fathers were alive. Finds a lord whose father lives and reads the REAL family line the prompt is given (RelationshipsBuilder.BuildFamily): the father is named as alive with his age; a lord whose father is dead keeps 'the late'. Changes nothing", TestLivingParentMarked),
          new SelfTest("tale_scene_kit", Severity.Light, "Schmidt (Discord, 18/11/2026): he drew a two-handed axe he did not own in a tale, and 'lady Gunjadrid, daughter of Orvi' in the nearest town was unknown there, the tale making up an old man by that name. Reads the REAL facts the scene narrator is given (AuthoredQuestBehavior.ScenePlayer): the player's main weapon is listed by name as carried (a weapon is put in the first slot for the test when it is empty, and taken back after), every companion in the party is listed as of the company, and a lord or lady staying in the nearest town is listed with that town; the narrator's block names the weapon and carries the rule that a listed name is that very person. party_may_join (Gabriel, 20/11/2026): without the flag no party is offered; with it the fit men are counted and the party is offered when the player has men or companions. Changes nothing else", TestTaleSceneKit),
          new SelfTest("tale_keys", Severity.Light, "tashmetu (20/10/2026), four keys for written tales: requires.player.gender, a notable giver's trade, a town as the bound place, gold the player pays. A tale written into this test asks a merchant of a town and the player's own sex: a real town merchant binds, with the town as its place; a headman or a village notable is refused for the trade; its twin asking the other sex is refused for the player. One gold paid by the player through the REAL payment reaches the merchant, then is given back. Forgets the tales after", TestTaleKeys),
@@ -5964,6 +5965,27 @@ namespace CalradiaRemembers.Diagnostics
          {
             settings.LeanPrompt = before;
          }
+
+         return t.Line();
+      }
+
+      private static string TestOwnCommandNeedsLeader(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("own_command_needs_leader");
+         Hero companion = MobileParty.MainParty?.MemberRoster?.GetTroopRoster()
+                                     .Select(e => e.Character?.HeroObject)
+                                     .FirstOrDefault(h => h != null && h != Hero.MainHero && h.PartyBelongedTo == MobileParty.MainParty);
+         if (t.Skip(companion == null, "no companion rides in the player's party")) return t.Line();
+
+         t.Expect("aCompanionInThePlayersPartyCommandsNobody", EncounterContextBuilder.ResolveNpcPartyTroopCount(companion), 0);
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h != Hero.MainHero && !h.IsPrisoner
+                                                             && h.PartyBelongedTo is {} p && p.LeaderHero == h && p.Army == null
+                                                             && p.MemberRoster.TotalManCount > 1);
+         if (lord != null)
+            t.Expect("aLordLeadingHisPartyCommandsItsMen", EncounterContextBuilder.ResolveNpcPartyTroopCount(lord), lord.PartyBelongedTo.MemberRoster.TotalManCount);
+         else
+            t.Note("no lord leading his own party outside an army: the lord half was not checked");
 
          return t.Line();
       }

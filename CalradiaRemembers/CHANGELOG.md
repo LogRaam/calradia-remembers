@@ -2,6 +2,10 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
+## v2.8.19.. unreleased
+
+- **A companion no longer claims the player's men as her own command** (JackJack, Discord 21/11/2026, 2.8.17: Isilflaed, a companion in his party, was told under YOUR OWN COMMAND "You command a company of a few dozen soldiers. These are your own men" while the same prompt said "the player is your captain"; Gabriel: "oui"). `EncounterContextBuilder.ResolveNpcPartyTroopCount` counted the party the hero belongs to with no check that the hero leads it; `OwnCommandPolicy` (Logic) now gives 0, so no section, to a mere member of a party: a companion in the player's party, a spouse riding in her husband's. A party's leader keeps his count, and an army leader the whole army (`PlayerForcePolicy` reused). Maps: the count had one reader and no other rule like it. OwnCommandPolicyTests (5), cr.test `own_command_needs_leader`.
+
 ## v2.8.18.. 2026-11-21
 
 - **A prompt profile that turns the archetype off also takes it out of the romance block** (JackJack, Discord 20/11/2026: "The romantic context adjustment removed the literal Archetype label but not the 2 paragraphs beneath it"; Gabriel: "oui vas-y"). With `archetype` in a layout's `"off"`, `AppendRomanticContext` (SDK) no longer writes the `Archetype:` line, the relational sketch or the "In matters of intimacy:" sketch, all three written from the archetype (`RomanticProfileBuilder.GetSketches`); a `!remove` could not reach the sketches, which differ per archetype. Orientation, relational patterns, desires, gestures and the bond with the player stay. Without `archetype` off the prompt is unchanged. `PromptLayout.TurnsOff` is the one check, now shared with the action interpreter. StockSectionsTests +1; tutorial `prompt-profiles.md`.

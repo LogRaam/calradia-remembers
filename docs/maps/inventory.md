@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 695 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1732 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1734 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1075,7 +1075,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (529)
+### CalradiaRemembers.Logic (531)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1371,6 +1371,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `OrientationParser` | public static class | Parses a human orientation word (plus common synonyms) to a SexualOrientation. |
 | `OutlawPolicy` | public static class | The rules of outlawry, bounties and amnesty. |
 | `OverdueOutcome` | public enum | What the daily overdue sweep should do once a commitment's deadline lapses. |
+| `OwnCommandFacts` | public class | The engine facts about the party a character rides in. |
+| `OwnCommandPolicy` | public static class | Decides how many men a character commands, for the YOUR OWN COMMAND section (0: no section). |
 | `PairReasonNames` | public class | A reason between two people and their names, to be taken out of it. |
 | `PairRegard` | public class | The speaker's regard for the other: points on the regard scale, the verdict, and the reasons, strongest first. |
 | `PairRegardFacts` | public class | What ties the speaker to the other, and what happened between them. |
