@@ -35,7 +35,7 @@ The folder name is the profile's id, and the profile appears in the **Prompt Pro
 
 **Sections are named by a key** (`identity`, `dialogue_style`, `world_description`...). Every key is listed, in order, with its zone, its lock and what it says, in `Modules/CalradiaRemembers/Docs/PROMPT_SECTIONS.md` (from 2.8.8). To see a section's current text, `cr.prompt_dump Name` writes the exact prompt a character would receive to a file next to the log, without calling the AI.
 
-**A mod that gives characters their own nature** (traits, a temperament) can leave out CR's: `archetype` is the line CR reads from the game's traits ("The Hollow Lord...", under `CHARACTER:`), `personality` the personality line and the order to stay true to it (from 2.8.17). List them under `"off"`; the identity around them stays.
+**A mod that gives characters their own nature** (traits, a temperament) can leave out CR's: `archetype` is the line CR reads from the game's traits ("The Hollow Lord...", under `CHARACTER:`), `personality` the personality line and the order to stay true to it (from 2.8.17). List them under `"off"`; the identity around them stays. With `archetype` off, the romance block also loses what the archetype wrote there: its `Archetype:` line and its two descriptive paragraphs (from 2.8.18); the orientation, the patterns and the bond with you stay.
 
 ===== MESSAGE 3 =====
 ## Layouts: the order, by kind of character
