@@ -17970,12 +17970,15 @@ namespace CalradiaRemembers.Diagnostics
 
             MemoryPictures.LookAtEveryone(null);
             t.Expect("theMemoryIsAdded", CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = lord.StringId, Summary = summary, SourceMod = "cr_selftest", DaysAgo = 30}), MemoryResult.Added);
+            // With a conversation open (cr.test run from the chat, 20/11/2026), CR announces the memory when it closes, with
+            // that conversation's id: the announcement is checked only from the map.
             CrMemoryWritten announced = written.FirstOrDefault(w => w.Summary == summary);
-            t.Expect("theNewMemoryIsAnnounced", announced != null && announced.IsNew, true);
-            if (t.Skip(announced == null || string.IsNullOrEmpty(announced.MemoryId), "the memory was not announced with an id")) return t.Line();
+            if (Chat.ChatManager.IsOpen) t.Note("a conversation is open: the announcement waits for its close (run from the map to check it)");
+            else t.Expect("theNewMemoryIsAnnounced", announced != null && announced.IsNew, true);
 
-            string id = announced.MemoryId;
-            t.Expect("GetMemoriesGivesTheSameId", CrNpcMemory.GetMemories(lord.StringId).Any(r => r.Id == id), true);
+            string id = CrNpcMemory.GetMemories(lord.StringId).FirstOrDefault(r => r.Summary == summary)?.Id;
+            if (t.Skip(string.IsNullOrEmpty(id), "GetMemories gave the memory no id")) return t.Line();
+            if (announced != null) t.Expect("GetMemoriesGivesTheAnnouncedId", announced.MemoryId, id);
 
             t.Expect("thePictureIsAccepted", CrNpcMemory.SetImage(lord.StringId, id, source), true);
             MainThreadDispatcher.Pump();
