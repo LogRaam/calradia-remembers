@@ -130,6 +130,21 @@ namespace CalradiaRemembers.Tests.Maps
                                + "baseline. If it truly had to happen, add the name here and say why in the commit.");
       }
 
+      // Gabriel (20/11/2026, after the memory pictures: the count said 95 against 92 and the new pairs had to be found by
+      // regenerating the map by hand): the failure names each pair the committed map does not list yet, with the files that
+      // make each direction, so the edge to break is in the message.
+      private static string NewPairsSinceTheCommittedMap(IReadOnlyList<DependencyMap.MutualPair> pairs)
+      {
+         string committed = System.IO.Path.Combine(SourceTree.ModRepo!, "docs", "maps", "dependencies.md");
+         string text = System.IO.File.Exists(committed) ? System.IO.File.ReadAllText(committed) : "";
+         List<DependencyMap.MutualPair> added = pairs.Where(p => !text.Contains($"#### `{p.First}` and `{p.Second}`")).ToList();
+         if (added.Count == 0) return "(Every pair is already in the committed map: the count grew elsewhere.)";
+
+         return "New: " + string.Join("; ", added.Select(p =>
+            $"{p.First} and {p.Second} ({p.First} -> {p.Second} in {string.Join(", ", p.FirstUsesSecondIn)}; "
+          + $"{p.Second} -> {p.First} in {string.Join(", ", p.SecondUsesFirstIn)})")) + ".";
+      }
+
       // A NEW CROSS-EDGE INSIDE THE GROUP. The cycle set above cannot see one: both names are already in it. A pair that
       // now uses each other is a cut that has become harder to make.
       [Test]
@@ -140,7 +155,8 @@ namespace CalradiaRemembers.Tests.Maps
          IReadOnlyList<DependencyMap.MutualPair> pairs = DependencyMap.MutualPairs(SourceTree.Production);
 
          pairs.Count.Should().BeLessThanOrEqualTo(MutualPairsOn19October,
-            "two namespaces have started to use each other directly. docs/maps/dependencies.md, \"Pairs that use each other "
+            "two namespaces have started to use each other directly. " + NewPairsSinceTheCommittedMap(pairs) + " "
+          + "docs/maps/dependencies.md, \"Pairs that use each other "
           + "directly\", lists every pair with the files that create it: break the new edge rather than raising the baseline. "
           + "If it truly had to happen, raise it here and say why in the commit.");
 
