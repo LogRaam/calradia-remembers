@@ -1249,10 +1249,9 @@
                             <ButtonWidget Id="MemoryRowButton"
                                           WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
                                           DoNotPassEventsToChildren="true"
+                                          Brush="CR.MemoryRow" IsSelected="@IsSelected"
                                           Command.Click="ExecuteSelect">
                               <Children>
-                                <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#8B6B3A2E"
-                                        IsVisible="@IsSelected" IsDisabled="true" />
                             <ListPanel Id="MemoryRow"
                                        WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
                                        HorizontalAlignment="Left" MarginTop="10" MarginBottom="0"

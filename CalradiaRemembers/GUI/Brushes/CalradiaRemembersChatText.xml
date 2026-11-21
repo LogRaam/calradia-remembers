@@ -283,4 +283,22 @@
       <Style Name="Disabled" FontSize="17" FontColor="#6B5A45FF" TextGlowRadius="0" TextBlur="0" TextShadowOffset="0" TextOutlineAmount="0.0" TextOutlineColor="#00000000" />
     </Styles>
   </Brush>
+
+  <!-- A selected row of the Memories panel (Bhelogan, Discord 21/11/2026: a selected memory grew a large blank area beneath
+       its text). The tint was a StretchToParent child inside the CoverChildren row button: Gauntlet measures such a child
+       with the space OFFERED to the row (Widget.Measure passes measureSpec to MeasureChildren), so once visible it made the
+       row as tall as the whole panel. Drawn by the row button's own brush instead, it takes the row's size. -->
+  <Brush Name="CR.MemoryRow">
+    <Layers>
+      <BrushLayer Name="Default" Sprite="BlankWhiteSquare_9" Color="#8B6B3A2E" />
+    </Layers>
+    <Styles>
+      <Style Name="Default"><BrushLayer Name="Default" IsHidden="true" /></Style>
+      <Style Name="Hovered"><BrushLayer Name="Default" IsHidden="true" /></Style>
+      <Style Name="Pressed"><BrushLayer Name="Default" IsHidden="true" /></Style>
+      <Style Name="Disabled"><BrushLayer Name="Default" IsHidden="true" /></Style>
+      <Style Name="Selected"><BrushLayer Name="Default" /></Style>
+    </Styles>
+  </Brush>
+
 </Brushes>
