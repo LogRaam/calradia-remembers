@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-823 rules read 609 facts.
+824 rules read 609 facts.
 
 ## Facts read by more than one rule
 
@@ -269,6 +269,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `CultureObject.Townswoman` (2) | `RankSoldierFacts`, `WomenInRanksPolicy.IsWoman` |
 | `CultureObject.VillageWoman` (2) | `RankSoldierFacts`, `WomenInRanksPolicy.IsWoman` |
 | `Current.ActiveState` (2) | `LandfallFacts`, `StagingHostFacts` |
+| `Current.UniqueGameId` (2) | `AuthoredHistoryDocument`, `MemoryPictureFacts` |
 | `DialogFlow.Profile` (2) | `PendingSummaryJob`, `SpeakerProfileSelector.Select` |
 | `DiplomacyModel.GetInfluenceCostOfProposingWar` (2) | `PressForWarFacts`, `PressForWarPolicy.WhyNot` |
 | `DossierReader.WhyTowardThePlayer` (2) | `ClanRegardCandidate`, `NpcDossierText.RegardLine` |
@@ -857,6 +858,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `MeetingLeaveFacts`: `ConversationManager.ConversationParty`, `FactionManager.IsAtWarAgainstFaction`, `MobileParty.IsActive`, `MobileParty.MapFaction`, `PartyBase.IsMobile`, `PartyBase.MapFaction`, `PartyBase.MobileParty`, `PlayerEncounter.EncounterSettlement`, `PlayerEncounter.EncounteredParty`, `Settlement.CurrentSettlement`
 - `MemoryFacts`: `ModSettings.MemoryCompressionThreshold`, `StringComparer.Ordinal`
 - `MemoryPanelFacts`: `ModSettings.ShowSecretMemories`
+- `MemoryPictureFacts`: `Current.UniqueGameId`
 - `MentionCandidate`: `Hero.Children`, `Hero.Clan`, `Hero.Father`, `Hero.Mother`, `Hero.Spouse`, `PairBondReader.Points`, `Regex.Split`, `StringComparer.OrdinalIgnoreCase`
 - `MercenaryDeparturePolicy.IsAidOfKin`: `Hero.Culture`, `Kingdom.Culture`
 - `MercenaryDeparturePolicy.IsBetrayal`: `FactionManager.IsAtWarAgainstFaction`

@@ -322,6 +322,7 @@ namespace CalradiaRemembers.Chat
             _activeLayer.UIContext.ScaleModifier = CouncilZoom * ModSettings.CouncilScale;
 
          SampleVramPeriodically(); // a heartbeat VRAM read, so an idle (no-response) scene still traces its trend
+         ActiveViewModel?.TickMemoryPicture(); // a painting that timed out offers its button again
 
          // Pushed-screen mode needs no focus juggling — the engine hands focus to whatever is pushed on top of us.
          if (_activeIsPushed) return;

@@ -808,11 +808,58 @@ bool shown = CrConversation.ShowPicture(session, @"C:\...\line_0042.png", "Lucon
   frame. False means refused, with the reason in CR's log as `[EXT PICTURE]`; it never throws.
 - The button that asks for a picture is yours (your own prefab, a hotkey): CR adds none.
 
+### Pictures of memories in the Memories panel (`CrNpcMemory.SetImage`, since 2.8.18)
+
+Your mod paints a picture of one memory; the player clicks that memory in the chat's Memories panel and sees it to the left
+of the panel, and a click enlarges it. When your mod listens for requests, the panel adds a "Paint this memory" button.
+
+```csharp
+// Every memory a mod can see has a stable id; MemoryWritten announces each one written (secrets never).
+CrNpcMemory.MemoryWritten += w =>
+{
+    // w.NpcId, w.MemoryId, w.Day, w.Kind, w.Summary, w.SessionId, w.IsNew, w.SaveId
+};
+
+// The player pressed "Paint this memory" (shown only while someone listens, never on a secret).
+CrNpcMemory.ImageRequested += r =>
+{
+    Task.Run(async () =>
+    {
+        string path = await MyPainter.PaintAsync(r.Summary);            // 20-60 s, your own thread
+        if (path != null) CrNpcMemory.SetImage(r.NpcId, r.MemoryId, path);
+        else CrNpcMemory.ImageFailed(r.NpcId, r.MemoryId);
+    });
+};
+```
+
+- **The id.** `CrMemoryRecord.Id` (from `GetMemories`), `CrMemoryWritten.MemoryId` and `CrMemoryImageRequest.MemoryId` are
+  the same id. It is kept with the save, and a memory rewritten in place keeps it (the summary that turns a conversation's
+  "Spoke with X." into what was said arrives as a second `MemoryWritten` with `IsNew` false: paint then, if you want the
+  better words).
+- **The conversation.** `SessionId` is the conversation the memory was written in, the same id `CrConversation.Ended` carried
+  with the whole transcript (`CrTranscriptLine.SpeakerId` tells who was there). Keep the transcripts you need keyed by it;
+  CR keeps none for you. Null for a memory born outside a conversation or written before 2.8.18.
+- **When `MemoryWritten` fires.** CR looks each in-game hour, as a conversation opens, as it closes (the memories written in
+  it then carry its `SessionId`), and right after your own `AddMemory`. Loading a save announces nothing: what it holds is
+  not news. On the game thread.
+- **`SetImage` copies the file** (a .png, .jpg or .jpeg that exists) into CR's own folder for the campaign
+  (`Documents\Mount and Blade II Bannerlord\CalradiaRemembers\MemoryPictures\<campaign id>\`), so you may delete yours at
+  once. Painting a memory again replaces CR's copy; `SetImage(npcId, memoryId, null)` takes the picture away. Any thread:
+  true means accepted (the memory takes it at the next game frame; if the memory is gone by then the copy is deleted and
+  `[MEMORY PICTURE]` says why); false means refused, with the reason in the log. Never throws.
+- **A memory with a picture is never dropped by memory compression** (Gabriel's ruling, 20/11/2026). `CrMemoryRecord.ImagePath`
+  is CR's copy, or null when there is none or the file was removed by hand; the panel then shows the words alone.
+- **The button** reads "Paint this memory", "Paint it anew" when a picture is there, and "Painting..." until you call
+  `SetImage` or `ImageFailed`, or for three minutes. Any shape of picture is fitted without distortion (4:3 is the box).
+- **The adult content level**: `CrContent.AdultContentLevel` is "Off", "Mature", "Explicit" or "Hardcore", as the player set
+  it in MCM ("Mature" when MCM has not loaded). A string, so reading it by reflection needs no reference to CR's SDK.
+
 ### Detecting what CR offers (`CrApi.Version`, since 2.8.10)
 
 `CrApi.Version` is raised by one at each release that adds a door, never lowered. 1 = 2.8.10, 2 = 2.8.12 (`CrPrompt.Persona`,
 `CrLlm`), 3 = 2.8.13 (`CrConversation.ShowPicture`, `OpenSessionId`), 4 = 2.8.15 (`CrLlmRequest.Model`,
-`ExternalWorldEvent.Details`, `CrWorld.RealmEvents`), 5 = 2.8.17 (`CrBalanceOfPower`). Absent (read by reflection) means older than 2.8.10. Read it by reflection or at run time: a constant compiled
+`ExternalWorldEvent.Details`, `CrWorld.RealmEvents`), 5 = 2.8.17 (`CrBalanceOfPower`), 6 = 2.8.18 (memory pictures: `CrNpcMemory.SetImage`,
+`ImageRequested`, `ImageFailed`, `MemoryWritten`, `CrMemoryRecord.Id`/`SessionId`/`ImagePath`, `CrContent`). Absent (read by reflection) means older than 2.8.10. Read it by reflection or at run time: a constant compiled
 into your mod keeps the value it was built with. The older `CrNpcMemory.ApiVersion` and `Feed.ApiVersion` keep their own meaning.
 
 ### Regard changes (`CrNpcMemory.RegardChanged`, since 2.6.7)

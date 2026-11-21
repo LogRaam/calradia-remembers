@@ -101,6 +101,89 @@ namespace CalradiaRemembers
 
       /// <summary>The remembered line.</summary>
       public string Summary { get; }
+
+      /// <summary>
+      ///   The memory's stable id, the one <see cref="CrNpcMemory.SetImage" /> takes. Kept with the memory across saves; a
+      ///   memory rewritten in place (a conversation's summary enriching its anchor) keeps it. Since 2.8.18 (CrApi.Version 6).
+      /// </summary>
+      public string Id { get; internal set; }
+
+      /// <summary>
+      ///   The conversation the memory was written in: the <see cref="CrConversationLog.SessionId" /> that
+      ///   <see cref="CrConversation.Ended" /> carried with the whole transcript (who spoke, what was said). Null for a
+      ///   memory born outside a conversation or written before 2.8.18.
+      /// </summary>
+      public string SessionId { get; internal set; }
+
+      /// <summary>
+      ///   The full path of the picture painted for this memory (CR's own copy), or null when it has none or the file is
+      ///   gone. Since 2.8.18.
+      /// </summary>
+      public string ImagePath { get; internal set; }
+   }
+
+   /// <summary>
+   ///   A memory written since CR last looked, as <see cref="CrNpcMemory.MemoryWritten" /> announces it: a new memory, or one
+   ///   whose words were rewritten (a conversation's "Spoke with" anchor enriched into what was said). Secrets are never
+   ///   announced. Since 2.8.18 (CrApi.Version 6).
+   /// </summary>
+   public sealed class CrMemoryWritten
+   {
+      /// <summary>The character who holds the memory (hero StringId).</summary>
+      public string NpcId { get; internal set; }
+
+      /// <summary>The memory's stable id, for <see cref="CrNpcMemory.SetImage" />.</summary>
+      public string MemoryId { get; internal set; }
+
+      /// <summary>The in-game day the memory is dated to.</summary>
+      public int Day { get; internal set; }
+
+      /// <summary>The event kind label (e.g. "Agreement", "Conflict", "Other").</summary>
+      public string Kind { get; internal set; }
+
+      /// <summary>The remembered line, as it stands now.</summary>
+      public string Summary { get; internal set; }
+
+      /// <summary>The conversation it was written in (see <see cref="CrMemoryRecord.SessionId" />), or null.</summary>
+      public string SessionId { get; internal set; }
+
+      /// <summary>True for a memory never announced before; false when an announced memory's words were rewritten.</summary>
+      public bool IsNew { get; internal set; }
+
+      /// <summary>The loaded campaign's unique id, as in the conversation events.</summary>
+      public string SaveId { get; internal set; }
+   }
+
+   /// <summary>
+   ///   The player asked, from the Memories panel, for a picture of one memory (<see cref="CrNpcMemory.ImageRequested" />).
+   ///   Paint it, then hand it to <see cref="CrNpcMemory.SetImage" /> with the same ids, or call
+   ///   <see cref="CrNpcMemory.ImageFailed" />. Since 2.8.18 (CrApi.Version 6).
+   /// </summary>
+   public sealed class CrMemoryImageRequest
+   {
+      /// <summary>The character who holds the memory (hero StringId).</summary>
+      public string NpcId { get; internal set; }
+
+      /// <summary>The memory's stable id.</summary>
+      public string MemoryId { get; internal set; }
+
+      /// <summary>The in-game day the memory is dated to.</summary>
+      public int Day { get; internal set; }
+
+      /// <summary>The event kind label.</summary>
+      public string Kind { get; internal set; }
+
+      /// <summary>The remembered line.</summary>
+      public string Summary { get; internal set; }
+
+      /// <summary>The conversation it was written in, or null.</summary>
+      public string SessionId { get; internal set; }
+
+      /// <summary>True when the memory carries a picture already (the player asked for a new one).</summary>
+      public bool HasImage { get; internal set; }
+
+      /// <summary>The loaded campaign's unique id.</summary>
+      public string SaveId { get; internal set; }
    }
 
    /// <summary>One attributed line of a conversation, as delivered in <see cref="CrConversationLog" />.</summary>

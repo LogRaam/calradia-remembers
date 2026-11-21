@@ -399,6 +399,7 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new Marriage.CourtshipLapseBehavior());
          // The bonds with the player, read hourly for CrRomance.StatusChanged (LapitaPolata, 22/10/2026).
          campaignStarter.AddBehavior(new RomanceBondWatchBehavior());
+         campaignStarter.AddBehavior(new MemoryWriteWatchBehavior()); // CrNpcMemory.MemoryWritten (Bhelogan, 20/11/2026)
          campaignStarter.AddBehavior(new Mapping.TraumaLedgerBehavior());
          campaignStarter.AddBehavior(new Mapping.MisdeedLedgerBehavior()); // the player's misdeeds (Gabriel, 23/10/2026)
          campaignStarter.AddBehavior(new Marriage.ForeignDivorceBehavior());

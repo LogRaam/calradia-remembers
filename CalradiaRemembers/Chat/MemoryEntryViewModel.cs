@@ -20,12 +20,47 @@ namespace CalradiaRemembers.Chat
         private string _actionLabel;
         private string _summary;
 
-        public MemoryEntryViewModel(string meta, string summary, string actionLabel = null)
+        private readonly System.Action<MemoryEntryViewModel> _onSelect;
+        private bool _isSelected;
+
+        public MemoryEntryViewModel(string meta, string summary, string actionLabel = null,
+                                    NpcMemoryService.Core.Models.NotableEvent memory = null, System.Action<MemoryEntryViewModel> onSelect = null)
         {
             _meta = meta ?? "";
             _actionLabel = actionLabel ?? "";
             _summary = Mapping.ShownText.Of(summary ?? "");
+            Memory = memory;
+            _onSelect = onSelect;
         }
+
+        /// <summary>The memory this row shows (null for the "no memories yet" placeholder).</summary>
+        internal NpcMemoryService.Core.Models.NotableEvent Memory { get; set; }
+
+        /// <summary>
+        ///   A click on the row selects the memory, and its picture shows beside the panel (Bhelogan, Gabriel, 20/11/2026).
+        ///   The parent is called back through the row: a binding to the ChatViewModel from inside the template resolves to
+        ///   nothing (see <see cref="SeparatorPath" />).
+        /// </summary>
+        public void ExecuteSelect() => _onSelect?.Invoke(this);
+
+        /// <summary>The row the player clicked last, drawn with a faint mark.</summary>
+        [DataSourceProperty]
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                if (_isSelected == value) return;
+                _isSelected = value;
+                OnPropertyChangedWithValue(value);
+            }
+        }
+
+        /// <summary>A small mark beside the date when the memory carries a picture.</summary>
+        [DataSourceProperty]
+        public bool HasPicture => !string.IsNullOrEmpty(Memory?.ImageFile);
+
+        internal void PictureChanged() => OnPropertyChanged(nameof(HasPicture));
 
         [DataSourceProperty]
         public string Meta

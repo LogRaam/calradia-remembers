@@ -146,6 +146,8 @@ namespace CalradiaRemembers
       {
          if (string.IsNullOrWhiteSpace(npcId)) return;
 
+         // Memories written on the map until now are announced before this conversation's begin (MemoryWritten).
+         MemoryPictures.LookAtEveryone(null);
          string sessionId = Guid.NewGuid().ToString("N");
          _sequencer.StartSession(sessionId);
 
@@ -157,6 +159,8 @@ namespace CalradiaRemembers
          if (string.IsNullOrWhiteSpace(npcId)) return;
 
          Invoke(Ended, new CrConversationLog(npcId, CurrentSaveId(), gameDay, lines ?? new List<CrTranscriptLine>(), _sequencer.SessionId));
+         // The memories this conversation wrote carry its id (Bhelogan, 20/11/2026: "a link back to the source talk").
+         MemoryPictures.LookAtEveryone(_sequencer.SessionId);
          // A bond the conversation moved is announced now, not at the next hour.
          CrRomance.CheckForChanges();
       }

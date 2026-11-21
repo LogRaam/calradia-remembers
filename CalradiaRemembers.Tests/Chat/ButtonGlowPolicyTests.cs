@@ -24,9 +24,12 @@ namespace CalradiaRemembers.Tests.Chat
     [TestFixture]
     public sealed class ButtonGlowPolicyTests
     {
-        // Each stays silent on purpose: a picture or portrait the glow would cover, or art that has its own hover.
+        // Each stays silent on purpose: a picture or portrait the glow would cover, or art that has its own hover. A memory
+        // picture is a picture like the scene's; a memory row is sized by its text, where a glow would flood the panel (see
+        // below), and it answers a click with its selection mark (20/11/2026).
         private static readonly string[] NeverGlows = {
-            "AvatarContainer", "ExecuteToggleSceneImageSize", "ExecuteChoose", "KillRollGround", "KillRollStrike", "KillRollStay"
+            "AvatarContainer", "ExecuteToggleSceneImageSize", "ExecuteChoose", "KillRollGround", "KillRollStrike", "KillRollStay",
+            "ExecuteToggleMemoryPictureSize", "MemoryPictureLarge", "MemoryRowButton"
         };
 
         // STAKE: the whole request: under the cursor a button must answer, or Dark Leather's painted tiles read as decoration.

@@ -815,6 +815,7 @@ namespace CalradiaRemembers.Chat
             _isMemoryPanelOpen = value;
             OnPropertyChangedWithValue(value);
             OnPropertyChanged(nameof(IsMemoryToggleVisible));
+            if (!value) SelectMemory(null);
          }
       }
 
@@ -4177,6 +4178,7 @@ namespace CalradiaRemembers.Chat
          try
          {
             _memories.Clear();
+            SelectMemory(null);
 
             NpcProfile profile = MainSpeaker().Profile;
             MemoryPanelTitle = _npcHero != null
@@ -4203,7 +4205,7 @@ namespace CalradiaRemembers.Chat
                MemoryPanelShow show = PanelShow(e);
                if (show == MemoryPanelShow.Hidden) continue;
                if (show == MemoryPanelShow.MarkedSecret) meta = string.IsNullOrEmpty(meta) ? "secret" : meta + " · secret";
-               _memories.Add(new MemoryEntryViewModel(meta, e.summary, actionLabel));
+               _memories.Add(new MemoryEntryViewModel(meta, e.summary, actionLabel, e, SelectMemory));
             }
          }
          catch (Exception ex)

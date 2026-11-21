@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 690 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1725 types in 62 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 695 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1732 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -48,7 +48,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Mod (engine-bound, `CalradiaRemembers`)
 
-### CalradiaRemembers (80)
+### CalradiaRemembers (85)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -66,6 +66,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrCharacterTextFacts` | public class | What CR tells your source when it asks for a character's text. |
 | `CrCharacterTextSection` | public enum | Where a piece of your text about a character belongs. |
 | `CrConception` | public static class | Lets another mod forbid the conceptions Calradia Remembers creates. |
+| `CrContent` | public static class | What the player chose in CR's settings, read-only, for a mod that should follow the same line. |
 | `CrConversation` | public static class | The public conversation-lifecycle events other mods subscribe to. |
 | `CrConversationInfo` | public class | The identity of a conversation as it OPENS, delivered by CrConversation.Started. |
 | `CrConversationLog` | public class | A whole conversation as it CLOSES, delivered by CrConversation.Ended. |
@@ -89,10 +90,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CrMatchRequest` | public class | A match offered to CrMatches.Register, its people named by hero StringId. |
 | `CrMatches` | public static class | Lets another mod hand the player a match to broker; CR teaches it to the one who decides and settles it. |
 | `CrMemoryEntry` | public class | One memory a third-party mod wants an NPC to hold. |
+| `CrMemoryImageRequest` | public class | The player asked, from the Memories panel, for a picture of one memory (CrNpcMemory.ImageRequested). |
 | `CrMemoryRecord` | public class | One memory CR already holds for an NPC, as read back through CrNpcMemory.GetMemories. |
 | `CrMemoryRemoval` | public class | A memory a mod takes back (philip0105, Vivid World, 10/10/2026: rumors forgotten or corrected later). |
+| `CrMemoryWritten` | public class | A memory written since CR last looked, as CrNpcMemory.MemoryWritten announces it: a new memory, or one whose words were rewritten (a conversation's "Spoke with" anchor enriched into what was said). |
 | `CrMercenaries` | public static class | What another mod knows of the player's mercenary contracts. |
-| `CrNpcMemory` | public static class | The public NPC-memory API. A caller identifies the NPC by its hero StringId (never a display name), reads its stored memories, and injects new ones. |
+| `CrNpcMemory` | public static class, partial over 2 files | The public NPC-memory API. A caller identifies the NPC by its hero StringId (never a display name), reads its stored memories, and injects new ones. |
 | `CrPairRegard` | public static class | The door through which other mods add to what one character thinks of another. |
 | `CrPatrolBattle` | public class | One battle a patrol fought, for CrPatrols.Fought. |
 | `CrPatrolEnd` | public class | A patrol's end, for CrPatrols.Ended. |
@@ -124,7 +127,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FeedResult` | public enum | The outcome of feeding an event through Feed (record / update / retract). |
 | `IPairRegardSource` | public interface | What another mod knows lies between two characters. |
 | `InterpretTestRunner` | internal static class | The runner behind cr.interpret_test. |
+| `MemoryPictures` | internal static class | Memory pictures and the memory-written watch. |
 | `MemoryResult` | public enum | The outcome of injecting a memory through CrNpcMemory.AddMemory. |
+| `MemoryWriteWatchBehavior` | internal class | Looks at the memories at session start and every hour, for CrNpcMemory.MemoryWritten. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
 | `ModCheats` | public static class, partial over 72 files | Exposes diagnostic commands to the Bannerlord cheat console. |
@@ -244,7 +249,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatScreen` | internal class | A minimal screen that carries the pre-built chat layer and takes focus when pushed. |
 | `ChatScrollablePanel` | public class | Custom ScrollablePanel that supports a deferred "scroll to bottom" request. |
 | `ChatSpeaker` | internal class | One participant of a chat exchange: the main NPC or a present witness, with the hero, stored profile and display colour used to route the turn and render the line. |
-| `ChatViewModel` | public class, partial over 12 files | (no summary) |
+| `ChatViewModel` | public class, partial over 13 files | (no summary) |
 | `CompanionAudiencePayload` | public class | The companion-audience specifics. |
 | `ComposeScrollablePanel` | public class | A plain ScrollablePanel for the composer's multi-line input. |
 | `ConversationMood` | public static class | How far the player has moved each character's mood in the current conversation. |
@@ -2337,7 +2342,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EscortRefusal` | public enum | Why a lord will not escort the player, or None when he will. |
 | `EscortStandingFacts` | public class | The facts an ending rests on, read off the live campaign by the caller. |
 
-### CalradiaRemembers.Logic.Extension (11)
+### CalradiaRemembers.Logic.Extension (18)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2348,10 +2353,17 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ExternalLlmRuling` | public class | The ruling on one request: whether it goes, and the answer length it may have. |
 | `ExternalPictureFacts` | public class | What CR knows about one picture another mod asks it to show. |
 | `ExternalPicturePolicy` | public static class | Whether another mod's picture is shown in the open conversation, and its caption. |
+| `MemoryPaintFacts` | public class | What the Memories panel knows about the memory the player selected. |
+| `MemoryPaintingsUnderway` | public class | The paintings asked for and not yet back, by memory id. |
+| `MemoryPictureFacts` | public class | What CR knows about a picture another mod hands it for a memory. |
+| `MemoryPicturePolicy` | public static class | Memory pictures: which are taken, their file names, the panel's paint button. |
+| `MemoryWriteWatch` | public class | Notices memories written since the last look. |
 | `PersonaSectionPolicy` | public static class | Which sections of the character prompt make up a character's persona for another mod (CrPrompt.Persona). |
 | `ScreenButtonClaim` | public enum | The answer to a claim. |
 | `ScreenButtonClaimFacts` | public class | What a mod asks of a Balance of Power button. |
 | `ScreenButtonClaimPolicy` | public static class | Who may hold a Balance of Power button. |
+| `WatchedMemory` | public class | One memory the watch reports: written since it last looked. |
+| `WatchedProfile` | public class | One character's memories as the watch reads them. |
 
 ### CalradiaRemembers.Logic.Extortion (12)
 

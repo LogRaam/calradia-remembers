@@ -25,7 +25,7 @@ namespace CalradiaRemembers
    ///   reads its stored memories, and injects new ones. Injected memories become ordinary profile events, so
    ///   they surface in later conversations exactly like memories CR recorded itself.
    /// </summary>
-   public static class CrNpcMemory
+   public static partial class CrNpcMemory
    {
       /// <summary>
       ///   The API's capability version, bumped only on a breaking change to a public member of
@@ -54,9 +54,13 @@ namespace CalradiaRemembers
 
          if (profile?.Events == null) return new List<CrMemoryRecord>();
 
-         return profile.Events
+         // Each memory a mod can see gets its id now (Bhelogan, 20/11/2026: "We need an id so we can attach an image to a
+         // specific memory"). Only what passes through here or the Memories panel is ever given one.
+         return profile.Events.ToArray()
                        .Where(e => e is {IsPrivate: false})
-                       .Select(e => new CrMemoryRecord(e.gameDay, e.type.ToString(), e.summary))
+                       .Select(e => new CrMemoryRecord(e.gameDay, e.type.ToString(), e.summary) {
+                          Id = MemoryPictures.EnsureId(e), SessionId = e.SessionId, ImagePath = MemoryPictures.PathOf(e)
+                       })
                        .ToList();
       }
 
@@ -103,6 +107,7 @@ namespace CalradiaRemembers
          profile.Events.Add(injected);
          behavior.Store.Set(profile);
          ModLog.Info($"[MEMORY API] {entry.SourceMod ?? "a mod"} injected a memory on {hero.Name} (day {injected.gameDay}, {injected.type}): {injected.summary}");
+         MemoryPictures.LookAt(entry.NpcId);
 
          return MemoryResult.Added;
       }

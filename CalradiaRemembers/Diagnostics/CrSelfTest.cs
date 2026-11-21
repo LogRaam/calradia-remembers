@@ -475,6 +475,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("persona_surface", Severity.Light, "VonLemberg (Discord, 15/11/2026, RFC for a diplomacy mod): a ruler must speak to another ruler 'using their established persona and knowledge, without initiating a player conversation'; Gabriel ruled CR hands the persona and the other mod makes its own call (CrPrompt.Persona), or sends it through the player's connection (CrLlm). A unit test proves which sections belong; only the live prompt proves what a real lord's persona carries. Registers a throwaway CrCharacterText source for a real lord (a backstory line and a PRIVATE line, both marked), reads the REAL CrPrompt.StockSections, Persona and PersonaText, and asserts: the persona is not empty and names the lord, carries the mod's backstory line (Full prompt), never carries the private line, nor CR's reply format or verbs; StockSections itself no longer hands out the private line; and CrLlm refuses an unsigned request without sending anything. Unregisters the source; calls no model, spends nothing", TestPersonaSurface),
          new SelfTest("rumour_no_acquaintance", Severity.Light, "VonLemberg (Discord, 15/11/2026, source audit of 2.8.10): 'the player met a lord 40 days ago, but the lord received an unrelated memory yesterday. The system may treat yesterday as their last meeting', and injected memories made a stranger read as known. On a throwaway profile of a real lord (the save is untouched), through the REAL EncounterContextBuilder and FirstImpressionResolver: with only rumours heard and a memory of his own life, he has never met the player (no last meeting, a stranger when free, not already known by his memories); with a meeting 40 days old added, the last meeting is 40 days ago whatever he heard today", TestRumourNoAcquaintance),
          new SelfTest("compression_takeback", Severity.Light, "VonLemberg (Discord, 15/11/2026, source audit of 2.8.10): a memory a mod takes back with CrNpcMemory.RemoveMemory while a compression pass is in flight came back when the pass was applied, and could linger in the background summary. On a real lord: adds a memory through the REAL AddMemory, takes the snapshot a pass would read, takes the memory back through the REAL RemoveMemory, then applies through the REAL write-back (1) a pass that kept it: it must stay gone, and a memory added meanwhile must stay; (2) a pass that folded it into its summary: nothing is applied and the background is left as it was. No model is called. Leaves the lord as found", TestCompressionTakeback),
+         new SelfTest("memory_pictures", Severity.Light, "Bhelogan (Discord, 20/11/2026) asked for pictures painted by his mod in the Memories panel; Gabriel: protect the memories that carry one. Through the PUBLIC API on a real lord: AddMemory must announce the memory (MemoryWritten, with an id), GetMemories must give the same id, SetImage must copy a picture into CR's campaign folder and put it on the memory, the REAL compressor with a stand-in model that drops everything must keep that memory, a second SetImage must replace the copy, a paint request must reach ImageRequested and stay busy until ImageFailed, and SetImage(null) must take the picture away and delete the copy. No model is called. Removes every test memory and file after", TestMemoryPictures),
          new SelfTest("player_memory_kept", Severity.Light, "Icezera (Discord, 15/11/2026): memories added with cr.memory_add were gone some days later; memory compression had folded them away. Sends cr.memory_add, through the engine's own console dispatch, a memory dated 30 days back to a real lord (padded with test memories to the size compression works on), then runs the REAL compressor on that profile with a stand-in model that drops everything: the memory the player wrote must be kept, and an ordinary test memory of the same age must not be. No model is called. Removes every test memory after", TestPlayerMemoryKept),
          new SelfTest("console_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026): accents typed into cr.memory_add / cr.memory_set came out as mojibake (the console reads UTF-8 back as Windows-1252). Sends cr.memory_add, through the engine's own console dispatch, a line mangled exactly as the console mangles it: the stored memory must read exactly as typed. Removes the memory after.", TestConsoleAccents),
          new SelfTest("extreme_trait_persona", Severity.Light, "A trait at +-2 (the game's strongest) met no persona archetype and got the generic 'figure of contradictions' line. Takes a real hero with such a trait and builds the persona the real way: the extreme must be said in it, never as relish. Stores nothing.", TestExtremeTraitPersona),
@@ -17939,6 +17940,94 @@ namespace CalradiaRemembers.Diagnostics
                profile.Events.RemoveAll(e => e.summary != null && e.summary.StartsWith("[SELFTEST]"));
                behavior.Store.Set(profile);
             }
+         }
+
+         return t.Line();
+      }
+
+      private static string TestMemoryPictures(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("memory_pictures");
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(lord == null, "no lord in the world")) return t.Line();
+
+         const string summary = "[SELFTEST] We watched the sun set over Pravend.";
+         var written = new List<CrMemoryWritten>();
+         var asked = new List<CrMemoryImageRequest>();
+         Action<CrMemoryWritten> onWritten = w => { if (w.NpcId == lord.StringId) written.Add(w); };
+         Action<CrMemoryImageRequest> onAsked = r => asked.Add(r);
+         string source = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "cr_selftest_memory_picture.png");
+         string folder = MemoryPictures.FolderOf(Campaign.Current?.UniqueGameId);
+         CrNpcMemory.MemoryWritten += onWritten;
+         CrNpcMemory.ImageRequested += onAsked;
+
+         try
+         {
+            // A 1x1 PNG: SetImage checks the file and its kind, not its content.
+            System.IO.File.WriteAllBytes(source, Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="));
+            t.Expect("theStoryTellerKnowsTheAdultLevel", string.IsNullOrEmpty(CrContent.AdultContentLevel), false);
+
+            MemoryPictures.LookAtEveryone(null);
+            t.Expect("theMemoryIsAdded", CrNpcMemory.AddMemory(new CrMemoryEntry {NpcId = lord.StringId, Summary = summary, SourceMod = "cr_selftest", DaysAgo = 30}), MemoryResult.Added);
+            CrMemoryWritten announced = written.FirstOrDefault(w => w.Summary == summary);
+            t.Expect("theNewMemoryIsAnnounced", announced != null && announced.IsNew, true);
+            if (t.Skip(announced == null || string.IsNullOrEmpty(announced.MemoryId), "the memory was not announced with an id")) return t.Line();
+
+            string id = announced.MemoryId;
+            t.Expect("GetMemoriesGivesTheSameId", CrNpcMemory.GetMemories(lord.StringId).Any(r => r.Id == id), true);
+
+            t.Expect("thePictureIsAccepted", CrNpcMemory.SetImage(lord.StringId, id, source), true);
+            MainThreadDispatcher.Pump();
+            NpcProfile profile = behavior.Store.Get(lord.StringId);
+            NotableEvent painted = profile?.Events?.FirstOrDefault(e => e.Id == id);
+            string firstFile = painted?.ImageFile;
+            t.Expect("theMemoryCarriesThePicture", string.IsNullOrEmpty(firstFile), false);
+            t.Expect("CRKeepsItsOwnCopy", firstFile != null && System.IO.File.Exists(System.IO.Path.Combine(folder, firstFile)), true);
+            t.Expect("GetMemoriesGivesThePicturePath", CrNpcMemory.GetMemories(lord.StringId).Any(r => r.Id == id && r.ImagePath != null), true);
+
+            // Compression with a model that would drop everything: the painted memory stays (Gabriel, 20/11/2026).
+            var today = (int) CampaignTime.Now.ToDays;
+            if (profile != null && painted != null)
+            {
+               for (var i = 0; i < 13; i++) profile.Events.Add(new NotableEvent(today, NotableEventType.Other, $"[SELFTEST] filler {i}"));
+               var compressor = new NpcMemoryService.Core.Compression.LlmMemoryCompressor(new DropEverythingClient());
+               NpcMemoryService.Core.Compression.CompressionResult result = compressor.CompressAsync(profile).GetAwaiter().GetResult();
+               t.Expect("thePaintedMemoryIsKeptByCompression", result.KeptEvents.Any(e => e.Id == id), true);
+            }
+
+            t.Expect("aNewPictureIsAccepted", CrNpcMemory.SetImage(lord.StringId, id, source), true);
+            MainThreadDispatcher.Pump();
+            string secondFile = behavior.Store.Get(lord.StringId)?.Events?.FirstOrDefault(e => e.Id == id)?.ImageFile;
+            t.Expect("theNewPictureHasItsOwnName", secondFile != null && secondFile != firstFile, true);
+            t.Expect("theOldCopyIsDeleted", firstFile != null && System.IO.File.Exists(System.IO.Path.Combine(folder, firstFile)), false);
+
+            MemoryPictures.Request(lord.StringId, behavior.Store.Get(lord.StringId)?.Events?.FirstOrDefault(e => e.Id == id));
+            t.Expect("thePainterIsAsked", asked.Any(r => r.MemoryId == id && r.NpcId == lord.StringId && r.HasImage), true);
+            t.Expect("theButtonIsBusy", MemoryPictures.IsBusy(id), true);
+            CrNpcMemory.ImageFailed(lord.StringId, id);
+            MainThreadDispatcher.Pump();
+            t.Expect("aFailedPaintingFreesTheButton", MemoryPictures.IsBusy(id), false);
+
+            t.Expect("takingThePictureAwayIsAccepted", CrNpcMemory.SetImage(lord.StringId, id, null), true);
+            MainThreadDispatcher.Pump();
+            t.Expect("thePictureIsGone", string.IsNullOrEmpty(behavior.Store.Get(lord.StringId)?.Events?.FirstOrDefault(e => e.Id == id)?.ImageFile), true);
+            t.Expect("itsCopyIsDeleted", secondFile != null && System.IO.File.Exists(System.IO.Path.Combine(folder, secondFile)), false);
+            t.Expect("aMissingFileIsRefused", CrNpcMemory.SetImage(lord.StringId, id, source + ".missing.png"), false);
+         }
+         finally
+         {
+            CrNpcMemory.MemoryWritten -= onWritten;
+            CrNpcMemory.ImageRequested -= onAsked;
+            NpcProfile profile = behavior.Store.Get(lord.StringId);
+            if (profile?.Events != null)
+            {
+               foreach (NotableEvent e in profile.Events.Where(e => e.summary != null && e.summary.StartsWith("[SELFTEST]") && !string.IsNullOrEmpty(e.ImageFile)).ToList())
+                  try { System.IO.File.Delete(System.IO.Path.Combine(folder, e.ImageFile)); } catch { }
+               profile.Events.RemoveAll(e => e.summary != null && e.summary.StartsWith("[SELFTEST]"));
+               behavior.Store.Set(profile);
+            }
+            try { System.IO.File.Delete(source); } catch { }
          }
 
          return t.Line();

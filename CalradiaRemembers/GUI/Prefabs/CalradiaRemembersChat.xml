@@ -1393,6 +1393,14 @@
                                           VerticalAlignment="Top"
                                           StackLayout.LayoutMethod="VerticalTopToBottom">
                       <ItemTemplate>
+                        <!-- A click on a memory selects it, and its picture shows beside the panel (Bhelogan, Gabriel, 20/11/2026). -->
+                        <ButtonWidget Id="MemoryRowButton"
+                                      WidthSizePolicy="StretchToParent" HeightSizePolicy="CoverChildren"
+                                      DoNotPassEventsToChildren="true"
+                                      Command.Click="ExecuteSelect">
+                          <Children>
+                            <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#8B6B3A2E"
+                                    IsVisible="@IsSelected" IsDisabled="true" />
                         <ListPanel Id="MemoryRow"
                                    WidthSizePolicy="StretchToParent"
                                    HeightSizePolicy="CoverChildren"
@@ -1444,6 +1452,12 @@
                                                         Brush.TextHorizontalAlignment="Left"
                                                         Text="@ActionLabel"
                                                         IsDisabled="true" />
+                                <TextWidget Id="MemoryPictureMark"
+                                            WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+                                            HorizontalAlignment="Left" MarginLeft="8"
+                                            Brush="CR.Letter.Body.Plain" Brush.FontSize="14" Brush.FontColor="#8B6B3AFF"
+                                            Brush.TextHorizontalAlignment="Left" Text="(picture)"
+                                            IsVisible="@HasPicture" IsDisabled="true" />
                               </Children>
                             </ListPanel>
                             <RichTextWidget Id="MemorySummary"
@@ -1471,6 +1485,8 @@
                                                   IsDisabled="true" />
                           </Children>
                         </ListPanel>
+                          </Children>
+                        </ButtonWidget>
                       </ItemTemplate>
                     </NavigatableListPanel>
                   </Children>
@@ -1506,6 +1522,72 @@
 
       </Children>
     </Widget>
+
+    <!-- A memory's picture (Bhelogan, Gabriel, 20/11/2026): a click on a memory shows its picture beside the panel, a click on
+         the picture enlarges it and another shrinks it; "Paint this memory" asks the mods that paint (CrNpcMemory.ImageRequested).
+         Bound to ChatViewModel.MemoryPictures; the same block sits in both chat skins. TODO tune the placement in game. -->
+    <ListPanel Id="MemoryPictureGroup"
+               WidthSizePolicy="CoverChildren" HeightSizePolicy="CoverChildren"
+               HorizontalAlignment="Right" VerticalAlignment="Center" PositionXOffset="-1294"
+               StackLayout.LayoutMethod="VerticalTopToBottom"
+               IsVisible="@IsMemoryPictureGroupVisible">
+      <Children>
+        <ButtonWidget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                      SuggestedWidth="@MemoryPictureWidth" SuggestedHeight="@MemoryPictureHeight"
+                      HorizontalAlignment="Center"
+                      IsVisible="@IsMemoryPictureVisible"
+                      DoNotPassEventsToChildren="true"
+                      Command.Click="ExecuteToggleMemoryPictureSize">
+          <Children>
+            <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                                  ImagePath="@MemoryPicturePath" IsDisabled="true" />
+          </Children>
+        </ButtonWidget>
+        <Widget WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                SuggestedWidth="@MemoryPictureWidth" SuggestedHeight="@MemoryPictureHeight"
+                HorizontalAlignment="Center"
+                Sprite="BlankWhiteSquare_9" Color="#E6D8B4D9"
+                IsVisible="@IsMemoryPicturePlaceholderVisible">
+          <Children>
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                        Brush="CR.Letter.Body.Plain" Brush.FontSize="18" Brush.FontColor="#6b5a45FF"
+                        Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Center"
+                        Text="No picture yet." IsDisabled="true" />
+          </Children>
+        </Widget>
+        <ButtonWidget Id="MemoryPaintButton"
+                      WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                      SuggestedWidth="260" SuggestedHeight="40"
+                      HorizontalAlignment="Center" MarginTop="10"
+                      IsVisible="@IsMemoryPaintVisible"
+                      IsEnabled="@IsMemoryPaintEnabled"
+                      DoNotPassEventsToChildren="true"
+                      UpdateChildrenStates="true"
+                      Command.Click="ExecutePaintMemory">
+          <Children>
+            <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" Sprite="BlankWhiteSquare_9" Color="#2e2418E6" IsDisabled="true" />
+            <CrHoverGlowWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent" MarginLeft="-14" MarginRight="-14" MarginTop="-14" MarginBottom="-14" />
+            <TextWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                        Brush="CR.Letter.Body.Plain" Brush.FontSize="18" Brush.FontColor="#E6D8B4FF"
+                        Brush.TextHorizontalAlignment="Center" Brush.TextVerticalAlignment="Center"
+                        Text="@MemoryPaintLabel" IsDisabled="true" />
+          </Children>
+        </ButtonWidget>
+      </Children>
+    </ListPanel>
+    <!-- The picture enlarged, over the screen; a click shrinks it back. -->
+    <ButtonWidget Id="MemoryPictureLarge"
+                  WidthSizePolicy="Fixed" HeightSizePolicy="Fixed"
+                  SuggestedWidth="@MemoryPictureWidth" SuggestedHeight="@MemoryPictureHeight"
+                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                  IsVisible="@IsMemoryPictureLarge"
+                  DoNotPassEventsToChildren="true"
+                  Command.Click="ExecuteToggleMemoryPictureSize">
+      <Children>
+        <CrRuntimeImageWidget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent"
+                              ImagePath="@MemoryPicturePath" IsDisabled="true" />
+      </Children>
+    </ButtonWidget>
 
     <!-- PORTRAIT panel: opened by a left-click on any chat portrait, shows that speaker's portrait full-size
          (custom ChatPortraits image or the 3D render), aspect-preserved. Shares the left area with the memory
