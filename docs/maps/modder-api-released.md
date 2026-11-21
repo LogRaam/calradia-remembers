@@ -1,4 +1,4 @@
-Released in v2.8.17
+Released in v2.8.18
 
 The modder API as it SHIPPED, the baseline for the vanished-member guard (see docs/maps/README.md). Recorded on
 purpose at each release cut with Tools/Update-Maps.ps1 -RecordReleasedApi; never by a plain regeneration.
@@ -74,7 +74,7 @@ _The door through which other mods give lords aims of their own._
 
 _The version of CR's whole extension surface, for a mod that detects what it can use._
 
-- `const int Version = 5`
+- `const int Version = 6`
 
 ### CrAppearance
 
@@ -130,6 +130,12 @@ _Lets another mod forbid the conceptions Calradia Remembers creates._
 
 - `static bool UnregisterVeto(string source)`
 - `static void RegisterVeto(string source, Func<Hero, Hero, string> veto)`
+
+### CrContent
+
+_What the player chose in CR's settings, read-only, for a mod that should follow the same line._
+
+- `static string AdultContentLevel { get; }`
 
 ### CrConversation
 
@@ -358,13 +364,29 @@ _One memory a third-party mod wants an NPC to hold._
 - `string SourceMod { get; set; }`
 - `string Summary { get; set; }`
 
+### CrMemoryImageRequest
+
+_The player asked, from the Memories panel, for a picture of one memory (CrNpcMemory.ImageRequested)._
+
+- `bool HasImage { get; }`
+- `int Day { get; }`
+- `string Kind { get; }`
+- `string MemoryId { get; }`
+- `string NpcId { get; }`
+- `string SaveId { get; }`
+- `string SessionId { get; }`
+- `string Summary { get; }`
+
 ### CrMemoryRecord
 
 _One memory CR already holds for an NPC, as read back through CrNpcMemory.GetMemories._
 
 - `CrMemoryRecord(int day, string kind, string summary)`
 - `int Day { get; }`
+- `string Id { get; }`
+- `string ImagePath { get; }`
 - `string Kind { get; }`
+- `string SessionId { get; }`
 - `string Summary { get; }`
 
 ### CrMemoryRemoval
@@ -375,11 +397,33 @@ _A memory a mod takes back (philip0105, Vivid World, 10/10/2026: rumors forgotte
 - `string SourceMod { get; set; }`
 - `string Summary { get; set; }`
 
+### CrMemoryWritten
+
+_A memory written since CR last looked, as CrNpcMemory.MemoryWritten announces it: a new memory, or one whose words were rewritten (a conversation's "Spoke with" anchor enriched into what was said)._
+
+- `bool IsNew { get; }`
+- `int Day { get; }`
+- `string Kind { get; }`
+- `string MemoryId { get; }`
+- `string NpcId { get; }`
+- `string SaveId { get; }`
+- `string SessionId { get; }`
+- `string Summary { get; }`
+
 ### CrMercenaries
 
 _What another mod knows of the player's mercenary contracts._
 
 - `static void ContractEndedByEmployer(Kingdom kingdom)`
+
+### CrNpcMemory
+
+_(no summary)_
+
+- `static bool SetImage(string npcId, string memoryId, string imagePath)`
+- `static event Action<CrMemoryImageRequest> ImageRequested`
+- `static event Action<CrMemoryWritten> MemoryWritten`
+- `static void ImageFailed(string npcId, string memoryId)`
 
 ### CrNpcMemory
 

@@ -1,0 +1,25 @@
+Version 2.8.18
+
+A tale that lets your party come along, a prompt profile that fully turns the archetype off, and a door for mods that paint memories.
+
+New
+
+- A tale can let you send for your companions and men in its scenes. They come in the telling only: they help, nothing that happens to them is real, and a fight stays your own. Off by default; a tale's author turns it on. (Thank you, Schmidt.)
+
+Changed
+
+- A prompt profile that turns the archetype off now also removes it from the romance block: the Archetype line and the two paragraphs written from it. The orientation and your bond with the character stay. (Thank you, JackJack.)
+
+For modders
+
+- Memory pictures in the Memories panel, for a mod that paints them (CR paints none itself). With such a mod, the player clicks a memory to see its picture beside the panel (a click enlarges it), and a "Paint this memory" button asks the mod for one; a memory with a picture is never forgotten when memories are compressed. Every memory has a stable id (CrMemoryRecord.Id) and the conversation it came from (SessionId). CrNpcMemory.SetImage puts a picture on a memory (CR keeps its own copy), ImageRequested is raised by the panel's button, ImageFailed frees it, and MemoryWritten announces each new or rewritten memory. CrContent.AdultContentLevel reads the player's adult content setting. CrApi.Version is now 6. See EXTENSION_API.md. (Thank you, Bhelogan.)
+- Tales: the party_may_join flag in the tale file and the Tale Editor.
+
+Developer tools
+
+- cr.memory_painter on|off: a stand-in painter, to see memory pictures without a painting mod.
+- New cr.test all check: memory_pictures; tale_scene_kit extended.
+
+Notes
+
+- Saves from 2.8.17 and older load as they are, and your MCM choices are kept.
