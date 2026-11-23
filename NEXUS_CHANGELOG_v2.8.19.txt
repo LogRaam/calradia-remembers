@@ -1,0 +1,17 @@
+Version 2.8.19
+
+Three fixes from player reports: companions no longer claim your men, wives remember the house they came from, and a selected memory keeps its size.
+
+Fixed
+
+- A companion riding in your party was told your soldiers were her own command, while the same prompt said you are her captain. Only a character who leads their own party now speaks of the men they command; a lord at the head of an army still answers for the whole army. (Thank you, JackJack.)
+- A wife who was already married when the campaign began sometimes spoke of growing up in her husband's house. She now knows the house she was born into when the game records her parents, and otherwise knows at least that she came from another house by marriage. (Thank you, EvilPoptart1987.)
+- In the Memories panel, clicking a memory opened a large blank area beneath its text. A selected memory now keeps its own height and is lightly tinted. (Thank you, Bhelogan.)
+
+Developer tools
+
+- New cr.test all checks: own_command_needs_leader, birth_house_before_campaign.
+
+Notes
+
+- Saves from 2.8.18 and older load as they are, and your MCM choices are kept.

@@ -655,6 +655,12 @@ MUST = [
     ("sdk",   b"IntimateActNames"),
     ("sdk",   b"LessFondActs"),
     ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
+    # 2.8.19
+    ("logic", b"OwnCommandPolicy"),
+    ("logic", b"OwnCommandFacts"),
+    ("mod",   b"TestOwnCommandNeedsLeader"),
+    ("logic", b"BirthClanPolicy"),
+    ("mod",   b"TestBirthHouseBeforeCampaign"),
     # 2.8.18
     ("logic", b"MemoryWriteWatch"),
     ("logic", b"MemoryPicturePolicy"),
@@ -1118,7 +1124,11 @@ for path, needle in [("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf
                      ("CalradiaRemembers/ModuleData/folklore/nord.txt", "The tales the Nords tell"),
                      ("CalradiaRemembers/ModuleData/folklore/sturgia.txt", "The tales the Sturgians tell"),
                      ("CalradiaRemembers/ModuleData/folklore/vakken.txt", "The tales the Vakken tell"),
-                     ("CalradiaRemembers/ModuleData/folklore/vlandia.txt", "The tales the Vlandians tell")]:
+                     ("CalradiaRemembers/ModuleData/folklore/vlandia.txt", "The tales the Vlandians tell"),
+                     # 2.8.19: the selected memory row draws its tint with its own brush
+                     ("CalradiaRemembers/GUI/Brushes/CalradiaRemembersChatText.xml", "CR.MemoryRow"),
+                     ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersChat.xml", "Brush=\"CR.MemoryRow\""),
+                     ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersChat_Manuscript.xml", "Brush=\"CR.MemoryRow\"")]:
     found = path in names and needle in zn.read(path).decode("utf-8", "ignore")
     ok &= found
     print("  %-70s %s" % (path[18:], "YES" if found else "*** MISSING ***"))
