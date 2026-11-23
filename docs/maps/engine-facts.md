@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-830 rules read 610 facts.
+831 rules read 617 facts.
 
 ## Facts read by more than one rule
 
@@ -507,6 +507,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `ChaseFacts`: `Army.LeaderParty`, `GetPosition2D.Distance`, `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `LeaderParty.SiegeEvent`, `MobileParty.Army`, `MobileParty.AttachedTo`, `MobileParty.BesiegedSettlement`, `MobileParty.GetPosition2D`, `MobileParty.IsCurrentlyAtSea`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`, `MobileParty.Speed`, `Settlement.IsUnderSiege`, `Settlement.SiegeEvent`
 - `ChatClosePlan.For`: `ActiveViewModel.IsExplorationScene`
 - `ChatCompositionModePolicy.Parse`: `ChatCompositionModeSetting.Choice`
+- `ChatCopyKeys`: `Input.IsKeyDown`, `Input.IsKeyPressed`, `InputKey.C`, `InputKey.LeftControl`, `InputKey.LeftShift`, `InputKey.RightControl`, `InputKey.RightShift`
 - `ChatEscapeFacts`: `ScreenManager.FocusedLayer`
 - `ChatFocusArbitrationPolicy.Decide`: `ScreenManager.TopScreen`
 - `ChatFocusArbitrationPolicy.ReasonFor`: `ScreenManager.TopScreen`

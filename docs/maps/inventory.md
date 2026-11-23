@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 695 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1739 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1741 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2063,7 +2063,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RosterItemKey` | public static class | Names one stack of goods by item and quality, and finds it again among what the party holds. |
 | `ScoreToSettle` | public class | Whether a character has a score to settle, and whether the player may be told so. |
 
-### CalradiaRemembers.Logic.Chat (33)
+### CalradiaRemembers.Logic.Chat (35)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2073,6 +2073,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ButtonGlowFacts` | public class | What the button under the glow is doing. |
 | `ButtonGlowPolicy` | public static class | How strongly a chat button glows, and how the glow fades there. |
 | `ChatCompositionModePolicy` | public static class | Maps the "Chat Composition" MCM dropdown value to ChatCompositionMode. |
+| `ChatCopyKeys` | public class | The keys held this frame, for the copy shortcut. |
 | `ChatEscapeAction` | public enum | What the chat should do with one press of Escape. |
 | `ChatEscapeFacts` | public class | The state an Escape press is judged on. |
 | `ChatEscapePolicy` | public static class | Decides what one Escape press does in the chat. |
@@ -2082,6 +2083,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatSkinFallbackPolicy` | public static class | Picks the window that will actually be usable. |
 | `ChatTemperaturePolicy` | public static class | Pure: the conversation temperature the player picked, held inside a range a model stays coherent in. |
 | `ChatTitleText` | public static class | The chat window's title. |
+| `ChatTranscriptCopy` | public static class | Turns the chat window's message blocks into plain text a player can paste anywhere. |
 | `ChatWindowLivenessPolicy` | public static class | Whether a recorded chat window is genuinely live, or a leftover that must not block the next one. |
 | `EscapeCloseLatch` | public class | Holds an Escape close until it is safe (philip0105, 11/10/2026: Escape out of a conversation crashed the game, the close button did not). |
 | `InterpreterAttemptOutcome` | public enum | What one interpreter call brought back. |

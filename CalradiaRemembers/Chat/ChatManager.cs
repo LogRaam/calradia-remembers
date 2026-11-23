@@ -272,6 +272,39 @@ namespace CalradiaRemembers.Chat
       private static readonly EscapeCloseLatch EscapeClose = new();
 
       /// <summary>
+      ///   Ctrl+Shift+C puts the whole conversation in the clipboard as plain text (whiskeypatt, Discord 21/11/2026: "I cannot
+      ///   copy what they wrote (UI wont let me)"; Gabriel: "oui, Ctrl+Shift+C"). Ctrl+C alone stays the input field's own copy
+      ///   of its selected text (EditableTextWidget). Pumped every frame with HandleEscape; works in every window.
+      /// </summary>
+      public static void HandleCopyShortcut()
+      {
+         if (!IsOpen || ActiveViewModel == null) return;
+
+         try
+         {
+            bool control = TaleWorlds.InputSystem.Input.IsKeyDown(TaleWorlds.InputSystem.InputKey.LeftControl) || TaleWorlds.InputSystem.Input.IsKeyDown(TaleWorlds.InputSystem.InputKey.RightControl);
+            bool shift = TaleWorlds.InputSystem.Input.IsKeyDown(TaleWorlds.InputSystem.InputKey.LeftShift) || TaleWorlds.InputSystem.Input.IsKeyDown(TaleWorlds.InputSystem.InputKey.RightShift);
+            if (!Logic.Chat.ChatTranscriptCopy.IsShortcut(new Logic.Chat.ChatCopyKeys {Control = control, Shift = shift, CPressed = TaleWorlds.InputSystem.Input.IsKeyPressed(TaleWorlds.InputSystem.InputKey.C)})) return;
+
+            int copied = CopyConversation();
+            TaleWorlds.Library.InformationManager.DisplayMessage(new TaleWorlds.Library.InformationMessage(copied > 0 ? $"Conversation copied to the clipboard ({copied} messages)." : "Nothing to copy yet."));
+         }
+         catch (Exception ex) { ModLog.Error($"[CHAT] Copy failed: {ex.GetType().Name}: {ex.Message}"); }
+      }
+
+      /// <summary>Puts the open conversation in the clipboard as plain text; returns how many messages it held. Also the cr.test seam.</summary>
+      internal static int CopyConversation()
+      {
+         List<string> blocks = ActiveViewModel?.Messages?.Select(m => m?.DisplayText).Where(t => !string.IsNullOrWhiteSpace(t)).ToList() ?? new List<string>();
+         if (blocks.Count == 0) return 0;
+
+         TaleWorlds.InputSystem.Input.SetClipboardText(Logic.Chat.ChatTranscriptCopy.Compose(blocks));
+         ModLog.Info($"[CHAT] Conversation copied to the clipboard ({blocks.Count} messages).");
+
+         return blocks.Count;
+      }
+
+      /// <summary>
       ///   Called every application frame: closes the conversation an Escape asked to close, once the key is up and one
       ///   more frame has passed, outside any widget's update (EscapeCloseLatch).
       /// </summary>

@@ -87,6 +87,9 @@ namespace CalradiaRemembers.Chat
             // Escape leaves the conversation as the close button does, one layer at a time (EmperorHaterius, 03/10/2026).
             ChatManager.HandleEscape();
 
+            // Ctrl+Shift+C copies the whole conversation (whiskeypatt, 21/11/2026: Gauntlet text cannot be selected).
+            ChatManager.HandleCopyShortcut();
+
             // Refresh the wrapped compose preview on a throttle (not every keystroke), so a long message does
             // not re-wrap the whole RichTextWidget on each key press (the FPS-drop report). Cheap: a no-op
             // unless the input changed and the throttle interval has elapsed.

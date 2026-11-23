@@ -403,6 +403,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("player_named_on_screen", Severity.Light, "Gabriel (17/10/2026): a grievance read 'over The marriage was ended by the player's own choice'; never 'the player' in the game, the character by name. Passes a stored cause saying 'the player' through the real grievance line and the real chat message line, and asserts both show the player's name, never 'the player', and that a sentence cause follows a colon. Changes nothing", TestPlayerNamedOnScreen),
          new SelfTest("reply_shape", Severity.Light, "avalanche24 (Nexus, 03/11/2026): a local reasoning model was cut off mid-thought at the fixed 1200-token Compact budget, and the fixed 0.5 presence penalty cut its thinking short. Moves Reply Token Budget and Presence Penalty and asserts the live chat service sends them and keeps the budget in Compact; on Auto, 3000 and Compact's own budget again; restores both settings", TestReplyShape),
          new SelfTest("chat_temperature", Severity.Light, "fkasad (Nexus, 17/10/2026) asked whether the mod tunes the temperature; the conversation value was fixed at 0.7, and Gabriel asked for a setting. Moves the Chat Temperature setting and asserts the live chat service sends the new value, and that an out-of-range value is held in range; restores the setting", TestChatTemperature),
+         new SelfTest("chat_copy_conversation", Severity.Light, "whiskeypatt (Discord 21/11/2026): 'I cannot copy what they wrote (UI wont let me)'; Gabriel: Ctrl+Shift+C. Writes the conversation through the REAL clipboard (Input.SetClipboardText, ChatTranscriptCopy) and reads it back: the open chat when one is open (ChatManager.CopyConversation), else two sample messages. Puts the player's clipboard back after", TestChatCopyConversation),
          new SelfTest("companion_patrol", Severity.Light, "jaserms1 (Nexus, 16/10/2026): a council's patrol order did nothing; Gabriel's rulings 16-17/10 (the player's own men, chosen on the game's troop screen, until told to stop) and his spike at Ebereth (a free AI patrol drifts off its post). Arranges a companion and men, confirms a 5-man patrol of the nearest village through the same handler the troop screen calls, and asserts the men really left the main party, the patrol is anchored on the village with the AI free; then drags it away and runs the hourly leash, which must re-anchor it; then (Aporo, Discord 10/11/2026) moves it far off on its way home and asserts it keeps riding before ReturnHomePolicy.GraceDays and rejoins once they are out; then asserts every man is back. tashmetu (18/10/2026): another mod reads the patrol through CrPatrols.Current and hears its end through CrPatrols.Ended, as Back. Cleans up", TestCompanionPatrol),
          new SelfTest("enemy_meeting_offer", Severity.Light, "fkasad (Nexus, 16/10/2026): an enemy lord rode up as the player was about to attack him, the chat opened by force and a local model reasoned for half a minute over an opener nobody read; Gabriel the same day: a popup for hostile lords only. On real lords: one at peace with the player, holding a grudge, still opens the meeting at once; the same lord defending his land asks first; a lord of a realm at war with the player asks first whatever his reason (when such a lord exists). Changes nothing", TestEnemyMeetingOffer),
          new SelfTest("enemy_no_border_challenge", Severity.Light, "LapitaPolata (Nexus, 18/10/2026): lords of a realm at war with the player rode up to ask why they crossed the border with their troops, the war making it plain, and did so outnumbered, when the game has an outnumbered lord flee. On real lords' parties and their live strengths against the player's: a weaker party reads outnumbered and its lord never rides out, even over a grudge; a stronger one is not, never challenges the player's passage at war, still presses a grudge, and a realm at peace still challenges. A missing war is set on the facts. Changes nothing", TestEnemyNoBorderChallenge),
@@ -17207,6 +17208,40 @@ namespace CalradiaRemembers.Diagnostics
             profile.KnownGifts = knownBefore;
             NpcMemoryService.Core.Services.ProfileMutator.ApplyReputationDelta(profile, regardBefore - profile.ReputationWithPlayer, NpcMemoryService.Core.Standing.RegardCause.SelfTest);
             behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestChatCopyConversation(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("chat_copy_conversation");
+         string before = null;
+
+         try
+         {
+            before = TaleWorlds.InputSystem.Input.GetClipboardText();
+
+            if (Chat.ChatManager.IsOpen && Chat.ChatManager.ActiveViewModel != null)
+            {
+               int copied = Chat.ChatManager.CopyConversation();
+               string pasted = TaleWorlds.InputSystem.Input.GetClipboardText() ?? "";
+               t.Note($"open chat: {copied} messages, {pasted.Length} chars in the clipboard");
+               t.Expect("theOpenConversationIsInTheClipboard", copied == 0 || pasted.Contains(": "), true);
+            }
+            else
+            {
+               string sample = Logic.Chat.ChatTranscriptCopy.Compose(new[] {"Hex\nGood day, my lord.", "Count Aldric\n<span style=\"Narration\">He nods.</span> Good day."});
+               TaleWorlds.InputSystem.Input.SetClipboardText(sample);
+               string pasted = TaleWorlds.InputSystem.Input.GetClipboardText() ?? "";
+               t.Note($"no chat open: sample written and read back ({pasted.Length} chars)");
+               t.Expect("theClipboardHoldsWhatWasWritten", pasted.Replace("\r\n", "\n"), sample.Replace("\r\n", "\n"));
+               t.Expect("noMarkupReachesTheClipboard", pasted.Contains("<span"), false);
+            }
+         }
+         finally
+         {
+            try { TaleWorlds.InputSystem.Input.SetClipboardText(before ?? ""); } catch { /* the clipboard is the player's: best effort */ }
          }
 
          return t.Line();
