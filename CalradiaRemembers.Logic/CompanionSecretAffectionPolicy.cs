@@ -103,9 +103,13 @@ namespace CalradiaRemembers.Logic
             // is no reason the bond could not exist if they did.
             if (!isContent) return false;
 
+            // The confession is a companion's audience (they ask for a word on the road). The bond itself is open to
+            // anyone since 22/11/2026 (Gabriel: "il ne devrait pas y avoir de restrictions"), so this door is the
+            // confession's own now.
+            if (!isCompanion) return false;
+
             return SecretBondEligibility.IsEligible(new SecretBondFacts {
                 AdultContentEnabled = adultEnabled,
-                IsPlayerCompanion = isCompanion,
                 HasRomanticProfile = true, // the caller has already read a romantic profile to get here
                 OrientationCompatible = orientationCompatible,
                 AlreadyBoundToPlayer = alreadyAttached,

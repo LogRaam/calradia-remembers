@@ -1,5 +1,5 @@
 // Code written by Gabriel Mailhot, 09/09/2026.
-// ONE decision about whether a companion and the player may take up a hidden bond, asked by everyone who needs
+// ONE decision about whether a character and the player may take up a hidden bond (companions only until 22/11/2026), asked by everyone who needs
 // the answer instead of re-derived by each of them.
 //
 // Why it exists, and why sharing a constant was not enough. A player reported on 2026-09-09 that a companion
@@ -37,9 +37,6 @@ namespace CalradiaRemembers.Logic
         /// <summary>The whole romantic arc is switched off for this campaign.</summary>
         AdultContentOff,
 
-        /// <summary>Only the player's own companions share this kind of bond.</summary>
-        NotACompanion,
-
         /// <summary>No romantic profile has ever been built for them, so there is nothing to judge.</summary>
         NoRomanticProfile,
 
@@ -60,7 +57,6 @@ namespace CalradiaRemembers.Logic
     public sealed class SecretBondFacts
     {
         public bool AdultContentEnabled { get; set; }
-        public bool IsPlayerCompanion { get; set; }
         public bool HasRomanticProfile { get; set; }
         public bool OrientationCompatible { get; set; }
 
@@ -89,7 +85,8 @@ namespace CalradiaRemembers.Logic
         {
             if (facts == null) return SecretBondVerdict.NoRomanticProfile;
             if (!facts.AdultContentEnabled) return SecretBondVerdict.AdultContentOff;
-            if (!facts.IsPlayerCompanion) return SecretBondVerdict.NotACompanion;
+            // The companions-only door is gone. Icezera (Discord 22/11/2026) asked how to keep a bond secret; Gabriel
+            // (22/11/2026): "il ne devrait pas y avoir de restrictions". A lord, a lady or a notable may be one too.
             if (!facts.HasRomanticProfile) return SecretBondVerdict.NoRomanticProfile;
             if (!facts.OrientationCompatible) return SecretBondVerdict.NoSpark;
 
@@ -122,8 +119,6 @@ namespace CalradiaRemembers.Logic
             {
                 case SecretBondVerdict.AdultContentOff:
                     return "(That is not a path this campaign allows. Raise the Adult Content Level to open it.)";
-                case SecretBondVerdict.NotACompanion:
-                    return $"({who} is not one of your own companions.)";
                 case SecretBondVerdict.NoRomanticProfile:
                     return $"({who} has no romantic connection to build upon.)";
                 case SecretBondVerdict.NoSpark:

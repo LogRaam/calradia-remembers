@@ -794,6 +794,8 @@ namespace CalradiaRemembers.Mapping
             SpouseMarriedUnwillingly = ResolveSpouseMarriedUnwillingly(hero),
             ConsortEligible = ResolveConsortEligible(hero, profile),
             SecretLoverEligible = ResolveSecretLoverEligible(hero, profile),
+            // Gabriel (22/11/2026): the secret bond is open to anyone; a lord or a lady is not addressed as a comrade.
+            SecretLoverNotACompanion = hero is {IsPlayerCompanion: false},
             OpenRelationshipEligible = ResolveOpenRelationshipEligible(hero, profile),
             AcceptOtherPartnersEligible = ResolveAcceptOtherPartnersEligible(hero, profile),
             PartnerLoverKnown = ResolvePartnerLoverKnown(profile),
@@ -4376,7 +4378,6 @@ namespace CalradiaRemembers.Mapping
       internal static SecretBondFacts SecretBondFactsFor(Hero hero, NpcProfile profile)
          => new() {
             AdultContentEnabled = ModSettings.AdultContentLevel != AdultContentLevel.Off,
-            IsPlayerCompanion = hero != null && hero.IsPlayerCompanion,
             HasRomanticProfile = profile?.Romantic != null,
             OrientationCompatible = Hero.MainHero != null && profile?.Romantic?.IsCompatibleWith(Hero.MainHero.IsFemale) == true,
             AlreadyBoundToPlayer = profile?.Romantic?.IsConsort == true

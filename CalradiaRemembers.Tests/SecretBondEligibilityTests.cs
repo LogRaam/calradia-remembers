@@ -35,7 +35,6 @@ namespace CalradiaRemembers.Tests
     {
         private static SecretBondFacts Ready(int regard = 50) => new() {
             AdultContentEnabled = true,
-            IsPlayerCompanion = true,
             HasRomanticProfile = true,
             OrientationCompatible = true,
             AlreadyBoundToPlayer = false,
@@ -123,10 +122,20 @@ namespace CalradiaRemembers.Tests
         {
             SecretBondFacts facts = Ready(0);
             facts.AdultContentEnabled = false;
-            facts.IsPlayerCompanion = false;
             facts.OrientationCompatible = false;
 
             SecretBondEligibility.Evaluate(facts).Should().Be(SecretBondVerdict.AdultContentOff);
+        }
+
+        // Icezera (Discord 22/11/2026) asked how to keep a bond secret, and the bond was open to companions only. Gabriel
+        // (22/11/2026): "il ne devrait pas y avoir de restrictions". STAKE: a lord or a lady close enough, compatible and
+        // free, may become the player's secret lover; the rule holds no door that asks who they serve.
+        [Test]
+        public void GIVEN_anyone_close_enough_and_free_WHEN_judged_THEN_no_door_asks_whether_they_are_a_companion()
+        {
+            typeof(SecretBondFacts).GetProperty("IsPlayerCompanion").Should().BeNull();
+            System.Enum.GetNames(typeof(SecretBondVerdict)).Should().NotContain("NotACompanion");
+            SecretBondEligibility.Evaluate(Ready()).Should().Be(SecretBondVerdict.Eligible);
         }
 
         // Missing facts must not be read as permission. This is fed from live campaign reads that can be null
@@ -145,7 +154,7 @@ namespace CalradiaRemembers.Tests
         public void GIVEN_each_closed_door_WHEN_described_THEN_the_player_is_told_which_one()
         {
             var verdicts = new[] {
-                SecretBondVerdict.AdultContentOff, SecretBondVerdict.NotACompanion,
+                SecretBondVerdict.AdultContentOff,
                 SecretBondVerdict.NoRomanticProfile, SecretBondVerdict.NoSpark,
                 SecretBondVerdict.AlreadyBound, SecretBondVerdict.RomanceEnded,
                 SecretBondVerdict.BondTooShallow

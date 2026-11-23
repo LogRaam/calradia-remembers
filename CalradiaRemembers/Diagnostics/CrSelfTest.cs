@@ -260,6 +260,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("take_into_service", Severity.Heavy, "the MIRROR direction (13/09/2026, Gabriel's ruling 'un seigneur doit pouvoir recruter'): every other recruiting verb brings somebody INTO the player's household, this one gives somebody away. Finds a spare player companion the pure gate says is free to go and an other-clan lord, runs the REAL bridge take_into_service -> asserts the companion LEFT the player's clan, JOINED the lord's, is NOT a fugitive (the whole reason the executor uses RemoveCompanionAction.ApplyAfterQuest and never ApplyByFire, which runs MakeHeroFugitiveAction), and gained the starting relation with their new lord. Then puts them back and ASSERTS THE RESTORE, so a broken restore is reported rather than quietly costing a real companion. Skips when the campaign has no spare companion or no other-clan lord", TestTakeIntoService),
          new SelfTest("recruit_notable", Severity.Heavy, "find a settlement NOTABLE (gang leader/headman/merchant...) that has an eligible successor in its town, force regard to the floor, run the REAL bridge recruit_notable -> assert the notable is now a companion in your CLAN and PARTY, a starting relation bonus was applied, and the chosen successor holds the vacated notable post (settlement.Notables). Best-effort restore afterwards (recruit_notable is not cleanly reversible: the alley transfer cannot be undone). Skips when no disposable notable+successor pair exists rather than wreck a real campaign", TestRecruitNotable),
          new SelfTest("secret_bond_bar_agrees", Severity.Light, "player report 2026-09-09 ('the NPC is expressing affection, yet the system displays a message stating that intimacy is insufficient'), caused by ONE regard bar living as a literal 50 in three places while only the confession moved onto the Relationship Pacing dial. Drives the REAL EncounterContextBuilder.Build and the REAL bridge action take_as_secret_lover against a compatible companion at exactly MinRegardFor(current pacing) and one point below it, and asserts BOTH engine gates flip on the SAME number the confession uses. A pure test cannot catch this (it would compare the policy with itself); only driving the live sites can. EXTENDED 2026-09-09 with the THIRD site of that same bar, what the NPC may SAY: asserts the LIVE PromptBuilder the chat uses declares from the very number the confession roll measures from, and that the register reads Attachment at the bar and Interest one below it, where an NPC may flirt but must never speak of love nor open a courtship on standing alone. Restores the regard and undoes any bond formed", TestSecretBondBarAgrees),
+         new SelfTest("secret_lover_beyond_companions", Severity.Light, "Icezera (Discord 22/11/2026) asked how to keep a bond secret; the secret lover was for companions only. Gabriel: 'il ne devrait pas y avoir de restrictions'. With a lord or lady who is NOT a companion, compatible with the player and free (put back after): at the bar, the REAL EncounterContextBuilder teaches take_as_secret_lover with the non-companion text, and the REAL bridge forms the bond", TestSecretLoverBeyondCompanions),
          new SelfTest("captive_lord_withheld_from_defection", Severity.Heavy, "player report: a held captive lord below the recruit_prisoner regard floor could still narrate accepting the player's offer to defect, though nothing happened (an empty promise). Really captures a capturable in-party lord who is not their own clan's leader, drives EncounterContextBuilder.Build with regard just BELOW PrisonerRecruitmentPolicy.RegardFloor -> assert CanRecruitPrisoner is false and the new CaptiveLordWithheldFromDefection flag is true, then raises regard to the floor -> assert they FLIP (CanRecruitPrisoner true, the new flag false), proving the two are mutually exclusive on live engine facts. Releases the captive and restores regard afterwards", TestCaptiveLordWithheldFromDefection),
          new SelfTest("narrative_patch_scope", Severity.Light, "Found checking a modder's README against the code (tashmetu, 19/09/2026): the cr_patch scanner first read ModuleHelper.GetModules(), which is every module FOUND on disk, enabled or not. A bridge disabled in the launcher still had its prose read into every prompt, and with its assembly not loaded its {{variables}} reached the model as raw braces. Asserts that every module the scanner reads is one the player ENABLED, and that Calradia Remembers itself is among them (proof the list is the live one, not an empty fallback).", TestNarrativePatchScope),
          new SelfTest("rescue_from_foe", Severity.Light, "zhenja1 (Nexus, 10/10/2026): 'I liberated two from Garios, and both are saying they were never prisoner.' The game hands a beaten lord's prisoners to the player's loot, and letting them go later from the player's own custody read as a pardon, so nothing was remembered. Takes a real lord prisoner into the player's party, marks them as taken from another real lord (the seam the battle start fills), releases them through the REAL EndCaptivityAction.ApplyByReleasedByChoice, and asserts the rescued lord now remembers being freed, naming the lord who held them. Leaves the gratitude it gave (as cr.rescue does) and forgets the once-per-lord credit", TestRescueFromFoe),
@@ -15047,6 +15048,49 @@ namespace CalradiaRemembers.Diagnostics
       ///   .Logic test cannot see that: it would only compare the policy against itself. This drives the LIVE
       ///   sites at the bar and one point below, so a literal reintroduced beside either of them fails here.
       /// </summary>
+      private static string TestSecretLoverBeyondCompanions(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("secret_lover_beyond_companions");
+
+         if (t.Skip(ModSettings.AdultContentLevel == AdultContentLevel.Off, "adult content is off, which gates this whole arc")) return t.Line();
+         Hero lady = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && !h.IsPlayerCompanion && h != Hero.MainHero && !h.IsPrisoner
+                                                             && h.IsFemale != Hero.MainHero.IsFemale && h != Hero.MainHero.Spouse
+                                                             && behavior.Store.Get(h.StringId)?.Romantic is { } r && r.IsCompatibleWith(Hero.MainHero.IsFemale)
+                                                             && !r.IsSecretLover && !r.IsConsort && r.Status is RomanticStatus.None or RomanticStatus.Curious or RomanticStatus.Courting);
+         if (t.Skip(lady == null, "no lord or lady outside the party, compatible with the player and free, with a romantic profile")) return t.Line();
+
+         NpcProfile profile = behavior.Store.Get(lady.StringId);
+         int regardBefore = profile.ReputationWithPlayer;
+         bool secretBefore = profile.Romantic.IsSecretLover;
+         RomanticStatus statusBefore = profile.Romantic.Status;
+         int? sinceBefore = profile.Romantic.SecretLoverSinceDay;
+
+         try
+         {
+            profile.ReputationWithPlayer = CompanionSecretAffectionPolicy.MinRegardFor(ModSettings.RelationWarmth);
+            behavior.Store.Set(profile);
+
+            EncounterContext context = EncounterContextBuilder.Build(lady, profile, behavior.GameStateBridge, "hello");
+            ActionOutcome outcome = behavior.GameStateBridge.ExecuteAction(new GameAction {Type = "take_as_secret_lover"}, lady, new ActionContext(profile, null));
+            t.Note($"{lady.Name} (not a companion): taught={context.SecretLoverEligible}, notACompanion={context.SecretLoverNotACompanion}, bridge={(outcome?.WasRefused == true ? "refused: " + outcome.Message : "formed")}");
+            t.Expect("theVerbIsTaughtToANonCompanion", context.SecretLoverEligible, true);
+            t.Expect("theNonCompanionTextIsChosen", context.SecretLoverNotACompanion, true);
+            t.Expect("theBridgeFormsTheBond", outcome?.WasRefused == true, false);
+            t.Expect("sheIsNowASecretLover", behavior.Store.Get(lady.StringId)?.Romantic?.IsSecretLover, true);
+         }
+         finally
+         {
+            profile = behavior.Store.Get(lady.StringId) ?? profile;
+            profile.ReputationWithPlayer = regardBefore;
+            profile.Romantic.IsSecretLover = secretBefore;
+            profile.Romantic.Status = statusBefore;
+            profile.Romantic.SecretLoverSinceDay = sinceBefore;
+            behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
       private static string TestSecretBondBarAgrees(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("secret_bond_bar_agrees");
