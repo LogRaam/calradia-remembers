@@ -28,6 +28,13 @@ namespace CalradiaRemembers.Tests
          LetterReplyReason.Of(LetterReason.AwaitingReply).Should().Be(LetterReason.RomanticCorrespondence);
       }
 
+      // STAKE: answering a love letter does not draw a second confession; the reply is their correspondence (23/11/2026).
+      [Test]
+      public void GIVEN_the_player_answered_a_love_letter_WHEN_they_reply_THEN_the_reply_is_their_correspondence()
+      {
+         LetterReplyReason.Of(LetterReason.LoveConfession).Should().Be(LetterReason.RomanticCorrespondence);
+      }
+
       // Every other occasion carries on as it was: a reply to a proposal is about the proposal.
       [Test]
       public void GIVEN_any_other_letter_answered_WHEN_replied_to_THEN_the_occasion_carries_on()

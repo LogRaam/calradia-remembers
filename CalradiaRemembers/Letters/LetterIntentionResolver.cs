@@ -130,6 +130,15 @@ namespace CalradiaRemembers.Letters
 
             public bool WarDutyStillOpen(string senderId) => WarDutyOpenFor?.Invoke(senderId) ?? true;
 
+            public bool ConfessionStillHeartfelt(string senderId)
+            {
+                NpcProfile profile = NpcMemoryCampaignBehavior.Instance?.Store?.Get(senderId);
+                Hero sender = HeroById(senderId);
+                if (profile == null || sender == null) return true; // cannot assess -> keep
+
+                return LoveConfessionReader.StillHeartfelt(sender, profile);
+            }
+
             private static Hero HeroById(string id)
                 => string.IsNullOrEmpty(id) ? null : Hero.FindFirst(h => h != null && h.StringId == id);
 

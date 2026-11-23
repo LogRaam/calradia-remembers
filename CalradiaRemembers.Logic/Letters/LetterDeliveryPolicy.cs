@@ -35,6 +35,7 @@ namespace CalradiaRemembers.Logic.Letters
         public static bool ShouldDeferWhenNear(LetterReason reason)
         {
             return reason == LetterReason.RomanticCorrespondence
+                || reason == LetterReason.LoveConfession
                 || reason == LetterReason.SpouseCorrespondence
                 || reason == LetterReason.AwaitingReply;
         }
@@ -81,6 +82,7 @@ namespace CalradiaRemembers.Logic.Letters
                 case LetterReason.StanceHostility:
                 case LetterReason.ReinforcementRequest:
                 case LetterReason.VillagesSpared:
+                case LetterReason.LoveConfession:
                 case LetterReason.MarriageProposal:
                 case LetterReason.StanceFavor:
                 case LetterReason.JealousThreat:

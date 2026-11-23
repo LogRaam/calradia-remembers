@@ -39,6 +39,9 @@ namespace CalradiaRemembers.Logic.Letters
 
         /// <summary>The sender's war-duty reckoning with the player is still open (not settled, dropped or closed).</summary>
         bool WarDutyStillOpen(string senderId);
+
+        /// <summary>The sender's love still stands as it did when they wrote (LoveConfessionLetterPolicy.IsStillHeartfelt).</summary>
+        bool ConfessionStillHeartfelt(string senderId);
     }
 
     /// <summary>
@@ -87,6 +90,10 @@ namespace CalradiaRemembers.Logic.Letters
                 // the war ended (the vassal war duty, 15/10/2026).
                 case LetterReason.WarSummons:
                 case LetterReason.WarLevyDemand:           return world.WarDutyStillOpen(senderId);
+
+                // A love letter is stale once the feeling fell below what may be said, or something began or ended
+                // between them on the road: "I have never told you" must not arrive after they did.
+                case LetterReason.LoveConfession:          return world.ConfessionStillHeartfelt(senderId);
                 default:                                   return true;
             }
         }

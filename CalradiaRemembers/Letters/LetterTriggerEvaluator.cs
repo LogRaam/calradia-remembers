@@ -94,6 +94,7 @@ namespace CalradiaRemembers.Letters
 
          CollectEventCandidates(store, llmServices, today, pool, release);
          CollectRomanticCorrespondence(store, llmServices, today, pool, release);
+         CollectLoveConfessions(store, llmServices, today, pool, release);
          CollectAwaitingReplies(store, llmServices, today, pool, release);
          CollectSpouseCorrespondence(store, llmServices, today, pool, release);
          // A parent's proposal is unasked, though it shares its reason with the courtship trial's answer, which is not.
@@ -313,6 +314,70 @@ namespace CalradiaRemembers.Letters
                   capturedProfile, capturedHero, LetterReason.RomanticCorrespondence, context,
                   llmServices, store, today);
          }
+      }
+
+      /// <summary>
+      ///   The love letter (Gabriel, 23/11/2026): a character who has come to love the player, and never said so, writes to
+      ///   confess it. Weighed once a week per character (LoveConfessionLetterPolicy.IsTheirDayToWeigh), only when the
+      ///   conversation itself would let them say it first, once per character, at the companion confession's weekly chance
+      ///   weighed by affinity (culture, traits, the game's courtship attraction; far rarer when married). No follow-up
+      ///   comes of the player's silence (Gabriel: "Pas de relance avec un silence"): CollectAwaitingReplies reads only
+      ///   courtship letters. Exposed for cr.test through <see cref="DebugForceLoveConfessionRoll" />.
+      /// </summary>
+      private void CollectLoveConfessions(
+         BannerlordNpcMemoryStore store, LlmServices llmServices, int today,
+         List<LetterCandidate> pool, Dictionary<LetterCandidate, Action> release)
+      {
+         if (ModSettings.AdultContentLevel == AdultContentLevel.Off || Hero.MainHero == null) return;
+
+         foreach (string id in store.ListIds())
+         {
+            NpcProfile profile = store.Get(id);
+            if (profile?.Romantic == null) continue;
+
+            bool forced = DebugForceLoveConfessionRoll == id;
+            if (!forced && !LoveConfessionLetterPolicy.IsTheirDayToWeigh(today, Logic.Hashing.StableHash.Of(id))) continue;
+
+            Hero hero = Hero.FindFirst(h => h.StringId == id);
+            if (!HeroPresence.IsInTheWorld(hero)) continue;
+            if (!LoveConfessionLetterPolicy.MayConfess(LoveConfessionReader.FactsFor(hero, profile))) continue;
+            if (!CanSendLetter(profile, today, 10)) continue;
+
+            LoveAffinityFacts affinity = LoveConfessionReader.AffinityFor(hero, profile);
+            int permille = LoveConfessionLetterPolicy.WeeklyChancePermille(new Regard(profile.ReputationWithPlayer), ModSettings.RelationWarmth, affinity);
+            if (!forced && MBRandom.RandomInt(1000) >= permille) continue;
+
+            string context = LoveConfessionReader.ContextFor(hero, profile, affinity);
+            int weight = LetterWeights.WeightWithInterest(new LetterWeights.InterestDampers {BaseWeight = LetterWeights.BaseWeight(LetterReason.LoveConfession), SenderInterest = profile.CorrespondenceInterest, SubjectInterest = GetSubjectInterest(LetterReason.LoveConfession), GlobalInterest = GlobalInterest});
+
+            var candidate = new LetterCandidate {
+               Reason = LetterReason.LoveConfession,
+               SenderId = id,
+               Weight = weight,
+               EligibleSinceDay = today
+            };
+            pool.Add(candidate);
+
+            NpcProfile capturedProfile = profile;
+            Hero capturedHero = hero;
+            release[candidate] = () =>
+            {
+               LetterGenerationService.QueueInitialLetter(capturedProfile, capturedHero, LetterReason.LoveConfession, context, llmServices, store, today);
+               ModLog.Info($"[LETTER] {capturedProfile.Name} writes a love letter (weekly chance {permille / 10.0:0.#}%).");
+            };
+         }
+      }
+
+      /// <summary>cr.test only: the id of a character whose love letter skips the weekday and the roll on the next tick (null: none).</summary>
+      internal static string DebugForceLoveConfessionRoll;
+
+      /// <summary>cr.test only: the love letters the real collector would pool today, none of them written (nothing released).</summary>
+      internal List<LetterCandidate> DebugCollectLoveConfessions(BannerlordNpcMemoryStore store, int today)
+      {
+         var pool = new List<LetterCandidate>();
+         CollectLoveConfessions(store, null, today, pool, new Dictionary<LetterCandidate, Action>());
+
+         return pool;
       }
 
       /// <summary>

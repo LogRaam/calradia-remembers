@@ -260,6 +260,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("take_into_service", Severity.Heavy, "the MIRROR direction (13/09/2026, Gabriel's ruling 'un seigneur doit pouvoir recruter'): every other recruiting verb brings somebody INTO the player's household, this one gives somebody away. Finds a spare player companion the pure gate says is free to go and an other-clan lord, runs the REAL bridge take_into_service -> asserts the companion LEFT the player's clan, JOINED the lord's, is NOT a fugitive (the whole reason the executor uses RemoveCompanionAction.ApplyAfterQuest and never ApplyByFire, which runs MakeHeroFugitiveAction), and gained the starting relation with their new lord. Then puts them back and ASSERTS THE RESTORE, so a broken restore is reported rather than quietly costing a real companion. Skips when the campaign has no spare companion or no other-clan lord", TestTakeIntoService),
          new SelfTest("recruit_notable", Severity.Heavy, "find a settlement NOTABLE (gang leader/headman/merchant...) that has an eligible successor in its town, force regard to the floor, run the REAL bridge recruit_notable -> assert the notable is now a companion in your CLAN and PARTY, a starting relation bonus was applied, and the chosen successor holds the vacated notable post (settlement.Notables). Best-effort restore afterwards (recruit_notable is not cleanly reversible: the alley transfer cannot be undone). Skips when no disposable notable+successor pair exists rather than wreck a real campaign", TestRecruitNotable),
          new SelfTest("secret_bond_bar_agrees", Severity.Light, "player report 2026-09-09 ('the NPC is expressing affection, yet the system displays a message stating that intimacy is insufficient'), caused by ONE regard bar living as a literal 50 in three places while only the confession moved onto the Relationship Pacing dial. Drives the REAL EncounterContextBuilder.Build and the REAL bridge action take_as_secret_lover against a compatible companion at exactly MinRegardFor(current pacing) and one point below it, and asserts BOTH engine gates flip on the SAME number the confession uses. A pure test cannot catch this (it would compare the policy with itself); only driving the live sites can. EXTENDED 2026-09-09 with the THIRD site of that same bar, what the NPC may SAY: asserts the LIVE PromptBuilder the chat uses declares from the very number the confession roll measures from, and that the register reads Attachment at the bar and Interest one below it, where an NPC may flirt but must never speak of love nor open a courtship on standing alone. Restores the regard and undoes any bond formed", TestSecretBondBarAgrees),
+         new SelfTest("love_confession_letter", Severity.Light, "Gabriel (23/11/2026): a romance never began on the NPC's side outside companions; 'Une lettre d'aveux ou d'amour serait tres bien', married less likely, no follow-up on silence, affinity by culture and traits. With a lord or lady who is NOT a companion, met and free (put back after): at the declaration bar the REAL collector pools a love letter (roll forced, nothing written); below it, or once confessed, none; a marriage cuts the chance; at delivery the letter goes stale once the feeling falls", TestLoveConfessionLetter),
          new SelfTest("secret_lover_beyond_companions", Severity.Light, "Icezera (Discord 22/11/2026) asked how to keep a bond secret; the secret lover was for companions only. Gabriel: 'il ne devrait pas y avoir de restrictions'. With a lord or lady who is NOT a companion, compatible with the player and free (put back after): at the bar, the REAL EncounterContextBuilder teaches take_as_secret_lover with the non-companion text, and the REAL bridge forms the bond", TestSecretLoverBeyondCompanions),
          new SelfTest("captive_lord_withheld_from_defection", Severity.Heavy, "player report: a held captive lord below the recruit_prisoner regard floor could still narrate accepting the player's offer to defect, though nothing happened (an empty promise). Really captures a capturable in-party lord who is not their own clan's leader, drives EncounterContextBuilder.Build with regard just BELOW PrisonerRecruitmentPolicy.RegardFloor -> assert CanRecruitPrisoner is false and the new CaptiveLordWithheldFromDefection flag is true, then raises regard to the floor -> assert they FLIP (CanRecruitPrisoner true, the new flag false), proving the two are mutually exclusive on live engine facts. Releases the captive and restores regard afterwards", TestCaptiveLordWithheldFromDefection),
          new SelfTest("narrative_patch_scope", Severity.Light, "Found checking a modder's README against the code (tashmetu, 19/09/2026): the cr_patch scanner first read ModuleHelper.GetModules(), which is every module FOUND on disk, enabled or not. A bridge disabled in the launcher still had its prose read into every prompt, and with its assembly not loaded its {{variables}} reached the model as raw braces. Asserts that every module the scanner reads is one the player ENABLED, and that Calradia Remembers itself is among them (proof the list is the live one, not an empty fallback).", TestNarrativePatchScope),
@@ -15085,6 +15086,61 @@ namespace CalradiaRemembers.Diagnostics
             profile.Romantic.IsSecretLover = secretBefore;
             profile.Romantic.Status = statusBefore;
             profile.Romantic.SecretLoverSinceDay = sinceBefore;
+            behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
+      private static string TestLoveConfessionLetter(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("love_confession_letter");
+
+         if (t.Skip(ModSettings.AdultContentLevel == AdultContentLevel.Off, "adult content is off, which gates this whole arc")) return t.Line();
+         Hero lady = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && !h.IsPlayerCompanion && h != Hero.MainHero && !h.IsPrisoner && h.HasMet
+                                                             && h.Spouse != Hero.MainHero && Mapping.HeroPresence.IsInTheWorld(h) && !HeroProximity.IsNearPlayer(h)
+                                                             && LetterCadence.CanSendLetter(behavior.Store.Get(h.StringId), (int) CampaignTime.Now.ToDays, 10)
+                                                             && behavior.Store.Get(h.StringId)?.Romantic is { } r && r.IsCompatibleWith(Hero.MainHero.IsFemale)
+                                                             && r.Status is RomanticStatus.None or RomanticStatus.Curious
+                                                             && behavior.Store.Get(h.StringId).SentLetters.All(l => l.Reason != LetterReason.LoveConfession));
+         if (t.Skip(lady == null, "no lord or lady the player has met, away from the player, free to write, compatible and free, with a romantic profile")) return t.Line();
+
+         NpcProfile profile = behavior.Store.Get(lady.StringId);
+         int regardBefore = profile.ReputationWithPlayer;
+         int today = (int) CampaignTime.Now.ToDays;
+         int bar = CompanionSecretAffectionPolicy.MinRegardFor(ModSettings.RelationWarmth);
+         LetterTriggerEvaluator ev = behavior.LetterEvaluator;
+
+         try
+         {
+            LetterTriggerEvaluator.DebugForceLoveConfessionRoll = lady.StringId;
+
+            profile.ReputationWithPlayer = bar;
+            behavior.Store.Set(profile);
+            bool pooledAtBar = ev.DebugCollectLoveConfessions(behavior.Store, today).Any(c => c.SenderId == lady.StringId);
+            bool heartfeltAtBar = LoveConfessionReader.StillHeartfelt(lady, profile);
+            LoveAffinityFacts affinity = LoveConfessionReader.AffinityFor(lady, profile);
+            int alone = LoveConfessionLetterPolicy.AffinityPercent(new LoveAffinityFacts {GameAttractionPercent = affinity.GameAttractionPercent, SharesCulture = affinity.SharesCulture, TraitAgreement = affinity.TraitAgreement, AttractionToPlayer = affinity.AttractionToPlayer, IsMarried = false});
+            int wed = LoveConfessionLetterPolicy.AffinityPercent(new LoveAffinityFacts {GameAttractionPercent = affinity.GameAttractionPercent, SharesCulture = affinity.SharesCulture, TraitAgreement = affinity.TraitAgreement, AttractionToPlayer = affinity.AttractionToPlayer, IsMarried = true});
+
+            profile.ReputationWithPlayer = bar - 1;
+            behavior.Store.Set(profile);
+            bool pooledBelow = ev.DebugCollectLoveConfessions(behavior.Store, today).Any(c => c.SenderId == lady.StringId);
+            bool heartfeltBelow = LoveConfessionReader.StillHeartfelt(lady, profile);
+
+            t.Note($"{lady.Name} (bar {bar}): pooled at bar={pooledAtBar}, below={pooledBelow}; attraction {affinity.GameAttractionPercent}, culture {affinity.SharesCulture}, traits {affinity.TraitAgreement:+0;-0;0}; affinity {alone}% unwed vs {wed}% wed");
+            t.Expect("aLetterIsPooledAtTheBar", pooledAtBar, true);
+            t.Expect("noneBelowTheBar", pooledBelow, false);
+            t.Expect("theFeelingStandsAtTheBar", heartfeltAtBar, true);
+            t.Expect("itIsStaleOnceTheFeelingFalls", heartfeltBelow, false);
+            t.Expect("theGameAttractionIsRead", affinity.GameAttractionPercent is >= 0 and < 100, true);
+            t.Expect("aMarriageCutsTheChance", wed < alone, true);
+         }
+         finally
+         {
+            LetterTriggerEvaluator.DebugForceLoveConfessionRoll = null;
+            profile = behavior.Store.Get(lady.StringId) ?? profile;
+            profile.ReputationWithPlayer = regardBefore;
             behavior.Store.Set(profile);
          }
 

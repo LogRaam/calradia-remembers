@@ -17,6 +17,7 @@ namespace CalradiaRemembers.Logic.Letters
       /// <summary>The reason a reply to a letter of <paramref name="answered" /> carries.</summary>
       public static LetterReason Of(LetterReason answered)
          // The awaiting-reply follow-up is only ever sent for a romantic letter left unanswered (LetterTriggerEvaluator).
-         => answered == LetterReason.AwaitingReply ? LetterReason.RomanticCorrespondence : answered;
+         // A reply to the player's answer to a love letter is no second confession: it carries on as their correspondence.
+         => answered is LetterReason.AwaitingReply or LetterReason.LoveConfession ? LetterReason.RomanticCorrespondence : answered;
    }
 }

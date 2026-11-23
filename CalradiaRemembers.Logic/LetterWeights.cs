@@ -81,6 +81,9 @@ namespace CalradiaRemembers.Logic
         /// <summary>A lover missing the player: the relationship's heartbeat, not a plot event.</summary>
         public const int WeightRomanticCorrespondence = 55;
 
+        /// <summary>A heart opened for the first time (the love letter, 23/11/2026): weightier than a lover's ordinary letter.</summary>
+        public const int WeightLoveConfession = 65;
+
         /// <summary>The player's own spouse writing from afar: the same tier as any other romantic longing.</summary>
         public const int WeightSpouseCorrespondence = 55;
 
@@ -192,6 +195,7 @@ namespace CalradiaRemembers.Logic
 
                 case LetterReason.AwaitingReply: return WeightAwaitingReply;
                 case LetterReason.RomanticCorrespondence: return WeightRomanticCorrespondence;
+                case LetterReason.LoveConfession: return WeightLoveConfession;
                 case LetterReason.SpouseCorrespondence: return WeightSpouseCorrespondence;
                 case LetterReason.StanceFavor: return WeightStanceFavor;
                 case LetterReason.RealmTidings: return WeightRealmTidings;

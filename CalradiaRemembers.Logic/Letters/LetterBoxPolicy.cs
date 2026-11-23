@@ -52,7 +52,7 @@ namespace CalradiaRemembers.Logic.Letters
             LetterReason.PlayerLetterReply => null,
             LetterReason.FromAnotherMod => null,
             LetterReason.TournamentVictory or LetterReason.BattleVictory or LetterReason.TournamentResult => "congratulations",
-            LetterReason.RomanticCorrespondence or LetterReason.AwaitingReply => "romance",
+            LetterReason.RomanticCorrespondence or LetterReason.AwaitingReply or LetterReason.LoveConfession => "romance",
             LetterReason.SpouseCorrespondence => "spouse",
             LetterReason.SpouseDivorceDemand or LetterReason.SpouseDivorceEscalation => "divorce",
             LetterReason.MarriageProposal => "marriage",

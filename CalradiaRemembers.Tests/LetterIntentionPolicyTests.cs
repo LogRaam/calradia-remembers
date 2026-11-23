@@ -155,6 +155,15 @@ namespace CalradiaRemembers.Tests
             LetterIntentionPolicy.StillHolds(LetterReason.WarLevyDemand, SenderId, new StubWorld {WarDutyOpen = true}).Should().BeTrue();
         }
 
+        // STAKE: a love letter whose feeling cooled, or whose romance began or ended on the road, is never delivered as
+        // "I have never told you" (the love letter, 23/11/2026).
+        [Test]
+        public void GIVEN_a_love_letter_in_transit_WHEN_the_feeling_no_longer_stands_THEN_it_is_stale()
+        {
+            LetterIntentionPolicy.StillHolds(LetterReason.LoveConfession, SenderId, new StubWorld {Heartfelt = true}).Should().BeTrue();
+            LetterIntentionPolicy.StillHolds(LetterReason.LoveConfession, SenderId, new StubWorld {Heartfelt = false}).Should().BeFalse();
+        }
+
         private sealed class StubWorld : ILetterIntentionWorld
         {
             public bool PlayerIsMarried { get; set; }
@@ -180,6 +189,8 @@ namespace CalradiaRemembers.Tests
             public bool SenderStillAdverseToPlayer(string senderId) => Adverse;
             public bool WarDutyOpen { get; set; }
             public bool WarDutyStillOpen(string senderId) => WarDutyOpen;
+            public bool Heartfelt { get; set; }
+            public bool ConfessionStillHeartfelt(string senderId) => Heartfelt;
         }
     }
 }

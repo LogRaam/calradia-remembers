@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 695 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1741 types in 62 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 696 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1744 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 29500+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 30000+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 9500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 6000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -575,7 +575,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `JealousyCultureLoader` | public static class | Loads and caches jealousy_cultures.json from the mod's ModuleData folder, keyed by culture display name ("Khuzait", "Battania", …) to match Mapping.CulturalTraditionsLoader and stay interoperable with conversion mods. |
 | `JealousyCultureProfile` | public class | The on-disk shape of a culture's stance on romantic exclusivity, deserialized from jealousy_cultures.json. |
 
-### CalradiaRemembers.Letters (37)
+### CalradiaRemembers.Letters (38)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -608,6 +608,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterTriggerEvaluator` | public class | Listens to campaign events and evaluates daily conditions to decide when an NPC should initiate a letter to the player. |
 | `LetterViewModel` | public class | View model for the dedicated courier window. |
 | `LetterWindowManager` | public static class | Show/hide lifecycle for the parchment courier window, composed on the shared crash-safe panel host. |
+| `LoveConfessionReader` | internal static class | The campaign side of the love letter: facts, affinity and the Context it is written from. |
 | `ModLetterNotices` | internal static class | What the player did with a letter another mod delivered. |
 | `PlayerLetterService` | public static class | Creates and queues letters from the player to NPCs, runs the daily delivery check, and marks delivered letters as read after the NPC's first response. |
 | `PleaOnLetter` | public class | A call for help as its letter shows it, while it waits for an answer. |
@@ -2539,7 +2540,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LegendPolicy` | public static class | Which battles pass into legend, who has heard of them, and how each tells it. |
 | `LegendTellerFacts` | public class | What ties one character to a legend. |
 
-### CalradiaRemembers.Logic.Letters (46)
+### CalradiaRemembers.Logic.Letters (49)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2581,6 +2582,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `LetterWaitNotice` | public static class | The words shown while an opened letter is being written, and when to repeat them. |
 | `LetterWhereaboutsPolicy` | public static class | The whereabouts wording of a letter. |
 | `LetterWindowMode` | public enum | What the courier window is doing right now. |
+| `LoveAffinityFacts` | public class | What draws a character to the player, beyond how well they know them. |
+| `LoveConfessionFacts` | public class | What decides whether a character may write their love letter at all. |
+| `LoveConfessionLetterPolicy` | public static class | Who may write a love letter, and how likely they are to this week. |
 | `ModLetterFacts` | public class | What a mod's letter has become, as far as the player's side of it goes. |
 | `ModLetterStatusPolicy` | public static class | The status words CrLetters.GetStatus answers with. |
 | `ReplyRiderPolicy` | public static class | When a rider bound for the player is steered again, and the pace that lets it catch them. |

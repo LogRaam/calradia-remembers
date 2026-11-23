@@ -59,6 +59,7 @@ namespace CalradiaRemembers.Tests
             { LetterReason.StandingAim, LetterWeights.WeightStandingAim },
             { LetterReason.AbandonedReproach, LetterWeights.WeightAbandonedReproach },
             { LetterReason.VillagesSpared, LetterWeights.WeightVillagesSpared },
+            { LetterReason.LoveConfession, LetterWeights.WeightLoveConfession },
 
             { LetterReason.ChildSupportRequest, LetterWeights.WeightGuaranteedBypassSentinel },
             { LetterReason.SpouseDivorceDemand, LetterWeights.WeightGuaranteedBypassSentinel },
