@@ -2,7 +2,7 @@
 
 All notable changes to the mod, newest first. Dates are calendar dates.
 
-## v2.8.20.. (open, 2026-11-22)
+## v2.8.20.. 2026-11-22
 
 - **Ctrl+Shift+C copies the whole conversation to the clipboard** (whiskeypatt, Discord 21/11/2026: "Im talking to someone, and they reply, I cannot copy what they wrote (UI wont let me)"; Gabriel: "oui, Ctrl+Shift+C"). Gauntlet text cannot be selected. In any CR window, the shortcut puts the conversation in the clipboard as plain text, "Name: line" with a blank line between messages and the window's markup removed (`ChatTranscriptCopy`, Logic), and a line on screen says so. Ctrl+C alone is left to the input field, which already copies its own selected text (`EditableTextWidget`, 1.4.8 decompile). Pumped with Escape (`ChatManager.HandleCopyShortcut`). ChatTranscriptCopyTests (4), cr.test `chat_copy_conversation` (real clipboard, the player's put back). Not play-verified.
 - **Companions and allies remember whom they fought** (Thoragoros1, Nexus 21/11/2026, 2.8.19, Gemini 3.7 Flash: "This leaves out the single most important fact - who we fought."; Gabriel: "go"). The ally memory read "Fought at Hex's side when Hex broke the enemy near Usanc" and never named the enemy. `BattleMemoryText.Foe` names the side opposite the player: "the host of <leader> (of <realm>)", "a band of Looters", "men of <realm>", the party's own name, else "the enemy" as before; `AllySummary` takes it, for allied lords and companions alike (`WorldEventFeeders.FoeName`). No code reads the line's wording. Mod 405c53e. BattleMemoryTextTests +3, cr.test `companion_battle_memory` extended. Not play-verified.

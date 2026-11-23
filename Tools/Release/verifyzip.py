@@ -82,7 +82,7 @@ LITERALS = [
     ("mod",   "refused a settlement duel from outside the walls"),
     # 2.5.20, fkasad: the conversation you stepped out of comes back.
     ("mod",   "[CONV RESUME] kept"),
-    ("logic", "s side when we broke the enemy together"),   # 2.7.10, tashmetu: worded "{who}'s side" since
+    ("logic", "s side when we broke "),   # 2.8.20, Thoragoros1: the enemy is named, "the enemy" is now a fallback;   # 2.7.10, tashmetu: worded "{who}'s side" since
     # 2.5.22, tashmetu: fed events get a place, cr.heard explains who heard what.
     ("mod",   "is not a settlement StringId, so the event was kept without a place."),
     ("logic", "This character could not hear it even on the day it happened."),
@@ -655,6 +655,15 @@ MUST = [
     ("sdk",   b"IntimateActNames"),
     ("sdk",   b"LessFondActs"),
     ("sdk",   "Gestures they are less fond of:".encode("utf-16-le")),
+    # 2.8.20
+    ("logic", b"ChatTranscriptCopy"),
+    ("logic", b"ChatCopyKeys"),
+    ("logic", b"MattersMostLockPolicy"),
+    ("mod",   b"TestChatCopyConversation"),
+    ("mod",   b"TestMattersMostPinned"),
+    ("mod",   b"HandleCopyShortcut"),
+    ("sdk",   b"MattersMostPinned"),
+    ("sdk",   "WHAT YOU PERCEIVE: only what can be SEEN".encode("utf-16-le")),
     # 2.8.19
     ("logic", b"OwnCommandPolicy"),
     ("logic", b"OwnCommandFacts"),
@@ -1125,6 +1134,8 @@ for path, needle in [("CalradiaRemembers/ModuleData/Quests/wolf_of_the_wood/wolf
                      ("CalradiaRemembers/ModuleData/folklore/sturgia.txt", "The tales the Sturgians tell"),
                      ("CalradiaRemembers/ModuleData/folklore/vakken.txt", "The tales the Vakken tell"),
                      ("CalradiaRemembers/ModuleData/folklore/vlandia.txt", "The tales the Vlandians tell"),
+                     # 2.8.20: the overrides template documents "mattersMost"
+                     ("CalradiaRemembers/ModuleData/character_overrides.json", "\"mattersMost\""),
                      # 2.8.19: the selected memory row draws its tint with its own brush
                      ("CalradiaRemembers/GUI/Brushes/CalradiaRemembersChatText.xml", "CR.MemoryRow"),
                      ("CalradiaRemembers/GUI/Prefabs/CalradiaRemembersChat.xml", "Brush=\"CR.MemoryRow\""),

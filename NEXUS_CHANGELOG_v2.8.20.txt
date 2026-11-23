@@ -1,0 +1,25 @@
+Version 2.8.20
+
+Companions remember whom they fought, your private thoughts stay private, and you can copy a conversation.
+
+New
+
+- Ctrl+Shift+C copies the whole conversation to the clipboard as plain text, one "Name: line" per message, in every chat window. Ctrl+C alone still copies the text you selected in the input field. (Thank you, whiskeypatt.)
+- Character overrides take a "mattersMost" field: what matters most to a character, kept as you wrote it even when their life no longer backs it (a huntress who left her family behind still holds her kin dearest). Take the field out to give it back to the game. (Thank you, Bhelogan.)
+
+Fixed
+
+- Companions and allied lords remembered a battle with its losses but never whom they fought. They now remember the enemy: the host of a named lord and his realm, a band of looters, men of a kingdom. (Thank you, Thoragoros1.)
+- Characters no longer read your mind. What you narrate about your thoughts, your feelings or what you did before you arrived is context for the story, not something they saw or heard, so they no longer quote it back. Words in quotation marks are what you say. Tip: put such narration between *asterisks*; a plain first-person sentence can still be taken as something you told them. (Thank you, whiskeypatt.)
+
+For modders
+
+- NpcProfile.MattersMostPinned: set it when your mod writes MattersMost for the story, and Calradia Remembers keeps the value instead of moving it when the world no longer grounds it. (Thank you, Bhelogan.)
+
+Developer tools
+
+- New cr.test all checks: matters_most_pinned, chat_copy_conversation; companion_battle_memory now also checks that the enemy is named.
+
+Notes
+
+- Saves from 2.8.19 and older load as they are, and your MCM choices are kept.
