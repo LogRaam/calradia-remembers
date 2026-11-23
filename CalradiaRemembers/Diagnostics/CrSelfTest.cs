@@ -341,7 +341,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("realm_tidings", Severity.Light, "Mechanical: drives the REAL RealmTidingsBehavior.DebugEvaluate end to end and proves per-NPC dedup. Seeds a dominant known event for a friendly landed lord (regard forced to 30), asserts a RealmTidings letter candidate is queued and the event id enters the dedup ledger, then re-evaluates and asserts the same event is never relayed twice. Restores the writer's regard, ledger and candidates and removes the seed", TestRealmTidings),
          new SelfTest("siege_tidings_participation", Severity.Light, "Mechanical (player report: told by letter of a siege they FOUGHT IN, days later, as if it were news): stamps the REAL WorldEventFeeders siege-participation marker for a live settlement, then drives the REAL RecordSiegeCapture construction with a NON-player taker (a mere participant, never the credited capturer) -> assert the recorded WorldEvent has InvolvesPlayer true (so realm-tidings' own InvolvesPlayer filter will never relay it back) while Type stays SettlementCaptured and Aggrieved* stay empty (the conquest's attribution is NOT stolen from the real taker). Removes the seeded event afterwards", TestSiegeTidingsParticipation),
          new SelfTest("companion_skirmish_memory", Severity.Light, "Thoragoros1 (Nexus, 15/10/2026): companions remembered none of the early fights (bandits, a patrol, lords' lone parties), because only chronicle-worthy battles left a memory. Arranges a companion in the party with NO profile yet (hired through the game's own dialogue, never spoken to here), drives the real small-fight recorder twice, and asserts a profile is made and keeps ONE memory counting both fights and naming the foe. Puts the companion's own profile back exactly", TestCompanionSkirmishMemory),
-         new SelfTest("companion_battle_memory", Severity.Light, "Mechanical: the companion 'fought together' memory (WorldEventFeeders' main-party companion loop), which a real MapEvent drives in game. Borrows a companion into the party if none rides along, calls the DebugRecordCompanionBattleMemories seam, and asserts the companion's profile gained a fresh 'Fought at your side' memory, then that a second one carries what each side lost (3chmidt, 05/11/2026). Removes the memories it added and returns any borrowed companion", TestCompanionBattleMemory),
+         new SelfTest("companion_battle_memory", Severity.Light, "Mechanical: the companion 'fought together' memory (WorldEventFeeders' main-party companion loop), which a real MapEvent drives in game. Borrows a companion into the party if none rides along, calls the DebugRecordCompanionBattleMemories seam, and asserts the companion's profile gained a fresh 'Fought at your side' memory, then that a second one carries what each side lost (3chmidt, 05/11/2026), then that a third names whom they fought (Thoragoros1, 21/11/2026). Removes the memories it added and returns any borrowed companion", TestCompanionBattleMemory),
          new SelfTest("witness_standing", Severity.Light, "Who the people in the room are, and the speaker's own family in Compact (fearente, Nexus, 29/10/2026: a lady governor spoke to her father, the head of her clan, like a servant; a ruler was treated like an ordinary noble; a brother spoke of a son 'Lorgand' when he has a daughter). Drives the REAL ChatViewModel with a real character and a real living parent brought in as a companion of the player: asserts the parent's line, as the child will read it this turn, names them 'your father' or 'your mother' and, when they lead the child's clan, 'head of your clan'; that the ruler of a realm is named its ruler to a lord of another realm; that the parent's family list closes its children ('and no other children'); and that the Compact prompt, built by the real PromptBuilder, keeps the family (YOUR FAMILY) while RELATIONSHIPS is dropped", TestWitnessStanding),
          new SelfTest("reply_length", Severity.Light, "The MCM Reply Length (RaveN017Mod, Nexus PM, 29/10/2026: replies too long, 'like a novel'). Sets the REAL MCM dropdown to Short, asserts the live chat service is rebuilt with it (no restart) and that the real prompt for a real character teaches 1 to 3 sentences and not the shipped 3-7; then restores the player's choice", TestReplyLength),
          new SelfTest("participants_panel", Severity.Light, "The chat's participants panel (RaveN017Mod, Nexus PM, 29/10/2026: invited clan members 'often don't interact much at all', and he wanted a way to make clear who he addresses; Gabriel's answer the same day: a panel listing the active voices and the witnesses, a click on a witness makes them active). Drives the REAL ChatViewModel with a real lord and three real witnesses brought in through AddWitness: asserts the panel is offered and lists all four, that a click on a witness turns the player to them and draws them in, that the third voice fills the table and a fourth is answered but stays a witness (three at most: each voice is a model call every turn), that Step back sends a voice back and returns the player to the lord when it was the one addressed, and that an emptied room (a private audience) takes the departed out of the cast so the scene is no longer an ensemble", TestParticipantsPanel),
@@ -466,6 +466,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("silver_taste", Severity.Light, "EvilPoptart1987 (Nexus, 09/11/2026): many characters loved 'silver', which only raw Silver Ore carried; the silverware is of category jewelry. Reads the game's own Silver Ore and silverware categories (ore is nothing special, silverware is jewelry), then gives a lord already met a taste for silver as an older save holds it, loved and learned, and asserts the next reading turns it into jewelry. The lord's tastes are put back", TestSilverTaste),
          new SelfTest("gift_tastes", Severity.Light, "Gabriel (27/10/2026): 'un NPC pourrait [...] preferer certains cadeaux [...] Une Dame pourrait aimer les fourrures'. With a lord already met, arranged to love furs (put back after): a fur handed over through the real give_item path (the bag-picked way) is read as furs from the item's own category, earns twice the regard its value would, is remembered as a gift after their own heart, and the player now knows the taste, which their What You Know section names. Characters met before 2.8.0 are rolled their tastes on the next reading. Picks a lord with no grudge against you; what stays behind in the save: the fur's remembered kindness and the small trust a gift builds with that lord", TestGiftTastes),
          new SelfTest("matters_most", Severity.Light, "Gabriel (27/10/2026): 'qu'est-ce qui compte le plus pour un NPC. Ses enfants? Sa richesse? Son amoureux?', and 'il faudra penser a les indiquer dans des sections de l'encyclopedia'. With a married lord (put back after): read through the real load path, what matters most to him is chosen and true of him; his page says nothing of it until he says it himself; the reserved discovery from his reply marks it learned without a free-text discovery beside it, and his What You Know section names it; an anchor whose ground is gone (a spouse he does not have) is moved at the next reading", TestMattersMost),
+         new SelfTest("matters_most_pinned", Severity.Light, "Bhelogan (Discord 21/11/2026): a Muh Prompts user set Isilflead's what matters most to Kin and CR moved it back to Glory at the next refresh ('its ground fell'). With an unwed lord (put back after): pinned to Spouse, the REAL refresh (MattersMostReader.Refresh) keeps it; unpinned, the same refresh moves it as before; and the overrides file is plugged in (MattersMostReader.AuthoredSource)", TestMattersMostPinned),
          new SelfTest("summoned_meeting_on_backdrop", Severity.Light, "Gabriel (26/10/2026, Rhagaea's night): the conversation a scenario's tale brings to the player opened over the game's own map conversation (the Empress in armour among her guards in the street, her vanilla greeting under the video of her bed) and the chat stayed empty until he typed. Opens the REAL summoned meeting with a lord, nothing else on screen: the chat sits on the scene's dark backdrop, no vanilla conversation runs, the character's opening line is pending (its call is aborted by the close). Then closes it: the backdrop is gone and the map is given back as it was", TestSummonedMeetingOnBackdrop),
          new SelfTest("scene_close_gives_the_map_back", Severity.Light, "fkasad (Nexus, 07/10/2026): closing a tale's scene left a black screen with no way back. The close queued the backdrop's pop for the next frame, then wiped its own queue at the end. Opens a scene through the real door (its narration refused before any model call, so the log shows one [SCENE] error on purpose), closes it as the button does, runs one frame: the scene's own close must have run, what it queued must have run, and the map must be given back.", TestSceneCloseGivesTheMapBack),
          new SelfTest("scene_backdrop_suspends_the_map", Severity.Light, "Gabriel's play test (04/10/2026): closing a written tale's scene crashed the game natively; the scene had opened over the bare live map, which the hosting rule forbids. The scene's chat now sits on a pushed GameState. Opens that backdrop through the real host: the map must be suspended (a CrPanelState active, the settlement-visual tick suppressed), then given back exactly as it was, with the clock stopped. Opens no chat.", TestSceneBackdropSuspendsTheMap),
@@ -17211,6 +17212,45 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      private static string TestMattersMostPinned(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("matters_most_pinned");
+
+         if (t.Abort(behavior.Store == null, "memory store not active")) return t.Line();
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && !h.IsChild && h != Hero.MainHero && h.Spouse == null && h.ExSpouses?.Any() != true
+                                                            && behavior.Store.Get(h.StringId) != null);
+         if (t.Skip(lord == null, "no unwed lord with a profile on this campaign")) return t.Line();
+
+         NpcProfile profile = behavior.Store.Get(lord.StringId);
+         MattersMost was = profile.MattersMost;
+         bool wasKnown = profile.MattersMostKnown, wasPinned = profile.MattersMostPinned;
+
+         try
+         {
+            t.Expect("theOverridesFileIsPluggedIn", Mapping.MattersMostReader.AuthoredSource != null, true);
+
+            profile.MattersMost = MattersMost.Spouse;
+            profile.MattersMostPinned = true;
+            Mapping.MattersMostReader.Refresh(lord, profile);
+            t.Note($"{lord.Name}, unwed, pinned to Spouse: now {profile.MattersMost}");
+            t.Expect("aPinnedValueIsHeld", profile.MattersMost, MattersMost.Spouse);
+
+            profile.MattersMostPinned = false;
+            Mapping.MattersMostReader.Refresh(lord, profile);
+            t.Note($"unpinned: now {profile.MattersMost}");
+            t.Expect("anUnpinnedValueFollowsTheWorld", profile.MattersMost != MattersMost.Spouse, true);
+         }
+         finally
+         {
+            profile.MattersMost = was;
+            profile.MattersMostKnown = wasKnown;
+            profile.MattersMostPinned = wasPinned;
+            behavior.Store.Set(profile);
+         }
+
+         return t.Line();
+      }
+
       private static string TestMattersMost(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("matters_most");
@@ -28977,9 +29017,17 @@ namespace CalradiaRemembers.Diagnostics
          profile = behavior.Store.Get(companion.StringId);
          t.Expect("theMemoryTellsWhatEachSideLost", profile.Events.LastOrDefault()?.summary == expectedWithLosses, true);
 
+         // Thoragoros1 (Nexus, 21/11/2026): the memory names whom they fought.
+         string foe = BattleMemoryText.Foe(new BattleSideFacts {PartyName = "Looters", IsBandit = true});
+         WorldEventFeeders.DebugRecordCompanionBattleMemories(true, losses, foe);
+         profile = behavior.Store.Get(companion.StringId);
+         string withFoe = profile.Events.LastOrDefault()?.summary ?? "";
+         t.Note($"with the foe: '{withFoe}'");
+         t.Expect("theMemoryNamesWhomTheyFought", withFoe.Contains("broke a band of Looters"), true);
+
          // Cleanup: drop only the ally memories this test planted (these exact summaries, dated today). Whatever
          // ArrangedCompanion did (reused/borrowed/minted) is undone by its own Dispose.
-         profile.Events.RemoveAll(e => e.gameDay == today && (e.summary == expected || e.summary == expectedWithLosses));
+         profile.Events.RemoveAll(e => e.gameDay == today && (e.summary == expected || e.summary == expectedWithLosses || e.summary == withFoe));
          behavior.Store.Set(profile);
 
          return t.Line();

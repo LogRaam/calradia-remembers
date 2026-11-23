@@ -61,6 +61,20 @@ namespace CalradiaRemembers.Logic
         public string Conviction { get; set; }
 
         /// <summary>
+        ///   Optional "what matters most" (a MattersMost name: Children, Spouse, Lover, ThePlayer, Kin, HouseHonor, Wealth,
+        ///   Power, Glory, Lands, Freedom, Vengeance). Held as written even when the world no longer grounds it
+        ///   (Bhelogan, 21/11/2026), read live: taking it out gives the character back to the usual rule.
+        /// </summary>
+        public string MattersMost { get; set; }
+
+        /// <summary>The authored "what matters most" parsed, or null when unset or not a known name.</summary>
+        public MattersMost? ParsedMattersMost
+            => !string.IsNullOrWhiteSpace(MattersMost) && System.Enum.TryParse(MattersMost.Trim().Replace(" ", ""), true, out NpcMemoryService.Core.Models.MattersMost m)
+               && m != NpcMemoryService.Core.Models.MattersMost.None && System.Enum.IsDefined(typeof(NpcMemoryService.Core.Models.MattersMost), m)
+                ? m
+                : null;
+
+        /// <summary>
         ///   Optional authored sexual orientation (a human word: straight, bi, gay/lesbian, pan, asexual...).
         ///   Overrides the NPC's rolled orientation, e.g. to enable a same-sex romance the roll blocked.
         /// </summary>
@@ -155,7 +169,7 @@ namespace CalradiaRemembers.Logic
         /// </summary>
         public bool HasAnyAuthoredContent =>
             HasTraits || ParsedKinks != null || ParsedPreferences != null || HasBackstory || HasConviction || HasOrientationText
-            || Loves != null || Dislikes != null || LessFond != null || HasPast;
+            || Loves != null || Dislikes != null || LessFond != null || HasPast || !string.IsNullOrWhiteSpace(MattersMost);
 
         /// <summary>
         ///   True when the entry locks something kept on the STORED romantic profile and read back as it is: the gestures
@@ -190,6 +204,9 @@ namespace CalradiaRemembers.Logic
 
             foreach (string problem in (Past ?? new List<PastBond>()).SelectMany(PastBondPolicy.Problems))
                 yield return problem;
+
+            if (!string.IsNullOrWhiteSpace(MattersMost) && ParsedMattersMost == null)
+                yield return $"mattersMost \"{MattersMost.Trim()}\" is not recognized and will be ignored (try: Children, Spouse, Lover, ThePlayer, Kin, HouseHonor, Wealth, Power, Glory, Lands, Freedom, Vengeance)";
         }
 
         /// <summary>The authored orientation parsed to an enum, or null when unset/unrecognized.</summary>

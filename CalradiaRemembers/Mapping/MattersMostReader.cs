@@ -64,6 +64,12 @@ namespace CalradiaRemembers.Mapping
                                                  .Select(g => new GrudgeSighting {AgainstThePlayer = g.TargetId == playerId, KnownToPlayer = g.KnownToPlayer}));
       }
 
+      /// <summary>
+      ///   The "mattersMost" written in character_overrides.json for a hero, or null. Plugged in by
+      ///   <c>Lore.CharacterLoreBehavior</c>, as EncounterContextBuilder.PastBondSource is: Lore already uses Mapping.
+      /// </summary>
+      public static Func<Hero, MattersMost?> AuthoredSource { get; set; }
+
       /// <summary>Chooses or keeps what matters most to them; logs a change.</summary>
       internal static void Refresh(Hero hero, NpcProfile profile)
       {
@@ -71,12 +77,16 @@ namespace CalradiaRemembers.Mapping
          {
             if (hero == null || profile == null || hero == Hero.MainHero) return;
             MattersMost before = profile.MattersMost;
-            MattersMost now = MattersMostPolicy.Resolve(before, FactsOf(hero, profile));
+            // Bhelogan (21/11/2026): a value written on purpose (character_overrides.json, or pinned by another mod) is held.
+            var lockFacts = new MattersMostLockFacts {Current = before, Authored = AuthoredSource?.Invoke(hero), Pinned = profile.MattersMostPinned};
+            MattersMost? held = MattersMostLockPolicy.Held(lockFacts);
+            MattersMost now = held ?? MattersMostPolicy.Resolve(before, FactsOf(hero, profile));
             if (now == before) return;
 
             profile.MattersMost = now;
             profile.MattersMostKnown = MattersMostPolicy.StillKnown(before, now, profile.MattersMostKnown);
-            if (before != MattersMost.None) ModLog.Info($"[MATTERS] {hero.Name}: what matters most moved from {before} to {now} (its ground fell).");
+            if (held != null) ModLog.Info($"[MATTERS] {hero.Name}: what matters most set to {now} ({MattersMostLockPolicy.Why(lockFacts)}).");
+            else if (before != MattersMost.None) ModLog.Info($"[MATTERS] {hero.Name}: what matters most moved from {before} to {now} ({before} no longer grounded).");
          }
          catch (Exception ex)
          {

@@ -7,9 +7,12 @@
 // tashmetu (Nexus, 13/10/2026, via cr.prompt_dump): "Fought at Can's side when they broke the enemy" left "they"
 // reading as either the player or the army. The solo branches (sharedEffort: false) now name the one who broke
 // the enemy explicitly instead of "they", so the existing pins below changed with it.
+// Thoragoros1 (Nexus, 21/11/2026, 2.8.19): companions remembered the losses but never whom they fought, "the single most
+// important fact". The line now names the enemy side when the game knows it, and keeps "the enemy" only when it does not.
 
 #region
 
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Battles;
 using FluentAssertions;
 using NUnit.Framework;
@@ -108,6 +111,36 @@ namespace CalradiaRemembers.Tests
             BattleMemoryText.ChronicleEngagement(BattleSetting.Raid, "Ostican").Should().Be("the raid on Ostican");
             BattleMemoryText.ChronicleEngagement(BattleSetting.OpenField, "Pravend").Should().Be("open battle near Pravend");
             BattleMemoryText.ChronicleEngagement(BattleSetting.OpenField, "").Should().Be("open battle");
+        }
+
+        // STAKE: Thoragoros1's companion could not talk about the battle because the memory never said whom they fought.
+        [Test]
+        public void GIVEN_a_known_enemy_WHEN_the_ally_memory_is_written_THEN_it_names_whom_they_fought()
+        {
+            BattleMemoryText.AllySummary(true, " near Usanc", false, "Hex", "a band of Looters")
+                            .Should().Be("Fought at Hex's side when Hex broke a band of Looters near Usanc.");
+            BattleMemoryText.AllySummary(false, "", true, "Hex", "men of Vlandia")
+                            .Should().Be("Fought at Hex's side when we stood against men of Vlandia.");
+        }
+
+        // STAKE: when the game knows nothing of the enemy, the line reads as before rather than inventing a name.
+        [Test]
+        public void GIVEN_no_enemy_known_WHEN_the_ally_memory_is_written_THEN_it_keeps_the_enemy()
+        {
+            BattleMemoryText.AllySummary(true, "", true, "Hex", null).Should().Be("Fought at Hex's side when we broke the enemy together.");
+        }
+
+        // STAKE: a lord's host is named by its leader and realm, so the companion can speak of him and his kingdom.
+        [Test]
+        public void GIVEN_an_enemy_side_WHEN_it_is_named_THEN_leader_then_band_then_realm_then_party_name()
+        {
+            BattleMemoryText.Foe(new BattleSideFacts {LeaderName = "Count Aldric", FactionName = "Vlandia", PartyName = "Aldric's Party"})
+                            .Should().Be("the host of Count Aldric (of Vlandia)");
+            BattleMemoryText.Foe(new BattleSideFacts {LeaderName = "Count Aldric"}).Should().Be("the host of Count Aldric");
+            BattleMemoryText.Foe(new BattleSideFacts {IsBandit = true, PartyName = "Sea Raiders", FactionName = "Sea Raiders"}).Should().Be("a band of Sea Raiders");
+            BattleMemoryText.Foe(new BattleSideFacts {FactionName = "Vlandia", PartyName = "Villagers"}).Should().Be("men of Vlandia");
+            BattleMemoryText.Foe(new BattleSideFacts {PartyName = "A caravan"}).Should().Be("A caravan");
+            BattleMemoryText.Foe(new BattleSideFacts()).Should().BeNull();
         }
     }
 }

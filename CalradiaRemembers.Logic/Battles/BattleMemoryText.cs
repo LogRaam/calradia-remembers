@@ -71,18 +71,43 @@ namespace CalradiaRemembers.Logic.Battles
         ///     reusing "they".
         ///   </para>
         /// </summary>
-        public static string AllySummary(bool playerWon, string placeClause, bool sharedEffort, string playerName = null)
+        public static string AllySummary(bool playerWon, string placeClause, bool sharedEffort, string playerName = null, string foe = null)
         {
             string who = NameOrPlayer(playerName);
+            // Thoragoros1 (Nexus, 21/11/2026, 2.8.19): "This leaves out the single most important fact - who we fought."
+            string enemy = string.IsNullOrWhiteSpace(foe) ? "the enemy" : foe.Trim();
 
             if (playerWon)
                 return sharedEffort
-                    ? $"Fought at {who}'s side when we broke the enemy together{placeClause}."
-                    : $"Fought at {who}'s side when {who} broke the enemy{placeClause}.";
+                    ? $"Fought at {who}'s side when we broke {enemy} together{placeClause}."
+                    : $"Fought at {who}'s side when {who} broke {enemy}{placeClause}.";
 
             return sharedEffort
-                ? $"Fought at {who}'s side when we stood against the enemy{placeClause}."
-                : $"Fought at {who}'s side when {who} stood against the enemy{placeClause}.";
+                ? $"Fought at {who}'s side when we stood against {enemy}{placeClause}."
+                : $"Fought at {who}'s side when {who} stood against {enemy}{placeClause}.";
+        }
+
+        /// <summary>
+        ///   The enemy as an ally's memory names it: "the host of Count Aldric (of Vlandia)", "a band of Looters", "men of
+        ///   Vlandia", the party's own name, or null when nothing is known (the line then keeps "the enemy").
+        ///   <para>
+        ///     Thoragoros1 (Nexus, 21/11/2026): companions remembered "Fought at Hex's side when Hex broke the enemy near
+        ///     Usanc" with the losses, and never whom: "the 'who' shapes everything they say about the battle, even more
+        ///     than the numbers."
+        ///   </para>
+        /// </summary>
+        public static string Foe(BattleSideFacts side)
+        {
+            if (side == null) return null;
+            string realm = string.IsNullOrWhiteSpace(side.FactionName) || side.IsBandit ? null : side.FactionName.Trim();
+
+            if (!string.IsNullOrWhiteSpace(side.LeaderName))
+                return realm == null ? $"the host of {side.LeaderName.Trim()}" : $"the host of {side.LeaderName.Trim()} (of {realm})";
+
+            if (side.IsBandit) return string.IsNullOrWhiteSpace(side.PartyName) ? "a band of outlaws" : $"a band of {side.PartyName.Trim()}";
+            if (realm != null) return $"men of {realm}";
+
+            return string.IsNullOrWhiteSpace(side.PartyName) ? null : side.PartyName.Trim();
         }
 
         /// <summary>

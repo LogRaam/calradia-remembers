@@ -112,6 +112,10 @@ namespace CalradiaRemembers.Lore
          profile.AuthoredConviction = ConvictionFor(hero);
       }
 
+      /// <summary>The authored "what matters most" for this hero (held as written), or null when unset or custom traits are off (Bhelogan, 21/11/2026).</summary>
+      public static MattersMost? MattersMostFor(Hero hero)
+         => ModSettings.UseCustomTraits ? For(hero)?.ParsedMattersMost : null;
+
       /// <summary>
       ///   The authored sexual orientation for <paramref name="hero" /> when custom data is enabled and set,
       ///   else null. Synced onto the NPC's RomanticProfile before each prompt so an edit takes effect live.

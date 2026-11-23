@@ -47,6 +47,7 @@ A conviction **grants no powers** (he may hoard bones, he cannot raise the dead)
 
 ## The other fields
 - `"orientation"`: `straight`, `bi`, `gay`, `lesbian`, `pan`, `ace`... replaces the game's roll, e.g. for a romance it blocked. (`cr.orientation` changes it for the session only; the file makes it permanent.)
+- `"mattersMost"`: what matters most to them, **kept as you wrote it** even when the world no longer backs it (a huntress who left her family behind still holds her kin dearest): `Children`, `Spouse`, `Lover`, `ThePlayer`, `Kin`, `HouseHonor`, `Wealth`, `Power`, `Glory`, `Lands`, `Freedom`, `Vengeance`. Without it, the game picks it and moves it as their life changes.
 - `"preferences"`: **how** they love: `MonogamousStrict`, `Polyamorous`, `Devoted`, `Possessive`, `SlowBurn`... One polyamorous character in a strictly monogamous culture, for instance.
 - Adult content (Hardcore level only): `"kinks"`, and the gestures they `"loves"`, are `"lessFond"` of, or `"dislikes"`.
 Every valid name is listed at the top of the template.

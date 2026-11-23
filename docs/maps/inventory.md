@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 695 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1737 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1739 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2024,7 +2024,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RansomOfferFacts` | public class | Who holds the player when the game is about to offer a ransom. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 
-### CalradiaRemembers.Logic.Character (32)
+### CalradiaRemembers.Logic.Character (34)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2050,6 +2050,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeldGoods` | public class | One stack the party holds, as the key reads it. |
 | `LaidOutGood` | public class | One good laid out in the bag for a sale: how many were set out, and how many the player holds now. |
 | `MattersMostFacts` | public class | What is true of a character, as what matters most to them is chosen from it. |
+| `MattersMostLockFacts` | public class | What decides whether a character's "what matters most" is left to the world or held as written. |
+| `MattersMostLockPolicy` | public static class | The value held, when one is held, and why. |
 | `MattersMostPageFacts` | public class | What the encyclopedia says of what matters most to a character. |
 | `MattersMostPolicy` | public static class | Chooses, keeps and words what matters most to a character. |
 | `NatureFacts` | public class | Who is rolled for a fear and a superstition. |
