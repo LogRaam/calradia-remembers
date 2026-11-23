@@ -10,7 +10,10 @@
 // So this map follows the value, not the name. For every rule the mod feeds (an object initializer of a type declared in
 // CalradiaRemembers.Logic, or a call into a static class declared there), it reads the expressions that fill it and
 // lists the member chains they end on, keyed by owner and member ("Clan.Tier", "Hero.Spouse", "ModSettings.RelationWarmth").
-// A value passed through a local, or through a helper method of the same type, is followed up to three steps.
+// A value passed through a local, or through a helper method of the same type, is followed up to three steps. An object
+// FOUND by navigation or lookup and then read by a member ("profile.X", profile from "store.Get(spouse.StringId)") is
+// followed only to a reader: what found it is not what the rule reads (23/11/2026, Hero.Spouse credited to the letter
+// weights). A COMPUTED object ("deal.Price", deal from the purse) is followed whole.
 //
 // It reads syntax, not types, so a key is a best guess and says how it was made: a parameter or local with a declared
 // type is keyed by that type ("Hero lord" gives "Hero.Spouse"), a property by its own name ("h.Clan.Tier" gives
@@ -212,11 +215,22 @@ namespace CalradiaRemembers.Tests.Maps
          {
             if (id.Parent is MemberAccessExpressionSyntax m && m.Name == id) continue;
 
+            // An object FOUND rather than computed, whose member is read ("profile.CorrespondenceInterest" with profile from
+            // "store.Get(spouse.StringId)"), is not itself the fact: following it credited the rule with what found the
+            // object (Hero.Spouse given to the letter weights, 23/11/2026). Found by navigation or lookup, it is followed
+            // only to a reader (StatureReader.OfClan keys a stature): the same rule as "the last link of each chain only"
+            // above. Computed ("deal.Price" from the purse), it is followed whole, since the value depends on its inputs.
+            bool receiver = id.Parent is MemberAccessExpressionSyntax {Expression: var r} && r == id
+                            || id.Parent is ConditionalAccessExpressionSyntax {Expression: var c} && c == id;
+
             VariableDeclaratorSyntax local = id.Ancestors().OfType<MemberDeclarationSyntax>().FirstOrDefault()?
                                                .DescendantNodes().OfType<VariableDeclaratorSyntax>()
                                                .FirstOrDefault(v => v.Identifier.Text == id.Identifier.Text && v.Initializer != null);
-            if (local != null && !local.Span.Contains(id.Span))
-               foreach (string f in FactsIn(local.Initializer!.Value, logicTypes, hop + 1)) yield return f;
+            if (local == null || local.Span.Contains(id.Span)) continue;
+
+            bool found = receiver && IsLookup(local.Initializer!.Value);
+            foreach (string f in FactsIn(local.Initializer!.Value, logicTypes, hop + 1))
+               if (!found || IsReader(f.Substring(0, Math.Max(0, f.IndexOf('.'))))) yield return f;
          }
 
          foreach (InvocationExpressionSyntax call in expression.DescendantNodesAndSelf().OfType<InvocationExpressionSyntax>())
@@ -239,6 +253,37 @@ namespace CalradiaRemembers.Tests.Maps
                   : helper.DescendantNodes().OfType<ReturnStatementSyntax>().Select(r => r.Expression).Where(e => e != null)!;
             foreach (ExpressionSyntax part in body)
                foreach (string f in FactsIn(part, logicTypes, hop + 1)) yield return f;
+         }
+      }
+
+      /// <summary>Whether an initializer FINDS an object (navigation, or a lookup verb) rather than computing a value.</summary>
+      private static bool IsLookup(ExpressionSyntax e)
+      {
+         while (true)
+         {
+            switch (e)
+            {
+               case ParenthesizedExpressionSyntax p: e = p.Expression; continue;
+               case PostfixUnaryExpressionSyntax u: e = u.Operand; continue;
+               case BinaryExpressionSyntax {RawKind: (int) Microsoft.CodeAnalysis.CSharp.SyntaxKind.CoalesceExpression} b: e = b.Left; continue;
+               case CastExpressionSyntax c: e = c.Expression; continue;
+               case IdentifierNameSyntax:
+               case MemberAccessExpressionSyntax:
+               case ElementAccessExpressionSyntax:
+                  return true;
+               case ConditionalAccessExpressionSyntax ca:
+                  return ca.WhenNotNull is not InvocationExpressionSyntax inv || Plumbing.Contains(LastIdentifier(inv.Expression) ?? (inv.Expression as MemberBindingExpressionSyntax)?.Name.Identifier.Text ?? "");
+               case InvocationExpressionSyntax call:
+                  string verb = call.Expression switch {
+                     MemberAccessExpressionSyntax m => m.Name.Identifier.Text,
+                     IdentifierNameSyntax i => i.Identifier.Text,
+                     _ => null
+                  };
+
+                  return verb != null && Plumbing.Contains(verb);
+               default:
+                  return false;
+            }
          }
       }
 
