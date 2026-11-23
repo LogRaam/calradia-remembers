@@ -4038,10 +4038,10 @@ _Courier audit (island report): ONE courier in flight per sender. Without this g
 
 ### CourierHirePlacePolicyTests.cs
 
-_Where the player may hire a courier. raphareish (Nexus, 10/10/2026): "sending letters from castles and villages?" The only door was the town tavern keeper, and castles and villages have no tavern. If this rule is wrong, a castle or a village still offers no courier, or a town shows the service twice (its tavern keeper and its menu)._
+_Where the player may hire a courier. raphareish (Nexus, 10/10/2026): "sending letters from castles and villages?" The only door was the town tavern keeper, and castles and villages have no tavern. Kamen (Discord, 23/11/2026) then found it in a castle's menu and looked for it in vain in a town's. If this rule is wrong, a castle or a village offers no courier, or a town's menu lacks the service its castles' menus show._
 
-- GIVEN a castle or a village, WHEN its menu opens, THEN a courier can be hired there
-- GIVEN a town or no settlement, WHEN the menu is read, THEN it offers no courier of its own
+- GIVEN a town a castle or a village, WHEN its menu opens, THEN a courier can be hired there
+- GIVEN no settlement, WHEN the menu is read, THEN no courier is offered
 
 ### CourierRationPolicyTests.cs
 

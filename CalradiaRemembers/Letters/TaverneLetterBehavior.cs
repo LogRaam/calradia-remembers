@@ -65,8 +65,9 @@ namespace CalradiaRemembers.Letters
                 OnHireCourier);
 
             // raphareish (Nexus, 10/10/2026): castles and villages have no tavern, so they had no courier at all, though
-            // the courier rides from any gate. The same service in their own menu (CourierHirePlacePolicy).
-            foreach (string menu in new[] {"castle", "village"})
+            // the courier rides from any gate. The same service in their own menu (CourierHirePlacePolicy). Kamen
+            // (Discord, 23/11/2026) then looked for it in a town's menu: a town offers it there too, beside its keeper.
+            foreach (string menu in new[] {"town", "castle", "village"})
                 starter.AddGameMenuOption(menu, "cr_send_letter_" + menu, $"Send a letter (courier, {CourierHireCost} denars)",
                     MenuCondition, _ => OnHireCourier());
         }
@@ -79,7 +80,7 @@ namespace CalradiaRemembers.Letters
                : s.IsVillage ? CourierHirePlace.Village
                : CourierHirePlace.Elsewhere;
 
-        /// <summary>Shown in a castle's or a village's menu when someone can be written to; greyed, with why, when the fee cannot be paid.</summary>
+        /// <summary>Shown in a town's, a castle's or a village's menu when someone can be written to; greyed, with why, when the fee cannot be paid.</summary>
         private static bool MenuCondition(MenuCallbackArgs args)
         {
             args.optionLeaveType = GameMenuOption.LeaveType.Submenu;
