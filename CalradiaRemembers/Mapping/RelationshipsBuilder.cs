@@ -139,11 +139,19 @@ namespace CalradiaRemembers.Mapping
             parts.Add($"Mother: {FormatKin(hero.Mother)}{Partner(hero.Mother)}");
 
          // Maifailun (07/10/2026): Lidia, wed into the Takhi, knew her father's name but not the house she was born
-         // into, and claimed she was born a Takhi. The engine's origin clan says it; the father's house stands in.
-         Clan born = Marriage.HeroClanCompat.OriginClanOrNull(hero) ?? hero.Father?.Clan ?? hero.Mother?.Clan;
+         // into, and claimed she was born a Takhi. EvilPoptart1987 (21/11/2026): a wife married before the campaign
+         // began has her husband's clan as OriginClan (the engine stamps the first clan ever given), so the parents
+         // decide then (BirthClanPolicy).
+         BirthClanSource source = ResolveBirthClanSource(hero);
+         Clan born = source switch {
+            BirthClanSource.Origin => Marriage.HeroClanCompat.OriginClanOrNull(hero),
+            BirthClanSource.Father => hero.Father?.Clan,
+            BirthClanSource.Mother => hero.Mother?.Clan,
+            _ => null
+         };
          string birthHouse = BirthHouseText.Line(new BirthHouseFacts {
             CurrentClan = hero.Clan?.Name?.ToString(), BirthClan = born?.Name?.ToString(), BirthRealm = born?.Kingdom?.Name?.ToString(),
-            ByMarriage = hero.Spouse != null || hero.ExSpouses?.Any() == true
+            ByMarriage = hero.Spouse != null || hero.ExSpouses?.Any() == true, HouseUnknown = source == BirthClanSource.MarriedInUnknownHouse
          });
          if (birthHouse != null) parts.Add(birthHouse);
 
@@ -181,6 +189,22 @@ namespace CalradiaRemembers.Mapping
             }).ToList());
             if (late != null) sb.AppendLine(late);
          }
+      }
+
+      /// <summary>Which house the hero was born into, read from the engine's OriginClan and the parents. Internal: cr.test reads it.</summary>
+      internal static BirthClanSource ResolveBirthClanSource(Hero hero)
+      {
+         Clan clan = hero?.Clan;
+         if (clan == null) return BirthClanSource.None;
+
+         Hero spouse = hero.Spouse ?? hero.ExSpouses?.Where(s => s != null).LastOrDefault();
+         bool spouseOfBlood = spouse != null && (spouse.Father?.Clan == clan || spouse.Mother?.Clan == clan || clan.Leader == spouse);
+
+         return BirthClanPolicy.Resolve(new BirthClanFacts {
+            CurrentClan = clan.StringId, OriginClan = Marriage.HeroClanCompat.OriginClanOrNull(hero)?.StringId,
+            FatherClan = hero.Father?.Clan?.StringId, MotherClan = hero.Mother?.Clan?.StringId,
+            IsMarried = spouse != null, LeadsTheClan = clan.Leader == hero, SpouseIsOfTheClanByBlood = spouseOfBlood
+         });
       }
 
       /// <summary>Of an age to have children, by the game's own coming of age.</summary>

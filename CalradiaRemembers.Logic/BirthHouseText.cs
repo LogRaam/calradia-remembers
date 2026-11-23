@@ -19,6 +19,9 @@ namespace CalradiaRemembers.Logic
 
       /// <summary>The character is or was married: the move between houses is told as a marriage only then.</summary>
       public bool ByMarriage { get; init; }
+
+      /// <summary>Married in from a house the game does not name (BirthClanSource.MarriedInUnknownHouse); BirthClan is then empty.</summary>
+      public bool HouseUnknown { get; init; }
    }
 
    /// <summary>The family line's note on the birth house. Pure.</summary>
@@ -27,7 +30,13 @@ namespace CalradiaRemembers.Logic
       /// <summary>"Born into the Comnos (of the Western Empire); joined the Takhi by marriage.", or null when there is nothing to say.</summary>
       public static string Line(BirthHouseFacts f)
       {
-         if (f == null || string.IsNullOrWhiteSpace(f.BirthClan) || string.IsNullOrWhiteSpace(f.CurrentClan)) return null;
+         if (f == null || string.IsNullOrWhiteSpace(f.CurrentClan)) return null;
+
+         // EvilPoptart1987 (21/11/2026): a wife married before the campaign began, with no parent the game knows, spoke of
+         // growing up in her husband's house. Her own house cannot be named, but where she did NOT grow up can.
+         if (f.HouseUnknown && f.ByMarriage) return $"Not born into the {f.CurrentClan.Trim()}: joined it by marriage, from another house; never speak of growing up among the {f.CurrentClan.Trim()}.";
+
+         if (string.IsNullOrWhiteSpace(f.BirthClan)) return null;
          string born = f.BirthClan.Trim(), now = f.CurrentClan.Trim();
          if (string.Equals(born, now, System.StringComparison.OrdinalIgnoreCase)) return null;
 

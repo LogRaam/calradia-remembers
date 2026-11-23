@@ -449,6 +449,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("native_quest_memory", Severity.Light, "tashmetu and Maifailun (Nexus, 08/10/2026): a native quest left no memory with the lord who set it. Writes the giver's memory of a quest begun through the real door (CrNpcMemory), checks it landed as an agreement in their words, and removes it.", TestNativeQuestMemory),
          new SelfTest("romance_api_held_to_the_chats_bar", Severity.Light, "tashmetu (Nexus, 08/10/2026): another mod may read whether CR's chat would allow intimacy, and record a night only when it would. Reads the verdict for a real lord; when the chat would not allow it, a reported night must be refused and write nothing. Never records one.", TestRomanceApi),
          new SelfTest("birth_house_known", Severity.Light, "Maifailun (Nexus, 07/10/2026): Lidia, wed into the Takhi, named her father but not the house she was born into, and claimed she was born a Takhi. Finds a married character living in another house than the one they were born into and checks their family line, as the prompt gets it, names the birth house.", TestBirthHouseKnown),
+         new SelfTest("birth_house_before_campaign", Severity.Light, "EvilPoptart1987 (Nexus, 21/11/2026): wives married before the campaign began spoke of growing up in their husband's house (the engine's OriginClan is the first clan ever given, the husband's). Finds such a wife (OriginClan = her clan, read through BirthClanPolicy) and checks the REAL family line names her father's house or says she was not born into her husband's; a married head of a house born into it is never told so. Changes nothing", TestBirthHouseBeforeCampaign),
          new SelfTest("tale_local_band", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's last band was always looters, the weakest troop in the game. A \"local\" band is made of the bandits of the nearest hideout. Reads them for a few villages across the map and checks each finds real bandits; the log names them.", TestTaleLocalBand),
          new SelfTest("scene_surroundings_read", Severity.Light, "fkasad (Nexus, 07/10/2026): a tale's scene should read differently to an Aserai in a forest at night and a Battanian at noon. Reads the ground under the player, the season, the hour and the player's people from the live game, as the scene's narrator gets them, and checks the narrator's block is written from them.", TestSceneSurroundingsRead),
          new SelfTest("long_memory", Severity.Light, "Goeth (Discord, 17/11/2026): recall the actual words of earlier talks; Gabriel: off by default, Full prompt only. On a throwaway story archive: a player line said to a lord in one conversation is recalled, labelled [PLAYER], when a later conversation mentions its subject, and the LIVE PromptBuilder writes it under WORDS FROM EARLIER TALKS; the compact prompt and the switch off recall nothing. Restores the switch, deletes its file", TestLongMemory),
@@ -16661,6 +16662,31 @@ namespace CalradiaRemembers.Diagnostics
          t.Note($"{lord.Name}: {result}");
          t.Expect("refused", result == Logic.SharedIntimacyResult.NotWelcome || result == Logic.SharedIntimacyResult.RomanceOff, true);
          t.Expect("nothingWritten", behavior.Store.Get(lord.StringId)?.Events.Count ?? 0, before);
+
+         return t.Line();
+      }
+
+      private static string TestBirthHouseBeforeCampaign(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("birth_house_before_campaign");
+         Hero wife = Hero.AllAliveHeroes.FirstOrDefault(h => h.Clan != null && Marriage.HeroClanCompat.OriginClanOrNull(h) == h.Clan
+                                                            && Mapping.RelationshipsBuilder.ResolveBirthClanSource(h) != BirthClanSource.None);
+
+         if (t.Skip(wife == null, "no character on this campaign lives, from the start, in a house other than the one they were born into")) return t.Line();
+
+         BirthClanSource source = Mapping.RelationshipsBuilder.ResolveBirthClanSource(wife);
+         string family = Mapping.RelationshipsBuilder.BuildFamily(wife);
+         Clan born = source == BirthClanSource.Father ? wife.Father?.Clan : source == BirthClanSource.Mother ? wife.Mother?.Clan : null;
+         t.Note($"{wife.Name} of {wife.Clan.Name}: {source}, born into {born?.Name?.ToString() ?? "an unnamed house"}");
+         t.Expect("theFamilyLineSaysWhereTheyCameFrom",
+                  born != null ? family.Contains("Born into the " + born.Name) : family.Contains("Not born into the " + wife.Clan.Name), true);
+
+         Hero head = Hero.AllAliveHeroes.FirstOrDefault(h => h.Clan != null && h.Clan.Leader == h && h.Spouse != null && h.Father?.Clan == h.Clan);
+         if (head != null)
+         {
+            t.Note($"control: {head.Name}, head of {head.Clan.Name}, born into it");
+            t.Expect("aHeadBornIntoTheHouseIsNotMovedOut", Mapping.RelationshipsBuilder.BuildFamily(head).Contains("Not born into"), false);
+         }
 
          return t.Line();
       }

@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 695 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1734 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1737 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1075,7 +1075,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (531)
+### CalradiaRemembers.Logic (534)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1118,6 +1118,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `BattleRecordText` | public static class | Pure: names a battle's sides and its scale for the world's record. |
 | `BattleSideFacts` | public class | One side of a recorded battle, as the game knows it. |
 | `BattleWorthFacts` | public class | What a won battle was worth (fkasad, 01/10/2026: "fighting half a dozen looters" is no feat). |
+| `BirthClanFacts` | public class | The clans around a character, by id, from which the house they were born into is read. |
+| `BirthClanPolicy` | public static class | Reads which house a character was born into. |
+| `BirthClanSource` | public enum | Where the birth house comes from. |
 | `BirthFacts` | public class | What is known of one birth. |
 | `BirthHouseFacts` | public class | What is known of the house a character was born into. |
 | `BirthHouseText` | public static class | The family line's note on the birth house. |
