@@ -474,6 +474,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("scene_close_gives_the_map_back", Severity.Light, "fkasad (Nexus, 07/10/2026): closing a tale's scene left a black screen with no way back. The close queued the backdrop's pop for the next frame, then wiped its own queue at the end. Opens a scene through the real door (its narration refused before any model call, so the log shows one [SCENE] error on purpose), closes it as the button does, runs one frame: the scene's own close must have run, what it queued must have run, and the map must be given back.", TestSceneCloseGivesTheMapBack),
          new SelfTest("scene_backdrop_suspends_the_map", Severity.Light, "Gabriel's play test (04/10/2026): closing a written tale's scene crashed the game natively; the scene had opened over the bare live map, which the hosting rule forbids. The scene's chat now sits on a pushed GameState. Opens that backdrop through the real host: the map must be suspended (a CrPanelState active, the settlement-visual tick suppressed), then given back exactly as it was, with the clock stopped. Opens no chat.", TestSceneBackdropSuspendsTheMap),
          new SelfTest("player_company", Severity.Light, "Gabriel's Invite / Request Private design (03/10/2026, after nerethi). Reads the player's real company (party, escorts, prison): never the player, every prisoner truly held, the one spoken to never offered for invitation, and a room made only of the company, seated as Invite seats them, is cleared at once. Arranges a disposable companion into the main party when nobody travels with the player (GABRIEL'S RULE, 13/10/2026), restored after via ArrangedCompanion.", TestPlayerCompany),
+         new SelfTest("invite_present_heroes", Severity.Light, "Windmolen (Nexus, 23/11/2026): the Invite button offered only the player's company, though lords and ladies stood in the keep, tavern or dungeon. With a known hero in the settlement the player is in (or else one on the map with a party), the REAL PresentHeroes: never the player, the one spoken to or a captive, every seated witness (whatever the density) is among them, and each is offered by the real InviteCandidates as 'here' (unless of the company). Opens nothing, seats no one", TestInvitePresentHeroes),
          new SelfTest("capture_norm_facts", Severity.Light, "Fakade (Nexus, 10/11/2026): a lady left in a garrison dungeon after a plain capture, and her realm said she was 'kept like chattel'; the garrison's lord wrote the player had 'abandoned her'. The capture line named the keeping as the offence with no fact of it. Captures a real in-party lord into the player's party, reads the REAL CaptureFactsFor over a capture event naming them, asserts still held, held in the player's party, the right sex, and that the line forbids inventing ill treatment and no longer names the keeping as the offence. Frees the captive.", TestCaptureNormFacts),
          new SelfTest("captive_notoriety", Severity.Light, "Lordfadooboo (Nexus, 03/10/2026): an empress in an Aserai cell said few would trouble themselves with her. A real ruler must read as 'a ruler' whose capture is news; and when the game holds a captive of rank, her real prompt must tell her the world talks of her. Changes nothing.", TestCaptiveNotoriety),
          new SelfTest("memory_repair_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026) and Gabriel: one command to mend every memory the console mangled before the fix. Stores a mangled memory on a real lord, as an old save holds it, runs cr.memory_repair_accents through the engine's console: the memory must read as typed. Removes it after.", TestMemoryRepairAccents),
@@ -17772,6 +17773,38 @@ namespace CalradiaRemembers.Diagnostics
             if (Chat.ExplorationBackdrop.IsOpen) Chat.ExplorationBackdrop.Close();
             Campaign.Current.TimeControlMode = timeBefore;
          }
+
+         return t.Line();
+      }
+
+      private static string TestInvitePresentHeroes(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("invite_present_heroes");
+
+         Settlement here = Settlement.CurrentSettlement;
+         var known = new HashSet<string>(behavior.Store.ListIds());
+         Hero npc = here != null
+            ? here.HeroesWithoutParty.Concat(here.Parties.Select(p => p.LeaderHero)).FirstOrDefault(h => h != null && h != Hero.MainHero && !h.IsNotable && !h.IsPrisoner && known.Contains(h.StringId))
+            : null;
+         npc ??= Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && !h.IsPrisoner && h.CurrentSettlement == null && h.PartyBelongedTo?.MemberRoster?.TotalHeroes > 1 && known.Contains(h.StringId));
+         if (t.Skip(npc == null, "no known hero in this settlement, and no lord on the map with heroes in his party")) return t.Line();
+
+         List<Hero> present = Witnesses.WitnessResolver.PresentHeroes(npc, behavior.Store);
+         t.Note($"{npc.Name} at {(npc.CurrentSettlement?.Name?.ToString() ?? "the map")}: {present.Count} present ({string.Join(", ", present.Take(6).Select(h => h.Name))})");
+         t.Expect("neverThePlayer", present.Contains(Hero.MainHero), false);
+         t.Expect("neverTheOneSpokenTo", present.Contains(npc), false);
+         t.Expect("neverACaptive", present.Any(h => h.IsPrisoner), false);
+
+         // Density only thins the seated witnesses, so whatever it draws, every one of them is among those present.
+         List<WitnessEntry> seated = Witnesses.WitnessResolver.ResolveAutoWitnesses(npc, behavior.Store);
+
+         var presentIds = new HashSet<string>(present.Select(h => h.StringId));
+         t.Expect("everySeatedWitnessMayBeInvited", seated.Where(w => !string.IsNullOrEmpty(w.HeroStringId)).All(w => presentIds.Contains(w.HeroStringId) || Hero.FindFirst(h => h.StringId == w.HeroStringId)?.IsPrisoner == true), true);
+
+         HashSet<string> company = Witnesses.PlayerCompany.Ids();
+         IReadOnlyList<CompanyMember> offered = PlayerCompanyPolicy.InviteCandidates(Witnesses.PlayerCompany.AsCandidates(), npc.StringId, new string[0],
+            presentHere: present.Select(h => new CompanyMember {Id = h.StringId, Name = h.Name?.ToString() ?? ""}));
+         t.Expect("eachPresentIsOfferedAsHere", present.Where(h => !company.Contains(h.StringId)).All(h => offered.Any(c => c.Id == h.StringId && c.Role == CompanyRole.PresentHere)), true);
 
          return t.Line();
       }

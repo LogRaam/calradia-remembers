@@ -2519,14 +2519,20 @@ namespace CalradiaRemembers.Chat
          try
          {
             List<(Hero Hero, CompanyRole Role)> members = Witnesses.PlayerCompany.Members();
+            // Windmolen (Nexus, 23/11/2026): the heroes present where the character stands may be invited too. A tale's
+            // scene keeps its own cast.
+            var store = NpcMemoryCampaignBehavior.Instance?.Store;
+            List<Hero> presentHere = _exploration == null ? Witnesses.WitnessResolver.PresentHeroes(_npcHero, store) : new List<Hero>();
             IReadOnlyList<CompanyMember> candidates = PlayerCompanyPolicy.InviteCandidates(
                members.Select(m => new CompanyMember {Id = m.Hero.StringId, Name = m.Hero.Name?.ToString() ?? "", Role = m.Role}),
                _npcHero?.StringId, _witnesses.Select(w => w.HeroStringId).Where(id => id != null),
-               prisonersWelcome: PrisonersMayBeInvited);
+               prisonersWelcome: PrisonersMayBeInvited,
+               presentHere: presentHere.Select(h => new CompanyMember {Id = h.StringId, Name = h.Name?.ToString() ?? ""}),
+               strangersWelcome: _exploration == null);
 
             if (candidates.Count == 0)
             {
-               AppendSystemMessage("No one travelling with you can be brought in.", false);
+               AppendSystemMessage("No one travelling with you or standing here can be brought in.", false);
 
                return;
             }
@@ -2535,16 +2541,21 @@ namespace CalradiaRemembers.Chat
             MBInformationManager.ShowMultiSelectionInquiry(
                new MultiSelectionInquiryData(
                   "Invite Someone",
-                  PrisonersMayBeInvited
-                     ? "Bring someone travelling with you into this conversation: a companion, a lord riding with you, or one of your prisoners."
-                     : "Bring someone travelling with you: a companion, or a lord riding with you.",
+                  _exploration == null
+                     ? "Bring someone into this conversation: a companion, a lord riding with you, one of your prisoners, or someone standing here."
+                     : PrisonersMayBeInvited
+                        ? "Bring someone travelling with you into this conversation: a companion, a lord riding with you, or one of your prisoners."
+                        : "Bring someone travelling with you: a companion, or a lord riding with you.",
                   elements, true, 0, 3, "Invite", "Cancel",
                   selected =>
                   {
                      foreach (InquiryElement element in selected ?? new List<InquiryElement>())
                      {
-                        (Hero hero, CompanyRole role) = members.FirstOrDefault(m => m.Hero.StringId == element.Identifier as string);
-                        WitnessEntry entry = Witnesses.PlayerCompany.EntryFor(hero, role);
+                        string id = element.Identifier as string;
+                        CompanyRole role = candidates.FirstOrDefault(c => c.Id == id)?.Role ?? CompanyRole.Companion;
+                        WitnessEntry entry = role == CompanyRole.PresentHere
+                           ? Witnesses.WitnessResolver.EntryForPresent(presentHere.FirstOrDefault(h => h.StringId == id), _npcHero, store)
+                           : Witnesses.PlayerCompany.EntryFor(members.FirstOrDefault(m => m.Hero.StringId == id).Hero, role);
                         if (entry == null) continue;
 
                         AddWitness(entry);
@@ -2559,7 +2570,7 @@ namespace CalradiaRemembers.Chat
       }
 
       private static string RoleLabel(CompanyRole role)
-         => role == CompanyRole.Prisoner ? "your prisoner" : role == CompanyRole.TravellingLord ? "riding with you" : "companion";
+         => role == CompanyRole.Prisoner ? "your prisoner" : role == CompanyRole.TravellingLord ? "riding with you" : role == CompanyRole.PresentHere ? "here" : "companion";
 
       /// <summary>
       ///   Player opens the floor to the whole group (the "Round Table" button): the main NPC and each present

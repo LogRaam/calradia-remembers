@@ -920,42 +920,86 @@ namespace CalradiaRemembers.Witnesses
          Location npcLocation = GetLocationOf(npcHero);
          var count = 0;
 
-         // Pass 1 — heroes explicitly without a party (most reliable for Talk)
-         foreach (Hero h in settlement.HeroesWithoutParty)
+         foreach (Hero h in HeroesAt(settlement, npcHero, knownIds, npcLocation))
          {
             if (count >= MaxLordWitnesses) break;
-
-            if (!IsValidWitness(h, npcHero, knownIds, npcLocation)) continue;
 
             witnesses.Add(BuildEntry(h, npcHero, store));
             count++;
          }
 
-         // Pass 2 — party leaders currently in the settlement (catches lords whose
-         //          party is parked inside the gates)
-         if (count < MaxLordWitnesses)
-            try
-            {
-               foreach (MobileParty party in settlement.Parties)
-               {
-                  if (count >= MaxLordWitnesses) break;
-                  Hero leader = party.LeaderHero;
-
-                  if (!IsValidWitness(leader, npcHero, knownIds, npcLocation)) continue;
-                  if (witnesses.Any(w => w.HeroStringId == leader.StringId)) continue; // dedup
-
-                  witnesses.Add(BuildEntry(leader, npcHero, store));
-                  count++;
-               }
-            }
-            catch (Exception ex)
-            {
-               ModLog.Error($"[WitnessResolver] settlement.Parties enumeration failed: {ex.Message}");
-            }
-
          ModLog.Info($"[WitnessResolver] Settlement '{settlement.Name}': {count} witness(es) " +
                      $"(same-location '{npcLocation?.StringId ?? "?"}' + known-profile filters).");
       }
+
+      /// <summary>
+      ///   Every hero a settlement witness may be, in the order they are seated: pass 1, heroes explicitly without a party
+      ///   (most reliable for Talk); pass 2, party leaders inside the gates (lords whose party is parked there). Each one
+      ///   once. The seated witnesses take the first of them; the Invite button offers them all.
+      /// </summary>
+      private static IEnumerable<Hero> HeroesAt(Settlement settlement, Hero npcHero, HashSet<string> knownIds, Location npcLocation)
+      {
+         var seen = new HashSet<string>();
+         foreach (Hero h in settlement.HeroesWithoutParty)
+            if (IsValidWitness(h, npcHero, knownIds, npcLocation) && seen.Add(h.StringId))
+               yield return h;
+
+         var leaders = new List<Hero>();
+         try
+         {
+            foreach (MobileParty party in settlement.Parties)
+               if (party.LeaderHero != null) leaders.Add(party.LeaderHero);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[WitnessResolver] settlement.Parties enumeration failed: {ex.Message}");
+         }
+
+         foreach (Hero leader in leaders)
+            if (IsValidWitness(leader, npcHero, knownIds, npcLocation) && seen.Add(leader.StringId))
+               yield return leader;
+      }
+
+      /// <summary>
+      ///   Windmolen (Nexus, 23/11/2026): the heroes present where the character stands, for the Invite button. The same
+      ///   rule as the witnesses seated on their own (same location in a settlement, a notable receives alone, the
+      ///   character's own party on the map, a known profile, the witness gate), without the density draw or the cap:
+      ///   the player chooses. Never the player, and never a captive (Gabriel: another's prisoner is not the player's to
+      ///   bring; the player's own come through their company).
+      /// </summary>
+      internal static List<Hero> PresentHeroes(Hero npcHero, BannerlordNpcMemoryStore store)
+      {
+         var found = new List<Hero>();
+         if (npcHero == null || store == null) return found;
+
+         try
+         {
+            var knownIds = new HashSet<string>(store.ListIds());
+            Settlement settlement = npcHero.CurrentSettlement ?? npcHero.StayingInSettlement;
+            if (settlement != null)
+            {
+               if (!npcHero.IsNotable) found.AddRange(HeroesAt(settlement, npcHero, knownIds, GetLocationOf(npcHero)));
+            }
+            else
+            {
+               foreach (TroopRosterElement element in npcHero.PartyBelongedTo?.MemberRoster?.GetTroopRoster() ?? Enumerable.Empty<TroopRosterElement>())
+               {
+                  Hero h = element.Character?.HeroObject;
+                  if (h != null && IsValidWitness(h, npcHero, knownIds)) found.Add(h);
+               }
+            }
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[WitnessResolver] present heroes could not be read: {ex.GetType().Name}: {ex.Message}");
+         }
+
+         return found.Where(h => h != Hero.MainHero && !h.IsPrisoner).ToList();
+      }
+
+      /// <summary>The witness entry for a hero present where the character stands, as a seated witness would have it.</summary>
+      internal static WitnessEntry EntryForPresent(Hero h, Hero npcHero, BannerlordNpcMemoryStore store)
+         => h == null ? null : BuildEntry(h, npcHero, store);
 
       /// <summary>
       ///   Adds at most one synthetic, non-hero witness that plausibly belongs at a

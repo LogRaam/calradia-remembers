@@ -6,6 +6,8 @@
 // est accepte automatiquement." If these rules are wrong: a stranger is offered as "yours", the person you are
 // talking to is invited into her own conversation, your own people refuse to step out, or a lord's guards leave
 // without the lord having a say.
+// Windmolen (Nexus, 23/11/2026) asked to invite the heroes present in the keep, tavern or dungeon too; Gabriel
+// (23/11/2026, "go"). If wrong: they are missing from the list, offered twice, or offered inside a tale's own scene.
 
 #region
 
@@ -41,6 +43,46 @@ namespace CalradiaRemembers.Tests
       {
          PlayerCompanyPolicy.InviteCandidates(Company, "lord_garios", new[] {"comp_ira"})
                             .Should().ContainSingle(m => m.Id == "lord_caladog");
+      }
+
+      // STAKE: Windmolen sees lords and ladies standing in the keep and cannot bring them in; they are offered, as "here".
+      [Test]
+      public void GIVEN_heroes_present_where_the_character_stands_WHEN_inviting_THEN_they_are_offered_as_present_here()
+      {
+         var here = new[] {new CompanyMember {Id = "lady_rhagaea", Name = "Rhagaea"}};
+
+         PlayerCompanyPolicy.InviteCandidates(Company, "lord_x", new string[0], presentHere: here)
+                            .Should().ContainSingle(m => m.Id == "lady_rhagaea" && m.Role == CompanyRole.PresentHere);
+      }
+
+      // STAKE: a companion standing beside the player is the player's, offered once, and the one spoken to never.
+      [Test]
+      public void GIVEN_a_present_hero_who_is_also_the_players_or_the_one_spoken_to_WHEN_inviting_THEN_offered_once_as_the_players_or_not_at_all()
+      {
+         var here = new[] {new CompanyMember {Id = "comp_ira", Name = "Ira"}, new CompanyMember {Id = "lord_x", Name = "X"}};
+         IReadOnlyList<CompanyMember> offered = PlayerCompanyPolicy.InviteCandidates(Company, "lord_x", new string[0], presentHere: here);
+
+         offered.Should().ContainSingle(m => m.Id == "comp_ira").Which.Role.Should().Be(CompanyRole.Companion);
+         offered.Should().NotContain(m => m.Id == "lord_x");
+      }
+
+      // STAKE: a tale's scene keeps its own cast; strangers are not brought into it.
+      [Test]
+      public void GIVEN_a_scene_where_strangers_are_not_welcome_WHEN_inviting_THEN_no_present_hero_is_offered()
+      {
+         var here = new[] {new CompanyMember {Id = "lady_rhagaea", Name = "Rhagaea"}};
+
+         PlayerCompanyPolicy.InviteCandidates(Company, "lord_x", new string[0], presentHere: here, strangersWelcome: false)
+                            .Should().NotContain(m => m.Id == "lady_rhagaea");
+      }
+
+      // STAKE: a stranger brought in is not the player's; asking for privacy still goes to the character.
+      [Test]
+      public void GIVEN_a_present_hero_brought_in_WHEN_privacy_is_asked_THEN_the_npc_decides()
+      {
+         bool allMine = PlayerCompanyPolicy.AllAreThePlayers(new[] {new PresentWitness {HeroId = "lady_rhagaea"}}, new HashSet<string> {"comp_ira"});
+
+         allMine.Should().BeFalse();
       }
 
       // Gabriel: every witness is someone accompanying the player, so the request is granted at once.

@@ -3,6 +3,11 @@
 // "Invite someone" always available; Invite offers a companion, a prisoner or a lord travelling with the player;
 // Request Private asks the main character again to continue alone, and is granted at once when every witness is
 // someone accompanying the player. The player's company decides both.
+// Windmolen (Nexus, 23/11/2026): "Sometimes I am in a setting (keep, tavern, dungeon) where there are other Heroes,
+// Lords and/or Ladies present. Would it be possible to add them to the invite screen?" Gabriel (23/11/2026, "go"):
+// Invite also offers the heroes present where the character stands, by the same rule as the witnesses seated on their
+// own, without the density draw or the cap (the player chooses); never another's captive, never a notable, never one
+// without a profile; they always come. A stranger brought in is not the player's: privacy still asks the character.
 
 #region
 
@@ -24,7 +29,10 @@ namespace CalradiaRemembers.Logic
       TravellingLord,
 
       /// <summary>A hero held in the player's prison roster.</summary>
-      Prisoner
+      Prisoner,
+
+      /// <summary>Not the player's: a hero present where the character stands (Windmolen, 23/11/2026).</summary>
+      PresentHere
    }
 
    /// <summary>One person of the player's company.</summary>
@@ -53,14 +61,20 @@ namespace CalradiaRemembers.Logic
    {
       /// <summary>
       ///   The company members who may be invited: not the one being spoken to, not anyone already present, and no
-      ///   prisoner where prisoners are not welcome (a tale's scene, unless it allows them: fkasad, 07/10/2026).
+      ///   prisoner where prisoners are not welcome (a tale's scene, unless it allows them: fkasad, 07/10/2026). The
+      ///   heroes present where the character stands follow the company (one who is both is offered as the player's),
+      ///   and only where strangers are welcome: a tale's scene keeps its own cast.
       /// </summary>
       public static IReadOnlyList<CompanyMember> InviteCandidates(IEnumerable<CompanyMember> company, string mainNpcId, IEnumerable<string> presentIds,
-                                                                  bool prisonersWelcome = true)
+                                                                  bool prisonersWelcome = true, IEnumerable<CompanyMember> presentHere = null,
+                                                                  bool strangersWelcome = true)
       {
          var present = new HashSet<string>(presentIds ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
+         IEnumerable<CompanyMember> here = strangersWelcome
+            ? (presentHere ?? Enumerable.Empty<CompanyMember>()).Where(m => m != null).Select(m => new CompanyMember {Id = m.Id, Name = m.Name, Role = CompanyRole.PresentHere})
+            : Enumerable.Empty<CompanyMember>();
 
-         return (company ?? Enumerable.Empty<CompanyMember>())
+         return (company ?? Enumerable.Empty<CompanyMember>()).Concat(here)
                 .Where(m => m != null && !string.IsNullOrEmpty(m.Id) && m.Id != mainNpcId && !present.Contains(m.Id))
                 .Where(m => prisonersWelcome || m.Role != CompanyRole.Prisoner)
                 .GroupBy(m => m.Id).Select(g => g.First())
