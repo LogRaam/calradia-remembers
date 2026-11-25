@@ -48,6 +48,42 @@ namespace CalradiaRemembers.Tests
          note.Should().Contain("do not remember it as something that happened");
       }
 
+      // bdionysis80 (Discord, 21/11/2026): the model invented a verb the same turn the player paid Queen Taarna
+      // 2406 denars. The refusal note named no deed, and she took the coin itself to be what "did not happen". The
+      // note for an invented verb must name that verb and say the rest of the turn stands.
+      [Test]
+      public void GIVEN_an_invented_verb_beside_a_real_payment_WHEN_building_its_note_THEN_it_names_only_that_verb_and_the_payment_stands()
+      {
+         string note = ActionRefusalNote.ForUnknownVerb("complete_revenue_farming");
+
+         note.Should().StartWith("(Out of character:");
+         note.Should().Contain("'complete_revenue_farming'");
+         note.Should().Contain("that one thing did not happen");
+         note.Should().Contain("a payment");
+         note.Should().Contain("IS done");
+      }
+
+      // Same report, the other half: the player pressed Y on "Give Queen Taarna 2406 coins?", the coin moved, and
+      // the model never learned it. The window showed "You give Queen Taarna 2406 denars"; the transcript the model
+      // reads next turn had nothing, so the queen kept asking whether the taxes were collected.
+      [Test]
+      public void GIVEN_a_confirmed_payment_the_game_carried_out_WHEN_building_the_note_THEN_the_model_is_told_it_is_done()
+      {
+         string note = ActionRefusalNote.ForConfirmedDeed(false, "You give Queen Taarna 2406 denars.");
+
+         note.Should().StartWith("(Out of character:");
+         note.Should().Contain("You give Queen Taarna 2406 denars.");
+         note.Should().Contain("It is done");
+      }
+
+      // A confirmed deed the bridge then refused must not ALSO be called done: the refusal note already says it did
+      // not happen, and two notes saying opposite things would be worse than none.
+      [Test]
+      public void GIVEN_a_confirmed_deed_the_bridge_refused_WHEN_building_the_done_note_THEN_nothing_is_written()
+      {
+         ActionRefusalNote.ForConfirmedDeed(true, "Your purse holds too little.").Should().BeNull();
+      }
+
       // The gate itself: an action the bridge carried out must leave the transcript alone. A note on a
       // successful action would tell the model its own accomplished deed never happened, which is the exact
       // fault this class exists to prevent, inverted.

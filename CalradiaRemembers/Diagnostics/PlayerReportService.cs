@@ -122,6 +122,10 @@ namespace CalradiaRemembers.Diagnostics
             $"Model: {Safe(() => Services.LlmServices.ActiveModelId)}",
             $"Interpreter model: {Safe(() => NpcMemoryCampaignBehavior.Instance?.LlmServices?.ResolveInterpreterModel())}",
             $"Compact prompt: {(ModSettings.LeanPrompt ? "on" : "off")}",
+            // hype (23/11/2026): a report of lost history could not say whether CR had trimmed it to fit a window.
+            $"Local model context: {(ModSettings.LocalContextTokens > 0 ? ModSettings.LocalContextTokens + " tokens" : "not declared")}",
+            $"Reply token budget: {Safe(() => ModSettings.ReplyTokenBudget?.ToString() ?? "auto")}",
+            $"Last context fit: {LocalContextState.LastFit ?? "none (nothing was fitted)"}",
             $"Adult content: {ModSettings.AdultContentLevel}",
             $"Reply language: {Safe(() => ModSettings.ReplyLanguage)}",
             $"File logging: {(ModLog.AnyChannelEnabled ? "on" : "off")}"

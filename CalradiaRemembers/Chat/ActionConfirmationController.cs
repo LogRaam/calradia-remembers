@@ -384,6 +384,15 @@ namespace CalradiaRemembers.Chat
                catch (Exception ex) { ModLog.Error($"[CONFIRM] refusal note failed: {ex.GetType().Name}: {ex.Message}"); }
             }
 
+            // bdionysis80 (21/11/2026): the model proposed the deed and never saw the player press Y. Without this
+            // note the coin moved and Queen Taarna went on asking whether the taxes had been collected.
+            string doneNote = outcome == null ? null : ActionRefusalNote.ForConfirmedDeed(outcome.WasRefused, outcome.Message);
+            if (doneNote != null)
+            {
+               try { host.RecordTranscriptLine(true, "You", Hero.MainHero?.StringId, doneNote); }
+               catch (Exception ex) { ModLog.Error($"[CONFIRM] done note failed: {ex.GetType().Name}: {ex.Message}"); }
+            }
+
             // Story archive: the deed as the game did it (the coin the bridge APPLIED, never the raw proposed sum).
             host.ArchiveDeed(p.Action, outcome, p.Profile?.Name, p.Profile?.Id);
          }

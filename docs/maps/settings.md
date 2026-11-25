@@ -176,14 +176,14 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Interpret model (`ActionInterpreterModel`) | `LlmServices.DebugDescribeRoleRouting`, `LlmServices.ResolveInterpreterModel`, `LlmServices.ResolveModel` | 3 |
 | Interpret provider (`ActionInterpreterProvider`) | `LlmServices.ResolveKindForRole` | 1 |
 | LLM Response Timeout (s) (`LlmTimeoutSeconds`) | `ActionInterpreterComposer.AttemptAsync`, `ChatViewModel.CallNarratorAsync`, `ChatViewModel.RunCouncilTurnAsync`, `ChatViewModel.RunEnvoyTurnAsync`, `ConversationSummaryService.GenerateAndApplyCaptiveSummaryAsync`, `ConversationSummaryService.GenerateAndApplyConversationSummaryAsync`, `ConversationSummaryService.HarvestWorldClaimsAsync`, `ConversationSummaryService.ProcessConversationJobAsync`, `CourierSecretBehavior.JudgeAndReactAsync`, `LetterGenerationService.LetterLlmTimeoutSeconds`, `LetterMemoryFinalizer.GenerateAndApplyAsync`, `LlmServices.BuildHousekeepingClient`, `LlmServices.BuildInterpreterClient`, `LlmServices.BuildRoleClient`, `LlmServices.Initialize`, `ProseFallbackComposer.RunIntegratedFallbackAsync` | 11 |
-| Local model context (tokens) (`LocalContextTokens`) | `LlmServices.ContextWindowFor`, `LocalContextState.CompactThisSession` | 0 |
+| Local model context (tokens) (`LocalContextTokens`) | `LlmServices.ContextWindowFor`, `LocalContextState.CompactThisSession` | 1 |
 | Memories in the prompt (`PromptMemoryLimit`) | `EncounterContextBuilder.Build`, `EncounterContextBuilder.StandingContextFor` | 1 |
 | NSFW model (`CncModel`) | `ApiKeyTester.TestConfiguredModelsAsync`, `LlmServices.DebugDescribeRoleRouting`, `LlmServices.ResolveModel`, `LlmServices.ResolveNsfwModel`, `LlmServices.ResolveProseFallbackModel` | 5 |
 | NSFW provider (`CncProvider`) | `LlmServices.ResolveKindForRole` | 1 |
 | Other mods may use my connection (`AllowOtherModsLlm`) | `CrLlm.CompleteAsync`, `CrLlm.Unavailable` | 0 |
 | PROSE model (`Model`) | `ApiKeyTester.RunCustomAsync`, `ApiKeyTester.RunOpenRouterAsync`, `LlmServices.ResolveRoleplayModelForKind` | 0 |
 | Presence Penalty (`PresencePenalty`) | `LlmServices.BuildChatService`, `LlmServices.ChatService` | 1 |
-| Reply Token Budget (`ReplyTokenBudget`) | `LlmServices.BuildChatService`, `LlmServices.ChatService` | 1 |
+| Reply Token Budget (`ReplyTokenBudget`) | `LlmServices.BuildChatService`, `LlmServices.ChatService` | 2 |
 | Roleplay / Prose provider (`Provider`) | `LlmServices.DefaultKind`, `LlmServices.ResolveKindForRole`, `LlmServices.ResolveProvider` | 2 |
 
 ### NanoGPT

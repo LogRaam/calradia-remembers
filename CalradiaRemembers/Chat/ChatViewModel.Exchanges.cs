@@ -1771,7 +1771,11 @@ namespace CalradiaRemembers.Chat
                   // model never learns the marriage/transfer it just celebrated never happened, believes
                   // it did, and the next turns build on the lie. Same OOC pattern as a declined
                   // confirmation (ActionConfirmationController.DeclineAction).
-                  string refusalNote = ActionRefusalNote.For(outcome?.WasRefused == true, outcome?.Message);
+                  // bdionysis80 (21/11/2026): an invented verb's note names the verb, so the model cannot pin it on
+                  // a real deed of the same turn (the coin it had just been paid).
+                  string refusalNote = outcome?.WasUnknownVerb == true
+                     ? ActionRefusalNote.ForUnknownVerb(action.Type)
+                     : ActionRefusalNote.For(outcome?.WasRefused == true, outcome?.Message);
                   if (refusalNote != null)
                   {
                      // LOGGED, because it was not. A refused action is the single most diagnostic thing an

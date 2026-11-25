@@ -176,6 +176,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 - the bridge refuses:
   - preview.Refusal
   - $"({npcHero.Name}'s service could not be settled after all.)"
+  - notFreed
 
 ### decline_divorce
 
@@ -318,6 +319,7 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
 - taught when: `context?.PlayerStatus != PlayerStatusVsNpc.NpcIsCaptive [early return naming context]`
 - the bridge refuses:
   - $"({npcHero.Name} is not yours to set free.)"
+  - notFreed
 
 ### gather_news
 

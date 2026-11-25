@@ -1660,7 +1660,8 @@ namespace CalradiaRemembers.GameState
             // the release itself happens. RefusesFlat therefore no longer blocks: it now just means no
             // fear-coercion took place, so the release proceeds as a plain mercy release below.
 
-            EndCaptivityAction.ApplyByReleasedByChoice(npcHero, Hero.MainHero);
+            string notFreed = ReleaseOrRefusal(npcHero);
+            if (notFreed != null) return ActionOutcome.Refused(notFreed);
             StanceService.OnGiftReceived(npcHero); // freedom is a gift — a little trust is earned
             ModLog.Info($"[ACTION] free_prisoner: player released {npcHero.Name} from captivity.");
 
@@ -1815,6 +1816,13 @@ namespace CalradiaRemembers.GameState
                freedByService = true;
             }
 
+            // whiskeypatt (24/11/2026): the release comes FIRST and is checked, so a ransom or an oath is never taken
+            // for a freedom the game did not give, and "set free" is never shown about someone still held.
+            string notFreed = freedByService
+               ? Logic.Captivity.PrisonerReleaseCheck.RefusalWhenStillHeld(npcHero.IsPrisoner, npcHero.Name?.ToString())
+               : ReleaseOrRefusal(npcHero);
+            if (notFreed != null) return ActionOutcome.Refused(notFreed);
+
             if (preview.Terms.Contains(CaptiveTerm.Ransom) && preview.Ransom > 0)
             {
                Hero payer = npcHero.Clan?.Leader ?? npcHero;
@@ -1842,8 +1850,6 @@ namespace CalradiaRemembers.GameState
             if (preview.Terms.Contains(CaptiveTerm.Goodwill))
                done.Add($"{possessive} lasting goodwill");
 
-            if (!freedByService && npcHero.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(npcHero, Hero.MainHero);
-
             string recap = done.Count > 0 ? string.Join(", ", done) : "her bare word";
             ModLog.Info($"[ACTION] counter_offer: {npcHero.Name} freed on terms: {recap}.");
 
@@ -1856,6 +1862,22 @@ namespace CalradiaRemembers.GameState
 
             return null;
          }
+      }
+
+      /// <summary>
+      ///   Asks the game to release a prisoner the player holds and returns the refusal to show when it did not take
+      ///   (still a prisoner afterwards), else null. whiskeypatt (Discord, 24/11/2026): "the person is now free" was
+      ///   shown and the person was still his prisoner, because nothing looked at the game's answer.
+      /// </summary>
+      private static string ReleaseOrRefusal(Hero npcHero)
+      {
+         if (npcHero.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(npcHero, Hero.MainHero);
+
+         string refusal = Logic.Captivity.PrisonerReleaseCheck.RefusalWhenStillHeld(npcHero.IsPrisoner, npcHero.Name?.ToString());
+         if (refusal != null)
+            ModLog.Error($"[ACTION] release of {npcHero.Name} did not take: still held by {npcHero.PartyBelongedToAsPrisoner?.Name} (state {npcHero.HeroState}).");
+
+         return refusal;
       }
 
       /// <summary>A plain-language name for a refused CaptiveTerm, for the player-facing refusal note.</summary>

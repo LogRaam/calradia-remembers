@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-807 rules read 602 facts.
+808 rules read 602 facts.
 
 ## Facts read by more than one rule
 
@@ -270,6 +270,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Event.Type` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
 | `Events.FindLastIndex` (2) | `SkirmishLine`, `SkirmishMemoryText.CountIn` |
 | `Father.Clan` (2) | `BirthClanFacts`, `BirthHouseFacts` |
+| `GameStateBridge.ExecuteAction` (2) | `ActionRefusalNote.For`, `ActionRefusalNote.ForConfirmedDeed` |
 | `GameStateBridge.GetCurrentScene` (2) | `EquipmentLoadoutPolicy.PreferCivilianLoadout`, `EquipmentNotabilityPolicy.ComposeWorn` |
 | `GameStateManager.ActiveState` (2) | `DuelStagingSupport.ReadyToOpenTheSquare`, `SquareReadinessFacts` |
 | `GetPosition2D.DistanceSquared` (2) | `AuthoredMapTriggerPolicy.WhyNot`, `CaptureFacts` |
@@ -377,6 +378,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 ## Every rule, and what it reads
 
 - `ActionRefusalNote.For`: `GameStateBridge.ExecuteAction`
+- `ActionRefusalNote.ForConfirmedDeed`: `GameStateBridge.ExecuteAction`
 - `ActiveConflictsFormatter.Describe`: `Hero.MapFaction`
 - `ActorFacts`: `Hero.Age`, `Hero.IsAlive`, `Hero.IsChild`, `Hero.IsPrisoner`
 - `AffairDiscoveryPolicy.IsDiscovered`: `Romantic.LoverIsSecret`, `Romantic.LoverKnownToPlayer`, `Romantic.LoverTrystCount`

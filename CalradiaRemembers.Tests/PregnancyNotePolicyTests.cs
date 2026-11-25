@@ -27,6 +27,27 @@ namespace CalradiaRemembers.Tests
     {
         private const int TotalDuration = 90;
 
+        // ── Not yet known to her → nothing rendered ─────────────────────────────
+
+        // whiskeypatt (Discord, 24/11/2026): she conceived during a scene and, at the end of that same conversation,
+        // spoke of "a new child come spring". Gabriel (24/11/2026): it takes a while before she realises she is with
+        // child. On the day of the conception the prompt must say nothing she could know it from.
+        [Test]
+        public void GIVEN_a_pregnancy_begun_this_very_day_WHEN_describing_THEN_she_is_told_nothing_of_it()
+        {
+            PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = true, FatherName = "PlayerName", FatherNamable = true, DaysRemaining = 36, TotalDurationDays = 36})
+                .Should().BeEmpty();
+        }
+
+        // Same ruling, the far side: once some weeks have run (a sixth of the term, six days of the game's default 36),
+        // she knows, and the never-deny directive the original report asked for applies again.
+        [Test]
+        public void GIVEN_a_sixth_of_the_term_has_run_WHEN_describing_THEN_she_knows_and_never_denies_it()
+        {
+            PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, DaysRemaining = 29, TotalDurationDays = 36})
+                .Should().Contain("never deny being with child");
+        }
+
         // ── Not pregnant / unknown duration → nothing rendered ─────────────────
 
         // The baseline non-bug case: a woman who is not pregnant must get no pregnancy line at all, so
@@ -54,10 +75,10 @@ namespace CalradiaRemembers.Tests
         // Early stage: well under a third elapsed. This is the exact case the player report was about:
         // the NPC must at minimum recognise she is expecting, even this early.
         [Test]
-        public void GIVEN_a_pregnancy_barely_begun_WHEN_describing_THEN_early_weeks_stage()
+        public void GIVEN_a_pregnancy_some_weeks_along_WHEN_describing_THEN_early_weeks_stage()
         {
             // elapsed = 90 - 80 = 10 days -> fraction ~0.11, well below the early threshold (1/3).
-            string note = PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = false, FatherName = null, FatherNamable = false, DaysRemaining = 80, TotalDurationDays = TotalDuration});
+            string note = PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = false, FatherName = null, FatherNamable = false, DaysRemaining = 70, TotalDurationDays = TotalDuration});
 
             note.Should().Contain("in the early weeks of a pregnancy");
         }
@@ -177,7 +198,7 @@ namespace CalradiaRemembers.Tests
         [Test]
         public void GIVEN_any_pregnant_state_WHEN_describing_THEN_the_never_deny_directive_is_always_present()
         {
-            PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = false, FatherName = null, FatherNamable = false, DaysRemaining = 80, TotalDurationDays = TotalDuration})
+            PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = false, FatherName = null, FatherNamable = false, DaysRemaining = 70, TotalDurationDays = TotalDuration})
                 .Should().Contain("You are aware of this and never deny being with child");
 
             PregnancyNotePolicy.Describe(new PregnancyNotePolicy.PregnancyFacts {IsPregnant = true, FatherIsPlayer = true, FatherName = "PlayerName", FatherNamable = true, DaysRemaining = 10, TotalDurationDays = TotalDuration})

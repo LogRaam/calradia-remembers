@@ -5,6 +5,11 @@
 // stakes differ: the whole point here is the ACKNOWLEDGEMENT directive, not just flavour, since the
 // entire bug is the NPC's denial. The father clause stays gated on namability so an affair or a
 // faceless bandit conception never leaks the hidden father, preserving the bastard-secret pillar.
+//
+// But not from the first hour. whiskeypatt (Discord, 24/11/2026): she conceived during a scene and, riding off at the
+// end of the same conversation, spoke of "a new child come spring". Gabriel (24/11/2026): "ça prend un délai avant que
+// le NPC se rende compte qu'elle est enceinte." Before AwarenessThreshold of the term has run, no line is written: she
+// does not know yet, so the prompt says nothing that would let her know.
 
 namespace CalradiaRemembers.Logic
 {
@@ -14,6 +19,13 @@ namespace CalradiaRemembers.Logic
    /// </summary>
    public static class PregnancyNotePolicy
    {
+      /// <summary>
+      ///   Below this elapsed fraction she does not know yet. A woman learns it some weeks in, from a missed course and
+      ///   then another: a sixth of the term is six to seven weeks of a human forty, and six days of the game's default
+      ///   36-day pregnancy.
+      /// </summary>
+      private const double AwarenessThreshold = 1d / 6d;
+
       /// <summary>Below this elapsed fraction, the pregnancy reads as early / barely showing.</summary>
       private const double EarlyStageThreshold = 1d / 3d;
 
@@ -65,7 +77,8 @@ namespace CalradiaRemembers.Logic
       /// <summary>
       ///   Describes a pregnant mother's state for the NPC identity directive. Returns "" when
       ///   <paramref name="isPregnant" /> is false or <paramref name="totalDurationDays" /> is unknown
-      ///   (&lt;= 0), so the caller omits the line entirely rather than render a nonsensical stage.
+      ///   (&lt;= 0), so the caller omits the line entirely rather than render a nonsensical stage, and "" while
+      ///   too little of the term has run for her to know (see AwarenessThreshold).
       ///   The father clause is appended ONLY when <paramref name="fatherNamable" /> is true: a father
       ///   who is not the mother's legal spouse (an affair, or a faceless bandit) stays unnamed, so the
       ///   NPC remains evasive about the father while still acknowledging the pregnancy itself.
@@ -85,6 +98,7 @@ namespace CalradiaRemembers.Logic
 
          int elapsed = totalDurationDays - daysRemaining;
          double fraction = Clamp((double) elapsed / totalDurationDays, 0d, 1d);
+         if (fraction < AwarenessThreshold) return "";
 
          string stage = fraction < EarlyStageThreshold
             ? "in the early weeks of a pregnancy"

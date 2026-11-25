@@ -26,6 +26,12 @@ namespace CalradiaRemembers.Foundation
       private static bool _toldCompact;
       private static bool _toldTooSmall;
 
+      /// <summary>
+      ///   The last fit, in one line, for the player report (hype, 23/11/2026: his report showed every request stripped
+      ///   to the recap and one line, and nothing in it said whether CR had left lines out or why). Null before any fit.
+      /// </summary>
+      public static string LastFit { get; private set; }
+
       /// <summary>Whether conversations use the compact prompt for the rest of the session (until the window setting changes).</summary>
       public static bool CompactThisSession => _compactAtWindow > 0 && _compactAtWindow == ModSettings.LocalContextTokens;
 
@@ -33,6 +39,9 @@ namespace CalradiaRemembers.Foundation
       public static void OnFitted(ContextFitReport r)
       {
          if (r == null) return;
+
+         LastFit = $"window {r.WindowTokens}, ~{r.EstimatedTokens} of {r.UsableTokens} planned, {r.DroppedMessages} old line(s) left out, "
+                 + $"compact: {r.SwitchedToCompact}, fits: {r.Fits} ({r.CharsPerToken:0.00} chars/token)";
 
          if (r.DroppedMessages > 0 || r.SwitchedToCompact || !r.Fits)
             ModLog.Info($"[CONTEXT] {r.Subject}: window {r.WindowTokens}, sent ~{r.EstimatedTokens} of {r.UsableTokens} planned, "
@@ -59,6 +68,7 @@ namespace CalradiaRemembers.Foundation
       internal static void DebugReset()
       {
          _compactAtWindow = 0;
+         LastFit = null;
          _toldCompact = false;
          _toldTooSmall = false;
       }
