@@ -45,6 +45,10 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private static void NotifyLlmFailure(string reason = null, string knownCause = null)
       {
+         // YubYub02 (24/11/2026): a model loaded with a short context refused every message at once, and the player
+         // read only "did not reach the AI". A refusal for length is named, every time, with the knob to turn.
+         knownCause ??= Logic.Providers.ContextLengthPolicy.ExplainOverflow(reason, ModSettings.LocalContextTokens);
+
          // A cause CR can name (a provider pin with no endpoint left) is said plainly, every time, in place of the
          // generic advice: Windmolen (29/09/2026) was told to check his model and endpoint while his pin was the fault.
          if (!string.IsNullOrWhiteSpace(knownCause))

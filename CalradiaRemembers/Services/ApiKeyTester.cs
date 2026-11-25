@@ -6,6 +6,7 @@ using System;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
@@ -36,6 +37,10 @@ namespace CalradiaRemembers.Services
       private const string OpenRouterEnvVar = "OPENROUTER_API_KEY";
 
       private static readonly HttpClient Http = new() {Timeout = TimeSpan.FromSeconds(20)};
+
+      // The context probe reads thousands of tokens, which a local model on a CPU may take a minute to read: it runs on
+      // its own client, bounded by the player's LLM Response Timeout instead of the 20 seconds a key check gets.
+      private static readonly HttpClient ProbeHttp = new() {Timeout = System.Threading.Timeout.InfiniteTimeSpan};
       private static bool _running;
 
       /// <summary>
@@ -157,6 +162,10 @@ namespace CalradiaRemembers.Services
                model,
                "Your endpoint is reachable",
                "Make sure the server is running, the URL includes /v1, and the model ids are correct.").ConfigureAwait(false);
+
+            int window = ModSettings.LocalContextTokens;
+            if (title == "Connection OK" && ContextLengthPolicy.ShouldProbe(url, window))
+               (title, body) = await ProbeContextAsync(chatUrl, key, model, window, body).ConfigureAwait(false);
          }
          catch (Exception ex)
          {
@@ -179,6 +188,65 @@ namespace CalradiaRemembers.Services
       ///   that only fails when a scene flips the mode is the worst place to find out — so the
       ///   Test button exercises both up front. Returns the popup title and body.
       /// </summary>
+      /// <summary>
+      ///   After the one-word test passed, sends one request of CR's real size (YubYub02, 24/11/2026: the button said
+      ///   "ready to play" and every message in the game failed at once, refused by a model loaded with a short
+      ///   context). Returns the popup title and body: the OK body with the size it held, or the context advice.
+      /// </summary>
+      private static async Task<(string title, string body)> ProbeContextAsync(string chatUrl, string key, string model, int window, string okBody)
+      {
+         int tokens = ContextLengthPolicy.ProbeTokens(window);
+         MBInformationManager.AddQuickInformation(new TextObject($"Testing a request of about {tokens} tokens..."));
+
+         LlmWireParameters shape = LlmParameterPolicy.Resolve(model, ModSettings.CustomParameterCompatibility);
+         string tokenKey = shape.UseMaxCompletionTokens ? "max_completion_tokens" : "max_tokens";
+         string text = ContextLengthPolicy.Filler(tokens) + "Reply with the word OK.";
+         string payload = "{\"model\":\"" + JsonEscape(model) + "\",\"messages\":[{\"role\":\"user\",\"content\":\"" + JsonEscape(text) + "\"}],\"" + tokenKey + "\":1}";
+         int timeoutSeconds = Math.Max(30, ModSettings.LlmResponseTimeoutSeconds);
+
+         try
+         {
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
+            using (var req = new HttpRequestMessage(HttpMethod.Post, chatUrl))
+            {
+               if (!string.IsNullOrWhiteSpace(key))
+                  req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
+               req.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+               using (HttpResponseMessage resp = await ProbeHttp.SendAsync(req, cts.Token).ConfigureAwait(false))
+               {
+                  string respBody = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
+                  ModLog.Info($"[API TEST] context probe of ~{tokens} tokens: HTTP {(int) resp.StatusCode}.");
+
+                  if (resp.IsSuccessStatusCode)
+                  {
+                     string declareIt = window > 0
+                        ? ""
+                        : " Set 'Local model context (tokens)' below to the context length your server loads the model with, so CR fits each request to it.";
+
+                     return ("Connection OK", $"{okBody}\n\nIt also read a request of about {tokens} tokens.{declareIt}");
+                  }
+
+                  string err = ExtractError(respBody, (int) resp.StatusCode);
+                  string advice = ContextLengthPolicy.ExplainOverflow(respBody, window) ?? ContextLengthPolicy.ExplainOverflow(err, window);
+
+                  return ("Context too short",
+                     $"The model answered a one-word test, but refused a request of about {tokens} tokens, the size of a turn in the game:\n\n{err}" +
+                     (advice == null ? "" : $"\n\n{advice}"));
+               }
+            }
+         }
+         catch (OperationCanceledException)
+         {
+            return ("Connection OK, but slow",
+               $"{okBody}\n\nBut a request of about {tokens} tokens got no answer within {timeoutSeconds}s. Raise 'LLM Response Timeout', " +
+               "try a smaller model or turn on 'Compact prompt for small models'.");
+         }
+         catch (Exception ex)
+         {
+            return ("Context test failed", $"{okBody}\n\nBut a request of about {tokens} tokens failed: {ex.Message}");
+         }
+      }
+
       private static async Task<(string title, string body)> TestConfiguredModelsAsync(
          Func<string, Task<(bool ok, string err)>> testModel,
          string roleplayModel,

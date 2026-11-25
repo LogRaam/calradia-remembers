@@ -175,8 +175,8 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Compress old memories (`MemoryCompression`) | `MemoryCompressionBehavior.OnDailyTick`, `MemoryCompressionBehavior.RunNow`, `MemoryCompressionService.CompressAsync` | 1 |
 | Interpret model (`ActionInterpreterModel`) | `LlmServices.DebugDescribeRoleRouting`, `LlmServices.ResolveInterpreterModel`, `LlmServices.ResolveModel` | 3 |
 | Interpret provider (`ActionInterpreterProvider`) | `LlmServices.ResolveKindForRole` | 1 |
-| LLM Response Timeout (s) (`LlmTimeoutSeconds`) | `ActionInterpreterComposer.AttemptAsync`, `ChatViewModel.CallNarratorAsync`, `ChatViewModel.RunCouncilTurnAsync`, `ChatViewModel.RunEnvoyTurnAsync`, `ConversationSummaryService.GenerateAndApplyCaptiveSummaryAsync`, `ConversationSummaryService.GenerateAndApplyConversationSummaryAsync`, `ConversationSummaryService.HarvestWorldClaimsAsync`, `ConversationSummaryService.ProcessConversationJobAsync`, `CourierSecretBehavior.JudgeAndReactAsync`, `LetterGenerationService.LetterLlmTimeoutSeconds`, `LetterMemoryFinalizer.GenerateAndApplyAsync`, `LlmServices.BuildHousekeepingClient`, `LlmServices.BuildInterpreterClient`, `LlmServices.BuildRoleClient`, `LlmServices.Initialize`, `ProseFallbackComposer.RunIntegratedFallbackAsync` | 11 |
-| Local model context (tokens) (`LocalContextTokens`) | `LlmServices.ContextWindowFor`, `LocalContextState.CompactThisSession` | 1 |
+| LLM Response Timeout (s) (`LlmTimeoutSeconds`) | `ActionInterpreterComposer.AttemptAsync`, `ApiKeyTester.ProbeContextAsync`, `ChatViewModel.CallNarratorAsync`, `ChatViewModel.RunCouncilTurnAsync`, `ChatViewModel.RunEnvoyTurnAsync`, `ConversationSummaryService.GenerateAndApplyCaptiveSummaryAsync`, `ConversationSummaryService.GenerateAndApplyConversationSummaryAsync`, `ConversationSummaryService.HarvestWorldClaimsAsync`, `ConversationSummaryService.ProcessConversationJobAsync`, `CourierSecretBehavior.JudgeAndReactAsync`, `LetterGenerationService.LetterLlmTimeoutSeconds`, `LetterMemoryFinalizer.GenerateAndApplyAsync`, `LlmServices.BuildHousekeepingClient`, `LlmServices.BuildInterpreterClient`, `LlmServices.BuildRoleClient`, `LlmServices.Initialize`, `ProseFallbackComposer.RunIntegratedFallbackAsync` | 11 |
+| Local model context (tokens) (`LocalContextTokens`) | `ApiKeyTester.RunCustomAsync`, `ChatViewModel.NotifyLlmFailure`, `LlmServices.ContextWindowFor`, `LocalContextState.CompactThisSession` | 1 |
 | Memories in the prompt (`PromptMemoryLimit`) | `EncounterContextBuilder.Build`, `EncounterContextBuilder.StandingContextFor` | 1 |
 | NSFW model (`CncModel`) | `ApiKeyTester.TestConfiguredModelsAsync`, `LlmServices.DebugDescribeRoleRouting`, `LlmServices.ResolveModel`, `LlmServices.ResolveNsfwModel`, `LlmServices.ResolveProseFallbackModel` | 5 |
 | NSFW provider (`CncProvider`) | `LlmServices.ResolveKindForRole` | 1 |
@@ -204,7 +204,7 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Endpoint URL (Interpret) (`CustomEndpointUrlInterpret`) | `LlmServices.CustomEndpointOverrideFor` | 1 |
 | Endpoint URL (NSFW) (`CustomEndpointUrlNsfw`) | `LlmServices.CustomEndpointOverrideFor` | 1 |
 | Endpoint URL (Prose / shared) (`CustomEndpointUrl`) | `ApiKeyTester.RunCustomAsync`, `LlmServices.BaseUrlFor` | 1 |
-| Parameter Compatibility (`CustomParameterCompatibility`) | `ApiKeyTester.TestCustomChatAsync`, `LlmServices.ParameterOptionsFor` | 0 |
+| Parameter Compatibility (`CustomParameterCompatibility`) | `ApiKeyTester.ProbeContextAsync`, `ApiKeyTester.TestCustomChatAsync`, `LlmServices.ParameterOptionsFor` | 0 |
 | Reasoning Effort (`CustomReasoningEffort`) | `LlmServices.ResolveReasoningFor` | 0 |
 
 ### OpenRouter

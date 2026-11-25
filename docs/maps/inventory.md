@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 696 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1745 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1746 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2698,11 +2698,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PrisonerTradePolicy` | public static class | Pure price discipline for a prisoner sale, either direction. |
 | `ReleaseBargainMode` | public enum | How a freedom bargain is honoured, decided by who holds the prisoner. |
 
-### CalradiaRemembers.Logic.Providers (13)
+### CalradiaRemembers.Logic.Providers (14)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ChatCompositionMode` | public enum | How a chat reply is composed. |
+| `ContextLengthPolicy` | public static class | The size of the Test button's context probe, which endpoints get it, and the plain advice for a server that refused a request longer than its context. |
 | `ManualModelMode` | public enum | The three-state in-chat model switch (21/08/2026, replaces the old binary manual toggle). |
 | `ModelModePolicy` | public static class | Decides which model a scene's main call uses, and which id/effort/pin each role resolves to. |
 | `OnOffReasoningPolicy` | public static class | Maps the reasoning setting onto a model that only thinks or does not: Minimal and Low become Off there. |
