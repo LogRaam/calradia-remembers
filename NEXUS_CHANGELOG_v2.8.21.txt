@@ -1,0 +1,27 @@
+Version 2.8.21
+
+A character who loves you may write first, any character may become your secret lover, and a run of fixes from your reports.
+
+New
+
+- The love letter: a lord, lady or notable you have met, who has come to love you and with whom nothing has begun yet, may write to you first to confess it. Affinity counts (shared culture, traits, the game's own attraction); a married character writes far more rarely, and a letter left unanswered is never chased.
+- Any character may become your secret lover, not only your companions: a lord, lady or notable can be offered the bond in their own words, with the same limits as before (adult content, orientation, the Relationship Pacing bar, no bond already taken). (Thank you, Icezera.)
+- A town's menu now offers 'Send a letter' too, as castles and villages already did; the tavern keeper keeps his line. (Thank you, Kamen.)
+- The Invite button now also lists the heroes standing where you talk (in the keep, the tavern, the dungeon), not only your own company. (Thank you, Windmolen.)
+
+Fixed
+
+- A character no longer takes her own opening words for yours. When a conversation opened on the game's own line (a wife greeting you with "I am very angry with you"), the character read it as something you had said to her. (Thank you, Bhelogan.)
+- A payment you confirm is now known to the character. After you pressed Y and the coin moved, she could keep asking whether you had paid; she is now told the game carried it out. A deed the model invents that the game does not have no longer casts doubt on the rest of the turn. (Thank you, bdionysis80.)
+- A small local model in Compact mode keeps the last exchange. When a request was trimmed to fit a local model's context, only your new line was kept, so a companion could be asked about words she was never shown, and characters repeated themselves. The last few lines now always stay. The player report now also shows the local context, the reply budget and the last fit. (Thank you, hype.)
+- A prisoner is announced free only once the game has really let them go. If the release does not take, you are told plainly, and no ransom or oath is taken for a freedom not given. (Thank you, whiskeypatt.)
+- She no longer knows she is with child on the day it begins: the pregnancy enters her thoughts after some days, a sixth of the term. (Thank you, whiskeypatt.)
+- The endpoint Test button now tells you when your local model's context is too short. It used to send one word and say "ready to play" while every message in the game was refused. For a server on your machine or home network, it now also sends a request the size of a real turn and tells you plainly if it is refused. In the game, a refusal for length now names the fix: raise the context length when loading the model (LM Studio: Context Length; Ollama: num_ctx), then set 'Local model context (tokens)' to the same number. (Thank you, YubYub02.)
+
+Developer tools
+
+- New cr.test all checks: secret_lover_beyond_companions, love_confession_letter, courier_menu_option, invite_present_heroes.
+
+Notes
+
+- Saves from 2.8.20 and older load as they are, and your MCM choices are kept.
