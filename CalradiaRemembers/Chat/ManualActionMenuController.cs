@@ -449,8 +449,11 @@ namespace CalradiaRemembers.Chat
          {
             int regard = profile?.ReputationWithPlayer ?? 0;
 
-            bool npcIsPlayerPrisoner = npc.IsPrisoner && npc.PartyBelongedToAsPrisoner?.LeaderHero == Hero.MainHero;
+            // whiskeypatt (Discord, 25/11/2026): custody is the bridge's own (party OR a prison of the player's clan), so a
+            // captive in the player's dungeon can be freed by hand as the model can free them.
             bool heldByPlayer = BannerlordGameStateBridge.IsHeldByPlayer(npc);
+            bool npcIsPlayerPrisoner = heldByPlayer;
+            bool prisonerHeldInADungeon = heldByPlayer && npc.PartyBelongedToAsPrisoner?.LeaderHero != Hero.MainHero;
             bool canRecruitPrisoner = heldByPlayer && PrisonerRecruitmentPolicy.CanRecruit(true, npc.Clan?.Leader == npc, regard);
 
             bool npcIsPlayerCompanion = npc.IsPlayerCompanion;
@@ -531,6 +534,7 @@ namespace CalradiaRemembers.Chat
 
             return new ManualActionFacts {
                NpcIsPlayerPrisoner = npcIsPlayerPrisoner,
+               PrisonerHeldInADungeon = prisonerHeldInADungeon,
                CanRecruitPrisoner = canRecruitPrisoner,
                NpcIsPlayerCompanion = npcIsPlayerCompanion,
                NpcIsAwayOnErrand = !npcAvailableForErrand,

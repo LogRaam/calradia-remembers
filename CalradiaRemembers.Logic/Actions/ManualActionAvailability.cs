@@ -24,8 +24,17 @@ namespace CalradiaRemembers.Logic.Actions
    /// </summary>
    public sealed class ManualActionFacts
    {
-      /// <summary>True when the conversation NPC is a hero prisoner the PLAYER themselves currently holds.</summary>
+      /// <summary>
+      ///   True when the conversation NPC is a hero prisoner the PLAYER holds: in the player's own party, or in a prison of
+      ///   the player's clan (the custody free_prisoner and recruit_prisoner accept).
+      /// </summary>
       public bool NpcIsPlayerPrisoner { get; set; }
+
+      /// <summary>
+      ///   Only meaningful with <see cref="NpcIsPlayerPrisoner" />: the captive sits in a prison of the player's clan, not in
+      ///   the player's party. execute_prisoner takes only a captive of the player's own party.
+      /// </summary>
+      public bool PrisonerHeldInADungeon { get; set; }
 
       /// <summary>Only meaningful with <see cref="NpcIsPlayerPrisoner" />: PrisonerRecruitmentPolicy says this captive can be turned.</summary>
       public bool CanRecruitPrisoner { get; set; }
@@ -233,7 +242,9 @@ namespace CalradiaRemembers.Logic.Actions
          }
          else
          {
-            Open(ManualActionCatalog.ExecutePrisoner);
+            // whiskeypatt (Discord, 25/11/2026): a captive in the player's dungeon read "not your prisoner" here while the
+            // model could free them. free_prisoner and recruit_prisoner take that custody; execute_prisoner does not.
+            When(!facts.PrisonerHeldInADungeon, ManualActionCatalog.ExecutePrisoner, "only a captive riding in your own party can be executed here");
             Open(ManualActionCatalog.FreePrisoner);
             When(facts.CanRecruitPrisoner, ManualActionCatalog.RecruitPrisoner, "they will not take your colours yet");
          }

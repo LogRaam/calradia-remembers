@@ -171,6 +171,23 @@ namespace CalradiaRemembers.Tests
          WitnessPresencePolicy.CapFor(WitnessDensity.Bustling).Should().Be(int.MaxValue);
       }
 
+      // whiskeypatt (Discord, 25/11/2026): "a seperate button for 'request private' chat that automatically removes the characters. Right now if you click it it acts as if you spoke... leading the NPC to think you have some important stuff to say when all i wanted is no NPC joining."
+      // STAKE: a player who chose None still finds bystanders joining, and must ask each character to clear the room.
+      [Test]
+      public void GIVEN_density_None_WHEN_filtering_ambient_witnesses_THEN_no_one_is_kept()
+      {
+         WitnessPresencePolicy.Filter(new[] {"lord", "lady", "notable"}, WitnessDensity.None, () => 0.0).Should().BeEmpty();
+      }
+
+      // STAKE: None added last so a saved MCM choice (Sparse, Normal, Bustling) still points where the player left it.
+      [Test]
+      public void GIVEN_the_density_choices_WHEN_None_was_added_THEN_the_three_older_ones_keep_their_place()
+      {
+         ((int) WitnessDensity.Sparse).Should().Be(0);
+         ((int) WitnessDensity.Normal).Should().Be(1);
+         ((int) WitnessDensity.Bustling).Should().Be(2);
+      }
+
       // Each step up the dial must genuinely mean a fuller room, or the setting is a dial the player cannot
       // feel: Sparse < Normal < Bustling on both the chance to keep any one witness and the ceiling on how many.
       [Test]

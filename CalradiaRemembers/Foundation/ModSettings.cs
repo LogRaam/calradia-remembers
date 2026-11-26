@@ -931,6 +931,7 @@ namespace CalradiaRemembers.Foundation
 
             switch (v)
             {
+               case "None": return WitnessDensity.None;
                case "Sparse": return WitnessDensity.Sparse;
                case "Normal": return WitnessDensity.Normal;
                default: return WitnessDensity.Bustling;

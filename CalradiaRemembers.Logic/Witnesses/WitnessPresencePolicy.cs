@@ -52,6 +52,7 @@ namespace CalradiaRemembers.Logic.Witnesses
         {
             switch (density)
             {
+                case WitnessDensity.None:   return 0.0;
                 case WitnessDensity.Sparse: return SparseProbability;
                 case WitnessDensity.Normal: return NormalProbability;
                 default:                    return BustlingProbability; // Bustling
@@ -63,6 +64,7 @@ namespace CalradiaRemembers.Logic.Witnesses
         {
             switch (density)
             {
+                case WitnessDensity.None:   return 0;
                 case WitnessDensity.Sparse: return SparseCap;
                 case WitnessDensity.Normal: return NormalCap;
                 default:                    return BustlingCap; // Bustling

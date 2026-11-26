@@ -141,7 +141,7 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Scene Narration (`SceneNarration`) | `ChatViewModel.AppendModelNarration`, `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService` | 1 |
 | Strategic Assessment (AI) (`EnableStrategicAssessment`) | `StrategicAssessmentService.Populate` | 0 |
 | Unasked Letters (`UnaskedLetters`) | `LetterBox.IsSilenced`, `LetterTriggerEvaluator.EvaluateDaily`, `StanceConsequenceBehavior.TryWrite` | 2 |
-| Witness Density (`WitnessDensity`) | `WitnessResolver.ResolveAutoWitnesses` | 0 |
+| Witness Density (`WitnessDensity`) | `WitnessResolver.ResolveAutoWitnesses` | 1 |
 | Women In The Ranks (`WomenInRanks`) | `WomenInRanksPatch.Postfix` | 0 |
 | Write Letters on Arrival (`WriteLettersOnArrival`) | `LetterBox.Receive` | 0 |
 

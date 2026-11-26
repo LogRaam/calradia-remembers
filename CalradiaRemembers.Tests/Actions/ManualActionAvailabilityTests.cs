@@ -100,6 +100,21 @@ namespace CalradiaRemembers.Tests.Actions
             available.Should().NotContain(ManualActionCatalog.RecruitPrisoner);
         }
 
+        // whiskeypatt (Discord, 25/11/2026): "Add an action to release prisoner mid conversation. Sometimes the model doesnt
+        // seem to recognise the action." The menu had it, but a captive in the player's dungeon read "not your prisoner"
+        // while the model could free them. STAKE: the player cannot free by hand a captive the game lets them free.
+        [Test]
+        public void GIVEN_a_captive_in_the_players_dungeon_WHEN_resolving_availability_THEN_free_and_recruit_are_offered_and_execute_is_not()
+        {
+            var facts = new ManualActionFacts {NpcIsPlayerPrisoner = true, PrisonerHeldInADungeon = true, CanRecruitPrisoner = true};
+
+            IReadOnlyList<ManualActionEntry> available = ManualActionAvailability.GetAvailable(facts);
+
+            available.Should().Contain(ManualActionCatalog.FreePrisoner);
+            available.Should().Contain(ManualActionCatalog.RecruitPrisoner);
+            available.Should().NotContain(ManualActionCatalog.ExecutePrisoner);
+        }
+
         // Without custody, none of the three prisoner entries may appear, even when every OTHER prisoner-side
         // fact happens to be true (a stale or mis-set eligibility flag must never surface a prisoner action
         // against someone who is not, in fact, the player's own captive).

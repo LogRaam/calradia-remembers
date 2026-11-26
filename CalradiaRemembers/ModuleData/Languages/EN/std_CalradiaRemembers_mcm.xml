@@ -275,10 +275,11 @@
     <string id="CR_MCM_VerboseLogging" text="Verbose Logging" />
     <string id="CR_MCM_VerboseLogging_Hint" text="Logs the full system prompt and NPC reply on every exchange. Turn on only to capture a bug report: it floods the log. Requires Enable Logging." />
     <string id="CR_MCM_WitnessDensity" text="Witness Density" />
-    <string id="CR_MCM_WitnessDensity_Hint" text="How many ambient bystanders a conversation gathers. Sparse thins the room fast; Normal keeps a genuine middle ground; Bustling (default) is today's full room, unchanged. Never touches companions you bring yourself. Applies on your next conversation." />
+    <string id="CR_MCM_WitnessDensity_Hint" text="How many bystanders a conversation gathers. Sparse thins the room fast; Normal is a middle ground; Bustling (default) is the full room; None gathers no one. Never touches companions you bring yourself. Applies on your next conversation." />
     <string id="CR_MCM_WitnessDensity_Sparse" text="Sparse" />
     <string id="CR_MCM_WitnessDensity_Normal" text="Normal" />
     <string id="CR_MCM_WitnessDensity_Bustling" text="Bustling" />
+    <string id="CR_MCM_WitnessDensity_None" text="None" />
     <string id="CR_MCM_WomenInRanks" text="Women In The Ranks" />
     <string id="CR_MCM_WomenInRanks_Hint" text="Some soldiers in battle are women: a quarter in Sturgia, Battania and the Khuzait, a tenth among the Nords and the Southern Empire, none elsewhere. Shares in women_in_ranks.json. Turn off if another mod already does this." />
     <string id="CR_MCM_WorldInitiativePace" text="How Often the World Comes to You" />

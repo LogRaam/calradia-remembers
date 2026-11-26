@@ -544,6 +544,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("no_tasks_from_enemies", Severity.Light, "fkasad (Nexus, 29/09/2026): an enemy lord buying back a prisoner slid into demanding a deed, then into invalid-quest messages. Builds the REAL context for a lord at war with the player: it says so, and the prompt built from it teaches no task to offer and no prisoner bargain. Declares a real war via DeclareWarAction when the player is at war with no one (GABRIEL'S RULE, 13/10/2026), made peace again after; MANUAL only when no living lord's faction exists at all. No LLM, nothing stored.", TestNoTasksFromEnemies),
          new SelfTest("quests_suppressed_in_nsfw", Severity.Light, "Mechanical: build the REAL EncounterContext in NSFW mode -> SuppressQuests is true (an intimate scene never mints a quest from a vow, player report); in Roleplay it stays false (quests remain). Restores the active mode. No LLM.", TestQuestsSuppressedInNsfw),
          new SelfTest("witness_recalls_own_memory", Severity.Light, "Mechanical: seed a memory on a hero -> the witness recall a group scene would give them (the real BuildWitnessMemory path + cap) includes it, so a companion no longer answers a group scene as if a prior one-on-one agreement never happened. Removes the seed afterwards.", TestWitnessRecallsOwnMemory),
+         new SelfTest("witness_density_none", Severity.Light, "whiskeypatt (Discord, 25/11/2026): \"all i wanted is no NPC joining\". Finds a hero with others present, sets Witness Density to None, and drives the REAL WitnessResolver.ResolveAutoWitnesses: no bystander is seated. The player's MCM choice is put back.", TestWitnessDensityNone),
          new SelfTest("witness_density_thins_the_room", Severity.Light, "Mechanical: player complaint that conversations are ALWAYS crowded. Drives the REAL WitnessPresencePolicy.Filter directly against a fixed eligible list: Sparse thins the room down to its cap of 1; Bustling with an always-passing rng keeps every one of them, the exact passthrough that reproduces today's live behaviour for a player who never opens the menu. No LLM, mutates nothing.", TestWitnessDensityThinsTheRoom),
          new SelfTest("end_conversation_guards_open_question", Severity.Light, "Mechanical: read the REAL taught end_conversation vocabulary -> its description forbids closing on a turn that awaits the player's reply (player report: NPCs ended while asking a question or making a request). No LLM.", TestEndConversationGuardsAwaitingReply),
          new SelfTest("hostage_breach_imprisons", Severity.Light, "Mechanical: seed a hostage term on a free lord, force the breach through the REAL ExecuteBreach path (TakePrisonerAction) -> the hostage is imprisoned; then release them so the campaign is untouched. Briefly jails and frees a test lord. No LLM.", TestHostageBreachImprisons),
@@ -733,7 +734,8 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("letter_font", Severity.Light, "player report: Russian letters rendered Galahad's broken per-glyph fallback (no Cyrillic glyphs). Mechanical: LetterFontPolicy prefers the plain font for the game's own Russian language id and keeps the decorative Galahad look for English; then forces LetterViewModel's language seam (LetterFontResolver.LanguageIdProvider, no real language switch) and asserts the VM's BodyBrush/HeadingBrush/InputBrush bindings actually pick the plain sibling brushes for Russian and the Galahad ones for English, proving the wiring end to end and not just the pure policy. Restores the seam", TestLetterFont),
          new SelfTest("actions_menu_lord_join", Severity.Light, "Fakade (Nexus, 12/11/2026): \"the option does not appear if not available ... Keep an option greyed out, perhaps with some hint as to why\". On a real lord of another house who does not lead it, through the menu's own fact resolution (ManualActionMenuController.DebugDescribe): with his regard set below the deep-bond mark, 'Ask them to join your clan' is listed Blocked and its reason names the regard needed; at a high regard the regard is no longer the reason. A clan leader of another house is NotForThisPerson. The menu rows (MenuRows) carry no NotForThisPerson entry. Never executes join_clan. Restores the regard", TestActionsMenuLordJoin),
          new SelfTest("manual_conception_entry", Severity.Light, "tashmetu (Nexus, 16/10/2026), Gabriel's ruling the same day: the manual menu may record \"You lay together\" between lovers or spouses, never shown below Explicit. Arranges a partner of the other sex and of fertile age as the player's lover, then reads the REAL menu facts: at Explicit the entry is open; as a stranger, or at Mature, it is not listed at all. Restores the content level and her romance", TestManualConceptionEntry),
-         new SelfTest("manual_action_menu", Severity.Light, "Mechanical: drives the REAL ManualActionAvailability gate (the manual action-injection menu) against seeded facts -> a held-and-eligible prisoner exposes execute/free/recruit together, a held-but-ineligible one keeps execute/free and withholds recruit (PrisonerRecruitmentPolicy's own regard/clan-leader gate), and an otherwise-empty (non-ruler) snapshot shows no governance entry but keeps take_gold, the always-on baseline. Pure logic against a plain facts struct, nothing to clean up", TestManualActionMenu)
+         new SelfTest("manual_action_menu", Severity.Light, "Mechanical: drives the REAL ManualActionAvailability gate (the manual action-injection menu) against seeded facts -> a held-and-eligible prisoner exposes execute/free/recruit together, a held-but-ineligible one keeps execute/free and withholds recruit (PrisonerRecruitmentPolicy's own regard/clan-leader gate), and an otherwise-empty (non-ruler) snapshot shows no governance entry but keeps take_gold, the always-on baseline. Pure logic against a plain facts struct, nothing to clean up", TestManualActionMenu),
+         new SelfTest("manual_free_dungeon_prisoner", Severity.Light, "whiskeypatt (Discord, 25/11/2026): \"Add an action to release prisoner mid conversation.\" The manual menu had it, but a captive in the player's dungeon read \"not your prisoner\" while the model could free them. Puts a free, partyless lord in a prison of the player's clan, reads the REAL menu (ManualActionMenuController) and expects Set this prisoner free open and Execute not open; the lord is released after.", TestManualFreeDungeonPrisoner)
       };
 
       /// <summary>The configured budget for the running test, in seconds, for the "timed out after Ns (budget Ns)" message.</summary>
@@ -4901,6 +4903,40 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("goneFromTheMemories", CrNpcMemory.GetMemories(lord.StringId).Any(m => m.Summary == text), false);
          }
          finally { CrNpcMemory.RemoveMemory(new CrMemoryRemoval {NpcId = lord.StringId, Summary = text, SourceMod = "CrSelfTest"}); }
+
+         return t.Line();
+      }
+
+      // whiskeypatt (Discord, 25/11/2026): a captive in the player's dungeon could be freed by the model, never by hand.
+      private static string TestManualFreeDungeonPrisoner(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("manual_free_dungeon_prisoner");
+         if (t.Abort(Hero.MainHero == null || behavior?.Store == null || behavior.GameStateBridge == null, "the campaign or the store is not ready")) return t.Line();
+
+         Settlement fief = Clan.PlayerClan?.Settlements?.FirstOrDefault(s => (s.IsTown || s.IsCastle) && s.Party != null);
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && !h.IsPrisoner && h.Clan != Clan.PlayerClan && !h.IsChild
+                                                             && h.PartyBelongedTo == null && h.Clan?.IsBanditFaction != true);
+         if (t.Skip(fief == null, "the player's clan holds no town or castle")) return t.Line();
+         if (t.Skip(lord == null, "no free, partyless lord to hold")) return t.Line();
+
+         try
+         {
+            TakePrisonerAction.Apply(fief.Party, lord);
+            t.Expect("heldInThePlayersPrison", BannerlordGameStateBridge.IsHeldByPlayer(lord), true);
+
+            IReadOnlyList<ManualActionStatus> menu = Chat.ManualActionMenuController.DebugDescribe(lord, GetOrCreate(behavior, lord), behavior.GameStateBridge);
+            ManualActionStatus free = menu.SingleOrDefault(x => x.Entry.Type == ManualActionCatalog.FreePrisoner.Type);
+            ManualActionStatus execute = menu.SingleOrDefault(x => x.Entry.Type == ManualActionCatalog.ExecutePrisoner.Type);
+            t.Note($"{lord.Name} in {fief.Name}: free {free?.State} ({free?.Reason}), execute {execute?.State} ({execute?.Reason})");
+            // STAKE: the player frees by hand the captive the model could free.
+            t.Expect("freeIsOpen", free?.State, ManualActionState.Open);
+            // STAKE: execute_prisoner takes only a captive of the player's own party; the menu must not offer what the bridge refuses.
+            t.Expect("executeIsNotOpen", execute != null && execute.State != ManualActionState.Open, true);
+         }
+         finally
+         {
+            if (lord.IsPrisoner) EndCaptivityAction.ApplyByReleasedByChoice(lord);
+         }
 
          return t.Line();
       }
@@ -20042,6 +20078,32 @@ namespace CalradiaRemembers.Diagnostics
       // against a fixed eligible list thins the room down to its cap of 1, while Bustling with an always-passing
       // rng keeps every one of them, the exact passthrough that must reproduce today's live behaviour for a
       // player who never opens the menu (the mod is LIVE). No LLM, mutates nothing.
+      // whiskeypatt (Discord, 25/11/2026): a player who wants no one joining chooses None once.
+      private static string TestWitnessDensityNone(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("witness_density_none");
+         if (t.Abort(behavior?.Store == null || CrSettings.Instance?.WitnessDensity == null, "the store or the MCM settings are not ready")) return t.Line();
+
+         var known = new HashSet<string>(behavior.Store.ListIds());
+         Hero npc = Hero.AllAliveHeroes.FirstOrDefault(h => h.IsLord && h != Hero.MainHero && !h.IsPrisoner && known.Contains(h.StringId) && h.CurrentSettlement != null
+                                                             && Witnesses.WitnessResolver.PresentHeroes(h, behavior.Store).Count > 0);
+         if (t.Skip(npc == null, "no known lord in a settlement with other heroes present")) return t.Line();
+
+         string kept = CrSettings.Instance.WitnessDensity.Choice();
+         try
+         {
+            CrSettings.Instance.WitnessDensity.Pick("None");
+            t.Expect("theSettingReadsNone", ModSettings.WitnessDensity, WitnessDensity.None);
+            List<WitnessEntry> seated = Witnesses.WitnessResolver.ResolveAutoWitnesses(npc, behavior.Store);
+            t.Note($"{npc.Name} in {npc.CurrentSettlement.Name}: {seated.Count} seated at None");
+            // STAKE: with None chosen, a bystander still joins and the player must ask each character to clear the room.
+            t.Expect("noBystanderIsSeated", seated.Count, 0);
+         }
+         finally { CrSettings.Instance.WitnessDensity.Pick(kept ?? "Bustling"); }
+
+         return t.Line();
+      }
+
       private static string TestWitnessDensityThinsTheRoom(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("witness_density_thins_the_room");

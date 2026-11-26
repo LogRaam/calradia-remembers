@@ -814,12 +814,12 @@ namespace CalradiaRemembers.Foundation
       // is an EXACT passthrough (p=1.0, cap=int.MaxValue): the mod is LIVE, so an existing player who never opens
       // this menu sees precisely today's room, unchanged.
       [SettingPropertyDropdown("{=CR_MCM_WitnessDensity}Witness Density", RequireRestart = false, Order = 12,
-         HintText = "{=CR_MCM_WitnessDensity_Hint}How many ambient bystanders a conversation gathers. Sparse thins the room fast; Normal keeps " +
-                    "a genuine middle ground; Bustling (default) is today's full room, unchanged. Never touches " +
-                    "companions you bring yourself. Applies on your next conversation.")]
+         HintText = "{=CR_MCM_WitnessDensity_Hint}How many bystanders a conversation gathers. Sparse thins the room fast; Normal is a middle " +
+                    "ground; Bustling (default) is the full room; None gathers no one. Never touches companions you bring yourself. " +
+                    "Applies on your next conversation.")]
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 4)]
       public Dropdown<McmChoice> WitnessDensity { get; set; } =
-         McmChoice.List(2, "{=CR_MCM_WitnessDensity_Sparse}Sparse", "{=CR_MCM_WitnessDensity_Normal}Normal", "{=CR_MCM_WitnessDensity_Bustling}Bustling"); // default: Bustling (today's live behaviour, unchanged)
+         McmChoice.List(2, "{=CR_MCM_WitnessDensity_Sparse}Sparse", "{=CR_MCM_WitnessDensity_Normal}Normal", "{=CR_MCM_WitnessDensity_Bustling}Bustling", "{=CR_MCM_WitnessDensity_None}None"); // default: Bustling (today's live behaviour, unchanged); None last (whiskeypatt, 25/11/2026) so a saved choice keeps its place
 
       // Gabriel, 14/11/2026: women among the soldiers of some cultures (women_in_ranks.json). Off for a player whose other mod already does it.
       [SettingPropertyBool("{=CR_MCM_WomenInRanks}Women In The Ranks", RequireRestart = false, Order = 13,

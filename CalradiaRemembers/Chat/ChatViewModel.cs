@@ -2482,9 +2482,14 @@ namespace CalradiaRemembers.Chat
          ModLog.Info("[WITNESSES] player requested private audience.");
          // Trigger immediate exchange; _privacyRequestPending is already true so
          // EncounterContextBuilder will inject the privacy request into the prompt.
-         InputText = "I would speak with you privately.";
+         // whiskeypatt (Discord, 25/11/2026): a spoken "I would speak with you privately" read as grave news coming. The
+         // button sends a gesture (asterisks are the player's act), and the prompt says it is a wish for privacy only.
+         InputText = PrivateAudienceRequestLine;
          ExecuteSendMessage();
       }
+
+      /// <summary>The Request Private button's line: a gesture, not words that promise weighty news.</summary>
+      internal const string PrivateAudienceRequestLine = "*I glance at the others, wishing for a moment alone with you.*";
 
       /// <summary>What a request for privacy would do right now (PrivateAudiencePolicy).</summary>
       private PrivateAudienceVerdict PrivacyVerdict()
