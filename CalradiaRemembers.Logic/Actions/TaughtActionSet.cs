@@ -59,6 +59,9 @@ namespace CalradiaRemembers.Logic.Actions
       public bool NpcCanEscortPlayer;
       public bool NpcIsEscortingPlayer;
 
+      /// <summary>NpcCanAttackTogether is set: one army with the player against a listed enemy, attack_together is taught.</summary>
+      public bool NpcCanAttackTogether;
+
       /// <summary>NpcCanRideWithPlayer is set: the idle-lord retainer offer, ride_with_me is taught.</summary>
       public bool NpcCanRideWithPlayer;
 
@@ -252,6 +255,7 @@ namespace CalradiaRemembers.Logic.Actions
          if (facts.PlayerIsMercenary) set.Add("end_mercenary");
          if (facts.VassalOffered) set.Add("join_as_vassal");
          if (facts.NpcCanEscortPlayer) set.Add("follow_me");
+         if (facts.NpcCanAttackTogether) set.Add("attack_together");
          if (facts.NpcIsEscortingPlayer) set.Add("dismiss_escort");
          if (facts.NpcCanRideWithPlayer) set.Add("ride_with_me");
          if (facts.NpcIsRidingWithPlayer) set.Add("part_ways");

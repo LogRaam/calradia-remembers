@@ -20,7 +20,7 @@ the subject of news, and the verbs a model emits in conversation have their own 
 | `CouncilSeat` | `CouncilAttendanceResolver.SeatedInPersonHeroes`, `CouncilAttendanceResolver.TryAppendSeat` |
 | `Duel` | `DuelEligibilityResolver.BothAbleToFight` |
 | `EnterService` | `BannerlordGameStateBridge.HouseholdOfferableTo` |
-| `Escort` | `FollowMeBehavior.TryStart` |
+| `Escort` | `FollowMeBehavior.TryStart`, `JointAttackBehavior.FactsFor` |
 | `FiefAudience` | `FiefAudienceBehavior.EligibleHeroes` |
 | `HeldScene` | `ChatSceneStager.ReceiveOneAwaitingLandfall`, `ChatSceneStager.ReceiveOneAwaitingTheScreen` |
 | `Hostage` | `CouncilHostageBehavior.TryStart`, `HostageCandidateResolver.IsEligible` |

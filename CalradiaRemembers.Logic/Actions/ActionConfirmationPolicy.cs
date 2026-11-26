@@ -202,7 +202,8 @@ namespace CalradiaRemembers.Logic.Actions
          return string.Equals(actionType, "take_gold", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "join_party", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "free_prisoner", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(actionType, "sell_item", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "counter_offer", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(actionType, "enact_edict", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "pay_bounty", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(actionType, "join_as_mercenary", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "join_as_vassal", StringComparison.OrdinalIgnoreCase);
+                || string.Equals(actionType, "join_as_mercenary", StringComparison.OrdinalIgnoreCase) || string.Equals(actionType, "join_as_vassal", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(actionType, "attack_together", StringComparison.OrdinalIgnoreCase);
       }
 
       /// <summary>

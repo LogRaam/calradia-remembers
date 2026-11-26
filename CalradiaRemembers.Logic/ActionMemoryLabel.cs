@@ -77,6 +77,7 @@ namespace CalradiaRemembers.Logic
             case "dispatch_mission": return "Sent on an errand";
             case "assign_party_role": return "Given a party role";
             case "follow_me": return "Rode out with you";
+            case "attack_together": return "Marched with you on an enemy";
             case "ride_with_me": return "Joined your retinue";
             case "dismiss_escort": return "Escort dismissed";
             case "lend_troops": return "Troops lent";

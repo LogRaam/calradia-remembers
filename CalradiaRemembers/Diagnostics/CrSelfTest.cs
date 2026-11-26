@@ -544,6 +544,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("no_tasks_from_enemies", Severity.Light, "fkasad (Nexus, 29/09/2026): an enemy lord buying back a prisoner slid into demanding a deed, then into invalid-quest messages. Builds the REAL context for a lord at war with the player: it says so, and the prompt built from it teaches no task to offer and no prisoner bargain. Declares a real war via DeclareWarAction when the player is at war with no one (GABRIEL'S RULE, 13/10/2026), made peace again after; MANUAL only when no living lord's faction exists at all. No LLM, nothing stored.", TestNoTasksFromEnemies),
          new SelfTest("quests_suppressed_in_nsfw", Severity.Light, "Mechanical: build the REAL EncounterContext in NSFW mode -> SuppressQuests is true (an intimate scene never mints a quest from a vow, player report); in Roleplay it stays false (quests remain). Restores the active mode. No LLM.", TestQuestsSuppressedInNsfw),
          new SelfTest("witness_recalls_own_memory", Severity.Light, "Mechanical: seed a memory on a hero -> the witness recall a group scene would give them (the real BuildWitnessMemory path + cap) includes it, so a companion no longer answers a group scene as if a prior one-on-one agreement never happened. Removes the seed afterwards.", TestWitnessRecallsOwnMemory),
+         new SelfTest("joint_army", Severity.Heavy, "froggyluv (Nexus, 25/11/2026): a lord planned a joint attack, then rode off the other way; Gabriel: one army of the two parties, the most powerful leads, against the right target. Needs the player on the map, in a realm, near a lord of that realm leading his own party, with an enemy in reach. Drives the REAL JointAttackBehavior raise: both parties in one army, the leader JointAttackPolicy names, a lord-led army held on its target; then ends it and checks the army is gone and the lord's AI released.", TestJointArmy),
          new SelfTest("witness_density_none", Severity.Light, "whiskeypatt (Discord, 25/11/2026): \"all i wanted is no NPC joining\". Finds a hero with others present, sets Witness Density to None, and drives the REAL WitnessResolver.ResolveAutoWitnesses: no bystander is seated. The player's MCM choice is put back.", TestWitnessDensityNone),
          new SelfTest("witness_density_thins_the_room", Severity.Light, "Mechanical: player complaint that conversations are ALWAYS crowded. Drives the REAL WitnessPresencePolicy.Filter directly against a fixed eligible list: Sparse thins the room down to its cap of 1; Bustling with an always-passing rng keeps every one of them, the exact passthrough that reproduces today's live behaviour for a player who never opens the menu. No LLM, mutates nothing.", TestWitnessDensityThinsTheRoom),
          new SelfTest("end_conversation_guards_open_question", Severity.Light, "Mechanical: read the REAL taught end_conversation vocabulary -> its description forbids closing on a turn that awaits the player's reply (player report: NPCs ended while asking a question or making a request). No LLM.", TestEndConversationGuardsAwaitingReply),
@@ -20078,6 +20079,55 @@ namespace CalradiaRemembers.Diagnostics
       // against a fixed eligible list thins the room down to its cap of 1, while Bustling with an always-passing
       // rng keeps every one of them, the exact passthrough that must reproduce today's live behaviour for a
       // player who never opens the menu (the mod is LIVE). No LLM, mutates nothing.
+      // froggyluv (Nexus, 25/11/2026): "Once the conversation ended, she took off the other direction."
+      private static string TestJointArmy(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("joint_army");
+         Escort.JointAttackBehavior joint = Escort.JointAttackBehavior.Instance;
+         MobileParty main = MobileParty.MainParty;
+         Kingdom realm = Clan.PlayerClan?.Kingdom;
+         if (t.Abort(joint == null || main == null, "the joint army behaviour or the player's party is missing")) return t.Line();
+         if (t.Skip(realm == null, "the player serves no realm (an army belongs to one kingdom)")) return t.Line();
+         if (t.Skip(Settlement.CurrentSettlement != null || main.Army != null || main.MapEvent != null, "the player is not free on the map (in a settlement, an army or a battle)")) return t.Line();
+         if (t.Skip(joint.ActiveLordId != null, "a joint army is already in the field")) return t.Line();
+
+         TaleWorlds.Library.Vec2 at = main.GetPosition2D;
+         Hero lord = Hero.AllAliveHeroes
+            .Where(h => h != Hero.MainHero && h.Clan?.Kingdom == realm && h.PartyBelongedTo?.LeaderHero == h && h.PartyBelongedTo.Army == null
+                        && h.PartyBelongedTo.MapEvent == null && h.PartyBelongedTo.SiegeEvent == null && h.PartyBelongedTo.CurrentSettlement == null)
+            .OrderBy(h => h.PartyBelongedTo.GetPosition2D.Distance(at)).FirstOrDefault();
+         if (t.Skip(lord == null || lord.PartyBelongedTo.GetPosition2D.Distance(at) > 15f, "no lord of your realm leading his own party within reach on the map; stand near one")) return t.Line();
+
+         MobileParty his = lord.PartyBelongedTo;
+         string refused = joint.DebugRaise(lord, out Logic.Escort.JointAttackCandidate target, out Logic.Escort.JointAttackLeader leader);
+         if (t.Skip(refused == Logic.Escort.JointAttackRefusal.NoTarget.ToString(), "no enemy within reach to name")) return t.Line();
+         try
+         {
+            t.Note($"{lord.Name} and the player against {target?.Name} ({target?.Kind}); {leader} leads; refused: {refused ?? "no"}");
+            // STAKE: the plan made in conversation must become one real army of the two parties.
+            t.Expect("theArmyForms", refused == null && main.Army != null, true);
+            t.Expect("bothAreInIt", main.Army != null && his.Army == main.Army, true);
+            t.Expect("theRightOneLeads", main.Army?.LeaderParty == (leader == Logic.Escort.JointAttackLeader.Npc ? his : main), true);
+            if (leader == Logic.Escort.JointAttackLeader.Npc)
+            {
+               // STAKE: froggyluv's lady rode the other way; the leader is held on the target, not sent to a gathering fortress.
+               t.Expect("theLeaderIsHeldOnTheTarget", his.Ai.DoNotMakeNewDecisions, true);
+               t.Expect("theArmysObjectiveIsTheTarget", target?.Kind == Logic.Escort.JointAttackTargetKind.Party ? his.Army?.AiBehaviorObject == null : (his.Army?.AiBehaviorObject as Settlement)?.StringId == target?.Id, true);
+            }
+         }
+         finally
+         {
+            joint.DebugEnd();
+            if (main.Army != null && main.Army.LeaderParty == main) DisbandArmyAction.ApplyByObjectiveFinished(main.Army);
+         }
+
+         // STAKE: an army that outlives its purpose keeps the lord from his own business and the player in someone's column.
+         t.Expect("theArmyIsGoneAfter", main.Army == null && his.Army == null, true);
+         t.Expect("theLordsAiIsReleased", his.Ai.DoNotMakeNewDecisions, false);
+
+         return t.Line();
+      }
+
       // whiskeypatt (Discord, 25/11/2026): a player who wants no one joining chooses None once.
       private static string TestWitnessDensityNone(NpcMemoryCampaignBehavior behavior)
       {

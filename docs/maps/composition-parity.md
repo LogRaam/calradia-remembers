@@ -23,7 +23,7 @@ those rows are not compared.
 - `Parity`: `same` when both readers are taught it (or neither) in Full; otherwise which one, and the reason it is
   allowed for now, from the list `CompositionParityTests` holds (it may only shrink).
 
-90 verbs: 60 the same for both readers, 1 taught to one reader only, 29 not compared (taught by the mod's own text).
+91 verbs: 61 the same for both readers, 1 taught to one reader only, 29 not compared (taught by the mod's own text).
 
 | Verb | Interpreter | Interpreter, Compact | Prose | Prose, Compact | Prose taught in | Prose, nothing open | Mod text | Bridge | Parity |
 |---|---|---|---|---|---|---|---|---|---|
@@ -35,6 +35,7 @@ those rows are not compared.
 | `arrange_match` | yes | yes |  |  |  |  | yes | yes | not compared |
 | `assault_npc` | yes | yes | yes | yes | everything open; the player held captive; the player's captor scene; a hostile lord who holds the player's secret | yes |  | yes | same |
 | `assign_party_role` | yes | yes | yes | yes | everything open |  |  | yes | same |
+| `attack_together` | yes | yes | yes | yes | everything open |  |  | yes | same |
 | `buy_prisoner` | yes | yes |  |  |  |  | yes | yes | not compared |
 | `change_relation` | yes | yes | yes | yes | everything open; the player held captive; the player's captor scene; a hostile lord who holds the player's secret | yes |  | yes | same |
 | `close_relationship` | yes | yes | yes | yes | everything open |  |  | yes | same |

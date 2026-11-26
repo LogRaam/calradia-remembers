@@ -464,6 +464,7 @@ namespace CalradiaRemembers
          // term, mirroring CouncilStipendBehavior/CouncilHostageBehavior's own SyncData shape. Always on, idle
          // (no active escorts) outside a conversation that actually strikes one.
          campaignStarter.AddBehavior(new FollowMeBehavior());
+         campaignStarter.AddBehavior(new JointAttackBehavior()); // attack_together (froggyluv, Gabriel 25/11/2026)
          // Retainer (the idle-lord ride_with_me path, complement of the follow_me escort): a lord/lady of ANOTHER
          // clan rides IN the player's own party (MobileParty.MainParty member roster) for a time WITHOUT marriage
          // and WITHOUT joining the player's clan, staying affiliated to their OWN clan, and breaks off when their

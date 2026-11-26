@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 696 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1746 types in 62 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 697 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1755 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -438,11 +438,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RegardHouseVM` | public class | One house of a row: the game's banner element, and a note beneath ("at war", "through Manteos"). |
 | `RegardPersonRowVM` | public class | One friend or enemy: the portrait, the status beside it, the reason beneath, a pale green or red marker. |
 
-### CalradiaRemembers.Escort (1)
+### CalradiaRemembers.Escort (2)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `FollowMeBehavior` | public class | Persists active follow_me escorts (a lord's own party riding with the player) and advances/ends each daily. |
+| `JointAttackBehavior` | public class | Raises, steers and ends the one army a lord forms with the player to attack a named enemy. |
 
 ### CalradiaRemembers.Foundation (14)
 
@@ -2341,7 +2342,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EdictTownFacts` | public class | A town as its lord sees it when weighing an edict. |
 | `EdictUnrest` | public enum | What a day of grievance comes to. |
 
-### CalradiaRemembers.Logic.Escort (7)
+### CalradiaRemembers.Logic.Escort (16)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2352,6 +2353,15 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EscortRecord` | public class | One active escort: which lord is riding along, and how many of the fixed term's days remain. |
 | `EscortRefusal` | public enum | Why a lord will not escort the player, or None when he will. |
 | `EscortStandingFacts` | public class | The facts an ending rests on, read off the live campaign by the caller. |
+| `JointAttackCandidate` | public class | A target the model may name, read off the live campaign. |
+| `JointAttackEnd` | public enum | Why a joint army ends. |
+| `JointAttackFacts` | public class | What deciding whether a joint army can be raised rests on. |
+| `JointAttackLeader` | public enum | Who commands the joint army. |
+| `JointAttackPolicy` | public static class | Pure rules for the joint army a lord raises with the player. |
+| `JointAttackProgressFacts` | public class | What deciding whether a joint army is over rests on, read every hour. |
+| `JointAttackRefusal` | public enum | Why a lord cannot raise a joint army with the player now, or None when he can. |
+| `JointAttackSide` | public class | One side of the pair, read off the live campaign. |
+| `JointAttackTargetKind` | public enum | What the joint army is raised against. |
 
 ### CalradiaRemembers.Logic.Extension (18)
 

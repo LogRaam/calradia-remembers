@@ -7,7 +7,7 @@ no longer matches the code; see `docs/maps/README.md`.
 player's data silently gone on their next load, and nothing fails when it happens. A key that disappears from
 this file is refused by the suite, regeneration included, until it is declared on purpose.
 
-## Keys (129)
+## Keys (130)
 
 | Key | Written by | Declared as |
 |---|---|---|
@@ -75,6 +75,7 @@ this file is refused by the suite, regeneration included, until it is declared o
 | `CalradiaRemembers_Jealousy_gz_pieces` | `JealousyBehavior` | constant `SaveKeyGz` passed to `Save`, which reaches SyncData with `_pieces` appended (fact) |
 | `CalradiaRemembers_Jealousy_v1` | `JealousyBehavior` | constant `LegacySaveKey` passed to `Load`, which reaches SyncData (fact) |
 | `CalradiaRemembers_Jealousy_v2bytes` | `JealousyBehavior` | constant `SaveKey` passed to `Load`, which reaches SyncData (fact) |
+| `CalradiaRemembers_JointArmy_v1bytes` | `JointAttackBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_LetterPacing_v1bytes` | `LetterTriggerEvaluator` | constant `LetterPacingSaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_LordStrategy_v1bytes` | `LordStrategyBehavior` | constant `SaveKey` passed to SyncData (fact) |
 | `CalradiaRemembers_MarriageAppliedSwings_gz` | `MarriageApprovalBehavior` | constant `AppliedSwingsSaveKeyGz` passed to `Load`, which reaches SyncData (fact) |

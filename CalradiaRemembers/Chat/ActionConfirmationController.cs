@@ -125,6 +125,21 @@ namespace CalradiaRemembers.Chat
             return ActionDisposition.Queued;
          }
 
+         // attack_together (froggyluv, Gabriel 25/11/2026): the player's party joins an army, or raises one, only on the
+         // player's yes, naming who commands and the target. A lord the bridge would refuse runs inline, where it says why.
+         if (type.Equals("attack_together", StringComparison.OrdinalIgnoreCase))
+         {
+            action.Parameters.TryGetValue("target", out string named);
+            string question = Escort.JointAttackBehavior.Question(npc, named);
+            if (question == null) return ActionDisposition.ExecuteInline;
+            string attackKey = $"attack_together:{npc?.StringId}";
+            if (_resolvedKeys.Contains(attackKey)) return ActionDisposition.Skip;
+            _resolvedKeys.Add(attackKey);
+            _pending.Enqueue(new PendingConfirmation {Action = action, Npc = npc, Profile = profile, Context = context, Question = question});
+
+            return ActionDisposition.Queued;
+         }
+
          // arrange_match asking the player for a woman of his house (tashmetu, 20/10/2026): the player's own yes, always.
          if (type.Equals("arrange_match", StringComparison.OrdinalIgnoreCase) && BannerlordGameStateBridge.HandAskedOfThePlayer(npc) is { } hand)
          {

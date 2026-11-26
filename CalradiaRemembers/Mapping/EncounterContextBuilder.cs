@@ -272,6 +272,12 @@ namespace CalradiaRemembers.Mapping
          bool npcIsEscortingPlayer = ResolveNpcIsEscortingPlayer(hero);
          bool npcCanEscortPlayer = ResolveNpcCanEscortPlayer(hero, npcIsEscortingPlayer);
 
+         // attack_together (froggyluv, Nexus 25/11/2026; Gabriel: one army, the most powerful leads, the right target):
+         // the same JointAttackPolicy gate and target list JointAttackBehavior.TryRaise re-reads after the player's yes.
+         IReadOnlyList<JointAttackCandidate> jointTargets = hero is {IsLord: true} ? Escort.JointAttackBehavior.CandidatesFor(hero) : new List<JointAttackCandidate>();
+         JointAttackFacts jointFacts = Escort.JointAttackBehavior.FactsFor(hero, jointTargets);
+         bool npcCanAttackTogether = hero is {IsLord: true} && Escort.JointAttackBehavior.Instance?.ActiveLordId == null && JointAttackPolicy.CanRaise(jointFacts);
+
          // ride_with_me / part_ways: the idle-lord complement of follow_me, gated behind RetainerBehavior.Enabled
          // (ON by default via the MCM "Lords can ride in your party" toggle, the party-screen feel having been
          // validated in-game). RideWithMeEligibilityPolicy.CanRideWithPlayer is the ONE shared gate the bridge
@@ -669,6 +675,9 @@ namespace CalradiaRemembers.Mapping
                                      || (npcCanRideWithPlayer && RideWithMeEligibilityPolicy.ShouldWarnOfMuster(
                                          new RideWithMeEligibilityPolicy.RideWithMeFacts {RealmAtWar = FactionIsAtWarWithAnyone(hero?.MapFaction)})),
             NpcIsEscortingPlayer = npcIsEscortingPlayer,
+            NpcCanAttackTogether = npcCanAttackTogether,
+            JointAttackPlayerLeads = npcCanAttackTogether && JointAttackPolicy.Leader(jointFacts.Player, jointFacts.Npc) == JointAttackLeader.Player,
+            JointAttackTargets = npcCanAttackTogether ? jointTargets.Select(JointAttackPolicy.Line).ToList() : new List<string>(),
             // ride_with_me / part_ways: the idle-lord complement of follow_me, taught only when
             // RideWithMeEligibilityPolicy says the game can honour it right now AND RetainerBehavior.Enabled is on
             // (see the computation just above the object initializer). part_ways is the mirror, taught only while

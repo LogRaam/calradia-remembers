@@ -235,7 +235,7 @@ namespace CalradiaRemembers.GameState
          "take_into_service", "grant_blessing", "arrange_marriage",
          "appoint_governor", "assign_party_role", "rejoin_party", "dispatch_mission", "grant_fief",
          "revoke_fief", "expel_from_clan", "grant_stipend", "swear_oath", "harm_prisoner", "impregnation_risk",
-         "gather_news", "reassure_companion", "recall_companion", "follow_me", "dismiss_escort", "ride_with_me",
+         "gather_news", "reassure_companion", "recall_companion", "follow_me", "attack_together", "dismiss_escort", "ride_with_me",
          "part_ways", "give_influence", "lend_troops", "give_troops", "spend_influence", "sway_opinion",
          "release_prisoner", "buy_prisoner", "sell_prisoner", "exchange_prisoners", "end_marriage", "leave_house_to_wed", "make_amends", "grudge_terms", "hear_account", "pledge_against", "press_for_war",
          "accept_divorce", "decline_divorce", "end_own_marriage", "teach_skill", "admit_secret_lover", "pay_for_silence",
@@ -345,6 +345,8 @@ namespace CalradiaRemembers.GameState
                return ExecuteRecallCompanion(npcHero);
             case "follow_me":
                return ExecuteFollowMe(npcHero);
+            case "attack_together":
+               return ExecuteAttackTogether(action, npcHero);
             case "dismiss_escort":
                return ExecuteDismissEscort(npcHero);
             case "ride_with_me":
@@ -4228,6 +4230,31 @@ namespace CalradiaRemembers.GameState
          catch (Exception ex)
          {
             ModLog.Error($"[ACTION] follow_me failed: {ex.GetType().Name}: {ex.Message}");
+
+            return null;
+         }
+      }
+
+      /// <summary>
+      ///   attack_together, after the player's yes (froggyluv, Nexus 25/11/2026: a lord planned a joint attack, then rode
+      ///   off the other way; Gabriel: one army, the most powerful leads, the right target). JointAttackBehavior re-checks
+      ///   every guard the teaching used and raises the army once the conversation closes.
+      /// </summary>
+      private static ActionOutcome ExecuteAttackTogether(GameAction action, Hero npcHero)
+      {
+         try
+         {
+            if (npcHero == null || Hero.MainHero == null || Escort.JointAttackBehavior.Instance == null) return null;
+            action.Parameters.TryGetValue("target", out string target);
+            if (!Escort.JointAttackBehavior.Instance.TryRaise(npcHero, target, out string message)) return ActionOutcome.Refused(message);
+
+            ModLog.Info($"[ACTION] attack_together: {npcHero.Name} agrees to attack with the player (named '{target}').");
+
+            return new ActionOutcome(message, true);
+         }
+         catch (Exception ex)
+         {
+            ModLog.Error($"[ACTION] attack_together failed: {ex.GetType().Name}: {ex.Message}");
 
             return null;
          }

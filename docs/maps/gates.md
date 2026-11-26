@@ -143,6 +143,14 @@ Not a defect by itself. It is the reason an "executed but was not taught this tu
   - SilentRefusalMessages.AssignPartyRoleMissingRole()
   - $"({npcHero.Name} does not ride in your party, and can hold no post in it.)"
 
+### attack_together
+
+- executor: `ExecuteAttackTogether`
+- taught in: `AppendAttackTogether`
+- taught when: `context?.NpcCanAttackTogether != true || context.JointAttackTargets == null || context.JointAttackTargets.Count == 0 [early return naming context] AND context.PlayerStatus == PlayerStatusVsNpc.Captive [early return naming context]`
+- the bridge refuses:
+  - message
+
 ### buy_prisoner
 
 - executor: `Execute`
