@@ -46,6 +46,7 @@ namespace CalradiaRemembers.Marriage
       internal static void NoteDissolvedByCr(Hero a, Hero b)
       {
          if (a?.StringId != null && b?.StringId != null) _dissolvedByCr.Add(ForeignDivorceDetection.PairKey(a.StringId, b.StringId));
+         CrRomance.NoteMarriageEndedByCr(a, b); // a bridge hears that CR ended it, not another wife's promotion
       }
 
       /// <summary>

@@ -581,6 +581,7 @@ _One change of a character's bond with the player (see CrRomance.StatusChanged).
 - `CrRomanceStatus After { get; set; }`
 - `CrRomanceStatus Before { get; set; }`
 - `bool DuringSelfTest { get; set; }`
+- `bool EndedByCr { get; set; }`
 - `int GameDay { get; set; }`
 - `string NpcId { get; set; }`
 - `string SaveId { get; set; }`

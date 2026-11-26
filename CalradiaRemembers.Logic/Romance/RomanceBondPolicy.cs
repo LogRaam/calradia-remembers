@@ -5,6 +5,13 @@
 // (23/10/2026) approved the door: the bond with the player as one stable word, the day it began, and an event when it changes.
 // The word follows the Heart page's reading (a spouse outranks the romantic state, which a divorce does not reset), so a
 // bridge never hears something the player's own encyclopedia contradicts.
+//
+// tashmetu (Nexus, 25/11/2026, Bridges to Remember): a divorce CR pronounced reached Affairs of Calradia as "spouse" to
+// "former_spouse", and the bridge now ends the marriage in Affairs' own record. But "with Affairs' polygamy the player has one
+// Hero.Spouse and keeps the other wives through Affairs. If Affairs promotes another wife to Hero.Spouse [...] could CR read
+// the one who stepped down as former_spouse and announce it?" It does: the game's Spouse setter puts the old wife among the
+// ex-spouses. The word alone cannot tell a divorce from a promotion, so a change says whether CR itself ended that marriage
+// (EndedByCr, Gabriel 25/11/2026: "ajoute le champ que tu proposes").
 
 #region
 
@@ -44,6 +51,12 @@ namespace CalradiaRemembers.Logic.Romance
 
       /// <summary>The bond now.</summary>
       public RomanceBondReading After { get; init; }
+
+      /// <summary>
+      ///   True when this change ends a marriage that CR itself dissolved (a divorce pronounced in CR) since the previous
+      ///   pass; false for a marriage ended any other way (another mod, another wife promoted to the game's spouse).
+      /// </summary>
+      public bool EndedByCr { get; init; }
    }
 
    /// <summary>Reads the bond word from the Heart page's facts, and tells a change from the reading before.</summary>
@@ -51,6 +64,9 @@ namespace CalradiaRemembers.Logic.Romance
    {
       /// <summary>No bond with the player.</summary>
       public const string None = "none";
+
+      /// <summary>Married to the player in the game.</summary>
+      public const string Spouse = "spouse";
 
       /// <summary>
       ///   The bond in one word, in the Heart page's order: a marriage first (now or dissolved), then a consort, the player's
@@ -61,7 +77,7 @@ namespace CalradiaRemembers.Logic.Romance
       {
          if (f == null) return new RomanceBondReading();
 
-         string bond = f.IsSpouse ? "spouse"
+         string bond = f.IsSpouse ? Spouse
             : f.IsExSpouse ? "former_spouse"
             : f.IsConsort ? "consort"
             : f.IsSecretLover ? "secret_lover"
@@ -92,13 +108,24 @@ namespace CalradiaRemembers.Logic.Romance
    public sealed class RomanceBondWatch
    {
       private readonly Dictionary<string, RomanceBondReading> _last = new();
+      private readonly HashSet<string> _endedByCr = new();
       private bool _seeded;
 
       /// <summary>Forgets everything: the next pass learns again (a load, a new campaign).</summary>
       public void Reset()
       {
          _last.Clear();
+         _endedByCr.Clear();
          _seeded = false;
+      }
+
+      /// <summary>
+      ///   CR has just dissolved its marriage to this character: the next pass marks the end of that marriage
+      ///   <see cref="RomanceBondChange.EndedByCr" />. A note the next pass does not use is forgotten with it.
+      /// </summary>
+      public void NoteMarriageEndedByCr(string npcId)
+      {
+         if (!string.IsNullOrEmpty(npcId)) _endedByCr.Add(npcId);
       }
 
       /// <summary>The changes since the previous pass, given every character with a bond now. Empty on the first pass.</summary>
@@ -111,13 +138,18 @@ namespace CalradiaRemembers.Logic.Romance
             _last.TryGetValue(id, out RomanceBondReading before);
             now.TryGetValue(id, out RomanceBondReading after);
             after ??= new RomanceBondReading();
-            if (_seeded && RomanceBondPolicy.Differs(before, after)) changes.Add(new RomanceBondChange {NpcId = id, Before = before ?? new RomanceBondReading(), After = after});
+            if (_seeded && RomanceBondPolicy.Differs(before, after))
+               changes.Add(new RomanceBondChange {
+                  NpcId = id, Before = before ?? new RomanceBondReading(), After = after,
+                  EndedByCr = before?.Bond == RomanceBondPolicy.Spouse && after.Bond != RomanceBondPolicy.Spouse && _endedByCr.Contains(id)
+               });
 
             if (after.Bond == RomanceBondPolicy.None && !after.OpenTerms) _last.Remove(id);
             else _last[id] = after;
          }
 
          _seeded = true;
+         _endedByCr.Clear();
 
          return changes;
       }

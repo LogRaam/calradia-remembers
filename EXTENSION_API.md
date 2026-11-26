@@ -606,6 +606,7 @@ CrRomance.StatusChanged += change =>
 {
     if (change.DuringSelfTest) return;            // cr.test all moves a bond and puts it back
     // change.NpcId, change.Before.Bond, change.After.Bond, change.After.SinceDay, change.GameDay, change.SaveId
+    // change.EndedByCr (since 2.8.22): true only when CR itself dissolved that marriage
 };
 ```
 
@@ -615,6 +616,10 @@ hidden: the player's own secret lover, or a married character's affair with the 
 an unknown one as "none". Bonds are read when a conversation closes and every in-game hour, so the event may come up
 to an hour after the change; a loaded save's bonds are never announced, read them with `GetStatus` at session start.
 CR never writes into your mod: what a bond means there is your bridge's call.
+
+"spouse" to "former_spouse" is not always a divorce. If your mod makes another wife the game's spouse (`Hero.Spouse`),
+the game moves the one before among the ex-spouses, and CR reads her "former_spouse" exactly as after a divorce. To
+carry only CR's own divorces into your mod, act when `change.EndedByCr` is true (tashmetu, Bridges to Remember).
 
 **Hidden affairs between lords (since 2.8.3).** Since 2.8.2 a married lord may take a hidden lover in CR (a handful in
 the realm, never the player, nor the player's spouse or household). If your mod has affairs of its own, keep one lord

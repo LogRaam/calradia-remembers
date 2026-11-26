@@ -9,6 +9,8 @@
 // tashmetu (Nexus, 03/11/2026), for Romance & Seduction: CR's hidden affairs between lords could give one lord an affair in
 // each mod. Gabriel (03/11/2026): CR depends on no mod, so the other mod registers a veto CR asks before any affair
 // (RegisterAffairVeto), hears each one begin and end (HiddenAffairChanged), and reads them (GetHiddenAffair).
+// tashmetu (Nexus, 25/11/2026, Bridges to Remember): an Affairs wife promoted to the game's spouse makes the old one read
+// "former_spouse" exactly as a divorce does; StatusChanged now says whether CR ended the marriage (EndedByCr).
 
 #region
 
@@ -145,6 +147,15 @@ namespace CalradiaRemembers
       /// <summary>Forgets the bonds seen: the next check only learns them (a campaign started or loaded).</summary>
       internal static void ResetWatch() => Watch.Reset();
 
+      /// <summary>CR has just dissolved this couple's marriage; when one of them is the player, the next check says so.</summary>
+      internal static void NoteMarriageEndedByCr(Hero a, Hero b)
+      {
+         Hero main = Hero.MainHero;
+         if (main == null || a == null || b == null) return;
+         if (a == main) Watch.NoteMarriageEndedByCr(b.StringId);
+         else if (b == main) Watch.NoteMarriageEndedByCr(a.StringId);
+      }
+
       /// <summary>Reads every bond with the player and raises <see cref="StatusChanged" /> for each that moved since the last check.</summary>
       internal static void CheckForChanges()
       {
@@ -158,9 +169,10 @@ namespace CalradiaRemembers
             var day = (int) CampaignTime.Now.ToDays;
             foreach (RomanceBondChange c in changes)
             {
-               ModLog.Info($"[ROMANCE API] {c.NpcId}: {c.Before.Bond} -> {c.After.Bond}{(c.After.OpenTerms ? " (open terms)" : "")}.");
+               ModLog.Info($"[ROMANCE API] {c.NpcId}: {c.Before.Bond} -> {c.After.Bond}{(c.After.OpenTerms ? " (open terms)" : "")}{(c.EndedByCr ? " (divorce pronounced in CR)" : "")}.");
                Raise(new CrRomanceStatusChange {
                   NpcId = c.NpcId, SaveId = CrConversation.CurrentSaveId(), GameDay = day, DuringSelfTest = Diagnostics.CrSelfTest.IsRunning,
+                  EndedByCr = c.EndedByCr,
                   Before = CrRomanceStatus.Of(c.NpcId, c.Before), After = CrRomanceStatus.Of(c.NpcId, c.After)
                });
             }
@@ -331,5 +343,12 @@ namespace CalradiaRemembers
 
       /// <summary>True while cr.test all runs: a test's change, put back afterwards, which a bridge must not keep.</summary>
       public bool DuringSelfTest { get; set; }
+
+      /// <summary>
+      ///   True when this change ends a marriage CR itself dissolved (a divorce pronounced in CR's chat or by its own rules).
+      ///   False for a marriage ended any other way: by another mod, or because another wife became the game's spouse, which
+      ///   puts the one before among the ex-spouses and reads her "former_spouse" exactly as a divorce does.
+      /// </summary>
+      public bool EndedByCr { get; set; }
    }
 }

@@ -624,7 +624,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("divorce_process", Severity.Heavy, "married couple -> end_marriage -> force endDay -> tick -> assert dissolved + exSpouses + no one clanless + scandal + relation hits", TestDivorceProcess),
          new SelfTest("spouse_divorce", Severity.Heavy, "marry the player (test spouse) -> force demand -> accept_divorce -> assert dissolved + flag cleared; second test spouse -> force demand -> decline_divorce -> assert refusal grudge planted", TestSpouseDivorceDemand),
          new SelfTest("player_divorce", Severity.Heavy, "marry the player (test spouse, happy) -> end_own_marriage -> assert dissolved + a Divorce grudge on the player; second test spouse (miserable) -> end_own_marriage -> assert dissolved + NO grudge", TestPlayerDivorce),
-         new SelfTest("marry_companion", Severity.Heavy, "marry your own companion, END TO END: assert the pure MarryCompanionEligibilityPolicy carve-out (a non-kin companion is admitted, each refusal bars); then against a live disposable opposite-sex wanderer companion assert ResolveMarriageBlockReason no longer emits SameClan for it (and still DOES for an in-clan blood relative when one is present); then drive the REAL bridge marry executor (promotion Wanderer->Lord + MarriageAction.Apply) and assert MainHero.Spouse == companion, the ex-companion is now Occupation.Lord in the player's clan and no longer IsPlayerCompanion; then divorce via CR's MarriageDissolutionService and assert the ex-spouse is SANE (alive, not scattered/fugitive, returned to a clanless Occupation.Wanderer) and the player is unwed again. Best-effort restores the borrowed companion. MANUAL when the player is already wed, no disposable companion exists, or a live army/battle precondition refuses the wedding (the army guard as designed)", TestMarryCompanion),
+         new SelfTest("marry_companion", Severity.Heavy, "marry your own companion, END TO END: assert the pure MarryCompanionEligibilityPolicy carve-out (a non-kin companion is admitted, each refusal bars); then against a live disposable opposite-sex wanderer companion assert ResolveMarriageBlockReason no longer emits SameClan for it (and still DOES for an in-clan blood relative when one is present); then drive the REAL bridge marry executor (promotion Wanderer->Lord + MarriageAction.Apply) and assert MainHero.Spouse == companion, the ex-companion is now Occupation.Lord in the player's clan and no longer IsPlayerCompanion; then divorce via CR's MarriageDissolutionService and assert the ex-spouse is SANE (alive, not scattered/fugitive, returned to a clanless Occupation.Wanderer) and the player is unwed again. Best-effort restores the borrowed companion. MANUAL when the player is already wed, no disposable companion exists, or a live army/battle precondition refuses the wedding (the army guard as designed). tashmetu (Nexus, 25/11/2026): a CrRomance.StatusChanged listener hears the divorce as spouse -> former_spouse with EndedByCr true, so a bridge can tell it from another wife promoted to the game's spouse.", TestMarryCompanion),
          new SelfTest("spouse_estrangement", Severity.Heavy, "marry the player (test spouse) -> force-escalate -> force deadline to today -> tick -> assert dissolved + spouse-side Divorce grudge + escalation cleared; second test spouse -> force-escalate -> raise relation above the reconciliation threshold -> tick -> assert marriage SURVIVES + escalation cleared", TestSpouseEstrangement),
          new SelfTest("grudge_backfill", Severity.Light, "seed a synthetic Jealousy NotableEvent -> force backfill -> assert a Jealousy grudge exists -> force it again -> assert no duplicate", TestGrudgeBackfill),
          new SelfTest("open_relationship", Severity.Light, "open relationship (Inc 2): EnableJealousy=false gates the real daily tick so a queued reaction never fires (and ON fires it); then seed several committed consorts, run the REAL competition selection twice, and assert marking the naturally-aggrieved partner as IsOpenArrangement excludes her so a different NON-open partner is chosen instead. Restores all borrowed state", TestOpenRelationship),
@@ -10825,7 +10825,26 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("exCompanionInPlayerClan", companion.Clan == Clan.PlayerClan, true);
 
          // ── The DIVORCE, driven through CR's own dissolution service, asserts a SANE ex-spouse state ─
-         bool dissolved = MarriageDissolutionService.TryDissolvePlayerMarriage(companion, out string why);
+         var heard = new List<CrRomanceStatusChange>();
+         void Listen(CrRomanceStatusChange c)
+         {
+            if (c.NpcId == companion.StringId) heard.Add(c);
+         }
+
+         CrRomance.CheckForChanges(); // the wedding is announced now, not counted as the divorce
+         CrRomance.StatusChanged += Listen;
+         bool dissolved;
+         string why;
+         try
+         {
+            dissolved = MarriageDissolutionService.TryDissolvePlayerMarriage(companion, out why);
+            CrRomance.CheckForChanges();
+         }
+         finally { CrRomance.StatusChanged -= Listen; }
+
+         // STAKE (tashmetu, 25/11/2026): Bridges to Remember ends the marriage in Affairs of Calradia on CR's divorce only; a
+         // divorce CR pronounced and not marked as such would be ignored, and Affairs would wed her back again.
+         t.Expect("theDivorceIsHeardAsEndedByCr", heard.Any(c => c.Before?.Bond == "spouse" && c.After?.Bond == "former_spouse" && c.EndedByCr), true);
          t.Note($"divorce dissolved={dissolved} ({why ?? "ok"})");
          t.Expect("divorceDissolved", dissolved, true);
          t.Expect("playerUnwedAgain", Hero.MainHero.Spouse == null, true);

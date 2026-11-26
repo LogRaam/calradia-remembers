@@ -7,6 +7,7 @@
 #region
 
 using System.Collections.Generic;
+using System.Linq;
 using CalradiaRemembers.Logic.Romance;
 using FluentAssertions;
 using NpcMemoryService.Core.Models;
@@ -141,6 +142,44 @@ namespace CalradiaRemembers.Tests
          watch.Reset();
 
          watch.Pass(Bonds(("leontia", "spouse"))).Should().BeEmpty();
+      }
+
+      // ── Whose divorce: tashmetu (Nexus, 25/11/2026, Bridges to Remember) ends the marriage in Affairs of Calradia when CR
+      // divorces; with Affairs' polygamy, another wife promoted to the game's spouse reads the old one "former_spouse" too.
+
+      // STAKE: a divorce pronounced in CR not marked as CR's: the bridge ignores it and Affairs weds her back (bdionysis80's Lara).
+      [Test]
+      public void GIVEN_a_wife_WHEN_CR_dissolves_the_marriage_THEN_the_change_is_marked_ended_by_CR()
+      {
+         var watch = new RomanceBondWatch();
+         watch.Pass(Bonds(("lara", "spouse")));
+         watch.NoteMarriageEndedByCr("lara");
+
+         RomanceBondChange change = watch.Pass(Bonds(("lara", "former_spouse"))).Single();
+
+         change.EndedByCr.Should().BeTrue();
+      }
+
+      // STAKE: another wife promoted to the game's spouse read as CR's divorce: the bridge ends a marriage Affairs still holds.
+      [Test]
+      public void GIVEN_a_wife_WHEN_she_reads_former_spouse_without_CR_dissolving_it_THEN_it_is_not_marked_ended_by_CR()
+      {
+         var watch = new RomanceBondWatch();
+         watch.Pass(Bonds(("lara", "spouse")));
+
+         watch.Pass(Bonds(("lara", "former_spouse"), ("chara", "spouse"))).Should().OnlyContain(c => !c.EndedByCr);
+      }
+
+      // STAKE: a note left over from one divorce must not mark a later, unrelated change of the same character.
+      [Test]
+      public void GIVEN_a_note_the_next_pass_did_not_use_WHEN_a_later_pass_ends_her_marriage_THEN_it_is_not_marked_ended_by_CR()
+      {
+         var watch = new RomanceBondWatch();
+         watch.Pass(Bonds(("lara", "courting")));
+         watch.NoteMarriageEndedByCr("lara");
+         watch.Pass(Bonds(("lara", "spouse")));
+
+         watch.Pass(Bonds(("lara", "former_spouse"))).Single().EndedByCr.Should().BeFalse();
       }
    }
 }
