@@ -4238,7 +4238,7 @@ namespace CalradiaRemembers.GameState
       /// <summary>
       ///   attack_together, after the player's yes (froggyluv, Nexus 25/11/2026: a lord planned a joint attack, then rode
       ///   off the other way; Gabriel: one army, the most powerful leads, the right target). JointAttackBehavior re-checks
-      ///   every guard the teaching used and raises the army once the conversation closes.
+      ///   every guard the teaching used and raises the army once the player is back on the open map.
       /// </summary>
       private static ActionOutcome ExecuteAttackTogether(GameAction action, Hero npcHero)
       {

@@ -198,6 +198,12 @@ namespace CalradiaRemembers.Logic.Escort
         /// </summary>
         public const float ReachMapUnits = 60f;
 
+        /// <summary>
+        ///   How long a lord waits, holding where he stands, for the player to set out after the yes (the army forms once
+        ///   the player is back on the open map): a day, so a player who lingers in town does not freeze him for weeks.
+        /// </summary>
+        public const int RaiseWithinDays = 1;
+
         /// <summary>Which door is shut, in the order a lord would think of them, or <see cref="JointAttackRefusal.None" />.</summary>
         public static JointAttackRefusal Refusal(JointAttackFacts f)
         {

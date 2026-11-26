@@ -15,8 +15,12 @@
 // left null (a state the engine itself uses, FinishArmyObjective). Vanilla joins the player to a lord's army with
 // MainParty.Army = army + AddPartyToMergedParties (LordConversationsCampaignBehavior.lord_considers_army_on_consequence),
 // and a lord to the player's the same way; no influence is charged on either path for the player's party.
-// The army is raised after the conversation closes (MainThreadDispatcher.EnqueueForCampaign), on the map, never inside a
-// scene or a menu transition.
+// The army is raised once the player is back on the open map (no scene, no settlement or encounter menu), checked every
+// campaign frame; until then the lord holds where he stands, waiting, for at most JointAttackPolicy.RaiseWithinDays. A
+// party is attached to the army only within the engine's own joining distance (the one Army.Tick uses); farther off it
+// is only named a member, as vanilla does when the player joins a gathering army from afar, and walks to it.
+// Army.CheckDispersion breaks up a lord-led army at a quarter per hour when the realm is at war with no realm holding
+// fiefs, so a lord-led hunt of bandits in peacetime is not offered (JointAttackBehavior.CandidatesFor).
 
 #region
 
@@ -29,11 +33,13 @@ using CalradiaRemembers.Logic.Escort;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
-using TaleWorlds.CampaignSystem.GameMenus;
+using TaleWorlds.CampaignSystem.Encounters;
+using TaleWorlds.CampaignSystem.GameState;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
+using TaleWorlds.MountAndBlade;
 
 #endregion
 
@@ -59,6 +65,10 @@ namespace CalradiaRemembers.Escort
         public override void RegisterEvents()
         {
             CampaignEvents.HourlyTickEvent.AddNonSerializedListener(this, () => SafeRun.Step("JointAttackBehavior.Hourly", Advance));
+            CampaignEvents.TickEvent.AddNonSerializedListener(this, _ =>
+            {
+                if (_active != null && !_active.Raised && OnTheOpenMap()) SafeRun.Step("JointAttackBehavior.Raise", () => RaisePending());
+            });
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -107,12 +117,15 @@ namespace CalradiaRemembers.Escort
 
                 Vec2 at = main.GetPosition2D;
                 bool bothCanSail = main.HasNavalNavigationCapability && his != null && his.HasNavalNavigationCapability;
+                bool lordWouldLead = JointAttackPolicy.Leader(SideOf(Hero.MainHero, main, realm), SideOf(lord, his, realm)) == JointAttackLeader.Npc;
+                bool noWarOverFiefs = !realm.FactionsAtWarWith.Any(f => f.Fiefs.Any());
 
                 foreach (MobileParty p in MobileParty.All)
                 {
                     if (p == null || !p.IsActive || p == main || p == his || p.CurrentSettlement != null || p.IsGarrison || p.IsMilitia) continue;
                     if (p.Army != null && p.Army.LeaderParty != p) continue; // an army is named by its leader's party
                     if (!p.IsBandit && (p.MapFaction == null || !FactionManager.IsAtWarAgainstFaction(p.MapFaction, realm))) continue;
+                    if (p.IsBandit && lordWouldLead && noWarOverFiefs) continue; // the engine disbands such an army within hours
                     float d = p.GetPosition2D.Distance(at);
                     if (d > JointAttackPolicy.ReachMapUnits) continue;
                     all.Add(new JointAttackCandidate {
@@ -174,7 +187,7 @@ namespace CalradiaRemembers.Escort
 
         /// <summary>
         ///   attack_together, after the player's yes: re-checks the gate the teaching used, then raises the army once the
-        ///   conversation has closed. <paramref name="message" /> is what the player reads now, success or refusal.
+        ///   player is back on the open map (the lord holds, waiting, until then). <paramref name="message" /> is what the player reads now, success or refusal.
         /// </summary>
         public bool TryRaise(Hero lord, string targetNamed, out string message)
         {
@@ -191,12 +204,15 @@ namespace CalradiaRemembers.Escort
 
             JointAttackCandidate target = JointAttackPolicy.ResolveOrNearest(candidates, targetNamed);
             JointAttackLeader leader = JointAttackPolicy.Leader(facts.Player, facts.Npc) ?? JointAttackLeader.Npc;
-            string lordId = lord.StringId;
-            MainThreadDispatcher.EnqueueForCampaign(() => SafeRun.Step("JointAttackBehavior.Raise", () => Raise(lordId, target, leader)));
-            ModLog.Info($"[JOINT ARMY] {lord.Name} agrees to attack {target.Name} ({target.Id}, {target.Kind}) with the player; {leader} leads; raised when the conversation closes.");
+            _active = new JointArmyRecord {
+                LordId = lord.StringId, TargetId = target.Id, TargetName = target.Name, TargetKind = target.Kind,
+                PlayerLeads = leader == JointAttackLeader.Player, RaisedDay = (int) CampaignTime.Now.ToDays
+            };
+            Hold(lord.PartyBelongedTo); // he waits for the player where he stands, rather than wander off before the army forms
+            ModLog.Info($"[JOINT ARMY] {lord.Name} agrees to attack {target.Name} ({target.Id}, {target.Kind}) with the player; {leader} leads; raised once the player is back on the open map.");
             message = leader == JointAttackLeader.Npc
-                ? $"When you take your leave, you march in {lord.Name}'s army against {target.Name}."
-                : $"When you take your leave, {lord.Name} joins your army against {target.Name}.";
+                ? $"Once you are back on the road, you march in {lord.Name}'s army against {target.Name}."
+                : $"Once you are back on the road, {lord.Name} joins your army against {target.Name}.";
 
             return true;
         }
@@ -211,7 +227,12 @@ namespace CalradiaRemembers.Escort
             JointAttackRefusal refusal = JointAttackPolicy.Refusal(facts);
             if (refusal != JointAttackRefusal.None) return refusal.ToString();
 
-            return Raise(lord.StringId, target, leader) ? null : "the army did not form";
+            _active = new JointArmyRecord {
+                LordId = lord.StringId, TargetId = target?.Id, TargetName = target?.Name, TargetKind = target?.Kind ?? JointAttackTargetKind.Party,
+                PlayerLeads = leader == JointAttackLeader.Player, RaisedDay = (int) CampaignTime.Now.ToDays
+            };
+
+            return RaisePending() ? null : "the army did not form";
         }
 
         /// <summary>cr.test all seam: ends the army CR raised, as the term's end would.</summary>
@@ -219,29 +240,27 @@ namespace CalradiaRemembers.Escort
 
         // ── Raising, steering, ending ────────────────────────────────────────────────────────────────────────
 
-        private bool Raise(string lordId, JointAttackCandidate target, JointAttackLeader leader)
+        /// <summary>Raises the army the player said yes to. False, with the player told why, when it cannot form.</summary>
+        private bool RaisePending()
         {
-            Hero lord = Hero.FindFirst(h => h.StringId == lordId);
+            JointArmyRecord r = _active;
+            if (r == null || r.Raised) return false;
+            Hero lord = Hero.FindFirst(h => h.StringId == r.LordId);
             MobileParty his = lord?.PartyBelongedTo;
             MobileParty main = MobileParty.MainParty;
             Kingdom realm = lord?.Clan?.Kingdom;
-            if (lord == null || his == null || main == null || realm == null || target == null || _active != null) return false;
+            JointAttackLeader leader = r.PlayerLeads ? JointAttackLeader.Player : JointAttackLeader.Npc;
+            string lordId = r.LordId;
+            Settlement targetSettlement = r.TargetId == null ? null : Settlement.Find(r.TargetId);
+            MobileParty targetParty = targetSettlement == null && r.TargetId != null ? MobileParty.All.FirstOrDefault(p => p.StringId == r.TargetId) : null;
+            JointAttackCandidate target = new JointAttackCandidate {Id = r.TargetId ?? "", Name = r.TargetName ?? "", Kind = r.TargetKind};
 
-            // Re-read at the moment of raising: minutes may have passed since the yes.
-            JointAttackFacts facts = FactsFor(lord, CandidatesFor(lord));
-            JointAttackRefusal refusal = JointAttackPolicy.Refusal(facts);
+            // Re-read at the moment of raising: hours may have passed since the yes. His own hold is not a commitment.
+            JointAttackRefusal refusal = lord == null || his == null || main == null || realm == null ? JointAttackRefusal.NoPartyOfHisOwn : JointAttackPolicy.Refusal(FactsFor(lord, CandidatesFor(lord)));
+            if (refusal == JointAttackRefusal.None && targetSettlement == null && targetParty == null) refusal = JointAttackRefusal.NoTarget;
             if (refusal != JointAttackRefusal.None)
             {
-                Notify(JointAttackPolicy.Describe(refusal, lord.Name?.ToString()));
-
-                return false;
-            }
-
-            Settlement targetSettlement = Settlement.Find(target.Id);
-            MobileParty targetParty = targetSettlement == null ? MobileParty.All.FirstOrDefault(p => p.StringId == target.Id) : null;
-            if (targetSettlement == null && targetParty == null)
-            {
-                Notify($"The enemy {lord.Name} meant to attack can no longer be found.");
+                Cancel(lord, refusal == JointAttackRefusal.NoTarget ? $"The enemy {lord?.Name} meant to attack can no longer be found." : JointAttackPolicy.Describe(refusal, lord?.Name?.ToString()));
 
                 return false;
             }
@@ -261,27 +280,23 @@ namespace CalradiaRemembers.Escort
                 if (army == null) return Failed(lord, "the army did not form");
                 army.AiBehaviorObject = targetSettlement; // null for a party: the engine reads the objective as a settlement
                 main.Army = army;
-                army.AddPartyToMergedParties(main);
-                if (Settlement.CurrentSettlement != null)
-                    try { GameMenu.SwitchToMenu("army_wait_at_settlement"); }
-                    catch (Exception ex) { ModLog.Error($"[JOINT ARMY] could not open the army's waiting menu: {ex.Message}"); }
+                if (WithinJoiningDistance(main, his)) army.AddPartyToMergedParties(main);
             }
             else
             {
                 realm.CreateArmy(Hero.MainHero, focus, type);
                 army = main.Army;
                 if (army == null) return Failed(lord, "the army did not form");
+                his.Ai.SetDoNotMakeNewDecisions(false); // his hold is over: he is the player's to lead now
                 his.Army = army;
-                army.AddPartyToMergedParties(his);
+                if (WithinJoiningDistance(his, main)) army.AddPartyToMergedParties(his);
             }
 
-            _active = new JointArmyRecord {
-                LordId = lordId, TargetId = target.Id, TargetName = target.Name, TargetKind = target.Kind,
-                PlayerLeads = leader == JointAttackLeader.Player, RaisedDay = (int) CampaignTime.Now.ToDays
-            };
-            if (!_active.PlayerLeads) Steer(his, targetSettlement, targetParty);
+            r.Raised = true;
+            r.RaisedDay = (int) CampaignTime.Now.ToDays;
+            if (!r.PlayerLeads) Steer(his, targetSettlement, targetParty);
             ModLog.Info($"[JOINT ARMY] raised: {(leader == JointAttackLeader.Npc ? lord.Name.ToString() : "the player")} leads {lord.Name} and the player against {target.Name} ({type}).");
-            Notify(_active.PlayerLeads
+            Notify(r.PlayerLeads
                 ? $"{lord.Name} joins your army. The target: {target.Name}."
                 : $"You march in {lord.Name}'s army. The target: {target.Name}.");
 
@@ -292,6 +307,13 @@ namespace CalradiaRemembers.Escort
         private void Advance()
         {
             if (_active == null) return;
+            if (!_active.Raised)
+            {
+                if ((int) CampaignTime.Now.ToDays - _active.RaisedDay >= JointAttackPolicy.RaiseWithinDays)
+                    Cancel(Hero.FindFirst(h => h.StringId == _active.LordId), "You did not set out in time; the army was never raised.");
+
+                return;
+            }
 
             Hero lord = Hero.FindFirst(h => h.StringId == _active.LordId);
             MobileParty his = lord?.PartyBelongedTo;
@@ -344,9 +366,13 @@ namespace CalradiaRemembers.Escort
             try
             {
                 if (his != null) his.Ai.SetDoNotMakeNewDecisions(false);
-                if (r.PlayerLeads)
+                Army playerArmy = MobileParty.MainParty?.Army;
+                if (r.PlayerLeads && playerArmy != null && playerArmy.LeaderParty == MobileParty.MainParty)
                 {
-                    if (his != null && his.Army != null && his.Army == MobileParty.MainParty?.Army) his.Army = null;
+                    // The army CR raised was the player and this lord; others the player called since keep their army.
+                    bool onlyUs = playerArmy.Parties.All(p => p == MobileParty.MainParty || p == his);
+                    if (onlyUs) DisbandArmyAction.ApplyByObjectiveFinished(playerArmy);
+                    else if (his != null && his.Army == playerArmy) his.Army = null;
                 }
                 else if (his?.Army != null && his.Army.LeaderParty == his)
                 {
@@ -375,6 +401,35 @@ namespace CalradiaRemembers.Escort
             }
             catch (Exception ex) { ModLog.Error($"[JOINT ARMY] steering failed: {ex.GetType().Name}: {ex.Message}"); }
         }
+
+        private void Cancel(Hero lord, string why)
+        {
+            _active = null;
+            try { if (lord?.PartyBelongedTo != null) lord.PartyBelongedTo.Ai.SetDoNotMakeNewDecisions(false); }
+            catch (Exception ex) { ModLog.Error($"[JOINT ARMY] release failed: {ex.Message}"); }
+            ModLog.Info($"[JOINT ARMY] not raised: {why}");
+            Notify(why);
+        }
+
+        private static void Hold(MobileParty party)
+        {
+            if (party == null) return;
+            try
+            {
+                party.Ai.SetDoNotMakeNewDecisions(false);
+                party.SetMoveModeHold();
+                party.Ai.SetDoNotMakeNewDecisions(true);
+            }
+            catch (Exception ex) { ModLog.Error($"[JOINT ARMY] holding the lord failed: {ex.Message}"); }
+        }
+
+        /// <summary>The player is on the open campaign map: no scene, no settlement or encounter menu under way.</summary>
+        private static bool OnTheOpenMap()
+            => Mission.Current == null && PlayerEncounter.Current == null && Game.Current?.GameStateManager?.ActiveState is MapState;
+
+        /// <summary>Close enough for the engine to attach one party to the other's army (Army.Tick's own test, squared).</summary>
+        private static bool WithinJoiningDistance(MobileParty party, MobileParty leader)
+            => (party.GetPosition2D - leader.GetPosition2D).LengthSquared < Campaign.Current.Models.EncounterModel.MaximumAllowedLandDistanceForEncounteringMobilePartyInArmy;
 
         private static bool TargetDone(Settlement s, MobileParty p, Kingdom realm)
         {
@@ -425,6 +480,7 @@ namespace CalradiaRemembers.Escort
             public bool PlayerLeads { get; set; }
             public int RaisedDay { get; set; }
             public bool Engaged { get; set; }
+            public bool Raised { get; set; }
         }
     }
 }

@@ -20088,7 +20088,7 @@ namespace CalradiaRemembers.Diagnostics
          Kingdom realm = Clan.PlayerClan?.Kingdom;
          if (t.Abort(joint == null || main == null, "the joint army behaviour or the player's party is missing")) return t.Line();
          if (t.Skip(realm == null, "the player serves no realm (an army belongs to one kingdom)")) return t.Line();
-         if (t.Skip(Settlement.CurrentSettlement != null || main.Army != null || main.MapEvent != null, "the player is not free on the map (in a settlement, an army or a battle)")) return t.Line();
+         if (t.Skip(TaleWorlds.CampaignSystem.Encounters.PlayerEncounter.Current != null || main.Army != null || main.MapEvent != null, "the player is not free on the open map (in a settlement, an encounter, an army or a battle)")) return t.Line();
          if (t.Skip(joint.ActiveLordId != null, "a joint army is already in the field")) return t.Line();
 
          TaleWorlds.Library.Vec2 at = main.GetPosition2D;
@@ -20112,13 +20112,14 @@ namespace CalradiaRemembers.Diagnostics
             {
                // STAKE: froggyluv's lady rode the other way; the leader is held on the target, not sent to a gathering fortress.
                t.Expect("theLeaderIsHeldOnTheTarget", his.Ai.DoNotMakeNewDecisions, true);
+               t.Expect("theLeaderMarchesOnTheTarget", his.DefaultBehavior == AiBehavior.EngageParty || his.DefaultBehavior == AiBehavior.RaidSettlement || his.DefaultBehavior == AiBehavior.BesiegeSettlement, true);
+               t.Expect("towardTheNamedEnemy", (his.TargetParty?.StringId ?? his.TargetSettlement?.StringId) == target?.Id, true);
                t.Expect("theArmysObjectiveIsTheTarget", target?.Kind == Logic.Escort.JointAttackTargetKind.Party ? his.Army?.AiBehaviorObject == null : (his.Army?.AiBehaviorObject as Settlement)?.StringId == target?.Id, true);
             }
          }
          finally
          {
             joint.DebugEnd();
-            if (main.Army != null && main.Army.LeaderParty == main) DisbandArmyAction.ApplyByObjectiveFinished(main.Army);
          }
 
          // STAKE: an army that outlives its purpose keeps the lord from his own business and the player in someone's column.
