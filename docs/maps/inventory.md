@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 700 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1762 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1768 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2183,7 +2183,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ConditionBands` | public static class | How a seat and a company are faring, on the engine's own scales. |
 | `PlayerImportancePolicy` | public static class | Whether the player looks important to a captor. |
 
-### CalradiaRemembers.Logic.Conversation (36)
+### CalradiaRemembers.Logic.Conversation (42)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2212,6 +2212,10 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ConversationTranscript` | public class | Accumulates the conversation's attributed lines and answers the two questions asked of it: what session one participant should receive, and how the whole thing reads as plain text. |
 | `CouncilSittingPolicy` | public static class | When a council sitting folds its older lines into a recap, and which lines it still shows whole. |
 | `EnsembleFloorPolicy` | public static class | Decides whether an ensemble beat left a question hanging, and who in the room should answer it. |
+| `FloorBid` | public class | One listener's bid for the next line: the judge's verdict plus what the game knows of them this round. |
+| `FloorDecision` | public class | The referee's decision for one round. |
+| `FloorOutcome` | public enum | What happens next. |
+| `FloorRound` | public class | The state of the round the referee decides. |
 | `MapEncounterCloseFacts` | public class | What the close knows of the player's encounter. |
 | `MapEncounterClosePolicy` | public static class | Whether the close may finish the encounter. |
 | `MapEventSighting` | public class | A map event as the close saw it, for one of the three places a battle can hide (the encounter itself, the player's own party, or the party met). |
@@ -2221,7 +2225,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SilenceOrderContext` | public class | Everything SilenceOrderPolicy.Resolve weighs to decide whether a silence order lands. |
 | `SilenceOrderPolicy` | public static class | Resolves a silence order. |
 | `SilenceResponse` | public enum | Whether an ordered participant yields the floor or holds it. |
+| `SpeakingIntent` | public enum | How much a listener wants to speak, as the judge sees it. |
 | `SummaryEnqueueOutcome` | public enum | What ConversationSummaryQueue.Enqueue actually did with the new job. |
+| `TurnArbiter` | public static class | Decides who holds the floor next in a group conversation. |
 | `WitnessExchangePolicy` | public static class | Decides whether the bystander exchange must stop and leave the floor to the player. |
 
 ### CalradiaRemembers.Logic.Diagnostics (41)
