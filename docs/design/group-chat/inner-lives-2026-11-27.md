@@ -79,3 +79,61 @@ Kael's jealous gestures fell from 6 to 1.
   - repeated gestures and objects (Ilsa and the sword, Mira and the grapes);
   - coherence slips around props (which sword was clean);
   - the priest Edric never speaks in any drama run.
+
+## Second round: scene keeper, visible change, the pull to speak, the protocol (27/11/2026, late morning)
+
+A second outside review asked for:
+- a canonical record of what the scene makes true;
+- an inner change that MAY show, not one that must;
+- levels of change;
+- a reason to speak out of duty or morality (Edric never spoke);
+- complications with two edges instead of verdicts;
+- respect for `end_conversation`;
+- an ablation protocol.
+
+What was built:
+- **Scene keeper.** It replaces the honesty check. One cheap reading per line keeps the scene record (objects, who holds
+  what, admissions; a claim is recorded as a claim). It also flags a lie, a repeated gesture or image, or a contradiction,
+  and asks for one redo. A sincere false belief is not a lie. The record goes to the prose, the inner lives, the reaction
+  writer and the dramaturge. The model-played protagonist is checked too: in the game a person writes those lines.
+- **Inner life, three new fields:**
+  - level: none, fluctuation, reevaluation, tactic, aim or lasting. Only reevaluation and above count as a change, and a
+    lasting change is kept "for memory";
+  - visible: nothing, a detail or words. A reaction shows only when something is visible;
+  - urge: low or high, and the reason. A high pull of duty or morality lifts the judge's verdict one notch. Edric now
+    speaks in some runs.
+- **Dramaturge:** it prefers events with two edges. The drama gained one:
+  - the notched sword ground smooth, a false exoneration only Tomas can refuse;
+  - Berold's letter, read by Ilsa alone: he rode because she wished it.
+- **Actions honoured:** an NPC whose line the interpreter reads as `end_conversation` leaves the scene.
+- **Echoes dropped:** a reaction that only copies a line already in the scene is dropped. The banner's arrival had
+  appeared three times.
+
+**Protocol.** Five variants, five drama runs each, on the same sheets. Claude Opus 5.5 graded each run's variants side by
+side, blind, in two random orders.
+
+| Variant | Inner lives | Dramaturge | Keeper | Mean | Spread across runs (sd) |
+|---|---|---|---|---|---|
+| A | off | off (old reader) | off | 5.29 | 0.37 |
+| B | on | off | off | 6.03 | 0.73 |
+| C | off | on | off | 5.57 | 0.92 |
+| D | on | on | off | 5.83 | 0.72 |
+| E | on | on | on | 6.01 | 0.97 |
+
+The fixes (the protagonist checked, echoes dropped) were then graded against A and E on the same runs: A 5.30, E 6.17, F
+(E plus fixes) 6.36.
+
+What the protocol shows:
+- Inner lives are the one clear gain: +0.7 on the mean. Repetition goes from 4.4 to 6.7, consequence from 4.5 to 5.8.
+- The dramaturge alone adds little (+0.3), and inner lives plus dramaturge score no better than inner lives alone.
+- The keeper mostly helps repetition.
+- The whole system against the baseline: about +1.0 (A 5.3, F 6.4). With five runs per variant, any difference under
+  about 0.5 is noise.
+- The flaws the grader names most now:
+  - a revelation that lands with no visible reaction (the letter, the banner);
+  - repeated questions;
+  - small parse slips ("then the boy");
+  - narration slipping into the first person.
+- One drama line still went to Grok in a fixed run.
+
+Best run of the fixed variant: `scenario-2026-11-27-drama-protocol-best.md`.
