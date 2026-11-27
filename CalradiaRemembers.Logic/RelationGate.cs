@@ -161,7 +161,9 @@ namespace CalradiaRemembers.Logic
 
             // Regard taken earlier in this very conversation comes back first, in full up to what was taken, and leaves the
             // resistance tiers untouched: it is a debt repaid, not new warmth (Lordfadooboo, 26/11/2026).
-            if (proposed > 0 && proposal.TakenThisConversation > 0)
+            // The guarded intimacy door, when open, keeps its own larger grant: a lover who took a point earlier in the talk
+            // must not shrink a legitimate +3 to the size of that debt (the grant still repays it, through the ledger).
+            if (proposed > 0 && proposal.TakenThisConversation > 0 && !IntimacyDoorOpen(proposal))
                 return proposed < proposal.TakenThisConversation ? proposed : proposal.TakenThisConversation;
 
             if (proposed > 0)
@@ -205,6 +207,12 @@ namespace CalradiaRemembers.Logic
         }
 
         #region private
+
+        private static bool IntimacyDoorOpen(RegardProposal proposal)
+            => proposal.EmittedEvent == NotableEventType.Intimacy
+               && proposal.IntimacyAllowed
+               && (!proposal.Profile.LastIntimacyGainHour.HasValue
+                   || proposal.CurrentHour - proposal.Profile.LastIntimacyGainHour.Value >= IntimacyCooldownHours);
 
         private static int ResolvePositive(
             int proposed,

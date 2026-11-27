@@ -333,6 +333,14 @@ namespace CalradiaRemembers.Tests
          profile.RegardResistanceTier.Should().Be(5, "a debt repaid is not new warmth: the tiers do not move");
       }
 
+      // STAKE: a lover who took a point earlier in the talk still grants the full guarded intimacy bonus, not the debt.
+      [Test]
+      public void GIVEN_a_debt_and_a_legitimate_intimacy_moment_WHEN_resolved_THEN_the_intimacy_bonus_lands_in_full()
+      {
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 3, Profile = Profile(), CurrentHour = 100.0, EmittedEvent = NotableEventType.Intimacy, IntimacyAllowed = true, TakenThisConversation = 1})
+                     .Should().Be(3, "the guarded intimacy grant, not the one-point debt");
+      }
+
       // STAKE: the restoration is bounded by the game's own record; with nothing taken, warmth stays as slow as ever.
       [Test]
       public void GIVEN_nothing_taken_this_conversation_WHEN_the_character_warms_THEN_the_slow_progressive_path_applies()

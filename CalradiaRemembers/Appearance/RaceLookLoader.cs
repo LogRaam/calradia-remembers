@@ -31,12 +31,18 @@ namespace CalradiaRemembers.Appearance
         /// <summary>Where the file was read from, for cr.test all and cr.lore_status.</summary>
         public static string LoadedFrom { get; private set; }
 
+        // The game's race names never change within a session; read once (on the main thread at load) rather than asking
+        // the face generator on every prompt built, which may run off the main thread.
+        private static string[] _raceNames;
+
         /// <summary>
         ///   (Re)reads the file at <paramref name="path" /> (the caller resolves it Custom first, NarrativeLoader.ResolveCustomFirst,
         ///   so this namespace need not know Mapping, which knows it). Safe at each session launch and from cr.reload_prompts.
         /// </summary>
         public static void Load(string path)
         {
+            _raceNames = null;
+            ReadRaceNames();
             try
             {
                 if (!File.Exists(path))
@@ -78,7 +84,7 @@ namespace CalradiaRemembers.Appearance
             try
             {
                 int race = hero?.CharacterObject?.Race ?? -1;
-                string[] names = FaceGen.GetRaceNames();
+                string[] names = ReadRaceNames();
 
                 return names != null && race >= 0 && race < names.Length ? names[race] : null;
             }
@@ -86,6 +92,16 @@ namespace CalradiaRemembers.Appearance
             {
                 return null;
             }
+        }
+
+        private static string[] ReadRaceNames()
+        {
+            if (_raceNames != null) return _raceNames;
+
+            try { _raceNames = FaceGen.GetRaceNames(); }
+            catch { _raceNames = null; }
+
+            return _raceNames;
         }
 
         /// <summary>The look written for <paramref name="hero" />'s race, or null.</summary>
