@@ -3412,16 +3412,24 @@ namespace CalradiaRemembers.Chat
             recorded++;
             string transcript = BuildSceneTranscriptText(player);
             if (!string.IsNullOrWhiteSpace(transcript))
-               behavior.ConvSummaryQueue.Enqueue(new PendingSummaryJob {
-                  ProfileId = wp.Id, AnchorDay = sat.gameDay, AnchorType = sat.type.ToString(), AnchorSummary = sat.summary,
-                  AnchorId = sat.Id, Transcript = transcript, PlayerName = player, ReplyLanguage = ModSettings.ReplyLanguage,
-                  EnqueuedDay = gameDay
-               });
+               behavior.ConvSummaryQueue.Enqueue(WitnessSummaryJob(wp.Id, sat, transcript, player, gameDay));
          }
 
          if (recorded > 0)
             ModLog.Info($"[WITNESS MEMORY] recorded a 'was present' memory for {recorded} hero witness(es) of the talk with {mainNpc}.");
       }
+
+      /// <summary>
+      ///   The summary a witness keeps of this talk: the same durable job the one addressed gets, carrying the host's name so
+      ///   the summarizer writes it as a witness, in the witness's own voice (lpsalce, Nexus 26/11/2026: witnesses were handed
+      ///   "a copy of the addressed character's own memory (sometimes the player's)"). Internal for cr.test all.
+      /// </summary>
+      internal PendingSummaryJob WitnessSummaryJob(string witnessId, NotableEvent anchor, string transcript, string player, int gameDay)
+         => new() {
+            ProfileId = witnessId, AnchorDay = anchor.gameDay, AnchorType = anchor.type.ToString(), AnchorSummary = anchor.summary,
+            AnchorId = anchor.Id, Transcript = transcript, PlayerName = player, ReplyLanguage = ModSettings.ReplyLanguage,
+            EnqueuedDay = gameDay, HostName = _npcName
+         };
 
       /// <summary>
       ///   Opens the dedicated left PORTRAIT panel showing this chat line's speaker at full size (their custom

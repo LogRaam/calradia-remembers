@@ -209,7 +209,7 @@ namespace CalradiaRemembers.Chat
             {
                bool? playerIsFemale = Hero.MainHero?.IsFemale;
                rich = await Task.Run(() => summarizer.SummarizeAsync(
-                                   npc, job.Transcript, job.PlayerName, job.ReplyLanguage, linked.Token, playerIsFemale))
+                                   npc, job.Transcript, job.PlayerName, job.ReplyLanguage, linked.Token, playerIsFemale, job.HostName))
                                 .ConfigureAwait(false);
             }
 

@@ -541,6 +541,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("escaped_target", Severity.Light, "fkasad (Nexus, 01/10/2026): the lord a capture task named was beaten and escaped, and the player paid the broken-word price. On a real met lord, a temporary capture task whose target was beaten: the giver's acceptance ([QUEST_COMPLETE]) settles it through the real quest path for HALF the reward, and words alone never settle one whose target was not beaten. The task, the purse, the regard and the memory are put back.", TestEscapedTarget),
          new SelfTest("interpreter_retry", Severity.Light, "Gabriel (25/10/2026), on an interpreter call that used to lose the reply's deeds with a log line only: 'reessaie une fois l'interpreteur en ajoutant un log qui le specifie'. Drives the REAL ActionInterpreterComposer.InterpretAsync with its call seam: a first call that fails then one that answers give_gold must apply the gold tag after exactly two calls; two failures apply nothing after exactly two calls (never a third); a reading with no deed is not retried (one call). No model is called; the seam is cleared after", TestInterpreterRetry),
          new SelfTest("race_appearance", Severity.Light, "CatWithFourEyes (Discord, 26/11/2026): overhaul mods with non-human races (LOTR, GoT, Forgotten Realms) saw every character described as a man or a woman. Puts a races.json entry in force for the player's REAL race name (read from the game, FaceGen.GetRaceNames), runs the REAL appearance extractor and composer and the REAL EncounterContextBuilder and prompt, and checks the people is named in the appearance and in the identity line, the race's line follows, and an omitted fact (skin) is left unsaid; then restores the table. Changes nothing", TestRaceAppearance),
+         new SelfTest("witness_memory_own_voice", Severity.Light, "lpsalce (Nexus, 26/11/2026, 2.8.21): a companion present at someone else's talk was given a copy of the addressed character's memory, or the player's, instead of one in their own voice. Seats a lord as host, builds the REAL witness summary job the chat queues (ChatViewModel.WitnessSummaryJob) and the REAL summarizer prompt it leads to (ConversationSummarizer, through a capturing client, no model call), and checks the job names the host and the prompt tells the witness they were present, which lines are theirs and that 'I' is themselves. Changes nothing", TestWitnessMemoryOwnVoice),
          new SelfTest("regard_given_back", Severity.Light, "Lordfadooboo (Nexus, 26/11/2026): a character who lost regard over a false accusation kept every point after admitting the mistake. Runs the REAL change_relation through the bridge on a living lord: a cold turn takes 3, noted in the same RegardTakenLedger the chat keeps; a warm turn of +5 then gives back exactly 3 even at a high resistance tier, and the tier does not move; with nothing owed a warm turn stays on the slow path. Restores the lord's regard and tiers", TestRegardGivenBack),
          new SelfTest("execution_reprieve", Severity.Light, "froggyluv (Nexus, 26/11/2026): a lord sentenced to death after a battle and spared when the order was rescinded later denied it had ever happened. Drives the REAL ExecutionReprieveBehavior with the game's own sentence ids (\"Off with your head!\", then \"Fine then. You are my prisoner now.\") and the execution scene's cancel, on a living lord, and checks each reprieve lands in his memory once and a plain prisoner line does not; then removes the test memories", TestExecutionReprieve),
          new SelfTest("description_replaces", Severity.Light, "CatWithFourEyes (Discord, 26/11/2026): \"can this thing be overriden with text description fully?\" Gabriel: MCM 'Your Description Replaces The Game's'. Writes a test note as the player's appearance, turns the switch on and builds the REAL appearance a character reads (EncounterContextBuilder.ComposeAppearance): the note alone, nothing from the face; switch off: the face first, the note after. Restores the player's own note and the switch", TestDescriptionReplaces),
@@ -14185,6 +14186,47 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          return t.Line();
+      }
+
+      // lpsalce (Nexus, 26/11/2026): "'I' is someone else, and the witness appears by name in the third person."
+      private static string TestWitnessMemoryOwnVoice(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("witness_memory_own_voice");
+         Hero host = Hero.AllAliveHeroes?.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+         Hero witness = Hero.AllAliveHeroes?.FirstOrDefault(h => h != Hero.MainHero && h != host && h.IsLord && !h.IsPrisoner);
+         if (t.Skip(host == null || witness == null, "no two living lords to seat")) return t.Line();
+
+         var vm = new ChatViewModel();
+         vm.SetNpcHero(host);
+         string player = Hero.MainHero?.Name?.ToString() ?? "the player";
+         string transcript = $"{player}: what news?\n{host.Name}: little worth telling.\n{witness.Name}: the roads are watched.";
+         PendingSummaryJob job = vm.WitnessSummaryJob(witness.StringId, new NotableEvent(1, NotableEventType.Other, "(selftest) was there"), transcript, player, 1);
+
+         // STAKE: the job must carry who the player came to see, or the summarizer writes the witness as the one addressed.
+         t.Expect("theJobNamesTheHost", job.HostName, host.Name.ToString());
+
+         var capture = new SelfTestCapturingClient();
+         NpcProfile profile = HeroProfileMapper.FromHero(witness);
+         new NpcMemoryService.Core.Services.ConversationSummarizer(capture).SummarizeAsync(profile, job.Transcript, job.PlayerName, presentWhileHost: job.HostName).GetAwaiter().GetResult();
+         string prompt = capture.LastSystemPrompt ?? "";
+         t.Note(prompt.Split('\n').FirstOrDefault());
+         // STAKE: the witness is told it was present, and that "I" is itself, never the host or the player.
+         t.Expect("toldItWasPresent", prompt.Contains($"You were present while {player} spoke with {host.Name}"), true);
+         t.Expect("toldWhoIIs", prompt.Contains($"\"I\" is always {profile.Name}"), true);
+
+         return t.Line();
+      }
+
+      private sealed class SelfTestCapturingClient : NpcMemoryService.Core.LlmClient.ILlmClient
+      {
+         public string LastSystemPrompt { get; private set; }
+
+         public System.Threading.Tasks.Task<LlmResponse> CompleteAsync(LlmRequest request, System.Threading.CancellationToken ct = default)
+         {
+            LastSystemPrompt = request.SystemPrompt;
+
+            return System.Threading.Tasks.Task.FromResult(new LlmResponse {Content = "(selftest)", IsSuccess = true});
+         }
       }
 
       // Lordfadooboo (Nexus, 26/11/2026): "once they accept that they were wrong, you still have all those regard points lost".

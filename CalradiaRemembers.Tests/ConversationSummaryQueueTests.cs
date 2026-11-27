@@ -312,5 +312,21 @@ namespace CalradiaRemembers.Tests
 
             queue.Enqueue(MakeJob()).Should().Be(SummaryEnqueueOutcome.Deduplicated);
         }
+
+        // STAKE: lpsalce (Nexus, 26/11/2026): a witness's job now carries who the player came to see, so it is remembered as a
+        // witness; it must survive a save, and a job saved by 2.8.21 (no such field) must still load, as the one addressed.
+        [Test]
+        public void GIVEN_a_witness_job_and_an_older_saved_job_WHEN_the_queue_is_saved_and_reloaded_THEN_both_load_as_written()
+        {
+            var queue = new ConversationSummaryQueue();
+            PendingSummaryJob witness = MakeJob(anchorId: "witness-1");
+            witness.HostName = "Garios";
+            queue.Enqueue(witness);
+
+            ConversationSummaryQueue.Deserialize(queue.Serialize()).Pending[0].HostName.Should().Be("Garios");
+
+            const string savedBy2821 = "[{\"ProfileId\":\"lord_1\",\"AnchorDay\":3,\"AnchorType\":\"Other\",\"AnchorSummary\":\"Spoke with Arwa.\",\"Transcript\":\"Arwa: hello\",\"PlayerName\":\"Arwa\"}]";
+            ConversationSummaryQueue.Deserialize(savedBy2821).Pending.Should().ContainSingle().Which.HostName.Should().BeNull();
+        }
     }
 }

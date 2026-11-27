@@ -56,5 +56,12 @@ namespace CalradiaRemembers.Logic.Conversation
 
         /// <summary>How many times processing has been attempted so far, for retry/drop (see <see cref="ConversationSummaryQueue" />).</summary>
         public int Attempts { get; set; }
+
+        /// <summary>
+        ///   The character the player came to see, when this memory is a WITNESS's (present, not the one addressed); null for
+        ///   the one addressed and for jobs saved before 2.8.22. lpsalce (Nexus, 26/11/2026): witnesses were given the
+        ///   addressed character's own memory; the summarizer now tells them they were present and who "I" is.
+        /// </summary>
+        public string HostName { get; set; }
     }
 }
