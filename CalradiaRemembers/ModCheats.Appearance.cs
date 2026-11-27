@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Appearance;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.Library;
@@ -47,7 +48,8 @@ namespace CalradiaRemembers
             string block = AppearanceComposer.Compose(
                AppearanceFactsExtractor.Extract(target),
                AppearanceProseBehavior.Instance.Get(target.StringId),
-               AppearanceVoice.Subject);
+               AppearanceVoice.Subject,
+               ModSettings.YourDescriptionReplaces);
 
             return $"{target.Name} appearance (as another sees them): \"{block}\"\n" +
                    $"Race (the key for races.json): {RaceLookLoader.RaceNameOf(target) ?? "?"}\n" +
@@ -58,7 +60,7 @@ namespace CalradiaRemembers
          if (args == null || args.Count == 0)
          {
             string prose = AppearanceProseBehavior.Instance.Get(player.StringId);
-            string composed = AppearanceComposer.Compose(facts, prose, AppearanceVoice.Subject);
+            string composed = AppearanceComposer.Compose(facts, prose, AppearanceVoice.Subject, ModSettings.YourDescriptionReplaces);
             FaceColors c = FaceColorReader.Read(player);
 
             return $"Player appearance (as an NPC sees you): \"{composed}\"\n" +
@@ -77,7 +79,7 @@ namespace CalradiaRemembers
          }
 
          string stored = AppearanceProseBehavior.Instance.Set(player.StringId, string.Join(" ", args));
-         string preview = AppearanceComposer.Compose(facts, stored, AppearanceVoice.Subject);
+         string preview = AppearanceComposer.Compose(facts, stored, AppearanceVoice.Subject, ModSettings.YourDescriptionReplaces);
 
          return $"Player appearance prose set. Full block: \"{preview}\"";
       }

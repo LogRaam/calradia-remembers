@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-824 rules read 614 facts.
+826 rules read 615 facts.
 
 ## Facts read by more than one rule
 
@@ -218,6 +218,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.ReplyLanguage` (3) | `FixedLetterTranslationPolicy.NeedsTranslation`, `PendingSummaryJob`, `ReplyLanguagePolicy.WithLanguage` |
 | `ModSettings.RoleplayProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.WarLevyScale` (3) | `StandingAim`, `SummonsFacts`, `WarLevyFacts` |
+| `ModSettings.YourDescriptionReplaces` (3) | `AppearanceComposer.Compose`, `AppearanceComposer.WithOutsideLines`, `CharacterTextComposer.Append` |
 | `Mother.IsDead` (3) | `MattersMostFacts`, `MattersMostPolicy.Resolve`, `MattersMostPolicy.StillKnown` |
 | `Occupation.Soldier` (3) | `PriceFacts`, `PriceReference.Compact`, `PriceReference.Full` |
 | `OwnerClan.Kingdom` (3) | `EdictCounselPolicy.Answer`, `EdictCounselPolicy.DecreesThisWeek`, `EdictTownFacts` |
@@ -393,6 +394,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `AimRaiseFacts`: `Book.ForNpc`, `FactionManager.IsAtWarAgainstFaction`, `Hero.IsPrisoner`, `Hero.MapFaction`, `PersonalRegard.Invoke`
 - `AllegianceFacts`: `Clan.IsBanditFaction`, `Clan.IsMinorFaction`, `Clan.IsUnderMercenaryService`, `Clan.Kingdom`, `Kingdom.Leader`
 - `AmbushPolicy.EliteChiefTier`: `StatureReader.Player`
+- `AppearanceComposer.Compose`: `ModSettings.YourDescriptionReplaces`
+- `AppearanceComposer.WithOutsideLines`: `ModSettings.YourDescriptionReplaces`
 - `AppearanceFacts`: `FaceColorReader.Read`, `Hero.Age`, `Hero.IsFemale`
 - `AppointmentOfferFacts`: `Clan.Leader`, `Clan.Settlements`, `Hero.Clan`, `Hero.GovernorOf`, `Hero.IsAlive`, `Hero.IsPrisoner`, `Town.Governor`
 - `AppreciationPolicy.SelectDominant`: `Array.Empty`
@@ -488,7 +491,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `CellDoorFacts`: `Hero.IsPrisoner`
 - `CellDoorPolicy.Admits`: `Hero.IsPrisoner`
 - `CellDoorPolicy.AtWarWhenTaken`: `e.Day`, `e.Type`
-- `CharacterTextComposer.Append`: `ModSettings.LeanPrompt`
+- `CharacterTextComposer.Append`: `ModSettings.LeanPrompt`, `ModSettings.YourDescriptionReplaces`
 - `CharacterTextComposer.ForPrompt`: `ModSettings.LeanPrompt`
 - `CharacterVoiceFacts`: `Hero.Age`, `SocialStationReader.StationOf`
 - `ChaseFacts`: `Army.LeaderParty`, `GetPosition2D.Distance`, `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `LeaderParty.SiegeEvent`, `MobileParty.Army`, `MobileParty.AttachedTo`, `MobileParty.BesiegedSettlement`, `MobileParty.GetPosition2D`, `MobileParty.IsCurrentlyAtSea`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`, `MobileParty.Speed`, `Settlement.IsUnderSiege`, `Settlement.SiegeEvent`

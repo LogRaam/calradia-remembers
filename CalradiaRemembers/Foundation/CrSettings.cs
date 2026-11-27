@@ -789,6 +789,12 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Character}Character", GroupOrder = 5)]
       public int SelfEsteemClimb { get; set; } = SelfEsteemPolicy.DefaultClimbExponent;
 
+      // CatWithFourEyes (Discord, 26/11/2026): "can this thing be overriden with text description fully?"; Gabriel: "b puis a".
+      [SettingPropertyBool("{=CR_MCM_YourDescriptionReplaces}Your Description Replaces The Game's", RequireRestart = false, Order = 4,
+         HintText = "{=CR_MCM_YourDescriptionReplaces_Hint}Off (default): your own appearance note (encyclopedia or cr.appearance) is added after what the game shows of you. On: your note alone is how characters see you, for a race or a look the game cannot show. Applies immediately.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Character}Character", GroupOrder = 5)]
+      public bool YourDescriptionReplaces { get; set; } = false;
+
       [SettingPropertyBool("{=CR_MCM_UseCustomTraits}Use custom traits", RequireRestart = false, Order = 0,
          HintText = "{=CR_MCM_UseCustomTraits_Hint}Applies the hand-authored personalities from ModuleData/character_overrides.json, replacing an " +
                     "authored NPC's five vanilla traits. Edits load on the next campaign, or via cr.reload_lore.")]

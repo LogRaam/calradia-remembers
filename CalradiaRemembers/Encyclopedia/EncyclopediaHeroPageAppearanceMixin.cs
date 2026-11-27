@@ -14,6 +14,7 @@ using System.Reflection;
 using Bannerlord.UIExtenderEx.Attributes;
 using Bannerlord.UIExtenderEx.ViewModels;
 using CalradiaRemembers.Appearance;
+using CalradiaRemembers.Foundation;
 using CalradiaRemembers.Logic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ViewModelCollection.Encyclopedia.Pages;
@@ -104,7 +105,7 @@ namespace CalradiaRemembers.Encyclopedia
 
             string current = AppearanceProseBehavior.Instance.Get(hero.StringId);
             var facts = AppearanceFactsExtractor.Extract(hero);
-            Func<string, string> preview = note => AppearanceComposer.Compose(facts, note, AppearanceVoice.Subject) ?? "";
+            Func<string, string> preview = note => AppearanceComposer.Compose(facts, note, AppearanceVoice.Subject, ModSettings.YourDescriptionReplaces) ?? "";
 
             AppearanceEditorManager.Open(current, preview, note =>
             {
@@ -128,7 +129,7 @@ namespace CalradiaRemembers.Encyclopedia
 
             string prose = AppearanceProseBehavior.Instance?.Get(hero.StringId) ?? "";
             // The full line a speaking NPC reads: derived look with the authored note appended by the composer.
-            AppearanceText = AppearanceComposer.Compose(AppearanceFactsExtractor.Extract(hero), prose, AppearanceVoice.Subject) ?? "";
+            AppearanceText = AppearanceComposer.Compose(AppearanceFactsExtractor.Extract(hero), prose, AppearanceVoice.Subject, ModSettings.YourDescriptionReplaces) ?? "";
             AppearanceButtonText = string.IsNullOrWhiteSpace(prose) ? "Add more info" : "Edit your note";
         }
     }

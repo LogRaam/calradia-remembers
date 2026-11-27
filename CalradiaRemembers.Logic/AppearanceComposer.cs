@@ -108,8 +108,16 @@ namespace CalradiaRemembers.Logic
         ///   fragment. Returns "" (never null) when there is nothing derived worth saying AND no authored
         ///   prose, so the caller renders nothing.
         /// </summary>
-        public static string Compose(AppearanceFacts facts, string authoredProse, AppearanceVoice voice = AppearanceVoice.Subject)
+        /// <remarks>
+        ///   With <paramref name="proseReplacesDerived" /> and prose written, the prose alone is the description: nothing read
+        ///   from the face or races.json is said (CatWithFourEyes, 26/11/2026; Gabriel: "on fait b puis a", MCM "Your
+        ///   Description Replaces The Game's"). With no prose written, the derived description stands.
+        /// </remarks>
+        public static string Compose(AppearanceFacts facts, string authoredProse, AppearanceVoice voice = AppearanceVoice.Subject, bool proseReplacesDerived = false)
         {
+            string written = (authoredProse ?? "").Trim();
+            if (proseReplacesDerived && written.Length > 0) return written;
+
             string derived = ComposeDerived(facts, voice);
             // races.json (CatWithFourEyes, 26/11/2026): the race's own line follows what the face shows.
             string raceLine = (facts?.RaceLine ?? "").Trim();

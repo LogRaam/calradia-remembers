@@ -364,6 +364,9 @@ namespace CalradiaRemembers.Foundation
       /// </summary>
       public static bool CharactersSetTheScene => CrSettings.Instance?.CharactersSetTheScene ?? true;
 
+      /// <summary>MCM "Your Description Replaces The Game's": the player's own appearance note is the whole description.</summary>
+      public static bool YourDescriptionReplaces => CrSettings.Instance?.YourDescriptionReplaces ?? false;
+
       /// <summary>
       ///   Whether ordinary conversations carry the purple scene narration (1Enfant, Nexus, 16/11/2026). Read by the
       ///   prompt (PromptBuilder.EnableSceneNarration) and the chat (SceneNarrationPolicy). On by default; with no MCM, on.

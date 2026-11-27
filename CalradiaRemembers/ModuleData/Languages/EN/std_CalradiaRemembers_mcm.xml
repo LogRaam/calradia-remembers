@@ -268,6 +268,8 @@
     <string id="CR_MCM_SelfEsteemClimb" text="Self-Esteem Climb" />
     <string id="CR_MCM_SelfEsteemClimb_Hint" text="How hard a character's pride climbs once already high. 0: every success counts in full, as before. 2 (default): half way up, a victory counts a quarter; near the top, almost nothing. Higher: harder still. Applies immediately." />
     <string id="CR_MCM_Group_Character" text="Character" />
+    <string id="CR_MCM_YourDescriptionReplaces" text="Your Description Replaces The Game's" />
+    <string id="CR_MCM_YourDescriptionReplaces_Hint" text="Off (default): your own appearance note (encyclopedia or cr.appearance) is added after what the game shows of you. On: your note alone is how characters see you, for a race or a look the game cannot show. Applies immediately." />
     <string id="CR_MCM_UseCustomTraits" text="Use custom traits" />
     <string id="CR_MCM_UseCustomTraits_Hint" text="Applies the hand-authored personalities from ModuleData/character_overrides.json, replacing an authored NPC's five vanilla traits. Edits load on the next campaign, or via cr.reload_lore." />
     <string id="CR_MCM_CustomFolderPath" text="Custom Folder Path" />

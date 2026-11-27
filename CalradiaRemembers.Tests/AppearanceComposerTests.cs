@@ -399,5 +399,25 @@ namespace CalradiaRemembers.Tests
             AppearanceComposer.WithOutsideLines(null, null).Should().BeNull();
             AppearanceComposer.WithOutsideLines("", new[] {"Strikingly beautiful."}).Should().Be("Strikingly beautiful.");
         }
+
+        // STAKE: CatWithFourEyes (Discord, 26/11/2026) asked to override the description fully; with MCM "Your Description
+        // Replaces The Game's" on, a player playing a race the game cannot show is described by their own words alone.
+        [Test]
+        public void GIVEN_the_player_chose_their_description_replaces_the_games_WHEN_composed_THEN_only_their_words_are_said()
+        {
+            var facts = new AppearanceFacts {IsFemale = true, AgeYears = 30, HeightNormalized = 0.9, BuildNormalized = 0.5, WeightNormalized = 0.5, HairColorDescriptor = "black", KindNoun = "elf woman", RaceLine = "Long ears."};
+
+            AppearanceComposer.Compose(facts, "  A lizardfolk scout, green scales and amber eyes. ", AppearanceVoice.Subject, true)
+                              .Should().Be("A lizardfolk scout, green scales and amber eyes.");
+        }
+
+        // STAKE: switched on with no note written, the player must not become faceless: the game's description stands.
+        [Test]
+        public void GIVEN_the_switch_on_but_no_note_written_WHEN_composed_THEN_the_games_description_stands()
+        {
+            var facts = new AppearanceFacts {IsFemale = false, AgeYears = 30, HeightNormalized = 0.9, BuildNormalized = 0.5, WeightNormalized = 0.5};
+
+            AppearanceComposer.Compose(facts, "  ", AppearanceVoice.Subject, true).Should().Be("A tall man in his prime.");
+        }
     }
 }

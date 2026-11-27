@@ -541,6 +541,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("escaped_target", Severity.Light, "fkasad (Nexus, 01/10/2026): the lord a capture task named was beaten and escaped, and the player paid the broken-word price. On a real met lord, a temporary capture task whose target was beaten: the giver's acceptance ([QUEST_COMPLETE]) settles it through the real quest path for HALF the reward, and words alone never settle one whose target was not beaten. The task, the purse, the regard and the memory are put back.", TestEscapedTarget),
          new SelfTest("interpreter_retry", Severity.Light, "Gabriel (25/10/2026), on an interpreter call that used to lose the reply's deeds with a log line only: 'reessaie une fois l'interpreteur en ajoutant un log qui le specifie'. Drives the REAL ActionInterpreterComposer.InterpretAsync with its call seam: a first call that fails then one that answers give_gold must apply the gold tag after exactly two calls; two failures apply nothing after exactly two calls (never a third); a reading with no deed is not retried (one call). No model is called; the seam is cleared after", TestInterpreterRetry),
          new SelfTest("race_appearance", Severity.Light, "CatWithFourEyes (Discord, 26/11/2026): overhaul mods with non-human races (LOTR, GoT, Forgotten Realms) saw every character described as a man or a woman. Puts a races.json entry in force for the player's REAL race name (read from the game, FaceGen.GetRaceNames), runs the REAL appearance extractor and composer and the REAL EncounterContextBuilder and prompt, and checks the people is named in the appearance and in the identity line, the race's line follows, and an omitted fact (skin) is left unsaid; then restores the table. Changes nothing", TestRaceAppearance),
+         new SelfTest("description_replaces", Severity.Light, "CatWithFourEyes (Discord, 26/11/2026): \"can this thing be overriden with text description fully?\" Gabriel: MCM 'Your Description Replaces The Game's'. Writes a test note as the player's appearance, turns the switch on and builds the REAL appearance a character reads (EncounterContextBuilder.ComposeAppearance): the note alone, nothing from the face; switch off: the face first, the note after. Restores the player's own note and the switch", TestDescriptionReplaces),
          new SelfTest("request_private_to_main", Severity.Light, "whiskeypatt (Discord, 25/11/2026): in a chat with Rhagaea another lord joined; Request Private went to him, his yes emptied the room and Rhagaea answered the next line. Seats a lord as host and another as a witness the player addressed, drives the REAL routing Request Private runs (AddressPrivacyRequestToMain) and checks the request goes back to the host, and that a witness's acceptance clears nothing (PrivateAudiencePolicy.ClearsTheRoom). Changes nothing", TestRequestPrivateGoesToMain),
          new SelfTest("privacy_survives_interpreter", Severity.Light, "Lufaine and Maifailun (Nexus, 30/09/2026): a character agreed to speak privately and the room stayed full. In the two-call chat the interpreter's actions replaced the scene model's, which is the one taught request_privacy. Drives the real splice (ActionInterpreterComposer.WithInterpretedTags): the character's acceptance survives an interpreter that recorded none, and a gift the scene model tagged does not. No LLM.", TestPrivacySurvivesInterpreter),
          new SelfTest("no_tasks_from_enemies", Severity.Light, "fkasad (Nexus, 29/09/2026): an enemy lord buying back a prisoner slid into demanding a deed, then into invalid-quest messages. Builds the REAL context for a lord at war with the player: it says so, and the prompt built from it teaches no task to offer and no prisoner bargain. Declares a real war via DeclareWarAction when the player is at war with no one (GABRIEL'S RULE, 13/10/2026), made peace again after; MANUAL only when no living lord's faction exists at all. No LLM, nothing stored.", TestNoTasksFromEnemies),
@@ -22163,6 +22164,45 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          t.Expect("theTableIsRestored", ReferenceEquals(RaceLookLoader.Table, before), true);
+
+         return t.Line();
+      }
+
+      // CatWithFourEyes (Discord, 26/11/2026): "can this thing be overriden with text description fully?"
+      private static string TestDescriptionReplaces(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("description_replaces");
+         Hero player = Hero.MainHero;
+         CrSettings settings = CrSettings.Instance;
+         AppearanceProseBehavior prose = AppearanceProseBehavior.Instance;
+         if (t.Abort(player == null || settings == null || prose == null, "the player, the settings or the appearance note store is missing")) return t.Line();
+
+         const string note = "(selftest) A lizardfolk scout, green scales and amber eyes.";
+         string ownNote = prose.Get(player.StringId);
+         bool ownSwitch = settings.YourDescriptionReplaces;
+         try
+         {
+            prose.Set(player.StringId, note);
+
+            settings.YourDescriptionReplaces = true;
+            string replaced = EncounterContextBuilder.ComposeAppearance(player, AppearanceVoice.Subject) ?? "";
+            t.Note($"on: {replaced}");
+            // STAKE: the player's own words alone, nothing the face shows (the elf the game cannot draw).
+            t.Expect("theNoteIsTheDescription", replaced.StartsWith(note), true);
+
+            settings.YourDescriptionReplaces = false;
+            string added = EncounterContextBuilder.ComposeAppearance(player, AppearanceVoice.Subject) ?? "";
+            t.Note($"off: {added}");
+            // STAKE: off, as before: the face first, the note after it.
+            t.Expect("offTheNoteFollowsTheFace", added.Contains(note) && !added.StartsWith(note), true);
+         }
+         finally
+         {
+            prose.Set(player.StringId, ownNote ?? "");
+            settings.YourDescriptionReplaces = ownSwitch;
+         }
+
+         t.Expect("thePlayersOwnNoteIsBack", prose.Get(player.StringId) ?? "", ownNote ?? "");
 
          return t.Line();
       }

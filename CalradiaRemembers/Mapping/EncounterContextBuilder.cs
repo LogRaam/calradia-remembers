@@ -1066,7 +1066,8 @@ namespace CalradiaRemembers.Mapping
          string composed = AppearanceComposer.Compose(
             AppearanceFactsExtractor.Extract(hero),
             AppearanceProseBehavior.Instance?.Get(hero.StringId),
-            voice);
+            voice,
+            ModSettings.YourDescriptionReplaces);
 
          string withLines = AppearanceComposer.WithOutsideLines(composed, CrAppearance.LinesFor(hero.StringId, voice == AppearanceVoice.Subject));
 

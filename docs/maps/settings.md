@@ -11,7 +11,7 @@ player says "I turned it off and it still happens", the readers listed here are 
 it is missing from the list. Read from syntax; blind spots in the header of `SettingsReadersMap.cs` (a value handed
 on to the SDK or a helper shows only where it is read).
 
-119 settings; a reader is `Type.Member`. Console and cr.test reads are counted apart (they exercise a switch, they do not obey it).
+120 settings; a reader is `Type.Member`. Console and cr.test reads are counted apart (they exercise a switch, they do not obey it).
 
 ## Read by one member only
 
@@ -90,6 +90,7 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Custom Folder Path (`CustomFolderPath`) | `NarrativeLoader.CustomBaseFolder` | 0 |
 | Self-Esteem Climb (`SelfEsteemClimb`) | `SelfEsteemService.Record` | 1 |
 | Use custom traits (`UseCustomTraits`) | `CharacterLoreBehavior.OnSessionLaunched`, `CharacterLoreBehavior.OnSettingChanged`, `CharacterLoreBehavior.ReloadAndReapply`, `CharacterOverrideLoader.ActsFor`, `CharacterOverrideLoader.BackstoryFor`, `CharacterOverrideLoader.ConvictionFor`, `CharacterOverrideLoader.KinksFor`, `CharacterOverrideLoader.MattersMostFor`, `CharacterOverrideLoader.OrientationFor`, `CharacterOverrideLoader.PastBonds`, `CharacterOverrideLoader.PreferencesFor` | 9 |
+| Your Description Replaces The Game's (`YourDescriptionReplaces`) | `EncounterContextBuilder.ComposeAppearance`, `EncyclopediaHeroPageAppearanceMixin.ExecuteAddMoreInfo`, `EncyclopediaHeroPageAppearanceMixin.Refresh` | 2 |
 
 ### Companions
 
