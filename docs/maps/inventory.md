@@ -8,7 +8,7 @@ sentence beside each type is the first sentence of its own doc comment; `(no sum
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 700 types in 66 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1767 types in 62 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 296 types in 17 namespaces, 9 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 297 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -3440,7 +3440,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpeakerScriptVerdict` | public class | What a reply had to have removed from it, if anything. |
 | `StageDirectionDedupe` | public static class | Drops the second and later copies of the same *stage direction* in a reply. |
 
-### NpcMemoryService.Core.Prompts (53)
+### NpcMemoryService.Core.Prompts (54)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -3461,6 +3461,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FloorJudge` | public static class | Builds the judge's prompt and reads its verdict. |
 | `FloorJudgeLine` | public class | One line of the scene so far. |
 | `FloorJudgeListener` | public class | The listener the judge speaks for, as the host describes them. |
+| `FloorJudgePresence` | public class | One person in the room, as the game knows them. |
 | `FloorJudgeVerdict` | public class | The judge's verdict for one listener. |
 | `GameActionDefinition` | public class | One action that the LLM may emit in an [ACTION] section. |
 | `IPromptBuilder` | public interface | Assembles the system prompt for a single NPC dialogue turn. |
