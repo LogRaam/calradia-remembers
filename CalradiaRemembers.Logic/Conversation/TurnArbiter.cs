@@ -242,8 +242,10 @@ namespace CalradiaRemembers.Logic.Conversation
       {
          if (bid == null) return false;
 
-         // One addressed or asked by name always has something to answer: a question left hanging reads as a fault.
-         bool obliged = bid.AskedByName || bid.Addressed;
+         // One addressed or asked by name always has something to answer: a question left hanging reads as a fault. So does one
+         // cut off while answering: the simulated scene of 26/11/2026 hung on it (Arwa asked the timid squire, his lord cut in,
+         // and the squire, no longer addressed, never got the answer back; she asked again for five beats).
+         bool obliged = bid.AskedByName || bid.Addressed || bid.WasCutOff;
          // "timide reste silencieux" (Gabriel, 26/11/2026): a timid listener never volunteers the floor.
          if (bid.Timid && !obliged) return false;
 

@@ -218,6 +218,21 @@ namespace CalradiaRemembers.Tests.Conversation
          AfterPlayer(new FloorBid {Id = "Bryn", Timid = true, AskedByName = true, Addressed = true, Intent = JudgedIntent.None}).SpeakerId.Should().Be("Bryn");
       }
 
+      // STAKE: the simulated scene of 26/11/2026: Arwa asks the timid squire, his lord cuts in, and the squire must still get
+      // his answer back on the next round, though nobody addresses him any more and his lord outranks everyone.
+      [Test]
+      public void GIVEN_a_timid_squire_cut_off_by_his_lord_WHEN_the_next_round_comes_THEN_he_still_answers()
+      {
+         FloorDecision cut = AfterPlayer(new FloorBid {Id = "Bryn", Timid = true, Addressed = true, Intent = JudgedIntent.Urgent, Standing = 0, LastSpeakerStanding = 2},
+                                         new FloorBid {Id = "Garios", Targeted = true, Intent = JudgedIntent.Urgent, Standing = 3, LastSpeakerStanding = 2});
+         cut.SpeakerId.Should().Be("Garios");
+         cut.CutOffId.Should().Be("Bryn");
+
+         AfterNpcLines(1, new FloorBid {Id = "Bryn", Timid = true, WasCutOff = true, Intent = JudgedIntent.Low, Standing = 0, LastSpeakerStanding = 3},
+                          new FloorBid {Id = "Garios", SpokeLast = true, Standing = 3})
+            .SpeakerId.Should().Be("Bryn");
+      }
+
       // ── larger rooms ──
 
       // STAKE: six in the room, four of them eager: still one voice at a time, and the one the player asked by name.

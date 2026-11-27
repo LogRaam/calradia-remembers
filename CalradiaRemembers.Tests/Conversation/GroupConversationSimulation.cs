@@ -94,7 +94,23 @@ namespace CalradiaRemembers.Tests.Conversation
       }
 
       [Test]
-      public async Task GIVEN_four_people_and_six_player_lines_WHEN_the_floor_is_run_THEN_the_transcript_is_written_to_read()
+      public Task GIVEN_four_people_and_six_player_lines_WHEN_the_floor_is_run_THEN_the_transcript_is_written_to_read()
+         => RunAsync(false, PlayerBeats.Length);
+
+      // Gabriel (26/11/2026): "lance uniquement la premiere phrase de Arwa. Ensuite, laisse les modeles se parler entre eux
+      // pendant 6 beats.. Arwa compris." Only Arwa's first line is scripted; whenever the floor returns to the player, a model
+      // plays Arwa, from a sheet like the others'.
+      [Test]
+      public Task GIVEN_only_the_first_player_line_WHEN_a_model_plays_the_player_for_six_more_beats_THEN_the_transcript_is_written_to_read()
+         => RunAsync(true, 7);
+
+      private static Character PlayerCharacter() => new() {
+         Name = Player, Standing = PlayerStanding,
+         Persona = "Arwa, a commander of the realm who leads this camp. She is investigating last night's theft from the stores: firm and fair, she wants the truth before supper and has no taste for needless cruelty.",
+         Ties = new List<string> {"Garios: a proud lord under your command, useful and touchy", "Ira: the captain of the mercenaries you pay", "Bryn: Garios's young squire, who had the night watch"}
+      };
+
+      private async Task RunAsync(bool aiPlayer, int beats)
       {
          JsonElement settings = LoadSettingsOrIgnore(out string key);
          string proseModel = Str(settings, "model", "x-ai/grok-4.20");
@@ -116,10 +132,21 @@ namespace CalradiaRemembers.Tests.Conversation
          int judgeCalls = 0, proseCalls = 0;
          string cutOff = null;
 
-         for (var beat = 0; beat < PlayerBeats.Length; beat++)
+         Character arwa = PlayerCharacter();
+         for (var beat = 0; beat < beats; beat++)
          {
-            string[] parts = PlayerBeats[beat].Split('|');
-            scene.Add(new SceneLine {Speaker = Player, To = parts[0], Text = parts[1], IsPlayer = true});
+            if (beat == 0 || !aiPlayer)
+            {
+               string[] parts = PlayerBeats[beat].Split('|');
+               scene.Add(new SceneLine {Speaker = Player, To = parts[0], Text = parts[1], IsPlayer = true});
+            }
+            else
+            {
+               (string to, string text) = ParseLine(await Prose(prose, LinePrompt(arwa, cast, room, scene, null), 220));
+               proseCalls++;
+               scene.Add(new SceneLine {Speaker = Player, To = to, Text = text, IsPlayer = true});
+            }
+
             debug.AppendLine($"\n**Beat {beat + 1}**");
             var npcLines = 0;
 
@@ -142,15 +169,20 @@ namespace CalradiaRemembers.Tests.Conversation
                   return FloorJudge.Parse(r.Content);
                }));
 
+               // Who the line was put to by name, read by the game's own detector (a vocative, "*turns to Bryn*"): a speaker
+               // who declares "to: Garios" and then turns to Bryn has asked Bryn (second run of 26/11/2026 hung on it).
+               string calledOn = Logic.AddressedSpeakerDetector.Detect(last.Text, listeners
+                  .Select(c => new Logic.AddressedSpeakerDetector.Participant(c.Name, new HashSet<string>(new[] {c.Name}, StringComparer.OrdinalIgnoreCase))).ToList());
                var bids = new List<FloorBid>();
                for (var i = 0; i < listeners.Count; i++)
                {
                   Character c = listeners[i];
-                  bool addressed = string.Equals(last.To, c.Name, StringComparison.OrdinalIgnoreCase);
+                  bool askedByName = string.Equals(calledOn, c.Name, StringComparison.OrdinalIgnoreCase);
+                  bool addressed = askedByName || string.Equals(last.To, c.Name, StringComparison.OrdinalIgnoreCase);
                   bool named = c.Aliases.Any(a => last.Text.IndexOf(a, StringComparison.OrdinalIgnoreCase) >= 0);
                   bids.Add(new FloorBid {
                      Id = c.Name, Intent = verdicts[i].Intent, Reaction = verdicts[i].Reaction, Addressed = addressed,
-                     AskedByName = addressed && named && last.Text.TrimEnd().EndsWith("?"), Targeted = !addressed && named,
+                     AskedByName = askedByName, Targeted = !addressed && named,
                      Standing = c.Standing, TurnsSilent = TurnsSilent(scene, c.Name), WasCutOff = cutOff == c.Name,
                      LastSpeakerStanding = lastStanding, Bold = c.Bold, Timid = c.Timid, TieBreak = random.Next(1000)
                   });
@@ -167,9 +199,11 @@ namespace CalradiaRemembers.Tests.Conversation
                if (shown.Count > 0)
                {
                   string cues = string.Join("; ", shown.Select(id => $"{id}: {bids.First(b => b.Id == id).Reaction}"));
-                  string narration = await Prose(prose, NarrationPrompt(cast, scene, cues), 90);
+                  string narration = await Prose(prose, NarrationPrompt(room, scene, cues), 90);
                   proseCalls++;
-                  if (!string.IsNullOrWhiteSpace(narration)) scene.Add(new SceneLine {Speaker = "", Text = Clean(narration), IsNarration = true});
+                  // The first line only: the prose model sometimes trails a copy or a stray "\confidence{70}".
+                  string first = (narration ?? "").Replace("\r", "").Split('\n').Select(Clean).FirstOrDefault(l => l.Length > 0) ?? "";
+                  if (first.Length > 0) scene.Add(new SceneLine {Speaker = "", Text = first, IsNarration = true});
                }
 
                if (d.Outcome != FloorOutcome.Speak) break;
@@ -183,7 +217,7 @@ namespace CalradiaRemembers.Tests.Conversation
             }
          }
 
-         string transcript = Render(scene, judgeModel, proseModel, judgeCalls, proseCalls, cost, debug.ToString());
+         string transcript = Render(scene, judgeModel, proseModel, judgeCalls, proseCalls, cost, debug.ToString(), aiPlayer);
          string path = Path.Combine(Path.GetTempPath(), $"cr_group_conversation_{DateTime.Now:yyyyMMdd_HHmmss}.md");
          File.WriteAllText(path, transcript);
          TestContext.Out.WriteLine($"[GROUP SIM] written to {path}");
@@ -222,17 +256,19 @@ namespace CalradiaRemembers.Tests.Conversation
          sb.AppendLine("Write ONLY your next line in this group conversation, in character: one to three sentences of speech, an *action* in");
          sb.AppendLine("asterisks allowed. Speak only for yourself. You never lie outright: when you will not tell the truth, evade, deflect or fall silent.");
          sb.AppendLine("Answer the moment as it stands now: you may turn to anyone present, not only the last speaker.");
+         sb.AppendLine("Never repeat what you have already said or demanded: move the scene forward, change your approach, concede, or act.");
          if (cutOff != null) sb.AppendLine($"You are cutting in before {cutOff} could answer.");
          sb.AppendLine("Format: first line `to: <a name, or everyone>`, then your line.");
 
          return (sb.ToString(), "THE SCENE SO FAR:\n" + SceneText(scene) + $"\n\nYour line, {me.Name}:");
       }
 
-      private static (string System, string User) NarrationPrompt(List<Character> cast, List<SceneLine> scene, string cues)
+      private static (string System, string User) NarrationPrompt(List<FloorJudgePresence> room, List<SceneLine> scene, string cues)
       {
          string system = "You write ONE short line of narration for a scene in a medieval world, present tense, in asterisks, no dialogue. "
                        + "Show each named reaction as a small, specific gesture of that person, different from any gesture already in the scene. "
-                       + "Show only what is listed: no other character, no thoughts, no explanation of what the reaction means.";
+                       + "Show only what is listed: no other character, no thoughts, no explanation of what the reaction means. "
+                       + "Who is here (use the right pronouns): " + string.Join("; ", room.Select(p => $"{p.Name}, {(p.IsFemale ? "a woman (she/her)" : "a man (he/him)")}")) + ".";
 
          return (system, "THE SCENE SO FAR:\n" + SceneText(scene) + $"\n\nREACTIONS TO SHOW: {cues}\nThe narration line:");
       }
@@ -259,12 +295,14 @@ namespace CalradiaRemembers.Tests.Conversation
       // Models write em dashes; the repositories refuse them (git hooks), and the transcript may be kept as a design record.
       private static string Clean(string s) => (s ?? "").Replace("\u2014", ", ").Replace("\u2013", "-").Trim().Trim('`').Trim();
 
-      private static string Render(List<SceneLine> scene, string judgeModel, string proseModel, int judgeCalls, int proseCalls, double cost, string debug)
+      private static string Render(List<SceneLine> scene, string judgeModel, string proseModel, int judgeCalls, int proseCalls, double cost, string debug, bool aiPlayer)
       {
          var sb = new StringBuilder();
          sb.AppendLine("# A group conversation, simulated");
          sb.AppendLine($"Judge: {judgeModel} ({judgeCalls} calls). Prose: {proseModel} ({proseCalls} calls). Judge cost: ${cost:0.0000}.");
-         sb.AppendLine("Arwa (the player, scripted), Garios (a proud lord), Ira (a bold mercenary captain), Bryn (a timid squire, the thief).");
+         sb.AppendLine(aiPlayer
+            ? "Arwa (the player: her first line scripted, then played by the prose model whenever the floor returns to her), Garios (a proud lord), Ira (a bold mercenary captain), Bryn (a timid squire, the thief)."
+            : "Arwa (the player, scripted), Garios (a proud lord), Ira (a bold mercenary captain), Bryn (a timid squire, the thief).");
          sb.AppendLine();
          sb.AppendLine("## The scene");
          foreach (SceneLine l in scene)
