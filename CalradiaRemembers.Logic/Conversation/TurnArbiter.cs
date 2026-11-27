@@ -19,27 +19,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NpcMemoryService.Core.Prompts;
 
 #endregion
 
 namespace CalradiaRemembers.Logic.Conversation
 {
-   /// <summary>How much a listener wants to speak, as the judge sees it. Coarse on purpose: a small model's fine scores are noise.</summary>
-   public enum SpeakingIntent
-   {
-      /// <summary>Nothing to say.</summary>
-      None,
-
-      /// <summary>Would say something if the floor fell to them.</summary>
-      Low,
-
-      /// <summary>Wants to speak: has something to add or to answer.</summary>
-      High,
-
-      /// <summary>Must speak now: provoked, threatened, or the matter is theirs.</summary>
-      Urgent
-   }
-
    /// <summary>One listener's bid for the next line: the judge's verdict plus what the game knows of them this round.</summary>
    public sealed class FloorBid
    {
@@ -47,7 +32,7 @@ namespace CalradiaRemembers.Logic.Conversation
       public string Id { get; init; }
 
       /// <summary>The judge's verdict on how much they want to speak.</summary>
-      public SpeakingIntent Intent { get; init; }
+      public JudgedIntent Intent { get; init; }
 
       /// <summary>The judge's non-verbal (or brief sound) reaction to the last line, or null. Shown whether or not they speak.</summary>
       public string Reaction { get; init; }
@@ -174,7 +159,7 @@ namespace CalradiaRemembers.Logic.Conversation
             return new FloorDecision {Outcome = round?.PlayerSpokeLast == true ? FloorOutcome.Silence : FloorOutcome.BackToPlayer, ReactorIds = reactors};
 
          // Only one who truly wanted to answer is "cut off": narrating a mouth opening for someone with nothing to say is false.
-         FloorBid addressed = bids.FirstOrDefault(b => b.Addressed && !ReferenceEquals(b, winner) && b.Intent != SpeakingIntent.None && Eligible(b, lines));
+         FloorBid addressed = bids.FirstOrDefault(b => b.Addressed && !ReferenceEquals(b, winner) && b.Intent != JudgedIntent.None && Eligible(b, lines));
 
          return new FloorDecision {Outcome = FloorOutcome.Speak, SpeakerId = winner.Id, CutOffId = addressed?.Id, ReactorIds = reactors};
       }
@@ -202,9 +187,9 @@ namespace CalradiaRemembers.Logic.Conversation
          if (bid == null) return 0;
 
          int intent = bid.Intent switch {
-            SpeakingIntent.Urgent => UrgentIntentWeight,
-            SpeakingIntent.High => HighIntentWeight,
-            SpeakingIntent.Low => LowIntentWeight,
+            JudgedIntent.Urgent => UrgentIntentWeight,
+            JudgedIntent.High => HighIntentWeight,
+            JudgedIntent.Low => LowIntentWeight,
             _ => 0
          };
 
@@ -223,17 +208,17 @@ namespace CalradiaRemembers.Logic.Conversation
 
          // One addressed or asked by name always has something to answer: a question left hanging reads as a fault.
          bool obliged = bid.AskedByName || bid.Addressed;
-         SpeakingIntent intent = obliged && bid.Intent == SpeakingIntent.None ? SpeakingIntent.Low : bid.Intent;
-         if (intent == SpeakingIntent.None) return false;
+         JudgedIntent intent = obliged && bid.Intent == JudgedIntent.None ? JudgedIntent.Low : bid.Intent;
+         if (intent == JudgedIntent.None) return false;
 
          // Nobody speaks twice running unless the line was put to them.
          if (bid.SpokeLast && !obliged) return false;
 
          if (npcLinesSincePlayer >= NpcLinesCeiling) return false;
-         if (npcLinesSincePlayer >= NpcLinesPerPlayerLine) return intent == SpeakingIntent.Urgent;
+         if (npcLinesSincePlayer >= NpcLinesPerPlayerLine) return intent == JudgedIntent.Urgent;
          // After the first character's line, a mere "would say something" no longer earns another: no two idle replies. A line
          // put to someone still gets its answer (EnsembleFloorPolicy's rule: a beat never ends on a question left hanging).
-         if (npcLinesSincePlayer >= 1) return intent >= SpeakingIntent.High || obliged;
+         if (npcLinesSincePlayer >= 1) return intent >= JudgedIntent.High || obliged;
 
          return true;
       }

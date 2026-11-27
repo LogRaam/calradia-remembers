@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CalradiaRemembers.Logic.Conversation;
 using FluentAssertions;
+using NpcMemoryService.Core.Prompts;
 using NUnit.Framework;
 
 #endregion
@@ -32,7 +33,7 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public void GIVEN_a_direct_question_and_a_listener_with_nothing_to_say_WHEN_decided_THEN_the_one_asked_answers()
       {
-         FloorDecision d = AfterPlayer(new FloorBid {Id = "N1", Addressed = true, Intent = SpeakingIntent.High}, new FloorBid {Id = "N2", Intent = SpeakingIntent.None});
+         FloorDecision d = AfterPlayer(new FloorBid {Id = "N1", Addressed = true, Intent = JudgedIntent.High}, new FloorBid {Id = "N2", Intent = JudgedIntent.None});
 
          d.SpeakerId.Should().Be("N1");
          d.ReactorIds.Should().BeEmpty();
@@ -42,7 +43,7 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public void GIVEN_a_listener_who_only_reacts_WHEN_decided_THEN_the_reaction_shows_and_the_one_asked_speaks()
       {
-         FloorDecision d = AfterPlayer(new FloorBid {Id = "N1", Addressed = true, Intent = SpeakingIntent.High}, new FloorBid {Id = "N2", Intent = SpeakingIntent.None, Reaction = "*stares, startled*"});
+         FloorDecision d = AfterPlayer(new FloorBid {Id = "N1", Addressed = true, Intent = JudgedIntent.High}, new FloorBid {Id = "N2", Intent = JudgedIntent.None, Reaction = "*stares, startled*"});
 
          d.SpeakerId.Should().Be("N1");
          d.ReactorIds.Should().Equal("N2");
@@ -52,12 +53,12 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public void GIVEN_the_player_mocks_N2_while_speaking_to_N1_WHEN_decided_THEN_N2_cuts_in_and_N1_answers_next()
       {
-         FloorDecision cut = AfterPlayer(new FloorBid {Id = "N1", Addressed = true, Intent = SpeakingIntent.High}, new FloorBid {Id = "N2", Targeted = true, Intent = SpeakingIntent.Urgent});
+         FloorDecision cut = AfterPlayer(new FloorBid {Id = "N1", Addressed = true, Intent = JudgedIntent.High}, new FloorBid {Id = "N2", Targeted = true, Intent = JudgedIntent.Urgent});
 
          cut.SpeakerId.Should().Be("N2");
          cut.CutOffId.Should().Be("N1");
 
-         FloorDecision next = AfterNpcLines(1, new FloorBid {Id = "N1", WasCutOff = true, Intent = SpeakingIntent.High}, new FloorBid {Id = "N2", SpokeLast = true, Intent = SpeakingIntent.High});
+         FloorDecision next = AfterNpcLines(1, new FloorBid {Id = "N1", WasCutOff = true, Intent = JudgedIntent.High}, new FloorBid {Id = "N2", SpokeLast = true, Intent = JudgedIntent.High});
          next.SpeakerId.Should().Be("N1");
       }
 
@@ -65,9 +66,9 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public void GIVEN_a_line_to_everyone_WHEN_decided_THEN_one_speaks_by_stake_then_rank()
       {
-         AfterPlayer(new FloorBid {Id = "N1", Intent = SpeakingIntent.High, Standing = 1}, new FloorBid {Id = "N2", Intent = SpeakingIntent.Urgent, Standing = 1})
+         AfterPlayer(new FloorBid {Id = "N1", Intent = JudgedIntent.High, Standing = 1}, new FloorBid {Id = "N2", Intent = JudgedIntent.Urgent, Standing = 1})
             .SpeakerId.Should().Be("N2");
-         AfterPlayer(new FloorBid {Id = "N1", Intent = SpeakingIntent.High, Standing = 1}, new FloorBid {Id = "N2", Intent = SpeakingIntent.High, Standing = 3})
+         AfterPlayer(new FloorBid {Id = "N1", Intent = JudgedIntent.High, Standing = 1}, new FloorBid {Id = "N2", Intent = JudgedIntent.High, Standing = 3})
             .SpeakerId.Should().Be("N2");
       }
 
@@ -76,10 +77,10 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public void GIVEN_N2_rejudged_after_N1_WHEN_decided_THEN_only_the_new_wish_counts()
       {
-         AfterPlayer(new FloorBid {Id = "N1", Intent = SpeakingIntent.Urgent, Standing = 2}, new FloorBid {Id = "N2", Intent = SpeakingIntent.High}).SpeakerId.Should().Be("N1");
+         AfterPlayer(new FloorBid {Id = "N1", Intent = JudgedIntent.Urgent, Standing = 2}, new FloorBid {Id = "N2", Intent = JudgedIntent.High}).SpeakerId.Should().Be("N1");
 
-         AfterNpcLines(1, new FloorBid {Id = "N1", SpokeLast = true}, new FloorBid {Id = "N2", Intent = SpeakingIntent.None}).Outcome.Should().Be(FloorOutcome.BackToPlayer);
-         AfterNpcLines(1, new FloorBid {Id = "N1", SpokeLast = true}, new FloorBid {Id = "N2", Intent = SpeakingIntent.High}).SpeakerId.Should().Be("N2");
+         AfterNpcLines(1, new FloorBid {Id = "N1", SpokeLast = true}, new FloorBid {Id = "N2", Intent = JudgedIntent.None}).Outcome.Should().Be(FloorOutcome.BackToPlayer);
+         AfterNpcLines(1, new FloorBid {Id = "N1", SpokeLast = true}, new FloorBid {Id = "N2", Intent = JudgedIntent.High}).SpeakerId.Should().Be("N2");
       }
 
       // STAKE (6): two characters arguing get two lines, then the player has the floor back unless it is urgent; past the
@@ -87,35 +88,35 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public void GIVEN_characters_arguing_WHEN_their_lines_mount_THEN_the_floor_returns_to_the_player()
       {
-         AfterNpcLines(2, new FloorBid {Id = "N1", SpokeLast = true}, new FloorBid {Id = "N2", Intent = SpeakingIntent.High}).Outcome.Should().Be(FloorOutcome.BackToPlayer);
-         AfterNpcLines(2, new FloorBid {Id = "N1", SpokeLast = true}, new FloorBid {Id = "N2", Intent = SpeakingIntent.Urgent}).SpeakerId.Should().Be("N2");
-         AfterNpcLines(TurnArbiter.NpcLinesCeiling, new FloorBid {Id = "N1", SpokeLast = true}, new FloorBid {Id = "N2", Intent = SpeakingIntent.Urgent}).Outcome.Should().Be(FloorOutcome.BackToPlayer);
+         AfterNpcLines(2, new FloorBid {Id = "N1", SpokeLast = true}, new FloorBid {Id = "N2", Intent = JudgedIntent.High}).Outcome.Should().Be(FloorOutcome.BackToPlayer);
+         AfterNpcLines(2, new FloorBid {Id = "N1", SpokeLast = true}, new FloorBid {Id = "N2", Intent = JudgedIntent.Urgent}).SpeakerId.Should().Be("N2");
+         AfterNpcLines(TurnArbiter.NpcLinesCeiling, new FloorBid {Id = "N1", SpokeLast = true}, new FloorBid {Id = "N2", Intent = JudgedIntent.Urgent}).Outcome.Should().Be(FloorOutcome.BackToPlayer);
       }
 
       // STAKE (7): a ruler with a burning view speaks before the companion addressed; with a mild one, the companion answers.
       [Test]
       public void GIVEN_a_ruler_present_WHEN_the_player_speaks_to_a_companion_THEN_rank_wins_only_with_an_urgent_wish()
       {
-         var companion = new FloorBid {Id = "companion", Addressed = true, Intent = SpeakingIntent.High, Standing = 0};
+         var companion = new FloorBid {Id = "companion", Addressed = true, Intent = JudgedIntent.High, Standing = 0};
 
-         AfterPlayer(companion, new FloorBid {Id = "king", Intent = SpeakingIntent.Urgent, Standing = 4}).SpeakerId.Should().Be("king");
-         AfterPlayer(companion, new FloorBid {Id = "king", Intent = SpeakingIntent.Low, Standing = 4}).SpeakerId.Should().Be("companion");
+         AfterPlayer(companion, new FloorBid {Id = "king", Intent = JudgedIntent.Urgent, Standing = 4}).SpeakerId.Should().Be("king");
+         AfterPlayer(companion, new FloorBid {Id = "king", Intent = JudgedIntent.Low, Standing = 4}).SpeakerId.Should().Be("companion");
       }
 
       // STAKE (8): a remark on the weather to nobody. At most one brief reply; never two idle ones.
       [Test]
       public void GIVEN_an_idle_remark_to_nobody_WHEN_decided_THEN_one_brief_reply_at_most()
       {
-         AfterPlayer(new FloorBid {Id = "N1", Intent = SpeakingIntent.Low}, new FloorBid {Id = "N2", Intent = SpeakingIntent.Low, TieBreak = 1}).SpeakerId.Should().Be("N1");
+         AfterPlayer(new FloorBid {Id = "N1", Intent = JudgedIntent.Low}, new FloorBid {Id = "N2", Intent = JudgedIntent.Low, TieBreak = 1}).SpeakerId.Should().Be("N1");
 
-         AfterNpcLines(1, new FloorBid {Id = "N1", SpokeLast = true}, new FloorBid {Id = "N2", Intent = SpeakingIntent.Low}).Outcome.Should().Be(FloorOutcome.BackToPlayer);
+         AfterNpcLines(1, new FloorBid {Id = "N1", SpokeLast = true}, new FloorBid {Id = "N2", Intent = JudgedIntent.Low}).Outcome.Should().Be(FloorOutcome.BackToPlayer);
       }
 
       // STAKE (9): N2 has been silent five lines and the talk touches his town; his silence lifts him over an equal wish.
       [Test]
       public void GIVEN_a_long_silent_character_WHEN_both_want_to_speak_THEN_the_silent_one_rises()
       {
-         AfterPlayer(new FloorBid {Id = "N1", Intent = SpeakingIntent.High, TurnsSilent = 0}, new FloorBid {Id = "N2", Intent = SpeakingIntent.High, TurnsSilent = 5})
+         AfterPlayer(new FloorBid {Id = "N1", Intent = JudgedIntent.High, TurnsSilent = 0}, new FloorBid {Id = "N2", Intent = JudgedIntent.High, TurnsSilent = 5})
             .SpeakerId.Should().Be("N2");
       }
 
@@ -123,9 +124,9 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public void GIVEN_N1_just_spoke_WHEN_nobody_asked_him_again_THEN_he_does_not_take_the_next_line()
       {
-         AfterNpcLines(1, new FloorBid {Id = "N1", SpokeLast = true, Intent = SpeakingIntent.Urgent}, new FloorBid {Id = "N2", Intent = SpeakingIntent.None})
+         AfterNpcLines(1, new FloorBid {Id = "N1", SpokeLast = true, Intent = JudgedIntent.Urgent}, new FloorBid {Id = "N2", Intent = JudgedIntent.None})
             .Outcome.Should().Be(FloorOutcome.BackToPlayer);
-         AfterNpcLines(1, new FloorBid {Id = "N1", SpokeLast = true, Addressed = true, Intent = SpeakingIntent.High}, new FloorBid {Id = "N2", Intent = SpeakingIntent.None})
+         AfterNpcLines(1, new FloorBid {Id = "N1", SpokeLast = true, Addressed = true, Intent = JudgedIntent.High}, new FloorBid {Id = "N2", Intent = JudgedIntent.None})
             .SpeakerId.Should().Be("N1");
       }
 
@@ -133,7 +134,7 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public void GIVEN_a_question_by_name_WHEN_another_is_eager_THEN_the_one_named_answers()
       {
-         AfterPlayer(new FloorBid {Id = "N1", Intent = SpeakingIntent.Urgent, Standing = 4}, new FloorBid {Id = "N2", AskedByName = true, Addressed = true, Intent = SpeakingIntent.Low})
+         AfterPlayer(new FloorBid {Id = "N1", Intent = JudgedIntent.Urgent, Standing = 4}, new FloorBid {Id = "N2", AskedByName = true, Addressed = true, Intent = JudgedIntent.Low})
             .SpeakerId.Should().Be("N2");
       }
 
@@ -141,17 +142,17 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public void GIVEN_a_perfect_tie_WHEN_decided_THEN_rank_then_waiting_then_the_draw_break_it()
       {
-         AfterPlayer(new FloorBid {Id = "N1", Intent = SpeakingIntent.High, TieBreak = 0}, new FloorBid {Id = "N2", Intent = SpeakingIntent.High, TieBreak = 1}).SpeakerId.Should().Be("N1");
-         AfterPlayer(new FloorBid {Id = "N1", Intent = SpeakingIntent.High, TieBreak = 1}, new FloorBid {Id = "N2", Intent = SpeakingIntent.High, TieBreak = 0}).SpeakerId.Should().Be("N2");
+         AfterPlayer(new FloorBid {Id = "N1", Intent = JudgedIntent.High, TieBreak = 0}, new FloorBid {Id = "N2", Intent = JudgedIntent.High, TieBreak = 1}).SpeakerId.Should().Be("N1");
+         AfterPlayer(new FloorBid {Id = "N1", Intent = JudgedIntent.High, TieBreak = 1}, new FloorBid {Id = "N2", Intent = JudgedIntent.High, TieBreak = 0}).SpeakerId.Should().Be("N2");
       }
 
       // STAKE (13): the player speaks to N1, who has little to say; N2 and N3 both want to contradict. Exactly one of them speaks.
       [Test]
       public void GIVEN_two_listeners_eager_to_contradict_WHEN_decided_THEN_exactly_one_speaks_and_the_other_waits()
       {
-         FloorDecision d = AfterPlayer(new FloorBid {Id = "N1", Addressed = true, Intent = SpeakingIntent.Low},
-                                       new FloorBid {Id = "N2", Intent = SpeakingIntent.Urgent, TieBreak = 1},
-                                       new FloorBid {Id = "N3", Intent = SpeakingIntent.Urgent, TieBreak = 0});
+         FloorDecision d = AfterPlayer(new FloorBid {Id = "N1", Addressed = true, Intent = JudgedIntent.Low},
+                                       new FloorBid {Id = "N2", Intent = JudgedIntent.Urgent, TieBreak = 1},
+                                       new FloorBid {Id = "N3", Intent = JudgedIntent.Urgent, TieBreak = 0});
 
          d.SpeakerId.Should().Be("N3");
          d.CutOffId.Should().Be("N1");
@@ -161,9 +162,9 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public void GIVEN_several_reactions_WHEN_decided_THEN_they_come_one_after_another_before_the_line()
       {
-         FloorDecision d = AfterPlayer(new FloorBid {Id = "N1", Addressed = true, Intent = SpeakingIntent.High, Reaction = "*sets down the cup*"},
-                                       new FloorBid {Id = "N2", Intent = SpeakingIntent.None, Reaction = "*laughs aloud*"},
-                                       new FloorBid {Id = "N3", Intent = SpeakingIntent.None});
+         FloorDecision d = AfterPlayer(new FloorBid {Id = "N1", Addressed = true, Intent = JudgedIntent.High, Reaction = "*sets down the cup*"},
+                                       new FloorBid {Id = "N2", Intent = JudgedIntent.None, Reaction = "*laughs aloud*"},
+                                       new FloorBid {Id = "N3", Intent = JudgedIntent.None});
 
          d.ReactorIds.Should().Equal("N1", "N2");
          d.SpeakerId.Should().Be("N1");
@@ -176,7 +177,7 @@ namespace CalradiaRemembers.Tests.Conversation
       public void GIVEN_six_characters_four_of_them_eager_WHEN_decided_THEN_still_one_voice_the_one_asked()
       {
          FloorDecision d = AfterPlayer(Enumerable.Range(1, 6).Select(i => new FloorBid {
-            Id = "N" + i, Intent = i <= 4 ? SpeakingIntent.Urgent : SpeakingIntent.None, Standing = i % 3, TieBreak = i,
+            Id = "N" + i, Intent = i <= 4 ? JudgedIntent.Urgent : JudgedIntent.None, Standing = i % 3, TieBreak = i,
             AskedByName = i == 6, Addressed = i == 6
          }).ToArray());
 
@@ -193,7 +194,7 @@ namespace CalradiaRemembers.Tests.Conversation
          for (var lines = 0; lines < 10; lines++)
          {
             string previous = last;
-            FloorDecision d = AfterNpcLines(lines, Enumerable.Range(1, 5).Select(i => new FloorBid {Id = "N" + i, Intent = SpeakingIntent.Urgent, SpokeLast = "N" + i == previous, TieBreak = i}).ToArray());
+            FloorDecision d = AfterNpcLines(lines, Enumerable.Range(1, 5).Select(i => new FloorBid {Id = "N" + i, Intent = JudgedIntent.Urgent, SpokeLast = "N" + i == previous, TieBreak = i}).ToArray());
             if (d.Outcome != FloorOutcome.Speak) break;
 
             spoken.Add(d.SpeakerId);

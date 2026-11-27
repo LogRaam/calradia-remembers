@@ -140,7 +140,7 @@ Used by the most: `CalradiaRemembers.Logic` (79), `NpcMemoryService.Core.Models`
 | `CalradiaRemembers.Logic.Companions` | 4 | 14 |
 | `CalradiaRemembers.Logic.Companions.MissionResult` | 0 | 2 |
 | `CalradiaRemembers.Logic.Conditions` | 2 | 4 |
-| `CalradiaRemembers.Logic.Conversation` | 2 | 5 |
+| `CalradiaRemembers.Logic.Conversation` | 3 | 5 |
 | `CalradiaRemembers.Logic.Diagnostics` | 5 | 7 |
 | `CalradiaRemembers.Logic.Diplomacy` | 0 | 7 |
 | `CalradiaRemembers.Logic.Duels` | 4 | 5 |
@@ -234,7 +234,7 @@ Used by the most: `CalradiaRemembers.Logic` (79), `NpcMemoryService.Core.Models`
 | `NpcMemoryService.Core.Models` | 6 | 75 |
 | `NpcMemoryService.Core.Mood` | 0 | 7 |
 | `NpcMemoryService.Core.Parsing` | 2 | 10 |
-| `NpcMemoryService.Core.Prompts` | 8 | 22 |
+| `NpcMemoryService.Core.Prompts` | 8 | 23 |
 | `NpcMemoryService.Core.Services` | 7 | 23 |
 | `NpcMemoryService.Core.Standing` | 1 | 43 |
 | `NpcMemoryService.Core.Storage` | 1 | 1 |
@@ -950,7 +950,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### CalradiaRemembers.Logic.Conversation
 
-- uses: `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Grudges`
+- uses: `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Grudges`, `NpcMemoryService.Core.Prompts`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Companions`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Duels`
 
 ### CalradiaRemembers.Logic.Diagnostics
@@ -1421,7 +1421,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### NpcMemoryService.Core.Prompts
 
 - uses: `NpcMemoryService.Core.Actions`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.Extension`, `NpcMemoryService.Core.Knowledge`, `NpcMemoryService.Core.Memory`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Mood`, `NpcMemoryService.Core.Standing`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Actions`, `CalradiaRemembers.Logic.Interception`, `CalradiaRemembers.Logic.Prisoners`, `CalradiaRemembers.Logic.Providers`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Services`, `CalradiaRemembers.Styles`, `CalradiaRemembers.WorldAlmanac`, `NpcMemoryService.Core.Actions`, `NpcMemoryService.Core.Knowledge`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Services`, `NpcMemoryService.Core.Standing`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Actions`, `CalradiaRemembers.Logic.Conversation`, `CalradiaRemembers.Logic.Interception`, `CalradiaRemembers.Logic.Prisoners`, `CalradiaRemembers.Logic.Providers`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Services`, `CalradiaRemembers.Styles`, `CalradiaRemembers.WorldAlmanac`, `NpcMemoryService.Core.Actions`, `NpcMemoryService.Core.Knowledge`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Services`, `NpcMemoryService.Core.Standing`
 
 ### NpcMemoryService.Core.Services
 

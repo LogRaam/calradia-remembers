@@ -7,8 +7,8 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 700 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1768 types in 62 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1767 types in 62 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 296 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -2183,7 +2183,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ConditionBands` | public static class | How a seat and a company are faring, on the engine's own scales. |
 | `PlayerImportancePolicy` | public static class | Whether the player looks important to a captor. |
 
-### CalradiaRemembers.Logic.Conversation (42)
+### CalradiaRemembers.Logic.Conversation (41)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2225,7 +2225,6 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SilenceOrderContext` | public class | Everything SilenceOrderPolicy.Resolve weighs to decide whether a silence order lands. |
 | `SilenceOrderPolicy` | public static class | Resolves a silence order. |
 | `SilenceResponse` | public enum | Whether an ordered participant yields the floor or holds it. |
-| `SpeakingIntent` | public enum | How much a listener wants to speak, as the judge sees it. |
 | `SummaryEnqueueOutcome` | public enum | What ConversationSummaryQueue.Enqueue actually did with the new job. |
 | `TurnArbiter` | public static class | Decides who holds the floor next in a group conversation. |
 | `WitnessExchangePolicy` | public static class | Decides whether the bystander exchange must stop and leave the floor to the player. |
@@ -3441,7 +3440,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SpeakerScriptVerdict` | public class | What a reply had to have removed from it, if anything. |
 | `StageDirectionDedupe` | public static class | Drops the second and later copies of the same *stage direction* in a reply. |
 
-### NpcMemoryService.Core.Prompts (48)
+### NpcMemoryService.Core.Prompts (53)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -3459,8 +3458,13 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CouncilSeatNote` | public static class | Composes one council seat's modder note from the council_seat template and that seat's variables. |
 | `EnvoyPromptBuilder` | public static class | Builds the envoy's system prompt. |
 | `EnvoyPromptInput` | public class | Everything the envoy knows, composed by the host. |
+| `FloorJudge` | public static class | Builds the judge's prompt and reads its verdict. |
+| `FloorJudgeLine` | public class | One line of the scene so far. |
+| `FloorJudgeListener` | public class | The listener the judge speaks for, as the host describes them. |
+| `FloorJudgeVerdict` | public class | The judge's verdict for one listener. |
 | `GameActionDefinition` | public class | One action that the LLM may emit in an [ACTION] section. |
 | `IPromptBuilder` | public interface | Assembles the system prompt for a single NPC dialogue turn. |
+| `JudgedIntent` | public enum | How much a listener wants to speak. |
 | `KnowledgeBoundaryPolicy` | public static class | What a character may not claim to know, and may not claim to be able to do. |
 | `LeanPromptLevel` | public enum | How aggressively to trim the system prompt so it fits a small model's short context window. |
 | `LeanPromptPolicy` | public static class | Pure section-selection for the LEAN PROMPT mode: which heavy sections survive at a given level, and how much conversation memory to keep. |
