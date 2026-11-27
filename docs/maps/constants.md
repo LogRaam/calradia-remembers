@@ -4176,7 +4176,7 @@ to share a word; sometimes it is one concept that should have one home. Either w
 
 | Constant | Value | What it is |
 |---|---|---|
-| `MaxReactionChars` | 160 | The longest reaction kept; a longer one is cut at a word, since a reaction is a gesture, not a speech. |
+| `MaxReactionChars` | 40 | The longest reaction label kept; a longer one is cut at a word, since it names a feeling, it does not describe it. |
 
 ### HeldSecretPolicy
 

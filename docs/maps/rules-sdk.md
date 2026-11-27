@@ -1064,7 +1064,7 @@ _FloorJudge: the prompt the group-conversation judge reads and the verdict it gi
 - GIVEN a room, WHEN the stable prompt is built, THEN each person is named with station power and sex
 - GIVEN a decorated reply, WHEN parsed, THEN intent and reaction are read
 - GIVEN no reaction or an unreadable reply, WHEN parsed, THEN nothing is invented
-- GIVEN a long reaction, WHEN parsed, THEN it is cut at a word
+- GIVEN a described gesture instead of a label, WHEN parsed, THEN it is cut at a word
 
 ### FolkloreKnowledgeTests.cs
 
