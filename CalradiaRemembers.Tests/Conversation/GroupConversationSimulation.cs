@@ -88,6 +88,7 @@ namespace CalradiaRemembers.Tests.Conversation
          public int Beats = 5;
          // What the scene has made true for everyone present, kept by the scene keeper (a run builds its scenario fresh).
          public List<string> Record = new();
+         public int RecordSeen;
       }
 
       private sealed class SceneLine
@@ -352,7 +353,9 @@ namespace CalradiaRemembers.Tests.Conversation
          m.Interpreter = new OpenRouterClient(http, new OpenRouterConfig {ApiKey = key, Model = m.InterpreterId, ReasoningProvider = () => "off"});
          m.Prose = new OpenRouterClient(http, new OpenRouterConfig {ApiKey = key, Model = m.ProseId, ReasoningProvider = () => m.ProseReasoning});
          m.Nsfw = new OpenRouterClient(http, new OpenRouterConfig {ApiKey = key, Model = m.NsfwId, ReasoningProvider = () => "off"});
-         // The dramaturge reads once a beat and its choice shapes the whole scene: the prose model, not the cheap judge.
+         // 27/11/2026: a simpler dramaturge (events only when no inner life changed during a beat, on the cheap model) was tried and
+      // graded 5.4 against 6.6 for this one: no event ever came, since someone always changes, and the scenes went flat.
+      // The dramaturge reads once a beat and its choice shapes the whole scene: the prose model, not the cheap judge.
          m.Dramaturge = new OpenRouterClient(http, new OpenRouterConfig {ApiKey = key, Model = m.ProseId, ReasoningProvider = () => m.ProseReasoning});
 
          var room = new List<FloorJudgePresence> {sc.Player.Presence};
@@ -853,7 +856,7 @@ namespace CalradiaRemembers.Tests.Conversation
             sb.AppendLine("Adult content is allowed: everyone here is a consenting adult; desire, seduction and explicit intimacy may be written frankly when the moment earns it.");
          sb.AppendLine();
          sb.AppendLine("Write ONLY your next line in this group conversation, in character: one to three sentences of speech, an *action* in");
-         sb.AppendLine("asterisks allowed (third person for actions is fine). Speak only for yourself. You never lie outright: when you will");
+         sb.AppendLine("asterisks allowed, always in the third person (*She sets down the cup*, never *I*). Speak only for yourself. You never lie outright: when you will");
          sb.AppendLine("not tell the truth, evade, deflect or fall silent. Make the line EARN its place: reveal something, push for what you want,");
          sb.AppendLine("change your approach, or turn the moment. Never repeat what you already said or demanded. Answer the moment as it stands:");
          sb.AppendLine("you may turn to anyone present, not only the last speaker. Keep your own voice.");
@@ -886,7 +889,7 @@ namespace CalradiaRemembers.Tests.Conversation
 
       private static (string System, string User) NarrationPrompt(Scenario sc, List<FloorJudgePresence> room, List<SceneLine> scene, string cues)
       {
-         string system = $"You write ONE short line of narration for a scene ({sc.Tone}), present tense, in asterisks, no dialogue. "
+         string system = $"You write ONE short line of narration for a scene ({sc.Tone}), present tense, third person, in asterisks, no dialogue. "
                        + "Show each named reaction as a small, specific gesture of that person, different from any gesture already in the scene. "
                        + "Show what the person LETS SHOW, their mask: a feeling they hide leaks only through one small detail, or not at all. "
                        + "A deliberate act (pouring wine, turning away, a smile) often says more than a clenched jaw. "
@@ -938,6 +941,13 @@ namespace CalradiaRemembers.Tests.Conversation
             int cut = alone ? -1 : head.IndexOfAny(new[] {' ', '*', '"', '\t'});
             to = (cut < 0 ? head : head.Substring(0, cut)).Trim(',', '.', ':');
             string rest = cut < 0 ? "" : head.Substring(cut).Trim();
+            int comma = head.IndexOf(',');
+            int act = head.IndexOfAny(new[] {'*', '"'});
+            if (comma > 0 && (act < 0 || comma < act))
+            {
+               to = head.Substring(0, comma).Trim();
+               rest = act < 0 ? "" : head.Substring(act).Trim();
+            }
             lines = (rest.Length > 0 ? new[] {rest} : Array.Empty<string>()).Concat(lines.Skip(1)).ToArray();
          }
 

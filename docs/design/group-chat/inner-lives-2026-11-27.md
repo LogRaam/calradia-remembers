@@ -137,3 +137,33 @@ What the protocol shows:
 - One drama line still went to Grok in a fixed run.
 
 Best run of the fixed variant: `scenario-2026-11-27-drama-protocol-best.md`.
+
+## Third round: reacting to revelations, a simpler dramaturge tried and withdrawn (27/11/2026, noon)
+
+What changed:
+- **News.** Every inner life is told what entered the record since the last line. News that touches a character, their
+  secret or their aim must be at least a reevaluation. This answers "the letter and the banner arrive and change nothing".
+- **Format.** Actions and narration are always in the third person, and "to: Ilsa, then the boy" now parses as Ilsa.
+- **A simpler dramaturge, tried and withdrawn:**
+  - it ran on the cheap model;
+  - it could bring an event only when no inner life had changed during the beat;
+  - it scored G 5.40 against F 6.61 and A 5.83 on the same runs;
+  - zero events came in five runs, since someone always changes, and the scenes went flat;
+  - so the events are worth more than the ablation suggested: F scores 8.3 on consequence;
+  - the prose-model dramaturge is back.
+
+Graded on the same five runs:
+
+| Version | Mean |
+|---|---|
+| A, baseline | 5.20 |
+| F, last commit | 6.09 |
+| H, F plus news and format | 6.29 |
+
+H against F is within the noise. The grader no longer names the format slips.
+
+Still open:
+- Tomas sometimes confesses too early, at the first pressure.
+- Three adults send the boy to bed in turn.
+- Ilsa's mask hides the letter so well that a reader sees no trace of it. The visibility rule may be too strict when the
+  news is that strong.
