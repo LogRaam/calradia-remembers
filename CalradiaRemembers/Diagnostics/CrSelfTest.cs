@@ -540,6 +540,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("private_memory_injection", Severity.Light, "tashmetu (01/10/2026): another mod injects a memory said in confidence. Injects one through the public CrNpcMemory.AddMemory with Private set on a real met character, checks it is stored private (kept to private talk) and that an unmarked one stays public. Both are removed.", TestPrivateMemoryInjection),
          new SelfTest("escaped_target", Severity.Light, "fkasad (Nexus, 01/10/2026): the lord a capture task named was beaten and escaped, and the player paid the broken-word price. On a real met lord, a temporary capture task whose target was beaten: the giver's acceptance ([QUEST_COMPLETE]) settles it through the real quest path for HALF the reward, and words alone never settle one whose target was not beaten. The task, the purse, the regard and the memory are put back.", TestEscapedTarget),
          new SelfTest("interpreter_retry", Severity.Light, "Gabriel (25/10/2026), on an interpreter call that used to lose the reply's deeds with a log line only: 'reessaie une fois l'interpreteur en ajoutant un log qui le specifie'. Drives the REAL ActionInterpreterComposer.InterpretAsync with its call seam: a first call that fails then one that answers give_gold must apply the gold tag after exactly two calls; two failures apply nothing after exactly two calls (never a third); a reading with no deed is not retried (one call). No model is called; the seam is cleared after", TestInterpreterRetry),
+         new SelfTest("request_private_to_main", Severity.Light, "whiskeypatt (Discord, 25/11/2026): in a chat with Rhagaea another lord joined; Request Private went to him, his yes emptied the room and Rhagaea answered the next line. Seats a lord as host and another as a witness the player addressed, drives the REAL routing Request Private runs (AddressPrivacyRequestToMain) and checks the request goes back to the host, and that a witness's acceptance clears nothing (PrivateAudiencePolicy.ClearsTheRoom). Changes nothing", TestRequestPrivateGoesToMain),
          new SelfTest("privacy_survives_interpreter", Severity.Light, "Lufaine and Maifailun (Nexus, 30/09/2026): a character agreed to speak privately and the room stayed full. In the two-call chat the interpreter's actions replaced the scene model's, which is the one taught request_privacy. Drives the real splice (ActionInterpreterComposer.WithInterpretedTags): the character's acceptance survives an interpreter that recorded none, and a gift the scene model tagged does not. No LLM.", TestPrivacySurvivesInterpreter),
          new SelfTest("no_tasks_from_enemies", Severity.Light, "fkasad (Nexus, 29/09/2026): an enemy lord buying back a prisoner slid into demanding a deed, then into invalid-quest messages. Builds the REAL context for a lord at war with the player: it says so, and the prompt built from it teaches no task to offer and no prisoner bargain. Declares a real war via DeclareWarAction when the player is at war with no one (GABRIEL'S RULE, 13/10/2026), made peace again after; MANUAL only when no living lord's faction exists at all. No LLM, nothing stored.", TestNoTasksFromEnemies),
          new SelfTest("quests_suppressed_in_nsfw", Severity.Light, "Mechanical: build the REAL EncounterContext in NSFW mode -> SuppressQuests is true (an intimate scene never mints a quest from a vow, player report); in Roleplay it stays false (quests remain). Restores the active mode. No LLM.", TestQuestsSuppressedInNsfw),
@@ -22113,6 +22114,33 @@ namespace CalradiaRemembers.Diagnostics
          t.Expect("anEmptiedRoomLeavesTheCast", vm.CastRoleOf(b) == null, true);
          t.Expect("andIsNoLongerAnEnsemble", vm.IsEnsembleScene, false);
          t.Expect("andThePanelIsNoLongerOffered", vm.IsParticipantsAvailable, false);
+
+         return t.Line();
+      }
+
+      // whiskeypatt (Discord, 25/11/2026): "When i requested private for some reason it focused as if i wanted private
+      // meeting with that lord."
+      private static string TestRequestPrivateGoesToMain(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("request_private_to_main");
+
+         Hero anchor = Hero.AllAliveHeroes?.FirstOrDefault(h => h != null && h != Hero.MainHero && h.IsAlive && h.IsLord);
+         Hero guest = Hero.AllAliveHeroes?.FirstOrDefault(h => h != null && h != Hero.MainHero && h.IsAlive && h.IsLord && h != anchor);
+         if (t.Skip(anchor == null || guest == null, "no two living lords to seat")) return t.Line();
+
+         var vm = new ChatViewModel();
+         vm.SetNpcHero(anchor);
+         vm.AddWitness(new WitnessEntry {Name = guest.Name?.ToString(), HeroStringId = guest.StringId, RelationToNpc = "brought into the room by this test", IsFemale = guest.IsFemale});
+         vm.AddressFromPanel(guest.StringId);
+         t.Note($"{anchor.Name} hosts; {guest.Name} joined and was the last one addressed");
+         t.Expect("theGuestWasAddressed", vm.AddressedHeroIdForDiagnostics, guest.StringId);
+
+         // STAKE: the private word is asked of the one the conversation is with, never the lord who joined it.
+         vm.AddressPrivacyRequestToMain();
+         t.Expect("theRequestGoesToTheHost", vm.AddressedHeroIdForDiagnostics, "");
+
+         // STAKE: the guest's own yes cannot empty the host's room (the reply side, read by the same rule the chat uses).
+         t.Expect("theGuestsYesClearsNothing", PrivateAudiencePolicy.ClearsTheRoom(new PrivacyAnswerFacts {FromMainCharacter = false, Accepted = true}), false);
 
          return t.Line();
       }

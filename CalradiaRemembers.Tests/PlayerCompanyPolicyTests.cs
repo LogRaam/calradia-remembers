@@ -129,5 +129,28 @@ namespace CalradiaRemembers.Tests
          PrivateAudiencePolicy.Decide(new PrivateAudienceFacts {Allowed = true, AnyWitness = false})
                               .Should().Be(PrivateAudienceVerdict.Unavailable);
       }
+
+      // STAKE: whiskeypatt's lord, a witness, said yes to a private word with Rhagaea's guest list and emptied her room;
+      // the conversation then snapped back to her mid-reply.
+      [Test]
+      public void GIVEN_a_witness_accepts_privacy_WHEN_judged_THEN_the_room_stays_as_it_is()
+      {
+         PrivateAudiencePolicy.ClearsTheRoom(new PrivacyAnswerFacts {FromMainCharacter = false, Accepted = true}).Should().BeFalse();
+      }
+
+      // STAKE: the character the conversation is with still grants the room, as Request Private always meant.
+      [Test]
+      public void GIVEN_the_main_character_accepts_privacy_WHEN_judged_THEN_the_room_is_cleared()
+      {
+         PrivateAudiencePolicy.ClearsTheRoom(new PrivacyAnswerFacts {FromMainCharacter = true, Accepted = true}).Should().BeTrue();
+         PrivateAudiencePolicy.ClearsTheRoom(new PrivacyAnswerFacts {FromMainCharacter = true, Accepted = false}).Should().BeFalse();
+      }
+
+      // STAKE: unchanged (ApocalyptikGreen, 10/07/2026): the player's prisoner yields the room even when the reply refuses.
+      [Test]
+      public void GIVEN_the_players_prisoner_refuses_WHEN_judged_THEN_the_room_is_cleared_anyway()
+      {
+         PrivateAudiencePolicy.ClearsTheRoom(new PrivacyAnswerFacts {FromMainCharacter = true, MainIsPlayersPrisoner = true}).Should().BeTrue();
+      }
    }
 }

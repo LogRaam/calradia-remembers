@@ -8,6 +8,10 @@
 // Invite also offers the heroes present where the character stands, by the same rule as the witnesses seated on their
 // own, without the density draw or the cap (the player chooses); never another's captive, never a notable, never one
 // without a profile; they always come. A stranger brought in is not the player's: privacy still asks the character.
+// whiskeypatt (Discord, 25/11/2026): "Was in a chat with Rhagaea. Another lord kept joining chat. When i requested private
+// for some reason it focused as if i wanted private meeting with that lord. When he asked 'sure why?' and i replied,
+// Rhagaea replied instead." The request went to whoever the player last addressed, and the lord's yes cleared the room.
+// Per Gabriel's design above, only the main character answers it (PrivateAudiencePolicy.ClearsTheRoom).
 
 #region
 
@@ -123,6 +127,19 @@ namespace CalradiaRemembers.Logic
       public bool AllWitnessesAreThePlayers { get; init; }
    }
 
+   /// <summary>A reply that carried a request_privacy answer, judged on who gave it.</summary>
+   public sealed class PrivacyAnswerFacts
+   {
+      /// <summary>The answer came from the main character of the conversation, not a witness or a promoted participant.</summary>
+      public bool FromMainCharacter { get; init; }
+
+      /// <summary>The answer said "accepted".</summary>
+      public bool Accepted { get; init; }
+
+      /// <summary>The main character is the player's prisoner, who has no say over who stays.</summary>
+      public bool MainIsPlayersPrisoner { get; init; }
+   }
+
    /// <summary>Decides a request for privacy. Pure.</summary>
    public static class PrivateAudiencePolicy
    {
@@ -133,5 +150,12 @@ namespace CalradiaRemembers.Logic
 
          return f.NpcIsPlayersPrisoner || f.AllWitnessesAreThePlayers ? PrivateAudienceVerdict.ClearAtOnce : PrivateAudienceVerdict.AskTheNpc;
       }
+
+      /// <summary>
+      ///   True when a request_privacy answer empties the room: only the main character's answer counts (a witness
+      ///   cannot grant a room that is not theirs), and their own prisoner yields it whatever the reply said.
+      /// </summary>
+      public static bool ClearsTheRoom(PrivacyAnswerFacts f)
+         => f != null && f.FromMainCharacter && (f.MainIsPlayersPrisoner || f.Accepted);
    }
 }

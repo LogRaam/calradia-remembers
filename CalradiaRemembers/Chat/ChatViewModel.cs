@@ -2484,8 +2484,21 @@ namespace CalradiaRemembers.Chat
          // EncounterContextBuilder will inject the privacy request into the prompt.
          // whiskeypatt (Discord, 25/11/2026): a spoken "I would speak with you privately" read as grave news coming. The
          // button sends a gesture (asterisks are the player's act), and the prompt says it is a wish for privacy only.
+         AddressPrivacyRequestToMain();
          InputText = PrivateAudienceRequestLine;
          ExecuteSendMessage();
+      }
+
+      /// <summary>
+      ///   whiskeypatt (Discord, 25/11/2026): with another lord drawn into the talk, the request went to him, the last one
+      ///   addressed. It is always asked of the character the conversation is with. Internal so cr.test drives it.
+      /// </summary>
+      internal void AddressPrivacyRequestToMain()
+      {
+         if (string.IsNullOrEmpty(_currentSpeakerHeroId)) return;
+
+         ModLog.Info($"[ADDRESS] Request Private is asked of {_npcName}, not the last one addressed.");
+         _currentSpeakerHeroId = null;
       }
 
       /// <summary>The Request Private button's line: a gesture, not words that promise weighty news.</summary>

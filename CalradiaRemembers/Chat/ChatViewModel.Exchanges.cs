@@ -1875,7 +1875,13 @@ namespace CalradiaRemembers.Chat
                   action.Parameters.TryGetValue("result", out string privacyResult);
                   // A prisoner cannot refuse the player: whatever the LLM emitted, the player's own captive
                   // yields the room (player suggestion, ApocalyptikGreen 2026-07-10).
-                  bool privacyAccepted = NpcIsPlayerPrisoner() || string.Equals(privacyResult, "accepted", StringComparison.OrdinalIgnoreCase);
+                  // whiskeypatt (Discord, 25/11/2026): a witness who says yes cannot clear a room that is not theirs.
+                  bool privacyAccepted = PrivateAudiencePolicy.ClearsTheRoom(new PrivacyAnswerFacts {
+                     FromMainCharacter = speaker.IsMain,
+                     Accepted = string.Equals(privacyResult, "accepted", StringComparison.OrdinalIgnoreCase),
+                     MainIsPlayersPrisoner = NpcIsPlayerPrisoner()
+                  });
+                  if (!speaker.IsMain) ModLog.Info($"[WITNESSES] {speaker.Name} answered a request for privacy that was not theirs to grant; ignored.");
                   if (privacyAccepted)
                   {
                      bool hadWitnesses = _witnesses.Count > 0;

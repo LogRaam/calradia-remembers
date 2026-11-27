@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 697 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1755 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1756 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1077,7 +1077,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (534)
+### CalradiaRemembers.Logic (535)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1442,6 +1442,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `PrisonerDeedTarget` | public class | What captive an NPC is asking for: a specific hero (HeroId) when named, otherwise any lord of a faction (FactionId). |
 | `PrisonerRecruitmentBlock` | public enum | Why a held prisoner cannot (yet) be recruited, or None when they can. |
 | `PrisonerRecruitmentPolicy` | public static class | The pure gate behind recruit_prisoner. |
+| `PrivacyAnswerFacts` | public class | A reply that carried a request_privacy answer, judged on who gave it. |
 | `PrivateAudienceFacts` | public class | The state a request for privacy is judged on. |
 | `PrivateAudiencePolicy` | public static class | Decides a request for privacy. |
 | `PrivateAudienceVerdict` | public enum | What a request for privacy does. |
