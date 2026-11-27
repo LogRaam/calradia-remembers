@@ -15,6 +15,14 @@
 // line must reveal, push or turn something, and a cheap scene reader at each beat's end says whether the scene is stuck; if so
 // a complication from the scenario's own list (facts the game would know, never invented) enters as narration.
 //
+// 27/11/2026, after a review of the adult scene (Gabriel: "donner la capacite a Calradia Remembers de creer des scenes de qualite
+// qui pourrait se comparer a la qualite d'un roman"; "si on a besoin de faire d'autres appels pour augmenter la qualite, on peut
+// se donner le droit"): every character also has a voice, a mask, a fear and a limit; a cheap reader keeps each one's INNER
+// LIFE after every line (feeling, aim, tactic, what they show, what they hide), so people can change during the scene; the
+// prose writes from it with subtext (say less than you feel, never lie); the reactions show the mask; a DRAMATURGE on the prose
+// model replaces the scene reader. Calls run side by side where the game would allow it (minds with the judge, the reaction
+// with the next line, the interpreter in the background).
+//
 // The characters' sheets are short, not the game's prompt: this tests the dynamics. [Explicit]: never run by the suite. Opt-in
 // through the SDK live lane's git-ignored settings. Each scenario writes a markdown transcript and prints its path.
 
@@ -52,6 +60,12 @@ namespace CalradiaRemembers.Tests.Conversation
          public string Secret = "";
          public string Objective = "";
          public string Tactic = "";
+         // From the review of 27/11/2026 ("the model respects his desire, not his strategy"; "the voices are too similar"): how
+         // the character speaks, how they want to be seen, what they fear, and the line they will not cross.
+         public string Voice = "";
+         public string Mask = "";
+         public string Fear = "";
+         public string Limit = "";
          public int Standing;
          public bool Bold;
          public bool Timid;
@@ -85,16 +99,38 @@ namespace CalradiaRemembers.Tests.Conversation
          public string Model = "";
       }
 
+      // A character's inner life NOW, kept by a cheap reader after every line (the review of 27/11/2026: "each character must be
+      // able to be transformed by the conversation he takes part in"). The prose writes from it; the reactions show the mask.
+      private sealed class InnerState
+      {
+         public string Feeling = "";
+         public string Aim = "";
+         public string Tactic = "";
+         public string Showing = "";
+         public string Hiding = "";
+         public string Shift = "none";
+         public string Repeating = "";
+         public List<string> Shifts = new();
+         public string FirstAim = "";
+      }
+
       private sealed class Models
       {
-         public OpenRouterClient Judge, Prose, Nsfw, Interpreter;
-         public string ProseId = "", NsfwId = "", JudgeId = "", InterpreterId = "";
+         public OpenRouterClient Judge, Prose, Nsfw, Interpreter, Dramaturge;
+         public string ProseId = "", NsfwId = "", JudgeId = "", InterpreterId = "", ProseReasoning = "";
       }
 
       private const int PlayerStanding = 2;
 
       // Why each line went to the NSFW model (run 2 sent 7 lines of the drama there): an error, an empty reply, or a refusal.
       private static readonly List<string> Fallbacks = new();
+
+      // Ablation switches (the review of 27/11/2026: "test with and without the scene reader, with and without the dramaturge"):
+      // CR_SIM_INNER=off writes from the fixed objective with plain reactions; CR_SIM_DRAMATURGE=off brings back the old scene
+      // reader. The character sheets stay the same either way, so a difference is the system's, not the sheets'.
+      private static bool InnerOn => Environment.GetEnvironmentVariable("CR_SIM_INNER") != "off";
+      private static bool DramaturgeOn => Environment.GetEnvironmentVariable("CR_SIM_DRAMATURGE") != "off";
+      private static bool HonestyOn => Environment.GetEnvironmentVariable("CR_SIM_HONESTY") != "off";
 
       // ── the scenarios ──
 
@@ -117,6 +153,15 @@ namespace CalradiaRemembers.Tests.Conversation
             Presence = new FloorJudgePresence {Name = name, Station = station, Power = power, IsFemale = female}
          };
 
+      private static void Inner(Character c, string voice, string mask, string fear, string limit, string secret = null)
+      {
+         c.Voice = voice;
+         c.Mask = mask;
+         c.Fear = fear;
+         c.Limit = limit;
+         if (secret != null) c.Secret = secret;
+      }
+
       private static Scenario Drama()
       {
          Character arwa = Who("Arwa", PlayerStanding, "a commander of the realm", "a rising house, 120 men", true,
@@ -137,6 +182,15 @@ namespace CalradiaRemembers.Tests.Conversation
             "Keep the peace of this hall and the seal of confession.", "If pressed, speak of mercy and judgment in general terms; never reveal what he heard, and never lie.",
             new[] {"Edric", "Father", "priest"}, "Ilsa: the lady you have counselled for twenty years", "Tomas: the knight whose confession you keep", "Arwa: a stranger commander");
          edric.Secret = "Tomas confessed to you that he fled the battle. The seal binds you: you will not reveal it, nor lie about it.";
+         Inner(arwa, "plain soldier's speech: short, direct, concrete, no ornament", "a commander who owes the truth and fears nothing",
+            "starting a blood feud in a dead friend's hall", "will not lie, will not shame a man before she is sure");
+         Inner(ilsa, "formal, cold courtesy; questions like blades; rarely more than two sentences; never a flourish", "a lady in full command of her grief",
+            "that it was she who sent Berold to his death", "never weeps before her household",
+            "It was you who urged Berold to answer the summons and ride to the ford; he had wanted to wait for his levies. Nobody here knows.");
+         Inner(tomas, "a knight's plain courtesy, short clauses; when cornered he grows formal and avoids the word 'I'", "a loyal knight in honest mourning",
+            "Ilsa's contempt, more than death or exile", "will not lie outright, will not draw steel in this hall");
+         Inner(edric, "slow and gentle, shaped by scripture; speaks in general truths and questions, never in accusations", "a calm old priest above the quarrel",
+            "that keeping the seal will let an innocent take the blame", "never breaks the seal, never lies");
 
          return new Scenario {
             Id = "drama", Title = "The widow's hall", Tone = "dramatic, tense, restrained grief",
@@ -145,8 +199,8 @@ namespace CalradiaRemembers.Tests.Conversation
             Cast = new List<Character> {ilsa, tomas, edric}, Beats = 5,
             Complications = new List<string> {
                "*A muddy man-at-arms is shown in, carrying Lord Berold's torn banner. He found it on the far bank, a mile behind the ford.*",
-               "*Lady Ilsa's young son appears at the stair in his nightshirt, holding his father's old wooden practice sword.*",
-               "*A servant sets down Sir Tomas's own sword, brought back from the armourer: its edge has no notch, no blood.*"
+               "*A servant sets down Sir Tomas's own sword, brought back from the armourer: its edge has no notch, no blood.*",
+               "*Lady Ilsa's son, eight, appears at the stair in his nightshirt and asks, to the whole hall, whether Sir Tomas was with Papa at the end.*"
             }
          };
       }
@@ -205,6 +259,20 @@ namespace CalradiaRemembers.Tests.Conversation
             "Catch the commander's attention for herself, under her mistress's nose.", "If ignored, find a pretext to touch, tease Kael, or offer the commander a private bath.",
             new[] {"Mira", "girl", "attendant"}, "Seraphine: your mistress, generous and dangerous", "Kael: a vain lover you love to mock", "Arwa: a commander you want badly");
          mira.Bold = true;
+         // The review of 27/11/2026: complications must change what the characters can decide, not the lighting; and a character
+         // is more than a desire. Each now holds something the others do not know.
+         Inner(arwa, "direct and dry, a soldier's economy of words; amused rather than flustered", "a commander who holds all the cards",
+            "being made a fool of in a game she did not choose", "will not sign a price she knows is false",
+            "If this fails, the army will requisition the grain at a third of the price. You would rather not shame the lady by saying so.");
+         Inner(seraphine, "languid; double meanings; a merchant's vocabulary of terms, weights and prices; asks questions she already knows the answer to",
+            "a woman who needs nothing and no one", "being seen to need anything", "never begs, never raises her voice",
+            "Your granaries are full of grain that will rot by spring; without the army's silver you face ruin. Nobody here knows.");
+         Inner(kael, "short and dry, soldier's slang, jokes that cut; never a metaphor", "an amused man who could not care less",
+            "being laughed at, being replaced", "never admits jealousy aloud",
+            "The Rivermarch guild paid you twenty denars to sour this deal tonight. Nobody here knows.");
+         Inner(mira, "quick, teasing, plain words, a servant's familiarity, little asides", "a playful girl who notices nothing",
+            "being sent back to the kitchens", "never openly defies her mistress",
+            "This morning you saw the steward copy a higher price into the contract than the one your mistress named. Nobody else knows.");
 
          return new Scenario {
             Id = "adult", Title = "The baths of the grain princess", Adult = true, Tone = "sensual, playful, charged with rivalry and desire",
@@ -212,9 +280,9 @@ namespace CalradiaRemembers.Tests.Conversation
             Player = arwa, FirstLine = "Seraphine|I came about the grain contract, my lady, though I see you receive your guests in the baths.",
             Cast = new List<Character> {seraphine, kael, mira}, Beats = 5,
             Complications = new List<string> {
-               "*A steward appears at the door with the contract, ink and seal on a tray, and waits, eyes politely lowered.*",
-               "*One of the lamps gutters out, and the far end of the pool sinks into warm shadow.*",
-               "*Seraphine's robe slips from the bench into the water; Mira is closest.*"
+               "*A steward appears at the door with the contract, ink and seal on a tray. The price written on it is a third higher than the one in Lady Seraphine's own letter, which the commander carries.*",
+               "*A boy in the Rivermarch guild's colours appears at the door and asks for Captain Kael by name, 'about the money he was promised'.*",
+               "*A servant hurries in and whispers to Lady Seraphine, loud enough to carry over the water: the cellar-master says the lower granary has begun to sprout.*"
             }
          };
       }
@@ -262,28 +330,37 @@ namespace CalradiaRemembers.Tests.Conversation
          var m = new Models {
             JudgeId = Str(settings, "floorJudgeModel", "deepseek/deepseek-v4.1-flash"),
             InterpreterId = Str(settings, "groupInterpreterModel", "deepseek/deepseek-v4.1-flash"),
-            ProseId = Str(settings, "groupProseModel", "deepseek/deepseek-v4-pro"),
-            NsfwId = Str(settings, "groupNsfwModel", "x-ai/grok-4.20")
+            ProseId = Environment.GetEnvironmentVariable("CR_SIM_PROSE") ?? Str(settings, "groupProseModel", "deepseek/deepseek-v4-pro"),
+            NsfwId = Str(settings, "groupNsfwModel", "x-ai/grok-4.20"),
+            // The prose bench of 27/11/2026: DeepSeek V4 Pro with reasoning low took 5 to 17 s a line and once returned nothing at
+            // all (its reasoning spent the budget: the run-2 "refusals" that sent lines to Grok); reasoning off answered in 1 to
+            // 2.5 s with as much subtext ("I was where the water ran red, and I have not been clean of it since").
+            ProseReasoning = Environment.GetEnvironmentVariable("CR_SIM_PROSE_REASONING") ?? Str(settings, "groupProseReasoning", "off")
          };
          m.Judge = new OpenRouterClient(http, new OpenRouterConfig {ApiKey = key, Model = m.JudgeId, ReasoningProvider = () => "off"});
          m.Interpreter = new OpenRouterClient(http, new OpenRouterConfig {ApiKey = key, Model = m.InterpreterId, ReasoningProvider = () => "off"});
-         // Reasoning low, as the game's prose; the reply budget below is the game's own 1500: the first run gave DeepSeek Pro 260
-         // tokens, its reasoning spent them all, the empty reply read as a refusal and Grok wrote almost every line.
-         m.Prose = new OpenRouterClient(http, new OpenRouterConfig {ApiKey = key, Model = m.ProseId, ReasoningProvider = () => "low"});
-         m.Nsfw = new OpenRouterClient(http, new OpenRouterConfig {ApiKey = key, Model = m.NsfwId, ReasoningProvider = () => "low"});
+         m.Prose = new OpenRouterClient(http, new OpenRouterConfig {ApiKey = key, Model = m.ProseId, ReasoningProvider = () => m.ProseReasoning});
+         m.Nsfw = new OpenRouterClient(http, new OpenRouterConfig {ApiKey = key, Model = m.NsfwId, ReasoningProvider = () => "off"});
+         // The dramaturge reads once a beat and its choice shapes the whole scene: the prose model, not the cheap judge.
+         m.Dramaturge = new OpenRouterClient(http, new OpenRouterConfig {ApiKey = key, Model = m.ProseId, ReasoningProvider = () => m.ProseReasoning});
 
          var room = new List<FloorJudgePresence> {sc.Player.Presence};
          room.AddRange(sc.Cast.Select(c => c.Presence));
          var scene = new List<SceneLine>();
          var debug = new StringBuilder();
          var random = new Random(26112026);
-         var cost = new double[1];
-         var calls = new Dictionary<string, int> {["judge"] = 0, ["prose"] = 0, ["nsfw"] = 0, ["interpret"] = 0, ["director"] = 0};
+         var cost = new double[2];
+         var calls = new Dictionary<string, int> {["judge"] = 0, ["prose"] = 0, ["nsfw"] = 0, ["interpret"] = 0, ["director"] = 0, ["mind"] = 0, ["honesty"] = 0};
          var shownThisBeat = new Dictionary<string, string>();
          var away = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
          var usedComplications = new HashSet<int>();
+         var interpreting = new List<(SceneLine Line, Task<string> Task)>();
+         var states = sc.Cast.ToDictionary(c => c.Name, c => new InnerState {
+            Feeling = "as the scene opens", Aim = c.Objective, FirstAim = c.Objective, Tactic = c.Tactic, Showing = c.Mask, Hiding = c.Secret
+         });
          string cutOff = null;
          var clock = System.Diagnostics.Stopwatch.StartNew();
+         var waits = new List<double>();
 
          for (var beat = 0; beat < sc.Beats; beat++)
          {
@@ -297,11 +374,15 @@ namespace CalradiaRemembers.Tests.Conversation
             }
             else
             {
-               // The scene reader: at a beat's end, is the scene moving? If not, a complication from the scenario's own list.
-               string complication = await Director(m, sc, scene, usedComplications, cost, calls, debug);
+               // The dramaturge: at a beat's end, did the situation change? Is someone repeating? If the scene has stopped turning,
+               // the world brings one of the scenario's facts; if the question is answered, the scene ends.
+               (string complication, bool end) = DramaturgeOn
+                  ? await Dramaturge(m, sc, scene, states, usedComplications, beat, cost, calls, debug)
+                  : (await Director(m, sc, scene, usedComplications, cost, calls, debug), false);
+               if (end) break;
                if (complication != null) scene.Add(new SceneLine {Text = complication, IsNarration = true});
 
-               (string said, string model) = await Write(m, LinePrompt(sc, sc.Player, room, scene, null), 1500, calls);
+               (string said, string model) = await Write(m, LinePrompt(sc, sc.Player, room, scene, null, null), 1500, calls, cost);
                (string to, string text) = ParseLine(said);
                scene.Add(new SceneLine {Speaker = sc.Player.Name, To = to, Text = text, IsPlayer = true, Model = model});
                Movements(said, away, sc, debug);
@@ -310,15 +391,21 @@ namespace CalradiaRemembers.Tests.Conversation
             var npcLines = 0;
             while (true)
             {
+               var wait = System.Diagnostics.Stopwatch.StartNew();
                SceneLine last = scene.Last(l => !l.IsNarration);
                int lastStanding = last.IsPlayer ? PlayerStanding : sc.Cast.First(c => c.Name == last.Speaker).Standing;
                List<Character> listeners = sc.Cast.Where(c => c.Name != last.Speaker && !away.Contains(c.Name)).ToList();
                if (listeners.Count == 0) break;
 
-               FloorJudgeVerdict[] verdicts = await Task.WhenAll(listeners.Select(async c =>
+               // Every present character's inner life moves with the line, side by side with the floor judge; the turn waits for
+               // the slower of the two (a 200-token reader against a 60-token verdict), about a second.
+               Task minds = !InnerOn ? Task.CompletedTask
+                  : Task.WhenAll(sc.Cast.Where(c => !away.Contains(c.Name)).Select(c => UpdateMind(m, sc, c, states[c.Name], scene, beat, cost, calls)));
+               Task<FloorJudgeVerdict[]> judging = Task.WhenAll(listeners.Select(async c =>
                {
                   LlmResponse r = await m.Judge.CompleteAsync(new LlmRequest {
-                     SystemPrompt = FloorJudge.StablePrompt(new FloorJudgeListener {Name = c.Name, Persona = (c.Persona + " " + c.Secret).Trim(), Ties = c.Ties, Room = room}),
+                     SystemPrompt = FloorJudge.StablePrompt(new FloorJudgeListener {Name = c.Name, Persona = (c.Persona + " " + c.Secret
+                        + (InnerOn ? $" Right now {c.Name} feels {states[c.Name].Feeling} and wants: {states[c.Name].Aim}." : "")).Trim(), Ties = c.Ties, Room = room}),
                      Messages = new[] {new LlmMessage(MessageRole.User, FloorJudge.TurnPrompt(c.Name, JudgeScene(scene)))},
                      Parameters = new LlmParameters {MaxTokens = 60, Creativity = 0.3f, AllowTruncationRetry = false}
                   });
@@ -326,6 +413,8 @@ namespace CalradiaRemembers.Tests.Conversation
 
                   return FloorJudge.Parse(r.Content);
                }));
+               await Task.WhenAll(minds, judging);
+               FloorJudgeVerdict[] verdicts = judging.Result;
 
                string calledOn = AddressedSpeakerDetector.Detect(last.Text, listeners
                   .Select(c => new AddressedSpeakerDetector.Participant(c.Name, new HashSet<string>(new[] {c.Name}, StringComparer.OrdinalIgnoreCase))).ToList());
@@ -349,35 +438,65 @@ namespace CalradiaRemembers.Tests.Conversation
                debug.AppendLine($"- after {last.Speaker}: " + string.Join("; ", bids.Where(b => !b.SpokeLast).Select(b =>
                   $"{b.Id} {b.Intent}{(TurnArbiter.EffectiveIntent(b) != b.Intent ? "->" + TurnArbiter.EffectiveIntent(b) : "")}{(b.Addressed ? " [to]" : "")}{(b.Targeted ? " [about]" : "")}{(b.Reaction != null ? " (" + b.Reaction + ")" : "")}"))
                   + $" => {(d.Outcome == FloorOutcome.Speak ? d.SpeakerId + (d.CutOffId != null ? " cuts off " + d.CutOffId : "") : d.Outcome.ToString())}");
+               foreach (Character c in sc.Cast.Where(c => InnerOn && states[c.Name].Shift != "none" && !away.Contains(c.Name)))
+                  debug.AppendLine($"  - {c.Name} changes: {states[c.Name].Shift} (now {states[c.Name].Feeling}; wants: {states[c.Name].Aim})");
                cutOff = d.CutOffId;
 
-               List<string> shown = d.ReactorIds.Where(id => id != d.SpeakerId).Take(2).ToList();
+               // A reaction shows when the referee lets it AND it is news: the first this beat, or the character just changed inside.
+               // Run 2 showed Kael's jealousy nine times ("jealous", "jealous fury"...): the label varied, the feeling did not.
+               List<string> shown = d.ReactorIds.Where(id => id != d.SpeakerId)
+                  .Where(id => !InnerOn || !shownThisBeat.ContainsKey(id) || states[id].Shift != "none").Take(2).ToList();
+               Task<(string Text, string Model)> narrating = null;
                if (shown.Count > 0)
                {
-                  string cues = string.Join("; ", shown.Select(id => $"{id}: {bids.First(b => b.Id == id).Reaction}"));
+                  string cues = string.Join("\n", shown.Select(id => $"- {id}: reacts with {bids.First(b => b.Id == id).Reaction}"
+                                                                     + (InnerOn ? $"; beneath it {states[id].Feeling}; what {id} lets show: {states[id].Showing}" : "")));
                   foreach (string id in shown) shownThisBeat[id] = bids.First(b => b.Id == id).Reaction;
-                  (string narration, string _) = await Write(m, NarrationPrompt(sc, room, scene, cues), 1500, calls);
-                  string first = (narration ?? "").Replace("\r", "").Split('\n').Select(Clean).FirstOrDefault(l => l.Length > 0) ?? "";
+                  narrating = Write(m, NarrationPrompt(sc, room, scene, cues), 1500, calls, cost);
+               }
+
+               // The next line is written while the reaction is: in the game both reach the screen together.
+               Character speaker = d.Outcome == FloorOutcome.Speak ? sc.Cast.First(c => c.Name == d.SpeakerId) : null;
+               Task<(string Text, string Model)> speaking = speaker == null ? null : Write(m, LinePrompt(sc, speaker, room, scene, d.CutOffId, InnerOn ? states[speaker.Name] : null), 1500, calls, cost);
+
+               if (narrating != null)
+               {
+                  string first = ((await narrating).Text ?? "").Replace("\r", "").Split('\n').Select(Clean).FirstOrDefault(l => l.Length > 0) ?? "";
                   if (first.Length > 0) scene.Add(new SceneLine {Text = first, IsNarration = true});
                }
 
-               if (d.Outcome != FloorOutcome.Speak) break;
+               if (speaking == null) break;
 
-               Character speaker = sc.Cast.First(c => c.Name == d.SpeakerId);
-               (string reply, string usedModel) = await Write(m, LinePrompt(sc, speaker, room, scene, d.CutOffId), 1500, calls);
+               (string reply, string usedModel) = await speaking;
+               // The honesty check (the morning runs of 27/11/2026: Tomas invented a practice burr to explain his clean sword, Seraphine
+               // called her inflated price "a test"; both are lies, which the mod forbids): one cheap reading, one redo when it fails.
+               if (HonestyOn) (reply, usedModel) = await Honest(m, sc, speaker, InnerOn ? states[speaker.Name] : null, room, scene, d.CutOffId, reply, usedModel, cost, calls, debug);
+               waits.Add(wait.Elapsed.TotalSeconds);
                (string to2, string text2) = ParseLine(reply);
                var line = new SceneLine {Speaker = speaker.Name, To = to2, Text = text2, Model = usedModel};
-               line.Actions = await Interpret(m, sc, speaker, scene, text2, cost, calls);
+               // The interpreter does not decide who speaks next: it reads the line in the background.
+               interpreting.Add((line, Interpret(m, sc, speaker, scene.ToList(), text2, cost, calls)));
                scene.Add(line);
+               if (speaker.Name != null) states[speaker.Name].Repeating = "";
                Movements(reply, away, sc, debug);
                npcLines++;
             }
          }
 
+         foreach ((SceneLine line, Task<string> task) in interpreting) line.Actions = await task;
          clock.Stop();
+         debug.AppendLine("\n**Who each character became**");
+         foreach (Character c in sc.Cast)
+         {
+            InnerState s = states[c.Name];
+            debug.AppendLine($"- {c.Name}: came wanting \"{s.FirstAim}\"; leaves feeling {s.Feeling}, wanting \"{s.Aim}\", hiding \"{s.Hiding}\".");
+            foreach (string shift in s.Shifts) debug.AppendLine($"  - {shift}");
+         }
+
          if (Fallbacks.Count > 0) debug.AppendLine("\n**Why lines went to the NSFW model**\n" + string.Join("\n", Fallbacks.Select(f => "- " + f)));
          Fallbacks.Clear();
-         string transcript = Render(sc, scene, m, calls, cost[0], clock.Elapsed, debug.ToString());
+         string timing = waits.Count == 0 ? "" : $" Wait before each NPC line: mean {waits.Average():0.0} s, longest {waits.Max():0.0} s.";
+         string transcript = Render(sc, scene, m, calls, cost, clock.Elapsed, timing, debug.ToString());
          string path = Path.Combine(Path.GetTempPath(), $"cr_group_{sc.Id}_{DateTime.Now:yyyyMMdd_HHmmss}.md");
          File.WriteAllText(path, transcript);
          TestContext.Out.WriteLine($"[GROUP SIM] written to {path}");
@@ -385,24 +504,24 @@ namespace CalradiaRemembers.Tests.Conversation
       }
 
       // The prose model first; the NSFW model only when it refuses, by the chat's own Enhanced rule.
-      private static async Task<(string Text, string Model)> Write(Models m, (string System, string User) prompt, int maxTokens, Dictionary<string, int> calls)
+      private static async Task<(string Text, string Model)> Write(Models m, (string System, string User) prompt, int maxTokens, Dictionary<string, int> calls, double[] cost)
       {
          var request = new LlmRequest {
             SystemPrompt = prompt.System, Messages = new[] {new LlmMessage(MessageRole.User, prompt.User)},
             Parameters = new LlmParameters {MaxTokens = maxTokens, Creativity = 0.85f}
          };
          LlmResponse r = await m.Prose.CompleteAsync(request);
-         lock (calls) calls["prose"]++;
+         lock (cost) { cost[1] += r.Usage?.Cost ?? 0; calls["prose"]++; }
          string text = r.IsSuccess ? r.Content?.Trim() ?? "" : "";
          bool refused = !r.IsSuccess || string.IsNullOrWhiteSpace(text)
                         || (DialogueHeuristics.LooksLikeRefusal(text)
                             && RefusalFallbackPolicy.ShouldRedo(new RefusalRedoFacts {EnhancedMode = true, BeatModel = m.ProseId, NsfwModel = m.NsfwId, Reply = text, FinishReason = r.FinishReason}));
          if (!refused) return (text, m.ProseId);
 
-         string why = !r.IsSuccess ? "error: " + r.ErrorMessage : string.IsNullOrWhiteSpace(text) ? $"empty (finish {r.FinishReason})" : "refusal: " + (text.Length > 120 ? text.Substring(0, 120) : text);
-         lock (calls) Fallbacks.Add(why);
+         string why = Clean(!r.IsSuccess ? "error: " + r.ErrorMessage : string.IsNullOrWhiteSpace(text) ? $"empty (finish {r.FinishReason})" : "refusal: " + (text.Length > 120 ? text.Substring(0, 120) : text));
+         lock (cost) Fallbacks.Add(why);
          LlmResponse n = await m.Nsfw.CompleteAsync(request);
-         lock (calls) calls["nsfw"]++;
+         lock (cost) { cost[1] += n.Usage?.Cost ?? 0; calls["nsfw"]++; }
 
          return (n.IsSuccess ? n.Content?.Trim() ?? "" : $"(both models failed: {r.ErrorMessage ?? "refused"} / {n.ErrorMessage})", m.NsfwId);
       }
@@ -428,6 +547,125 @@ namespace CalradiaRemembers.Tests.Conversation
          return actions.Count == 0 ? "" : string.Join(", ", actions.Select(a => a.Type + (a.Parameters is {Count: > 0} ? "(" + string.Join(", ", a.Parameters.Select(p => p.Key + "=" + p.Value)) + ")" : "")));
       }
 
+      private static async Task<(string Text, string Model)> Honest(Models m, Scenario sc, Character c, InnerState s, List<FloorJudgePresence> room, List<SceneLine> scene,
+                                                                    string cutOff, string reply, string model, double[] cost, Dictionary<string, int> calls, StringBuilder debug)
+      {
+         string system = $"You check one line spoken by {c.Name} for a lie. {c.Name} never lies outright. Allowed: evasion, silence, omission, changing the subject,"
+                       + " a joke, a literally true half-answer, a feeling or opinion, a demand. A LIE is a statement of fact the speaker knows is false, or an excuse or"
+                       + " explanation they invent and know is untrue."
+                       + $"\nWhat {c.Name} knows: {c.Persona}" + (string.IsNullOrWhiteSpace(c.Secret) ? "" : $" {c.Secret}")
+                       + (s == null ? "" : $" Hidden right now: {s.Hiding}.")
+                       + "\nAnswer exactly two lines:\nverdict: <honest|lie>\nfalse: <the false statement, or none>";
+         LlmResponse r = await m.Judge.CompleteAsync(new LlmRequest {
+            SystemPrompt = system, Messages = new[] {new LlmMessage(MessageRole.User, $"THE SCENE SO FAR:\n{SceneText(scene)}\n\nTHE LINE TO CHECK ({c.Name}):\n{reply}")},
+            Parameters = new LlmParameters {MaxTokens = 80, Creativity = 0.1f, AllowTruncationRetry = false}
+         });
+         lock (cost) { cost[0] += r.Usage?.Cost ?? 0; calls["honesty"]++; }
+         string content = r.Content ?? "";
+         if (!Regex.IsMatch(content, @"(?im)^\s*verdict\s*:\s*lie")) return (reply, model);
+
+         string falsehood = Clean(Regex.Match(content, @"(?im)^\s*false\s*:\s*(.+)$").Groups[1].Value);
+         debug.AppendLine($"  - honesty: {c.Name}'s line held a lie ({falsehood}); written again");
+         (string System, string User) prompt = LinePrompt(sc, c, room, scene, cutOff, s);
+         return await Write(m, (prompt.System + $"\nYour first draft said something you know is false: \"{falsehood}\". Do not say it: evade, deflect, go silent, or tell the truth.",
+                                prompt.User), 1500, calls, cost);
+      }
+
+      // The inner life of one character after the last line. People change, but only for a cause in the scene.
+      private static async Task UpdateMind(Models m, Scenario sc, Character c, InnerState s, List<SceneLine> scene, int beat, double[] cost, Dictionary<string, int> calls)
+      {
+         string system = $"You keep the inner life of {c.Name}, a character in a scene. You never write dialogue. After the last line of the scene, say how {c.Name} stands NOW."
+                       + " People change: a revelation, a slight, a kindness, a defeat, a proof can turn a feeling, change a tactic, even make them give up what they wanted"
+                       + " or want something new. But nothing changes without a cause in the scene; a line that does not touch them changes little, and 'none' is the usual shift."
+                       + " A tactic that has failed twice is abandoned for another. A tactic never includes a lie or an invented excuse: when they will"
+                       + " not tell the truth they evade, deflect, stay silent or confess."
+                       + $"\n\n{c.Name}: {c.Persona}"
+                       + (string.IsNullOrWhiteSpace(c.Secret) ? "" : $"\nKnown only to {c.Name}: {c.Secret}")
+                       + $"\nWanted when the scene began: {c.Objective}\nWants to appear: {c.Mask}\nFears: {c.Fear}\nWill never: {c.Limit}"
+                       + "\n\nAnswer exactly six lines:\nfeeling: <their feeling now, 1 to 4 words>\nshift: <none, or what changed in them and which line caused it, one short sentence>"
+                       + "\naim: <what they want now: the same aim, or the new one if it changed>\ntactic: <how they will try for it next, one short phrase>"
+                       + "\nshowing: <what they let the others see, 1 to 6 words>\nhiding: <what they keep hidden now, one short phrase>";
+         string user = $"HOW {c.Name.ToUpperInvariant()} STOOD BEFORE THE LAST LINE:\nfeeling: {s.Feeling}\naim: {s.Aim}\ntactic: {s.Tactic}\nshowing: {s.Showing}\nhiding: {s.Hiding}"
+                     + $"\n\nTHE SCENE SO FAR:\n{SceneText(scene)}\n\nHow {c.Name} stands now:";
+         LlmResponse r = await m.Judge.CompleteAsync(new LlmRequest {
+            SystemPrompt = system, Messages = new[] {new LlmMessage(MessageRole.User, user)},
+            Parameters = new LlmParameters {MaxTokens = 200, Creativity = 0.4f, AllowTruncationRetry = false}
+         });
+         lock (cost) { cost[0] += r.Usage?.Cost ?? 0; calls["mind"]++; }
+         if (!r.IsSuccess) return;
+
+         string Field(string name, string old)
+         {
+            Match f = Regex.Match(r.Content ?? "", $@"(?im)^\s*{name}\s*:\s*(.+)$");
+            return f.Success && f.Groups[1].Value.Trim().Length > 0 ? Clean(f.Groups[1].Value) : old;
+         }
+
+         s.Feeling = Field("feeling", s.Feeling);
+         s.Shift = Field("shift", "none");
+         if (s.Shift.StartsWith("none", StringComparison.OrdinalIgnoreCase)) s.Shift = "none";
+         s.Aim = Field("aim", s.Aim);
+         s.Tactic = Field("tactic", s.Tactic);
+         s.Showing = Field("showing", s.Showing);
+         s.Hiding = Field("hiding", s.Hiding);
+         if (s.Shift != "none") s.Shifts.Add($"beat {beat + 1}: {s.Shift}");
+      }
+
+      // The dramaturge (the review of 27/11/2026: "you have actors, a referee and an observer; you lack a dramaturge"). It never
+      // writes dialogue. It reads the scene and everyone's hidden inner life, names who repeats, and acts on the circumstances only
+      // when the scene has stopped turning, with a fact the scenario holds (the game's facts, never invented).
+      private static async Task<(string Complication, bool End)> Dramaturge(Models m, Scenario sc, List<SceneLine> scene, Dictionary<string, InnerState> states, HashSet<int> used,
+                                                                            int beat, double[] cost, Dictionary<string, int> calls, StringBuilder debug)
+      {
+         var options = sc.Complications.Select((c, i) => (c, i)).Where(x => !used.Contains(x.i)).ToList();
+         string system = "You are the dramaturge of a scene in progress. You never write dialogue and never speak for anyone. You read the scene and the hidden inner life"
+                       + " of every character, and decide whether the circumstances must change. A scene is alive when what the characters know, want or risk is shifting."
+                       + " Emotion repeated is not tension; a calm line that changes who holds power is. Do nothing when the characters are already turning the scene."
+                       + "\nAnswer exactly these four lines:"
+                       + "\nprogress: <what changed in the situation (knowledge, power, aims) since the beat before, or nothing>"
+                       + "\nrepeating: <Name: what they keep doing that no longer works, for each one who repeats, separated by ' | '; or none>"
+                       + "\nuntapped: <the strongest conflict or secret not yet in play, one phrase>"
+                       + "\nmove: <none | event N | end>"
+                       + "\nChoose 'event N' only when progress is nothing or someone repeats, and pick the event that forces someone to DECIDE something."
+                       + " Choose 'end' only when the scene's question has been answered and any further line would only echo it.";
+         string user = $"SCENE: {sc.Title}. {sc.Setting}\n\n{SceneText(scene)}\n\nINNER LIVES (hidden from the others):\n"
+                     + string.Join("\n", sc.Cast.Select(c => $"- {c.Name}: feels {states[c.Name].Feeling}; wants {states[c.Name].Aim}; shows {states[c.Name].Showing}; hides {states[c.Name].Hiding}"
+                                                            + (string.IsNullOrWhiteSpace(c.Secret) ? "" : $"; secret: {c.Secret}")))
+                     + $"\n- {sc.Player.Name} (the protagonist): wants {sc.Player.Objective}" + (string.IsNullOrWhiteSpace(sc.Player.Secret) ? "" : $"; secret: {sc.Player.Secret}")
+                     + "\n\nEVENTS THE WORLD CAN BRING (already true, waiting to surface):\n"
+                     + (options.Count == 0 ? "(none left)" : string.Join("\n", options.Select(o => $"{o.i + 1}. {o.c}")))
+                     + $"\n\nThis is the end of beat {beat} of at most {sc.Beats}.";
+         LlmResponse r = await m.Dramaturge.CompleteAsync(new LlmRequest {
+            SystemPrompt = system, Messages = new[] {new LlmMessage(MessageRole.User, user)},
+            Parameters = new LlmParameters {MaxTokens = 1500, Creativity = 0.3f, AllowTruncationRetry = false}
+         });
+         lock (cost) { cost[1] += r.Usage?.Cost ?? 0; calls["director"]++; }
+         string reply = r.Content ?? "";
+         string Line(string name) => Clean(Regex.Match(reply, $@"(?im)^\s*{name}\s*:\s*(.+)$").Groups[1].Value);
+
+         string repeating = Line("repeating");
+         foreach (string part in repeating.Split('|'))
+         {
+            int colon = part.IndexOf(':');
+            if (colon <= 0) continue;
+            string who = part.Substring(0, colon).Trim();
+            if (states.TryGetValue(who, out InnerState s)) s.Repeating = Clean(part.Substring(colon + 1));
+         }
+
+         string move = Line("move").ToLowerInvariant();
+         Match pick = Regex.Match(move, @"event\s*(\d+)");
+         int index = pick.Success ? int.Parse(pick.Groups[1].Value) - 1 : -1;
+         bool wants = index >= 0 && index < sc.Complications.Count && !used.Contains(index) && beat >= 2;
+         // Never before the third beat: a scene needs room to set its question before it can answer it.
+         bool end = move.StartsWith("end") && beat >= 3;
+         debug.AppendLine($"- dramaturge: progress: {Line("progress")} | repeating: {repeating} | untapped: {Line("untapped")} | move: {move}{(end ? " (scene ends)" : "")}");
+         if (!wants || end) return (null, end);
+
+         used.Add(index);
+
+         return (sc.Complications[index], false);
+      }
+
+      // The old scene reader (cheap judge model, three lines), kept for the ablation run CR_SIM_DRAMATURGE=off.
       private static async Task<string> Director(Models m, Scenario sc, List<SceneLine> scene, HashSet<int> used, double[] cost, Dictionary<string, int> calls, StringBuilder debug)
       {
          var options = sc.Complications.Select((c, i) => (c, i)).Where(x => !used.Contains(x.i)).ToList();
@@ -477,7 +715,7 @@ namespace CalradiaRemembers.Tests.Conversation
       private static string SceneText(List<SceneLine> scene)
          => string.Join("\n", scene.Select(l => l.IsNarration ? l.Text : $"{l.Speaker}{(string.IsNullOrWhiteSpace(l.To) ? "" : " (to " + l.To + ")")}: {l.Text}"));
 
-      private static (string System, string User) LinePrompt(Scenario sc, Character me, List<FloorJudgePresence> room, List<SceneLine> scene, string cutOff)
+      private static (string System, string User) LinePrompt(Scenario sc, Character me, List<FloorJudgePresence> room, List<SceneLine> scene, string cutOff, InnerState now)
       {
          var sb = new StringBuilder();
          sb.AppendLine($"You are {me.Name}. {me.Persona}");
@@ -485,8 +723,26 @@ namespace CalradiaRemembers.Tests.Conversation
          if (!string.IsNullOrWhiteSpace(me.Secret)) sb.AppendLine($"Known only to you: {me.Secret}");
          sb.AppendLine("Who is here: " + string.Join("; ", room.Select(p => $"{p.Name} ({(p.IsFemale ? "a woman" : "a man")}, {p.Station})")));
          foreach (string tie in me.Ties) sb.AppendLine("- " + tie);
-         sb.AppendLine($"What you want in this scene: {me.Objective}");
-         sb.AppendLine($"If you are blocked: {me.Tactic}");
+         if (now == null)
+         {
+            sb.AppendLine($"What you want in this scene: {me.Objective}");
+            sb.AppendLine($"If you are blocked: {me.Tactic}");
+         }
+         else
+         {
+            // The review of 27/11/2026: "the model respects his desire, but not his strategy", "the characters express their
+            // intentions rather than their personality". The line is written from where the character stands NOW.
+            sb.AppendLine("Where you stand now:");
+            sb.AppendLine($"- you feel: {now.Feeling}");
+            if (now.Shift != "none") sb.AppendLine($"- what just changed in you: {now.Shift}");
+            sb.AppendLine($"- what you want now: {now.Aim}");
+            sb.AppendLine($"- how you go about it now: {now.Tactic}");
+            sb.AppendLine($"- what you let the others see: {now.Showing}");
+            sb.AppendLine($"- what you keep hidden: {now.Hiding}");
+            if (!string.IsNullOrWhiteSpace(now.Repeating)) sb.AppendLine($"- what is no longer working: {now.Repeating}. Change your approach.");
+         }
+         if (!string.IsNullOrWhiteSpace(me.Mask)) sb.AppendLine($"How you want to be seen: {me.Mask}. You fear: {me.Fear}. You will never: {me.Limit}.");
+         if (!string.IsNullOrWhiteSpace(me.Voice)) sb.AppendLine($"Your voice, yours alone: {me.Voice}.");
          sb.AppendLine($"The tone of the scene: {sc.Tone}.");
          if (sc.Adult)
             sb.AppendLine("Adult content is allowed: everyone here is a consenting adult; desire, seduction and explicit intimacy may be written frankly when the moment earns it.");
@@ -496,13 +752,21 @@ namespace CalradiaRemembers.Tests.Conversation
          sb.AppendLine("not tell the truth, evade, deflect or fall silent. Make the line EARN its place: reveal something, push for what you want,");
          sb.AppendLine("change your approach, or turn the moment. Never repeat what you already said or demanded. Answer the moment as it stands:");
          sb.AppendLine("you may turn to anyone present, not only the last speaker. Keep your own voice.");
+         // Subtext: a novel's characters say less than they feel. Never by lying (the mod's rule): by omission, deflection,
+         // answering another question, a silence, a joke.
+         sb.AppendLine("Say less than you feel. Never name your own feeling. Let what you avoid saying show: answer a different question, change");
+         sb.AppendLine("the subject, joke, go quiet, or offer something to hide something else. No metaphor unless your voice is made of them, and");
+         sb.AppendLine("never borrow an image someone else in the scene already used. Never invent an excuse or a fact you know is false: an");
+         sb.AppendLine("evasion is allowed, a false explanation is a lie.");
          if (cutOff != null) sb.AppendLine($"You are cutting in before {cutOff} could answer.");
          // The first three scenes looped (the baron asked to be "crowned peerless" in every line; the commander put everything off
          // "until dawn"): each speaker now sees their own last lines and must not say them again.
          List<string> mine = scene.Where(l => !l.IsNarration && l.Speaker == me.Name).Select(l => l.Text).TakeLast(3).ToList();
          if (mine.Count > 0)
          {
-            sb.AppendLine("What you have already said in this scene (do NOT say it again, not even in other words; if it did not work, try something new):");
+            // Ilsa laid the sword across her knees four or five times in one scene (the blind review of 27/11/2026).
+            sb.AppendLine("What you have already said and done in this scene (do NOT say it again, not even in other words, and do not repeat a gesture or");
+            sb.AppendLine("handle the same object the same way; if it did not work, try something new):");
             foreach (string said in mine) sb.AppendLine("- " + (said.Length > 220 ? said.Substring(0, 220) + "..." : said));
          }
          if (me == sc.Player)
@@ -519,11 +783,13 @@ namespace CalradiaRemembers.Tests.Conversation
       {
          string system = $"You write ONE short line of narration for a scene ({sc.Tone}), present tense, in asterisks, no dialogue. "
                        + "Show each named reaction as a small, specific gesture of that person, different from any gesture already in the scene. "
+                       + "Show what the person LETS SHOW, their mask: a feeling they hide leaks only through one small detail, or not at all. "
+                       + "A deliberate act (pouring wine, turning away, a smile) often says more than a clenched jaw. "
                        + "Show only what is listed: no other character, no thoughts, no explanation of what the reaction means. "
                        + "Who is here (use the right pronouns): " + string.Join("; ", room.Select(p => $"{p.Name}, {(p.IsFemale ? "a woman (she/her)" : "a man (he/him)")}")) + "."
                        + (sc.Adult ? " Everyone is a consenting adult; sensuality may be shown." : "");
 
-         return (system, "THE SCENE SO FAR:\n" + SceneText(scene) + $"\n\nREACTIONS TO SHOW: {cues}\nThe narration line:");
+         return (system, "THE SCENE SO FAR:\n" + SceneText(scene) + $"\n\nREACTIONS TO SHOW:\n{cues}\nThe narration line:");
       }
 
       // Who left or came back, from the speaker's own `leaves:` / `returns:` line: an absent character neither speaks nor reacts.
@@ -550,11 +816,20 @@ namespace CalradiaRemembers.Tests.Conversation
          string[] lines = (reply ?? "").Replace("\r", "").Split('\n').Where(l => l.Trim().Length > 0)
             .Where(l => !l.Trim().Trim('`').StartsWith("leaves:", StringComparison.OrdinalIgnoreCase) && !l.Trim().Trim('`').StartsWith("returns:", StringComparison.OrdinalIgnoreCase)).ToArray();
          string to = "";
-         if (lines.Length > 0 && lines[0].TrimStart('`', ' ').StartsWith("to:", StringComparison.OrdinalIgnoreCase))
+         Match lead = lines.Length > 0 ? Regex.Match(lines[0], @"^[`\s]*to\b\s*:?\s*([^:*""]{1,30}?)\s*:\s*(.*)$", RegexOptions.IgnoreCase) : Match.Empty;
+         if (lead.Success)
+         {
+            to = lead.Groups[1].Value.Trim(' ', '`', '<', '>');
+            string rest = lead.Groups[2].Value.Trim();
+            lines = (rest.Length > 0 ? new[] {rest} : Array.Empty<string>()).Concat(lines.Skip(1)).ToArray();
+         }
+         else if (lines.Length > 0 && lines[0].TrimStart('`', ' ').StartsWith("to:", StringComparison.OrdinalIgnoreCase))
          {
             // The name is the first word after "to:"; anything after it on that line (a model that ran on) belongs to the line.
             string head = lines[0].TrimStart('`', ' ').Substring(3).Trim(' ', '`', '<', '>');
-            int cut = head.IndexOfAny(new[] {' ', '*', '"', '\t'});
+            // "to: the boy" alone on its line is the whole name; a name followed by the line itself ends at the first space.
+            bool alone = !head.Contains('*') && !head.Contains('"') && head.Split(' ').Length <= 3;
+            int cut = alone ? -1 : head.IndexOfAny(new[] {' ', '*', '"', '\t'});
             to = (cut < 0 ? head : head.Substring(0, cut)).Trim(',', '.', ':');
             string rest = cut < 0 ? "" : head.Substring(cut).Trim();
             lines = (rest.Length > 0 ? new[] {rest} : Array.Empty<string>()).Concat(lines.Skip(1)).ToArray();
@@ -569,12 +844,14 @@ namespace CalradiaRemembers.Tests.Conversation
       // Models write em dashes; the repositories refuse them (git hooks), and a transcript may be kept as a design record.
       private static string Clean(string s) => (s ?? "").Replace("\u2014", ", ").Replace("\u2013", "-").Trim().Trim('`').Trim();
 
-      private static string Render(Scenario sc, List<SceneLine> scene, Models m, Dictionary<string, int> calls, double cost, TimeSpan took, string debug)
+      private static string Render(Scenario sc, List<SceneLine> scene, Models m, Dictionary<string, int> calls, double[] cost, TimeSpan took, string timing, string debug)
       {
          var sb = new StringBuilder();
          sb.AppendLine($"# {sc.Title} ({sc.Id}), simulated");
-         sb.AppendLine($"Prose {m.ProseId} ({calls["prose"]} calls), NSFW fallback {m.NsfwId} ({calls["nsfw"]} calls), judge {m.JudgeId} ({calls["judge"]}), "
-                     + $"interpreter {m.InterpreterId} ({calls["interpret"]}), scene reader ({calls["director"]}). Judge+interpreter+reader cost ${cost:0.0000}. {took.TotalMinutes:0.0} min.");
+         sb.AppendLine($"Inner lives {(InnerOn ? "on" : "off")}, dramaturge {(DramaturgeOn ? "on" : "off (old scene reader)")}, honesty check {(HonestyOn ? $"on ({calls["honesty"]} checks)" : "off")}.");
+         sb.AppendLine($"Prose {m.ProseId} reasoning {m.ProseReasoning} ({calls["prose"]} calls), NSFW fallback {m.NsfwId} ({calls["nsfw"]} calls), dramaturge on the prose model ({calls["director"]}), "
+                     + $"judge {m.JudgeId} ({calls["judge"]}), inner lives ({calls["mind"]}), interpreter {m.InterpreterId} ({calls["interpret"]}). "
+                     + $"Cost: prose+dramaturge ${cost[1]:0.0000}, judge+minds+interpreter ${cost[0]:0.0000}. {took.TotalMinutes:0.0} min.{timing}");
          sb.AppendLine($"{sc.Player.Name} (the player: first line scripted, then played by the prose model). " + string.Join("; ", sc.Cast.Select(c => $"{c.Name}: {c.Objective}")));
          sb.AppendLine();
          sb.AppendLine($"*{sc.Setting}*");
