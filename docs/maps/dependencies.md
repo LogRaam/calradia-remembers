@@ -100,7 +100,7 @@ Used by the most: `CalradiaRemembers.Logic` (79), `NpcMemoryService.Core.Models`
 | `CalradiaRemembers.Assemblies` | 15 | 7 |
 | `CalradiaRemembers.Bastards` | 12 | 4 |
 | `CalradiaRemembers.Battles` | 10 | 4 |
-| `CalradiaRemembers.Behaviors` | 29 | 43 |
+| `CalradiaRemembers.Behaviors` | 30 | 43 |
 | `CalradiaRemembers.Chat` | 75 | 25 |
 | `CalradiaRemembers.Chronicle` | 9 | 2 |
 | `CalradiaRemembers.Commitments` | 13 | 8 |
@@ -133,7 +133,7 @@ Used by the most: `CalradiaRemembers.Logic` (79), `NpcMemoryService.Core.Models`
 | `CalradiaRemembers.Logic.AuthoredQuests` | 5 | 5 |
 | `CalradiaRemembers.Logic.Bastards` | 1 | 6 |
 | `CalradiaRemembers.Logic.Battles` | 1 | 9 |
-| `CalradiaRemembers.Logic.Captivity` | 4 | 12 |
+| `CalradiaRemembers.Logic.Captivity` | 4 | 13 |
 | `CalradiaRemembers.Logic.Character` | 5 | 7 |
 | `CalradiaRemembers.Logic.Chat` | 1 | 7 |
 | `CalradiaRemembers.Logic.Chronicle` | 0 | 1 |
@@ -671,11 +671,6 @@ files first: a side resting on ONE file is one file away from untangling the pai
 - `CalradiaRemembers` uses `CalradiaRemembers.GameState` in 17 files: `Extension/CrActions.cs`, `Extension/CrConception.cs`, `ModCheats.Acts.cs`, and 14 more
 - `CalradiaRemembers.GameState` uses `CalradiaRemembers` in 3 file(s): `GameState/BannerlordGameStateBridge.cs`, `GameState/DiplomacyCommit.cs`, `GameState/PregnancyBirthBehavior.cs`
 
-#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Mapping`
-
-- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Mapping` in 3 file(s): `Behaviors/LongMemoryRecaller.cs`, `Behaviors/NpcMemoryCampaignBehavior.cs`, `Behaviors/WorkshopSaleMemoryBehavior.cs`
-- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Behaviors` in 8 files: `Mapping/DayMoodReader.cs`, `Mapping/DeedRegardApplier.cs`, `Mapping/EncounterContextBuilder.cs`, and 5 more
-
 #### `CalradiaRemembers.Chat` and `CalradiaRemembers.Diagnostics`
 
 - `CalradiaRemembers.Chat` uses `CalradiaRemembers.Diagnostics` in 3 file(s): `Chat/ChatManager.cs`, `Chat/ChatViewModel.Helpers.cs`, `Chat/ChatViewModel.cs`
@@ -695,6 +690,11 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 - `CalradiaRemembers.GameState` uses `CalradiaRemembers.Mapping` in 3 file(s): `GameState/BannerlordGameStateBridge.cs`, `GameState/CourtActionResolver.cs`, `GameState/LordRecruitmentFactsBuilder.cs`
 - `CalradiaRemembers.Mapping` uses `CalradiaRemembers.GameState` in 7 files: `Mapping/ContextualNameResolver.cs`, `Mapping/EncounterContextBuilder.cs`, `Mapping/FirstImpressionResolver.cs`, and 4 more
+
+#### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Mapping`
+
+- `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Mapping` in 4 files: `Behaviors/ExecutionReprieveBehavior.cs`, `Behaviors/LongMemoryRecaller.cs`, `Behaviors/NpcMemoryCampaignBehavior.cs`, and 1 more
+- `CalradiaRemembers.Mapping` uses `CalradiaRemembers.Behaviors` in 8 files: `Mapping/DayMoodReader.cs`, `Mapping/DeedRegardApplier.cs`, `Mapping/EncounterContextBuilder.cs`, and 5 more
 
 #### `CalradiaRemembers.Grudges` and `CalradiaRemembers.Mapping`
 
@@ -750,7 +750,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### CalradiaRemembers.Behaviors
 
-- uses: `CalradiaRemembers.Appearance`, `CalradiaRemembers.Appreciations`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Commitments`, `CalradiaRemembers.Commoners`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Duels`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Companions`, `CalradiaRemembers.Logic.Letters`, `CalradiaRemembers.Logic.StoryArchive`, `CalradiaRemembers.Logic.Ventures`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Missions`, `CalradiaRemembers.Nemesis`, `CalradiaRemembers.Quests`, `CalradiaRemembers.Saving`, `CalradiaRemembers.Services`, `CalradiaRemembers.Storage`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Prompts`, `NpcMemoryService.Core.Services`
+- uses: `CalradiaRemembers.Appearance`, `CalradiaRemembers.Appreciations`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Commitments`, `CalradiaRemembers.Commoners`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Duels`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Captivity`, `CalradiaRemembers.Logic.Companions`, `CalradiaRemembers.Logic.Letters`, `CalradiaRemembers.Logic.StoryArchive`, `CalradiaRemembers.Logic.Ventures`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Missions`, `CalradiaRemembers.Nemesis`, `CalradiaRemembers.Quests`, `CalradiaRemembers.Saving`, `CalradiaRemembers.Services`, `CalradiaRemembers.Storage`, `CalradiaRemembers.WorldEvents`, `NpcMemoryService.Core.Calendar`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Prompts`, `NpcMemoryService.Core.Services`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Aims`, `CalradiaRemembers.Arrests`, `CalradiaRemembers.Assemblies`, `CalradiaRemembers.Bastards`, `CalradiaRemembers.Battles`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Chronicle`, `CalradiaRemembers.Commitments`, `CalradiaRemembers.Commoners`, `CalradiaRemembers.Companions`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Duels`, `CalradiaRemembers.Dynasty`, `CalradiaRemembers.Encyclopedia`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Grudges`, `CalradiaRemembers.HelpPleas`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Jealousy`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Lore`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Marriage`, `CalradiaRemembers.Memory`, `CalradiaRemembers.Missions`, `CalradiaRemembers.Nemesis`, `CalradiaRemembers.OpenPartnerLover`, `CalradiaRemembers.Quests`, `CalradiaRemembers.RealmTidings`, `CalradiaRemembers.Rescue`, `CalradiaRemembers.Scenarios`, `CalradiaRemembers.Services`, `CalradiaRemembers.Stance`, `CalradiaRemembers.Standing`, `CalradiaRemembers.Tournaments`, `CalradiaRemembers.Verbs`, `CalradiaRemembers.Violence`, `CalradiaRemembers.WarDuty`, `CalradiaRemembers.Witnesses`, `CalradiaRemembers.WorldAlmanac`, `CalradiaRemembers.WorldEvents`
 
 ### CalradiaRemembers.Chat
@@ -916,7 +916,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### CalradiaRemembers.Logic.Captivity
 
 - uses: `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Appreciations`, `NpcMemoryService.Core.Models`, `NpcMemoryService.Core.Standing`
-- used by: `CalradiaRemembers`, `CalradiaRemembers.Battles`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Duels`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic.Actions`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Quests`, `CalradiaRemembers.WorldEvents`
+- used by: `CalradiaRemembers`, `CalradiaRemembers.Battles`, `CalradiaRemembers.Behaviors`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Duels`, `CalradiaRemembers.GameState`, `CalradiaRemembers.Interception`, `CalradiaRemembers.Letters`, `CalradiaRemembers.Logic.Actions`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Quests`, `CalradiaRemembers.WorldEvents`
 
 ### CalradiaRemembers.Logic.Character
 

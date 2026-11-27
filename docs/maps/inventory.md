@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 698 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1758 types in 62 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 700 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1761 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -219,10 +219,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `HeroTally` | public class | One hero's raw part in one mission, by hero id; CombatTally is its worded form. |
 | `PrisonerMemoryBehavior` | public class | Writes the memories of the player's prisoners: taken, left in a dungeon, and how it ended. |
 
-### CalradiaRemembers.Behaviors (4)
+### CalradiaRemembers.Behaviors (6)
 
 | Type | Kind | What it is |
 |---|---|---|
+| `ExecutionReprieveBehavior` | public class | Gives a lord the player sentenced to death and then spared the memory of it. |
+| `ExecutionScenePatch` | public static class | The execution scene's two answers when the player is the executioner: cancel spares the condemned (after a battle's sentence it takes him prisoner, from the party screen it leaves him one), go ahead settles nothing to re... |
 | `LongMemoryRecaller` | public static class | Finds, for one character's turn, the words of earlier conversations worth recalling, ready for the prompt. |
 | `NpcMemoryCampaignBehavior` | public class | Bridges the NpcMemoryService SDK to the Bannerlord campaign lifecycle. |
 | `StoryArchiveWriter` | public static class | Writes letters and the mod's notices into the campaign's story archive. |
@@ -1996,7 +1998,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `SkirmishMemoryText` | public static class | Pure: the folded "small fights" memory a companion keeps of the skirmishes shared with the player. |
 | `TalliedFoe` | public class | One foe a hero put out of the fight, with the campaign's verdict on them afterwards. |
 
-### CalradiaRemembers.Logic.Captivity (30)
+### CalradiaRemembers.Logic.Captivity (33)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2026,9 +2028,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptureMemoryText` | public static class | The captor's memory of the capture. |
 | `CaptureNorm` | public static class | The framing of a lord taken captive by the player. |
 | `CaptureStake` | public enum | What the captive is to the one who hears of the capture. |
+| `ExecutionReprievePolicy` | public static class | The memory a spared lord keeps. |
+| `ExecutionReprieveTracker` | public class | Follows the game's execution dialogue for one conversation partner and tells when a lord was spared. |
 | `ParoleFightFacts` | public class | A fight the player took part in, against an oath of parole. |
 | `PrisonerReleaseCheck` | public static class | Turns the game's answer to a release into the refusal to show, or nothing when the release took. |
 | `RansomOfferFacts` | public class | Who holds the player when the game is about to offer a ransom. |
+| `ReprieveWay` | public enum | How a condemned lord was spared. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 
 ### CalradiaRemembers.Logic.Character (34)

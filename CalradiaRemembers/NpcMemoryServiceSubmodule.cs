@@ -155,6 +155,7 @@ namespace CalradiaRemembers
          campaignStarter.AddBehavior(new Companions.CompanionHireBehavior());
          // Windmolen (14/11/2026): the man who sold the player a workshop disputed the sale; he now remembers it.
          campaignStarter.AddBehavior(new WorkshopSaleMemoryBehavior());
+         campaignStarter.AddBehavior(new ExecutionReprieveBehavior()); // a spared lord remembers the sentence (froggyluv, 26/11/2026)
          // Leaving the house for a ruler (Gabriel, 26/10/2026): the heir takes it up, the old character weds her.
          campaignStarter.AddBehavior(new Marriage.LeaveHouseForRulerBehavior());
          // Self-esteem (30/09/2026, Lordfadooboo): battles, captivities, tournaments, fiefs and deaths move how a met

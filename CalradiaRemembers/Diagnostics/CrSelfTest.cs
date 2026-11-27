@@ -541,6 +541,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("escaped_target", Severity.Light, "fkasad (Nexus, 01/10/2026): the lord a capture task named was beaten and escaped, and the player paid the broken-word price. On a real met lord, a temporary capture task whose target was beaten: the giver's acceptance ([QUEST_COMPLETE]) settles it through the real quest path for HALF the reward, and words alone never settle one whose target was not beaten. The task, the purse, the regard and the memory are put back.", TestEscapedTarget),
          new SelfTest("interpreter_retry", Severity.Light, "Gabriel (25/10/2026), on an interpreter call that used to lose the reply's deeds with a log line only: 'reessaie une fois l'interpreteur en ajoutant un log qui le specifie'. Drives the REAL ActionInterpreterComposer.InterpretAsync with its call seam: a first call that fails then one that answers give_gold must apply the gold tag after exactly two calls; two failures apply nothing after exactly two calls (never a third); a reading with no deed is not retried (one call). No model is called; the seam is cleared after", TestInterpreterRetry),
          new SelfTest("race_appearance", Severity.Light, "CatWithFourEyes (Discord, 26/11/2026): overhaul mods with non-human races (LOTR, GoT, Forgotten Realms) saw every character described as a man or a woman. Puts a races.json entry in force for the player's REAL race name (read from the game, FaceGen.GetRaceNames), runs the REAL appearance extractor and composer and the REAL EncounterContextBuilder and prompt, and checks the people is named in the appearance and in the identity line, the race's line follows, and an omitted fact (skin) is left unsaid; then restores the table. Changes nothing", TestRaceAppearance),
+         new SelfTest("execution_reprieve", Severity.Light, "froggyluv (Nexus, 26/11/2026): a lord sentenced to death after a battle and spared when the order was rescinded later denied it had ever happened. Drives the REAL ExecutionReprieveBehavior with the game's own sentence ids (\"Off with your head!\", then \"Fine then. You are my prisoner now.\") and the execution scene's cancel, on a living lord, and checks each reprieve lands in his memory once and a plain prisoner line does not; then removes the test memories", TestExecutionReprieve),
          new SelfTest("description_replaces", Severity.Light, "CatWithFourEyes (Discord, 26/11/2026): \"can this thing be overriden with text description fully?\" Gabriel: MCM 'Your Description Replaces The Game's'. Writes a test note as the player's appearance, turns the switch on and builds the REAL appearance a character reads (EncounterContextBuilder.ComposeAppearance): the note alone, nothing from the face; switch off: the face first, the note after. Restores the player's own note and the switch", TestDescriptionReplaces),
          new SelfTest("request_private_to_main", Severity.Light, "whiskeypatt (Discord, 25/11/2026): in a chat with Rhagaea another lord joined; Request Private went to him, his yes emptied the room and Rhagaea answered the next line. Seats a lord as host and another as a witness the player addressed, drives the REAL routing Request Private runs (AddressPrivacyRequestToMain) and checks the request goes back to the host, and that a witness's acceptance clears nothing (PrivateAudiencePolicy.ClearsTheRoom). Changes nothing", TestRequestPrivateGoesToMain),
          new SelfTest("privacy_survives_interpreter", Severity.Light, "Lufaine and Maifailun (Nexus, 30/09/2026): a character agreed to speak privately and the room stayed full. In the two-call chat the interpreter's actions replaced the scene model's, which is the one taught request_privacy. Drives the real splice (ActionInterpreterComposer.WithInterpretedTags): the character's acceptance survives an interpreter that recorded none, and a gift the scene model tagged does not. No LLM.", TestPrivacySurvivesInterpreter),
@@ -22164,6 +22165,50 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          t.Expect("theTableIsRestored", ReferenceEquals(RaceLookLoader.Table, before), true);
+
+         return t.Line();
+      }
+
+      // froggyluv (Nexus, 26/11/2026): "when i talked to one particularly cocky lord after i rescinded the order, he denied that".
+      private static string TestExecutionReprieve(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("execution_reprieve");
+         ExecutionReprieveBehavior reprieve = ExecutionReprieveBehavior.Instance;
+         if (t.Abort(reprieve == null || behavior.Store == null, "the reprieve behaviour or the memory store is missing")) return t.Line();
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(lord == null, "no living lord to spare")) return t.Line();
+
+         NpcProfile before = behavior.Store.Get(lord.StringId) ?? HeroProfileMapper.FromHero(lord);
+         int eventsBefore = before.Events.Count;
+         try
+         {
+            // STAKE: a plain "you are my prisoner" with no sentence is no reprieve.
+            t.Expect("noThreatNoMemory", reprieve.DebugSentence(Logic.Captivity.ExecutionReprieveTracker.RevokeSentence, lord), null);
+
+            reprieve.DebugSentence(Logic.Captivity.ExecutionReprieveTracker.ThreatSentence, lord);
+            string revoked = reprieve.DebugSentence(Logic.Captivity.ExecutionReprieveTracker.RevokeSentence, lord);
+            t.Note($"{lord.Name}: {revoked}");
+            // STAKE: froggyluv's lord must remember the sentence taken back, not deny it.
+            t.Expect("theSentenceTakenBackIsRemembered", revoked != null && revoked.Contains("sentenced me to death"), true);
+
+            reprieve.DebugSentence(Logic.Captivity.ExecutionReprieveTracker.ThreatSentence, lord);
+            reprieve.DebugSentence(Logic.Captivity.ExecutionReprieveTracker.OrderSentence, lord);
+            string atTheBlock = reprieve.ExecutionCancelled(lord);
+            // STAKE: cancelled at the block after "Prepare to die!", he remembers being spared there.
+            t.Expect("theBlockIsRemembered", atTheBlock != null && atTheBlock.Contains("brought to the block"), true);
+
+            NpcProfile after = behavior.Store.Get(lord.StringId);
+            t.Expect("twoMemoriesKeptOnHisProfile", (after?.Events.Count ?? 0) - eventsBefore, 2);
+         }
+         finally
+         {
+            NpcProfile cleaned = behavior.Store.Get(lord.StringId);
+            if (cleaned != null && cleaned.Events.Count > eventsBefore)
+            {
+               cleaned.Events.RemoveRange(eventsBefore, cleaned.Events.Count - eventsBefore);
+               behavior.Store.Set(cleaned);
+            }
+         }
 
          return t.Line();
       }
