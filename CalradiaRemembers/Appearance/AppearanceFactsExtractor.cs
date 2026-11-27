@@ -3,6 +3,8 @@
 // the engine-agnostic AppearanceFacts that the pure AppearanceComposer bands into words. Height, hair colour
 // and a beard are baked into the packed static face code and not reliably readable, so they are omitted (the
 // composer simply stays silent on them) per the ratified scope; gender, age, build and weight are read.
+// CatWithFourEyes (Discord, 26/11/2026): a non-human race read as "a man". The race's look from races.json is applied
+// here, the one door every appearance passes through (the prompt, the encyclopedia, cr.appearance, both voices).
 
 #region
 
@@ -36,7 +38,9 @@ namespace CalradiaRemembers.Appearance
             // live in the static face key with no reliable reader, so they stay omitted.
             FaceColors colors = FaceColorReader.Read(hero);
 
-            return new AppearanceFacts {IsFemale = hero.IsFemale, AgeYears = SafeAge(hero), HeightNormalized = 0.5, BuildNormalized = build, WeightNormalized = weight, HairColorDescriptor = colors.Hair, HasBeard = false, SkinToneDescriptor = colors.Skin, EyeColorDescriptor = colors.Eye};
+            var facts = new AppearanceFacts {IsFemale = hero.IsFemale, AgeYears = SafeAge(hero), HeightNormalized = 0.5, BuildNormalized = build, WeightNormalized = weight, HairColorDescriptor = colors.Hair, HasBeard = false, SkinToneDescriptor = colors.Skin, EyeColorDescriptor = colors.Eye};
+
+            return RaceLookPolicy.Apply(facts, RaceLookLoader.LookOf(hero));
         }
 
         private static int SafeAge(Hero hero)

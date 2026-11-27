@@ -1,0 +1,22 @@
+{
+  "_about": "Calradia Remembers: how each of the game's races is described to the characters, for overhaul mods with non-human peoples. Keys under 'races' are the game's race NAMES (the stock game has only 'human', which needs no entry). Each entry may give: 'noun' (the people: 'elf' makes 'an elf woman', 'an elf man'), 'female' / 'male' (a whole word of your own for one sex, e.g. 'she-orc'; wins over noun), 'line' (one sentence of your own said after the description, e.g. 'Long ears rise through the hair.'), and 'omit' (facts the face reads wrongly for this race, left unsaid: skin, hair, eyes, beard, build, height, age). A race with no entry reads as before. Copy this file into your Custom folder to change it, then run cr.reload_prompts. The entries under '_examples' are NOT read: move one into 'races' and rename its key to your race's name.",
+  "_examples": {
+    "elf": {
+      "noun": "elf",
+      "line": "Long, pointed ears rise through the hair."
+    },
+    "dwarf": {
+      "noun": "dwarf",
+      "omit": ["height"],
+      "line": "Short and broad, built like a keg of stone."
+    },
+    "orc": {
+      "noun": "orc",
+      "female": "she-orc",
+      "omit": ["skin", "eyes"],
+      "line": "The skin is a mottled green, and tusks jut from the lower jaw."
+    }
+  },
+  "races": {
+  }
+}

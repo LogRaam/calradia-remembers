@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 697 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1756 types in 62 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 698 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1758 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -146,7 +146,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `AimsBehavior` | public class | Keeps the standing aims and the per-conversation leave to raise them. |
 | `StrategistAims` | internal static class | The strategists' aims toward the player: seeded weekly, pruned when their deed no longer stands, offered as a real task. |
 
-### CalradiaRemembers.Appearance (7)
+### CalradiaRemembers.Appearance (8)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -157,6 +157,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EquipmentFactsExtractor` | internal static class | Maps a live Hero's equipped items to the pure EquipmentPieceFacts list. |
 | `FaceColorReader` | internal static class | Resolves a hero's hair, skin and eye colour to plain words. |
 | `FaceColors` | internal struct | Resolved face colours plus their raw 0..1 offsets (the offsets are for calibration only). |
+| `RaceLookLoader` | public static class | Loads and keeps the race looks of races.json, and reads a hero's race name from the game. |
 
 ### CalradiaRemembers.Appreciations (2)
 
@@ -1077,7 +1078,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (535)
+### CalradiaRemembers.Logic (537)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1464,6 +1465,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `QuestRescueCreditPolicy` | public static class | Decides whether the end of a captivity should be credited to the player as a rescue, for the purpose of satisfying an outstanding NpcMemoryService.Core.Models.QuestType.RescuePrisoner quest. |
 | `QuestTargetVoidPolicy` | public static class | Decides whether a hero-bound quest should be voided because its target hero has left the world. |
 | `QuestVoidReason` | public enum | Why QuestTargetVoidPolicy.ReasonToVoid would cancel a hero-bound quest, or None when it stands. |
+| `RaceLook` | public class | How one of the game's races is described, as written in races.json. |
+| `RaceLookPolicy` | public static class | Finds a race's look and applies it to a hero's appearance facts. |
 | `RansomEnvoyFacts` | public class | Who a giver may send the player to buy back. |
 | `RansomEnvoyPolicy` | public static class | The rules of a ransom_envoy task. |
 | `RealmChangeSinceCapture` | public class | A change of war or peace between the character's realm and another, after he was taken. |

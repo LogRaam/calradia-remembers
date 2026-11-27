@@ -31,6 +31,11 @@ For example:
     game's culture ID, not its name: sturgia, battania, khuzait, nord, empire, vlandia, aserai; a "realms" entry by
     kingdom id, such as empire_s, wins over the culture for that realm's armies. MCM "Women In The Ranks". Since 2.8.10)
   Custom\setting.json
+  Custom\races.json (how each of the game's races is described, for overhaul mods with non-human peoples: keyed by
+    the game's race NAME, which "cr.appearance" and "cr.appearance who <name>" print. An entry names the people
+    ("elf" makes "an elf woman"), may add one line of its own and may leave unsaid facts the face reads wrongly for
+    that race (skin, hair, eyes, beard, build, height, age). The examples in the shipped file explain each field.
+    Since 2.8.22)
   Custom\character_overrides.json (your hand-written characters; needs MCM "Use custom traits"; cr.reload_lore)
   Custom\campaigns\<campaign id>\character_overrides.json (characters for ONE campaign only, laid over the shared
     file: heroes born or spawned in a campaign get ids like CharacterObject_2526 that mean someone else in the next

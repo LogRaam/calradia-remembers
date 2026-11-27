@@ -59,5 +59,14 @@ namespace CalradiaRemembers.Logic
         ///   a "with ... eyes" clause alongside hair; omitted entirely rather than "unknown".
         /// </summary>
         public string EyeColorDescriptor { get; init; } = null;
+
+        /// <summary>
+        ///   The noun the hero's race is called by ("elf woman"), from races.json through <see cref="RaceLookPolicy" />, or
+        ///   null for "woman"/"man" (CatWithFourEyes, 26/11/2026).
+        /// </summary>
+        public string KindNoun { get; init; }
+
+        /// <summary>The race's own sentence from races.json, said after the derived description, or null.</summary>
+        public string RaceLine { get; init; }
     }
 }

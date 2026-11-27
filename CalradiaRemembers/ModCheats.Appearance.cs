@@ -50,6 +50,7 @@ namespace CalradiaRemembers
                AppearanceVoice.Subject);
 
             return $"{target.Name} appearance (as another sees them): \"{block}\"\n" +
+                   $"Race (the key for races.json): {RaceLookLoader.RaceNameOf(target) ?? "?"}\n" +
                    $"Colour readout (calibration): hair={tc.Hair ?? "?"} (offset {tc.HairOffset:0.00}), " +
                    $"skin={tc.Skin ?? "?"} (offset {tc.SkinOffset:0.00}), eyes={tc.Eye ?? "?"} (offset {tc.EyeOffset:0.00}, banded).";
          }
@@ -62,6 +63,7 @@ namespace CalradiaRemembers
 
             return $"Player appearance (as an NPC sees you): \"{composed}\"\n" +
                    $"Authored prose: \"{prose}\"\n" +
+                   $"Race (the key for races.json): {RaceLookLoader.RaceNameOf(player) ?? "?"}\n" +
                    $"Colour readout (calibration): hair={c.Hair ?? "?"} (offset {c.HairOffset:0.00}), " +
                    $"skin={c.Skin ?? "?"} (offset {c.SkinOffset:0.00}), eyes={c.Eye ?? "?"} (offset {c.EyeOffset:0.00}, banded).\n" +
                    "Set prose with: cr.appearance <text>   |   clear with: cr.appearance clear";

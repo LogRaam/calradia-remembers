@@ -274,6 +274,7 @@ namespace CalradiaRemembers.Behaviors
          // must never prevent the rest of the session from wiring itself up.
          SafeRun.Step("OnSessionLaunched.CulturalTraditionsLoader.Load", CulturalTraditionsLoader.Load);
          SafeRun.Step("OnSessionLaunched.WomenInRanksLoader.Load", WomenInRanksLoader.Load);
+         SafeRun.Step("OnSessionLaunched.RaceLookLoader.Load", () => Appearance.RaceLookLoader.Load(NarrativeLoader.ResolveCustomFirst(Appearance.RaceLookLoader.FileName))); // races.json (CatWithFourEyes, 26/11/2026)
          SafeRun.Step("OnSessionLaunched.NarrativeLoader.Load", NarrativeLoader.Load);
          SafeRun.Step("OnSessionLaunched.PromptProfiles", PromptProfileService.Refresh); // the Prompt Composer: profiles found again, the pick kept
          SafeRun.Step("OnSessionLaunched.JealousyCultureLoader.Load", JealousyCultureLoader.Load);

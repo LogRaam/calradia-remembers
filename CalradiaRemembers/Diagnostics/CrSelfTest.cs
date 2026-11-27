@@ -540,6 +540,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("private_memory_injection", Severity.Light, "tashmetu (01/10/2026): another mod injects a memory said in confidence. Injects one through the public CrNpcMemory.AddMemory with Private set on a real met character, checks it is stored private (kept to private talk) and that an unmarked one stays public. Both are removed.", TestPrivateMemoryInjection),
          new SelfTest("escaped_target", Severity.Light, "fkasad (Nexus, 01/10/2026): the lord a capture task named was beaten and escaped, and the player paid the broken-word price. On a real met lord, a temporary capture task whose target was beaten: the giver's acceptance ([QUEST_COMPLETE]) settles it through the real quest path for HALF the reward, and words alone never settle one whose target was not beaten. The task, the purse, the regard and the memory are put back.", TestEscapedTarget),
          new SelfTest("interpreter_retry", Severity.Light, "Gabriel (25/10/2026), on an interpreter call that used to lose the reply's deeds with a log line only: 'reessaie une fois l'interpreteur en ajoutant un log qui le specifie'. Drives the REAL ActionInterpreterComposer.InterpretAsync with its call seam: a first call that fails then one that answers give_gold must apply the gold tag after exactly two calls; two failures apply nothing after exactly two calls (never a third); a reading with no deed is not retried (one call). No model is called; the seam is cleared after", TestInterpreterRetry),
+         new SelfTest("race_appearance", Severity.Light, "CatWithFourEyes (Discord, 26/11/2026): overhaul mods with non-human races (LOTR, GoT, Forgotten Realms) saw every character described as a man or a woman. Puts a races.json entry in force for the player's REAL race name (read from the game, FaceGen.GetRaceNames), runs the REAL appearance extractor and composer and the REAL EncounterContextBuilder and prompt, and checks the people is named in the appearance and in the identity line, the race's line follows, and an omitted fact (skin) is left unsaid; then restores the table. Changes nothing", TestRaceAppearance),
          new SelfTest("request_private_to_main", Severity.Light, "whiskeypatt (Discord, 25/11/2026): in a chat with Rhagaea another lord joined; Request Private went to him, his yes emptied the room and Rhagaea answered the next line. Seats a lord as host and another as a witness the player addressed, drives the REAL routing Request Private runs (AddressPrivacyRequestToMain) and checks the request goes back to the host, and that a witness's acceptance clears nothing (PrivateAudiencePolicy.ClearsTheRoom). Changes nothing", TestRequestPrivateGoesToMain),
          new SelfTest("privacy_survives_interpreter", Severity.Light, "Lufaine and Maifailun (Nexus, 30/09/2026): a character agreed to speak privately and the room stayed full. In the two-call chat the interpreter's actions replaced the scene model's, which is the one taught request_privacy. Drives the real splice (ActionInterpreterComposer.WithInterpretedTags): the character's acceptance survives an interpreter that recorded none, and a gift the scene model tagged does not. No LLM.", TestPrivacySurvivesInterpreter),
          new SelfTest("no_tasks_from_enemies", Severity.Light, "fkasad (Nexus, 29/09/2026): an enemy lord buying back a prisoner slid into demanding a deed, then into invalid-quest messages. Builds the REAL context for a lord at war with the player: it says so, and the prompt built from it teaches no task to offer and no prisoner bargain. Declares a real war via DeclareWarAction when the player is at war with no one (GABRIEL'S RULE, 13/10/2026), made peace again after; MANUAL only when no living lord's faction exists at all. No LLM, nothing stored.", TestNoTasksFromEnemies),
@@ -22120,6 +22121,52 @@ namespace CalradiaRemembers.Diagnostics
 
       // whiskeypatt (Discord, 25/11/2026): "When i requested private for some reason it focused as if i wanted private
       // meeting with that lord."
+      // CatWithFourEyes (Discord, 26/11/2026): "can this thing be overriden with text description fully? [...] some mods have
+      // non-human races".
+      private static string TestRaceAppearance(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("race_appearance");
+         Hero player = Hero.MainHero;
+         string race = RaceLookLoader.RaceNameOf(player);
+         if (t.Skip(race == null, "the player's race name cannot be read from the game")) return t.Line();
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != player && h.IsLord && Mapping.HeroPresence.IsInTheWorld(h) && RaceLookLoader.RaceNameOf(h) == race);
+
+         var table = new Dictionary<string, RaceLook> {
+            [race.ToUpperInvariant()] = new RaceLook {Noun = "selftestling", Omit = new List<string> {"skin"}, Line = "(selftest) The race's own line."}
+         };
+         IReadOnlyDictionary<string, RaceLook> before = RaceLookLoader.SwapTableForTest(table);
+         try
+         {
+            AppearanceFacts facts = AppearanceFactsExtractor.Extract(player);
+            string text = AppearanceComposer.Compose(facts, null) ?? "";
+            t.Note($"race '{race}': {text}");
+
+            // STAKE: an elf must be called an elf, wherever the description is read.
+            t.Expect("thePeopleIsNamed", text.Contains("selftestling " + (player.IsFemale ? "woman" : "man")), true);
+            t.Expect("theRacesLineFollows", text.Contains("(selftest) The race's own line."), true);
+            // STAKE: a green orc read "dark-skinned" by the face; an omitted fact is left unsaid.
+            t.Expect("theOmittedSkinIsUnsaid", facts.SkinToneDescriptor, null);
+
+            if (lord != null)
+            {
+               NpcProfile profile = behavior.Store?.Get(lord.StringId) ?? HeroProfileMapper.FromHero(lord);
+               EncounterContext ctx = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, "hello");
+               string prompt = new PromptBuilder().BuildSystemPrompt(profile, new WorldState {CurrentDay = (int) CampaignTime.Now.ToDays}, ctx);
+               // STAKE: the identity line must not call the elf "a man" two sections after the appearance named an elf.
+               t.Expect("theIdentityLineNamesThePeople", prompt.Contains($"YOU ARE {lord.Name.ToString().ToUpperInvariant()}, a selftestling"), true);
+            }
+            else t.Note($"no lord of race '{race}' in the world: identity line not checked");
+         }
+         finally
+         {
+            RaceLookLoader.SwapTableForTest(before);
+         }
+
+         t.Expect("theTableIsRestored", ReferenceEquals(RaceLookLoader.Table, before), true);
+
+         return t.Line();
+      }
+
       private static string TestRequestPrivateGoesToMain(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("request_private_to_main");

@@ -111,6 +111,9 @@ namespace CalradiaRemembers.Logic
         public static string Compose(AppearanceFacts facts, string authoredProse, AppearanceVoice voice = AppearanceVoice.Subject)
         {
             string derived = ComposeDerived(facts, voice);
+            // races.json (CatWithFourEyes, 26/11/2026): the race's own line follows what the face shows.
+            string raceLine = (facts?.RaceLine ?? "").Trim();
+            if (raceLine.Length > 0) derived = derived.Length == 0 ? raceLine : derived + " " + raceLine;
             string authored = (authoredProse ?? "").Trim();
 
             if (derived.Length == 0) return authored;
@@ -173,11 +176,13 @@ namespace CalradiaRemembers.Logic
             if (buildWord != null) adjectives.Add(buildWord);
             if (skinTone.Length > 0) adjectives.Add(skinTone);
 
-            bool hasNothingToSay = adjectives.Count == 0 && agePhrase == null && withClauses.Count == 0;
+            string kindNoun = (facts.KindNoun ?? "").Trim();
+            bool hasNothingToSay = adjectives.Count == 0 && agePhrase == null && withClauses.Count == 0 && kindNoun.Length == 0;
             if (hasNothingToSay) return "";
 
-            string genderNoun = facts.IsFemale ? "woman" : "man";
-            string subject = adjectives.Count == 0 ? "a " + genderNoun : "a " + string.Join(", ", adjectives) + " " + genderNoun;
+            // races.json names the people (CatWithFourEyes, 26/11/2026): "an elf woman" where the face alone says "a woman".
+            string genderNoun = kindNoun.Length > 0 ? kindNoun : facts.IsFemale ? "woman" : "man";
+            string subject = RaceLookPolicy.WithArticle(adjectives.Count == 0 ? genderNoun : string.Join(", ", adjectives) + " " + genderNoun);
 
             // Voice decides the subject framing and the age possessive. Subject = third person, describing
             // the hero TO the NPC (a bare noun phrase the host renders under a naming heading, never "you").

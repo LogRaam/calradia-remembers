@@ -791,6 +791,9 @@ namespace CalradiaRemembers.Mapping
             // fearente (26/10/2026): the game counts a hired companion in the player's clan; identity says what they are.
             // A companion the player married is a spouse, never a hireling (CR's own wedding clears CompanionOf; another mod's may not).
             IsHiredCompanion = hero != null && hero.IsPlayerCompanion && hero.Spouse != Hero.MainHero,
+            // races.json (CatWithFourEyes, 26/11/2026): an elf is named an elf in the identity line, as in the appearance.
+            NpcKindNoun = Appearance.RaceLookLoader.KindNounOf(hero),
+            PlayerKindNoun = Appearance.RaceLookLoader.KindNounOf(Hero.MainHero),
             OwnStation = SocialStationReader.Who(hero),
             BesideThePlayer = PlayerRungReader.LineFor(hero),
             KinshipToPlayer = ResolveKinshipToPlayer(hero),

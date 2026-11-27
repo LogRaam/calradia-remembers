@@ -37,6 +37,7 @@ namespace CalradiaRemembers.Lore
          Reload("setting.json", SettingProfileLoader.LoadAndApply);
          Reload("cultural_traditions.json", CulturalTraditionsLoader.Load);
          Reload("women_in_ranks.json", WomenInRanksLoader.Load);
+         Reload("races.json", () => Appearance.RaceLookLoader.Load(NarrativeLoader.ResolveCustomFirst(Appearance.RaceLookLoader.FileName)));
          Reload("jealousy_cultures.json", JealousyCultureLoader.Load);
 
          NpcMemoryCampaignBehavior.Instance?.LlmServices?.Invalidate();
