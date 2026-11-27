@@ -233,6 +233,15 @@ namespace CalradiaRemembers.Tests.Conversation
             .SpeakerId.Should().Be("Bryn");
       }
 
+      // STAKE: the simulated tavern of 26/11/2026: the impudent bard, two steps below the baron, wanted to speak in every
+      // round and never could. Bold, a strong wish still gets in (lowered); a plain listener with the same wish holds back.
+      [Test]
+      public void GIVEN_a_bold_commoner_who_wants_to_speak_after_a_baron_WHEN_decided_THEN_he_gets_in_where_a_meek_one_would_not()
+      {
+         AfterNpcLines(1, new FloorBid {Id = "Pip", Intent = JudgedIntent.High, Standing = 0, LastSpeakerStanding = 2, Bold = true}).SpeakerId.Should().Be("Pip");
+         AfterNpcLines(1, new FloorBid {Id = "Pip", Intent = JudgedIntent.High, Standing = 0, LastSpeakerStanding = 2}).Outcome.Should().Be(FloorOutcome.BackToPlayer);
+      }
+
       // STAKE: Gabriel (26/11/2026): a reaction shows only when it is new; the squire's fear narrated on every line stops being
       // a clue. Shown once; the same feeling again is not shown; a changed one is.
       [Test]

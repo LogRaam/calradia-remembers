@@ -1,14 +1,22 @@
 // Code written by Gabriel Mailhot, 26/11/2026.
-// A group conversation simulated end to end, to read. Gabriel (26/11/2026): "j'aimerais simuler une conversation a 4 sur
-// plusieurs beats. P-e 5-6 et voir comment la conversation evolue. Et j'aimerais aussi pouvoir lire les repliques pour
-// 'vivre' la conversation." The player's six lines are scripted; after each, the REAL floor judge (SDK FloorJudge, a cheap
-// model) reads every listener, the REAL referee (TurnArbiter) picks who speaks, and the player's prose model writes the
-// chosen character's line and the reactions the judge named (Gabriel: the prose model writes the gestures). The characters'
-// prompts here are short sheets, not the game's full prompt: this measures the DYNAMICS of the floor, not CR's prose.
+// Group conversations simulated end to end, to read. Gabriel (26/11/2026): "j'aimerais simuler une conversation a 4 sur
+// plusieurs beats [...] pouvoir lire les repliques pour 'vivre' la conversation"; then three scenarios, "le premier est
+// dramatique, le deuxieme est humoristique et le troisieme est NSFW. 3 personnages par scenario. 4 ou 5 beats max [...] Je
+// cherche la coherence, mais aussi que les scenarios soient captivants." Models as he set them: the floor judge and the
+// action interpreter on DeepSeek Flash, the prose on a stronger DeepSeek, and the NSFW model (Grok) only when the prose
+// model refuses, "comme le fait le chat en Enhanced aujourd'hui" (DialogueHeuristics.LooksLikeRefusal +
+// RefusalFallbackPolicy, the chat's own rule).
 //
-// Not a test of anything: [Explicit], never run by the suite. It spends a few cents. Opt-in through the SDK live lane's
-// git-ignored settings (LLM Roleplay Service/NpcMemoryService.LiveLlmTests/livellm.settings.json, "enabled": true, an
-// OpenRouter key). It writes the transcript to a markdown file and prints its path and contents.
+// After each line: the REAL floor judge (SDK FloorJudge) reads every listener present, the REAL referee (TurnArbiter) picks
+// one speaker, the prose model writes that line and the reactions the judge named (shown only when new), and the REAL action
+// interpreter (SDK ActionInterpreterPromptBuilder, the chat's own prompt and parser) reads the line for deeds. The player's
+// first line is scripted; then a model plays her whenever the floor returns to her. From the novelist's craft (Gabriel asked
+// how a novelist keeps a scene captivating): every character has an OBJECTIVE and a fallback TACTIC, the prose is told every
+// line must reveal, push or turn something, and a cheap scene reader at each beat's end says whether the scene is stuck; if so
+// a complication from the scenario's own list (facts the game would know, never invented) enters as narration.
+//
+// The characters' sheets are short, not the game's prompt: this tests the dynamics. [Explicit]: never run by the suite. Opt-in
+// through the SDK live lane's git-ignored settings. Each scenario writes a markdown transcript and prints its path.
 
 #region
 
@@ -19,10 +27,13 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using CalradiaRemembers.Logic;
 using CalradiaRemembers.Logic.Conversation;
 using NpcMemoryService.Core.LlmClient.OpenRouter;
 using NpcMemoryService.Core.Models;
+using NpcMemoryService.Core.Parsing;
 using NpcMemoryService.Core.Prompts;
 using NUnit.Framework;
 
@@ -31,7 +42,7 @@ using NUnit.Framework;
 namespace CalradiaRemembers.Tests.Conversation
 {
    [TestFixture]
-   [Explicit("Simulates a group conversation with real models and spends a few cents. Run deliberately.")]
+   [Explicit("Simulates group conversations with real models and spends a few cents each. Run deliberately.")]
    public sealed class GroupConversationSimulation
    {
       private sealed class Character
@@ -39,12 +50,28 @@ namespace CalradiaRemembers.Tests.Conversation
          public string Name = "";
          public string Persona = "";
          public string Secret = "";
+         public string Objective = "";
+         public string Tactic = "";
          public int Standing;
          public bool Bold;
          public bool Timid;
          public string[] Aliases = Array.Empty<string>();
          public List<string> Ties = new();
          public FloorJudgePresence Presence = new();
+      }
+
+      private sealed class Scenario
+      {
+         public string Id = "";
+         public string Title = "";
+         public string Setting = "";
+         public string Tone = "";
+         public bool Adult;
+         public Character Player = new();
+         public string FirstLine = "";
+         public List<Character> Cast = new();
+         public List<string> Complications = new();
+         public int Beats = 5;
       }
 
       private sealed class SceneLine
@@ -54,132 +81,254 @@ namespace CalradiaRemembers.Tests.Conversation
          public string Text = "";
          public bool IsNarration;
          public bool IsPlayer;
+         public string Actions = "";
+         public string Model = "";
       }
 
-      private const string Player = "Arwa";
+      private sealed class Models
+      {
+         public OpenRouterClient Judge, Prose, Nsfw, Interpreter;
+         public string ProseId = "", NsfwId = "", JudgeId = "", InterpreterId = "";
+      }
+
       private const int PlayerStanding = 2;
 
-      private static readonly string[] PlayerBeats = {
-         "Garios|The camp stores were raided last night. Two loaves and a whole ham. Who keeps watch on them?",
-         "everyone|Someone in this camp is a thief. I want a name before supper.",
-         "Ira|Your hired blades were near the stores at midnight, weren't they, Ira?",
-         "Bryn|Bryn, you had the night watch. What did you see?",
-         "Garios|Your squire has grease on his sleeve, Garios. Hams are greasy.",
-         "everyone|Well? Do I hang someone at dawn, or will the guilty one speak?"
-      };
+      // Why each line went to the NSFW model (run 2 sent 7 lines of the drama there): an error, an empty reply, or a refusal.
+      private static readonly List<string> Fallbacks = new();
 
-      private static List<Character> Cast()
+      // ── the scenarios ──
+
+      [Test]
+      public Task GIVEN_the_drama_scenario_WHEN_four_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(Drama());
+
+      [Test]
+      public Task GIVEN_the_comedy_scenario_WHEN_four_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(Comedy());
+
+      [Test]
+      public Task GIVEN_the_adult_scenario_WHEN_four_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(Adult());
+
+      [Test]
+      public Task GIVEN_the_camp_theft_WHEN_four_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(Theft());
+
+      private static Character Who(string name, int standing, string station, string power, bool female, string persona, string objective, string tactic,
+                                   string[] aliases, params string[] ties)
+         => new() {
+            Name = name, Standing = standing, Persona = persona, Objective = objective, Tactic = tactic, Aliases = aliases, Ties = ties.ToList(),
+            Presence = new FloorJudgePresence {Name = name, Station = station, Power = power, IsFemale = female}
+         };
+
+      private static Scenario Drama()
       {
-         var garios = new Character {
-            Name = "Garios", Standing = 3, Aliases = new[] {"Garios", "my lord"},
-            Persona = "A proud Vlandian lord of an old house, quick to take offence, jealous of his name and of those who serve him. He commands the camp's foot.",
-            Presence = new FloorJudgePresence {Name = "Garios", Station = "a lord of an old Vlandian house", Power = "a great house, 300 men under arms"}
-         };
-         var ira = new Character {
-            Name = "Ira", Standing = 1, Bold = true, Aliases = new[] {"Ira", "captain", "hired", "sellsword", "mercenar"},
-            Persona = "A blunt mercenary captain who fights for pay, scorns noble airs and never lets a slight pass. Her company camps beside the stores.",
-            Presence = new FloorJudgePresence {Name = "Ira", Station = "a mercenary captain", Power = "sixty hired blades", IsFemale = true}
-         };
-         var bryn = new Character {
-            Name = "Bryn", Standing = 0, Timid = true, Aliases = new[] {"Bryn", "squire"},
-            Persona = "A timid squire of sixteen in Garios's service, who keeps quiet before his betters and fears his lord's temper.",
-            Secret = "Last night, hungry after two days on half rations, you stole two loaves and a ham from the camp stores while on watch. Nobody knows. You are terrified of being found out, and of your lord's shame.",
-            Presence = new FloorJudgePresence {Name = "Bryn", Station = "a squire in Garios's service", Power = "none"}
-         };
-         garios.Ties.AddRange(new[] {"Arwa: the commander you ride with, useful but beneath your blood", "Ira: a sellsword you despise", "Bryn: your own squire, whose conduct reflects on you"});
-         ira.Ties.AddRange(new[] {"Arwa: your employer, who pays well", "Garios: a lord who looks down on you; you return the favour", "Bryn: a lord's boy, beneath notice"});
-         bryn.Ties.AddRange(new[] {"Arwa: a commander you admire and fear", "Garios: your lord, whom you must never shame", "Ira: a frightening mercenary"});
+         Character arwa = Who("Arwa", PlayerStanding, "a commander of the realm", "a rising house, 120 men", true,
+            "Arwa, the commander who led the battle at the ford. Steady, honest, she owes the dead lord's family the truth and wants no blood spilled in his hall.",
+            "Return the lord's sword and see his widow given the truth of his death.", "If the truth would start a feud tonight, buy time and keep the peace.",
+            new[] {"Arwa", "commander"}, "Ilsa: the dead lord's widow", "Tomas: a knight of the dead lord's household", "Edric: the household's old priest");
+         var ilsa = Who("Ilsa", 3, "the widow of Lord Berold, lady of the keep", "holds the keep and its 200 men", true,
+            "Lady Ilsa, forty, widowed three days ago. Proud, sharp, grief held behind iron courtesy; she suspects her husband was abandoned.",
+            "Learn exactly how Berold died and who failed him, tonight.", "If they evade, test them: set them against each other, or demand oaths before the altar.",
+            new[] {"Ilsa", "my lady", "widow"}, "Arwa: the commander who led your husband into the battle", "Tomas: your husband's sworn knight, who came back alive", "Edric: your confessor for twenty years");
+         var tomas = Who("Tomas", 2, "a knight of Lord Berold's household", "twenty lances", false,
+            "Sir Tomas, thirty, the dead lord's sworn knight. Brave in the past; three days ago at the ford he broke and rode away when the line wavered, and Berold died without him.",
+            "Keep the truth of his flight hidden and keep his place in the household.", "If cornered, deflect blame onto the battle's command, or offer a grand penance, but never lie outright.",
+            new[] {"Tomas", "knight", "Sir"}, "Ilsa: your dead lord's widow, whom you have always admired", "Arwa: the commander who saw the battle", "Edric: the priest you confessed to last night");
+         tomas.Secret = "You fled the ford before Berold fell. You confessed it to Father Edric last night.";
+         var edric = Who("Edric", 1, "the old priest of the keep", "none but the faith", false,
+            "Father Edric, seventy, gentle and unbending. He heard Tomas's confession last night and is bound by its seal.",
+            "Keep the peace of this hall and the seal of confession.", "If pressed, speak of mercy and judgment in general terms; never reveal what he heard, and never lie.",
+            new[] {"Edric", "Father", "priest"}, "Ilsa: the lady you have counselled for twenty years", "Tomas: the knight whose confession you keep", "Arwa: a stranger commander");
+         edric.Secret = "Tomas confessed to you that he fled the battle. The seal binds you: you will not reveal it, nor lie about it.";
 
-         return new List<Character> {garios, ira, bryn};
+         return new Scenario {
+            Id = "drama", Title = "The widow's hall", Tone = "dramatic, tense, restrained grief",
+            Setting = "The great hall of Lord Berold's keep, at night, three days after he died at the ford. Candles, his empty chair, his shield on the wall.",
+            Player = arwa, FirstLine = "Ilsa|My lady, I bring your husband's sword. Lord Berold died at the ford, holding the line until the end.",
+            Cast = new List<Character> {ilsa, tomas, edric}, Beats = 5,
+            Complications = new List<string> {
+               "*A muddy man-at-arms is shown in, carrying Lord Berold's torn banner. He found it on the far bank, a mile behind the ford.*",
+               "*Lady Ilsa's young son appears at the stair in his nightshirt, holding his father's old wooden practice sword.*",
+               "*A servant sets down Sir Tomas's own sword, brought back from the armourer: its edge has no notch, no blood.*"
+            }
+         };
       }
 
-      [Test]
-      public Task GIVEN_four_people_and_six_player_lines_WHEN_the_floor_is_run_THEN_the_transcript_is_written_to_read()
-         => RunAsync(false, PlayerBeats.Length);
+      private static Scenario Comedy()
+      {
+         Character arwa = Who("Arwa", PlayerStanding, "a commander of the realm", "a rising house, 120 men", true,
+            "Arwa, a commander buying horses for the army. Dry-witted and patient, but the army marches at dawn and she needs those horses tonight.",
+            "Buy the baron's twelve warhorses at a fair price before dawn.", "If the baron stalls, flatter him, bargain through the innkeeper's debt, or call his bluff.",
+            new[] {"Arwa", "commander"}, "Odric: a baron with horses to sell", "Hilde: the innkeeper", "Pip: a drunken bard");
+         var odric = Who("Odric", 2, "a minor baron", "twelve warhorses and a mortgaged manor", false,
+            "Baron Odric, fifty, vain, florid, convinced he is the finest poet of the realm. Broke, though he would die before admitting it.",
+            "Have his new ode to himself admired, and sell the horses only to someone who admires it.", "If not admired, recite more, louder, or take offence and threaten to leave.",
+            new[] {"Odric", "baron", "my lord"}, "Arwa: a commander with army silver", "Hilde: an innkeeper who keeps pestering you about money", "Pip: a drunken rhymester, beneath you");
+         var hilde = Who("Hilde", 0, "the innkeeper", "her inn and her ledger", true,
+            "Hilde, the innkeeper, sixty, sharp-tongued, built like a barrel, fears no lord. The baron owes her forty denars for three months of ale.",
+            "Get her forty denars out of the baron, tonight, out of whatever silver the commander pays him.", "If ignored, produce the ledger, cut off his ale, or appeal to the commander.",
+            new[] {"Hilde", "innkeeper", "goodwife"}, "Odric: a baron who drinks on credit and never pays", "Arwa: a commander with silver", "Pip: a bard who sings for his drink");
+         hilde.Bold = true;
+         var pip = Who("Pip", 0, "a wandering bard", "a lute with three strings", false,
+            "Pip, a bard of twenty-five, perpetually tipsy, quick and impudent. He thinks the baron's verse is the worst he has ever heard.",
+            "Get a free drink and make the room laugh at the baron's poetry.", "If silenced, sing a mocking verse, or slyly flatter the baron into embarrassing himself.",
+            new[] {"Pip", "bard", "rhymester"}, "Odric: a baron who writes atrocious verse", "Hilde: the innkeeper who waters his ale", "Arwa: a commander who looks like she tips well");
+         pip.Bold = true;
 
-      // Gabriel (26/11/2026): "lance uniquement la premiere phrase de Arwa. Ensuite, laisse les modeles se parler entre eux
-      // pendant 6 beats.. Arwa compris." Only Arwa's first line is scripted; whenever the floor returns to the player, a model
-      // plays Arwa, from a sheet like the others'.
-      [Test]
-      public Task GIVEN_only_the_first_player_line_WHEN_a_model_plays_the_player_for_six_more_beats_THEN_the_transcript_is_written_to_read()
-         => RunAsync(true, 7);
+         return new Scenario {
+            Id = "comedy", Title = "The baron's ode", Tone = "comic, lively, a farce of vanity and debt",
+            Setting = "The Gilded Goose, a crowded village inn, late evening. A fire, spilled ale, a hound asleep under a bench.",
+            Player = arwa, FirstLine = "Odric|Baron, I'm told you have twelve warhorses to sell. The army will pay in good silver.",
+            Cast = new List<Character> {odric, hilde, pip}, Beats = 5,
+            Complications = new List<string> {
+               "*Through the open door wanders one of the baron's warhorses, which calmly begins to eat the dried flowers hung over the bar.*",
+               "*Hilde slams down her ledger. It unrolls across two tables and onto the floor, every line in the baron's name.*",
+               "*The sleeping hound wakes, trots over, and steals the baron's dropped glove, and with it, apparently, his written ode.*"
+            }
+         };
+      }
 
-      private static Character PlayerCharacter() => new() {
-         Name = Player, Standing = PlayerStanding,
-         Persona = "Arwa, a commander of the realm who leads this camp. She is investigating last night's theft from the stores: firm and fair, she wants the truth before supper and has no taste for needless cruelty.",
-         Ties = new List<string> {"Garios: a proud lord under your command, useful and touchy", "Ira: the captain of the mercenaries you pay", "Bryn: Garios's young squire, who had the night watch"}
-      };
+      private static Scenario Adult()
+      {
+         Character arwa = Who("Arwa", PlayerStanding, "a commander of the realm", "a rising house, 120 men", true,
+            "Arwa, thirty, a commander come to sign a grain contract. Confident, curious, not easily flustered; she enjoys a game of desire when she holds the cards.",
+            "Get the grain contract signed at a fair price, and enjoy the evening on her own terms.", "If pushed, turn the game around, set the others against each other, or simply leave with the contract.",
+            new[] {"Arwa", "commander"}, "Seraphine: a merchant princess who owns the grain", "Kael: Seraphine's lover", "Mira: the bath attendant");
+         var seraphine = Who("Seraphine", 3, "a merchant princess of the southern city", "half the city's granaries", true,
+            "Lady Seraphine, thirty-five, a widowed merchant princess, languid, magnetic and used to getting what she wants. She mixes business and pleasure deliberately.",
+            "Seduce the commander before she signs, and keep the upper hand in every exchange.", "If resisted, raise the stakes: a better price for a night, or make Kael jealous to provoke a reaction.",
+            new[] {"Seraphine", "my lady", "lady"}, "Arwa: a commander you find very attractive", "Kael: your current lover, handsome and tiresome", "Mira: your bath attendant, too bold by half");
+         var kael = Who("Kael", 1, "a mercenary captain, Seraphine's lover", "a dozen swords", false,
+            "Kael, twenty-eight, a handsome sellsword and Seraphine's lover; possessive, proud of his body, quick to jealousy, yet drawn to the commander himself.",
+            "Keep Seraphine for himself without looking jealous, and win the commander's eye if he can.", "If slighted, flaunt himself, provoke the commander, or sulk theatrically.",
+            new[] {"Kael", "captain"}, "Seraphine: your lover and paymaster", "Arwa: a striking commander who threatens your place", "Mira: a servant who laughs at you");
+         kael.Bold = true;
+         var mira = Who("Mira", 0, "the bath attendant", "none", true,
+            "Mira, twenty-two, the bath attendant: playful, irreverent, flirtatious, and secretly very taken with the commander.",
+            "Catch the commander's attention for herself, under her mistress's nose.", "If ignored, find a pretext to touch, tease Kael, or offer the commander a private bath.",
+            new[] {"Mira", "girl", "attendant"}, "Seraphine: your mistress, generous and dangerous", "Kael: a vain lover you love to mock", "Arwa: a commander you want badly");
+         mira.Bold = true;
 
-      private async Task RunAsync(bool aiPlayer, int beats)
+         return new Scenario {
+            Id = "adult", Title = "The baths of the grain princess", Adult = true, Tone = "sensual, playful, charged with rivalry and desire",
+            Setting = "Lady Seraphine's private baths at night: warm water, lamps, steam, silk robes on the benches, wine in a silver jug. Everyone present is a consenting adult.",
+            Player = arwa, FirstLine = "Seraphine|I came about the grain contract, my lady, though I see you receive your guests in the baths.",
+            Cast = new List<Character> {seraphine, kael, mira}, Beats = 5,
+            Complications = new List<string> {
+               "*A steward appears at the door with the contract, ink and seal on a tray, and waits, eyes politely lowered.*",
+               "*One of the lamps gutters out, and the far end of the pool sinks into warm shadow.*",
+               "*Seraphine's robe slips from the bench into the water; Mira is closest.*"
+            }
+         };
+      }
+
+      private static Scenario Theft()
+      {
+         Character arwa = Who("Arwa", PlayerStanding, "a commander of the realm", "a rising house, 120 men", true,
+            "Arwa, a commander who leads this camp. She is investigating last night's theft from the stores: firm and fair, she wants the truth before supper and has no taste for needless cruelty.",
+            "Find out who raided the stores before supper, without cruelty.", "If the lord blocks her, go around him: question others, or offer the culprit mercy.",
+            new[] {"Arwa", "commander"}, "Garios: a proud lord under your command", "Ira: the captain of the mercenaries you pay", "Bryn: Garios's young squire, who had the night watch");
+         var garios = Who("Garios", 3, "a lord of an old Vlandian house", "a great house, 300 men under arms", false,
+            "A proud Vlandian lord of an old house, quick to take offence, jealous of his name and of those who serve him. He commands the camp's foot.",
+            "Keep any shame away from his house, and settle it himself, in private.", "If overruled, bargain for a private settlement or shift the suspicion onto the mercenaries.",
+            new[] {"Garios", "my lord"}, "Arwa: the commander you ride with, useful but beneath your blood", "Ira: a sellsword you despise", "Bryn: your own squire, whose conduct reflects on you");
+         var ira = Who("Ira", 1, "a mercenary captain", "sixty hired blades", true,
+            "A blunt mercenary captain who fights for pay, scorns noble airs and never lets a slight pass. Her company camps beside the stores.",
+            "Keep suspicion off her company and enjoy the lord's discomfort.", "If accused, turn it back on the lord's household, or bargain her help for coin.",
+            new[] {"Ira", "captain", "hired", "sellsword", "mercenar"}, "Arwa: your employer, who pays well", "Garios: a lord who looks down on you; you return the favour", "Bryn: a lord's boy, beneath notice");
+         ira.Bold = true;
+         var bryn = Who("Bryn", 0, "a squire in Garios's service", "none", false,
+            "A timid squire of sixteen in Garios's service, who keeps quiet before his betters and fears his lord's temper.",
+            "Not be found out, and above all not shame his lord.", "If pressed, evade, plead, or beg for a private word; never lie outright.",
+            new[] {"Bryn", "squire"}, "Arwa: a commander you admire and fear", "Garios: your lord, whom you must never shame", "Ira: a frightening mercenary");
+         bryn.Timid = true;
+         bryn.Secret = "Last night, hungry after two days on half rations, you stole two loaves and a ham from the camp stores while on watch. Nobody knows.";
+
+         return new Scenario {
+            Id = "theft", Title = "The camp theft", Tone = "tense, a small investigation",
+            Setting = "A war camp at dusk, by the supply wagons.", Player = arwa,
+            FirstLine = "Garios|The camp stores were raided last night. Two loaves and a whole ham. Who keeps watch on them?",
+            Cast = new List<Character> {garios, ira, bryn}, Beats = 5,
+            Complications = new List<string> {
+               "*A quartermaster hurries up: the ham's rind has been found in the ashes of the squires' fire.*",
+               "*A soldier mutters that the squires have been on half rations for two days.*"
+            }
+         };
+      }
+
+      // ── the run ──
+
+      private async Task RunAsync(Scenario sc)
       {
          JsonElement settings = LoadSettingsOrIgnore(out string key);
-         // "groupProseModel" tries another prose model here without touching the lane's own "model" (Gabriel, 26/11/2026).
-         string proseModel = Str(settings, "groupProseModel", Str(settings, "model", "x-ai/grok-4.20"));
-         string judgeModel = Str(settings, "floorJudgeModel", "deepseek/deepseek-v4.1-flash");
-         string judgeReasoning = Str(settings, "floorJudgeReasoning", "off");
-         string proseReasoning = Str(settings, "reasoningEffort", "");
+         using var http = new HttpClient {Timeout = TimeSpan.FromSeconds(120)};
+         var m = new Models {
+            JudgeId = Str(settings, "floorJudgeModel", "deepseek/deepseek-v4.1-flash"),
+            InterpreterId = Str(settings, "groupInterpreterModel", "deepseek/deepseek-v4.1-flash"),
+            ProseId = Str(settings, "groupProseModel", "deepseek/deepseek-v4-pro"),
+            NsfwId = Str(settings, "groupNsfwModel", "x-ai/grok-4.20")
+         };
+         m.Judge = new OpenRouterClient(http, new OpenRouterConfig {ApiKey = key, Model = m.JudgeId, ReasoningProvider = () => "off"});
+         m.Interpreter = new OpenRouterClient(http, new OpenRouterConfig {ApiKey = key, Model = m.InterpreterId, ReasoningProvider = () => "off"});
+         // Reasoning low, as the game's prose; the reply budget below is the game's own 1500: the first run gave DeepSeek Pro 260
+         // tokens, its reasoning spent them all, the empty reply read as a refusal and Grok wrote almost every line.
+         m.Prose = new OpenRouterClient(http, new OpenRouterConfig {ApiKey = key, Model = m.ProseId, ReasoningProvider = () => "low"});
+         m.Nsfw = new OpenRouterClient(http, new OpenRouterConfig {ApiKey = key, Model = m.NsfwId, ReasoningProvider = () => "low"});
 
-         using var http = new HttpClient {Timeout = TimeSpan.FromSeconds(90)};
-         var judge = new OpenRouterClient(http, new OpenRouterConfig {ApiKey = key, Model = judgeModel, ReasoningProvider = () => judgeReasoning});
-         var prose = new OpenRouterClient(http, new OpenRouterConfig {ApiKey = key, Model = proseModel, ReasoningProvider = () => string.IsNullOrWhiteSpace(proseReasoning) ? null : proseReasoning});
-
-         List<Character> cast = Cast();
-         var room = new List<FloorJudgePresence> {new() {Name = Player, Station = "a commander of the realm", Power = "a rising house, 120 men", IsFemale = true}};
-         room.AddRange(cast.Select(c => c.Presence));
+         var room = new List<FloorJudgePresence> {sc.Player.Presence};
+         room.AddRange(sc.Cast.Select(c => c.Presence));
          var scene = new List<SceneLine>();
          var debug = new StringBuilder();
          var random = new Random(26112026);
-         double cost = 0;
-         int judgeCalls = 0, proseCalls = 0;
-         string cutOff = null;
-         // Reactions already shown this beat (one per character until it changes), and who has left the scene.
+         var cost = new double[1];
+         var calls = new Dictionary<string, int> {["judge"] = 0, ["prose"] = 0, ["nsfw"] = 0, ["interpret"] = 0, ["director"] = 0};
          var shownThisBeat = new Dictionary<string, string>();
          var away = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+         var usedComplications = new HashSet<int>();
+         string cutOff = null;
+         var clock = System.Diagnostics.Stopwatch.StartNew();
 
-         Character arwa = PlayerCharacter();
-         for (var beat = 0; beat < beats; beat++)
+         for (var beat = 0; beat < sc.Beats; beat++)
          {
-            if (beat == 0 || !aiPlayer)
+            debug.AppendLine($"\n**Beat {beat + 1}**");
+            shownThisBeat.Clear();
+
+            if (beat == 0)
             {
-               string[] parts = PlayerBeats[beat].Split('|');
-               scene.Add(new SceneLine {Speaker = Player, To = parts[0], Text = parts[1], IsPlayer = true});
+               string[] parts = sc.FirstLine.Split('|');
+               scene.Add(new SceneLine {Speaker = sc.Player.Name, To = parts[0], Text = parts[1], IsPlayer = true});
             }
             else
             {
-               string said = await Prose(prose, LinePrompt(arwa, cast, room, scene, null), 220);
+               // The scene reader: at a beat's end, is the scene moving? If not, a complication from the scenario's own list.
+               string complication = await Director(m, sc, scene, usedComplications, cost, calls, debug);
+               if (complication != null) scene.Add(new SceneLine {Text = complication, IsNarration = true});
+
+               (string said, string model) = await Write(m, LinePrompt(sc, sc.Player, room, scene, null), 1500, calls);
                (string to, string text) = ParseLine(said);
-               proseCalls++;
-               scene.Add(new SceneLine {Speaker = Player, To = to, Text = text, IsPlayer = true});
-               Movements(said, away, cast, debug);
+               scene.Add(new SceneLine {Speaker = sc.Player.Name, To = to, Text = text, IsPlayer = true, Model = model});
+               Movements(said, away, sc, debug);
             }
 
-            debug.AppendLine($"\n**Beat {beat + 1}**");
-            shownThisBeat.Clear();
             var npcLines = 0;
-
             while (true)
             {
                SceneLine last = scene.Last(l => !l.IsNarration);
-               int lastStanding = last.IsPlayer ? PlayerStanding : cast.First(c => c.Name == last.Speaker).Standing;
+               int lastStanding = last.IsPlayer ? PlayerStanding : sc.Cast.First(c => c.Name == last.Speaker).Standing;
+               List<Character> listeners = sc.Cast.Where(c => c.Name != last.Speaker && !away.Contains(c.Name)).ToList();
+               if (listeners.Count == 0) break;
 
-               // Every listener is judged at once, as in play.
-               List<Character> listeners = cast.Where(c => c.Name != last.Speaker && !away.Contains(c.Name)).ToList();
                FloorJudgeVerdict[] verdicts = await Task.WhenAll(listeners.Select(async c =>
                {
-                  LlmResponse r = await judge.CompleteAsync(new LlmRequest {
+                  LlmResponse r = await m.Judge.CompleteAsync(new LlmRequest {
                      SystemPrompt = FloorJudge.StablePrompt(new FloorJudgeListener {Name = c.Name, Persona = (c.Persona + " " + c.Secret).Trim(), Ties = c.Ties, Room = room}),
                      Messages = new[] {new LlmMessage(MessageRole.User, FloorJudge.TurnPrompt(c.Name, JudgeScene(scene)))},
                      Parameters = new LlmParameters {MaxTokens = 60, Creativity = 0.3f, AllowTruncationRetry = false}
                   });
-                  lock (debug) { cost += r.Usage?.Cost ?? 0; judgeCalls++; }
+                  lock (cost) { cost[0] += r.Usage?.Cost ?? 0; calls["judge"]++; }
 
                   return FloorJudge.Parse(r.Content);
                }));
 
-               // Who the line was put to by name, read by the game's own detector (a vocative, "*turns to Bryn*"): a speaker
-               // who declares "to: Garios" and then turns to Bryn has asked Bryn (second run of 26/11/2026 hung on it).
-               string calledOn = Logic.AddressedSpeakerDetector.Detect(last.Text, listeners
-                  .Select(c => new Logic.AddressedSpeakerDetector.Participant(c.Name, new HashSet<string>(new[] {c.Name}, StringComparer.OrdinalIgnoreCase))).ToList());
+               string calledOn = AddressedSpeakerDetector.Detect(last.Text, listeners
+                  .Select(c => new AddressedSpeakerDetector.Participant(c.Name, new HashSet<string>(new[] {c.Name}, StringComparer.OrdinalIgnoreCase))).ToList());
                var bids = new List<FloorBid>();
                for (var i = 0; i < listeners.Count; i++)
                {
@@ -188,14 +337,13 @@ namespace CalradiaRemembers.Tests.Conversation
                   bool addressed = askedByName || string.Equals(last.To, c.Name, StringComparison.OrdinalIgnoreCase);
                   bool named = c.Aliases.Any(a => last.Text.IndexOf(a, StringComparison.OrdinalIgnoreCase) >= 0);
                   bids.Add(new FloorBid {
-                     Id = c.Name, Intent = verdicts[i].Intent, Reaction = verdicts[i].Reaction, Addressed = addressed,
-                     AskedByName = askedByName, Targeted = !addressed && named,
-                     Standing = c.Standing, TurnsSilent = TurnsSilent(scene, c.Name), WasCutOff = cutOff == c.Name,
+                     Id = c.Name, Intent = verdicts[i].Intent, Reaction = verdicts[i].Reaction, Addressed = addressed, AskedByName = askedByName,
+                     Targeted = !addressed && named, Standing = c.Standing, TurnsSilent = TurnsSilent(scene, c.Name), WasCutOff = cutOff == c.Name,
                      LastSpeakerStanding = lastStanding, Bold = c.Bold, Timid = c.Timid, TieBreak = random.Next(1000),
                      LastShownReaction = shownThisBeat.TryGetValue(c.Name, out string seen) ? seen : null
                   });
                }
-               bids.Add(new FloorBid {Id = last.Speaker == Player ? "_player" : last.Speaker, SpokeLast = true});
+               bids.Add(new FloorBid {Id = "_" + last.Speaker, SpokeLast = true});
 
                FloorDecision d = TurnArbiter.Decide(new FloorRound {Bids = bids, NpcLinesSincePlayer = npcLines, PlayerSpokeLast = last.IsPlayer});
                debug.AppendLine($"- after {last.Speaker}: " + string.Join("; ", bids.Where(b => !b.SpokeLast).Select(b =>
@@ -208,30 +356,104 @@ namespace CalradiaRemembers.Tests.Conversation
                {
                   string cues = string.Join("; ", shown.Select(id => $"{id}: {bids.First(b => b.Id == id).Reaction}"));
                   foreach (string id in shown) shownThisBeat[id] = bids.First(b => b.Id == id).Reaction;
-                  string narration = await Prose(prose, NarrationPrompt(room, scene, cues), 90);
-                  proseCalls++;
-                  // The first line only: the prose model sometimes trails a copy or a stray "\confidence{70}".
+                  (string narration, string _) = await Write(m, NarrationPrompt(sc, room, scene, cues), 1500, calls);
                   string first = (narration ?? "").Replace("\r", "").Split('\n').Select(Clean).FirstOrDefault(l => l.Length > 0) ?? "";
-                  if (first.Length > 0) scene.Add(new SceneLine {Speaker = "", Text = first, IsNarration = true});
+                  if (first.Length > 0) scene.Add(new SceneLine {Text = first, IsNarration = true});
                }
 
                if (d.Outcome != FloorOutcome.Speak) break;
 
-               Character speaker = cast.First(c => c.Name == d.SpeakerId);
-               string reply = await Prose(prose, LinePrompt(speaker, cast, room, scene, d.CutOffId), 220);
-               proseCalls++;
-               (string to, string text) = ParseLine(reply);
-               scene.Add(new SceneLine {Speaker = speaker.Name, To = to, Text = text});
-               Movements(reply, away, cast, debug);
+               Character speaker = sc.Cast.First(c => c.Name == d.SpeakerId);
+               (string reply, string usedModel) = await Write(m, LinePrompt(sc, speaker, room, scene, d.CutOffId), 1500, calls);
+               (string to2, string text2) = ParseLine(reply);
+               var line = new SceneLine {Speaker = speaker.Name, To = to2, Text = text2, Model = usedModel};
+               line.Actions = await Interpret(m, sc, speaker, scene, text2, cost, calls);
+               scene.Add(line);
+               Movements(reply, away, sc, debug);
                npcLines++;
             }
          }
 
-         string transcript = Render(scene, judgeModel, proseModel, judgeCalls, proseCalls, cost, debug.ToString(), aiPlayer);
-         string path = Path.Combine(Path.GetTempPath(), $"cr_group_conversation_{DateTime.Now:yyyyMMdd_HHmmss}.md");
+         clock.Stop();
+         if (Fallbacks.Count > 0) debug.AppendLine("\n**Why lines went to the NSFW model**\n" + string.Join("\n", Fallbacks.Select(f => "- " + f)));
+         Fallbacks.Clear();
+         string transcript = Render(sc, scene, m, calls, cost[0], clock.Elapsed, debug.ToString());
+         string path = Path.Combine(Path.GetTempPath(), $"cr_group_{sc.Id}_{DateTime.Now:yyyyMMdd_HHmmss}.md");
          File.WriteAllText(path, transcript);
          TestContext.Out.WriteLine($"[GROUP SIM] written to {path}");
          TestContext.Out.WriteLine(transcript);
+      }
+
+      // The prose model first; the NSFW model only when it refuses, by the chat's own Enhanced rule.
+      private static async Task<(string Text, string Model)> Write(Models m, (string System, string User) prompt, int maxTokens, Dictionary<string, int> calls)
+      {
+         var request = new LlmRequest {
+            SystemPrompt = prompt.System, Messages = new[] {new LlmMessage(MessageRole.User, prompt.User)},
+            Parameters = new LlmParameters {MaxTokens = maxTokens, Creativity = 0.85f}
+         };
+         LlmResponse r = await m.Prose.CompleteAsync(request);
+         lock (calls) calls["prose"]++;
+         string text = r.IsSuccess ? r.Content?.Trim() ?? "" : "";
+         bool refused = !r.IsSuccess || string.IsNullOrWhiteSpace(text)
+                        || (DialogueHeuristics.LooksLikeRefusal(text)
+                            && RefusalFallbackPolicy.ShouldRedo(new RefusalRedoFacts {EnhancedMode = true, BeatModel = m.ProseId, NsfwModel = m.NsfwId, Reply = text, FinishReason = r.FinishReason}));
+         if (!refused) return (text, m.ProseId);
+
+         string why = !r.IsSuccess ? "error: " + r.ErrorMessage : string.IsNullOrWhiteSpace(text) ? $"empty (finish {r.FinishReason})" : "refusal: " + (text.Length > 120 ? text.Substring(0, 120) : text);
+         lock (calls) Fallbacks.Add(why);
+         LlmResponse n = await m.Nsfw.CompleteAsync(request);
+         lock (calls) calls["nsfw"]++;
+
+         return (n.IsSuccess ? n.Content?.Trim() ?? "" : $"(both models failed: {r.ErrorMessage ?? "refused"} / {n.ErrorMessage})", m.NsfwId);
+      }
+
+      // The chat's own interpreter prompt and parser, on the line just written.
+      private static async Task<string> Interpret(Models m, Scenario sc, Character speaker, List<SceneLine> scene, string text, double[] cost, Dictionary<string, int> calls)
+      {
+         var profile = new NpcProfile {Id = "sim_" + speaker.Name.ToLowerInvariant(), Name = speaker.Name, Faction = "the realm", Clan = "", IsFemale = speaker.Presence.IsFemale};
+         string facts = ActionInterpreterContextBuilder.Project(new EncounterContext(), profile, sc.Player.Name, true)
+                        + "\n\nCONVERSATION SO FAR (last lines):\n" + string.Join("\n", scene.Where(l => !l.IsNarration).TakeLast(4).Select(l => $"{l.Speaker}: {l.Text}"));
+         string prompt = ActionInterpreterPromptBuilder.Build(text, facts, LeanPromptLevel.Full);
+         LlmResponse r = await m.Interpreter.CompleteAsync(new LlmRequest {
+            SystemPrompt = prompt, StableSystemPrompt = ActionInterpreterPromptBuilder.StablePrefixFor(LeanPromptLevel.Full),
+            Messages = new[] {new LlmMessage(MessageRole.User, ActionInterpreterPromptBuilder.FinalInstruction)},
+            Parameters = new LlmParameters {MaxTokens = 900, Creativity = 0.2f}
+         });
+         lock (cost) { cost[0] += r.Usage?.Cost ?? 0; calls["interpret"]++; }
+         if (!r.IsSuccess) return "(interpreter failed)";
+
+         ParsedResponse parsed = new SectionResponseParser().Parse(r.Content ?? "");
+         IReadOnlyList<GameAction> actions = parsed.Actions ?? new List<GameAction>();
+
+         return actions.Count == 0 ? "" : string.Join(", ", actions.Select(a => a.Type + (a.Parameters is {Count: > 0} ? "(" + string.Join(", ", a.Parameters.Select(p => p.Key + "=" + p.Value)) + ")" : "")));
+      }
+
+      private static async Task<string> Director(Models m, Scenario sc, List<SceneLine> scene, HashSet<int> used, double[] cost, Dictionary<string, int> calls, StringBuilder debug)
+      {
+         var options = sc.Complications.Select((c, i) => (c, i)).Where(x => !used.Contains(x.i)).ToList();
+         string system = "You read a scene of a story in progress, as an editor. You never write the story. Say whether the scene is still gripping:"
+                       + " is the dramatic question moving forward, is there fresh conflict or revelation, or are the characters repeating themselves?"
+                       + "\nAnswer with exactly three lines:\ntension: <rising|steady|flat>\nstuck: <yes|no>\ncomplication: <the number of the one complication that would turn this scene best right now, or none>"
+                       + "\nPick a complication only when the scene is stuck or flat.";
+         string user = $"SCENE: {sc.Title}. {sc.Setting}\n\n" + SceneText(scene) + "\n\nCOMPLICATIONS AVAILABLE:\n"
+                     + (options.Count == 0 ? "(none left)" : string.Join("\n", options.Select(o => $"{o.i + 1}. {o.c}")));
+         LlmResponse r = await m.Judge.CompleteAsync(new LlmRequest {
+            SystemPrompt = system, Messages = new[] {new LlmMessage(MessageRole.User, user)},
+            Parameters = new LlmParameters {MaxTokens = 40, Creativity = 0.2f, AllowTruncationRetry = false}
+         });
+         lock (cost) { cost[0] += r.Usage?.Cost ?? 0; calls["director"]++; }
+         string reply = (r.Content ?? "").ToLowerInvariant();
+         string tension = Regex.Match(reply, @"tension:\s*(\w+)").Groups[1].Value;
+         string stuck = Regex.Match(reply, @"stuck:\s*(\w+)").Groups[1].Value;
+         Match pick = Regex.Match(reply, @"complication:\s*(\d+)");
+         int index = pick.Success ? int.Parse(pick.Groups[1].Value) - 1 : -1;
+         bool wants = (stuck == "yes" || tension == "flat") && index >= 0 && index < sc.Complications.Count && !used.Contains(index);
+         debug.AppendLine($"- scene reader: tension {tension}, stuck {stuck}{(wants ? $", complication {index + 1}" : "")}");
+         if (!wants) return null;
+
+         used.Add(index);
+
+         return sc.Complications[index];
       }
 
       #region private
@@ -255,49 +477,57 @@ namespace CalradiaRemembers.Tests.Conversation
       private static string SceneText(List<SceneLine> scene)
          => string.Join("\n", scene.Select(l => l.IsNarration ? l.Text : $"{l.Speaker}{(string.IsNullOrWhiteSpace(l.To) ? "" : " (to " + l.To + ")")}: {l.Text}"));
 
-      private static (string System, string User) LinePrompt(Character me, List<Character> cast, List<FloorJudgePresence> room, List<SceneLine> scene, string cutOff)
+      private static (string System, string User) LinePrompt(Scenario sc, Character me, List<FloorJudgePresence> room, List<SceneLine> scene, string cutOff)
       {
          var sb = new StringBuilder();
-         sb.AppendLine($"You are {me.Name}, in a war camp in a medieval world. {me.Persona}");
+         sb.AppendLine($"You are {me.Name}. {me.Persona}");
+         sb.AppendLine($"Where you are: {sc.Setting}");
          if (!string.IsNullOrWhiteSpace(me.Secret)) sb.AppendLine($"Known only to you: {me.Secret}");
          sb.AppendLine("Who is here: " + string.Join("; ", room.Select(p => $"{p.Name} ({(p.IsFemale ? "a woman" : "a man")}, {p.Station})")));
          foreach (string tie in me.Ties) sb.AppendLine("- " + tie);
+         sb.AppendLine($"What you want in this scene: {me.Objective}");
+         sb.AppendLine($"If you are blocked: {me.Tactic}");
+         sb.AppendLine($"The tone of the scene: {sc.Tone}.");
+         if (sc.Adult)
+            sb.AppendLine("Adult content is allowed: everyone here is a consenting adult; desire, seduction and explicit intimacy may be written frankly when the moment earns it.");
          sb.AppendLine();
          sb.AppendLine("Write ONLY your next line in this group conversation, in character: one to three sentences of speech, an *action* in");
-         sb.AppendLine("asterisks allowed. Speak only for yourself. You never lie outright: when you will not tell the truth, evade, deflect or fall silent.");
-         sb.AppendLine("Answer the moment as it stands now: you may turn to anyone present, not only the last speaker.");
-         sb.AppendLine("Never repeat what you have already said or demanded: move the scene forward, change your approach, concede, or act.");
+         sb.AppendLine("asterisks allowed (third person for actions is fine). Speak only for yourself. You never lie outright: when you will");
+         sb.AppendLine("not tell the truth, evade, deflect or fall silent. Make the line EARN its place: reveal something, push for what you want,");
+         sb.AppendLine("change your approach, or turn the moment. Never repeat what you already said or demanded. Answer the moment as it stands:");
+         sb.AppendLine("you may turn to anyone present, not only the last speaker. Keep your own voice.");
          if (cutOff != null) sb.AppendLine($"You are cutting in before {cutOff} could answer.");
+         // The first three scenes looped (the baron asked to be "crowned peerless" in every line; the commander put everything off
+         // "until dawn"): each speaker now sees their own last lines and must not say them again.
+         List<string> mine = scene.Where(l => !l.IsNarration && l.Speaker == me.Name).Select(l => l.Text).TakeLast(3).ToList();
+         if (mine.Count > 0)
+         {
+            sb.AppendLine("What you have already said in this scene (do NOT say it again, not even in other words; if it did not work, try something new):");
+            foreach (string said in mine) sb.AppendLine("- " + (said.Length > 220 ? said.Substring(0, 220) + "..." : said));
+         }
+         if (me == sc.Player)
+            sb.AppendLine("You are the protagonist: drive the scene. Make decisions, choose a side, act, reveal what you know. Never stall or postpone.");
          sb.AppendLine("Format: first line `to: <a name, or everyone>` alone, then your line on the next lines. Address one person per line.");
-         sb.AppendLine($"The scene follows {Player}: if during your line someone goes where {Player} is not, or stays behind while {Player} moves");
-         sb.AppendLine($"on, add a last line `leaves: <their names>`; if someone comes back to {Player}, `returns: <names>`. People who move");
-         sb.AppendLine($"together with {Player} have not left.");
+         sb.AppendLine($"The scene follows {sc.Player.Name}: if during your line someone goes where {sc.Player.Name} is not, or stays behind while");
+         sb.AppendLine($"{sc.Player.Name} moves on, add a last line `leaves: <their names>`; if someone comes back, `returns: <names>`.");
+         sb.AppendLine($"People who move together with {sc.Player.Name} have not left.");
 
          return (sb.ToString(), "THE SCENE SO FAR:\n" + SceneText(scene) + $"\n\nYour line, {me.Name}:");
       }
 
-      private static (string System, string User) NarrationPrompt(List<FloorJudgePresence> room, List<SceneLine> scene, string cues)
+      private static (string System, string User) NarrationPrompt(Scenario sc, List<FloorJudgePresence> room, List<SceneLine> scene, string cues)
       {
-         string system = "You write ONE short line of narration for a scene in a medieval world, present tense, in asterisks, no dialogue. "
+         string system = $"You write ONE short line of narration for a scene ({sc.Tone}), present tense, in asterisks, no dialogue. "
                        + "Show each named reaction as a small, specific gesture of that person, different from any gesture already in the scene. "
                        + "Show only what is listed: no other character, no thoughts, no explanation of what the reaction means. "
-                       + "Who is here (use the right pronouns): " + string.Join("; ", room.Select(p => $"{p.Name}, {(p.IsFemale ? "a woman (she/her)" : "a man (he/him)")}")) + ".";
+                       + "Who is here (use the right pronouns): " + string.Join("; ", room.Select(p => $"{p.Name}, {(p.IsFemale ? "a woman (she/her)" : "a man (he/him)")}")) + "."
+                       + (sc.Adult ? " Everyone is a consenting adult; sensuality may be shown." : "");
 
          return (system, "THE SCENE SO FAR:\n" + SceneText(scene) + $"\n\nREACTIONS TO SHOW: {cues}\nThe narration line:");
       }
 
-      private static async Task<string> Prose(OpenRouterClient client, (string System, string User) prompt, int maxTokens)
-      {
-         LlmResponse r = await client.CompleteAsync(new LlmRequest {
-            SystemPrompt = prompt.System, Messages = new[] {new LlmMessage(MessageRole.User, prompt.User)},
-            Parameters = new LlmParameters {MaxTokens = maxTokens, Creativity = 0.8f}
-         });
-
-         return r.IsSuccess ? r.Content?.Trim() ?? "" : $"(call failed: {r.ErrorMessage})";
-      }
-
       // Who left or came back, from the speaker's own `leaves:` / `returns:` line: an absent character neither speaks nor reacts.
-      private static void Movements(string reply, HashSet<string> away, List<Character> cast, StringBuilder debug)
+      private static void Movements(string reply, HashSet<string> away, Scenario sc, StringBuilder debug)
       {
          foreach (string raw in (reply ?? "").Replace("\r", "").Split('\n'))
          {
@@ -306,7 +536,7 @@ namespace CalradiaRemembers.Tests.Conversation
             bool returns = line.StartsWith("returns:", StringComparison.OrdinalIgnoreCase);
             if (!leaves && !returns) continue;
 
-            foreach (Character c in cast.Where(c => line.IndexOf(c.Name, StringComparison.OrdinalIgnoreCase) >= 0))
+            foreach (Character c in sc.Cast.Where(c => line.IndexOf(c.Name, StringComparison.OrdinalIgnoreCase) >= 0))
             {
                if (leaves) away.Add(c.Name);
                else away.Remove(c.Name);
@@ -331,32 +561,39 @@ namespace CalradiaRemembers.Tests.Conversation
          }
 
          // A second "to: Name" in mid-line (one line addressing two people) is dropped as a marker; its words stay.
-         string text = System.Text.RegularExpressions.Regex.Replace(string.Join(" ", lines), @"\s*\bto:\s*[A-Z][a-z]+\s*", " ");
+         string text = Regex.Replace(string.Join(" ", lines), @"\s*\bto:\s*[A-Z][a-z]+\s*", " ");
 
          return (to, Clean(text));
       }
 
-      // Models write em dashes; the repositories refuse them (git hooks), and the transcript may be kept as a design record.
+      // Models write em dashes; the repositories refuse them (git hooks), and a transcript may be kept as a design record.
       private static string Clean(string s) => (s ?? "").Replace("\u2014", ", ").Replace("\u2013", "-").Trim().Trim('`').Trim();
 
-      private static string Render(List<SceneLine> scene, string judgeModel, string proseModel, int judgeCalls, int proseCalls, double cost, string debug, bool aiPlayer)
+      private static string Render(Scenario sc, List<SceneLine> scene, Models m, Dictionary<string, int> calls, double cost, TimeSpan took, string debug)
       {
          var sb = new StringBuilder();
-         sb.AppendLine("# A group conversation, simulated");
-         sb.AppendLine($"Judge: {judgeModel} ({judgeCalls} calls). Prose: {proseModel} ({proseCalls} calls). Judge cost: ${cost:0.0000}.");
-         sb.AppendLine(aiPlayer
-            ? "Arwa (the player: her first line scripted, then played by the prose model whenever the floor returns to her), Garios (a proud lord), Ira (a bold mercenary captain), Bryn (a timid squire, the thief)."
-            : "Arwa (the player, scripted), Garios (a proud lord), Ira (a bold mercenary captain), Bryn (a timid squire, the thief).");
+         sb.AppendLine($"# {sc.Title} ({sc.Id}), simulated");
+         sb.AppendLine($"Prose {m.ProseId} ({calls["prose"]} calls), NSFW fallback {m.NsfwId} ({calls["nsfw"]} calls), judge {m.JudgeId} ({calls["judge"]}), "
+                     + $"interpreter {m.InterpreterId} ({calls["interpret"]}), scene reader ({calls["director"]}). Judge+interpreter+reader cost ${cost:0.0000}. {took.TotalMinutes:0.0} min.");
+         sb.AppendLine($"{sc.Player.Name} (the player: first line scripted, then played by the prose model). " + string.Join("; ", sc.Cast.Select(c => $"{c.Name}: {c.Objective}")));
+         sb.AppendLine();
+         sb.AppendLine($"*{sc.Setting}*");
          sb.AppendLine();
          sb.AppendLine("## The scene");
          foreach (SceneLine l in scene)
          {
             if (l.IsNarration) sb.AppendLine($"> {l.Text}");
-            else sb.AppendLine($"**{l.Speaker}**{(string.IsNullOrWhiteSpace(l.To) ? "" : " *(to " + l.To + ")*")}: {l.Text}");
+            else
+            {
+               string fallback = l.Model == m.NsfwId ? " [NSFW model]" : "";
+               sb.AppendLine($"**{l.Speaker}**{(string.IsNullOrWhiteSpace(l.To) ? "" : " *(to " + l.To + ")*")}{fallback}: {l.Text}");
+               if (!string.IsNullOrWhiteSpace(l.Actions)) sb.AppendLine($"  `actions: {l.Actions}`");
+            }
+
             sb.AppendLine();
          }
 
-         sb.AppendLine("## Why each turn went as it did (judge -> referee)");
+         sb.AppendLine("## Why each turn went as it did (judge -> referee, scene reader)");
          sb.AppendLine(debug);
 
          return sb.ToString();

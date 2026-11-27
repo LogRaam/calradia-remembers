@@ -265,8 +265,10 @@ namespace CalradiaRemembers.Logic.Conversation
          JudgedIntent intent = obliged && effective == JudgedIntent.None ? JudgedIntent.Low : effective;
          if (intent == JudgedIntent.None) return false;
 
-         // Speaking over someone of higher rank takes a wish still strong once deference has lowered it.
-         if (!obliged && effective < bid.Intent && intent < JudgedIntent.High) return false;
+         // Speaking over someone of higher rank takes a wish still strong once deference has lowered it; a bold temperament
+         // needs only a wish that survives at all. The simulated tavern and baths of 26/11/2026: the impudent bard and the
+         // bold bath attendant, two steps below a baron and a princess, never once took the floor, only reacted.
+         if (!obliged && effective < bid.Intent && intent < (bid.Bold ? JudgedIntent.Low : JudgedIntent.High)) return false;
 
          // Nobody speaks twice running unless the line was put to them.
          if (bid.SpokeLast && !obliged) return false;
@@ -275,7 +277,8 @@ namespace CalradiaRemembers.Logic.Conversation
          if (npcLinesSincePlayer >= NpcLinesPerPlayerLine) return intent == JudgedIntent.Urgent;
          // After the first character's line, a mere "would say something" no longer earns another: no two idle replies. A line
          // put to someone still gets its answer (EnsembleFloorPolicy's rule: a beat never ends on a question left hanging).
-         if (npcLinesSincePlayer >= 1) return intent >= JudgedIntent.High || obliged;
+         // A bold listener lowered by deference is judged here on the wish the judge gave, which is no idle one.
+         if (npcLinesSincePlayer >= 1) return (bid.Bold ? bid.Intent : intent) >= JudgedIntent.High || obliged;
 
          return true;
       }
