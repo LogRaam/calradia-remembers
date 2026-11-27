@@ -144,6 +144,9 @@ namespace CalradiaRemembers.Chat
       // IOfferHost seam. ExecuteOfferItem/ExecuteOfferGold stay here because their buttons are prefab-bound.
       private readonly OfferController _offer = new OfferController();
 
+      // Lordfadooboo (Nexus, 26/11/2026): regard a character took in this conversation, owed back if they warm again.
+      private readonly RegardTakenLedger _regardTaken = new RegardTakenLedger();
+
       // ── Round table (group mode) ──────────────────────────────────────────
       // The group-lap feature (open the floor to everyone) lives in its own controller so it no longer threads
       // through the shared ChatViewModel partials (which forced a surgical-commit dance every release). The

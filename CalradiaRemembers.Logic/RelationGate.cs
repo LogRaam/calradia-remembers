@@ -139,6 +139,15 @@ namespace CalradiaRemembers.Logic
             ///   turned the cooldown off, and the resistance relaxes completely every time it is consulted.
             /// </summary>
             public double DecayDays { get; set; } = DefaultDecayDays;
+
+            /// <summary>
+            ///   The regard this character took from the player earlier in THIS conversation and has not given back (a
+            ///   positive amount; 0 on a path with no conversation). Lordfadooboo (Nexus, 26/11/2026): "a character can be
+            ///   in the wrong, say false things about you and lose regard for you, but once they accept that they were wrong,
+            ///   you still have all those regard points lost"; Gabriel: give it back. A warm turn may return up to this much
+            ///   at once, outside the progressive tiers: it is the game's own record of what was taken, so it cannot be farmed.
+            /// </summary>
+            public int TakenThisConversation { get; set; }
         }
 
         public static int Resolve(RegardProposal proposal)
@@ -149,6 +158,11 @@ namespace CalradiaRemembers.Logic
             NpcProfile profile = proposal.Profile;
 
             if (proposed == 0 || profile == null) return 0;
+
+            // Regard taken earlier in this very conversation comes back first, in full up to what was taken, and leaves the
+            // resistance tiers untouched: it is a debt repaid, not new warmth (Lordfadooboo, 26/11/2026).
+            if (proposed > 0 && proposal.TakenThisConversation > 0)
+                return proposed < proposal.TakenThisConversation ? proposed : proposal.TakenThisConversation;
 
             if (proposed > 0)
                 return ResolvePositive(proposed, profile, proposal.EmittedEvent, proposal.CurrentHour,

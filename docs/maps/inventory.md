@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 700 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1761 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1762 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 291 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -1080,7 +1080,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## Logic (pure, `CalradiaRemembers.Logic`)
 
-### CalradiaRemembers.Logic (537)
+### CalradiaRemembers.Logic (538)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -1483,6 +1483,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RefusalFallbackPolicy` | public static class | Whether a beat is redone on the NSFW model. |
 | `RefusalRedoFacts` | public class | A reply and the models it may be redone with. |
 | `RegardAgeing` | public class | A regard's weight and how far it has faded with the years. |
+| `RegardTakenLedger` | public class | The regard each character took from the player in this conversation and has not given back. |
 | `ReinforceGarrisonPolicy` | public static class | The rules of a reinforce_garrison task. |
 | `RelationGate` | public static class | Single source of truth for how a LLM-proposed relation change is allowed to move the player↔NPC relationship. |
 | `RelationSummaryFacts` | public class | The standings the header line is written from. |

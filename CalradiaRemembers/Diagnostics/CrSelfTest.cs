@@ -541,6 +541,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("escaped_target", Severity.Light, "fkasad (Nexus, 01/10/2026): the lord a capture task named was beaten and escaped, and the player paid the broken-word price. On a real met lord, a temporary capture task whose target was beaten: the giver's acceptance ([QUEST_COMPLETE]) settles it through the real quest path for HALF the reward, and words alone never settle one whose target was not beaten. The task, the purse, the regard and the memory are put back.", TestEscapedTarget),
          new SelfTest("interpreter_retry", Severity.Light, "Gabriel (25/10/2026), on an interpreter call that used to lose the reply's deeds with a log line only: 'reessaie une fois l'interpreteur en ajoutant un log qui le specifie'. Drives the REAL ActionInterpreterComposer.InterpretAsync with its call seam: a first call that fails then one that answers give_gold must apply the gold tag after exactly two calls; two failures apply nothing after exactly two calls (never a third); a reading with no deed is not retried (one call). No model is called; the seam is cleared after", TestInterpreterRetry),
          new SelfTest("race_appearance", Severity.Light, "CatWithFourEyes (Discord, 26/11/2026): overhaul mods with non-human races (LOTR, GoT, Forgotten Realms) saw every character described as a man or a woman. Puts a races.json entry in force for the player's REAL race name (read from the game, FaceGen.GetRaceNames), runs the REAL appearance extractor and composer and the REAL EncounterContextBuilder and prompt, and checks the people is named in the appearance and in the identity line, the race's line follows, and an omitted fact (skin) is left unsaid; then restores the table. Changes nothing", TestRaceAppearance),
+         new SelfTest("regard_given_back", Severity.Light, "Lordfadooboo (Nexus, 26/11/2026): a character who lost regard over a false accusation kept every point after admitting the mistake. Runs the REAL change_relation through the bridge on a living lord: a cold turn takes 3, noted in the same RegardTakenLedger the chat keeps; a warm turn of +5 then gives back exactly 3 even at a high resistance tier, and the tier does not move; with nothing owed a warm turn stays on the slow path. Restores the lord's regard and tiers", TestRegardGivenBack),
          new SelfTest("execution_reprieve", Severity.Light, "froggyluv (Nexus, 26/11/2026): a lord sentenced to death after a battle and spared when the order was rescinded later denied it had ever happened. Drives the REAL ExecutionReprieveBehavior with the game's own sentence ids (\"Off with your head!\", then \"Fine then. You are my prisoner now.\") and the execution scene's cancel, on a living lord, and checks each reprieve lands in his memory once and a plain prisoner line does not; then removes the test memories", TestExecutionReprieve),
          new SelfTest("description_replaces", Severity.Light, "CatWithFourEyes (Discord, 26/11/2026): \"can this thing be overriden with text description fully?\" Gabriel: MCM 'Your Description Replaces The Game's'. Writes a test note as the player's appearance, turns the switch on and builds the REAL appearance a character reads (EncounterContextBuilder.ComposeAppearance): the note alone, nothing from the face; switch off: the face first, the note after. Restores the player's own note and the switch", TestDescriptionReplaces),
          new SelfTest("request_private_to_main", Severity.Light, "whiskeypatt (Discord, 25/11/2026): in a chat with Rhagaea another lord joined; Request Private went to him, his yes emptied the room and Rhagaea answered the next line. Seats a lord as host and another as a witness the player addressed, drives the REAL routing Request Private runs (AddressPrivacyRequestToMain) and checks the request goes back to the host, and that a witness's acceptance clears nothing (PrivateAudiencePolicy.ClearsTheRoom). Changes nothing", TestRequestPrivateGoesToMain),
@@ -14173,6 +14174,53 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("2nd gated (null outcome)", o2 == null, true);
             t.Expect("3rd landed +1", o3?.AppliedRelationDelta, 1);
             t.Expect("tier after three", p.RegardResistanceTier, 2);
+         }
+         finally
+         {
+            p.RegardResistanceTier = savedTier;
+            p.RegardWarmthAccrued = savedAccrued;
+            p.RegardResistanceStampHour = savedStamp;
+            p.ReputationWithPlayer = savedRep;
+            behavior.Store.Set(p);
+         }
+
+         return t.Line();
+      }
+
+      // Lordfadooboo (Nexus, 26/11/2026): "once they accept that they were wrong, you still have all those regard points lost".
+      private static string TestRegardGivenBack(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("regard_given_back");
+         Hero npc = Hero.AllAliveHeroes?.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && !h.IsPrisoner);
+         if (t.Abort(npc == null, "no live lord to address")) return t.Line();
+
+         NpcProfile p = GetOrCreate(behavior, npc);
+         int savedTier = p.RegardResistanceTier;
+         int savedAccrued = p.RegardWarmthAccrued;
+         double? savedStamp = p.RegardResistanceStampHour;
+         int savedRep = p.ReputationWithPlayer;
+         try
+         {
+            p.ReputationWithPlayer = 0;
+            p.RegardResistanceTier = 5;
+            p.RegardWarmthAccrued = 0;
+            p.RegardResistanceStampHour = CampaignTime.Now.ToHours;
+            var ledger = new RegardTakenLedger();
+            GameAction Shift(int delta) => new GameAction {Type = "change_relation", Parameters = new Dictionary<string, string> {["delta"] = delta.ToString()}};
+
+            ActionOutcome cold = behavior.GameStateBridge.ExecuteAction(Shift(-3), npc, new ActionContext(p, null) {RegardTakenThisConversation = ledger.TakenFrom(npc.StringId)});
+            if (cold?.AppliedRelationDelta is int lost) ledger.Note(npc.StringId, lost);
+            t.Expect("theColdTurnTookThree", ledger.TakenFrom(npc.StringId), 3);
+
+            // STAKE: the admission gives back what was taken, all of it and no more, even with a tier-5 bond.
+            ActionOutcome back = behavior.GameStateBridge.ExecuteAction(Shift(5), npc, new ActionContext(p, null) {RegardTakenThisConversation = ledger.TakenFrom(npc.StringId)});
+            if (back?.AppliedRelationDelta is int returned) ledger.Note(npc.StringId, returned);
+            t.Expect("exactlyWhatWasTakenComesBack", back?.AppliedRelationDelta, 3);
+            t.Expect("theTierDidNotMove", p.RegardResistanceTier, 5);
+
+            // STAKE: once repaid, warmth is slow again; nothing can be farmed past the debt.
+            ActionOutcome after = behavior.GameStateBridge.ExecuteAction(Shift(5), npc, new ActionContext(p, null) {RegardTakenThisConversation = ledger.TakenFrom(npc.StringId)});
+            t.Expect("nothingOwedNoQuickGain", after == null, true);
          }
          finally
          {

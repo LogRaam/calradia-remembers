@@ -1549,7 +1549,8 @@ namespace CalradiaRemembers.Chat
                   OfferedBundle = _offer.OfferedBundle,
                   ItemOnTheTableId = _offer.ItemOnTheTable,
                   PlayerWordsThisConversation = playerWords,
-                  PresentHeroIds = SeatedMembers().HeroIds.Where(id => !string.IsNullOrEmpty(id)).ToList()
+                  PresentHeroIds = SeatedMembers().HeroIds.Where(id => !string.IsNullOrEmpty(id)).ToList(),
+                  RegardTakenThisConversation = _regardTaken.TakenFrom(speaker.Hero?.StringId)
                };
                // B2 (quest audit): at most one change_relation applies per turn, so a weak model that emits
                // several negative blocks cannot pile the RelationGate's per-call -15 floor into -75.
@@ -1667,7 +1668,7 @@ namespace CalradiaRemembers.Chat
 
                   ActionContext actorActionContext = ReferenceEquals(actorProfile, profile)
                      ? actionContext
-                     : new ActionContext(actorProfile, emittedForGate) {OfferedItemId = _offer.OfferedItemId, OfferedBundle = _offer.OfferedBundle, ItemOnTheTableId = _offer.ItemOnTheTable, PlayerWordsThisConversation = playerWords, PresentHeroIds = actionContext.PresentHeroIds};
+                     : new ActionContext(actorProfile, emittedForGate) {OfferedItemId = _offer.OfferedItemId, OfferedBundle = _offer.OfferedBundle, ItemOnTheTableId = _offer.ItemOnTheTable, PlayerWordsThisConversation = playerWords, PresentHeroIds = actionContext.PresentHeroIds, RegardTakenThisConversation = _regardTaken.TakenFrom(actorHero?.StringId)};
 
                   // Coin/commit actions are preprocessed: a repeat of one already resolved this conversation is
                   // dropped (the LLM re-emitting the same transfer), and a player-outgoing spend (take_gold /
@@ -1822,6 +1823,9 @@ namespace CalradiaRemembers.Chat
                   if (string.Equals(action.Type, "change_relation", StringComparison.OrdinalIgnoreCase)
                       && outcome?.AppliedRelationDelta is int applied && applied != 0 && applied < worstAppliedRelation)
                      worstAppliedRelation = applied;
+                  // Lordfadooboo (26/11/2026): what this character took, and gave back, in this conversation.
+                  if (string.Equals(action.Type, "change_relation", StringComparison.OrdinalIgnoreCase) && outcome?.AppliedRelationDelta is int moved && moved != 0)
+                     _regardTaken.Note(actorHero?.StringId, moved);
                }
 
                // The personal score may have moved — refresh the header (main NPC only;

@@ -5915,7 +5915,7 @@ namespace CalradiaRemembers.GameState
             // softens how the refusal is voiced, it never buys a standing mechanical exemption.
             && IntimacyThresholdPolicy.PermitsIntimacy(BuildConsentFacts(npcHero, context.Profile));
 
-         int delta = RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = proposed, Profile = context.Profile, EmittedEvent = context.EmittedEvent, CurrentHour = CampaignTime.Now.ToHours, NpcIsCaptive = captive, IntimacyAllowed = intimacyAllowed, Warmth = ModSettings.RelationWarmth, DecayDays = ModSettings.RegardDecayDays});
+         int delta = RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = proposed, Profile = context.Profile, EmittedEvent = context.EmittedEvent, CurrentHour = CampaignTime.Now.ToHours, NpcIsCaptive = captive, IntimacyAllowed = intimacyAllowed, Warmth = ModSettings.RelationWarmth, DecayDays = ModSettings.RegardDecayDays, TakenThisConversation = context.RegardTakenThisConversation});
 
          if (delta == 0)
          {

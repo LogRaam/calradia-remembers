@@ -54,6 +54,12 @@ namespace CalradiaRemembers.GameState
         public string PlayerWordsThisConversation { get; set; }
 
         /// <summary>
+        ///   The regard this character took from the player earlier in this conversation and still holds (RegardTakenLedger),
+        ///   0 on a path with no conversation. change_relation gives it back first (Lordfadooboo, 26/11/2026).
+        /// </summary>
+        public int RegardTakenThisConversation { get; set; }
+
+        /// <summary>
         ///   The StringIds of every character present in this conversation (the main one and each witness), or null on a
         ///   path that carries no scene. A verb between two people in the room reads it (kurushimi00, 06/11/2026: peace is
         ///   made with someone sitting there, never with a name).

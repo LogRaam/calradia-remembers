@@ -321,6 +321,26 @@ namespace CalradiaRemembers.Tests
                      .Should().BeLessThan(3, "the intimacy door is shut for the day, so it falls to the routine path");
       }
 
+      // STAKE: Lordfadooboo (26/11/2026): a character who lost regard over a false accusation and then admits it gives the
+      // points back, in full up to what was taken, even at a high resistance tier.
+      [Test]
+      public void GIVEN_regard_taken_earlier_in_this_conversation_WHEN_the_character_warms_again_THEN_it_comes_back_in_full()
+      {
+         NpcProfile profile = Profile(tier: 5, stampHour: 100.0);
+
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 5, Profile = profile, CurrentHour = 100.0, TakenThisConversation = 4})
+                     .Should().Be(4, "only what was taken comes back");
+         profile.RegardResistanceTier.Should().Be(5, "a debt repaid is not new warmth: the tiers do not move");
+      }
+
+      // STAKE: the restoration is bounded by the game's own record; with nothing taken, warmth stays as slow as ever.
+      [Test]
+      public void GIVEN_nothing_taken_this_conversation_WHEN_the_character_warms_THEN_the_slow_progressive_path_applies()
+      {
+         RelationGate.Resolve(new RelationGate.RegardProposal {Proposed = 5, Profile = Profile(tier: 2, stampHour: 100.0), CurrentHour = 100.0})
+                     .Should().Be(0, "a tier-2 bond needs three warm moments before its next +1");
+      }
+
       private static NpcProfile Profile(int tier = 0, double? stampHour = null, double? lastIntimacyHour = null)
          => new() {
             Id = "test_npc",
