@@ -13,6 +13,13 @@
 // read by the caller, and the weights below combine them. Pure and stateless: one call per round, on fresh bids, so the
 // re-judging rule holds by construction. Not wired yet: it replaces EnsembleFloorPolicy when group chat is integrated.
 // Scenarios validated by Gabriel on 26/11/2026 are its tests.
+//
+// DEFERENCE (Gabriel, 26/11/2026: "La puissance d'un seigneur aussi devrait orienter les reactions de tout NPC"; "oui, fais
+// la regle de deference"). Measured the same day: the judge reads a slight from a king exactly as one from a peasant
+// (Urgent, 6 of 6), so rank cannot rest on its prompt. The game knows who outranks whom: a listener the line was not put to
+// holds back before someone above them, one notch per step of rank, a bold temperament one notch less, and speaks over
+// them only with a wish still strong after that. The feeling is not lost: it shows in the reaction. And "timide reste
+// silencieux": a timid listener never volunteers the floor; spoken to, they answer.
 
 #region
 
@@ -60,6 +67,15 @@ namespace CalradiaRemembers.Logic.Conversation
 
       /// <summary>The final tie-break: lower wins. The caller draws it (seeded in tests) so ties are not always won by the same seat.</summary>
       public int TieBreak { get; init; }
+
+      /// <summary>The standing (0 to 4) of whoever spoke the last line, the player included; -1 when unknown (no deference applies).</summary>
+      public int LastSpeakerStanding { get; init; } = -1;
+
+      /// <summary>A bold temperament (the host reads it from the character's traits): holds back one notch less before rank.</summary>
+      public bool Bold { get; init; }
+
+      /// <summary>A timid temperament (the host reads it from the character's traits): never takes the floor unless spoken to.</summary>
+      public bool Timid { get; init; }
    }
 
    /// <summary>The state of the round the referee decides.</summary>
@@ -146,6 +162,9 @@ namespace CalradiaRemembers.Logic.Conversation
       /// <summary>How many listeners get a judge call each round in a large group; the others are judged on a later round.</summary>
       public const int JudgedPerRound = 4;
 
+      /// <summary>The most notches deference may take off a wish to speak (two steps of rank or more above the listener).</summary>
+      public const int DeferenceMaxNotches = 2;
+
       /// <summary>The referee's decision for this round.</summary>
       public static FloorDecision Decide(FloorRound round)
       {
@@ -181,12 +200,29 @@ namespace CalradiaRemembers.Logic.Conversation
             .Select(l => l.Id)
             .ToList();
 
+      /// <summary>
+      ///   The wish to speak once rank is weighed: before someone above them, a listener the line was not put to loses one notch
+      ///   per step of rank (at most <see cref="DeferenceMaxNotches" />), a bold one a notch less. Spoken to, nobody defers.
+      /// </summary>
+      public static JudgedIntent EffectiveIntent(FloorBid bid)
+      {
+         if (bid == null) return JudgedIntent.None;
+         if (bid.Addressed || bid.AskedByName || bid.LastSpeakerStanding < 0) return bid.Intent;
+
+         int notches = Math.Min(DeferenceMaxNotches, bid.LastSpeakerStanding - bid.Standing) - (bid.Bold ? 1 : 0);
+         if (notches <= 0) return bid.Intent;
+
+         int lowered = (int) bid.Intent - notches;
+
+         return lowered <= 0 ? JudgedIntent.None : (JudgedIntent) lowered;
+      }
+
       /// <summary>A bid's weight this round.</summary>
       public static int Score(FloorBid bid)
       {
          if (bid == null) return 0;
 
-         int intent = bid.Intent switch {
+         int intent = EffectiveIntent(bid) switch {
             JudgedIntent.Urgent => UrgentIntentWeight,
             JudgedIntent.High => HighIntentWeight,
             JudgedIntent.Low => LowIntentWeight,
@@ -208,8 +244,15 @@ namespace CalradiaRemembers.Logic.Conversation
 
          // One addressed or asked by name always has something to answer: a question left hanging reads as a fault.
          bool obliged = bid.AskedByName || bid.Addressed;
-         JudgedIntent intent = obliged && bid.Intent == JudgedIntent.None ? JudgedIntent.Low : bid.Intent;
+         // "timide reste silencieux" (Gabriel, 26/11/2026): a timid listener never volunteers the floor.
+         if (bid.Timid && !obliged) return false;
+
+         JudgedIntent effective = EffectiveIntent(bid);
+         JudgedIntent intent = obliged && effective == JudgedIntent.None ? JudgedIntent.Low : effective;
          if (intent == JudgedIntent.None) return false;
+
+         // Speaking over someone of higher rank takes a wish still strong once deference has lowered it.
+         if (!obliged && effective < bid.Intent && intent < JudgedIntent.High) return false;
 
          // Nobody speaks twice running unless the line was put to them.
          if (bid.SpokeLast && !obliged) return false;

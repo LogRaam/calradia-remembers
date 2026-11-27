@@ -170,6 +170,54 @@ namespace CalradiaRemembers.Tests.Conversation
          d.SpeakerId.Should().Be("N1");
       }
 
+      // ── deference and temperament (Gabriel, 26/11/2026: "oui, fais la regle de deference. timide reste silencieux") ──
+
+      // STAKE: measured the same day, the judge reads Ira as Urgent whether a king or a peasant mocks her; before the king
+      // she must hold her tongue (her anger shows in her reaction), before the peasant she answers at once.
+      [Test]
+      public void GIVEN_a_slight_from_a_king_WHEN_the_mercenary_is_urgent_THEN_she_holds_back_but_answers_a_peasant()
+      {
+         FloorDecision beforeKing = AfterNpcLines(1, new FloorBid {Id = "Ira", Targeted = true, Intent = JudgedIntent.Urgent, Standing = 1, Reaction = "*jaw tightens*", LastSpeakerStanding = 4});
+         beforeKing.Outcome.Should().Be(FloorOutcome.BackToPlayer);
+         beforeKing.ReactorIds.Should().Equal("Ira");
+
+         AfterNpcLines(1, new FloorBid {Id = "Ira", Targeted = true, Intent = JudgedIntent.Urgent, Standing = 1, LastSpeakerStanding = 0}).SpeakerId.Should().Be("Ira");
+      }
+
+      // STAKE: a bold temperament holds back a notch less: the mercenary who scorns noble airs may still retort to a king.
+      [Test]
+      public void GIVEN_a_bold_listener_slighted_by_a_king_WHEN_decided_THEN_she_still_speaks()
+      {
+         AfterNpcLines(1, new FloorBid {Id = "Ira", Targeted = true, Intent = JudgedIntent.Urgent, Standing = 1, LastSpeakerStanding = 4, Bold = true})
+            .SpeakerId.Should().Be("Ira");
+      }
+
+      // STAKE: one step of rank (a lord rebuked by his king) costs one notch: a burning wish still speaks, a mere wish does not.
+      [Test]
+      public void GIVEN_one_step_of_rank_WHEN_the_lord_is_rebuked_THEN_only_a_burning_wish_speaks()
+      {
+         AfterNpcLines(1, new FloorBid {Id = "Garios", Targeted = true, Intent = JudgedIntent.Urgent, Standing = 3, LastSpeakerStanding = 4}).SpeakerId.Should().Be("Garios");
+         AfterNpcLines(1, new FloorBid {Id = "Garios", Targeted = true, Intent = JudgedIntent.High, Standing = 3, LastSpeakerStanding = 4}).Outcome.Should().Be(FloorOutcome.BackToPlayer);
+      }
+
+      // STAKE: spoken to by the king, nobody defers: a question from above is answered.
+      [Test]
+      public void GIVEN_the_king_addresses_the_listener_WHEN_decided_THEN_rank_does_not_silence_the_answer()
+      {
+         AfterNpcLines(1, new FloorBid {Id = "Bryn", Addressed = true, Intent = JudgedIntent.Low, Standing = 0, LastSpeakerStanding = 4}).SpeakerId.Should().Be("Bryn");
+      }
+
+      // STAKE: "timide reste silencieux": the squire mocked before his lord burns red but never takes the floor; asked, he answers.
+      [Test]
+      public void GIVEN_a_timid_squire_mocked_WHEN_he_is_urgent_THEN_he_stays_silent_unless_spoken_to()
+      {
+         FloorDecision mocked = AfterPlayer(new FloorBid {Id = "Bryn", Timid = true, Targeted = true, Intent = JudgedIntent.Urgent, Reaction = "*face burns red*"});
+         mocked.Outcome.Should().Be(FloorOutcome.Silence);
+         mocked.ReactorIds.Should().Equal("Bryn");
+
+         AfterPlayer(new FloorBid {Id = "Bryn", Timid = true, AskedByName = true, Addressed = true, Intent = JudgedIntent.None}).SpeakerId.Should().Be("Bryn");
+      }
+
       // ── larger rooms ──
 
       // STAKE: six in the room, four of them eager: still one voice at a time, and the one the player asked by name.
