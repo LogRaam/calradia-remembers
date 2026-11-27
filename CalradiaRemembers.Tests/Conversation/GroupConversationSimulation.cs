@@ -113,7 +113,8 @@ namespace CalradiaRemembers.Tests.Conversation
       private async Task RunAsync(bool aiPlayer, int beats)
       {
          JsonElement settings = LoadSettingsOrIgnore(out string key);
-         string proseModel = Str(settings, "model", "x-ai/grok-4.20");
+         // "groupProseModel" tries another prose model here without touching the lane's own "model" (Gabriel, 26/11/2026).
+         string proseModel = Str(settings, "groupProseModel", Str(settings, "model", "x-ai/grok-4.20"));
          string judgeModel = Str(settings, "floorJudgeModel", "deepseek/deepseek-v4.1-flash");
          string judgeReasoning = Str(settings, "floorJudgeReasoning", "off");
          string proseReasoning = Str(settings, "reasoningEffort", "");
@@ -131,6 +132,9 @@ namespace CalradiaRemembers.Tests.Conversation
          double cost = 0;
          int judgeCalls = 0, proseCalls = 0;
          string cutOff = null;
+         // Reactions already shown this beat (one per character until it changes), and who has left the scene.
+         var shownThisBeat = new Dictionary<string, string>();
+         var away = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
          Character arwa = PlayerCharacter();
          for (var beat = 0; beat < beats; beat++)
@@ -142,12 +146,15 @@ namespace CalradiaRemembers.Tests.Conversation
             }
             else
             {
-               (string to, string text) = ParseLine(await Prose(prose, LinePrompt(arwa, cast, room, scene, null), 220));
+               string said = await Prose(prose, LinePrompt(arwa, cast, room, scene, null), 220);
+               (string to, string text) = ParseLine(said);
                proseCalls++;
                scene.Add(new SceneLine {Speaker = Player, To = to, Text = text, IsPlayer = true});
+               Movements(said, away, cast, debug);
             }
 
             debug.AppendLine($"\n**Beat {beat + 1}**");
+            shownThisBeat.Clear();
             var npcLines = 0;
 
             while (true)
@@ -156,7 +163,7 @@ namespace CalradiaRemembers.Tests.Conversation
                int lastStanding = last.IsPlayer ? PlayerStanding : cast.First(c => c.Name == last.Speaker).Standing;
 
                // Every listener is judged at once, as in play.
-               List<Character> listeners = cast.Where(c => c.Name != last.Speaker).ToList();
+               List<Character> listeners = cast.Where(c => c.Name != last.Speaker && !away.Contains(c.Name)).ToList();
                FloorJudgeVerdict[] verdicts = await Task.WhenAll(listeners.Select(async c =>
                {
                   LlmResponse r = await judge.CompleteAsync(new LlmRequest {
@@ -184,7 +191,8 @@ namespace CalradiaRemembers.Tests.Conversation
                      Id = c.Name, Intent = verdicts[i].Intent, Reaction = verdicts[i].Reaction, Addressed = addressed,
                      AskedByName = askedByName, Targeted = !addressed && named,
                      Standing = c.Standing, TurnsSilent = TurnsSilent(scene, c.Name), WasCutOff = cutOff == c.Name,
-                     LastSpeakerStanding = lastStanding, Bold = c.Bold, Timid = c.Timid, TieBreak = random.Next(1000)
+                     LastSpeakerStanding = lastStanding, Bold = c.Bold, Timid = c.Timid, TieBreak = random.Next(1000),
+                     LastShownReaction = shownThisBeat.TryGetValue(c.Name, out string seen) ? seen : null
                   });
                }
                bids.Add(new FloorBid {Id = last.Speaker == Player ? "_player" : last.Speaker, SpokeLast = true});
@@ -199,6 +207,7 @@ namespace CalradiaRemembers.Tests.Conversation
                if (shown.Count > 0)
                {
                   string cues = string.Join("; ", shown.Select(id => $"{id}: {bids.First(b => b.Id == id).Reaction}"));
+                  foreach (string id in shown) shownThisBeat[id] = bids.First(b => b.Id == id).Reaction;
                   string narration = await Prose(prose, NarrationPrompt(room, scene, cues), 90);
                   proseCalls++;
                   // The first line only: the prose model sometimes trails a copy or a stray "\confidence{70}".
@@ -213,6 +222,7 @@ namespace CalradiaRemembers.Tests.Conversation
                proseCalls++;
                (string to, string text) = ParseLine(reply);
                scene.Add(new SceneLine {Speaker = speaker.Name, To = to, Text = text});
+               Movements(reply, away, cast, debug);
                npcLines++;
             }
          }
@@ -258,7 +268,10 @@ namespace CalradiaRemembers.Tests.Conversation
          sb.AppendLine("Answer the moment as it stands now: you may turn to anyone present, not only the last speaker.");
          sb.AppendLine("Never repeat what you have already said or demanded: move the scene forward, change your approach, concede, or act.");
          if (cutOff != null) sb.AppendLine($"You are cutting in before {cutOff} could answer.");
-         sb.AppendLine("Format: first line `to: <a name, or everyone>`, then your line.");
+         sb.AppendLine("Format: first line `to: <a name, or everyone>` alone, then your line on the next lines. Address one person per line.");
+         sb.AppendLine($"The scene follows {Player}: if during your line someone goes where {Player} is not, or stays behind while {Player} moves");
+         sb.AppendLine($"on, add a last line `leaves: <their names>`; if someone comes back to {Player}, `returns: <names>`. People who move");
+         sb.AppendLine($"together with {Player} have not left.");
 
          return (sb.ToString(), "THE SCENE SO FAR:\n" + SceneText(scene) + $"\n\nYour line, {me.Name}:");
       }
@@ -283,13 +296,44 @@ namespace CalradiaRemembers.Tests.Conversation
          return r.IsSuccess ? r.Content?.Trim() ?? "" : $"(call failed: {r.ErrorMessage})";
       }
 
+      // Who left or came back, from the speaker's own `leaves:` / `returns:` line: an absent character neither speaks nor reacts.
+      private static void Movements(string reply, HashSet<string> away, List<Character> cast, StringBuilder debug)
+      {
+         foreach (string raw in (reply ?? "").Replace("\r", "").Split('\n'))
+         {
+            string line = raw.Trim().Trim('`').Trim();
+            bool leaves = line.StartsWith("leaves:", StringComparison.OrdinalIgnoreCase);
+            bool returns = line.StartsWith("returns:", StringComparison.OrdinalIgnoreCase);
+            if (!leaves && !returns) continue;
+
+            foreach (Character c in cast.Where(c => line.IndexOf(c.Name, StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+               if (leaves) away.Add(c.Name);
+               else away.Remove(c.Name);
+               debug.AppendLine($"- {c.Name} {(leaves ? "leaves the scene" : "comes back")}");
+            }
+         }
+      }
+
       private static (string To, string Text) ParseLine(string reply)
       {
-         string[] lines = (reply ?? "").Replace("\r", "").Split('\n').Where(l => l.Trim().Length > 0).ToArray();
+         string[] lines = (reply ?? "").Replace("\r", "").Split('\n').Where(l => l.Trim().Length > 0)
+            .Where(l => !l.Trim().Trim('`').StartsWith("leaves:", StringComparison.OrdinalIgnoreCase) && !l.Trim().Trim('`').StartsWith("returns:", StringComparison.OrdinalIgnoreCase)).ToArray();
+         string to = "";
          if (lines.Length > 0 && lines[0].TrimStart('`', ' ').StartsWith("to:", StringComparison.OrdinalIgnoreCase))
-            return (lines[0].TrimStart('`', ' ').Substring(3).Trim(' ', '`', '<', '>'), Clean(string.Join(" ", lines.Skip(1))));
+         {
+            // The name is the first word after "to:"; anything after it on that line (a model that ran on) belongs to the line.
+            string head = lines[0].TrimStart('`', ' ').Substring(3).Trim(' ', '`', '<', '>');
+            int cut = head.IndexOfAny(new[] {' ', '*', '"', '\t'});
+            to = (cut < 0 ? head : head.Substring(0, cut)).Trim(',', '.', ':');
+            string rest = cut < 0 ? "" : head.Substring(cut).Trim();
+            lines = (rest.Length > 0 ? new[] {rest} : Array.Empty<string>()).Concat(lines.Skip(1)).ToArray();
+         }
 
-         return ("", Clean(string.Join(" ", lines)));
+         // A second "to: Name" in mid-line (one line addressing two people) is dropped as a marker; its words stay.
+         string text = System.Text.RegularExpressions.Regex.Replace(string.Join(" ", lines), @"\s*\bto:\s*[A-Z][a-z]+\s*", " ");
+
+         return (to, Clean(text));
       }
 
       // Models write em dashes; the repositories refuse them (git hooks), and the transcript may be kept as a design record.

@@ -76,6 +76,13 @@ namespace CalradiaRemembers.Logic.Conversation
 
       /// <summary>A timid temperament (the host reads it from the character's traits): never takes the floor unless spoken to.</summary>
       public bool Timid { get; init; }
+
+      /// <summary>
+      ///   The reaction last SHOWN for this character in this beat, or null. A reaction is shown again only when it changes
+      ///   (Gabriel, 26/11/2026: "oui" to showing a reaction only when it is new; the third simulated scene narrated the squire's
+      ///   fear on almost every line, and a clue repeated stops being one).
+      /// </summary>
+      public string LastShownReaction { get; init; }
    }
 
    /// <summary>The state of the round the referee decides.</summary>
@@ -169,7 +176,7 @@ namespace CalradiaRemembers.Logic.Conversation
       public static FloorDecision Decide(FloorRound round)
       {
          IReadOnlyList<FloorBid> bids = round?.Bids ?? new List<FloorBid>();
-         var reactors = bids.Where(b => !string.IsNullOrWhiteSpace(b.Reaction)).OrderByDescending(Score).ThenBy(b => b.TieBreak).Select(b => b.Id).ToList();
+         var reactors = bids.Where(ShowsReaction).OrderByDescending(Score).ThenBy(b => b.TieBreak).Select(b => b.Id).ToList();
 
          int lines = round?.NpcLinesSincePlayer ?? 0;
          FloorBid winner = bids.Where(b => Eligible(b, lines)).OrderByDescending(Score).ThenByDescending(b => b.Standing).ThenByDescending(b => b.TurnsSilent).ThenBy(b => b.TieBreak).FirstOrDefault();
@@ -216,6 +223,11 @@ namespace CalradiaRemembers.Logic.Conversation
 
          return lowered <= 0 ? JudgedIntent.None : (JudgedIntent) lowered;
       }
+
+      /// <summary>True when this bid's reaction is worth showing: there is one, and it is not the one already shown this beat.</summary>
+      public static bool ShowsReaction(FloorBid bid)
+         => bid != null && !string.IsNullOrWhiteSpace(bid.Reaction)
+            && !string.Equals(bid.Reaction.Trim(), bid.LastShownReaction?.Trim(), StringComparison.OrdinalIgnoreCase);
 
       /// <summary>A bid's weight this round.</summary>
       public static int Score(FloorBid bid)

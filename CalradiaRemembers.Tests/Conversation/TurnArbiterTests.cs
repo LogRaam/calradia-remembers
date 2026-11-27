@@ -233,6 +233,15 @@ namespace CalradiaRemembers.Tests.Conversation
             .SpeakerId.Should().Be("Bryn");
       }
 
+      // STAKE: Gabriel (26/11/2026): a reaction shows only when it is new; the squire's fear narrated on every line stops being
+      // a clue. Shown once; the same feeling again is not shown; a changed one is.
+      [Test]
+      public void GIVEN_the_same_reaction_already_shown_WHEN_decided_THEN_it_is_not_shown_again_but_a_new_one_is()
+      {
+         AfterPlayer(new FloorBid {Id = "Bryn", Reaction = "terrified", LastShownReaction = "Terrified "}).ReactorIds.Should().BeEmpty();
+         AfterPlayer(new FloorBid {Id = "Bryn", Reaction = "relieved", LastShownReaction = "terrified"}).ReactorIds.Should().Equal("Bryn");
+      }
+
       // ── larger rooms ──
 
       // STAKE: six in the room, four of them eager: still one voice at a time, and the one the player asked by name.
