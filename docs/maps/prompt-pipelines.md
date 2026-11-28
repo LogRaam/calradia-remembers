@@ -10,7 +10,7 @@ other than `NarrativeLoader` (tales, scenarios, styles, prompt profiles) is not 
 
 ## Where the model is called
 
-29 methods call the model. `tool` marks a developer command or bench (`Diagnostics`, `ModCheats`, a `*Bench*` file), never run in play.
+30 methods call the model. `tool` marks a developer command or bench (`Diagnostics`, `ModCheats`, a `*Bench*` file), never run in play.
 
 | Pipeline | Layer | Use | Prompt from | What it is |
 |---|---|---|---|---|
@@ -19,6 +19,7 @@ other than `NarrativeLoader` (tales, scenarios, styles, prompt profiles) is not 
 | `ChatViewModel.RunCouncilTurnAsync` | Mod | play | `BuildCouncilPromptInput()`, `CouncilPromptBuilder` | Runs ONE council turn as a group scene: builds the dedicated council prompt from the seated roster, makes a single LLM call on the prose client, parses the multi-speaker reply, and renders each member's contribution as i... |
 | `ChatViewModel.RunEnvoyTurnAsync` | Mod | play | `EnvoyPromptBuilder` | One envoy turn: his own prompt, one call, his line, and at most one deal run in his lord's name. |
 | `ChronicleIlluminator.IlluminateAsync` | Sdk | play | `BuildSystemPrompt()` | Rewrites deeds into chronicler prose. |
+| `ComposedOpeningComposer.CheckEventsAsync` | Logic | play |  | Checks each proposed event against the facts (Stage 7). |
 | `ComposedOpeningComposer.ComposeAsync` | Logic | play |  | Composes the opening from sheet on composer and checks it on checker. |
 | `ConversationHistoryCompressor.CompressAsync` | Sdk | play | `BuildSystemPrompt()`, `BuildUserPrompt()` | Returns the recap updated to include newLines, folding them into existingRecap (empty on the first fold). |
 | `ConversationSummarizer.SummarizeAsync` | Sdk | play | `BuildSystemPrompt()` | Returns a concise first-person, past-tense memory line, or null on failure / empty transcript (the caller then keeps the base summary it already stored). |

@@ -1037,6 +1037,8 @@ namespace CalradiaRemembers.Chat
             {
                // Read once per chat on the main thread; it also seeds the bond from the meeting record, so the first reply has it.
                DramaturgeSheetFor(speaker);
+               // Stage 7: the dramaturge's word for this one reply (an event just brought, or the scene's end), then cleared.
+               context.SceneDirectionNote = TakeSceneDirection();
                context.InnerLifeNote = await DramaturgeNoteForTurnAsync();
                await MainThreadDispatcher.SwitchToMainThread();
                if (!ReferenceEquals(ChatManager.ActiveViewModel, this)) return;
@@ -1318,6 +1320,10 @@ namespace CalradiaRemembers.Chat
             // (handled above). Recorded to transcript + story log.
             if (!narrationFirst && !string.IsNullOrWhiteSpace(response.Narration))
                AppendModelNarration(response.Narration, response.Dialogue);
+
+            // Stage 7: the beat is played (its narration recorded); the dramaturge reads the scene when it is time, in the
+            // background (ChatViewModel.DramaturgeScene.cs).
+            if (dramaturgeTurn && !string.IsNullOrEmpty(npcLine)) AfterDramaturgeBeat(speaker);
 
             // Witness reactions — displayed immediately after the speaker's line.
             // recordTranscript: false here; the 15C path commits them inside

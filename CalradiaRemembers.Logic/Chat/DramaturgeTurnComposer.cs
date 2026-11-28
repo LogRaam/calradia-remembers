@@ -132,6 +132,24 @@ namespace CalradiaRemembers.Logic.Chat
          return new DramaturgeKeeperResult {Text = second, Rewritten = true, First = first, Second = again, Why = why};
       }
 
+      /// <summary>
+      ///   Stage 7: the dramaturge's reading of the scene, on <paramref name="dramaturge" /> (the DRAMATURGE client, the prose
+      ///   model unless Gabriel set another) within <paramref name="limit" />. Null on any failure, timeout or cancel: the scene
+      ///   goes on as it is.
+      /// </summary>
+      public static async Task<DramaturgeReading> ReadSceneAsync(ILlmClient dramaturge, DramaturgeSheet sheet, DramaturgeInnerState state, string sceneText,
+                                                                 string recordText, IReadOnlyList<KeyValuePair<int, string>> waiting, int beatsPlayed,
+                                                                 TimeSpan limit, CancellationToken ct)
+      {
+         if (dramaturge == null || sheet == null) return null;
+
+         // The simulator's budget: a prose model that reasons spends much of a small one before its four lines.
+         string content = await AskAsync(dramaturge, DramaturgeDirector.System, DramaturgeDirector.User(sheet, state, sceneText, recordText, waiting, beatsPlayed),
+                                         1500, 0.3f, "dramaturge", limit, ct).ConfigureAwait(false);
+
+         return content == null ? null : DramaturgeDirector.Parse(content);
+      }
+
       private static async Task<KeeperVerdict> ReadAsync(ILlmClient keeper, DramaturgeSheet sheet, DramaturgeInnerState state, DramaturgeRecord record,
                                                          string sceneText, string reply, TimeSpan limit, CancellationToken ct)
       {

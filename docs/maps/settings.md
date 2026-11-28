@@ -114,11 +114,11 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Ask Which Companions Come Along (`AskCompanionsAtStart`) | `WitnessResolver.ShowCompanionPickerIfNeeded` | 0 |
 | Authored Quests (experimental) (`AuthoredQuests`) | `AuthoredQuestBehavior.OnConversationStarted`, `AuthoredQuestBehavior.TickMapTrigger` | 0 |
 | Captor Conversations (`CaptorConversations`) | `CaptiveEncounterService.TryCaptorAudience` | 0 |
-| Characters Set The Scene (`CharactersSetTheScene`) | `LlmDialogFlow.SceneFacts` | 3 |
+| Characters Set The Scene (`CharactersSetTheScene`) | `LlmDialogFlow.SceneFacts` | 4 |
 | Characters can add news to the world (`EnableNpcWorldClaims`) | `ConversationSummaryService.HarvestWorldClaimsAsync` | 1 |
 | Chat Text Size (%) (`ChatTextSizePercent`) | `ChatMessageViewModel.ClassicMessageFontBrush`, `ChatMessageViewModel.ManuscriptMessageFontBrush`, `SceneChoiceItemViewModel.ClassicChoiceBrush`, `SceneChoiceItemViewModel.ManuscriptChoiceBrush` | 0 |
 | Chat Window Style (`ChatSkin`) | `ChatManager.MenuSkinPrefab` | 0 |
-| Composed opening scene (`ComposedOpening`) | `ChatViewModel.ComposedOpeningFactsFor` | 1 |
+| Composed opening scene (`ComposedOpening`) | `ChatViewModel.ComposedOpeningFactsFor` | 2 |
 | Conception Chance (%) (`ConceptionChancePercent`) | `PregnancyService.TryConceive` | 1 |
 | Council Size (%) (`CouncilZoomPercent`) | `ChatManager.ArbitrateFocus` | 0 |
 | Council Text Size (%) (`CouncilTextSizePercent`) | `ChatMessageViewModel.CouncilMessageFontBrush` | 0 |
@@ -145,7 +145,7 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Relationship Pacing (`RelationshipWarmth`) | `BannerlordGameStateBridge.BuildConsentFacts`, `BannerlordGameStateBridge.ExecuteChangeRelation`, `CompanionAffectionBehavior.EligibilityOf`, `CompanionAffectionBehavior.OnWeeklyTick`, `EncounterContextBuilder.SecretBondFactsFor`, `LetterRegardService.Apply`, `LetterTriggerEvaluator.CollectLoveConfessions`, `LlmServices.BuildChatService`, `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService`, `LoveConfessionReader.RegisterOf` | 5 |
 | Reply Language (`ReplyLanguage`) | `ChatViewModel.BuildCouncilPromptInput`, `ChatViewModel.EnsureTranscriptCompressedAsync`, `ChatViewModel.FinalizeConversationMemory`, `ChatViewModel.ReadComposedOpeningSheet`, `ChatViewModel.RunLlmExchangeAsync`, `ChatViewModel.WitnessSummaryJob`, `ChronicleIlluminationService.Run`, `ConversationSummaryService.GenerateAndApplyCaptiveSummaryAsync`, `ConversationSummaryService.GenerateAndApplyConversationSummaryAsync`, `LetterBox.WillTranslate`, `LetterGenerationService.TranslateFixedLetterAsync`, `LetterMemoryFinalizer.GenerateAndApplyAsync`, `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService`, `MemoryCompressionService.CompressAsync` | 4 |
 | Reply Length (`ReplyLength`) | `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService` | 1 |
-| Scene Narration (`SceneNarration`) | `ChatViewModel.AppendModelNarration`, `ChatViewModel.ComposedOpeningFactsFor`, `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService` | 2 |
+| Scene Narration (`SceneNarration`) | `ChatViewModel.AppendModelNarration`, `ChatViewModel.ApplyDramaturgeReading`, `ChatViewModel.ComposedOpeningFactsFor`, `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService` | 3 |
 | Strategic Assessment (AI) (`EnableStrategicAssessment`) | `StrategicAssessmentService.Populate` | 0 |
 | Unasked Letters (`UnaskedLetters`) | `LetterBox.IsSilenced`, `LetterTriggerEvaluator.EvaluateDaily`, `StanceConsequenceBehavior.TryWrite` | 2 |
 | Witness Density (`WitnessDensity`) | `WitnessResolver.ResolveAutoWitnesses` | 1 |
@@ -176,7 +176,7 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 |---|---|---|
 | Background model (`HousekeepingModel`) | `LlmServices.ResolveHousekeepingModel` | 3 |
 | Background provider (`HousekeepingProvider`) | `LlmServices.ResolveKindForRole` | 2 |
-| Chat Composition (`ChatCompositionModeSetting`) | `ChatViewModel.DramaturgeFactsFor`, `ChatViewModel.ExecuteToggleModelMode`, `ChatViewModel.ModelModeText`, `ChatViewModel.StartConversationLog`, `LlmServices.SeedModelModeFromSettings` | 7 |
+| Chat Composition (`ChatCompositionModeSetting`) | `ChatViewModel.DramaturgeFactsFor`, `ChatViewModel.ExecuteToggleModelMode`, `ChatViewModel.ModelModeText`, `ChatViewModel.ReadComposedOpeningSheet`, `ChatViewModel.StartConversationLog`, `LlmServices.SeedModelModeFromSettings` | 8 |
 | Dramaturge model (`DramaturgeModel`) | `LlmServices.ResolveDramaturgeModel`, `LlmServices.ResolveProviderPinFor` | 1 |
 | Dramaturge provider (`DramaturgeProvider`) | `LlmServices.ResolveKindForRole` | 1 |
 | Interpret model (`ActionInterpreterModel`) | `LlmServices.DebugDescribeRoleRouting`, `LlmServices.ResolveInterpreterModel`, `LlmServices.ResolveModel` | 3 |
@@ -229,7 +229,7 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Compress after (memories) (`MemoryCompressionThreshold`) | `MemoryCompressionService.CompressAsync`, `MemoryCompressionService.PickCandidate` | 2 |
 | Compress old memories (`MemoryCompression`) | `MemoryCompressionBehavior.OnDailyTick`, `MemoryCompressionBehavior.RunNow`, `MemoryCompressionService.CompressAsync` | 1 |
 | Deeper characters (`GeneratedDepth`) | `ChatViewModel.GeneratedDepthFactsFor`, `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService` | 2 |
-| LLM Response Timeout (s) (`LlmTimeoutSeconds`) | `ActionInterpreterComposer.AttemptAsync`, `ApiKeyTester.ProbeContextAsync`, `ChatViewModel.CallNarratorAsync`, `ChatViewModel.RunComposedOpeningAsync`, `ChatViewModel.RunCouncilTurnAsync`, `ChatViewModel.RunEnvoyTurnAsync`, `ConversationSummaryService.GenerateAndApplyCaptiveSummaryAsync`, `ConversationSummaryService.GenerateAndApplyConversationSummaryAsync`, `ConversationSummaryService.HarvestWorldClaimsAsync`, `ConversationSummaryService.ProcessConversationJobAsync`, `CourierSecretBehavior.JudgeAndReactAsync`, `GeneratedDepthService.GenerateAndKeepAsync`, `LetterGenerationService.LetterLlmTimeoutSeconds`, `LetterMemoryFinalizer.GenerateAndApplyAsync`, `LlmServices.BuildHousekeepingClient`, `LlmServices.BuildInterpreterClient`, `LlmServices.BuildRoleClient`, `LlmServices.Initialize`, `MeetingMemoryService.UpdateAsync`, `ProseFallbackComposer.RunIntegratedFallbackAsync` | 11 |
+| LLM Response Timeout (s) (`LlmTimeoutSeconds`) | `ActionInterpreterComposer.AttemptAsync`, `ApiKeyTester.ProbeContextAsync`, `ChatViewModel.CallNarratorAsync`, `ChatViewModel.RunComposedOpeningAsync`, `ChatViewModel.RunCouncilTurnAsync`, `ChatViewModel.RunEnvoyTurnAsync`, `ChatViewModel.StartDramaturgeRead`, `ConversationSummaryService.GenerateAndApplyCaptiveSummaryAsync`, `ConversationSummaryService.GenerateAndApplyConversationSummaryAsync`, `ConversationSummaryService.HarvestWorldClaimsAsync`, `ConversationSummaryService.ProcessConversationJobAsync`, `CourierSecretBehavior.JudgeAndReactAsync`, `GeneratedDepthService.GenerateAndKeepAsync`, `LetterGenerationService.LetterLlmTimeoutSeconds`, `LetterMemoryFinalizer.GenerateAndApplyAsync`, `LlmServices.BuildHousekeepingClient`, `LlmServices.BuildInterpreterClient`, `LlmServices.BuildRoleClient`, `LlmServices.Initialize`, `MeetingMemoryService.UpdateAsync`, `ProseFallbackComposer.RunIntegratedFallbackAsync` | 11 |
 | Lasting memory of meetings (`MeetingMemory`) | `GeneratedDepthService.GenerateAndKeepAsync`, `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService`, `MeetingMemoryService.UpdateAsync` | 2 |
 | Local model context (tokens) (`LocalContextTokens`) | `ApiKeyTester.RunCustomAsync`, `ChatViewModel.NotifyLlmFailure`, `LlmServices.ContextWindowFor`, `LocalContextState.CompactThisSession` | 1 |
 | Memories in the prompt (`PromptMemoryLimit`) | `EncounterContextBuilder.Build`, `EncounterContextBuilder.StandingContextFor` | 1 |

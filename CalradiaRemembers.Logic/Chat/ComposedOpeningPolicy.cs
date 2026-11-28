@@ -14,6 +14,10 @@
 //
 // This file holds the pure half: whether to compose, the facts sheet the composer and the checker read, the two prompts,
 // and the reading of both replies. The engine glue is ChatViewModel.ComposedOpening.cs.
+//
+// Stage 7 (28/11/2026), the Dramaturge mode only (ComposedOpeningSheet.ProposeEvents): the composer also proposes up to three
+// events the world may bring later in the scene, as the simulator's ComposeScene did, and a separate events check passes each
+// one or drops it. Off, every prompt here is the stage 3 one.
 
 #region
 
@@ -143,6 +147,12 @@ namespace CalradiaRemembers.Logic.Chat
 
       /// <summary>The language the paragraph is written in; empty for English.</summary>
       public string Language { get; init; }
+
+      /// <summary>
+      ///   Stage 7 (28/11/2026), the Dramaturge mode only: the composer also proposes up to three events the world may bring
+      ///   later in the scene, each checked against the facts. Off, the prompts are exactly the stage 3 ones.
+      /// </summary>
+      public bool ProposeEvents { get; init; }
    }
 
    /// <summary>The composer's reply, read.</summary>
@@ -159,6 +169,12 @@ namespace CalradiaRemembers.Logic.Chat
 
       /// <summary>What could rub with the player (hidden, in their prompt).</summary>
       public string Tension { get; init; } = "";
+
+      /// <summary>
+      ///   The events the world may bring later in the scene (Stage 7, Dramaturge mode), at most
+      ///   <see cref="ComposedOpeningPrompt.MaxEvents" />, plain text. Once checked, only those the check passed remain.
+      /// </summary>
+      public IReadOnlyList<string> Events { get; init; } = new string[0];
 
       /// <summary>True when there is a paragraph to show.</summary>
       public bool IsUsable => !string.IsNullOrWhiteSpace(Setting);
@@ -191,9 +207,12 @@ namespace CalradiaRemembers.Logic.Chat
          string npc = Name(sheet?.NpcName, "the character");
          string player = Name(sheet?.PlayerName, "the visitor");
          string language = (sheet?.Language ?? "").Trim();
+         bool events = sheet?.ProposeEvents == true;
 
          return "You compose the opening of a scene in a medieval world, for a novelist, from what the game knows. You never write dialogue."
-                + " Answer exactly these four labelled lines, the labels in English:"
+                + (events
+                      ? " Answer these labelled lines, the labels in English: the four below, then up to three event lines:"
+                      : " Answer exactly these four labelled lines, the labels in English:")
                 + $"\ndoing: <what {npc} is doing as {player} arrives, one sentence>"
                 + $"\nsetting: <one paragraph of three to five sentences, third person, present tense, that opens the scene: the place, the hour and the"
                 + $" season, what the air holds, how {player} comes in (what they wear, who comes with them), and what {npc} is doing as they enter."
@@ -201,6 +220,10 @@ namespace CalradiaRemembers.Logic.Chat
                 + $"\nconcern: <addressed to {npc} as 'you': what weighs on you today and what you want from this meeting without saying it, drawn from the"
                 + " facts and your memories; one or two sentences>"
                 + $"\ntension: <addressed to {npc} as 'you': what in your true history with {player}, or in how {player} arrives, could rub; one sentence>"
+                + (events
+                      ? "\nevent: <something the world may bring later in the scene, as one sentence of narration, present tense, third person, no dialogue>"
+                        + "\nevent: <another>\nevent: <another, optional>"
+                      : "")
                 + "\nRULES: choose among the facts given and stage them. Never invent a battle, raid, death, capture, marriage, war, alliance, fief, sum of money"
                 + " or troop count that is not in the facts. Bring in no named person the facts do not place here. The weather, the light, smells, sounds,"
                 + " servants, guards and the ordinary happenings of the place are yours to choose, as long as they fit the facts. When the facts hold"
@@ -208,7 +231,15 @@ namespace CalradiaRemembers.Logic.Chat
                 + " may be private (a feeling, a fear) as long as it touches no game fact that is not given."
                 + $" The doing and the setting are what {player} sees and hears: what {npc} keeps from {player} (a secret, a private memory)"
                 + " never shows in them; it may go only in the concern."
-                + (language.Length == 0 ? "" : $"\nWrite the setting, the concern and the tension in {language}; keep the four labels in English.");
+                // The simulator's ComposeScene (27/11/2026): events drawn from the facts, and a dilemma rather than a solution.
+                + (events
+                      ? $" An event may only bring news of a fact given, a person or thing the facts place nearby, or an ordinary happening of"
+                        + $" the place; it never reveals what {npc} keeps from {player}. Prefer an event that forces a choice on both of them over"
+                        + " one that only informs."
+                      : "")
+                + (language.Length == 0 ? "" : events
+                      ? $"\nWrite the setting, the concern, the tension and the events in {language}; keep the labels in English."
+                      : $"\nWrite the setting, the concern and the tension in {language}; keep the four labels in English.");
       }
 
       /// <summary>The facts the composer and the checker both read.</summary>
@@ -264,22 +295,29 @@ namespace CalradiaRemembers.Logic.Chat
       public static ComposedOpeningReply Parse(string content)
       {
          var fields = new Dictionary<string, StringBuilder>(StringComparer.OrdinalIgnoreCase);
+         // Stage 7: "event:" may repeat; each is its own entry, and a line after one runs into that event, never into the tension.
+         var events = new List<StringBuilder>();
          string current = null;
          foreach (string raw in (content ?? "").Replace("\r\n", "\n").Split('\n'))
          {
             string line = raw.Trim().TrimStart('-', '*', '#', ' ').TrimStart();
-            string label = Labels.FirstOrDefault(l => line.StartsWith(l, StringComparison.OrdinalIgnoreCase)
-                                                      && line.Length > l.Length
-                                                      && line.Substring(l.Length).TrimStart('*', ' ').StartsWith(":", StringComparison.Ordinal));
-            if (label != null)
+            if (IsLabelled(line, EventLabel))
             {
-               current = label;
-               string rest = line.Substring(label.Length).TrimStart('*', ' ').Substring(1);
-               fields[current] = new StringBuilder(rest.Trim());
+               current = EventLabel;
+               events.Add(new StringBuilder(AfterLabel(line, EventLabel)));
                continue;
             }
 
-            if (current != null && line.Length > 0) fields[current].Append(' ').Append(line);
+            string label = Labels.FirstOrDefault(l => IsLabelled(line, l));
+            if (label != null)
+            {
+               current = label;
+               fields[current] = new StringBuilder(AfterLabel(line, label));
+               continue;
+            }
+
+            if (current == EventLabel && line.Length > 0) events[events.Count - 1].Append(' ').Append(line);
+            else if (current != null && line.Length > 0) fields[current].Append(' ').Append(line);
          }
 
          string Field(string name, int cap) => fields.TryGetValue(name, out StringBuilder b) ? Clean(b.ToString(), cap) : "";
@@ -288,9 +326,68 @@ namespace CalradiaRemembers.Logic.Chat
             Doing = Field("doing", ComposedOpeningPolicy.MaxHiddenChars),
             Setting = Field("setting", ComposedOpeningPolicy.MaxSettingChars),
             Concern = Field("concern", ComposedOpeningPolicy.MaxHiddenChars),
-            Tension = Field("tension", ComposedOpeningPolicy.MaxHiddenChars)
+            Tension = Field("tension", ComposedOpeningPolicy.MaxHiddenChars),
+            Events = events.Select(e => Clean(e.ToString().Replace("*", ""), ComposedOpeningPolicy.MaxHiddenChars)).Where(e => e.Length > 0).Take(MaxEvents).ToList()
          };
       }
+
+      /// <summary>The most events a composition proposes (the simulator's three).</summary>
+      public const int MaxEvents = 3;
+
+      /// <summary>
+      ///   The events' check (Stage 7): the simulator's event check of ComposeScene, run apart from the opening's own one-line
+      ///   check so one inventing event never sinks the opening.
+      /// </summary>
+      public const string EventCheckSystem =
+         "You check the events proposed for a scene against the facts the game gave. For each event answer one line, 'N: ok' or 'N: invents <what>'."
+         + " An event INVENTS when it brings a battle, raid, death, capture, marriage, war, alliance, fief, sum of money or troop count that is"
+         + " not in the facts. Bringing news of a fact given, a person or thing the facts place nearby, or an ordinary happening of the place"
+         + " (a servant, a clerk, a messenger, the weather) is ok. An event also INVENTS when it shows what the facts say the character keeps"
+         + " from the visitor (a secret, a private memory): answer 'N: invents a shown secret'.";
+
+      /// <summary>What the events' check reads: the facts, then the events numbered from 1.</summary>
+      public static string EventCheckUser(ComposedOpeningSheet sheet, IReadOnlyList<string> events)
+         => FactsText(sheet)
+            + "\n\nTHE EVENTS PROPOSED:\n"
+            + string.Join("\n", (events ?? new string[0]).Select((e, i) => $"{i + 1}. {e}"));
+
+      /// <summary>
+      ///   Reads the events' check: for each of <paramref name="count" /> events, true only when its line says plainly "ok"
+      ///   ("N: ok"); "invents", no line, or anything else drops it (a check that did not speak for an event is no check).
+      /// </summary>
+      public static bool[] ReadEventVerdicts(string content, int count)
+      {
+         var kept = new bool[Math.Max(0, count)];
+         foreach (string raw in (content ?? "").Replace("\r\n", "\n").Split('\n'))
+         {
+            string line = raw.Trim().TrimStart('-', '*', '#', ' ').Trim();
+            if (line.StartsWith("event", StringComparison.OrdinalIgnoreCase)) line = line.Substring(5).TrimStart();
+            int digits = 0;
+            while (digits < line.Length && char.IsDigit(line[digits])) digits++;
+            if (digits == 0 || !int.TryParse(line.Substring(0, digits), out int n) || n < 1 || n > kept.Length) continue;
+
+            string verdict = line.Substring(digits).TrimStart(':', '.', ')', ' ').Trim().Trim('*', '"', '\'', '`', '.', ' ');
+            bool ok = verdict.Equals("ok", StringComparison.OrdinalIgnoreCase)
+                      || (verdict.Length > 2 && verdict.StartsWith("ok", StringComparison.OrdinalIgnoreCase) && !char.IsLetter(verdict[2])
+                          && verdict.IndexOf("invents", StringComparison.OrdinalIgnoreCase) < 0);
+            kept[n - 1] = ok;
+         }
+
+         return kept;
+      }
+
+      private const string EventLabel = "event";
+
+      // An event may come numbered ("event 2:"); the four fields never are.
+      private static char[] LabelTail(string label)
+         => label == EventLabel ? new[] {'*', ' ', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'} : new[] {'*', ' '};
+
+      private static bool IsLabelled(string line, string label)
+         => line.StartsWith(label, StringComparison.OrdinalIgnoreCase)
+            && line.Length > label.Length
+            && line.Substring(label.Length).TrimStart(LabelTail(label)).StartsWith(":", StringComparison.Ordinal);
+
+      private static string AfterLabel(string line, string label) => line.Substring(label.Length).TrimStart(LabelTail(label)).Substring(1).Trim();
 
       /// <summary>
       ///   Reads the checker's verdict. Only a plain "ok" passes: "invents ..." fails with what it invents, and an empty or

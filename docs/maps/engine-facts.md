@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-842 rules read 624 facts.
+846 rules read 624 facts.
 
 ## Facts read by more than one rule
 
@@ -112,6 +112,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Kingdom.IsEliminated` (6) | `PressForWarFacts`, `PressForWarPolicy.WhyNot`, `StrategistActFacts`, `StrategistAimPolicy.ChooseDeed`, `StrategistAimPolicy.DeedStands`, `StrategistTargetFacts` |
 | `Kingdom.RulingClan` (6) | `CaptiveOfferFacts`, `OutlawPolicy.IsBrigandage`, `UnionFacts`, `WarDutyLive`, `WarDutyPolicy.Decide`, `WarLoomingPolicy.ShouldRecord` |
 | `ModSettings.LordsApproaching` (6) | `FiefAudiencePolicy.ChooseFiefValid`, `FiefAudiencePolicy.IsOnCooldown`, `InterceptionFacts`, `InterceptionPacingRules.CooldownDays`, `InterceptionPacingRules.DailyChancePercent`, `InterceptionPacingRules.IsOff` |
+| `ModSettings.SceneNarration` (6) | `ComposedOpeningPolicy.ShouldCompose`, `DramaturgeDecisionFacts`, `DramaturgeDirector.EventNote`, `KeeperVerdict`, `SceneNarrationFacts`, `SceneNarrationPolicy.Shows` |
 | `PartyBase.MapFaction` (6) | `CourierLossFacts`, `CourierSecretPolicy.BecomesSecret`, `CourierSecretPolicy.IsResent`, `CourierSecretPolicy.SenderLossMemory`, `HeroNaming`, `MeetingLeaveFacts` |
 | `PartyBelongedTo.GetPosition2D` (6) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `EscortCostPolicy.EscortPremium`, `HeldTournament` |
 | `PartyBelongedTo.MapEvent` (6) | `AssemblyInvitationFacts`, `AssemblyTravelFacts`, `AssemblyTravelOutcome.Evaluate`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate`, `ReturnFacts` |
@@ -131,6 +132,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MapEvent.EventType` (5) | `BattleFacts`, `BattleMemoryText.ChronicleEngagement`, `BattleMemoryText.PlaceClause`, `BattleRecordNames`, `SkirmishFacts` |
 | `MemberRoster.TotalHealthyCount` (5) | `AuthoredBandSizeFacts`, `ExtortionLeverFacts`, `ExtortionPolicy.Yields`, `ExtortionResistanceFacts`, `PatrolReportFacts` |
 | `MobileParty.BesiegedSettlement` (5) | `AuthoredMapTriggerPolicy.WhyNot`, `ChaseFacts`, `InterceptionPolicy.PlayerCanBeApproached`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `MapTriggerFacts` |
+| `ModSettings.DramaturgeMode` (5) | `ChatLogModels`, `ComposedOpeningComposer.ComposeAsync`, `ComposedOpeningSheet`, `DramaturgeModePolicy.Runs`, `ModelModePolicy.DisplayName` |
 | `ModSettings.ReplyLanguage` (5) | `ComposedOpeningComposer.ComposeAsync`, `ComposedOpeningSheet`, `FixedLetterTranslationPolicy.NeedsTranslation`, `PendingSummaryJob`, `ReplyLanguagePolicy.WithLanguage` |
 | `PartyBelongedTo.Army` (5) | `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate`, `ReturnFacts` |
 | `Profile.ReputationWithPlayer` (5) | `DelegatedRiskFacts`, `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion`, `PeaceMediationPolicy.Evaluate`, `PrisonerTradePolicy.MayGiveFreely` |
@@ -162,6 +164,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MapEvent.IsSiegeAssault` (4) | `BattleFacts`, `Legend`, `LegendBattleFacts`, `LegendPolicy.Name` |
 | `MobileParty.PrisonRoster` (4) | `CaptiveNameMatch.Best`, `HeldCaptive`, `PrisonerCustodyPolicy.HeldByPlayer`, `PrisonerTradePolicy.ClampPrice` |
 | `ModSettings.LeanPrompt` (4) | `CharacterTextComposer.Append`, `CharacterTextComposer.ForPrompt`, `ConversationCompressionPolicy.ThresholdFor`, `TranscriptFold` |
+| `ModSettings.LlmResponseTimeoutSeconds` (4) | `ComposedOpeningComposer.ComposeAsync`, `ComposedOpeningPolicy.ComposerTimeoutSeconds`, `DramaturgeTurnComposer.ReadSceneAsync`, `GeneratedDepthGenerator.GenerateAsync` |
 | `NatureReader.LovesKindOf` (4) | `ItemConfirmationFacts`, `ItemSaleFacts`, `ItemSalePolicy.DifferenceNote`, `ItemSalePolicy.MostFor` |
 | `OwnerClan.Leader` (4) | `EdictDecreeFacts`, `EdictStandingFacts`, `HeroNaming`, `ScenePersonFact` |
 | `PairRegardReader.Assess` (4) | `ClanRegardCandidate`, `PairReasonNames`, `PairRegardPolicy.Describe`, `PairRegardPolicy.PageReason` |
@@ -170,6 +173,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Provider.SelectedValue` (4) | `ProviderRolePolicy.ParseKind`, `ProviderRolePolicy.ResolveRoleKind`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `StringComparer.OrdinalIgnoreCase` (4) | `MentionCandidate`, `RealmFaceFacts`, `SpeakerNamesakePolicy.IsMerelyANamesake`, `WomenInRanksTable` |
 | `Target.IsFemale` (4) | `KillAttemptPolicy.FallbackNarration`, `KillAttemptPolicy.NarratorTask`, `KillAttemptPolicy.ReactionHint`, `KillNarrationFacts` |
+| `TimeSpan.FromSeconds` (4) | `ComposedOpeningComposer.ComposeAsync`, `ContextLengthPolicy.ExplainOverflow`, `DramaturgeTurnComposer.ReadSceneAsync`, `GeneratedDepthGenerator.GenerateAsync` |
 | `Vec2.Distance` (4) | `AssemblyDistanceTiers.Of`, `AssemblyInvitationFacts`, `CourierStuckPolicy.HasMoved`, `GeographyDescriber.Bearing` |
 | `Vec2.Zero` (4) | `AuthoredMapTriggerPolicy.WhyNot`, `CourierGateFacts`, `EscortCostPolicy.EscortPremium`, `HeldTournament` |
 | `AgeModel.HeroComesOfAge` (3) | `CaptiveOfferFacts`, `ChildrenListText.Part`, `SharedPastPairFacts` |
@@ -214,9 +218,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MobileParty.Position` (3) | `AuthoredQuestPrompt.Narrator`, `CouncilSceneImagePolicy.Resolve`, `SceneSurroundingsFacts` |
 | `ModSettings.AllowKillingCharacters` (3) | `KillAttemptResult`, `ViolencePolicy.IsPermitted`, `ViolencePolicy.Resolve` |
 | `ModSettings.CompanionAudienceCadence` (3) | `CompanionAudiencePacingRules.CooldownDays`, `CompanionAudiencePacingRules.DailyChancePercent`, `CompanionAudiencePacingRules.IsOff` |
-| `ModSettings.DramaturgeMode` (3) | `ChatLogModels`, `DramaturgeModePolicy.Runs`, `ModelModePolicy.DisplayName` |
-| `ModSettings.LlmResponseTimeoutSeconds` (3) | `ComposedOpeningComposer.ComposeAsync`, `ComposedOpeningPolicy.ComposerTimeoutSeconds`, `GeneratedDepthGenerator.GenerateAsync` |
-| `ModSettings.SceneNarration` (3) | `ComposedOpeningPolicy.ShouldCompose`, `SceneNarrationFacts`, `SceneNarrationPolicy.Shows` |
 | `ModSettings.WarLevyScale` (3) | `StandingAim`, `SummonsFacts`, `WarLevyFacts` |
 | `ModSettings.YourDescriptionReplaces` (3) | `AppearanceComposer.Compose`, `AppearanceComposer.WithOutsideLines`, `CharacterTextComposer.Append` |
 | `Mother.IsDead` (3) | `MattersMostFacts`, `MattersMostPolicy.Resolve`, `MattersMostPolicy.StillKnown` |
@@ -239,7 +240,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Store.Set` (3) | `KillAttemptResult`, `SkirmishLine`, `SkirmishMemoryText.CountIn` |
 | `StringId.GetHashCode` (3) | `RomanticProfilePolicy.DetermineKinks`, `RomanticProfilePolicy.DetermineOrientation`, `RomanticProfilePolicy.DeterminePreferences` |
 | `TestCalledToMuster.Invoke` (3) | `RetainerLeavePolicy.CalledToMuster`, `RetainerLeavePolicy.MustLeave`, `RetainerStandingFacts` |
-| `TimeSpan.FromSeconds` (3) | `ComposedOpeningComposer.ComposeAsync`, `ContextLengthPolicy.ExplainOverflow`, `GeneratedDepthGenerator.GenerateAsync` |
 | `Town.Loyalty` (3) | `EdictCounselPolicy.Answer`, `EdictGrievanceFacts`, `EdictTownFacts` |
 | `Value.Distance` (3) | `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `JealousyHearingPolicy.WithinEarshot` |
 | `Vec2.x` (3) | `CardinalDirectionPolicy.Describe`, `GeographyDescriber.Bearing`, `QuestMenuEntry` |
@@ -543,10 +543,10 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `CompanionSecretAffectionPolicy.ShouldConfideThisWeek`: `ModSettings.RelationWarmth`
 - `CompanionServiceTransferFacts`: `Clan.Leader`, `Hero.Clan`, `Hero.GovernorOf`, `Hero.IsAlive`, `Hero.IsPrisoner`, `Hero.Spouse`
 - `CompanionServiceTransferPolicy.Evaluate`: `Clan.Leader`, `Hero.Clan`, `Hero.GovernorOf`, `Hero.IsAlive`, `Hero.IsPrisoner`, `Hero.Spouse`
-- `ComposedOpeningComposer.ComposeAsync`: `GameStateBridge.GetCurrentGameDay`, `ModSettings.LlmResponseTimeoutSeconds`, `ModSettings.ReplyLanguage`, `TimeSpan.FromSeconds`
+- `ComposedOpeningComposer.ComposeAsync`: `GameStateBridge.GetCurrentGameDay`, `ModSettings.DramaturgeMode`, `ModSettings.LlmResponseTimeoutSeconds`, `ModSettings.ReplyLanguage`, `TimeSpan.FromSeconds`
 - `ComposedOpeningPolicy.ComposerTimeoutSeconds`: `ModSettings.LlmResponseTimeoutSeconds`
 - `ComposedOpeningPolicy.ShouldCompose`: `DialogFlow.Profile`, `GameStateBridge.GetCurrentGameDay`, `ModSettings.ComposedOpening`, `ModSettings.SceneNarration`
-- `ComposedOpeningSheet`: `GameStateBridge.GetCurrentGameDay`, `ModSettings.ReplyLanguage`
+- `ComposedOpeningSheet`: `GameStateBridge.GetCurrentGameDay`, `ModSettings.DramaturgeMode`, `ModSettings.ReplyLanguage`
 - `ConceptionChroniclePolicy.IsPublicHeir`: `Hero.IsLord`, `Hero.Spouse`
 - `ConceptionFacts`: `Hero.Age`, `Hero.IsAlive`, `Hero.IsFemale`
 - `ContentmentPacingRules.DriftStepFor`: `ModSettings.CompanionPacing`
@@ -602,8 +602,11 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `DivorcePolicy.IsEligible`: `Hero.GetRelation`, `Hero.GovernorOf`, `Hero.IsClanLeader`, `Hero.IsPregnant`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Spouse`, `PairBondReader.Points`, `PartyBelongedTo.LeaderHero`, `Romantic.IsConsort`, `Status.IsCourtingOrDeeper`
 - `DivorcePolicy.IsMutualConsent`: `Hero.GetRelation`
 - `DivorcedSpouseFacts`: `Hero.GovernorOf`, `Hero.IsClanLeader`, `Hero.PartyBelongedTo`, `PartyBelongedTo.LeaderHero`
+- `DramaturgeDecisionFacts`: `ModSettings.SceneNarration`
+- `DramaturgeDirector.EventNote`: `ModSettings.SceneNarration`
 - `DramaturgeModePolicy.Runs`: `DialogFlow.Profile`, `ModSettings.DramaturgeMode`
 - `DramaturgeSheet`: `Profile.Name`
+- `DramaturgeTurnComposer.ReadSceneAsync`: `ModSettings.LlmResponseTimeoutSeconds`, `TimeSpan.FromSeconds`
 - `DuelAcceptanceContext`: `StatureReader.Of`, `StatureReader.Player`
 - `DuelBystanderFacts`: `Mission.MainAgent`, `Mission.PlayerTeam`
 - `DuelChallengeContext`: `Hero.Children`, `Hero.Father`, `Hero.IsAlive`, `Hero.IsChild`, `Hero.IsPrisoner`, `Hero.IsWounded`, `Hero.Mother`, `Hero.Spouse`, `PartyBelongedToAsPrisoner.LeaderHero`, `SocialStationReader.StationOf`
@@ -792,6 +795,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `JointAttackPolicy.Refusal`: `Clan.IsUnderMercenaryService`, `Clan.Kingdom`, `Clan.Tier`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Kingdom.Leader`, `MobileParty.Army`, `MobileParty.LeaderHero`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`, `Party.EstimatedStrength`
 - `JointAttackProgressFacts`: `Clan.Kingdom`, `FactionManager.IsAtWarAgainstFaction`, `Hero.IsPrisoner`, `MobileParty.Army`, `MobileParty.IsActive`, `MobileParty.IsBandit`, `MobileParty.MapFaction`, `Settlement.Find`, `Settlement.IsRaided`, `Settlement.IsVillage`, `Settlement.MapFaction`
 - `JointAttackSide`: `Clan.IsUnderMercenaryService`, `Clan.Tier`, `Kingdom.Leader`, `Party.EstimatedStrength`
+- `KeeperVerdict`: `ModSettings.SceneNarration`
 - `KillAftermathFacts`: `Result.Killed`
 - `KillAttemptPolicy.ChanceReasons`: `ViolenceSceneReader.FactsFor`
 - `KillAttemptPolicy.FallbackNarration`: `Facts.Exposure`, `Result.Killed`, `Target.IsFemale`

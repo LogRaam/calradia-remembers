@@ -176,6 +176,8 @@ namespace CalradiaRemembers.Chat
             Tension = string.IsNullOrWhiteSpace(reply.Tension) ? null : reply.Tension
          };
          _composedOpening = opening.HasContent ? opening : null;
+         // Stage 7 (Dramaturge mode): the checked events wait for the dramaturge; outside it the composer was asked for none.
+         KeepComposedEvents(reply.Events);
          SettleSceneOpener(SceneOpenerOutcome.Composed);
          // The scene is set: the first player turn must not ask for an opening tableau again (the opener turn that would have
          // consumed this never ran).
@@ -243,7 +245,9 @@ namespace CalradiaRemembers.Chat
             PlayerGear = context.PlayerGear,
             Present = (context.Witnesses ?? new List<WitnessEntry>()).Select(w => w?.Name).Where(n => !string.IsNullOrWhiteSpace(n)).ToList(),
             Greeting = _sceneOpenerGreetingText,
-            Language = ModSettings.ReplyLanguage
+            Language = ModSettings.ReplyLanguage,
+            // Stage 7: only in the Dramaturge mode does the composer also propose events (the dramaturge's, checked).
+            ProposeEvents = ModSettings.DramaturgeMode
          };
       }
 
