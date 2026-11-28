@@ -456,7 +456,8 @@ namespace CalradiaRemembers.Tests.Conversation
                (string complication, bool end) = DramaturgeOn
                   ? await Dramaturge(m, sc, scene, states, usedComplications, beat, cost, calls, debug)
                   : (await Director(m, sc, scene, usedComplications, cost, calls, debug), false);
-               if (end) break;
+               // Nobody left to talk to: the scene is over.
+               if (end || sc.Cast.All(c => away.Contains(c.Name))) break;
                if (complication != null)
                {
                   string[] parts = complication.Split('|');
@@ -500,6 +501,14 @@ namespace CalradiaRemembers.Tests.Conversation
                SceneLine last = scene.Last(l => !l.IsNarration);
                int lastStanding = last.IsPlayer ? PlayerStanding : sc.Cast.First(c => c.Name == last.Speaker).Standing;
                List<Character> listeners = sc.Cast.Where(c => c.Name != last.Speaker && !away.Contains(c.Name)).ToList();
+               // A two-person scene of 27/11/2026: Rhian sent Corvan away (end_conversation) and the scene went on, since the leave
+               // was read only when someone was left to listen. The last NPC line's deeds are read here too.
+               if (listeners.Count == 0 && !last.IsPlayer)
+               {
+                  (SceneLine Line, Task<string> Task) leaving = interpreting.LastOrDefault(x => x.Line == last);
+                  if (leaving.Task != null && (await leaving.Task).Contains("end_conversation") && away.Add(last.Speaker))
+                     debug.AppendLine($"- {last.Speaker} ends the conversation and leaves");
+               }
                if (listeners.Count == 0) break;
 
                // Every present character's inner life moves with the line, side by side with the floor judge; the turn waits for
@@ -721,11 +730,14 @@ namespace CalradiaRemembers.Tests.Conversation
       private static async Task<(string Problem, string Detail, List<string> Facts)> Inspect(Models m, Scenario sc, Character c, InnerState s, List<SceneLine> scene, string reply,
                                                                                             double[] cost, Dictionary<string, int> calls)
       {
-         string system = "You keep the record of a scene. You never write the story. A NEW LINE has just been written. Answer exactly four lines:"
-                       + "\nproblem: <none | lie | repeat | contradiction>"
-                       + "\ndetail: <the false statement, the repeated gesture or image, or the record it contradicts; or none>"
+         string system = "You keep the record of a scene. You never write the story. A NEW LINE has just been written. Answer exactly four lines, in this order;"
+                       // A review of 27/11/2026: the keeper wrote "problem: lie" first, then reasoned "this is not shown false... no established
+                       // fact contradicts it", and the line was rewritten all the same. The verdict now comes last, after the reasoning.
+                       + " decide the problem LAST, after weighing the detail:"
+                       + "\ndetail: <the false statement, the repeated gesture or image, or the record it contradicts, with your reasoning; or none>"
                        + "\nfacts: <what this line makes true for everyone present: objects moved, who holds what, what was shown, admitted or revealed; separated by ' | '; or none>"
                        + $"\nrevealed: <yes | no> (does this line tell those present the secret in WHAT {c.Name.ToUpperInvariant()} KNOWS, in whole or in part?)"
+                       + "\nproblem: <none | lie | repeat | contradiction> (your final verdict on the detail above; if your reasoning cleared the line, none)"
                        + $"\nA LIE: a statement of fact that WHAT {c.Name.ToUpperInvariant()} KNOWS shows to be false, or an excuse {c.Name} invents and knows is untrue."
                        // The third review of 27/11/2026: the keeper read the absence of proof as a lie ("Tomas cannot have seen Berold fight,
                        // since he fled") and had Tomas rewrite that his sword's notches were old, which the scenario makes true.
@@ -741,12 +753,14 @@ namespace CalradiaRemembers.Tests.Conversation
                      + $"\n\nTHE RECORD (established in this scene):\n{RecordText(sc)}\n\nTHE SCENE SO FAR:\n{SceneText(scene)}\n\nTHE NEW LINE ({c.Name}):\n{reply}";
          LlmResponse r = await m.Judge.CompleteAsync(new LlmRequest {
             SystemPrompt = system, Messages = new[] {new LlmMessage(MessageRole.User, user)},
-            Parameters = new LlmParameters {MaxTokens = 250, Creativity = 0.1f, AllowTruncationRetry = false}
+            // The verdict now comes after the reasoning, so the reply is longer: cut short, it would lose the verdict and pass the line.
+            Parameters = new LlmParameters {MaxTokens = 600, Creativity = 0.1f, AllowTruncationRetry = false}
          });
          lock (cost) { cost[0] += r.Usage?.Cost ?? 0; calls["keeper"]++; }
          string content = r.Content ?? "";
          string Line(string name) => Clean(Regex.Match(content, $@"(?im)^\s*{name}\s*:\s*(.+)$").Groups[1].Value);
          string problem = Line("problem").ToLowerInvariant();
+         if (problem.Length == 0) lock (sc.Record) Fallbacks.Add($"keeper gave no verdict on {c.Name}'s line (finish {r.FinishReason})");
          problem = problem.StartsWith("lie") ? "lie" : problem.StartsWith("repeat") ? "repeat" : problem.StartsWith("contradiction") ? "contradiction" : "none";
          List<string> facts = Line("facts").Split('|').Select(f => f.Trim()).Where(f => f.Length > 0 && !f.StartsWith("none", StringComparison.OrdinalIgnoreCase)).ToList();
 
