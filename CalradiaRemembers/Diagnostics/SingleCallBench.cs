@@ -139,7 +139,7 @@ namespace CalradiaRemembers.Diagnostics
          var interpRequest = new LlmRequest {
             SystemPrompt = interpPrompt,
             Messages = new[] {new LlmMessage(MessageRole.User, ActionInterpreterPromptBuilder.FinalInstruction)},
-            Parameters = new LlmParameters {MaxTokens = 900, Creativity = 0.2f}
+            Parameters = new LlmParameters {MaxTokens = NpcMemoryService.Core.Actions.InterpreterReplyBudget.Tokens, Creativity = 0.2f}
          };
 
          LlmResponse interpResponse;

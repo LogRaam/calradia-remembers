@@ -8,7 +8,7 @@ sentence beside each type is the first sentence of its own doc comment; `(no sum
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 703 types in 66 namespaces, 4 without a summary
 - **Logic (pure, `CalradiaRemembers.Logic`)**: 1827 types in 62 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 306 types in 17 namespaces, 9 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 307 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -3222,7 +3222,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 ## SDK (engine-agnostic, `NpcMemoryService.Core`)
 
-### NpcMemoryService.Core.Actions (18)
+### NpcMemoryService.Core.Actions (19)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -3237,6 +3237,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `GameActionCatalog` | public static class | The SINGLE source of truth for every action verb the mod's game bridge (BannerlordGameStateBridge.ExecuteAction) and its ChatViewModel chat-flow controls (witness_leaves, request_privacy, retire) actually dispatch. |
 | `GameActionParam` | public class | One named parameter a GameActionSpec accepts, with a short human-readable meaning so the interpreter prompt can explain what value belongs there. |
 | `GameActionSpec` | public class | One action verb the game bridge (or its ChatViewModel chat-flow controls) actually dispatches: its Type key, a one-line factual Description of the deed, and the Parameters it reads. |
+| `InterpreterReplyBudget` | public static class | How many tokens one reading of the action interpreter may spend, in the game and in the bench alike. |
 | `SingleCallAgreement` | public static class | Compares two tag sets by substantive action type. |
 | `SingleCallAgreementResult` | public class | The result of comparing one single-call reply's self-tags against the interpreter's tags. |
 | `SingleCallAgreementVerdict` | public enum | Agreement between the single call's self-tags and the interpreter's tags on the same prose. |

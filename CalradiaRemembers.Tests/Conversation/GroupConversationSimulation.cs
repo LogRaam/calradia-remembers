@@ -1152,7 +1152,7 @@ namespace CalradiaRemembers.Tests.Conversation
          LlmResponse r = await m.Interpreter.CompleteAsync(new LlmRequest {
             SystemPrompt = prompt, StableSystemPrompt = ActionInterpreterPromptBuilder.StablePrefixFor(LeanPromptLevel.Full),
             Messages = new[] {new LlmMessage(MessageRole.User, ActionInterpreterPromptBuilder.FinalInstruction)},
-            Parameters = new LlmParameters {MaxTokens = 900, Creativity = 0.2f}
+            Parameters = new LlmParameters {MaxTokens = NpcMemoryService.Core.Actions.InterpreterReplyBudget.Tokens, Creativity = 0.2f}
          });
          lock (cost) { cost[0] += r.Usage?.Cost ?? 0; calls["interpret"]++; }
          if (!r.IsSuccess) return "(interpreter failed)";

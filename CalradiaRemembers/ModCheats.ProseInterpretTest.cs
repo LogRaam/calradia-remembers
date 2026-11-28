@@ -315,7 +315,7 @@ namespace CalradiaRemembers
             var request = new LlmRequest {
                SystemPrompt = prompt,
                Messages = new[] {new LlmMessage(MessageRole.User, ActionInterpreterPromptBuilder.FinalInstruction)},
-               Parameters = new LlmParameters {MaxTokens = 900, Creativity = 0.2f}
+               Parameters = new LlmParameters {MaxTokens = NpcMemoryService.Core.Actions.InterpreterReplyBudget.Tokens, Creativity = 0.2f}
             };
 
             int budgetSeconds = Math.Max(15, ModSettings.LlmResponseTimeoutSeconds) + 5;

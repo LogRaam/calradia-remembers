@@ -29,8 +29,8 @@ namespace CalradiaRemembers.Chat
    /// </summary>
    public static class ActionInterpreterComposer
    {
-      /// <summary>The interpreter's reply budget (see the request below for why 900).</summary>
-      private const int InterpreterReplyTokens = 900;
+      /// <summary>The interpreter's reply budget, shared with the bench (InterpreterReplyBudget: 1400 since 28/11/2026).</summary>
+      private const int InterpreterReplyTokens = NpcMemoryService.Core.Actions.InterpreterReplyBudget.Tokens;
 
       private static bool FitsWindow(int window, string prompt)
          => ContextFitPolicy.Fit(new ContextFitFacts {
@@ -113,7 +113,7 @@ namespace CalradiaRemembers.Chat
             // every reply an interpreter call, and the wire recorder compared the two prefixes against each other.
             Subject = CalradiaRemembers.Logic.Diagnostics.ChatLogRoles.InterpreterSubject(profile?.Id),
             Messages = new[] {new LlmMessage(MessageRole.User, ActionInterpreterPromptBuilder.FinalInstruction)},
-            // 900, not 600: the two-step FinalInstruction makes the model write a CHECK grounding line per
+            // 900, not 600 (1400 since 28/11/2026, InterpreterReplyBudget): the two-step FinalInstruction makes the model write a CHECK grounding line per
             // candidate action BEFORE the tag block. A reply carrying several deeds can spend 600 on the CHECK
             // preamble and truncate the tags (bench 2026-08-19 16:06: empty emits + a "no content" call). Even
             // with reasoning pinned off (LlmServices.InterpreterReasoningEffort) some models emit stray reasoning
