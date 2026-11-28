@@ -214,6 +214,8 @@ namespace CalradiaRemembers.Chat
                Subject = "floor judge"
             })).ToList();
 
+         // Read here, on the main thread: the note below is written after the calls, off it.
+         Dictionary<string, string> names = present.GroupBy(sp => sp.Hero.StringId).ToDictionary(g => g.Key, g => g.First().Name);
          ILlmClient judge = FloorJudgeClient;
          CancellationToken token = _windowClosing.Token;
          TimeSpan limit = TimeSpan.FromSeconds(GroupFloorPolicy.JudgeTimeoutSeconds);
@@ -231,7 +233,7 @@ namespace CalradiaRemembers.Chat
          };
          List<FloorBid> bids = GroupFloorPolicy.BuildBids(judgedRound);
          NoteGroup(ChatLogWhyKind.Judge, $"judged {replies.Count(r => r.Content != null)} of {asks.Count} listener(s): "
-                                         + string.Join("; ", verdicts.Select(kv => $"{NameOfActive(kv.Key)} {kv.Value.Intent.ToString().ToLowerInvariant()}{(kv.Value.Reaction != null ? " (" + kv.Value.Reaction + ")" : "")}")));
+                                         + string.Join("; ", verdicts.Select(kv => $"{(names.TryGetValue(kv.Key, out string nm) ? nm : kv.Key)} {kv.Value.Intent.ToString().ToLowerInvariant()}{(kv.Value.Reaction != null ? " (" + kv.Value.Reaction + ")" : "")}")));
 
          return (TurnArbiter.Decide(new FloorRound {Bids = bids, NpcLinesSincePlayer = npcLines, PlayerSpokeLast = playerSpoke}), bids, true);
       }
