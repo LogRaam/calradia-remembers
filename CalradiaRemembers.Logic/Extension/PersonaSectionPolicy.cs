@@ -62,12 +62,23 @@ namespace CalradiaRemembers.Logic.Extension
         /// </summary>
         public const string ConfidedByAnotherMod = "mod_private";
 
+        /// <summary>
+        ///   What the character's meetings with the player left (Stage 2 of the group-scene plan, 28/11/2026): it holds what
+        ///   the character keeps from the player, so it is never handed to a mod either (the conservative choice, Gabriel's
+        ///   to revisit). New with 2.8.22, so no bridge already shipped loses anything.
+        /// </summary>
+        public const string KeptFromThePlayer = "meeting_memory";
+
         /// <summary>Whether a prompt section belongs in a character's persona.</summary>
         public static bool IsPersona(string sectionKey)
             => !string.IsNullOrWhiteSpace(sectionKey) && Keys.Contains(sectionKey.Trim());
 
-        /// <summary>Whether a section's text may be handed to a mod at all (every section but <see cref="ConfidedByAnotherMod" />).</summary>
+        /// <summary>
+        ///   Whether a section's text may be handed to a mod at all (every section but <see cref="ConfidedByAnotherMod" /> and
+        ///   <see cref="KeptFromThePlayer" />).
+        /// </summary>
         public static bool MayLeaveCr(string sectionKey)
-            => !string.Equals(sectionKey?.Trim(), ConfidedByAnotherMod, StringComparison.OrdinalIgnoreCase);
+            => !string.Equals(sectionKey?.Trim(), ConfidedByAnotherMod, StringComparison.OrdinalIgnoreCase)
+               && !string.Equals(sectionKey?.Trim(), KeptFromThePlayer, StringComparison.OrdinalIgnoreCase);
     }
 }

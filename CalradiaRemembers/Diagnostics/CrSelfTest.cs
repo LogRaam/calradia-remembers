@@ -18465,7 +18465,8 @@ namespace CalradiaRemembers.Diagnostics
 
             var world = new WorldState {CurrentDay = today};
             EncounterContext ctx = EncounterContextBuilder.Build(lord, reloaded ?? profile, behavior.GameStateBridge);
-            string prompt = behavior.LlmServices.DebugBuildPromptBuilder().BuildSystemPrompt(reloaded ?? profile, world, ctx) ?? "";
+            // The builder the chat itself runs on: flipping the switch must rebuild it (LlmServices' fingerprint).
+            string prompt = behavior.LlmServices.ChatService?.PromptBuilder?.BuildSystemPrompt(reloaded ?? profile, world, ctx) ?? "";
             t.Expect("thePromptShowsTheChange", prompt.Contains("3 days ago: I no longer take him for a mere sellsword"), true);
             t.Expect("thePromptShowsWhereTheyStand", prompt.Contains($"Where you stand with {player}:"), true);
             t.Expect("thePromptShowsWhatIsUnsettled", prompt.Contains("Still unsettled between you:") && prompt.Contains("whether he will speak for my brother"), true);
@@ -18474,7 +18475,7 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("aTalkOpenedBeforeTheUpdateDoesNotSeeIt", (behavior.LlmServices.DebugBuildPromptBuilder().BuildSystemPrompt(reloaded ?? profile, world, frozen) ?? "").Contains("Still unsettled between you:"), false);
 
             CrSettings.Instance.MeetingMemory = false;
-            t.Expect("switchOffThePromptIsSilent", (behavior.LlmServices.DebugBuildPromptBuilder().BuildSystemPrompt(reloaded ?? profile, world, ctx) ?? "").Contains("Still unsettled between you:"), false);
+            t.Expect("switchOffThePromptIsSilent", (behavior.LlmServices.ChatService?.PromptBuilder?.BuildSystemPrompt(reloaded ?? profile, world, ctx) ?? "").Contains("Still unsettled between you:"), false);
 
             // Compression on a temporary profile holding the same record: it folds the events and keeps the record.
             var temp = new NpcProfile {Id = tempId, Name = "[SELFTEST] Meeting", Faction = "", Clan = "", MeetingMemory = m?.Clone()};

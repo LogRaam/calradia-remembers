@@ -50,6 +50,16 @@ namespace CalradiaRemembers.Tests
          PersonaSectionPolicy.MayLeaveCr("identity").Should().BeTrue();
       }
 
+      // STAKE (Stage 2, 28/11/2026): what a meeting left holds what the character keeps from the player; a mod handed the
+      // stock sections must not read it out to the player through its own prompt.
+      [Test]
+      public void GIVEN_what_meetings_left_WHEN_asked_THEN_it_is_never_in_a_persona_and_never_leaves_CR()
+      {
+         PersonaSectionPolicy.IsPersona("meeting_memory").Should().BeFalse();
+         PersonaSectionPolicy.MayLeaveCr("meeting_memory").Should().BeFalse();
+         NpcMemoryService.Core.Prompts.PromptBuilder.CharacterSections.Select(s => s.Key).Should().Contain(PersonaSectionPolicy.KeptFromThePlayer);
+      }
+
       // STAKE: the sections written for a talk WITH THE PLAYER (his standing, a duel or fief offered to him, a secret held
       // about him) and CR's reply format and verbs: a lord writing to another lord must not recite them.
       [TestCase("player_standing")]

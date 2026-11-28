@@ -74,6 +74,7 @@ namespace CalradiaRemembers.Services
       private int? _builtReplyBudget;
       private float _builtPresencePenalty;
       private bool _builtSceneNarration;
+      private bool _builtMeetingMemory;
       private NpcChatService _chatService;
 
       private HttpClient _httpClient;
@@ -139,6 +140,7 @@ namespace CalradiaRemembers.Services
             int? replyBudget = ModSettings.ReplyTokenBudget;
             float presencePenalty = ModSettings.PresencePenalty;
             bool sceneNarration = ModSettings.SceneNarration;
+            bool meetingMemory = ModSettings.MeetingMemory;
 
             string playerFaction = Hero.MainHero?.MapFaction?.Name?.ToString() ?? "";
             string playerClan = Hero.MainHero?.Clan?.Name?.ToString() ?? "";
@@ -149,7 +151,7 @@ namespace CalradiaRemembers.Services
                                       && _builtPlayerFaction == playerFaction && _builtPlayerClan == playerClan
                                       && _builtTemperature == temperature && _builtReplyBudget == replyBudget
                                       && _builtPresencePenalty == presencePenalty && _builtPlayerIdentity == playerIdentity
-                                      && _builtSceneNarration == sceneNarration)
+                                      && _builtSceneNarration == sceneNarration && _builtMeetingMemory == meetingMemory)
                return _chatService;
             _chatService = BuildChatService();
             _builtAdultLevel = current;
@@ -162,6 +164,7 @@ namespace CalradiaRemembers.Services
             _builtReplyBudget = replyBudget;
             _builtPresencePenalty = presencePenalty;
             _builtSceneNarration = sceneNarration;
+            _builtMeetingMemory = meetingMemory;
             _builtPlayerIdentity = playerIdentity;
 
             return _chatService;
