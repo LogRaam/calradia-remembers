@@ -219,3 +219,53 @@ What M still gets wrong:
   recur (Edric's cup, gazes held). The next lever is that gate, not the minds.
 - **A rewritten line is never checked again.** The keeper catches two to four lies a scene and has each line written
   again, but nothing reads the new version, and one rewrite still misstated the letter.
+
+## Fifth round: the third review, tried and not adopted (27/11/2026, night)
+
+The points tried, following a third review approved by Gabriel:
+- **Narrative salience.**
+  - The narrator is told an inner change does not by itself deserve narration, and may answer "nothing". In five scenes
+    the prose model never once answered "nothing".
+  - So the code decides instead: at most one narrated reaction a line, and someone already shown that beat comes back only
+    for a change of aim or a lasting change.
+- **The keeper.**
+  - Only what the speaker knows to be false is a lie. A claim not yet established, an inference or a sincere belief is not.
+    Before this, the keeper had refused Tomas saying his sword's notches were old, which the scenario makes true.
+  - A rewrite with a lie or a contradiction is read once more.
+- **A clue is not a proof** in the inner lives.
+- **The cost of a secret** replaces the four-presses rule: the secret goes when keeping it costs more than telling,
+  weighed by the character's own values, and by who asks.
+- **Edric.**
+  - Diagnosis: his inner life wanted urgently to speak, by duty, one to six times a scene. The turn arbiter's deference
+    lowered him one or two notches before everyone in the hall, all of them above him.
+  - Tried: a `Duty` bid in TurnArbiter, which skips deference when the inner life names a concrete thing the duty allows
+    (a `move` field). With it, Edric spoke in eight of ten scenes.
+- **A new baseline A**, with the private letter fixed.
+
+Graded blind (Opus), five drama runs each. Each column is one grading, read only within itself:
+
+| Variant | Grading 1 | Grading 2 |
+|---|---|---|
+| A, new baseline (no inner lives, old reader, no keeper) | 6.57 | 6.06 |
+| M, the committed state | 6.53 | **6.37** |
+| N, all the points above | 5.09 | |
+| O, N plus the salience decided in code | 5.56 | 5.30 |
+| P, O with the move shown only on a duty turn, and the gesture clause back | | 6.10 |
+
+What this round showed:
+- **The baseline is much closer than we thought.** In the first grading A equals M. M wins on change (+1.4) and
+  consequence (+2.7), and loses on repetition, voices, coherence and subtext. The "+1 over the baseline" of the protocol did
+  not reproduce. The grading is relative, so the same configuration moves by up to a point with its company. One caveat:
+  A brings almost no events.
+- **The move field shown to every speaker filled the scenes with arrangements** (the chapel, the solar, who takes the boy
+  up). That made N the worst variant: change fell to 4.6 and consequence to 4.8.
+- **Salience decided in code helped repetition** (O 5.8 against N 4.2, first grading), but not the mean.
+- **P recovers most of the loss but stays below M,** within the noise. By the stop rule set before the round, the code
+  went back to M.
+
+Variant P is kept in `variant-p-2026-11-27.patch`, to apply with `git apply` from the mod root. The pieces worth trying
+alone next:
+- the keeper's lie definition, a confirmed bug fix;
+- the reread of a rewrite;
+- the salience gate in code;
+- Edric's duty bid.

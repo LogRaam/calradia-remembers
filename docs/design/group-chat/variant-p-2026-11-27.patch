@@ -1,0 +1,244 @@
+diff --git a/CalradiaRemembers.Logic/Conversation/TurnArbiter.cs b/CalradiaRemembers.Logic/Conversation/TurnArbiter.cs
+index c89f510..101ba27 100644
+--- a/CalradiaRemembers.Logic/Conversation/TurnArbiter.cs
++++ b/CalradiaRemembers.Logic/Conversation/TurnArbiter.cs
+@@ -20,6 +20,11 @@
+ // holds back before someone above them, one notch per step of rank, a bold temperament one notch less, and speaks over
+ // them only with a wish still strong after that. The feeling is not lost: it shows in the reaction. And "timide reste
+ // silencieux": a timid listener never volunteers the floor; spoken to, they answer.
++//
++// DUTY (27/11/2026, approved by Gabriel with the plan "débloquer Edric"). The old priest who holds the seal never spoke in five
++// simulated scenes although his inner life wanted to, by duty, one to six times a scene: deference lowered him one or two notches
++// before everyone in the hall, all of them above him. A listener the host marks as duty-bound, with a concrete thing to do, is
++// not held back by rank, as one the line was put to is not.
+ 
+ #region
+ 
+@@ -77,6 +82,12 @@ namespace CalradiaRemembers.Logic.Conversation
+       /// <summary>A timid temperament (the host reads it from the character's traits): never takes the floor unless spoken to.</summary>
+       public bool Timid { get; init; }
+ 
++      /// <summary>
++      ///   A duty to speak, with a concrete thing to do (a priest who must shield a child from a lie): rank does not hold this
++      ///   listener back. The host decides it; the wish to speak is still the judge's.
++      /// </summary>
++      public bool Duty { get; init; }
++
+       /// <summary>
+       ///   The reaction last SHOWN for this character in this beat, or null. A reaction is shown again only when it changes
+       ///   (Gabriel, 26/11/2026: "oui" to showing a reaction only when it is new; the third simulated scene narrated the squire's
+@@ -214,7 +225,7 @@ namespace CalradiaRemembers.Logic.Conversation
+       public static JudgedIntent EffectiveIntent(FloorBid bid)
+       {
+          if (bid == null) return JudgedIntent.None;
+-         if (bid.Addressed || bid.AskedByName || bid.LastSpeakerStanding < 0) return bid.Intent;
++         if (bid.Addressed || bid.AskedByName || bid.Duty || bid.LastSpeakerStanding < 0) return bid.Intent;
+ 
+          int notches = Math.Min(DeferenceMaxNotches, bid.LastSpeakerStanding - bid.Standing) - (bid.Bold ? 1 : 0);
+          if (notches <= 0) return bid.Intent;
+diff --git a/CalradiaRemembers.Tests/Conversation/GroupConversationSimulation.cs b/CalradiaRemembers.Tests/Conversation/GroupConversationSimulation.cs
+index 8ea7442..cde6eb5 100644
+--- a/CalradiaRemembers.Tests/Conversation/GroupConversationSimulation.cs
++++ b/CalradiaRemembers.Tests/Conversation/GroupConversationSimulation.cs
+@@ -135,6 +135,12 @@ namespace CalradiaRemembers.Tests.Conversation
+          public bool Leak;
+          // What an event showed this character alone, waiting to be told to their inner life.
+          public string PrivateNews = "";
++         // The third review of 27/11/2026: "a character with a strong motive but no feasible action may stay silent forever". What
++         // the character could do now, to whom, within their bonds (Edric cannot reveal the seal, he can shield the child).
++         public string Move = "none";
++         // The move is shown to the character only on a turn their duty lifted deference: shown to every speaker, it filled
++         // the scenes with arrangements (chapel, solar, who takes the boy up; variant N graded 5.1 against 6.5).
++         public bool DutyNow;
+       }
+ 
+       private sealed class Models
+@@ -510,11 +516,13 @@ namespace CalradiaRemembers.Tests.Conversation
+                   JudgedIntent intent = verdicts[i].Intent;
+                   string urge = InnerOn ? states[c.Name].Urge : "none";
+                   bool obliged = urge.StartsWith("high") && (urge.Contains("duty") || urge.Contains("moral"));
++                  bool duty = obliged && InnerOn && !states[c.Name].Move.StartsWith("none");
++                  if (InnerOn) states[c.Name].DutyNow = duty;
+                   if (obliged && intent < JudgedIntent.Urgent) intent += 1;
+                   bids.Add(new FloorBid {
+                      Id = c.Name, Intent = intent, Reaction = verdicts[i].Reaction, Addressed = addressed, AskedByName = askedByName,
+                      Targeted = !addressed && named, Standing = c.Standing, TurnsSilent = TurnsSilent(scene, c.Name), WasCutOff = cutOff == c.Name,
+-                     LastSpeakerStanding = lastStanding, Bold = c.Bold, Timid = c.Timid, TieBreak = random.Next(1000),
++                     LastSpeakerStanding = lastStanding, Bold = c.Bold, Timid = c.Timid, Duty = duty, TieBreak = random.Next(1000),
+                      LastShownReaction = shownThisBeat.TryGetValue(c.Name, out string seen) ? seen : null
+                   });
+                }
+@@ -523,7 +531,7 @@ namespace CalradiaRemembers.Tests.Conversation
+ 
+                FloorDecision d = TurnArbiter.Decide(new FloorRound {Bids = bids, NpcLinesSincePlayer = npcLines, PlayerSpokeLast = last.IsPlayer});
+                debug.AppendLine($"- after {last.Speaker}: " + string.Join("; ", bids.Where(b => !b.SpokeLast).Select(b =>
+-                  $"{b.Id} {b.Intent}{(InnerOn && !states[b.Id].Urge.StartsWith("none") ? " {" + states[b.Id].Urge + "}" : "")}{(TurnArbiter.EffectiveIntent(b) != b.Intent ? "->" + TurnArbiter.EffectiveIntent(b) : "")}{(b.Addressed ? " [to]" : "")}{(b.Targeted ? " [about]" : "")}{(b.Reaction != null ? " (" + b.Reaction + ")" : "")}"))
++                  $"{b.Id} {b.Intent}{(InnerOn && !states[b.Id].Urge.StartsWith("none") ? " {" + states[b.Id].Urge + "}" : "")}{(b.Duty ? " [duty: " + states[b.Id].Move + "]" : "")}{(TurnArbiter.EffectiveIntent(b) != b.Intent ? "->" + TurnArbiter.EffectiveIntent(b) : "")}{(b.Addressed ? " [to]" : "")}{(b.Targeted ? " [about]" : "")}{(b.Reaction != null ? " (" + b.Reaction + ")" : "")}"))
+                   + $" => {(d.Outcome == FloorOutcome.Speak ? d.SpeakerId + (d.CutOffId != null ? " cuts off " + d.CutOffId : "") : d.Outcome.ToString())}");
+                foreach (Character c in sc.Cast.Where(c => InnerOn && states[c.Name].Shift != "none" && !away.Contains(c.Name)))
+                   debug.AppendLine($"  - {c.Name} changes: {states[c.Name].Shift} (now {states[c.Name].Feeling}; wants: {states[c.Name].Aim})");
+@@ -533,8 +541,8 @@ namespace CalradiaRemembers.Tests.Conversation
+                // Run 2 showed Kael's jealousy nine times ("jealous", "jealous fury"...): the label varied, the feeling did not.
+                List<string> leaks = !InnerOn ? new List<string>() : sc.Cast.Where(c => states[c.Name].Leak && c.Name != d.SpeakerId && !away.Contains(c.Name)).Select(c => c.Name).ToList();
+                List<string> shown = d.ReactorIds.Where(id => id != d.SpeakerId)
+-                  .Where(id => !InnerOn || (!states[id].Visible.StartsWith("nothing") && (!shownThisBeat.ContainsKey(id) || states[id].Shift != "none")))
+-                  .Concat(leaks).Distinct().Take(2).ToList();
++                  .Where(id => !InnerOn || (!states[id].Visible.StartsWith("nothing") && (!shownThisBeat.ContainsKey(id) || Strong(states[id]))))
++                  .Concat(leaks).Distinct().Take(InnerOn ? 1 : 2).ToList();
+                foreach (string id in leaks) states[id].Leak = false;
+                Task<(string Text, string Model)> narrating = null;
+                if (shown.Count > 0)
+@@ -552,6 +560,11 @@ namespace CalradiaRemembers.Tests.Conversation
+                if (narrating != null)
+                {
+                   string first = ((await narrating).Text ?? "").Replace("\r", "").Split('\n').Select(Clean).FirstOrDefault(l => l.Length > 0) ?? "";
++                  if (Regex.IsMatch(first.Trim('*', ' ', '.'), "^(nothing|none)$", RegexOptions.IgnoreCase))
++                  {
++                     debug.AppendLine("  - narrator: nothing worth showing");
++                     first = "";
++                  }
+                   // A reaction that only copies a line already in the scene is dropped (the protocol: the banner's arrival appeared three
+                   // times, the reaction writer had echoed the event).
+                   bool echo = scene.Any(l => string.Equals(l.Text.Trim('*', ' '), first.Trim('*', ' '), StringComparison.OrdinalIgnoreCase));
+@@ -664,7 +677,14 @@ namespace CalradiaRemembers.Tests.Conversation
+                     : $"contradicted what is established ({detail}). Keep to what is established.";
+          (string System, string User) prompt = LinePrompt(sc, c, room, scene, cutOff, s);
+          (string text2, string model2) = await Write(m, (prompt.System + "\nYour first draft " + why, prompt.User), 1500, calls, cost);
+-         (_, _, List<string> facts2) = await Inspect(m, sc, c, s, scene, text2, cost, calls);
++         (string problem2, string detail2, List<string> facts2) = await Inspect(m, sc, c, s, scene, text2, cost, calls);
++         // The rewrite is read once more (the fourth round: one rewrite still misstated the letter, and nothing read it).
++         if (problem2 == "lie" || problem2 == "contradiction")
++         {
++            debug.AppendLine($"  - keeper: the rewrite still has a {problem2}: {detail2}; written once more");
++            (text2, model2) = await Write(m, (prompt.System + "\nYour first draft " + why + $"\nYour second draft also {(problem2 == "lie" ? "said something you know is false" : "contradicted what is established")}: \"{detail2}\". Avoid both.", prompt.User), 1500, calls, cost);
++            (_, _, facts2) = await Inspect(m, sc, c, s, scene, text2, cost, calls);
++         }
+          lock (sc.Record) sc.Record.AddRange(facts2);
+ 
+          return (text2, model2);
+@@ -677,10 +697,15 @@ namespace CalradiaRemembers.Tests.Conversation
+                        + "\nproblem: <none | lie | repeat | contradiction>"
+                        + "\ndetail: <the false statement, the repeated gesture or image, or the record it contradicts; or none>"
+                        + "\nfacts: <what this line makes true for everyone present: objects moved, who holds what, what was shown, admitted or revealed; separated by ' | '; or none>"
+-                       + $"\nA LIE: a statement of fact {c.Name} knows is false, or an excuse or explanation {c.Name} invents and knows is untrue. A sincere mistaken belief is not"
+-                       + " a lie; an evasion, a silence, a literally true half-answer, an opinion, a demand are fine."
+-                       + $"\nA REPEAT: a gesture, a way of handling an object, or an image that {c.Name} already used in this scene, or an image someone else already used,"
+-                       + " or an order or demand someone else already made in this scene and that this line only makes again (a second voice sending the same person away)."
++                       + $"\nA LIE: a statement of fact that WHAT {c.Name.ToUpperInvariant()} KNOWS shows to be false, or an excuse {c.Name} invents and knows is untrue."
++                       // The third review of 27/11/2026: the keeper read the absence of proof as a lie ("Tomas cannot have seen Berold fight,
++                       // since he fled") and refused Tomas saying his sword's notches were old, which the scenario makes true.
++                       + " Not a lie: a claim not yet established in the record, something they may well have seen, an inference, a sincere belief, an"
++                       + " evasion, a silence, a literally true half-answer, an opinion, a demand. Two facts that can both be true are no lie (he can"
++                       + " have seen the fight before he fled). When unsure, it is not a lie."
++                       + $"\nA REPEAT: a gesture, a way of handling an object, or an image already used in this scene that says the SAME thing again (a different"
++                       + " gesture saying the same thing is still a repeat), or an order or demand someone else already made that this line only makes again."
++                       + " A known object or gesture given a NEW meaning is not a repeat (the wine he poured, later poured on the floor)."
+                        + " Answering a question again is not a repeat."
+                        + "\nA CONTRADICTION: the line conflicts with the record (an object that is elsewhere, a fact established otherwise)."
+                        + "\nRecord a claim as a claim ('Tomas says he held the left'), never as a fact. Record only what everyone present could see or hear.";
+@@ -713,16 +738,22 @@ namespace CalradiaRemembers.Tests.Conversation
+                        + " or want something new. But nothing changes without a cause in the scene; a line that does not touch them changes little, and 'none' is the usual shift."
+                        + " A tactic that has failed twice is abandoned for another. A tactic never includes a lie or an invented excuse: when they will"
+                        + " not tell the truth they evade, deflect, stay silent or confess."
++                       // The third review: "LLMs turn clues into certainties too fast" (the banner found a mile behind the ford was read as
++                       // proof that Tomas fled).
++                       + " A clue is not a proof: a find establishes what it shows, not what it suggests (a banner found far from the battle shows"
++                       + " that it went there, not who carried it); it can raise a suspicion, never settle it."
+                        + $"\n\n{c.Name}: {c.Persona}"
+                        + (string.IsNullOrWhiteSpace(c.Secret) ? "" : $"\nKnown only to {c.Name}: {c.Secret}"
+-                          + $"\nA secret is the last thing {c.Name} gives up. Before giving it up they try at least two different ways of keeping it (evade, deflect,"
+-                          + " a true half-answer, silence, turning the question back, an offer that hides it). They give it up only when proof is established in the"
+-                          + " record, or when those ways have failed under repeated pressure; a single question, however painful, is not enough. Once pressed four times"
+-                          + " or more with those ways spent, holding it costs more than telling, and they may give it up. When the ways run out, the choice is"
+-                          + " silence or the truth, never a false account. Giving it up is an"
+-                          + " 'aim' change, and it costs them.")
++                          // The third review: "four pressures and two spent ways must not become a recipe for the truth; a person can resist
++                          // a hundred questions and tell all after one sentence from the right person". The secret goes when keeping it costs
++                          // more than telling, by the character's own values.
++                          + $"\nA secret goes only when keeping it costs {c.Name} more than telling it, weighed by their own values: what telling would cost"
++                          + " them, the risk of being found out anyway, the moral weight of the silence (an innocent blamed, a child answered with a lie), and"
++                          + " WHO is asking (one sentence from the right person can do what a hundred questions cannot). Pressure raises the cost of silence;"
++                          + " it is not a count. Usually they first try other ways (evade, deflect, a true half-answer, silence, turning the question back)."
++                          + " When the ways run out, the choice is silence or the truth, never a false account. Giving it up is an 'aim' change, and it costs them.")
+                        + $"\nWanted when the scene began: {c.Objective}\nWants to appear: {c.Mask}\nFears: {c.Fear}\nWill never: {c.Limit}"
+-                       + "\n\nAnswer exactly nine lines:\nfeeling: <their feeling now, 1 to 4 words>"
++                       + "\n\nAnswer exactly ten lines:\nfeeling: <their feeling now, 1 to 4 words>"
+                        + "\nlevel: <none | fluctuation | reevaluation | tactic | aim | lasting> (fluctuation: a passing mood; reevaluation: they now understand the situation"
+                        + " differently; tactic: they change how they go about it; aim: they want something else; lasting: it changes how they see themselves or someone, beyond"
+                        + " tonight. Most lines are none or fluctuation.)"
+@@ -732,7 +763,9 @@ namespace CalradiaRemembers.Tests.Conversation
+                        + "\nvisible: <nothing | a detail | words> (does anything show outside? someone holding a mask shows nothing; nothing is usual. But a mask"
+                        + " hides moods, not blows: news that strikes at their secret or their fear leaks at least a detail, a pause, a hand, a word that comes wrong)"
+                        + "\nurge: <none, or low or high followed by why: answer, interest, emotion, duty, morality, opportunity> (how strongly they feel they must speak now: a"
+-                       + " priest's duty, an injustice they cannot let pass, a threat to what they want; someone bound to silence on one matter may still speak on another)";
++                       + " priest's duty, an injustice they cannot let pass, a threat to what they want; someone bound to silence on one matter may still speak on another)"
++                       + "\nmove: <none, or 'to Name: what they could do or say now', a concrete act their bonds allow (someone sworn to silence cannot reveal,"
++                       + " but can shield, question, or ask for mercy)>";
+          string user = $"HOW {c.Name.ToUpperInvariant()} STOOD BEFORE THE LAST LINE:\nfeeling: {s.Feeling}\naim: {s.Aim}\ntactic: {s.Tactic}\nshowing: {s.Showing}\nhiding: {s.Hiding}"
+                      + (string.IsNullOrWhiteSpace(c.Secret) ? "" : $"\nPressed so far (addressed or named): {s.Pressed} times. Ways of keeping the secret already tried: "
+                                                                      + (s.Tried.Count == 0 ? "none" : string.Join("; ", s.Tried)))
+@@ -758,6 +791,7 @@ namespace CalradiaRemembers.Tests.Conversation
+          s.Level = Field("level", "none").ToLowerInvariant();
+          s.Visible = Field("visible", "nothing").ToLowerInvariant();
+          s.Urge = Field("urge", "none").ToLowerInvariant();
++         s.Move = Field("move", "none");
+          s.Shift = Field("shift", "none");
+          // Only a change of understanding, tactic, aim or self counts; a passing mood is not a change (the second review).
+          bool counts = s.Level.StartsWith("reevaluation") || s.Level.StartsWith("tactic") || s.Level.StartsWith("aim") || s.Level.StartsWith("lasting");
+@@ -867,6 +901,11 @@ namespace CalradiaRemembers.Tests.Conversation
+ 
+       #region private
+ 
++      // Narrative salience (the third review of 27/11/2026). The prose model, offered "nothing", never once took it in five scenes
++      // (Tomas's fist on his chest narrated three times), so the choice is made here: one reaction at most a line, and someone
++      // already shown this beat shows again only for a change of aim or a lasting one, not for every reevaluation.
++      private static bool Strong(InnerState s) => s.Shift != "none" && (s.Level.StartsWith("aim") || s.Level.StartsWith("lasting"));
++
+       private static string EventText(string complication)
+       {
+          string[] parts = complication.Split('|');
+@@ -921,6 +960,7 @@ namespace CalradiaRemembers.Tests.Conversation
+             sb.AppendLine($"- what you keep hidden: {now.Hiding}");
+             if (!string.IsNullOrWhiteSpace(now.Repeating)) sb.AppendLine($"- what is no longer working: {now.Repeating}. Change your approach.");
+             if (!now.Urge.StartsWith("none")) sb.AppendLine($"- your pull to speak: {now.Urge}");
++            if (now.DutyNow && !now.Move.StartsWith("none")) sb.AppendLine($"- what your duty lets you do now: {now.Move}");
+          }
+          if (!string.IsNullOrWhiteSpace(me.Mask)) sb.AppendLine($"How you want to be seen: {me.Mask}. You fear: {me.Fear}. You will never: {me.Limit}.");
+          if (!string.IsNullOrWhiteSpace(me.Voice)) sb.AppendLine($"Your voice, yours alone: {me.Voice}.");
+@@ -967,7 +1007,15 @@ namespace CalradiaRemembers.Tests.Conversation
+       private static (string System, string User) NarrationPrompt(Scenario sc, List<FloorJudgePresence> room, List<SceneLine> scene, string cues)
+       {
+          string system = $"You write ONE short line of narration for a scene ({sc.Tone}), present tense, third person, in asterisks, no dialogue. "
+-                       + "Show each named reaction as a small, specific gesture of that person, different from any gesture already in the scene. "
++                       // The third review of 27/11/2026: "you taught your characters an inner life; now teach your narrator not to tell
++                       // all of it". M narrated 9 to 13 reactions a scene against 5 to 6, and repetition fell to 4.3.
++                       + "An inner change does not by itself deserve narration. Narrate a reaction only when it tells the reader something the scene"
++                       + " does not already show: a hidden side of the person, a change in their position, intent or bond, a gesture that contradicts"
++                       + " their words, something that changes what another person may decide, a new meaning for an object or gesture already in the"
++                       + " scene, or the impact of a revelation that would otherwise stay invisible. Never narrate to confirm a feeling already shown;"
++                       + " a different gesture saying the same thing is still a repetition. Narrate at most ONE person, the most significant. If no"
++                       + " reaction adds something, answer exactly: nothing. "
++                       + "Show the reaction as a small, specific gesture of that person, different from any gesture already in the scene. "
+                        + "Show what the person LETS SHOW, their mask: a feeling they hide leaks only through one small detail, or not at all. "
+                        + "A deliberate act (pouring wine, turning away, a smile) often says more than a clenched jaw. "
+                        + "Show only what is listed: no other character, no thoughts, no explanation of what the reaction means. "
+diff --git a/CalradiaRemembers.Tests/Conversation/TurnArbiterTests.cs b/CalradiaRemembers.Tests/Conversation/TurnArbiterTests.cs
+index 1c97ac1..38da388 100644
+--- a/CalradiaRemembers.Tests/Conversation/TurnArbiterTests.cs
++++ b/CalradiaRemembers.Tests/Conversation/TurnArbiterTests.cs
+@@ -200,6 +200,15 @@ namespace CalradiaRemembers.Tests.Conversation
+          AfterNpcLines(1, new FloorBid {Id = "Garios", Targeted = true, Intent = JudgedIntent.High, Standing = 3, LastSpeakerStanding = 4}).Outcome.Should().Be(FloorOutcome.BackToPlayer);
+       }
+ 
++      // STAKE: the old priest who must shield a child from a lie wants urgently to speak after the lady of the keep; without the
++      // duty, rank holds him back and he never speaks (five simulated scenes of 27/11/2026); with it, he takes the floor.
++      [Test]
++      public void GIVEN_a_priest_bound_by_duty_after_his_lady_WHEN_decided_THEN_rank_does_not_silence_him()
++      {
++         AfterNpcLines(1, new FloorBid {Id = "Edric", Intent = JudgedIntent.Urgent, Standing = 1, LastSpeakerStanding = 3}).Outcome.Should().Be(FloorOutcome.BackToPlayer);
++         AfterNpcLines(1, new FloorBid {Id = "Edric", Intent = JudgedIntent.Urgent, Standing = 1, LastSpeakerStanding = 3, Duty = true}).SpeakerId.Should().Be("Edric");
++      }
++
+       // STAKE: spoken to by the king, nobody defers: a question from above is answered.
+       [Test]
+       public void GIVEN_the_king_addresses_the_listener_WHEN_decided_THEN_rank_does_not_silence_the_answer()
