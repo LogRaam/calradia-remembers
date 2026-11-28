@@ -183,6 +183,13 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public Task GIVEN_the_intimate_scene_WHEN_two_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(Intimate());
 
+      // Gabriel, 27/11/2026: "l'objectif à atteindre c'est d'avoir la meilleure qualité littéraire en jeu"; the hand-written sheets
+      // measure a ceiling the game will not give. The same scene with Rhian built only from what the mod's prompt holds today (its
+      // own archetype, romance and consent texts, relationships, dated history with the player, regard): the floor. Corvan is
+      // unchanged, since he stands for the player, who brings his own intent.
+      [Test]
+      public Task GIVEN_the_intimate_scene_from_game_data_only_WHEN_two_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(IntimateFromGameData());
+
       private static Character Who(string name, int standing, string station, string power, bool female, string persona, string objective, string tactic,
                                    string[] aliases, params string[] ties)
          => new() {
@@ -360,6 +367,46 @@ namespace CalradiaRemembers.Tests.Conversation
                "*Corvan's squire calls up from the yard, careful and low: the marshal asks whether Sir Corvan has the count of the walls yet.*"
             }
          };
+      }
+
+      // Rhian as the game would describe her: the mod's own texts (HeroProfileMapper archetype "Brave But Headstrong",
+      // RomanticProfileBuilder sketches, PromptBuilder preferences, regard band and consent gate), a composed history in its event
+      // format (Gabriel does not play, 27/11/2026: "il faudra que tu composes un historique crédible"). No voice, mask, fear, limit,
+      // secret or scene aim: the game holds none. The game's em dashes are written as hyphens (the repository refuses them).
+      private static Scenario IntimateFromGameData()
+      {
+         Scenario sc = Intimate();
+         Character corvan = sc.Player;
+         Character rhian = Who("Rhian", 3, "the lady of Dun Ceana, a Battanian hill fort", "the fort and its eighty spears", true,
+            "Lady Rhian of the house of Ceana, Battania."
+            + "\nCHARACTER: Brave But Headstrong. Charges where others hesitate, driven by courage rather than caution. Plans are for the timid - deeds speak louder."
+            + "\nYOUR OWN APPEARANCE: You are a fair-skinned woman in your prime, with dark hair and green eyes. You wear fine attire and ride a fine horse."
+            + "\nYou govern Dun Ceana, a castle, day to day. Its granaries will see it through, its garrison is under strength, and the roads around it are no longer certain."
+            + "\nRELATIONSHIPS: Liege: Caladog, ruler of Battania. Friends: Melidir, Aeron. Enemies: Derthert, Aldric. Family: Father: Bran (dead)."
+            + "\nROMANTIC NATURE: Archetype: Brave But Headstrong. Orientation: Drawn primarily to men."
+            + " Relational patterns: Dominant - leads in the relationship dynamic. Possessive - marks, claims, expects visible loyalty."
+            + " Declares interest the way they charge into battle - immediately, fully, without consulting anyone. Not calculating; impulsively honest about attraction."
+            + " Can be hurt by hesitation, which they read as rejection."
+            + " In matters of intimacy: Throws themselves into intimacy with the same abandon as everything else. Can be overwhelming but never indifferent."
+            + " What they lack in finesse they make up in complete presence."
+            + "\nRELATIONSHIP STATUS & CONSENT: You are not married. Physical intimacy with the player requires deep personal trust (personal relation >= 30)."
+            + "\nWHERE THIS PLAYER ACTUALLY STANDS WITH YOU: your personal regard for them is 41, and what your nature asks before physical intimacy is 30."
+            + "\nYOUR HISTORY WITH THIS PLAYER:"
+            + "\n- Day 1204 (FirstMeeting, about 7 year(s) ago): Corvan of Vlandia was brought to my father's fort as a hostage after the border fighting; I met him at the gate."
+            + "\n- Day 1236 (Flirt, about 7 year(s) ago): Corvan and I rode out to the blackberry slopes and I let him win at dice."
+            + "\n- Day 1251 (Intimacy, about 7 year(s) ago): Corvan and I became lovers; I lit the candle in the east window so he would know to come."
+            + "\n- Day 1290 (Farewell, about 7 year(s) ago): Corvan was exchanged and rode home to Vlandia; he promised to write."
+            + "\nCURRENT STANCE: Your own personal regard for this player (41): deep affection.",
+            "Nothing is set for this scene; respond as who you are.", "",
+            new[] {"Rhian", "my lady", "lady"});
+         sc.Id = "intimate_game";
+         sc.Title = "The east window (from game data only)";
+         sc.Cast = new List<Character> {rhian};
+         // The game holds no betrothal and no private letter: the events it could bring are the war's and the player's own.
+         sc.Complications = new List<string> {sc.Complications[0], sc.Complications[2]};
+         sc.Player = corvan;
+
+         return sc;
       }
 
       private static Scenario Theft()
