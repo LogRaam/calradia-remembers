@@ -13,7 +13,7 @@ The stages are ordered by **measured gain per cost to the player**, not by when 
 - ships with a `cr.test all` self-test, which is the only in-game check: Gabriel does not play long campaigns, so
   **nothing here will be play-verified**;
 - names the maps read before it is built (settings, prompt-sections, inventory, save-format);
-- lands in the OPEN version (2.8.22). Release timing stays Gabriel's call.
+- lands in the OPEN version (2.9.0, was 2.8.22). Release timing stays Gabriel's call.
 
 What was measured in the simulator:
 
