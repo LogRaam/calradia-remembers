@@ -101,6 +101,7 @@ namespace CalradiaRemembers.Chat
 
          ProfileMutator.ApplyReputationDelta(profile, warmth, NpcMemoryService.Core.Standing.RegardCause.Deed);
          ModLog.Info($"[REGARD] {profile.Name}: a shared night warms by +{warmth} (regard now {profile.ReputationWithPlayer}); next in {Logic.RelationGate.IntimacyCooldownHours:0} hours at the earliest.");
+         ChatManager.ActiveViewModel?.NoteWhy(Logic.Diagnostics.ChatLogWhyKind.Regard, $"{profile.Name}: a shared night warms regard by +{warmth} (now {profile.ReputationWithPlayer}).");
 
          return warmth;
       }
@@ -1090,7 +1091,8 @@ namespace CalradiaRemembers.Chat
                return;
             }
 
-            NoteWhy(Logic.Diagnostics.ChatLogWhyKind.Reply,
+            if (_chatLog != null)
+               NoteWhy(Logic.Diagnostics.ChatLogWhyKind.Reply,
                     $"{speaker.Name}'s reply took {(elapsedMs / 1000.0).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)} s on {LlmServices.ActiveModelId}"
                     + $"{(string.IsNullOrEmpty(result.FinishReason) ? "" : $" (finish {result.FinishReason})")}{(result.WasRetried ? ", retried" : "")}.");
 
@@ -1741,6 +1743,8 @@ namespace CalradiaRemembers.Chat
 
                   // B3 (quest audit): an executor that throws must not abort the whole turn (skipping the
                   // remaining actions AND the Store.Set that persists this turn's mutations). Isolate each call.
+                  // The conversation log: the regard as it stood, to say what the deed moved (the gate applies it silently).
+                  int? regardBefore = _chatLog != null ? actorProfile?.ReputationWithPlayer : null;
                   ActionOutcome outcome;
                   try
                   {
@@ -1773,10 +1777,18 @@ namespace CalradiaRemembers.Chat
                   }
 
                   // The conversation log (Gabriel, 28/11/2026): the deed as the game reported it, refused or done.
-                  NoteLoggedAction(Logic.Diagnostics.ChatLogActionText.For(new Logic.Diagnostics.ChatLogActionFacts {
-                     Verb = action.Type, Reported = outcome != null, WasRefused = outcome?.WasRefused == true,
-                     WasUnknownVerb = outcome?.WasUnknownVerb == true, Message = outcome?.Message
-                  }));
+                  if (_chatLog != null)
+                  {
+                     NoteLoggedAction(Logic.Diagnostics.ChatLogActionText.For(new Logic.Diagnostics.ChatLogActionFacts {
+                        Verb = action.Type, Reported = outcome != null, WasRefused = outcome?.WasRefused == true,
+                        WasUnknownVerb = outcome?.WasUnknownVerb == true, Message = outcome?.Message
+                     }));
+                     int? regardAfter = actorProfile?.ReputationWithPlayer;
+                     if (regardBefore != null && regardAfter != regardBefore)
+                        NoteWhy(Logic.Diagnostics.ChatLogWhyKind.Regard, $"{actorProfile.Name}'s regard {regardBefore} -> {regardAfter} ({action.Type}).");
+                     else if (string.Equals(action.Type, "change_relation", StringComparison.OrdinalIgnoreCase))
+                        NoteWhy(Logic.Diagnostics.ChatLogWhyKind.Regard, $"change_relation moved nothing: {actorProfile?.Name}'s regard stays {regardAfter} (the gate banked or held it).");
+                  }
 
                   // Extension Surface (ActionResult.Recap): an external deed resolved to a fact the NPC's
                   // already-spoken reply this turn could not know (a ruling upheld or denied, a decision taken).

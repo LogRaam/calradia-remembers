@@ -72,6 +72,9 @@ namespace CalradiaRemembers.Logic.Diagnostics
         /// <summary>A reply's timing, as the chat measured it.</summary>
         public const string Reply = "reply";
 
+        /// <summary>A regard change on the mod's own ledger, as it moved (or a change_relation that moved nothing).</summary>
+        public const string Regard = "regard";
+
         /// <summary>A deed the game carried out, refused or dropped.</summary>
         public const string Action = "action";
 
@@ -261,7 +264,7 @@ namespace CalradiaRemembers.Logic.Diagnostics
 
         /// <summary>What the why section holds today, said once under its heading.</summary>
         public const string WhyScope =
-            "What the mod records about each turn: the models that answered and what they cost, the deeds the game carried out, refused or dropped, the fallbacks and the recalled passages. No judge or referee runs in this chat.";
+            "What the mod records about each turn: the models that answered and what they cost, the deeds the game carried out, refused or dropped, the regard they moved, the fallbacks and the recalled passages. No judge or referee runs in this chat.";
 
         private static readonly Regex Url = new Regex(@"https?://\S+", RegexOptions.CultureInvariant);
 

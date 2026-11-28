@@ -2215,6 +2215,7 @@ namespace CalradiaRemembers.Chat
          _sceneContinuations++;
          _sceneContinuationPending = true;
          IsSendEnabled = false;
+         NoteTurnBegins(); // the conversation log: a continued beat is a turn of its own
          _ = RunCaptiveSceneContinuationAsync();
       }
 
@@ -2423,6 +2424,7 @@ namespace CalradiaRemembers.Chat
          IsScenePaused = false;
          IsSendEnabled = false;
          ModLog.Info("[SCENE] player requested another cycle (Please continue).");
+         NoteTurnBegins(); // the conversation log: another cycle is a turn of its own
 
          ChatSpeaker captor = MainSpeaker();
          if (captor.Profile == null)

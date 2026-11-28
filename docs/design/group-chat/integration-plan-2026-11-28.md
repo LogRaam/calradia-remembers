@@ -184,7 +184,7 @@ What was measured in the simulator:
 | Stage | State | Commit | Notes |
 |---|---|---|---|
 | 0 MCM regroup | done | fdf427f | Mode & Models (GroupOrder 0) + Prompt & Memory (1); other groups +1; properties and defaults unchanged; not play-verified |
-| 1 Conversation log | done | (this commit) | MCM Diagnostics "Write a conversation log" (WriteConversationLog, off); cr_chat_<npc>_<stamp>.md in "CR Conversations"; 1:1 and council lines via RecordTranscript; why = calls (role, tokens, cost, finish), reply time, deeds done/refused/dropped, fallbacks, recall; no latency per call (SDK untouched); cr.test conversation_log; not play-verified |
+| 1 Conversation log | done | 934f05b + follow-up | MCM Diagnostics "Write a conversation log" (WriteConversationLog, off); cr_chat_<npc>_<stamp>.md in "CR Conversations"; 1:1 and council lines via RecordTranscript; why = calls (role, tokens, cost, finish), reply time, deeds done/refused/dropped, regard moved, fallbacks, recall; Continue / Please continue start a turn; no latency per call (SDK untouched); cr.test conversation_log; not play-verified |
 | 2 What a meeting leaves | to do | | |
 | 3 Composed intro | to do | | |
 | 4 Generated depth | to do | | |
