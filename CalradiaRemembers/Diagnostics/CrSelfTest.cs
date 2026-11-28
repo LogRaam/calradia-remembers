@@ -18730,7 +18730,7 @@ namespace CalradiaRemembers.Diagnostics
 
             Chat.ChatViewModel vm = Open();
             if (t.Skip(vm == null, "the conversation did not open")) return t.Line();
-            if (t.Skip(!vm.ComposesOpeningForDiagnostics, "this lord already spoke with the player today: a second talk keeps today's opener")) return t.Line();
+            if (t.Skip(!vm.ComposesOpeningForDiagnostics, "the composed intro does not open this chat (a staged scene, or a switch it needs is off)")) return t.Line();
 
             vm.OpenWithScene(greeting);
             WaitForTheOpening(vm);
@@ -18960,7 +18960,7 @@ namespace CalradiaRemembers.Diagnostics
             Chat.ChatViewModel vm = Chat.ChatManager.ActiveViewModel;
             vm?.SetNpcHero(lord);
             if (t.Skip(vm == null, "the conversation did not open")) return t.Line();
-            if (t.Skip(!vm.ComposesOpeningForDiagnostics, "this lord already spoke with the player today: a second talk keeps today's opener")) return t.Line();
+            if (t.Skip(!vm.ComposesOpeningForDiagnostics, "the composed intro does not open this chat (a staged scene, or a switch it needs is off)")) return t.Line();
 
             vm.OpenWithScene(greeting);
             var clock = Stopwatch.StartNew();

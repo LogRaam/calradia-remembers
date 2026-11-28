@@ -26,6 +26,12 @@ namespace CalradiaRemembers.Logic.Chat
 
       /// <summary>The language model can be called.</summary>
       public bool ModelAvailable { get; init; }
+
+      /// <summary>
+      ///   The composed intro will open this chat ("Composed opening scene" and Scene Narration on, an ordinary chat). It opens
+      ///   every such chat, with or without "Characters Set The Scene", and takes the place of the game's own dialogue lines.
+      /// </summary>
+      public bool ComposedIntro { get; init; }
    }
 
    /// <summary>How the character's scene-setting turn ended.</summary>
@@ -60,14 +66,23 @@ namespace CalradiaRemembers.Logic.Chat
        + "what is truly here: bring in no one who is not present and no event that did not happen. Do not speak or act "
        + "for the player, and do not take any action or make any promise yet. Do not quote this note.]";
 
-      /// <summary>True when this opening should be the character's own scene-setting turn.</summary>
+      /// <summary>
+      ///   True when this opening should be the character's own scene-setting turn. The composed intro opens every ordinary
+      ///   chat (Gabriel, 28/11/2026: "toujours une intro a l'ouverture du chat"), so it needs neither the scene switch nor a chat free of the game's lines.
+      /// </summary>
       public static bool ShouldOpen(SceneOpenerFacts facts)
          => facts != null
-            && facts.SettingOn
             && facts.OpenedByGreeting
             && !facts.ResumedSitting
-            && !facts.VanillaLinesCarried
-            && facts.ModelAvailable;
+            && facts.ModelAvailable
+            && (facts.ComposedIntro || (facts.SettingOn && !facts.VanillaLinesCarried));
+
+      /// <summary>
+      ///   True when the game's own dialogue lines are kept off the screen: the composed intro opens the chat in their place. The
+      ///   model still reads them as what was said before (the prior exchange); only the window no longer shows them.
+      /// </summary>
+      public static bool IntroReplacesGameLines(SceneOpenerFacts facts)
+         => facts != null && facts.ComposedIntro && facts.OpenedByGreeting && !facts.ResumedSitting && facts.ModelAvailable;
 
       /// <summary>
       ///   Whether the canned greeting is kept as said (and remembered as said). It is replaced only by a scene that

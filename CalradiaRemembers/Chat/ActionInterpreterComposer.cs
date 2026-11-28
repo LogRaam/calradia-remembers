@@ -109,7 +109,9 @@ namespace CalradiaRemembers.Chat
             StableSystemPrompt = ActionInterpreterPromptBuilder.StablePrefixFor(level),
             // Diagnostic only: which character this reading is FOR, so a wire observer compares the
             // interpreter's prefix against its own and never against the prose call's (see LlmRequest.Subject).
-            Subject = profile?.Id,
+            // Prefixed (28/11/2026): the prose call carries the bare id too, so with one model for both the conversation log called
+            // every reply an interpreter call, and the wire recorder compared the two prefixes against each other.
+            Subject = CalradiaRemembers.Logic.Diagnostics.ChatLogRoles.InterpreterSubject(profile?.Id),
             Messages = new[] {new LlmMessage(MessageRole.User, ActionInterpreterPromptBuilder.FinalInstruction)},
             // 900, not 600: the two-step FinalInstruction makes the model write a CHECK grounding line per
             // candidate action BEFORE the tag block. A reply carrying several deeds can spend 600 on the CHECK

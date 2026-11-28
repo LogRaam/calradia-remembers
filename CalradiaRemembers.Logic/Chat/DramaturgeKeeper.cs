@@ -154,7 +154,7 @@ namespace CalradiaRemembers.Logic.Chat
          string text = content ?? "";
          string Last(string name)
          {
-            MatchCollection all = Regex.Matches(text, $@"(?im)^\s*\**{name}\**\s*:\s*(.+)$");
+            MatchCollection all = Regex.Matches(text, $@"(?im)^\s*\**{name}\**\s*:[ \t]*(.+)$");
 
             return all.Count == 0 ? "" : DramaturgeInnerLife.Clean(all[all.Count - 1].Groups[1].Value);
          }
@@ -166,6 +166,14 @@ namespace CalradiaRemembers.Logic.Chat
             : verdict.StartsWith("invention") ? KeeperProblem.Invention
             : KeeperProblem.None;
          string detail = Last("detail");
+         // A keeper that opens its detail on the next line ("detail:" alone, then the reasoning) left it empty: Gabriel's chat with
+         // Monchug (28/11/2026) logged "found a invention: ;" and the rewrite was told nothing. Read the block up to the next field.
+         if (detail.Length == 0)
+         {
+            MatchCollection blocks = Regex.Matches(text, @"(?ims)^\s*\**detail\**\s*:\s*$(.*?)(?=^\s*\**(?:facts|objects|revealed|problem)\**\s*:|\z)");
+            if (blocks.Count > 0) detail = DramaturgeInnerLife.Clean(Regex.Replace(blocks[blocks.Count - 1].Groups[1].Value, @"\s+", " "));
+         }
+
          List<string> facts = Last("facts").Split('|').Select(f => f.Trim()).Where(f => f.Length > 0 && !f.StartsWith("none", StringComparison.OrdinalIgnoreCase)).ToList();
          string objects = Last("objects");
 
@@ -200,6 +208,16 @@ namespace CalradiaRemembers.Logic.Chat
 
       /// <summary>The verdict's name for the log ("lie", "none", ...).</summary>
       public static string Name(KeeperProblem problem) => problem.ToString().ToLowerInvariant();
+
+      /// <summary>The detail as the logs show it: the keeper's own words, or a plain note that it gave none.</summary>
+      public static string DetailForLog(KeeperVerdict verdict) => string.IsNullOrWhiteSpace(verdict?.Detail) ? "it gave no detail" : verdict.Detail.Trim();
+
+      /// <summary>
+      ///   Added to every rewrite's reason: the rewrite keeps the form of the character's other replies. Gabriel's chat with Monchug
+      ///   (28/11/2026, Novel style): the one rewritten reply came back with no quotation marks, speech and gesture run together.
+      /// </summary>
+      public const string KeepTheForm = "Write the whole reply again in the same form as your other replies in this conversation, marking what is said"
+                                        + " and what is done the same way.";
    }
 
    /// <summary>The facts the keeper's rewrite is judged on, once it came back.</summary>

@@ -62,7 +62,10 @@ namespace CalradiaRemembers.Chat
       internal string ComposedOpeningWhyForDiagnostics => _composedOpeningWhy;
 
       /// <summary>cr.test composed_intro: whether an opening of this conversation would be composed now.</summary>
-      internal bool ComposesOpeningForDiagnostics => ComposedOpeningPolicy.ShouldCompose(ComposedOpeningFactsFor(MainSpeaker()));
+      internal bool ComposesOpeningForDiagnostics => ComposesOpening;
+
+      /// <summary>Whether the composed intro will open this chat for its main character (read by the opening's door, LlmDialogFlow).</summary>
+      internal bool ComposesOpening => ComposedOpeningPolicy.ShouldCompose(ComposedOpeningFactsFor(MainSpeaker()));
 
       /// <summary>cr.test composed_intro: what the composed opening left the main character, as the turn hands it on.</summary>
       internal ComposedOpening ComposedOpeningForMainForDiagnostics => ComposedOpeningFor(MainSpeaker());

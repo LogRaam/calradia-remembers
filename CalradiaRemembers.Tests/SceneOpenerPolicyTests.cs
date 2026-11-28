@@ -57,6 +57,35 @@ namespace CalradiaRemembers.Tests
                           .Should().BeFalse();
       }
 
+      // STAKE: Gabriel 28/11/2026 ("toujours une intro ... remplacer l'injection de la conversation Vanille"): with the composed
+      // intro on, his chat with Monchug opens on the intro, even with the game's lines carried and the scene switch off.
+      [Test]
+      public void GIVEN_the_composed_intro_WHEN_game_lines_were_carried_and_the_scene_switch_is_off_THEN_the_intro_still_opens_the_chat()
+      {
+         var facts = new SceneOpenerFacts {SettingOn = false, OpenedByGreeting = true, ModelAvailable = true, VanillaLinesCarried = true, ComposedIntro = true};
+
+         SceneOpenerPolicy.ShouldOpen(facts).Should().BeTrue();
+         SceneOpenerPolicy.IntroReplacesGameLines(facts).Should().BeTrue();
+      }
+
+      // STAKE: without the composed intro, the game's lines stay on screen as they always were (the default must not move).
+      [Test]
+      public void GIVEN_no_composed_intro_WHEN_game_lines_were_carried_THEN_they_stay_on_screen()
+      {
+         SceneOpenerPolicy.IntroReplacesGameLines(new SceneOpenerFacts {SettingOn = true, OpenedByGreeting = true, ModelAvailable = true}).Should().BeFalse();
+      }
+
+      // STAKE: a sitting put back from earlier today, or a tale meeting, keeps its own lines: the intro never wipes a talk under way.
+      [TestCase(true, true)]
+      [TestCase(false, false)]
+      public void GIVEN_the_composed_intro_WHEN_the_talk_is_under_way_or_staged_THEN_no_intro_and_the_lines_stay(bool resumed, bool openedByGreeting)
+      {
+         var facts = new SceneOpenerFacts {OpenedByGreeting = openedByGreeting, ResumedSitting = resumed, ModelAvailable = true, ComposedIntro = true};
+
+         SceneOpenerPolicy.ShouldOpen(facts).Should().BeFalse();
+         SceneOpenerPolicy.IntroReplacesGameLines(facts).Should().BeFalse();
+      }
+
       // STAKE: with no model to call, an error line would greet the player instead of the character.
       [Test]
       public void GIVEN_no_model_available_WHEN_a_conversation_opens_THEN_no_scene_is_asked()

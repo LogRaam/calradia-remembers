@@ -684,7 +684,7 @@ namespace CalradiaRemembers.Foundation
       // every new switch: off, the opening is today's. It IS the opener above, so it needs Characters Set The Scene and Scene
       // Narration on.
       [SettingPropertyBool("{=CR_MCM_ComposedOpening}Composed opening scene", RequireRestart = false, Order = 3,
-         HintText = "{=CR_MCM_ComposedOpening_Hint}Off (default): as before. On: the opening scene is composed from what the game knows (place, hour, season, how you come, what you just lived, the talk of the realm), with one cheap extra check. Needs Characters Set The Scene and Scene Narration.")]
+         HintText = "{=CR_MCM_ComposedOpening_Hint}Off (default): as before. On: every chat opens on a scene composed from what the game knows (place, hour, season, how you come, what you just lived), in place of the game's own lines. One cheap extra check. Needs Scene Narration.")]
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 5)]
       public bool ComposedOpening { get; set; } = false;
 

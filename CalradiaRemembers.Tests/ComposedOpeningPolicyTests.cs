@@ -49,19 +49,23 @@ namespace CalradiaRemembers.Tests
          ComposedOpeningPolicy.ShouldCompose(new ComposedOpeningFacts {SwitchOn = true}).Should().BeFalse();
       }
 
-      // STAKE: the plan's entry points: an envoy, a captive scene, a briefing, a council, and a second talk the same day
-      // keep today's opening.
-      [TestCase(true, false, false, false, false)]
-      [TestCase(false, true, false, false, false)]
-      [TestCase(false, false, true, false, false)]
-      [TestCase(false, false, false, true, false)]
-      [TestCase(false, false, false, false, true)]
-      public void GIVEN_a_staged_or_repeated_opening_WHEN_decided_THEN_it_is_not_composed(bool envoy, bool captive, bool briefing, bool council, bool spokeToday)
+      // STAKE: the plan's entry points: an envoy, a captive scene, a briefing and a council keep their own opening.
+      [TestCase(true, false, false, false)]
+      [TestCase(false, true, false, false)]
+      [TestCase(false, false, true, false)]
+      [TestCase(false, false, false, true)]
+      public void GIVEN_a_staged_opening_WHEN_decided_THEN_it_is_not_composed(bool envoy, bool captive, bool briefing, bool council)
       {
          ComposedOpeningPolicy.ShouldCompose(new ComposedOpeningFacts {
-            SwitchOn = true, SceneNarrationOn = true, EnvoyAudience = envoy, CaptiveScene = captive, CompanionBriefing = briefing,
-            Council = council, SpokeToday = spokeToday
+            SwitchOn = true, SceneNarrationOn = true, EnvoyAudience = envoy, CaptiveScene = captive, CompanionBriefing = briefing, Council = council
          }).Should().BeFalse();
+      }
+
+      // STAKE: Gabriel 28/11/2026, "toujours une intro a l'ouverture du chat": a second talk the same day opens with an intro too.
+      [Test]
+      public void GIVEN_a_second_talk_the_same_day_WHEN_decided_THEN_it_is_composed()
+      {
+         ComposedOpeningPolicy.ShouldCompose(new ComposedOpeningFacts {SwitchOn = true, SceneNarrationOn = true, SpokeToday = true}).Should().BeTrue();
       }
 
       // STAKE: no facts at all is no reason to call a model.

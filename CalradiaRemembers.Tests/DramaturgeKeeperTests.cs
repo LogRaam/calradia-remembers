@@ -80,6 +80,18 @@ namespace CalradiaRemembers.Tests
          pass.Objects.Should().Be("the ledger: in Arwa's hands");
       }
 
+      // STAKE: Gabriel's chat with Monchug (28/11/2026): a keeper that wrote its detail under "detail:" left the rewrite told
+      // nothing and the log read "found a invention: ;". The block up to the next field is the detail.
+      [Test]
+      public void GIVEN_a_detail_written_on_the_next_lines_WHEN_parsed_THEN_it_is_read_and_logged()
+      {
+         KeeperVerdict v = DramaturgeKeeper.Parse("detail:\nHe names a Vlandian king's war on the Aserai,\nwhich no fact holds.\nfacts: none\nobjects: none\nproblem: invention");
+
+         v.Problem.Should().Be(KeeperProblem.Invention);
+         v.Detail.Should().Be("He names a Vlandian king's war on the Aserai, which no fact holds.");
+         DramaturgeKeeper.DetailForLog(new KeeperVerdict()).Should().Be("it gave no detail");
+      }
+
       // STAKE: a keeper whose reply was cut before its verdict must not rewrite a line nobody judged; it passes, and says so.
       [Test]
       public void GIVEN_a_reply_without_a_verdict_WHEN_parsed_THEN_it_passes_marked_as_unjudged()
@@ -142,7 +154,7 @@ namespace CalradiaRemembers.Tests
 
          rewrites.Should().Be(1);
          result.Text.Should().Be("Lageta? Never.");
-         result.Why.Should().Contain(w => w.Contains("still has a lie"));
+         result.Why.Should().Contain(w => w.Contains("flagged again (lie)"));
       }
 
       // STAKE: a rewrite that failed (or was a refusal the chat would not show) must not blank the reply the player waits for.

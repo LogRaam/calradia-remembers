@@ -105,7 +105,7 @@ namespace CalradiaRemembers.Logic.Chat
          }
 
          string reason = DramaturgeKeeper.RewriteReason(first);
-         why.Add($"the keeper found a {DramaturgeKeeper.Name(first.Problem)}: {first.Detail}; written again");
+         why.Add($"the keeper flagged the reply ({DramaturgeKeeper.Name(first.Problem)}): {DramaturgeKeeper.DetailForLog(first)}; written again");
          string second = null;
          try
          {
@@ -125,7 +125,7 @@ namespace CalradiaRemembers.Logic.Chat
 
          KeeperVerdict again = await ReadAsync(keeper, sheet, state, record, sceneText, second, limit, ct).ConfigureAwait(false);
          if (again == null) why.Add("the rewrite is shown (its reading failed or timed out)");
-         else if (DramaturgeRewritePolicy.ShouldRewrite(again)) why.Add($"the rewrite still has a {DramaturgeKeeper.Name(again.Problem)}: {again.Detail}; it is shown all the same");
+         else if (DramaturgeRewritePolicy.ShouldRewrite(again)) why.Add($"the rewrite was flagged again ({DramaturgeKeeper.Name(again.Problem)}): {DramaturgeKeeper.DetailForLog(again)}; it is shown all the same");
          else why.Add("the rewrite passed and is shown");
          record?.Establish(again);
 
@@ -169,10 +169,12 @@ namespace CalradiaRemembers.Logic.Chat
             using (var cts = CancellationTokenSource.CreateLinkedTokenSource(ct))
             {
                cts.CancelAfter(limit);
+               // Reasoning off (Gabriel's chat with Monchug, 28/11/2026: GLM 4.6 as the dramaturge spent its whole budget thinking, every reading
+               // ended on "finish length" and none came back whole). The simulator ran these short readings with reasoning off.
                Task<LlmResponse> call = client.CompleteAsync(new LlmRequest {
                   SystemPrompt = system,
                   Messages = new[] {new LlmMessage(MessageRole.User, user)},
-                  Parameters = new LlmParameters {MaxTokens = maxTokens, Creativity = creativity, AllowTruncationRetry = false},
+                  Parameters = new LlmParameters {MaxTokens = maxTokens, Creativity = creativity, AllowTruncationRetry = false, ReasoningOverride = "off"},
                   Subject = subject
                }, cts.Token);
                // A client that ignores its token still cannot hold the turn past the limit.

@@ -51,7 +51,10 @@ namespace CalradiaRemembers.Logic.Chat
       /// <summary>The conversation is a council or an assembly.</summary>
       public bool Council { get; init; }
 
-      /// <summary>The character already met the player in a talk today (a memory of today's talk is on their record).</summary>
+      /// <summary>
+      ///   The character already met the player in a talk today (a memory of today's talk is on their record). No longer a reason
+      ///   to skip the intro (Gabriel, 28/11/2026: "toujours une intro"): the composer reads that talk in the history and stages a return.
+      /// </summary>
       public bool SpokeToday { get; init; }
    }
 
@@ -78,8 +81,7 @@ namespace CalradiaRemembers.Logic.Chat
             && !facts.EnvoyAudience
             && !facts.CaptiveScene
             && !facts.CompanionBriefing
-            && !facts.Council
-            && !facts.SpokeToday;
+            && !facts.Council;
 
       /// <summary>The composer's time limit: the player's own reply timeout, never under 15 seconds.</summary>
       public static int ComposerTimeoutSeconds(int replyTimeoutSeconds) => Math.Max(15, replyTimeoutSeconds);

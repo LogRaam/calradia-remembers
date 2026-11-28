@@ -66,7 +66,8 @@ namespace CalradiaRemembers.Logic.Chat
                r = await composer.CompleteAsync(new LlmRequest {
                   SystemPrompt = ComposedOpeningPrompt.ComposerSystem(sheet),
                   Messages = new[] {new LlmMessage(MessageRole.User, facts)},
-                  Parameters = new LlmParameters {MaxTokens = 800, Creativity = 0.7f, AllowTruncationRetry = false},
+                  // Reasoning off, as every short reading of the scene engine (GLM 4.6 spent the dramaturge's budget thinking, 28/11/2026).
+                  Parameters = new LlmParameters {MaxTokens = 800, Creativity = 0.7f, AllowTruncationRetry = false, ReasoningOverride = "off"},
                   Subject = "composed opening"
                }, cts.Token).ConfigureAwait(false);
             }
@@ -102,7 +103,7 @@ namespace CalradiaRemembers.Logic.Chat
                c = await checker.CompleteAsync(new LlmRequest {
                   SystemPrompt = ComposedOpeningPrompt.CheckSystem,
                   Messages = new[] {new LlmMessage(MessageRole.User, ComposedOpeningPrompt.CheckUser(sheet, reply))},
-                  Parameters = new LlmParameters {MaxTokens = 300, Creativity = 0.1f, AllowTruncationRetry = false},
+                  Parameters = new LlmParameters {MaxTokens = 300, Creativity = 0.1f, AllowTruncationRetry = false, ReasoningOverride = "off"},
                   Subject = "composed opening check"
                }, cts.Token).ConfigureAwait(false);
             }
@@ -153,7 +154,7 @@ namespace CalradiaRemembers.Logic.Chat
                Task<LlmResponse> call = checker.CompleteAsync(new LlmRequest {
                   SystemPrompt = ComposedOpeningPrompt.EventCheckSystem,
                   Messages = new[] {new LlmMessage(MessageRole.User, ComposedOpeningPrompt.EventCheckUser(sheet, events))},
-                  Parameters = new LlmParameters {MaxTokens = 300, Creativity = 0.1f, AllowTruncationRetry = false},
+                  Parameters = new LlmParameters {MaxTokens = 300, Creativity = 0.1f, AllowTruncationRetry = false, ReasoningOverride = "off"},
                   Subject = "composed opening events check"
                }, cts.Token);
                Task done = await Task.WhenAny(call, Task.Delay(limit, ct)).ConfigureAwait(false);

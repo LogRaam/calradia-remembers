@@ -122,8 +122,12 @@ namespace CalradiaRemembers.Tests
       {
          var same = new ChatLogModels {Prose = "m/a", Interpreter = "m/a", Nsfw = "m/a"};
 
-         ChatLogRoles.Of(same, "m/a", "lord_x").Should().Be(ChatLogRoles.Interpreter);
+         ChatLogRoles.Of(same, "m/a", ChatLogRoles.InterpreterSubject("lord_x")).Should().Be(ChatLogRoles.Interpreter);
          ChatLogRoles.Of(same, "m/a", null).Should().Be(ChatLogRoles.Prose);
+         // Gabriel's chat with Monchug (28/11/2026): the reply carries the bare character id, and the scene engine names its purpose.
+         ChatLogRoles.Of(same, "m/a", "lord_x").Should().Be(ChatLogRoles.Prose);
+         ChatLogRoles.Of(same, "m/a", "keeper").Should().Be("keeper");
+         ChatLogRoles.Of(new ChatLogModels {Prose = "m/p", Interpreter = "m/i"}, "m/i", "lord_x").Should().Be(ChatLogRoles.Interpreter);
          ChatLogRoles.Of(Models, "x-ai/grok-4.20", null).Should().Be(ChatLogRoles.Nsfw);
          ChatLogRoles.Of(Models, "some/summary-model", null).Should().Be(ChatLogRoles.Other);
       }

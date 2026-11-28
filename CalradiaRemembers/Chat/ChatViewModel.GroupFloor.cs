@@ -210,7 +210,8 @@ namespace CalradiaRemembers.Chat
             Request: new LlmRequest {
                SystemPrompt = FloorJudge.StablePrompt(new FloorJudgeListener {Name = sp.Name, Persona = sp.Profile?.Trait ?? sp.Profile?.Personality ?? "", Room = room}),
                Messages = new[] {new LlmMessage(MessageRole.User, FloorJudge.TurnPrompt(sp.Name, lines))},
-               Parameters = new LlmParameters {MaxTokens = 60, Creativity = 0.3f, AllowTruncationRetry = false},
+               // Reasoning off, as every short reading of the scene engine (GLM 4.6 spent the dramaturge's budget thinking, 28/11/2026).
+               Parameters = new LlmParameters {MaxTokens = 60, Creativity = 0.3f, AllowTruncationRetry = false, ReasoningOverride = "off"},
                Subject = "floor judge"
             })).ToList();
 
@@ -289,7 +290,7 @@ namespace CalradiaRemembers.Chat
          var request = new LlmRequest {
             SystemPrompt = GroupReactionPrompt.System,
             Messages = new[] {new LlmMessage(MessageRole.User, GroupReactionPrompt.User(scene, who.Name, who.Hero?.IsFemale ?? false, reaction))},
-            Parameters = new LlmParameters {MaxTokens = 150, Creativity = 0.7f, AllowTruncationRetry = false},
+            Parameters = new LlmParameters {MaxTokens = 150, Creativity = 0.7f, AllowTruncationRetry = false, ReasoningOverride = "off"},
             Subject = "reaction"
          };
          string content = await Task.Run(() => AskJudgeAsync(prose, request, TimeSpan.FromSeconds(GroupFloorPolicy.ReactionTimeoutSeconds), _windowClosing.Token)).ConfigureAwait(false);

@@ -169,17 +169,35 @@ namespace CalradiaRemembers.Logic.Diagnostics
         /// <summary>The role names.</summary>
         public const string Prose = "prose", Interpreter = "interpreter", Nsfw = "NSFW", Other = "other";
 
+        /// <summary>The subject the action interpreter's calls carry: its own prefix, then the character's id.</summary>
+        public const string InterpreterSubjectPrefix = "interpreter:";
+
+        /// <summary>The subject of an interpreter call for <paramref name="characterId" />.</summary>
+        public static string InterpreterSubject(string characterId) => InterpreterSubjectPrefix + (characterId ?? "");
+
         /// <summary>
-        ///   The role of a call: the interpreter is the one caller that names its subject (ActionInterpreterComposer), the NSFW
-        ///   model is told apart when it differs from the prose one, and anything else (a summary, a background call) is "other".
+        ///   The named purposes of the scene engine's calls: the log shows the purpose itself as the role, whatever model answered
+        ///   (Gabriel's chat with Monchug, 28/11/2026: the keeper, the inner life and the dramaturge all read as "interpreter").
+        /// </summary>
+        public static readonly IReadOnlyCollection<string> Purposes = new HashSet<string>(StringComparer.Ordinal) {
+            "keeper", "inner life", "dramaturge", "floor judge", "reaction", "generated depth", "generated depth check", "composed opening",
+            "composed opening check", "composed opening events check"
+        };
+
+        /// <summary>
+        ///   The role of a call: the interpreter by its prefixed subject, a scene-engine call by its named purpose, then by model (the
+        ///   reply carries the bare character id, so a subject alone says nothing): the NSFW model when it differs from the prose one,
+        ///   the prose model, the interpreter model, and anything else (a summary, a background call) is "other".
         /// </summary>
         public static string Of(ChatLogModels models, string model, string subject)
         {
-            if (!string.IsNullOrEmpty(subject)) return Interpreter;
+            if (subject != null && subject.StartsWith(InterpreterSubjectPrefix, StringComparison.Ordinal)) return Interpreter;
+            if (subject != null && Purposes.Contains(subject)) return subject;
             if (string.IsNullOrEmpty(model) || models == null) return Other;
             if (Same(model, models.Nsfw) && !Same(model, models.Prose)) return Nsfw;
+            if (Same(model, models.Prose)) return Prose;
 
-            return Same(model, models.Prose) ? Prose : Other;
+            return Same(model, models.Interpreter) ? Interpreter : Other;
         }
 
         private static bool Same(string a, string b) => !string.IsNullOrEmpty(b) && string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
@@ -347,6 +365,9 @@ namespace CalradiaRemembers.Logic.Diagnostics
             parts.Add($"prose {Model(m.Prose)} ({calls.Count(c => c.Role == ChatLogRoles.Prose)} calls)");
             if (!string.IsNullOrWhiteSpace(m.Interpreter)) parts.Add($"interpreter {m.Interpreter} ({calls.Count(c => c.Role == ChatLogRoles.Interpreter)})");
             if (!string.IsNullOrWhiteSpace(m.Nsfw)) parts.Add($"NSFW {m.Nsfw} ({calls.Count(c => c.Role == ChatLogRoles.Nsfw)})");
+            List<string> engine = calls.Where(c => c.Role != null && ChatLogRoles.Purposes.Contains(c.Role)).GroupBy(c => c.Role).OrderBy(g => g.Key, StringComparer.Ordinal)
+                                       .Select(g => $"{g.Key} {g.Count()}").ToList();
+            if (engine.Count > 0) parts.Add($"scene engine ({string.Join(", ", engine)})");
             int other = calls.Count(c => c.Role == ChatLogRoles.Other);
             if (other > 0) parts.Add($"other calls while open ({other})");
 

@@ -824,7 +824,8 @@ namespace CalradiaRemembers.Dialogue
             OpenedByGreeting = openedByGreeting,
             ResumedSitting = vm?.ResumedASitting == true,
             VanillaLinesCarried = vanillaLinesCarried,
-            ModelAvailable = NpcMemoryCampaignBehavior.Instance?.LlmServices?.IsAvailable == true
+            ModelAvailable = NpcMemoryCampaignBehavior.Instance?.LlmServices?.IsAvailable == true,
+            ComposedIntro = vm?.ComposesOpening == true
          };
 
       /// <summary>
@@ -897,6 +898,9 @@ namespace CalradiaRemembers.Dialogue
          string playerName = Hero.MainHero?.Name?.ToString() ?? "You";
 
          var carried = false;
+         // Gabriel (28/11/2026, after his chat with Monchug opened on three stacked greetings and no intro): "je suggere qu'il y ait toujours une intro a l'ouverture du chat et cet intro devrait remplacer l'injection de la conversation Vanille du debut de la conversation.. si bien sur l'option MCM est activee."
+         // With the composed intro, the game's lines stay history for the model and are no longer shown: the intro opens the chat.
+         bool introInstead = SceneOpenerPolicy.IntroReplacesGameLines(SceneFacts(vm, _openedByGreeting, false));
          foreach (VanillaDialogueRecorder.CapturedLine line in captured)
          {
             // Skip the CR-opener menu line: it is a UI trigger (the player chose to start a
@@ -905,8 +909,12 @@ namespace CalradiaRemembers.Dialogue
             if (line.IsPlayer && string.Equals(line.Text?.Trim(), OpenChatOptionText, StringComparison.Ordinal))
                continue;
 
-            if (line.IsPlayer) vm.AppendPlayerMessage(line.Text);
-            else vm.AppendNpcMessage(line.Text);
+            if (!introInstead)
+            {
+               if (line.IsPlayer) vm.AppendPlayerMessage(line.Text);
+               else vm.AppendNpcMessage(line.Text);
+            }
+
             carried |= !string.IsNullOrWhiteSpace(line.Text);
 
             if (!string.IsNullOrWhiteSpace(line.Text))

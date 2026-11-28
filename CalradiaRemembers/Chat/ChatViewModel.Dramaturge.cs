@@ -194,7 +194,7 @@ namespace CalradiaRemembers.Chat
             NpcChatResult r;
             session?.RollbackLastMessage(); // the reply just written
             session?.RollbackLastMessage(); // the player's line, added again by the call below (or restored on failure)
-            context.DraftRefusedNote = reason;
+            context.DraftRefusedNote = reason + " " + DramaturgeKeeper.KeepTheForm;
             try
             {
                if (stand != null)
