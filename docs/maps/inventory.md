@@ -6,8 +6,8 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 700 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1767 types in 62 namespaces, 14 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 701 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1779 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 297 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,7 +17,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 30000+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 30500+ | Mod | `Diagnostics/CrSelfTest.cs` |
 | 9500+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 6000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
@@ -252,7 +252,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatScreen` | internal class | A minimal screen that carries the pre-built chat layer and takes focus when pushed. |
 | `ChatScrollablePanel` | public class | Custom ScrollablePanel that supports a deferred "scroll to bottom" request. |
 | `ChatSpeaker` | internal class | One participant of a chat exchange: the main NPC or a present witness, with the hero, stored profile and display colour used to route the turn and render the line. |
-| `ChatViewModel` | public class, partial over 13 files | (no summary) |
+| `ChatViewModel` | public class, partial over 14 files | (no summary) |
 | `CompanionAudiencePayload` | public class | The companion-audience specifics. |
 | `ComposeScrollablePanel` | public class | A plain ScrollablePanel for the composer's multi-line input. |
 | `ConversationMood` | public static class | How far the player has moved each character's mood in the current conversation. |
@@ -321,13 +321,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CompanionBriefingCoordinator` | public static class | Offers the companion-briefing picker and opens the resulting private chat. |
 | `CompanionHireBehavior` | public class | Keeps the day each companion joined the player's company. |
 
-### CalradiaRemembers.Diagnostics (19)
+### CalradiaRemembers.Diagnostics (20)
 
 | Type | Kind | What it is |
 |---|---|---|
 | `ActionBench` | public static class | Runs the interpreter extraction bench in-game against the configured interpreter model. |
 | `ConsoleCommandHelp` | public static class | Every cr command, described. |
 | `ConsoleCommandIndex` | public static class | Every console command this assembly registers, by group, straight from the attributes. |
+| `ConversationLogWriter` | internal static class | Writes conversation logs to their folder. |
 | `CostBench` | public static class | Plays the cost passes through the real pipeline and writes the measured tables. |
 | `CrConsoleTextListPatch` | public static class | The same repair for the overload that receives the arguments already split. |
 | `CrConsoleTextPatch` | public static class | Repairs the text of a cr.* console command as the console typed it. |
@@ -2229,7 +2230,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `TurnArbiter` | public static class | Decides who holds the floor next in a group conversation. |
 | `WitnessExchangePolicy` | public static class | Decides whether the bystander exchange must stop and leave the floor to the player. |
 
-### CalradiaRemembers.Logic.Diagnostics (41)
+### CalradiaRemembers.Logic.Diagnostics (53)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2237,6 +2238,18 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `CaptureMessage` | public class | One message of a captured request. |
 | `CaptureRow` | public class | One played row: its setup, and each call it made in order. |
 | `CaptureStep` | public class | One call: the request as it went, and the reply the conversation kept. |
+| `ChatLogActionFacts` | public class | A deed the game was asked to carry out, and what it answered. |
+| `ChatLogActionText` | public static class | How a deed reads in the log: "verb: done (message)", "verb: REFUSED (reason)", "verb: no such deed". |
+| `ChatLogCall` | public class | One call to a model made while the chat was open. |
+| `ChatLogCollector` | public class | Gathers one chat's scene, model calls and "why" entries, turn by turn. |
+| `ChatLogFacts` | public class | Everything one conversation log is made of. |
+| `ChatLogLine` | public class | One line of the scene, as the chat recorded it. |
+| `ChatLogLineKind` | public enum | What a recorded line of the scene is. |
+| `ChatLogModels` | public class | The models of the chat's roles, as set when it opened. |
+| `ChatLogRenderer` | public static class | Renders a conversation log as Markdown. |
+| `ChatLogRoles` | public static class | Which role a call served. |
+| `ChatLogWhy` | public class | One entry of "why each turn went as it did". |
+| `ChatLogWhyKind` | public static class | The kinds of a "why" entry. |
 | `ConsoleTextRepair` | public static class | Undoes the console's UTF-8-read-as-Windows-1252 mangling of a command's text. |
 | `CostBenchReport` | public static class | The sums and the tables. |
 | `CostCall` | public class | One billed attempt, as its provider reported it. |

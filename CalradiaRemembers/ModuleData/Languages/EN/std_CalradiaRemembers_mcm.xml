@@ -107,6 +107,8 @@
     <string id="CR_MCM_EnableScreenLogging_Hint" text="Also prints the mod's diagnostics as on-screen messages (top-left). Off by default: the stream can crowd the screen during play. Turn it on only when you want to watch the mod live; the file log above is the better channel for a bug report." />
     <string id="CR_MCM_ShowReportButton" text="Report button in the chat" />
     <string id="CR_MCM_ShowReportButton_Hint" text="Shows a button in the chat window to report a problem: you describe it and see the whole report (conversation, prompts, replies, log), saved to a file you share on Discord and written into the log. Nothing is sent by itself." />
+    <string id="CR_MCM_WriteConversationLog" text="Write a conversation log" />
+    <string id="CR_MCM_WriteConversationLog_Hint" text="Writes each chat to a Markdown file in the &quot;CR Conversations&quot; folder beside the log when it closes: the scene, then why each turn went as it did (models, cost, deeds done or refused, fallbacks). No keys, no prompts. Off by default." />
     <string id="CR_MCM_EnableJealousy" text="Enable Jealousy" />
     <string id="CR_MCM_EnableJealousy_Hint" text="On (default): the world is richer, partners react to being favoured or slighted, a neglected co-partner can feel wronged, and open-relationship pacts matter. Off: a drama-free household, no jealousy of any kind, from any partner." />
     <string id="CR_MCM_Group_Relationships" text="Relationships" />

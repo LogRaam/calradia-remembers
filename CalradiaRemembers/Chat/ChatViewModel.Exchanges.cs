@@ -1090,6 +1090,10 @@ namespace CalradiaRemembers.Chat
                return;
             }
 
+            NoteWhy(Logic.Diagnostics.ChatLogWhyKind.Reply,
+                    $"{speaker.Name}'s reply took {(elapsedMs / 1000.0).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)} s on {LlmServices.ActiveModelId}"
+                    + $"{(string.IsNullOrEmpty(result.FinishReason) ? "" : $" (finish {result.FinishReason})")}{(result.WasRetried ? ", retried" : "")}.");
+
             // ── PROSE FALLBACK (ADDITIVE; the clean-finish path below is byte-for-byte unchanged) ──
             // The prose call above failed fast (allowTruncationRetry:false) on an eligible turn; decide from its
             // FinishReason alone whether the beat needs completing on the fallback model. A "stop" finish (the
@@ -1114,6 +1118,7 @@ namespace CalradiaRemembers.Chat
                   string why = refusedBeat ? "refused" : hasSpokenDialogue ? $"truncated (finish={result.FinishReason ?? "empty"})" : "produced no spoken line";
                   ModLog.Info($"[PROSE-FALLBACK] prose model {why}; " +
                               $"completing this beat on {fallbackModel} in Integrated mode.");
+                  NoteWhy(Logic.Diagnostics.ChatLogWhyKind.Fallback, $"the prose model {why}; this beat was redone on {fallbackModel}.");
 
                   // The fallback is one call that reads its own tags (ActionReaderPolicy), so its prompt carries the turn's
                   // action blocks (a tale's choices and its arc's signals) that the interpreter would have been taught.
@@ -1616,6 +1621,7 @@ namespace CalradiaRemembers.Chat
                   {
                      ModLog.Info($"[BRIEFING] dropped the [ACTION] '{action.Type}' inside the private briefing "
                                + "chat (a briefing plans; the meeting acts).");
+                     NoteLoggedAction($"{action.Type} dropped: a briefing plans, the meeting acts.");
 
                      continue;
                   }
@@ -1630,6 +1636,7 @@ namespace CalradiaRemembers.Chat
                          StringComparison.OrdinalIgnoreCase))
                   {
                      ModLog.Info("[ACTION] take_gold dropped — join_party in the same response already transfers the hire payment.");
+                     NoteLoggedAction("take_gold dropped: join_party in the same response already transfers the hire payment.");
 
                      continue;
                   }
@@ -1638,6 +1645,7 @@ namespace CalradiaRemembers.Chat
                   if (supersededBySale.Contains(action))
                   {
                      ModLog.Info($"[ACTION] {action.Type} dropped: a sale in the same response already moves this item.");
+                     NoteLoggedAction($"{action.Type} dropped: a sale in the same response already moves this item.");
 
                      continue;
                   }
@@ -1647,6 +1655,7 @@ namespace CalradiaRemembers.Chat
                   if (supersededByCounterOffer.Contains(action))
                   {
                      ModLog.Info($"[ACTION] {action.Type} dropped: a counter_offer in the same response already settles this.");
+                     NoteLoggedAction($"{action.Type} dropped: a counter_offer in the same response already settles this.");
 
                      continue;
                   }
@@ -1654,6 +1663,7 @@ namespace CalradiaRemembers.Chat
                   if (TurnPaymentPolicy.IsSamePaymentAsADealThisTurn(action.Type, actionTypesThisTurn))
                   {
                      ModLog.Info($"[ACTION] {action.Type} dropped: a deal in the same response already moves the coin.");
+                     NoteLoggedAction($"{action.Type} dropped: a deal in the same response already moves the coin.");
 
                      continue;
                   }
@@ -1685,6 +1695,7 @@ namespace CalradiaRemembers.Chat
                      if (TurnRegardPolicy.IsSameCostAsADeedThisTurn(new TurnRegardFacts {ActionType = action.Type, Delta = regardDelta, DeedsTheGameWillCarryOut = deedsTheGameWillCarryOut}))
                      {
                         ModLog.Info("[ACTION] change_relation dropped: a deed in the same response already charges its own regard cost.");
+                        NoteLoggedAction("change_relation dropped: a deed in the same response already charges its own regard cost.");
 
                         continue;
                      }
@@ -1712,6 +1723,7 @@ namespace CalradiaRemembers.Chat
                          }))
                      {
                         ModLog.Info("[ACTION] change_relation (positive) dropped: the quest reward this turn already covers the goodwill (M-R3).");
+                        NoteLoggedAction("change_relation (positive) dropped: the quest reward this turn already covers the goodwill (M-R3).");
 
                         continue;
                      }
@@ -1719,6 +1731,7 @@ namespace CalradiaRemembers.Chat
                      if (relationChangedThisTurn)
                      {
                         ModLog.Info("[ACTION] change_relation dropped: at most one regard change applies per turn.");
+                        NoteLoggedAction("change_relation dropped: at most one regard change applies per turn.");
 
                         continue;
                      }
@@ -1758,6 +1771,12 @@ namespace CalradiaRemembers.Chat
                         AppendSystemMessage(outcome.Message, outcome.IsPositive);
                      }
                   }
+
+                  // The conversation log (Gabriel, 28/11/2026): the deed as the game reported it, refused or done.
+                  NoteLoggedAction(Logic.Diagnostics.ChatLogActionText.For(new Logic.Diagnostics.ChatLogActionFacts {
+                     Verb = action.Type, Reported = outcome != null, WasRefused = outcome?.WasRefused == true,
+                     WasUnknownVerb = outcome?.WasUnknownVerb == true, Message = outcome?.Message
+                  }));
 
                   // Extension Surface (ActionResult.Recap): an external deed resolved to a fact the NPC's
                   // already-spoken reply this turn could not know (a ruling upheld or denied, a decision taken).

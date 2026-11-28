@@ -2787,6 +2787,8 @@ namespace CalradiaRemembers.Chat
 
          if (string.IsNullOrEmpty(text)) return;
          if (!IsSendEnabled) return;
+         // The conversation log: what follows belongs to this turn (a no-op with the log off).
+         NoteTurnBegins();
 
          // What leaves the bag follows the line he actually sends (fearente's gift bag, 29/10/2026).
          _offer.ReconcileWithSent(text);

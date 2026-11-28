@@ -297,6 +297,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("campaign_overrides", Severity.Light, "Bhelogan (Discord, 14/11/2026): character_overrides.json is global, \"but runtime ids (CharacterObject_N) are per save, so characters from one playthrough leaked into the next\". Writes a character_overrides.json in this campaign's own folder (CrLore.CampaignFolder) naming a lord, reloads, and asserts the lord resolves to the campaign entry and the overlay is reported; then deletes the file (and the folder if the test made it) and reloads. Skipped when the campaign already has its own file (never touched)", TestCampaignOverrides),
          new SelfTest("character_text", Severity.Light, "Bhelogan (Discord, 14/11/2026): \"The per-character text source you described, yes please ... Appearance: shown in the panel, given to the model; Private: model only, never in the panel ... the same for the player\". Registers a CrCharacterText source for one lord and the player, then through the real readers asserts: the lord's appearance block and panel carry the mod's appearance, the prompt carries the secret and the panel never does, the player's text reaches the prompt. Unregisters the source", TestCharacterText),
          new SelfTest("player_report", Severity.Light, "Gabriel (14/11/2026): a report-a-problem button whose report carries the whole context, saved to a file and written into the log. Records one exchange through the real recorder (a prompt holding a fake key), gathers and composes a report through the real service, writes it, and asserts the file holds the player text, the prompt and the reply with the key masked, and that the log holds the report. Deletes the file (the log keeps a [SELFTEST] report)", TestPlayerReport),
+         new SelfTest("conversation_log", Severity.Light, "Gabriel (28/11/2026): \"une option MCM qui permet de créer un log d'une conversation ... et qui explique le Why each turn went as it did\". With the switch forced on, opens a chat view-model as the window does, begins a turn as the send does, records a player line, a character line and the game's refusal note through the real transcript funnel, hands one exchange to the real model recorder (a prompt holding a fake key) and one deed, then writes the log at once: the file holds the scene, the why section with the call under turn 1 and the deed, never the prompt or the key, and the recorder stops listening. Restores the switch and deletes the file", TestConversationLog),
          new SelfTest("diplomacy_door", Severity.Light, "VonLemberg's Bellum Civile bridge RFC (14/11/2026, P0-B): every war, peace and change of realm CR makes asks the registered authorities first. With a [SELFTEST] authority over two realms at war: Rejected and Pending leave the change unmade and give an honest line, Applied is not applied again, PassThrough applies it; the request carries both realms and this save. The change itself is a stand-in (nothing in the world moves). Unregisters the authority", TestDiplomacyDoor),
          new SelfTest("prompt_stock_sections", Severity.Light, "Bhelogan (Muh Prompts, 14/11/2026): 'read-only stock text of a prompt section (for the profile editor)'. For a real lord, through CrPrompt.StockSections: every keyed section is listed in the stock order (the keys of CrPrompt.Sections), the identity section writes something and names him, StockSectionText reads the same text, and an unknown hero gives nothing", TestPromptStockSections),
          new SelfTest("portrait_source", Severity.Light, "Bhelogan (14/11/2026): 'a portrait source for chat portraits, so a mod can supply a picture per hero without naming files by runtime id'. Writes two tiny PNGs in a temp folder and registers a [SELFTEST] source through CrPortraits: its picture is shown for the lord it answers for and not for another, it wins over a realm portrait, the player's own ChatPortraits file (in a temp Custom folder) still wins over it, and a source that throws is passed over. Unregisters, restores the hooks and deletes the temp folder", TestPortraitSource),
@@ -7763,6 +7764,64 @@ namespace CalradiaRemembers.Diagnostics
          }
          finally
          {
+            try { if (path != null) System.IO.File.Delete(path); }
+            catch (Exception ex) { t.Note($"cleanup: {ex.GetType().Name}"); }
+         }
+
+         return t.Line();
+      }
+
+      private static string TestConversationLog(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("conversation_log");
+         if (t.Skip(CrSettings.Instance == null, "no MCM settings instance")) return t.Line();
+
+         bool wasOn = CrSettings.Instance.WriteConversationLog;
+         Services.ReportRecorder.Instance.Listener = null;
+         string path = null;
+         try
+         {
+            CrSettings.Instance.WriteConversationLog = true;
+            var chat = new ChatViewModel();
+            chat.SetNpcName("Selftest Lady");
+            chat.StartConversationLog();
+            if (t.Abort(chat.ConversationLog == null, "the switch on, the chat started no log")) return t.Line();
+            t.Expect("theRecorderListensToThisChat", ReferenceEquals(Services.ReportRecorder.Instance.Listener, chat.ConversationLog), true);
+
+            chat.NoteTurnBegins();
+            Services.ReportRecorder.Instance.OnExchange(
+               new LlmRequest {SystemPrompt = "SELFTEST prompt for the log, key sk-or-v1-selftest0123456789abcdef", Messages = new[] {new LlmMessage(MessageRole.User, "SELFTEST hello")}},
+               new LlmResponse {Content = "SELFTEST raw reply", IsSuccess = true, FinishReason = "stop", Usage = new LlmUsage(1200, 80) {CachedPromptTokens = 900, Cost = 0.0004}},
+               "selftest/log-model");
+            var host = (IActionConfirmationHost) chat;
+            chat.RecordPlayerLineForDiagnostics("[SELFTEST] I bring your husband's sword.");
+            host.RecordTranscriptLine(false, "Selftest Lady", null, "[SELFTEST] Then he is truly gone.");
+            chat.NoteLoggedAction("give_item: done ([SELFTEST] the sword changes hands)");
+            host.RecordTranscriptLine(true, "You", null, Logic.ActionRefusalNote.For(true, "[SELFTEST] refusal reason."));
+
+            path = chat.WriteConversationLog(waitForFile: true);
+            if (t.Abort(path == null || !System.IO.File.Exists(path), "the log file could not be written")) return t.Line();
+
+            string written = System.IO.File.ReadAllText(path);
+            t.Note(System.IO.Path.GetFileName(path));
+            // THE REQUEST: the file holds the scene, line by line.
+            t.Expect("theSceneIsIn", written.Contains(Logic.Diagnostics.ChatLogRenderer.SceneHeading)
+                                     && written.Contains("**You**: [SELFTEST] I bring your husband's sword.")
+                                     && written.Contains("**Selftest Lady**: [SELFTEST] Then he is truly gone."), true);
+            t.Expect("theDeedIsUnderItsLine", written.Contains("`actions: give_item: done ([SELFTEST] the sword changes hands)`"), true);
+            t.Expect("theRefusalIsANote", written.Contains("*(game note to the model)* (Out of character: the game refused that: [SELFTEST] refusal reason."), true);
+            // THE REQUEST: why each turn went as it did, with the call that answered it.
+            t.Expect("theWhyIsIn", written.Contains(Logic.Diagnostics.ChatLogRenderer.WhyHeading) && written.Contains("**Turn 1**")
+                                   && written.Contains("selftest/log-model, 1200 in (900 cached) / 80 out, $0.0004, finish stop"), true);
+            // STAKE: a player shares this file; neither the prompt nor a key may reach it.
+            t.Expect("noPromptNoKey", written.Contains("SELFTEST prompt for the log") || written.Contains("selftest0123456789abcdef"), false);
+            t.Expect("theRecorderStopsListening", Services.ReportRecorder.Instance.Listener == null, true);
+            t.Expect("theFileIsInItsFolder", System.IO.Path.GetDirectoryName(path) == ConversationLogWriter.Folder, true);
+         }
+         finally
+         {
+            CrSettings.Instance.WriteConversationLog = wasOn;
+            Services.ReportRecorder.Instance.Listener = null;
             try { if (path != null) System.IO.File.Delete(path); }
             catch (Exception ex) { t.Note($"cleanup: {ex.GetType().Name}"); }
          }

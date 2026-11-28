@@ -58,6 +58,9 @@ namespace CalradiaRemembers.Foundation
       /// <summary>Whether the chat shows the "report a problem" button (Gabriel, 14/11/2026: optional in MCM). On by default.</summary>
       public static bool ShowReportButton => CrSettings.Instance?.ShowReportButton ?? true;
 
+      /// <summary>Whether each chat writes a conversation log as it closes (Gabriel, 28/11/2026). Off by default.</summary>
+      public static bool WriteConversationLog => CrSettings.Instance?.WriteConversationLog ?? false;
+
       /// <summary>Whether some soldiers in battle are women, per women_in_ranks.json (Gabriel, 14/11/2026). On by default.</summary>
       public static bool WomenInRanks => CrSettings.Instance?.WomenInRanks ?? true;
 

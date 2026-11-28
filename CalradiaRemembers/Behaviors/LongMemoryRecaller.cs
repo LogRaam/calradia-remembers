@@ -62,6 +62,11 @@ namespace CalradiaRemembers.Behaviors
                }).ToList()
             }).ToList();
             ModLog.Info($"[LONG MEMORY] {characterId}: {recalled.Count} passage(s), {recalled.Sum(r => r.Lines.Count)} line(s) recalled.");
+            // The conversation log (Gabriel, 28/11/2026): which passages this turn was given, never their words.
+            ChatManager.ActiveViewModel?.NoteWhy(Logic.Diagnostics.ChatLogWhyKind.Recall,
+               $"{NameOf(characterId) ?? characterId} recalled {recalled.Count} passage(s): "
+               + string.Join("; ", recalled.Select(r => $"{r.When}{(string.IsNullOrWhiteSpace(r.Place) ? "" : " at " + r.Place)}"
+                                                        + $"{(string.IsNullOrWhiteSpace(r.About) ? "" : ", about " + r.About)}, {r.Lines.Count} line(s){(r.Latest ? ", latest on its thread" : "")}")));
 
             return recalled;
          }

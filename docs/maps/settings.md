@@ -11,7 +11,7 @@ player says "I turned it off and it still happens", the readers listed here are 
 it is missing from the list. Read from syntax; blind spots in the header of `SettingsReadersMap.cs` (a value handed
 on to the SDK or a helper shows only where it is read).
 
-120 settings; a reader is `Type.Member`. Console and cr.test reads are counted apart (they exercise a switch, they do not obey it).
+121 settings; a reader is `Type.Member`. Console and cr.test reads are counted apart (they exercise a switch, they do not obey it).
 
 ## Read by one member only
 
@@ -73,6 +73,7 @@ Fine when the setting governs one thing. Worth a look when its hint promises mor
 | Witness Density (`WitnessDensity`) | `WitnessResolver.ResolveAutoWitnesses` |
 | Women In The Ranks (`WomenInRanks`) | `WomenInRanksPatch.Postfix` |
 | Write Letters on Arrival (`WriteLettersOnArrival`) | `LetterBox.Receive` |
+| Write a conversation log (`WriteConversationLog`) | `ChatViewModel.StartConversationLog` |
 
 ## Read by no road of play
 
@@ -156,6 +157,7 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Report unsupported actions (`ReportUnsupportedActions`) | `ChatViewModel.RunLlmExchangeAsync` | 0 |
 | Story Log (`StoryLogging`) | `StoryLog.IsEnabled` | 0 |
 | Verbose Logging (`VerboseLogging`) | `ChatViewModel.RunEnvoyTurnAsync`, `ChatViewModel.RunLlmExchangeAsync`, `LetterTriggerEvaluator.EvaluateDaily`, `LlmServices.ResolveReasoningFor` | 0 |
+| Write a conversation log (`WriteConversationLog`) | `ChatViewModel.StartConversationLog` | 1 |
 
 ### Duels
 

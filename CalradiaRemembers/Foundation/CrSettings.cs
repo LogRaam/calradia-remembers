@@ -283,6 +283,12 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Diagnostics}Diagnostics", GroupOrder = 8)]
       public bool ShowReportButton { get; set; } = true;
 
+      [SettingPropertyBool("{=CR_MCM_WriteConversationLog}Write a conversation log", RequireRestart = false, Order = 9,
+         HintText = "{=CR_MCM_WriteConversationLog_Hint}Writes each chat to a Markdown file in the \"CR Conversations\" folder beside the log when it closes: " +
+                    "the scene, then why each turn went as it did (models, cost, deeds done or refused, fallbacks). No keys, no prompts. Off by default.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Diagnostics}Diagnostics", GroupOrder = 8)]
+      public bool WriteConversationLog { get; set; } = false;
+
       [SettingPropertyBool("{=CR_MCM_EnableJealousy}Enable Jealousy", RequireRestart = false, Order = 0,
          HintText = "{=CR_MCM_EnableJealousy_Hint}On (default): the world is richer, partners react to being favoured or slighted, a neglected " +
                     "co-partner can feel wronged, and open-relationship pacts matter. Off: a drama-free household, " +

@@ -534,6 +534,8 @@ namespace CalradiaRemembers.Chat
             // Extension Surface: hand the attributed transcript to any third-party listener as the conversation
             // closes. Independent of the memory finalizers above so a listener sees even a slight conversation.
             SafeStep(() => ActiveViewModel?.RaiseConversationEndedEvent(), "RaiseConversationEndedEvent");
+            // The conversation log, when its MCM switch is on (Gabriel, 28/11/2026): rendered here, written off the main thread.
+            SafeStep(() => ActiveViewModel?.WriteConversationLog(), "WriteConversationLog");
             // Keep the words themselves, so a conversation the player stepped out of can be stepped back into
             // (fkasad, 20/09/2026). AFTER FinalizeConversationMemory, because what is kept carries the memory
             // event that close just wrote: a resumed sitting comes back to that same event instead of leaving
@@ -1601,6 +1603,8 @@ namespace CalradiaRemembers.Chat
          _activeLayer = null;
          _activeMovieId = null;
          ActiveViewModel = null;
+         // A window torn down without its close keeps no conversation log listening to the next one's calls.
+         Services.ReportRecorder.Instance.Listener = null;
          _hostScreen = null;
          _chatScreen = null;
          _timeControlModeSaved = false;
@@ -1630,6 +1634,8 @@ namespace CalradiaRemembers.Chat
             ActiveViewModel.SetNpcHero(conversationHero);
          else if (!string.IsNullOrWhiteSpace(npcName))
             ActiveViewModel.SetNpcName(npcName);
+         // The conversation log (MCM, Diagnostics; Gabriel, 28/11/2026): a no-op with the switch off.
+         ActiveViewModel.StartConversationLog();
 
 
          // GauntletLayer ctor: (string name, int localOrder, bool shouldClear), the same shape vanilla uses

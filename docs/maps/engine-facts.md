@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-826 rules read 615 facts.
+827 rules read 619 facts.
 
 ## Facts read by more than one rule
 
@@ -501,6 +501,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `ChatEscapeFacts`: `ScreenManager.FocusedLayer`
 - `ChatFocusArbitrationPolicy.Decide`: `ScreenManager.TopScreen`
 - `ChatFocusArbitrationPolicy.ReasonFor`: `ScreenManager.TopScreen`
+- `ChatLogCall`: `Usage.CachedPromptTokens`, `Usage.CompletionTokens`, `Usage.Cost`, `Usage.PromptTokens`
 - `ChildrenListText.Part`: `AgeModel.HeroComesOfAge`, `Hero.Age`, `Hero.Father`, `Hero.IsAlive`, `Hero.IsFemale`, `Hero.IsLord`, `Hero.IsPrisoner`, `Hero.Mother`, `Hero.Name`, `Hero.Spouse`
 - `ClaimantBackerFacts`: `Clan.Influence`, `Clan.Kingdom`, `Hero.Clan`, `Hero.GetRelation`, `Hero.IsAlive`, `Hero.IsLord`, `Hero.IsPrisoner`
 - `ClanRegardCandidate`: `Clan.Leader`, `DossierReader.WhyTowardThePlayer`, `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`, `PairBondReader.Points`, `PairRegardReader.Assess`

@@ -259,6 +259,7 @@ namespace CalradiaRemembers.Chat
                string why = string.IsNullOrWhiteSpace(raw) ? $"gave nothing ({error ?? "empty reply"})"
                   : DialogueHeuristics.LooksLikeRefusal(raw) ? "refused" : $"was cut off (finish={finish})";
                ModLog.Info($"[NSFW-FALLBACK] scene narrator on {beatModel} {why}; redoing this turn on {nsfwModel}.");
+               NoteWhy(Logic.Diagnostics.ChatLogWhyKind.Fallback, $"the scene narrator on {beatModel} {why}; this turn was redone on {nsfwModel}.");
 
                (string redone, string redoneFinish, string redoneError) = await CallNarratorAsync(behavior.LlmServices.NsfwClient, request).ConfigureAwait(false);
                if (string.IsNullOrWhiteSpace(redone)) ModLog.Error($"[NSFW-FALLBACK] {nsfwModel} gave nothing either: {redoneError ?? "empty reply"}");

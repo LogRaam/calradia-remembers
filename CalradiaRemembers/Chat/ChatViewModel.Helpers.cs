@@ -832,6 +832,7 @@ namespace CalradiaRemembers.Chat
       {
          _transcript.Record(new TranscriptLine {IsPlayer = isPlayer, SpeakerName = name, SpeakerHeroId = heroId, Text = text, IsNarration = isNarration});
          RaiseSpeechLine(isPlayer, name, heroId, text, isNarration);
+         NoteLoggedLine(isPlayer, name, text, isNarration);
          ArchiveRecord(StoryArchiveDeed.KindOfTranscriptLine(isPlayer, isNarration, text), isPlayer, name, heroId, text);
       }
 
