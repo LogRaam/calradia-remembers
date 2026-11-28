@@ -69,9 +69,21 @@ namespace CalradiaRemembers.Tests
       [TestCase(SceneOpenerOutcome.Delivered, false)]
       [TestCase(SceneOpenerOutcome.Failed, true)]
       [TestCase(SceneOpenerOutcome.Abandoned, true)]
+      [TestCase(SceneOpenerOutcome.Composed, true)]
       public void GIVEN_how_the_scene_turn_ended_WHEN_the_greeting_is_settled_THEN_it_stands_unless_the_scene_arrived(SceneOpenerOutcome outcome, bool stands)
       {
          SceneOpenerPolicy.GreetingStands(outcome).Should().Be(stands);
+      }
+
+      // STAKE (Stage 3, 28/11/2026): a composed opening already set the scene above the greeting; the player's first turn
+      // asking for an opening tableau again would describe the hall twice. A greeting that stood alone still owes it.
+      [TestCase(SceneOpenerOutcome.Delivered, false)]
+      [TestCase(SceneOpenerOutcome.Composed, false)]
+      [TestCase(SceneOpenerOutcome.Failed, true)]
+      [TestCase(SceneOpenerOutcome.Abandoned, true)]
+      public void GIVEN_how_the_scene_turn_ended_WHEN_the_next_turn_is_built_THEN_it_owes_the_opening_only_if_no_scene_was_set(SceneOpenerOutcome outcome, bool owed)
+      {
+         SceneOpenerPolicy.OpeningNarrationOwed(outcome).Should().Be(owed);
       }
 
       // STAKE: the direction never lets the scene invent what the player can check, nor act for him.

@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-828 rules read 620 facts.
+832 rules read 622 facts.
 
 ## Facts read by more than one rule
 
@@ -108,6 +108,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Town.Governor` (7) | `AppointmentOfferFacts`, `CompanionAmbitionFacts`, `CompanionAmbitionPolicy.Select`, `ManualActionAvailability.Describe`, `ManualActionFacts`, `ResolutionEligibilityPolicy.OfferedExecutableKeysForScope`, `ResolutionWorldFacts` |
 | `Event.InvolvesPlayer` (6) | `PlayerFameFacts`, `PlayerFamePolicy.Line`, `PlayerFamePolicy.NameIsNews`, `PlayerFamePolicy.Read`, `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
 | `Event.KnownOnlyToThoseInvolved` (6) | `EventDetailRecall.Render`, `EventDetailRecallFacts`, `EventDetailSource`, `PastCandidateFacts`, `PastOnMentionPolicy.Block`, `RumorDiscretion.TagFor` |
+| `GameStateBridge.GetCurrentGameDay` (6) | `ComposedOpeningComposer.ComposeAsync`, `ComposedOpeningPolicy.ShouldCompose`, `ComposedOpeningSheet`, `ConversationResumeIdentity`, `JealousyTriggerPolicy.IsPlausibleCourtship`, `PendingSummaryJob` |
 | `Kingdom.IsEliminated` (6) | `PressForWarFacts`, `PressForWarPolicy.WhyNot`, `StrategistActFacts`, `StrategistAimPolicy.ChooseDeed`, `StrategistAimPolicy.DeedStands`, `StrategistTargetFacts` |
 | `Kingdom.RulingClan` (6) | `CaptiveOfferFacts`, `OutlawPolicy.IsBrigandage`, `UnionFacts`, `WarDutyLive`, `WarDutyPolicy.Decide`, `WarLoomingPolicy.ShouldRecord` |
 | `ModSettings.LordsApproaching` (6) | `FiefAudiencePolicy.ChooseFiefValid`, `FiefAudiencePolicy.IsOnCooldown`, `InterceptionFacts`, `InterceptionPacingRules.CooldownDays`, `InterceptionPacingRules.DailyChancePercent`, `InterceptionPacingRules.IsOff` |
@@ -130,6 +131,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MapEvent.EventType` (5) | `BattleFacts`, `BattleMemoryText.ChronicleEngagement`, `BattleMemoryText.PlaceClause`, `BattleRecordNames`, `SkirmishFacts` |
 | `MemberRoster.TotalHealthyCount` (5) | `AuthoredBandSizeFacts`, `ExtortionLeverFacts`, `ExtortionPolicy.Yields`, `ExtortionResistanceFacts`, `PatrolReportFacts` |
 | `MobileParty.BesiegedSettlement` (5) | `AuthoredMapTriggerPolicy.WhyNot`, `ChaseFacts`, `InterceptionPolicy.PlayerCanBeApproached`, `InterceptionPolicy.ShouldWriteMissedMeetingLetter`, `MapTriggerFacts` |
+| `ModSettings.ReplyLanguage` (5) | `ComposedOpeningComposer.ComposeAsync`, `ComposedOpeningSheet`, `FixedLetterTranslationPolicy.NeedsTranslation`, `PendingSummaryJob`, `ReplyLanguagePolicy.WithLanguage` |
 | `PartyBelongedTo.Army` (5) | `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `CouncilMembershipFacts`, `CouncilRosterPolicy.Evaluate`, `ReturnFacts` |
 | `Profile.ReputationWithPlayer` (5) | `DelegatedRiskFacts`, `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion`, `PeaceMediationPolicy.Evaluate`, `PrisonerTradePolicy.MayGiveFreely` |
 | `Result.Killed` (5) | `KillAftermathFacts`, `KillAttemptPolicy.FallbackNarration`, `KillAttemptPolicy.NarratorTask`, `KillAttemptPolicy.ReactionHint`, `KillNarrationFacts` |
@@ -187,7 +189,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `EndCaptivityDetail.ReleasedByCompensation` (3) | `EnvoyReleaseFacts`, `PrisonerMemoryText.Released`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
 | `Event.DetailsKey` (3) | `EventDetailRecall.Render`, `EventDetailRecallFacts`, `EventDetailSource` |
 | `Father.IsDead` (3) | `MattersMostFacts`, `MattersMostPolicy.Resolve`, `MattersMostPolicy.StillKnown` |
-| `GameStateBridge.GetCurrentGameDay` (3) | `ConversationResumeIdentity`, `JealousyTriggerPolicy.IsPlausibleCourtship`, `PendingSummaryJob` |
 | `HeartPageReader.When` (3) | `LegendPolicy.PromptLine`, `MisdeedsPagePolicy.Line`, `TraumaPagePolicy.Line` |
 | `Hero.BattleEquipment` (3) | `GiftEquipFacts`, `PlayerDressPolicy.Classify`, `ScatteredLootItem` |
 | `Hero.DeadOrDisabledHeroes` (3) | `AuthoredHistoryLoader.Validate`, `HistoryRelationLedger.Plan`, `PastBondEntry` |
@@ -215,8 +216,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.CncProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.CompanionAudienceCadence` (3) | `CompanionAudiencePacingRules.CooldownDays`, `CompanionAudiencePacingRules.DailyChancePercent`, `CompanionAudiencePacingRules.IsOff` |
 | `ModSettings.HousekeepingProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
-| `ModSettings.ReplyLanguage` (3) | `FixedLetterTranslationPolicy.NeedsTranslation`, `PendingSummaryJob`, `ReplyLanguagePolicy.WithLanguage` |
 | `ModSettings.RoleplayProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
+| `ModSettings.SceneNarration` (3) | `ComposedOpeningPolicy.ShouldCompose`, `SceneNarrationFacts`, `SceneNarrationPolicy.Shows` |
 | `ModSettings.WarLevyScale` (3) | `StandingAim`, `SummonsFacts`, `WarLevyFacts` |
 | `ModSettings.YourDescriptionReplaces` (3) | `AppearanceComposer.Compose`, `AppearanceComposer.WithOutsideLines`, `CharacterTextComposer.Append` |
 | `Mother.IsDead` (3) | `MattersMostFacts`, `MattersMostPolicy.Resolve`, `MattersMostPolicy.StillKnown` |
@@ -265,6 +266,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `CultureObject.VillageWoman` (2) | `RankSoldierFacts`, `WomenInRanksPolicy.IsWoman` |
 | `Current.ActiveState` (2) | `LandfallFacts`, `StagingHostFacts` |
 | `Current.UniqueGameId` (2) | `AuthoredHistoryDocument`, `MemoryPictureFacts` |
+| `DialogFlow.Profile` (2) | `ComposedOpeningPolicy.ShouldCompose`, `SpeakerProfileSelector.Select` |
 | `DiplomacyModel.GetInfluenceCostOfProposingWar` (2) | `PressForWarFacts`, `PressForWarPolicy.WhyNot` |
 | `DossierReader.WhyTowardThePlayer` (2) | `ClanRegardCandidate`, `NpcDossierText.RegardLine` |
 | `Encoding.UTF8` (2) | `StoryArchiveBranch.Index`, `StoryArchiveBranch.Walk` |
@@ -326,11 +328,11 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.AllowOpenRouterProviderFallbacks` (2) | `ProviderPinFailurePolicy.Explain`, `ProviderPinFailurePolicy.RoutingJson` |
 | `ModSettings.AllowOtherModsLlm` (2) | `ExternalLlmRequestFacts`, `ExternalLlmRequestPolicy.Explain` |
 | `ModSettings.EnableWarDuty` (2) | `LevyTroopFacts`, `TermsFacts` |
+| `ModSettings.LlmResponseTimeoutSeconds` (2) | `ComposedOpeningComposer.ComposeAsync`, `ComposedOpeningPolicy.ComposerTimeoutSeconds` |
 | `ModSettings.MarriageRegardThreshold` (2) | `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion` |
 | `ModSettings.NpcsRaiseWorldNews` (2) | `CompanionRumourFreshnessFacts`, `CompanionRumourFreshnessPolicy.WhyNotNews` |
 | `ModSettings.NsfwReasoningEffort` (2) | `OnOffReasoningPolicy.ForModel`, `RoleSettings` |
 | `ModSettings.ReasoningEffort` (2) | `OnOffReasoningPolicy.ForModel`, `RoleSettings` |
-| `ModSettings.SceneNarration` (2) | `SceneNarrationFacts`, `SceneNarrationPolicy.Shows` |
 | `ModSettings.SelfEsteemClimb` (2) | `SelfEsteemClimb`, `SelfEsteemPolicy.Record` |
 | `ModSettings.WarDutyWindowDays` (2) | `WarDutyLive`, `WarDutyPolicy.Decide` |
 | `ModSettings.WorldInitiative` (2) | `InitiativeGrant`, `WorldInitiativePolicy.Decide` |
@@ -370,6 +372,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Status.IsCourtingOrDeeper` (2) | `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible` |
 | `Store.MostRecentMatching` (2) | `HardshipPolicy.ShouldRecord`, `WarLoomingPolicy.ShouldRecord` |
 | `Summary.IndexOf` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
+| `TimeSpan.FromSeconds` (2) | `ComposedOpeningComposer.ComposeAsync`, `ContextLengthPolicy.ExplainOverflow` |
 | `Town.GetWallLevel` (2) | `ScoutPlacePolicy.Report`, `ScoutPlaceSighting` |
 | `Town.Militia` (2) | `EdictCounselPolicy.Answer`, `EdictTownFacts` |
 | `Town.Security` (2) | `EdictCounselPolicy.Answer`, `EdictTownFacts` |
@@ -539,6 +542,10 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `CompanionSecretAffectionPolicy.ShouldConfideThisWeek`: `ModSettings.RelationWarmth`
 - `CompanionServiceTransferFacts`: `Clan.Leader`, `Hero.Clan`, `Hero.GovernorOf`, `Hero.IsAlive`, `Hero.IsPrisoner`, `Hero.Spouse`
 - `CompanionServiceTransferPolicy.Evaluate`: `Clan.Leader`, `Hero.Clan`, `Hero.GovernorOf`, `Hero.IsAlive`, `Hero.IsPrisoner`, `Hero.Spouse`
+- `ComposedOpeningComposer.ComposeAsync`: `GameStateBridge.GetCurrentGameDay`, `ModSettings.LlmResponseTimeoutSeconds`, `ModSettings.ReplyLanguage`, `TimeSpan.FromSeconds`
+- `ComposedOpeningPolicy.ComposerTimeoutSeconds`: `ModSettings.LlmResponseTimeoutSeconds`
+- `ComposedOpeningPolicy.ShouldCompose`: `DialogFlow.Profile`, `GameStateBridge.GetCurrentGameDay`, `ModSettings.ComposedOpening`, `ModSettings.SceneNarration`
+- `ComposedOpeningSheet`: `GameStateBridge.GetCurrentGameDay`, `ModSettings.ReplyLanguage`
 - `ConceptionChroniclePolicy.IsPublicHeir`: `Hero.IsLord`, `Hero.Spouse`
 - `ConceptionFacts`: `Hero.Age`, `Hero.IsAlive`, `Hero.IsFemale`
 - `ContentmentPacingRules.DriftStepFor`: `ModSettings.CompanionPacing`

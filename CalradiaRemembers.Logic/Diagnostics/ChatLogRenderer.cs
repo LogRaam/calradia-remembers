@@ -84,6 +84,9 @@ namespace CalradiaRemembers.Logic.Diagnostics
         /// <summary>Passages of earlier conversations recalled for the turn (Long Memory).</summary>
         public const string Recall = "recall";
 
+        /// <summary>The composed opening (Stage 3): shown, or fallen back to the ordinary opener, and why.</summary>
+        public const string Intro = "intro";
+
         /// <summary>Reserved for stage 6 and 7: who should speak next, as judged.</summary>
         public const string Judge = "judge";
 

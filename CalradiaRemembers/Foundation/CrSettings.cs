@@ -634,6 +634,14 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 5)]
       public bool SceneNarration { get; set; } = true;
 
+      // Stage 3 of the group-scene plan (Gabriel, 28/11/2026: "au debut de chaque CHAT on ajoute l'intro"). Off by default, as
+      // every new switch: off, the opening is today's. It IS the opener above, so it needs Characters Set The Scene and Scene
+      // Narration on.
+      [SettingPropertyBool("{=CR_MCM_ComposedOpening}Composed opening scene", RequireRestart = false, Order = 3,
+         HintText = "{=CR_MCM_ComposedOpening_Hint}Off (default): as before. On: the opening scene is composed from what the game knows (place, hour, season, how you come, what you just lived, the talk of the realm), with one cheap extra check. Needs Characters Set The Scene and Scene Narration.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 5)]
+      public bool ComposedOpening { get; set; } = false;
+
       // Goeth (Discord, 17/11/2026): long memory, the actual words of earlier talks. Gabriel (17/11/2026): off by default;
       // the story is kept either way, this decides only what is sent ("pour epargner des tokens").
       [SettingPropertyBool("{=CR_MCM_LongMemory}Long Memory", RequireRestart = false, Order = 4,

@@ -51,6 +51,16 @@ namespace CalradiaRemembers.Chat
          _sceneOpenerInFlight = true;
          _sceneOpenerAbandoned = false;
          _sceneOpenerCommitted = false;
+         // Stage 3 (28/11/2026): with "Composed opening scene" on, the opener's call is the composer's; it falls back to the
+         // opener below on any failure (ChatViewModel.ComposedOpening.cs).
+         if (ComposedOpeningPolicy.ShouldCompose(ComposedOpeningFactsFor(speaker)))
+         {
+            ModLog.Info($"[SCENE] {speaker.Name}'s opening is composed; the greeting stands until it arrives.");
+            _ = RunComposedOpeningAsync(speaker);
+
+            return;
+         }
+
          ModLog.Info($"[SCENE] {speaker.Name} sets the scene; the greeting stands until it arrives.");
          _ = RunLlmExchangeAsync(SceneOpenerPolicy.Cue, speaker, _sceneOpenerGreeting, true, isSceneOpener: true);
       }
@@ -83,7 +93,7 @@ namespace CalradiaRemembers.Chat
 
          RecordTranscript(false, _npcName, _npcHero?.StringId, _sceneOpenerGreetingText);
          _sceneOpenerGreetingText = null;
-         _openingNarrationPending = true;
+         if (SceneOpenerPolicy.OpeningNarrationOwed(outcome)) _openingNarrationPending = true;
       }
 
       /// <summary>cr.test scene_opener: the scene is still being written.</summary>

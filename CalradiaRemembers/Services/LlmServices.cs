@@ -1108,7 +1108,10 @@ namespace CalradiaRemembers.Services
             // 1Enfant (Nexus, 16/11/2026): the player may turn the purple scene narration off.
             EnableSceneNarration = ModSettings.SceneNarration,
             // Stage 2 (28/11/2026): what the meetings left shows only while "Lasting memory of meetings" is on.
-            EnableMeetingMemory = ModSettings.MeetingMemory
+            EnableMeetingMemory = ModSettings.MeetingMemory,
+            // Stage 3 (28/11/2026): the composed opening's hidden concern and tension. The data is the gate: the chat hands
+            // one only on a conversation "Composed opening scene" composed, so every other prompt is unchanged.
+            EnableComposedOpening = true
          };
       }
 

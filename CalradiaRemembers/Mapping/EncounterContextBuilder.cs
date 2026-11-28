@@ -202,6 +202,8 @@ namespace CalradiaRemembers.Mapping
          // frozen for the same reason as the history cut. Set by a conversation only; unset shows the profile's own record.
          bool freezeMeetingMemory = false,
          MeetingMemory meetingMemoryAtOpening = null,
+         // What a composed opening left the main character for this conversation (Stage 3, 28/11/2026); null elsewhere.
+         ComposedOpening composedOpening = null,
          // True on the live chat, the one road that fills tokens in the raw reply (NpcChatService).
          bool offerMoneyTokens = false,
          bool isCollectiveCaptiveScene = false,
@@ -468,6 +470,7 @@ namespace CalradiaRemembers.Mapping
             MemoriesDiscussedAtOpening = memoriesDiscussedAtOpening,
             MeetingMemoryFrozen = freezeMeetingMemory,
             MeetingMemoryAtOpening = meetingMemoryAtOpening,
+            ComposedOpening = composedOpening,
             QuestsKnownThrough = questsKnownThrough,
             IsLastWitnessExchange = isLastWitnessExchange,
             // IsRoundTableTurn is the one council flag the chat prompt path still carries: it is armed ONLY by the

@@ -904,6 +904,7 @@ namespace CalradiaRemembers.Chat
                memoriesDiscussedAtOpening: MemoriesDiscussedAtOpening(profile),
                freezeMeetingMemory: true,
                meetingMemoryAtOpening: MeetingMemoryAtOpening(profile),
+               composedOpening: ComposedOpeningFor(speaker),
                offerMoneyTokens: true,
                // The only council flag the chat prompt path still carries: the cr.council_test spike's whole-table
                // framing (RoundTableController.CouncilTurnsForced), so that single call yields the anchor's reply
@@ -2597,6 +2598,8 @@ namespace CalradiaRemembers.Chat
                   // Companion-briefing pillar, revised per Gabriel's ruling: this auto-exchange (the anchor
                   // replying to another present companion's reaction) is still inside the same private chat.
                   isCompanionBriefingScene: IsCompanionBriefingChat,
+                  // The main character answering a witness keeps what the composed opening left them (Stage 3).
+                  composedOpening: ComposedOpeningFor(mainSpeaker),
                   companionBriefingTargetName: _companionBriefingTargetName);
                // (15C witness exchange is gated off for captive scenes, so no stage is fed here.)
 

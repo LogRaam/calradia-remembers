@@ -38,7 +38,13 @@ namespace CalradiaRemembers.Logic.Chat
       Failed,
 
       /// <summary>The player sent a message before the scene arrived.</summary>
-      Abandoned
+      Abandoned,
+
+      /// <summary>
+      ///   A composed opening (Stage 3, 28/11/2026) was shown above the greeting: the greeting stands as the first words,
+      ///   and the scene is set, so no opening narration is owed to the next turn.
+      /// </summary>
+      Composed
    }
 
    /// <summary>Decides whether the character sets the scene, the direction they are given, and what becomes of the greeting.</summary>
@@ -68,5 +74,12 @@ namespace CalradiaRemembers.Logic.Chat
       ///   arrived; a failed call or a player who spoke first leaves it standing, with no error line.
       /// </summary>
       public static bool GreetingStands(SceneOpenerOutcome outcome) => outcome != SceneOpenerOutcome.Delivered;
+
+      /// <summary>
+      ///   Whether the next turn still owes the opening narration: yes when the greeting stood alone (a failed call, a player
+      ///   who spoke first), no when a scene was delivered or a composed opening set it.
+      /// </summary>
+      public static bool OpeningNarrationOwed(SceneOpenerOutcome outcome)
+         => outcome == SceneOpenerOutcome.Failed || outcome == SceneOpenerOutcome.Abandoned;
    }
 }

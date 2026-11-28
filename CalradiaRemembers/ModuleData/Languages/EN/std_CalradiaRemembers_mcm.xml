@@ -219,6 +219,8 @@
     <string id="CR_MCM_CharactersSetTheScene_Hint" text="On (default): when you start a conversation, the character opens it, what they were doing and their first words, while you may already type. One more model call per conversation. Off: the short greeting alone." />
     <string id="CR_MCM_SceneNarration" text="Scene Narration" />
     <string id="CR_MCM_SceneNarration_Hint" text="On (default): conversations carry short purple descriptions of the place, the light and the sounds. Off: the characters' words and gestures alone. Captive scenes keep their narration either way." />
+    <string id="CR_MCM_ComposedOpening" text="Composed opening scene" />
+    <string id="CR_MCM_ComposedOpening_Hint" text="Off (default): as before. On: the opening scene is composed from what the game knows (place, hour, season, how you come, what you just lived, the talk of the realm), with one cheap extra check. Needs Characters Set The Scene and Scene Narration." />
     <string id="CR_MCM_LongMemory" text="Long Memory" />
     <string id="CR_MCM_LongMemory_Hint" text="Off (default). On: before each reply, a character recalls the exact words of earlier talks they were present for, when they bear on what is said now. Costs prompt tokens (see the budget). Full prompt only." />
     <string id="CR_MCM_LongMemoryBudget" text="Long Memory Budget (characters)" />

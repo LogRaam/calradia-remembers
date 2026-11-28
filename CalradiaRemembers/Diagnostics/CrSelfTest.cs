@@ -484,6 +484,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("rumour_no_acquaintance", Severity.Light, "VonLemberg (Discord, 15/11/2026, source audit of 2.8.10): 'the player met a lord 40 days ago, but the lord received an unrelated memory yesterday. The system may treat yesterday as their last meeting', and injected memories made a stranger read as known. On a throwaway profile of a real lord (the save is untouched), through the REAL EncounterContextBuilder and FirstImpressionResolver: with only rumours heard and a memory of his own life, he has never met the player (no last meeting, a stranger when free, not already known by his memories); with a meeting 40 days old added, the last meeting is 40 days ago whatever he heard today", TestRumourNoAcquaintance),
          new SelfTest("compression_takeback", Severity.Light, "VonLemberg (Discord, 15/11/2026, source audit of 2.8.10): a memory a mod takes back with CrNpcMemory.RemoveMemory while a compression pass is in flight came back when the pass was applied, and could linger in the background summary. On a real lord: adds a memory through the REAL AddMemory, takes the snapshot a pass would read, takes the memory back through the REAL RemoveMemory, then applies through the REAL write-back (1) a pass that kept it: it must stay gone, and a memory added meanwhile must stay; (2) a pass that folded it into its summary: nothing is applied and the background is left as it was. No model is called. Leaves the lord as found", TestCompressionTakeback),
          new SelfTest("memory_pictures", Severity.Light, "Bhelogan (Discord, 20/11/2026) asked for pictures painted by his mod in the Memories panel; Gabriel: protect the memories that carry one. Through the PUBLIC API on a real lord: AddMemory must announce the memory (MemoryWritten, with an id), GetMemories must give the same id, SetImage must copy a picture into CR's campaign folder and put it on the memory, the REAL compressor with a stand-in model that drops everything must keep that memory, a second SetImage must replace the copy, a paint request must reach ImageRequested and stay busy until ImageFailed, and SetImage(null) must take the picture away and delete the copy. No model is called. Removes every test memory and file after", TestMemoryPictures),
+         new SelfTest("composed_intro", Severity.Light, "Stage 3 of the group-scene plan (Gabriel, 28/11/2026: \"au debut de chaque CHAT on ajoute l'intro\"; the composer \"chooses among true facts and stages them; it invents nothing the game tracks\"). With \"Composed opening scene\", Characters Set The Scene and Scene Narration forced on and a battle beside the player staged on a lord's record today, opens a REAL conversation and starts its opening on a test greeting, with stand-ins for the composer and the check (no model is called): the composer was given the encounter and the staged battle, the purple setting shows above the greeting, the greeting is the line remembered, the concern and the tension reach the live prompt builder's prompt. Then with Scene Narration off nothing would be composed, and with a check that answers 'invents a raid' the opening falls back: no setting shown, nothing hidden in the prompt, and the reason written. Restores the switches and the record, closes the conversation", TestComposedIntro),
          new SelfTest("meeting_memory", Severity.Light, "Stage 2 of the group-scene plan (Gabriel, 28/11/2026: \"go pour tout le système ... je testerai demain\"): what a meeting leaves. With \"Lasting memory of meetings\" forced off, a closed chat's summary job makes no call. Forced on, the same job runs the REAL update path with a stand-in model giving a fixed reply (no model is called): the lord's record holds the lasting change, the bond and the unsettled matters; the same meeting replayed adds nothing twice; a witness job makes no call; the record survives the save format; the next prompt, built by the live prompt builder, shows the change with days counted, where they stand and what is unsettled, and shows none of it with the switch off or frozen at an opening that held nothing; memory compression keeps the record. Restores the record and the switch, removes the temporary profile", TestMeetingMemory),
          new SelfTest("player_memory_kept", Severity.Light, "Icezera (Discord, 15/11/2026): memories added with cr.memory_add were gone some days later; memory compression had folded them away. Sends cr.memory_add, through the engine's own console dispatch, a memory dated 30 days back to a real lord (padded with test memories to the size compression works on), then runs the REAL compressor on that profile with a stand-in model that drops everything: the memory the player wrote must be kept, and an ordinary test memory of the same age must not be. No model is called. Removes every test memory after", TestPlayerMemoryKept),
          new SelfTest("console_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026): accents typed into cr.memory_add / cr.memory_set came out as mojibake (the console reads UTF-8 back as Windows-1252). Sends cr.memory_add, through the engine's own console dispatch, a line mangled exactly as the console mangles it: the stored memory must read exactly as typed. Removes the memory after.", TestConsoleAccents),
@@ -18503,6 +18504,149 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          return t.Line();
+      }
+
+      private static string TestComposedIntro(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("composed_intro");
+         CrSettings settings = CrSettings.Instance;
+         if (t.Abort(settings == null, "no MCM settings instance")) return t.Line();
+         if (t.Skip(Chat.ChatManager.IsOpen || Chat.ExplorationBackdrop.IsOpen || UI.CrPanelHost.AnyPanelOwnsScreen, "a window or panel already owns the screen")) return t.Line();
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && Mapping.HeroPresence.IsInTheWorld(h) && !h.IsPrisoner);
+         if (t.Skip(lord == null, "no lord to speak with")) return t.Line();
+
+         const string greeting = "[SELFTEST] You came back.";
+         const string setting = "[SELFTEST] Smoke still hangs in the hall the morning after the battle.";
+         const string concern = "[SELFTEST] You fear the wounded will not live to see the walls mended.";
+         const string tension = "[SELFTEST] The visitor's men took the best of the spoils.";
+         string player = Hero.MainHero.Name?.ToString() ?? "the player";
+         int today = behavior.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
+         NpcProfile profile = GetOrCreate(behavior, lord);
+         var battle = new NotableEvent(today, NotableEventType.Other, $"[SELFTEST] Fought at {player}'s side and put the enemy to flight.");
+         bool composedBefore = settings.ComposedOpening, narrationBefore = settings.SceneNarration, openerBefore = settings.CharactersSetTheScene;
+         CampaignTimeControlMode timeBefore = Campaign.Current.TimeControlMode;
+         var composer = new CannedOpeningClient("doing: [SELFTEST] reading the casualty lists\nsetting: " + setting + "\nconcern: " + concern + "\ntension: " + tension);
+
+         Chat.ChatViewModel Open()
+         {
+            Chat.ChatManager.Open(lord.Name.ToString(), opening: Chat.ChatOpening.Staged);
+            Chat.ChatViewModel vm = Chat.ChatManager.ActiveViewModel;
+            vm?.SetNpcHero(lord);
+
+            return vm;
+         }
+
+         void WaitForTheOpening(Chat.ChatViewModel vm)
+         {
+            var clock = Stopwatch.StartNew();
+            while (vm.SceneOpenerInFlightForDiagnostics && clock.ElapsedMilliseconds < 5000)
+            {
+               Thread.Sleep(5);
+               MainThreadDispatcher.Pump();
+            }
+         }
+
+         void Close()
+         {
+            if (Chat.ChatManager.IsOpen) Chat.ChatManager.Close();
+            MainThreadDispatcher.Pump();
+         }
+
+         try
+         {
+            profile.Events.Add(battle);
+            behavior.Store.Set(profile);
+            settings.ComposedOpening = true;
+            settings.SceneNarration = true;
+            settings.CharactersSetTheScene = true;
+            Chat.ChatViewModel.ComposerForDiagnostics = composer;
+            Chat.ChatViewModel.CheckerForDiagnostics = new CannedOpeningClient("ok");
+            Chat.ChatViewModel.StopAtFallbackForDiagnostics = true;
+
+            Chat.ChatViewModel vm = Open();
+            if (t.Skip(vm == null, "the conversation did not open")) return t.Line();
+            if (t.Skip(!vm.ComposesOpeningForDiagnostics, "this lord already spoke with the player today: a second talk keeps today's opener")) return t.Line();
+
+            vm.OpenWithScene(greeting);
+            WaitForTheOpening(vm);
+            t.Expect("theOpeningSettled", vm.SceneOpenerInFlightForDiagnostics, false);
+            string asked = composer.LastUser ?? "";
+            // STAKE: Gabriel's rule: the composer stages what the game knows, above all the battle they just fought.
+            t.Expect("theComposerWasGivenTheBattle", asked.Contains("[SELFTEST] Fought at"), true);
+            t.Expect("theComposerWasGivenTheEncounter", asked.Contains("THE ENCOUNTER AS IT STANDS") && asked.Contains(greeting), true);
+            t.Note(asked.Contains("Where: ") ? "the place was given" : "no place reading here");
+            t.Note(asked.Contains("When: ") ? "the hour and season were given" : "no hour or season reading here");
+            // STAKE: the setting opens the chat in the narrator's purple, the greeting stays as the first words.
+            t.Expect("theSettingShows", vm.ShowsLineForDiagnostics(setting), true);
+            t.Expect("theGreetingStillShows", vm.ShowsLineForDiagnostics(greeting), true);
+            t.Expect("theGreetingIsRemembered", vm.LastRememberedLineForDiagnostics, greeting);
+            t.Expect("theWhyIsWritten", vm.ComposedOpeningWhyForDiagnostics?.Contains("composed and shown") == true, true);
+
+            NpcMemoryService.Core.Models.ComposedOpening hidden = vm.ComposedOpeningForMainForDiagnostics;
+            t.Expect("theConcernIsKept", hidden?.Concern, concern);
+            IPromptBuilder builder = behavior.LlmServices?.ChatService?.PromptBuilder;
+            if (builder != null)
+            {
+               EncounterContext ctx = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge, composedOpening: hidden);
+               string prompt = builder.BuildSystemPrompt(profile, new WorldState {CurrentDay = today}, ctx) ?? "";
+               // STAKE: the character carries the concern and the tension, hidden from the player, for this conversation.
+               t.Expect("thePromptCarriesTheConcern", prompt.Contains("What weighs on you today: " + concern), true);
+               t.Expect("thePromptCarriesTheTension", prompt.Contains(tension), true);
+            }
+            else t.Note("no prompt builder (no model configured): the prompt half was not read");
+            Close();
+
+            vm = Open();
+            if (t.Skip(vm == null, "the conversation did not reopen")) return t.Line();
+            settings.SceneNarration = false;
+            // STAKE: 1Enfant turned the purple narration off: nothing is composed, nothing is paid for.
+            t.Expect("narrationOffNothingComposed", vm.ComposesOpeningForDiagnostics, false);
+            settings.SceneNarration = true;
+
+            Chat.ChatViewModel.CheckerForDiagnostics = new CannedOpeningClient("invents a raid on Varcheg");
+            vm.OpenWithScene(greeting);
+            WaitForTheOpening(vm);
+            // STAKE: the simulator once composed a raid the facts did not hold; caught, the opening falls back whole.
+            t.Expect("anInventedRaidIsNotShown", vm.ShowsLineForDiagnostics(setting), false);
+            t.Expect("nothingIsHiddenInThePrompt", vm.ComposedOpeningForMainForDiagnostics == null, true);
+            t.Expect("theGreetingStandsAlone", vm.LastRememberedLineForDiagnostics, greeting);
+            t.Expect("theFallBackSaysWhy", vm.ComposedOpeningWhyForDiagnostics?.Contains("fell back") == true && vm.ComposedOpeningWhyForDiagnostics.Contains("raid"), true);
+         }
+         finally
+         {
+            Chat.ChatViewModel.ComposerForDiagnostics = null;
+            Chat.ChatViewModel.CheckerForDiagnostics = null;
+            Chat.ChatViewModel.StopAtFallbackForDiagnostics = false;
+            settings.ComposedOpening = composedBefore;
+            settings.SceneNarration = narrationBefore;
+            settings.CharactersSetTheScene = openerBefore;
+            Close();
+            NpcProfile now = behavior.Store.Get(lord.StringId);
+            if (now != null)
+            {
+               now.Events.RemoveAll(e => ReferenceEquals(e, battle) || (e?.summary?.StartsWith("[SELFTEST] Fought at", StringComparison.Ordinal) == true));
+               behavior.Store.Set(now);
+            }
+            Campaign.Current.TimeControlMode = timeBefore;
+         }
+
+         return t.Line();
+      }
+
+      // The stand-in model of cr.test composed_intro: a fixed reply, and what it was last asked.
+      private sealed class CannedOpeningClient : NpcMemoryService.Core.LlmClient.ILlmClient
+      {
+         private readonly string _content;
+         public string LastUser;
+
+         public CannedOpeningClient(string content) => _content = content;
+
+         public System.Threading.Tasks.Task<NpcMemoryService.Core.Models.LlmResponse> CompleteAsync(NpcMemoryService.Core.Models.LlmRequest request, System.Threading.CancellationToken ct = default)
+         {
+            LastUser = request?.Messages?.Count > 0 ? request.Messages[0].Content : null;
+
+            return System.Threading.Tasks.Task.FromResult(new NpcMemoryService.Core.Models.LlmResponse {IsSuccess = true, Content = _content});
+         }
       }
 
       // The fixed reply of cr.test meeting_memory, in the shape the update call asks for; counts how often it was asked.

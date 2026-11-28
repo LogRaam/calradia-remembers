@@ -376,6 +376,12 @@ namespace CalradiaRemembers.Foundation
       /// </summary>
       public static bool SceneNarration => CrSettings.Instance?.SceneNarration ?? true;
 
+      /// <summary>
+      ///   MCM "Composed opening scene" (Stage 3 of the group-scene plan, 28/11/2026): the scene opener's call becomes a composer
+      ///   reading what the game knows, checked against the facts. Off by default; with no MCM, off.
+      /// </summary>
+      public static bool ComposedOpening => CrSettings.Instance?.ComposedOpening ?? false;
+
       /// <summary>Whether a reply recalls the words of earlier talks (Goeth, 17/11/2026). Off by default; with no MCM, off.</summary>
       public static bool LongMemory => CrSettings.Instance?.LongMemory ?? false;
 

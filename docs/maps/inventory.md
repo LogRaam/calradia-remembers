@@ -7,8 +7,8 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 702 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1781 types in 62 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 304 types in 17 namespaces, 9 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1789 types in 62 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 305 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -22,7 +22,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | 6000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
 | 4000+ | Mod | `Chat/ChatViewModel.cs` |
-| 2500+ | Mod | `Chat/ChatViewModel.Exchanges.cs` |
+| 3000+ | Mod | `Chat/ChatViewModel.Exchanges.cs` |
 | 2500+ | Mod | `Chat/CouncilLift.cs` |
 | 2500+ | Mod | `Quests/AuthoredQuestBehavior.cs` |
 | 2000+ | Sdk | `Models/EncounterContext.cs` |
@@ -252,7 +252,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatScreen` | internal class | A minimal screen that carries the pre-built chat layer and takes focus when pushed. |
 | `ChatScrollablePanel` | public class | Custom ScrollablePanel that supports a deferred "scroll to bottom" request. |
 | `ChatSpeaker` | internal class | One participant of a chat exchange: the main NPC or a present witness, with the hero, stored profile and display colour used to route the turn and render the line. |
-| `ChatViewModel` | public class, partial over 14 files | (no summary) |
+| `ChatViewModel` | public class, partial over 15 files | (no summary) |
 | `CompanionAudiencePayload` | public class | The companion-audience specifics. |
 | `ComposeScrollablePanel` | public class | A plain ScrollablePanel for the composer's multi-line input. |
 | `ConversationMood` | public static class | How far the player has moved each character's mood in the current conversation. |
@@ -2078,7 +2078,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RosterItemKey` | public static class | Names one stack of goods by item and quality, and finds it again among what the party holds. |
 | `ScoreToSettle` | public class | Whether a character has a score to settle, and whether the player may be told so. |
 
-### CalradiaRemembers.Logic.Chat (35)
+### CalradiaRemembers.Logic.Chat (43)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2100,6 +2100,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatTitleText` | public static class | The chat window's title. |
 | `ChatTranscriptCopy` | public static class | Turns the chat window's message blocks into plain text a player can paste anywhere. |
 | `ChatWindowLivenessPolicy` | public static class | Whether a recorded chat window is genuinely live, or a leftover that must not block the next one. |
+| `ComposedOpeningComposer` | public static class | Runs the composer and the check over one facts sheet. |
+| `ComposedOpeningFacts` | public class | What an opening knows when it decides whether the composer opens it. |
+| `ComposedOpeningPolicy` | public static class | Decides whether the composer opens a conversation, and its limits. |
+| `ComposedOpeningPrompt` | public static class | The composer's and the checker's prompts, and the reading of their replies. |
+| `ComposedOpeningReply` | public class | The composer's reply, read. |
+| `ComposedOpeningResult` | public class | How a composed opening ended. |
+| `ComposedOpeningSheet` | public class | What the game knows, as the composer and the checker read it. |
+| `ComposedOpeningVerdict` | public class | The checker's verdict on a composition. |
 | `EscapeCloseLatch` | public class | Holds an Escape close until it is safe (philip0105, 11/10/2026: Escape out of a conversation crashed the game, the close button did not). |
 | `InterpreterAttemptOutcome` | public enum | What one interpreter call brought back. |
 | `InterpreterRetryPolicy` | public static class | Whether the interpreter is asked again after an attempt. |
@@ -3336,7 +3344,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryRecall` | public static class | Which memories carry a short code, and which of them a character has already discussed with the player. |
 | `SharedRecall` | public class | What a character may be shown to REMEMBER in front of others: their own memories, minus anything held in confidence, folded to a bounded recall. |
 
-### NpcMemoryService.Core.Models (89)
+### NpcMemoryService.Core.Models (90)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -3349,6 +3357,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatSession` | public class | Holds the in-progress conversation history for a single dialogue session. |
 | `CommonsKnowledge` | public class | Settlement-level knowledge injected into a commoner's slim system prompt. |
 | `CompanionAudienceReason` | public enum | Why one of the player's own companions asked for a private audience (the popup's "Let us speak of it" opened a real conversation). |
+| `ComposedOpening` | public class | What a composed opening left the character for this conversation only, kept from the player. |
 | `ConceptionActionGate` | public static class | Whether the mechanical conception action (impregnation_risk) may fire at a given content level. |
 | `ConceptionRisk` | public enum | Which party, if any, could conceive from a completed vaginal act in the current scene. |
 | `ConversationMemory` | public record | Compact summary of a single conversation, emitted by the LLM via the [MEMOIRE] section. |
