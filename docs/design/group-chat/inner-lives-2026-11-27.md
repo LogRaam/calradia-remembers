@@ -143,6 +143,8 @@ Best run of the fixed variant: `scenario-2026-11-27-drama-protocol-best.md`.
 What changed:
 - **News.** Every inner life is told what entered the record since the last line. News that touches a character, their
   secret or their aim must be at least a reevaluation. This answers "the letter and the banner arrive and change nothing".
+  CORRECTION (evening): this wiring was lost when the dramaturge was restored, before the H runs and before the commit.
+  H is F plus the format fixes only; the news first ran in the fourth round.
 - **Format.** Actions and narration are always in the third person, and "to: Ilsa, then the boy" now parses as Ilsa.
 - **A simpler dramaturge, tried and withdrawn:**
   - it ran on the cheap model;
@@ -167,3 +169,53 @@ Still open:
 - Three adults send the boy to bed in turn.
 - Ilsa's mask hides the letter so well that a reader sees no trace of it. The visibility rule may be too strict when the
   news is that strong.
+
+## Fourth round: the three open flaws (27/11/2026, evening)
+
+Two corrections to the record first:
+- **The news never ran before this round.** It was lost from commit e6572c7 (see the third round). H measured the format
+  fixes alone.
+- **The letter's private lines sat in the shared record in every earlier variant, A to H.** Tomas and Edric could reason
+  on what only Ilsa had read, and her silence about it could be graded a lie. Every earlier drama grade carries this bug.
+
+What changed:
+- **A secret has a price.** The inner life counts how often the character was pressed (addressed or named) and the ways
+  of keeping the secret already tried. A secret goes only with proof in the record, or after at least two ways have
+  failed. Once pressed four times with those ways spent, the character may give it up. When the ways run out, the choice
+  is silence or the truth, never a false account. A first version had no way out: Tomas never confessed and lied
+  more under the pressure.
+- **No echo of another's demand.** The line prompt says not to repeat an order someone else already gave. The scene
+  keeper counts such a line as a repeat and has it written again.
+- **Private events.** An event can now be "public|Name|private". The record, the news and every prompt get only the
+  public part. The reader sees the private line, and so does the character who read it, as part of what they know.
+- **News is events only.** Only what the world brings counts as news; it is no longer everything new in the record.
+  Only news that touches the character's own secret or aim changes them.
+- **A blow shows.** News read alone, or news that changes what a character wants, leaks at least a detail whatever the
+  mask, shown once.
+- **Parsing.** "to everyone *She turns*", with no colon, now parses.
+
+The steps, five drama runs each, graded blind by Opus. A grading differs by up to 0.4 from the next one, so the variants
+were graded side by side each time:
+
+| Variant | What it added | Mean | Against, same grading |
+|---|---|---|---|
+| I | the news as everything new in the record, plus the secret, echo and leak rules | 4.53 | H 6.13 |
+| J | news as events only | 5.77 | H 5.81 |
+| K | private events | 5.71 | H 6.14 |
+| L | the leak limited to blows | 5.74 | H 6.10 |
+| M | news changes only those it touches; the secret has a way out | **6.37** | H 5.81 |
+
+What the steps showed:
+- **I failed.** The record grows with every line, so the news was never empty. A leak fired on nearly every line, and the
+  grader scored repetition at 2.2.
+- **The three target flaws were gone from J onward.** The grader no longer named an early confession, adults echoing the
+  bedtime order, or a letter that changes nothing.
+- **M is the best variant so far.** It leads H on six criteria of seven: subtext 7.4, change 6.6, voices 6.3,
+  consequence 7.0, coherence 5.9 and engagement 7.1.
+
+What M still gets wrong:
+- **Repetition is worse.** M scores 4.3 against 5.8 for H. M scenes have 9 to 13 narrated reactions, H scenes 5 to 6,
+  and the inner lives change 19 to 30 times a scene against 13 to 22. More change reopens the reaction gate, so gestures
+  recur (Edric's cup, gazes held). The next lever is that gate, not the minds.
+- **A rewritten line is never checked again.** The keeper catches two to four lies a scene and has each line written
+  again, but nothing reads the new version, and one rewrite still misstated the letter.
