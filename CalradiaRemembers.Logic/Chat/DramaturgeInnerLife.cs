@@ -108,7 +108,7 @@ namespace CalradiaRemembers.Logic.Chat
                 + "\nshowing: <what they let the other see, 1 to 6 words>\nhiding: <what they keep hidden now, one short phrase>"
                 + "\nvisible: <nothing | a detail | words> (does anything show outside? someone holding a mask shows nothing; nothing is usual)"
                 + "\nurge: <none, or low or high followed by why: answer, interest, emotion, duty, morality, opportunity> (how strongly they feel they must speak now)"
-                + $"\nbond: <toward {player}: {player}: understands yes/partly/no, forgives yes/partly/no, loves yes/partly/no, trusts yes/partly/no> (four different"
+                + $"\nbond: <{player}: understands yes/partly/no, forgives yes/partly/no, loves yes/partly/no, trusts yes/partly/no> (four different"
                 + " things: one can love without trusting, understand without forgiving, forgive without forgetting; each moves only for its own cause, and a"
                 + " confession of weakness earns understanding, not trust)";
       }
@@ -207,7 +207,8 @@ namespace CalradiaRemembers.Logic.Chat
 
       internal static string Clean(string s)
       {
-         string v = (s ?? "").Replace("\u2014", ", ").Replace("\u2013", "-").Trim().Trim('`', '*', '"').Trim();
+         // The template's angle brackets come back around a field now and then ("progress: <nothing>", 28/11/2026): dropped.
+         string v = (s ?? "").Replace("\u2014", ", ").Replace("\u2013", "-").Trim().Trim('`', '*', '"').Trim().Trim('<', '>').Trim();
 
          return v.Length > MaxFieldChars ? v.Substring(0, MaxFieldChars).TrimEnd() : v;
       }

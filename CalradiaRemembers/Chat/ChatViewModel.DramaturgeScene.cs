@@ -22,6 +22,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using CalradiaRemembers.Behaviors;
@@ -113,6 +114,16 @@ namespace CalradiaRemembers.Chat
                if (!mind.IsCompleted) await Task.WhenAny(mind, Task.Delay(TimeSpan.FromSeconds(DramaturgeModePolicy.InnerLifeWaitSeconds), token)).ConfigureAwait(false);
                DramaturgeReading reading = await DramaturgeTurnComposer.ReadSceneAsync(client, sheet, _dramaState, scene, record, waiting, beats, limit, token).ConfigureAwait(false);
                await MainThreadDispatcher.SwitchToMainThread();
+               // A reading that comes while the turn is still finishing (the interpreter after the reply holds the input) waits for it,
+               // as long as the player has not spoken again: Gabriel's chat with Rancid Thylea (28/11/2026) lost a reading this way.
+               Stopwatch held = Stopwatch.StartNew();
+               while (!IsSendEnabled && askedAt == _dramaPlayerLines && !_conversationEnded && !token.IsCancellationRequested
+                      && held.Elapsed.TotalSeconds < DramaturgeModePolicy.ReadingHoldSeconds)
+               {
+                  await Task.Delay(250).ConfigureAwait(false);
+                  await MainThreadDispatcher.SwitchToMainThread();
+               }
+
                ApplyDramaturgeReading(reading, beats, askedAt);
             });
          }

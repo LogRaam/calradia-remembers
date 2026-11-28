@@ -190,6 +190,15 @@ namespace CalradiaRemembers.Tests
          ComposedOpeningPrompt.CheckSystem.Should().Contain("FAILS when it shows what the facts say the character keeps from the visitor");
       }
 
+      // STAKE: Gabriel's chat with Rancid Thylea (28/11/2026): the check dropped a whole opening for "a brass astrolabe". The things in
+      // the room are the composer's to choose; only what the game tracks is an invention.
+      [Test]
+      public void GIVEN_the_check_WHEN_its_rules_are_read_THEN_the_things_in_the_room_are_allowed_and_only_tracked_facts_invent()
+      {
+         ComposedOpeningPrompt.CheckSystem.Should().Contain("the objects, furniture and belongings in the room");
+         ComposedOpeningPrompt.CheckSystem.Should().Contain("nothing else is an invention");
+      }
+
       // STAKE: the checker reads the very paragraph and concern the player and the character will get.
       [Test]
       public void GIVEN_a_reply_WHEN_the_check_is_built_THEN_it_holds_the_facts_and_the_opening()

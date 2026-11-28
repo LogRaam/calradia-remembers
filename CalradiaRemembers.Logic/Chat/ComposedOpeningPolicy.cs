@@ -277,8 +277,10 @@ namespace CalradiaRemembers.Logic.Chat
       /// <summary>The checker's instructions (the simulator's event check, turned on the opening itself).</summary>
       public const string CheckSystem =
          "You check the opening of a scene against the facts the game gave. The opening may choose and stage those facts, and add the weather,"
-         + " the light, smells, sounds, servants, guards, clerks, food, gestures, feelings and the ordinary happenings of the place. It INVENTS when"
-         + " it states as true a battle, raid, death, capture, marriage, war, alliance, fief, sum of money or troop count that is not in the facts."
+         + " the light, smells, sounds, servants, guards, clerks, food, gestures, feelings, the objects, furniture and belongings in the room, and"
+         + " the ordinary happenings of the place. It INVENTS only when it states as true a battle, raid, death, capture, marriage, war, alliance,"
+         + " fief, sum of money or troop count that is not in the facts; nothing else is an invention (Gabriel's chat with Rancid Thylea,"
+         + " 28/11/2026: an opening was dropped for 'a brass astrolabe')."
          + " The setting also FAILS when it shows what the facts say the character keeps from the visitor (a secret, a private memory)."
          + " Answer one line only: 'ok', or 'invents <what>' (for a secret shown: 'invents a shown secret').";
 

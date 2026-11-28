@@ -59,6 +59,12 @@ namespace CalradiaRemembers.Logic.Chat
       public const int InnerLifeWaitSeconds = 4;
 
       /// <summary>
+      ///   How long a dramaturge reading that came while the turn was still finishing (the interpreter holds the input after the
+      ///   reply) waits for the input to open before it is set aside (Gabriel's chat with Rancid Thylea, 28/11/2026).
+      /// </summary>
+      public const int ReadingHoldSeconds = 60;
+
+      /// <summary>
       ///   True only in the Dramaturge mode, with the switch on it, on an ordinary main-character turn answering a real
       ///   player line. Everywhere else (Standard, Enhanced, Roleplay, NSFW, groups, captives) nothing extra runs.
       /// </summary>

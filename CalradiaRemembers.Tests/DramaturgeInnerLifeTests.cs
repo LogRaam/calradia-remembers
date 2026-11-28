@@ -106,7 +106,8 @@ namespace CalradiaRemembers.Tests
          string system = DramaturgeInnerLife.System(new DramaturgeSheet {NpcName = "Alympia", PlayerName = "Arwa", Knows = "A lady of the Empire."});
 
          system.Should().Contain("A tactic never includes a lie");
-         system.Should().Contain("bond: <toward Arwa");
+         system.Should().Contain("bond: <Arwa: understands");
+         system.Should().NotContain("Arwa: Arwa:"); // the doubled name the reader echoed (28/11/2026)
          system.Should().Contain("A lady of the Empire.");
       }
    }

@@ -137,6 +137,19 @@ namespace CalradiaRemembers.Tests
          e.Move.Should().Be(DramaturgeMove.End);
       }
 
+      // STAKE: Gabriel's chat with Rancid Thylea (28/11/2026): the dramaturge kept the template's brackets ("progress: <nothing>"),
+      // and the log and the next reading carried them.
+      [Test]
+      public void GIVEN_fields_wrapped_in_the_templates_brackets_WHEN_read_THEN_the_brackets_are_dropped()
+      {
+         DramaturgeReading r = DramaturgeDirector.Parse("progress: <nothing>\nrepeating: <Thylea: probing the story>\nuntapped: <her trade>\nmove: <event 1>");
+
+         r.Progress.Should().Be("nothing");
+         r.Repeating.Should().Be("Thylea: probing the story");
+         r.Move.Should().Be(DramaturgeMove.Event);
+         r.EventNumber.Should().Be(1);
+      }
+
       // STAKE: an event is brought once; the dramaturge is shown only those still waiting, under their own numbers.
       [Test]
       public void GIVEN_three_events_WHEN_one_is_taken_THEN_it_is_gone_from_the_waiting_list_and_cannot_be_taken_again()
