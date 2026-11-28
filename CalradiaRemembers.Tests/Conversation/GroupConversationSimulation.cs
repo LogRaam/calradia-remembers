@@ -169,6 +169,11 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public Task GIVEN_the_camp_theft_WHEN_four_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(Theft());
 
+      // Gabriel, 27/11/2026: "une scène intime entre deux NPC, 8 beats; je vais la lire et juger de sa qualité". Two characters, so
+      // each beat is one line from each; the first is played by the prose model as the protagonist is in the other scenes.
+      [Test]
+      public Task GIVEN_the_intimate_scene_WHEN_two_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(Intimate());
+
       private static Character Who(string name, int standing, string station, string power, bool female, string persona, string objective, string tactic,
                                    string[] aliases, params string[] ties)
          => new() {
@@ -310,6 +315,40 @@ namespace CalradiaRemembers.Tests.Conversation
                "*A boy in the Rivermarch guild's colours appears at the door and asks for Captain Kael by name, 'about the money he was promised'.*",
                "*A runner from the army's quartermaster arrives for the commander: grain has been found upriver at a lower price, if she would rather have it.*",
                "*A servant hurries in and whispers to Lady Seraphine, loud enough to carry over the water: the cellar-master says the lower granary has begun to sprout.*"
+            }
+         };
+      }
+
+      private static Scenario Intimate()
+      {
+         Character corvan = Who("Corvan", PlayerStanding, "a knight of Vlandia, here under a banner of truce", "his own lance and a truce banner", false,
+            "Sir Corvan, thirty-six, a Vlandian knight. Seven years ago he and Rhian were lovers, the summer he was a hostage at her father's fort; he was"
+            + " exchanged in the autumn and never wrote. He came tonight as the envoy of a three-day truce, and he came because she lit the east window.",
+            "Learn whether what they had is still alive, tonight, before the truce ends.", "If she keeps him at arm's length, stop performing: tell her one true thing he has never said.",
+            new[] {"Corvan", "Sir"}, "Rhian: the woman you loved seven years ago and left without a word");
+         var rhian = Who("Rhian", 3, "the lady of Dun Ceana, a Battanian hill fort", "the fort and its eighty spears", true,
+            "Lady Rhian, thirty-four, holds her dead father's fort. Proud, quick, warm with the few she trusts. She lit the east window, the old signal from"
+            + " their summer, and has told herself all evening it was only to see whether he would come.",
+            "Have him explain the silence of seven years, and decide, on her own terms, whether to let him stay the night.",
+            "If he flatters or pleads, test him with the past; if he is honest, let the guard down one piece at a time.",
+            new[] {"Rhian", "my lady", "lady"}, "Corvan: the man you loved seven years ago, who left and never wrote");
+         Inner(corvan, "few words, a soldier's plainness, a dry self-mockery; when moved he gets quieter, not louder", "a man at ease, here on the king's business",
+            "that she has stopped waiting, and that he deserved it", "will not lie to her, will not beg",
+            "Your king's marshal ordered you to count the spears on her walls while you are here. You have not, and will not. You did write, three letters; your father burned them before they left.");
+         Inner(rhian, "Battanian directness, a teasing edge, questions she already knows the answer to; tenderness slips out in small practical acts (a cup, a blanket)",
+            "a lady who has long since moved on", "being the fool who waited seven years", "will not ask him to stay; he must choose it",
+            "In a month you are to marry Lord Ferran of Seonon, a match for the alliance your fort needs. You have not told Corvan.");
+
+         return new Scenario {
+            Id = "intimate", Title = "The east window", Adult = true, Tone = "intimate, tender, sensual, with old hurt and danger underneath",
+            Setting = "Rhian's chamber in the tower of Dun Ceana, late at night, during a three-day truce. A peat fire, a fur-covered bed, a jug of mead, rain on the shutters."
+                      + " A single candle in the east window. Both are consenting adults.",
+            Player = corvan, FirstLine = "Rhian|You kept a candle in the east window. I wasn't sure it was meant for me.",
+            Cast = new List<Character> {rhian}, Beats = 8,
+            Complications = new List<string> {
+               "*A horn sounds once from the Vlandian camp below the hill: the signal that the truce will end at dawn, a day early.*",
+               "*Rhian's maid knocks and passes a sealed letter through the door to her lady.*|Rhian|Lord Ferran writes that he will arrive in three days, not a month, to sign the marriage contract.",
+               "*Corvan's squire calls up from the yard, careful and low: the marshal asks whether Sir Corvan has the count of the walls yet.*"
             }
          };
       }
@@ -677,8 +716,12 @@ namespace CalradiaRemembers.Tests.Conversation
                        + "\nproblem: <none | lie | repeat | contradiction>"
                        + "\ndetail: <the false statement, the repeated gesture or image, or the record it contradicts; or none>"
                        + "\nfacts: <what this line makes true for everyone present: objects moved, who holds what, what was shown, admitted or revealed; separated by ' | '; or none>"
-                       + $"\nA LIE: a statement of fact {c.Name} knows is false, or an excuse or explanation {c.Name} invents and knows is untrue. A sincere mistaken belief is not"
-                       + " a lie; an evasion, a silence, a literally true half-answer, an opinion, a demand are fine."
+                       + $"\nA LIE: a statement of fact that WHAT {c.Name.ToUpperInvariant()} KNOWS shows to be false, or an excuse {c.Name} invents and knows is untrue."
+                       // The third review of 27/11/2026: the keeper read the absence of proof as a lie ("Tomas cannot have seen Berold fight,
+                       // since he fled") and had Tomas rewrite that his sword's notches were old, which the scenario makes true.
+                       + " Not a lie: a claim not yet established in the record, something they may well have seen, an inference, a sincere belief, an"
+                       + " evasion, a silence, a literally true half-answer, an opinion, a demand. Two facts that can both be true are no lie (he can"
+                       + " have seen the fight before he fled). When unsure, it is not a lie."
                        + $"\nA REPEAT: a gesture, a way of handling an object, or an image that {c.Name} already used in this scene, or an image someone else already used,"
                        + " or an order or demand someone else already made in this scene and that this line only makes again (a second voice sending the same person away)."
                        + " Answering a question again is not a repeat."
