@@ -18848,7 +18848,9 @@ namespace CalradiaRemembers.Diagnostics
 
             var keeping = vm.KeepReplyForDiagnosticsAsync("[SELFTEST] Were you in Lageta?", "[SELFTEST] I was never in Lageta.");
             Pump(keeping);
-            if (t.Skip(!keeping.IsCompleted, "the keeper did not finish in time")) return t.Line();
+            // STAKE: a keeper that hangs holds the player's reply; the real path must finish with stand-ins that answer at once.
+            t.Expect("theKeeperFinished", keeping.IsCompleted, true);
+            if (!keeping.IsCompleted) return t.Line();
             var kept = keeping.Result;
             // STAKE: the mod's rule, NPCs never lie: a lie caught is written once more with the reason, read again, and shown.
             t.Expect("oneRewrite", rewrites, 1);
@@ -18860,6 +18862,7 @@ namespace CalradiaRemembers.Diagnostics
 
             vm.StartMindUpdateForDiagnostics("[SELFTEST] You rode through Lageta, did you not?");
             Pump(vm.DramaturgeMindForDiagnostics);
+            t.Expect("theInnerLifeUpdateFinished", vm.DramaturgeMindForDiagnostics.IsCompleted, true);
             // STAKE: the inner life is read after the player's line, and the next reply is written from it.
             t.Expect("theInnerLifeIsRead", vm.DramaturgeStateForDiagnostics?.Feeling, "[SELFTEST] wary");
             string note = Logic.Chat.DramaturgeInnerLife.Note(vm.DramaturgeStateForDiagnostics, Hero.MainHero?.Name?.ToString());

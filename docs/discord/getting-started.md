@@ -24,7 +24,7 @@ MCM → Calradia Remembers → **Mode & Models**. Each role has a **model** and 
 - **NSFW model**: for explicit content when the prose model will not write it. Default: `x-ai/grok-4.20`; blank = the prose model.
 - **Background model** (optional): summaries and memory folding. Blank = the prose model. Useful mostly on a local server.
 
-**Chat Composition**: **Enhanced** (default) = the prose model writes, the interpret model reads: the richest. **Standard** = a single call: cheaper and faster, a little less faithful. **Dramaturge** = Enhanced plus an inner life and a keeper that reads each reply before you see it (experimental, a few cheap calls more per reply; its own Dramaturge model, blank = the prose model). You can also switch it in the chat window.
+**Chat Composition**: **Enhanced** (default) = the prose model writes, the interpret model reads: the richest. **Standard** = a single call: cheaper and faster, a little less faithful. **Dramaturge** = Enhanced plus an inner life and a keeper that reads each reply before you see it (experimental, a few cheap calls more per reply; its own Dramaturge model, blank = the prose model, used from group scenes on: setting it changes nothing yet). You can also switch it in the chat window.
 
 **Model ids** are written in the provider's own format: on OpenRouter, copy the id from the model's page (`deepseek/deepseek-v4.1-flash`).
 

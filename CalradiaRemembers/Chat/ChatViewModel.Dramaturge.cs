@@ -273,7 +273,7 @@ namespace CalradiaRemembers.Chat
          session.AddNpcMessage(reply);
          NpcChatResult first = NpcChatResult.Success(new ParsedResponse {Dialogue = reply}, null, "stop");
          EncounterContext context = new();
-         (NpcChatResult result, DramaturgeKeeperResult kept) = await KeepDramaturgeReplyAsync(speaker, speaker?.Profile, new WorldState(), session, playerLine, context, first, false);
+         (NpcChatResult result, DramaturgeKeeperResult kept) = await KeepDramaturgeReplyAsync(speaker, speaker?.Profile, new WorldState(), session, playerLine, context, first, false).ConfigureAwait(false);
 
          return (result.Response?.Dialogue, kept, session);
       }

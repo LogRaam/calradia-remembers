@@ -849,7 +849,7 @@ namespace CalradiaRemembers.Chat
             bool proseInterpretEligible = ActionReaderPolicy.IsInterpreterTurn(readingFacts);
             // Stage 6 (28/11/2026): the Dramaturge mode's inner life and keeper, NOT A/B-validated, so only in that mode
             // (DramaturgeModePolicy); on every other turn this is false and nothing below changes (ChatViewModel.Dramaturge.cs).
-            bool dramaturgeTurn = !isSceneOpener && DramaturgeModePolicy.Runs(DramaturgeFactsFor(speaker, suppressPlayerLine, suppressGroupTail));
+            bool dramaturgeTurn = !isSceneOpener && proseInterpretEligible && DramaturgeModePolicy.Runs(DramaturgeFactsFor(speaker, suppressPlayerLine, suppressGroupTail));
 
             // Stage 4 (28/11/2026): the first model turn gives a character with no depth one, in the background; the chat never
             // waits, and what lands shows from the next conversation on (the turn below hides it).
@@ -1035,6 +1035,8 @@ namespace CalradiaRemembers.Chat
             // for a few seconds at most), and the update from the player's line runs beside the prose call.
             if (dramaturgeTurn)
             {
+               // Read once per chat on the main thread; it also seeds the bond from the meeting record, so the first reply has it.
+               DramaturgeSheetFor(speaker);
                context.InnerLifeNote = await DramaturgeNoteForTurnAsync();
                await MainThreadDispatcher.SwitchToMainThread();
                if (!ReferenceEquals(ChatManager.ActiveViewModel, this)) return;
