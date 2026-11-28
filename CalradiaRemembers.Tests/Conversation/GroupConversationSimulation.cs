@@ -86,6 +86,10 @@ namespace CalradiaRemembers.Tests.Conversation
          public List<Character> Cast = new();
          public List<string> Complications = new();
          public int Beats = 5;
+         // The dramaturge may end the scene only once this many beats are played, and bring events only up to this beat (Gabriel,
+         // 27/11/2026, the intimate scene at 12 beats: it ended at beat 8, just before the intimacy, and events kept breaking its rise).
+         public int EndFrom = 3;
+         public int EventsUntil = 99;
          // What the scene has made true for everyone present, kept by the scene keeper (a run builds its scenario fresh).
          public List<string> Record = new();
          // The events the world brought, and how many the inner lives have been told of. Only these are news: the record grows with
@@ -169,7 +173,7 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public Task GIVEN_the_camp_theft_WHEN_four_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(Theft());
 
-      // Gabriel, 27/11/2026: "une scène intime entre deux NPC, 8 beats; je vais la lire et juger de sa qualité". Two characters, so
+      // Gabriel, 27/11/2026: "une scène intime entre deux NPC, 8 beats; je vais la lire et juger de sa qualité", then "Lance avec 12 beats". Two characters, so
       // each beat is one line from each; the first is played by the prose model as the protagonist is in the other scenes.
       [Test]
       public Task GIVEN_the_intimate_scene_WHEN_two_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(Intimate());
@@ -344,10 +348,10 @@ namespace CalradiaRemembers.Tests.Conversation
             Setting = "Rhian's chamber in the tower of Dun Ceana, late at night, during a three-day truce. A peat fire, a fur-covered bed, a jug of mead, rain on the shutters."
                       + " A single candle in the east window. Both are consenting adults.",
             Player = corvan, FirstLine = "Rhian|You kept a candle in the east window. I wasn't sure it was meant for me.",
-            Cast = new List<Character> {rhian}, Beats = 8,
+            Cast = new List<Character> {rhian}, Beats = 12, EndFrom = 10, EventsUntil = 6,
             Complications = new List<string> {
                "*A horn sounds once from the Vlandian camp below the hill: the signal that the truce will end at dawn, a day early.*",
-               "*Rhian's maid knocks and passes a sealed letter through the door to her lady.*|Rhian|Lord Ferran writes that he will arrive in three days, not a month, to sign the marriage contract.",
+               "*Rhian's maid knocks and passes a sealed letter through the door to her lady. Rhian breaks the seal and reads it in silence.*|Rhian|Lord Ferran writes that he will arrive in three days, not a month, to sign the marriage contract.",
                "*Corvan's squire calls up from the yard, careful and low: the marshal asks whether Sir Corvan has the count of the walls yet.*"
             }
          };
@@ -868,9 +872,9 @@ namespace CalradiaRemembers.Tests.Conversation
          string move = Line("move").ToLowerInvariant();
          Match pick = Regex.Match(move, @"event\s*(\d+)");
          int index = pick.Success ? int.Parse(pick.Groups[1].Value) - 1 : -1;
-         bool wants = index >= 0 && index < sc.Complications.Count && !used.Contains(index) && beat >= 2;
+         bool wants = index >= 0 && index < sc.Complications.Count && !used.Contains(index) && beat >= 2 && beat + 1 <= sc.EventsUntil;
          // Never before the third beat: a scene needs room to set its question before it can answer it.
-         bool end = move.StartsWith("end") && beat >= 3;
+         bool end = move.StartsWith("end") && beat >= sc.EndFrom;
          debug.AppendLine($"- dramaturge: progress: {Line("progress")} | repeating: {repeating} | untapped: {Line("untapped")} | move: {move}{(end ? " (scene ends)" : "")}");
          if (!wants || end) return (null, end);
 
