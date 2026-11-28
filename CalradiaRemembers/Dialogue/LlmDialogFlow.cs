@@ -898,9 +898,9 @@ namespace CalradiaRemembers.Dialogue
          string playerName = Hero.MainHero?.Name?.ToString() ?? "You";
 
          var carried = false;
-         // Gabriel (28/11/2026, after his chat with Monchug opened on three stacked greetings and no intro): "je suggere qu'il y ait toujours une intro a l'ouverture du chat et cet intro devrait remplacer l'injection de la conversation Vanille du debut de la conversation.. si bien sur l'option MCM est activee."
-         // With the composed intro, the game's lines stay history for the model and are no longer shown: the intro opens the chat.
-         bool introInstead = SceneOpenerPolicy.IntroReplacesGameLines(SceneFacts(vm, _openedByGreeting, false));
+         // Gabriel (28/11/2026): 'Le joueur fait son intro en Vanille ou il se presente ... le mieux serait d'afficher l'intro, et ensuite remettre la conversation vanille ... le NPC nomme le joueur de voyageur comme si il ne l'avait jamais vu.'
+         // The game's lines stay on screen; the composed intro is placed above the first of them (ChatViewModel.ComposedOpening.cs).
+         int firstGameLine = vm.MessageCountForOpening;
          foreach (VanillaDialogueRecorder.CapturedLine line in captured)
          {
             // Skip the CR-opener menu line: it is a UI trigger (the player chose to start a
@@ -909,12 +909,8 @@ namespace CalradiaRemembers.Dialogue
             if (line.IsPlayer && string.Equals(line.Text?.Trim(), OpenChatOptionText, StringComparison.Ordinal))
                continue;
 
-            if (!introInstead)
-            {
-               if (line.IsPlayer) vm.AppendPlayerMessage(line.Text);
-               else vm.AppendNpcMessage(line.Text);
-            }
-
+            if (line.IsPlayer) vm.AppendPlayerMessage(line.Text);
+            else vm.AppendNpcMessage(line.Text);
             carried |= !string.IsNullOrWhiteSpace(line.Text);
 
             if (!string.IsNullOrWhiteSpace(line.Text))
@@ -922,6 +918,7 @@ namespace CalradiaRemembers.Dialogue
          }
 
          Session.AddPriorExchange(history.ToString());
+         if (carried) vm.MarkGameLinesFrom(firstGameLine);
 
          behavior.DialogueRecorder.Clear();
 

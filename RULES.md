@@ -8711,7 +8711,7 @@ _Lordfadooboo (Nexus, 21/10/2026) asked that a conversation not open cold; Gabri
 - GIVEN a sitting put back from earlier today, WHEN it opens, THEN no scene is set
 - GIVEN game dialogue carried into the chat, WHEN it opens, THEN no scene is set
 - GIVEN the composed intro, WHEN game lines were carried and the scene switch is off, THEN the intro still opens the chat
-- GIVEN no composed intro, WHEN game lines were carried, THEN they stay on screen
+- GIVEN a failed intro, WHEN the two have or have not spoken, THEN the ordinary opener follows only before any word
 - GIVEN the composed intro, WHEN the scene is staged, THEN no intro and the lines stay
 - GIVEN a sitting put back from earlier today, WHEN the composed intro is on, THEN it opens on the intro
 - GIVEN no model available, WHEN a conversation opens, THEN no scene is asked

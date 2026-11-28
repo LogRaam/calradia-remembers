@@ -46,6 +46,16 @@ namespace CalradiaRemembers.Chat
       private ComposedOpening _composedOpening;
       private string _composedOpeningWhy;
 
+      // The first of the game's own dialogue lines carried into the window, or null: the composed intro goes above it, and a
+      // failed intro hands over to no ordinary opener once those lines were said (SceneOpenerPolicy.OrdinaryOpenerMayFollow).
+      private ChatMessageViewModel _firstGameLine;
+
+      /// <summary>How many lines the window holds now (the opening's door reads it before carrying the game's lines).</summary>
+      internal int MessageCountForOpening => _messages.Count;
+
+      /// <summary>The game's own lines were carried into the window from <paramref name="index" /> on.</summary>
+      internal void MarkGameLinesFrom(int index) => _firstGameLine = index >= 0 && index < _messages.Count ? _messages[index] : null;
+
       /// <summary>cr.test composed_intro: stand-ins for the composer and the check. Null in play (the live clients are used).</summary>
       internal static ILlmClient ComposerForDiagnostics;
 
@@ -143,6 +153,15 @@ namespace CalradiaRemembers.Chat
                return;
             }
 
+            if (!SceneOpenerPolicy.OrdinaryOpenerMayFollow(new SceneOpenerFacts {VanillaLinesCarried = _firstGameLine != null, ResumedSitting = ResumedASitting}))
+            {
+               NoteComposedOpening($"not shown: {result.Why}; the two have already spoken, so no ordinary opener follows (it would greet a stranger).");
+               SettleSceneOpener(SceneOpenerOutcome.Failed);
+               EndSceneOpenerFlight();
+
+               return;
+            }
+
             NoteComposedOpening($"fell back to the ordinary opener: {result.Why}.");
             if (StopAtFallbackForDiagnostics)
             {
@@ -173,7 +192,8 @@ namespace CalradiaRemembers.Chat
       private void ApplyComposedOpening(ComposedOpeningReply reply)
       {
          _sceneOpenerCommitted = true;
-         AppendModelNarration(reply.Setting, _sceneOpenerGreetingText ?? "", _sceneOpenerGreeting);
+         // Above the game's own lines when they were carried (the player introduced himself there), else above the greeting.
+         AppendModelNarration(reply.Setting, _sceneOpenerGreetingText ?? "", _firstGameLine ?? _sceneOpenerGreeting);
          var opening = new ComposedOpening {
             Concern = string.IsNullOrWhiteSpace(reply.Concern) ? null : reply.Concern,
             Tension = string.IsNullOrWhiteSpace(reply.Tension) ? null : reply.Tension

@@ -79,11 +79,13 @@ namespace CalradiaRemembers.Logic.Chat
             && (facts.ComposedIntro || (facts.SettingOn && !facts.ResumedSitting && !facts.VanillaLinesCarried));
 
       /// <summary>
-      ///   True when the game's own dialogue lines are kept off the screen: the composed intro opens the chat in their place. The
-      ///   model still reads them as what was said before (the prior exchange); only the window no longer shows them.
+      ///   True when a composed intro that failed may hand over to the ordinary opener. Never once the two have spoken (the game's
+      ///   lines carried, or a talk put back from earlier today): its cue tells the model the player "has not yet said a word", and
+      ///   a lady the player had just introduced herself to greeted her as a stranger, "traveller". Gabriel (28/11/2026): 'Le joueur fait son intro en Vanille ou il se presente ... le mieux serait d'afficher l'intro, et ensuite remettre la conversation vanille ... le NPC nomme le joueur de voyageur comme si il ne l'avait jamais vu.'
+      ///   The composed intro itself goes ABOVE the game's lines, which stay on screen.
       /// </summary>
-      public static bool IntroReplacesGameLines(SceneOpenerFacts facts)
-         => facts != null && facts.ComposedIntro && facts.OpenedByGreeting && facts.ModelAvailable;
+      public static bool OrdinaryOpenerMayFollow(SceneOpenerFacts facts)
+         => facts != null && !facts.VanillaLinesCarried && !facts.ResumedSitting;
 
       /// <summary>
       ///   Whether the canned greeting is kept as said (and remembered as said). It is replaced only by a scene that

@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-856 rules read 628 facts.
+855 rules read 628 facts.
 
 ## Facts read by more than one rule
 
@@ -329,7 +329,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.AllowFiefAndMarriageQuestRewards` (2) | `FiefRewardFacts`, `MarriageRewardFacts` |
 | `ModSettings.AllowOpenRouterProviderFallbacks` (2) | `ProviderPinFailurePolicy.Explain`, `ProviderPinFailurePolicy.RoutingJson` |
 | `ModSettings.AllowOtherModsLlm` (2) | `ExternalLlmRequestFacts`, `ExternalLlmRequestPolicy.Explain` |
-| `ModSettings.CharactersSetTheScene` (2) | `SceneOpenerPolicy.IntroReplacesGameLines`, `SceneOpenerPolicy.ShouldOpen` |
 | `ModSettings.EnableWarDuty` (2) | `LevyTroopFacts`, `TermsFacts` |
 | `ModSettings.GeneratedDepth` (2) | `GeneratedDepthFacts`, `GeneratedDepthPolicy.ShouldGenerate` |
 | `ModSettings.MarriageRegardThreshold` (2) | `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion` |
@@ -1092,7 +1091,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `SceneFindingEchoFacts`: `Opening.Canvas`, `Opening.Facts`
 - `SceneNarrationFacts`: `ModSettings.SceneNarration`
 - `SceneNarrationPolicy.Shows`: `ModSettings.SceneNarration`
-- `SceneOpenerPolicy.IntroReplacesGameLines`: `ModSettings.CharactersSetTheScene`
 - `SceneOpenerPolicy.ShouldOpen`: `ModSettings.CharactersSetTheScene`
 - `ScenePersonFact`: `Character.HeroObject`, `Father.Name`, `Hero.Father`, `Hero.IsFemale`, `OwnerClan.Leader`, `Settlement.Name`
 - `ScenePlayerFacts`: `MobileParty.MemberRoster`

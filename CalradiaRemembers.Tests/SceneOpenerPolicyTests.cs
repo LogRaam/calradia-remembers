@@ -65,14 +65,16 @@ namespace CalradiaRemembers.Tests
          var facts = new SceneOpenerFacts {SettingOn = false, OpenedByGreeting = true, ModelAvailable = true, VanillaLinesCarried = true, ComposedIntro = true};
 
          SceneOpenerPolicy.ShouldOpen(facts).Should().BeTrue();
-         SceneOpenerPolicy.IntroReplacesGameLines(facts).Should().BeTrue();
       }
 
-      // STAKE: without the composed intro, the game's lines stay on screen as they always were (the default must not move).
-      [Test]
-      public void GIVEN_no_composed_intro_WHEN_game_lines_were_carried_THEN_they_stay_on_screen()
+      // STAKE: Gabriel 28/11/2026, Rancid Thylea called the player "traveller" right after he introduced himself in the game's lines:
+      // the ordinary opener's cue says he "has not yet said a word". Once they have spoken, a failed intro hands over to nothing.
+      [TestCase(true, false, false)]
+      [TestCase(false, true, false)]
+      [TestCase(false, false, true)]
+      public void GIVEN_a_failed_intro_WHEN_the_two_have_or_have_not_spoken_THEN_the_ordinary_opener_follows_only_before_any_word(bool gameLines, bool resumed, bool mayFollow)
       {
-         SceneOpenerPolicy.IntroReplacesGameLines(new SceneOpenerFacts {SettingOn = true, OpenedByGreeting = true, ModelAvailable = true}).Should().BeFalse();
+         SceneOpenerPolicy.OrdinaryOpenerMayFollow(new SceneOpenerFacts {VanillaLinesCarried = gameLines, ResumedSitting = resumed}).Should().Be(mayFollow);
       }
 
       // STAKE: a tale meeting or any staged scene keeps its own opening and lines: the intro never stands in for them.
@@ -82,7 +84,6 @@ namespace CalradiaRemembers.Tests
          var facts = new SceneOpenerFacts {OpenedByGreeting = false, ModelAvailable = true, ComposedIntro = true};
 
          SceneOpenerPolicy.ShouldOpen(facts).Should().BeFalse();
-         SceneOpenerPolicy.IntroReplacesGameLines(facts).Should().BeFalse();
       }
 
       // STAKE: Gabriel 28/11/2026, "je pourrais rencontrer le lord sur la MAP et ensuite dans sa ville": a sitting put back from
