@@ -2323,7 +2323,12 @@ namespace CalradiaRemembers.Chat
             // produced and can never be triggered by a question left over from an earlier one.
             int beatStart = _transcript.Count;
 
-            for (var i = 0; i < order.Count; i++)
+            // Stage 7 (28/11/2026), the Dramaturge mode only, NOT A/B-validated: the floor judge and the turn arbiter decide who
+            // speaks, round after round (ChatViewModel.GroupFloor.cs). False only when the judge failed before anyone spoke: the
+            // fixed order below then plays the beat as it always has. Every other mode skips this and runs the fixed order.
+            bool arbitrated = GroupFloorRunsNow && await RunArbitratedBeatAsync(text, primary, beatStart);
+
+            for (var i = 0; !arbitrated && i < order.Count; i++)
             {
                ChatSpeaker s = order[i];
                ChatMessageViewModel placeholder = MakeSpeakerMessage(s, PlaceholderText);
@@ -2360,7 +2365,8 @@ namespace CalradiaRemembers.Chat
             // remember?", and to get an answer he had to spend his own turn typing "*I watch and wait*".
             // One answering turn closes it. See EnsembleFloorPolicy for why a question mark, and nothing
             // looser, is the signal.
-            await AnswerAnyHangingQuestionAsync(beatStart);
+            // (The arbitrated beat answers a question put by name itself, under its own cap.)
+            if (!arbitrated) await AnswerAnyHangingQuestionAsync(beatStart);
 
             if (!ReferenceEquals(ChatManager.ActiveViewModel, this)) return;
 

@@ -10,11 +10,12 @@ other than `NarrativeLoader` (tales, scenarios, styles, prompt profiles) is not 
 
 ## Where the model is called
 
-30 methods call the model. `tool` marks a developer command or bench (`Diagnostics`, `ModCheats`, a `*Bench*` file), never run in play.
+31 methods call the model. `tool` marks a developer command or bench (`Diagnostics`, `ModCheats`, a `*Bench*` file), never run in play.
 
 | Pipeline | Layer | Use | Prompt from | What it is |
 |---|---|---|---|---|
 | `CaptiveSceneSummarizer.SummarizeAsync` | Sdk | play | `BuildSystemPrompt()` | Returns a concise first-person, past-tense memory line, or null on failure / empty transcript (the caller then keeps the base summary it already stored). |
+| `ChatViewModel.AskJudgeAsync` | Mod | play |  | (no summary) |
 | `ChatViewModel.CallNarratorAsync` | Mod | play |  | One narrator call on client: the text, the finish reason, or why there is none. |
 | `ChatViewModel.RunCouncilTurnAsync` | Mod | play | `BuildCouncilPromptInput()`, `CouncilPromptBuilder` | Runs ONE council turn as a group scene: builds the dedicated council prompt from the seated roster, makes a single LLM call on the prose client, parses the multi-speaker reply, and renders each member's contribution as i... |
 | `ChatViewModel.RunEnvoyTurnAsync` | Mod | play | `EnvoyPromptBuilder` | One envoy turn: his own prompt, one call, his line, and at most one deal run in his lord's name. |

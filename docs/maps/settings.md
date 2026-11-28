@@ -57,7 +57,6 @@ Fine when the setting governs one thing. Worth a look when its hint promises mor
 | Long Memory Budget (characters) (`LongMemoryBudget`) | `LongMemoryRecaller.For` |
 | Lords Hold Their Course (`LordsHoldTheirCourse`) | `InterceptionBehavior.SteerTowardPlayer` |
 | Lords can ride in your party (`EnableRideWithMe`) | `RetainerBehavior.Enabled` |
-| NPC Cross-Talk (`NpcCrossTalkRounds`) | `ChatViewModel.WitnessExchangeCap` |
 | NPCs can end conversations (`NpcCanEndConversation`) | `ChatViewModel.NpcEndLocksConversation` |
 | NSFW provider (`CncProvider`) | `LlmServices.ResolveKindForRole` |
 | Post-duel conversation (`EnablePostDuelConversation`) | `DuelCoordinator.OnTick` |
@@ -136,7 +135,7 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Lords Hold Their Course (`LordsHoldTheirCourse`) | `InterceptionBehavior.SteerTowardPlayer` | 1 |
 | Lords can ride in your party (`EnableRideWithMe`) | `RetainerBehavior.Enabled` | 0 |
 | Marriage Regard Needed (`MarriageRegardNeeded`) | `BannerlordGameStateBridge.ExecuteMarry`, `EncounterContextBuilder.RegardMeetsMarriageBar` | 3 |
-| NPC Cross-Talk (`NpcCrossTalkRounds`) | `ChatViewModel.WitnessExchangeCap` | 0 |
+| NPC Cross-Talk (`NpcCrossTalkRounds`) | `ChatViewModel.RunArbitratedBeatAsync`, `ChatViewModel.WitnessExchangeCap` | 0 |
 | NPCs Raise World News (`NpcsRaiseWorldNews`) | `CompanionAudienceTopicResolver.FreshnessFacts`, `InterceptionBehavior.BuildRecentMatters` | 2 |
 | NPCs can end conversations (`NpcCanEndConversation`) | `ChatViewModel.NpcEndLocksConversation` | 0 |
 | Narrative style (`NarrativeStyle`) | `ChatViewModel.NovelStyleOn`, `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService` | 1 |
@@ -145,7 +144,7 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Relationship Pacing (`RelationshipWarmth`) | `BannerlordGameStateBridge.BuildConsentFacts`, `BannerlordGameStateBridge.ExecuteChangeRelation`, `CompanionAffectionBehavior.EligibilityOf`, `CompanionAffectionBehavior.OnWeeklyTick`, `EncounterContextBuilder.SecretBondFactsFor`, `LetterRegardService.Apply`, `LetterTriggerEvaluator.CollectLoveConfessions`, `LlmServices.BuildChatService`, `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService`, `LoveConfessionReader.RegisterOf` | 5 |
 | Reply Language (`ReplyLanguage`) | `ChatViewModel.BuildCouncilPromptInput`, `ChatViewModel.EnsureTranscriptCompressedAsync`, `ChatViewModel.FinalizeConversationMemory`, `ChatViewModel.ReadComposedOpeningSheet`, `ChatViewModel.RunLlmExchangeAsync`, `ChatViewModel.WitnessSummaryJob`, `ChronicleIlluminationService.Run`, `ConversationSummaryService.GenerateAndApplyCaptiveSummaryAsync`, `ConversationSummaryService.GenerateAndApplyConversationSummaryAsync`, `LetterBox.WillTranslate`, `LetterGenerationService.TranslateFixedLetterAsync`, `LetterMemoryFinalizer.GenerateAndApplyAsync`, `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService`, `MemoryCompressionService.CompressAsync` | 4 |
 | Reply Length (`ReplyLength`) | `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService` | 1 |
-| Scene Narration (`SceneNarration`) | `ChatViewModel.AppendModelNarration`, `ChatViewModel.ApplyDramaturgeReading`, `ChatViewModel.ComposedOpeningFactsFor`, `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService` | 3 |
+| Scene Narration (`SceneNarration`) | `ChatViewModel.AppendModelNarration`, `ChatViewModel.ApplyDramaturgeReading`, `ChatViewModel.ComposedOpeningFactsFor`, `ChatViewModel.NarrateReactionAsync`, `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService` | 3 |
 | Strategic Assessment (AI) (`EnableStrategicAssessment`) | `StrategicAssessmentService.Populate` | 0 |
 | Unasked Letters (`UnaskedLetters`) | `LetterBox.IsSilenced`, `LetterTriggerEvaluator.EvaluateDaily`, `StanceConsequenceBehavior.TryWrite` | 2 |
 | Witness Density (`WitnessDensity`) | `WitnessResolver.ResolveAutoWitnesses` | 1 |
@@ -176,7 +175,7 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 |---|---|---|
 | Background model (`HousekeepingModel`) | `LlmServices.ResolveHousekeepingModel` | 3 |
 | Background provider (`HousekeepingProvider`) | `LlmServices.ResolveKindForRole` | 2 |
-| Chat Composition (`ChatCompositionModeSetting`) | `ChatViewModel.DramaturgeFactsFor`, `ChatViewModel.ExecuteToggleModelMode`, `ChatViewModel.ModelModeText`, `ChatViewModel.ReadComposedOpeningSheet`, `ChatViewModel.StartConversationLog`, `LlmServices.SeedModelModeFromSettings` | 8 |
+| Chat Composition (`ChatCompositionModeSetting`) | `ChatViewModel.DramaturgeFactsFor`, `ChatViewModel.ExecuteToggleModelMode`, `ChatViewModel.GroupFloorRunsNow`, `ChatViewModel.ModelModeText`, `ChatViewModel.ReadComposedOpeningSheet`, `ChatViewModel.StartConversationLog`, `LlmServices.SeedModelModeFromSettings` | 9 |
 | Dramaturge model (`DramaturgeModel`) | `LlmServices.ResolveDramaturgeModel`, `LlmServices.ResolveProviderPinFor` | 1 |
 | Dramaturge provider (`DramaturgeProvider`) | `LlmServices.ResolveKindForRole` | 1 |
 | Interpret model (`ActionInterpreterModel`) | `LlmServices.DebugDescribeRoleRouting`, `LlmServices.ResolveInterpreterModel`, `LlmServices.ResolveModel` | 3 |

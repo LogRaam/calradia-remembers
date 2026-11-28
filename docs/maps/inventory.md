@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 703 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1821 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1827 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 306 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -252,7 +252,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatScreen` | internal class | A minimal screen that carries the pre-built chat layer and takes focus when pushed. |
 | `ChatScrollablePanel` | public class | Custom ScrollablePanel that supports a deferred "scroll to bottom" request. |
 | `ChatSpeaker` | internal class | One participant of a chat exchange: the main NPC or a present witness, with the hero, stored profile and display colour used to route the turn and render the line. |
-| `ChatViewModel` | public class, partial over 18 files | (no summary) |
+| `ChatViewModel` | public class, partial over 19 files | (no summary) |
 | `CompanionAudiencePayload` | public class | The companion-audience specifics. |
 | `ComposeScrollablePanel` | public class | A plain ScrollablePanel for the composer's multi-line input. |
 | `ConversationMood` | public static class | How far the player has moved each character's mood in the current conversation. |
@@ -2226,7 +2226,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ConditionBands` | public static class | How a seat and a company are faring, on the engine's own scales. |
 | `PlayerImportancePolicy` | public static class | Whether the player looks important to a captor. |
 
-### CalradiaRemembers.Logic.Conversation (43)
+### CalradiaRemembers.Logic.Conversation (49)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2259,6 +2259,12 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FloorDecision` | public class | The referee's decision for one round. |
 | `FloorOutcome` | public enum | What happens next. |
 | `FloorRound` | public class | The state of the round the referee decides. |
+| `GroupFloorGateFacts` | public class | The facts the group engine is switched on by. |
+| `GroupFloorListener` | public class | One listener of the line just spoken, as the game and the judge know them this round. |
+| `GroupFloorPolicy` | public static class | The group engine's rules: the gate, the bids, the cap, standing and the reaction. |
+| `GroupFloorRound` | public class | The round the bids are built for: the line just spoken and who heard it. |
+| `GroupReactionFacts` | public class | What decides whether one reaction is narrated before the next line. |
+| `GroupReactionPrompt` | public static class | The narrated reaction's prompt and the reading of its line (the simulator's NarrationPrompt, cut to one reaction). |
 | `MapEncounterCloseFacts` | public class | What the close knows of the player's encounter. |
 | `MapEncounterClosePolicy` | public static class | Whether the close may finish the encounter. |
 | `MapEventSighting` | public class | A map event as the close saw it, for one of the three places a battle can hide (the encounter itself, the player's own party, or the party met). |
