@@ -134,5 +134,28 @@ namespace CalradiaRemembers.Tests
             ModelModePolicy.ResolveProviderPin(new ModelModePolicy.RoleSettings {Role = ServiceRole.Interpret, Prose = "openai", Nsfw = "novita", Interpret = "deepinfra"}).Should().Be("deepinfra");
             ModelModePolicy.ResolveProviderPin(new ModelModePolicy.RoleSettings {Role = ServiceRole.Nsfw, Prose = "openai", Nsfw = "   ", Interpret = "deepinfra"}).Should().Be("openai");
         }
+
+        // STAKE: Gabriel (28/11/2026): "pour le dramaturge, je pourrais vouloir DeepSeek, et Mimo en PROSE". Read through
+        // the Interpret slot, the dramaturge would run the cheap interpreter model (which failed as a dramaturge in the
+        // simulator, 5.40 against 6.61) with reasoning Off; blank must mean the PROSE model.
+        [Test]
+        public void GIVEN_the_dramaturge_role_WHEN_resolving_model_effort_and_pin_THEN_it_uses_its_own_or_the_prose_value_never_the_interpreters()
+        {
+            ModelModePolicy.ResolveModelId(new ModelModePolicy.RoleSettings {Role = ServiceRole.Dramaturge, Prose = "mimo", Interpret = "flash", Dramaturge = "deepseek"}).Should().Be("deepseek");
+            ModelModePolicy.ResolveModelId(new ModelModePolicy.RoleSettings {Role = ServiceRole.Dramaturge, Prose = "mimo", Interpret = "flash", Dramaturge = " "}).Should().Be("mimo");
+            ModelModePolicy.ResolveReasoningEffort(new ModelModePolicy.RoleSettings {Role = ServiceRole.Dramaturge, Prose = "low", Interpret = "Off"}).Should().Be("low");
+            ModelModePolicy.ResolveProviderPin(new ModelModePolicy.RoleSettings {Role = ServiceRole.Dramaturge, Prose = "openai", Interpret = "deepinfra"}).Should().Be("openai");
+        }
+
+        // STAKE: the in-chat switch keeps two positions, the MCM mode or Roleplay (Gabriel, 28/11/2026). With Dramaturge
+        // chosen, the first position must say Dramaturge, or the player cannot tell the machinery is on.
+        [Test]
+        public void GIVEN_the_dramaturge_mode_WHEN_labelling_the_switch_THEN_only_the_enhanced_position_reads_dramaturge()
+        {
+            ModelModePolicy.DisplayName(ManualModelMode.Enhanced, true).Should().Be("Dramaturge");
+            ModelModePolicy.DisplayName(ManualModelMode.Roleplay, true).Should().Be("Roleplay");
+            ModelModePolicy.DisplayName(ManualModelMode.Nsfw, true).Should().Be("NSFW");
+            ModelModePolicy.DisplayName(ManualModelMode.Enhanced, false).Should().Be("Enhanced");
+        }
     }
 }

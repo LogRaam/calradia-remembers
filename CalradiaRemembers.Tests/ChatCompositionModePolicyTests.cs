@@ -63,5 +63,27 @@ namespace CalradiaRemembers.Tests
             ChatCompositionModePolicy.Parse("   ").Should().Be(ChatCompositionMode.Enhanced);
             ChatCompositionModePolicy.Parse("something else").Should().Be(ChatCompositionMode.Enhanced);
         }
+
+        // STAKE: Gabriel (28/11/2026): Dramaturge is "DRAMA+PROSE+INTERPRET+NSFW", Enhanced plus. Read as anything but
+        // Enhanced, every test of Enhanced in the chat (the interpreter, the NSFW fallback) would silently switch off.
+        [Test]
+        public void GIVEN_the_dramaturge_label_WHEN_parsing_THEN_it_composes_as_enhanced()
+        {
+            ChatCompositionModePolicy.Parse(ChatCompositionModePolicy.DramaturgeLabel).Should().Be(ChatCompositionMode.Enhanced);
+            ChatCompositionModePolicy.Parse(" dramaturge ").Should().Be(ChatCompositionMode.Enhanced);
+        }
+
+        // STAKE: only the Dramaturge choice may run the per-turn machinery (two or three paid calls a turn, not
+        // A/B-validated); an old Standard or Enhanced setting, or a blank one, must never start it.
+        [Test]
+        public void GIVEN_each_choice_WHEN_asking_whether_it_is_dramaturge_THEN_only_the_dramaturge_label_is()
+        {
+            ChatCompositionModePolicy.IsDramaturge("Dramaturge").Should().BeTrue();
+            ChatCompositionModePolicy.IsDramaturge("  DRAMATURGE ").Should().BeTrue();
+            ChatCompositionModePolicy.IsDramaturge("Enhanced").Should().BeFalse();
+            ChatCompositionModePolicy.IsDramaturge("Standard").Should().BeFalse();
+            ChatCompositionModePolicy.IsDramaturge(null).Should().BeFalse();
+            ChatCompositionModePolicy.IsDramaturge("").Should().BeFalse();
+        }
     }
 }

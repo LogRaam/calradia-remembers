@@ -80,7 +80,7 @@ namespace CalradiaRemembers.Tests.Maps
       {
          var plain = Regex.Matches(Settings(), @"public Dropdown<string> (\w+)").Cast<Match>().Select(m => m.Groups[1].Value).OrderBy(x => x).ToList();
 
-         plain.Should().BeEquivalentTo("ActionInterpreterProvider", "CncProvider", "ConsensualProvider", "HousekeepingProvider", "PromptProfile", "Provider");
+         plain.Should().BeEquivalentTo("ActionInterpreterProvider", "CncProvider", "ConsensualProvider", "DramaturgeProvider", "HousekeepingProvider", "PromptProfile", "Provider");
       }
 
       // STAKE: the code reads a choice back by its English; a choice whose English drifted from the label the code compares

@@ -797,6 +797,21 @@ namespace CalradiaRemembers.Foundation
          ChatCompositionModePolicy.Parse(CrSettings.Instance?.ChatCompositionModeSetting?.Choice());
 
       /// <summary>
+      ///   Whether the MCM "Chat Composition" says Dramaturge (28/11/2026). It composes as Enhanced
+      ///   (<see cref="ChatCompositionMode" /> reads Enhanced); this only says the Dramaturge machinery may run, and only
+      ///   while the in-chat switch holds the Enhanced position (DramaturgeModePolicy).
+      /// </summary>
+      public static bool DramaturgeMode =>
+         ChatCompositionModePolicy.IsDramaturge(CrSettings.Instance?.ChatCompositionModeSetting?.Choice());
+
+      /// <summary>The Dramaturge model as typed, or blank (the PROSE model). See ServiceRole.Dramaturge.</summary>
+      public static string DramaturgeModel => CrSettings.Instance?.DramaturgeModel ?? "";
+
+      /// <summary>Which provider the Dramaturge model is sent to; "(default)" inherits the prose provider.</summary>
+      public static string DramaturgeProviderSelection =>
+         CrSettings.Instance?.DramaturgeProvider?.SelectedValue ?? ProviderRolePolicy.DefaultSelection;
+
+      /// <summary>
       ///   The reasoning-effort keyword for NSFW mode, read live from the MCM menu. The default
       ///   sentinel ("Same as roleplay") makes NSFW reuse <see cref="ReasoningEffort" />; players
       ///   typically set it LOWER than roleplay (fewer moralizing refusals, faster scene beats).

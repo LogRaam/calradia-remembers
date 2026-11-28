@@ -26931,6 +26931,10 @@ namespace CalradiaRemembers.Diagnostics
          string priorInterpApiKey = s.CustomApiKeyInterpret;
          string priorHousekeepingModel = s.HousekeepingModel;
          int priorHousekeepingProvider = s.HousekeepingProvider.SelectedIndex;
+         string priorDramaturgeModel = s.DramaturgeModel;
+         int priorDramaturgeProvider = s.DramaturgeProvider.SelectedIndex;
+         string priorDramaturgeEndpoint = s.CustomEndpointUrlDramaturge;
+         string priorDramaturgeApiKey = s.CustomApiKeyDramaturge;
 
          try
          {
@@ -26952,6 +26956,15 @@ namespace CalradiaRemembers.Diagnostics
             (ProviderKind _, string _, string chosen) = llm.DebugDescribeRoleRouting(ServiceRole.Housekeeping);
 
             t.Expect("aSetBackgroundModelIsUsed", chosen, "a-cheap/background-model");
+
+            // STAKE (Dramaturge role, Gabriel 28/11/2026: "pour le dramaturge, je pourrais vouloir DeepSeek, et Mimo en PROSE"):
+            // blank is the prose model (the cheap dramaturge failed in the simulator), and a model of its own is honoured.
+            s.DramaturgeModel = "";
+            s.DramaturgeProvider.SelectedValue = ProviderRolePolicy.DefaultSelection;
+            t.Expect("blankDramaturgeModelIsTheProseModel", llm.DebugDescribeRoleRouting(ServiceRole.Dramaturge).model, proseModel);
+            s.DramaturgeModel = "a-director/dramaturge-model";
+            t.Expect("aSetDramaturgeModelIsUsed", llm.DebugDescribeRoleRouting(ServiceRole.Dramaturge).model, "a-director/dramaturge-model");
+            s.DramaturgeModel = priorDramaturgeModel;
 
             s.HousekeepingModel = priorHousekeepingModel;
             // STAKE: the whole round is "a different provider per role". If DISTINCT selections did not yield
@@ -26992,6 +27005,11 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("proseUsesTheSharedEndpoint", llm.DebugDescribeRoleRouting(ServiceRole.Prose).baseUrl, sharedEp);
             t.Expect("nsfwUsesItsOwnEndpoint", llm.DebugDescribeRoleRouting(ServiceRole.Nsfw).baseUrl, nsfwEp);
             t.Expect("interpreterUsesItsOwnEndpoint", llm.DebugDescribeRoleRouting(ServiceRole.Interpret).baseUrl, interpEp);
+            s.DramaturgeProvider.SelectedValue = ProviderRolePolicy.OpenAiCompatibleValue;
+            s.CustomEndpointUrlDramaturge = "http://localhost:4444/v1";
+            t.Expect("dramaturgeUsesItsOwnEndpoint", llm.DebugDescribeRoleRouting(ServiceRole.Dramaturge).baseUrl, "http://localhost:4444/v1");
+            s.CustomEndpointUrlDramaturge = "";
+            t.Expect("blankDramaturgeEndpointInheritsTheShared", llm.DebugDescribeRoleRouting(ServiceRole.Dramaturge).baseUrl, sharedEp);
 
             // A blank override falls back to the shared endpoint (the default that keeps single-endpoint setups working).
             s.CustomEndpointUrlNsfw = "";
@@ -27012,6 +27030,10 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("proseUsesTheSharedApiKey", llm.DebugResolveApiKeyFor(ServiceRole.Prose), sharedKey);
             t.Expect("nsfwUsesItsOwnApiKey", llm.DebugResolveApiKeyFor(ServiceRole.Nsfw), nsfwKey);
             t.Expect("interpreterUsesItsOwnApiKey", llm.DebugResolveApiKeyFor(ServiceRole.Interpret), interpKey);
+            s.CustomApiKeyDramaturge = "cr-selftest-drama-key";
+            t.Expect("dramaturgeUsesItsOwnApiKey", llm.DebugResolveApiKeyFor(ServiceRole.Dramaturge), "cr-selftest-drama-key");
+            s.CustomApiKeyDramaturge = "";
+            t.Expect("blankDramaturgeApiKeyInheritsTheShared", llm.DebugResolveApiKeyFor(ServiceRole.Dramaturge), sharedKey);
 
             // A blank override falls back to the shared key (the default that keeps single-key setups working).
             s.CustomApiKeyNsfw = "";
@@ -27047,6 +27069,10 @@ namespace CalradiaRemembers.Diagnostics
             s.CustomApiKeyInterpret = priorInterpApiKey;
             s.HousekeepingModel = priorHousekeepingModel;
             s.HousekeepingProvider.SelectedIndex = priorHousekeepingProvider;
+            s.DramaturgeModel = priorDramaturgeModel;
+            s.DramaturgeProvider.SelectedIndex = priorDramaturgeProvider;
+            s.CustomEndpointUrlDramaturge = priorDramaturgeEndpoint;
+            s.CustomApiKeyDramaturge = priorDramaturgeApiKey;
          }
 
          return t.Line();

@@ -238,9 +238,11 @@ namespace CalradiaRemembers
             ? "one integrated call, no interpret, no fallback"
             : "PROSE writes, INTERPRET tags, NSFW is the hard-failure fallback";
 
-         return $"In-chat switch = {ModelModePolicy.DisplayName(manualMode)}. Composition = {composition} ({modeLine}). " +
+         string drama = llm != null ? llm.DebugDescribeRoleRouting(ServiceRole.Dramaturge).model : "";
+
+         return $"In-chat switch = {ModelModePolicy.DisplayName(manualMode, ModSettings.DramaturgeMode)}. Composition = {composition} ({modeLine}). " +
                 $"Active scene kind (diagnostic only) = {kind}. " +
-                $"Models: PROSE '{prose}', NSFW '{nsfw}', INTERPRET '{interp}'.";
+                $"Models: PROSE '{prose}', NSFW '{nsfw}', INTERPRET '{interp}', DRAMATURGE '{drama}'.";
       }
 
       [CommandLineFunctionality.CommandLineArgumentFunction("provider_routing", "cr")]
@@ -251,7 +253,7 @@ namespace CalradiaRemembers
 
          var sb = new StringBuilder("Per-role provider routing (what each role WOULD use, no network call):");
          foreach (ServiceRole role in new[] {
-                     ServiceRole.Prose, ServiceRole.Nsfw, ServiceRole.Interpret
+                     ServiceRole.Prose, ServiceRole.Nsfw, ServiceRole.Interpret, ServiceRole.Dramaturge
                   })
          {
             (ProviderKind kind, string baseUrl, string model) = llm.DebugDescribeRoleRouting(role);

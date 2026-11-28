@@ -11,7 +11,7 @@ player says "I turned it off and it still happens", the readers listed here are 
 it is missing from the list. Read from syntax; blind spots in the header of `SettingsReadersMap.cs` (a value handed
 on to the SDK or a helper shows only where it is read).
 
-125 settings; a reader is `Type.Member`. Console and cr.test reads are counted apart (they exercise a switch, they do not obey it).
+129 settings; a reader is `Type.Member`. Console and cr.test reads are counted apart (they exercise a switch, they do not obey it).
 
 ## Read by one member only
 
@@ -21,6 +21,7 @@ Fine when the setting governs one thing. Worth a look when its hint promises mor
 | Setting | Read by |
 |---|---|
 | API Key (Background) (`CustomApiKeyHousekeeping`) | `LlmServices.CustomApiKeyOverrideFor` |
+| API Key (Dramaturge) (`CustomApiKeyDramaturge`) | `LlmServices.CustomApiKeyOverrideFor` |
 | API Key (Interpret) (`CustomApiKeyInterpret`) | `LlmServices.CustomApiKeyOverrideFor` |
 | API Key (NSFW) (`CustomApiKeyNsfw`) | `LlmServices.CustomApiKeyOverrideFor` |
 | Ask Which Companions Come Along (`AskCompanionsAtStart`) | `WitnessResolver.ShowCompanionPickerIfNeeded` |
@@ -29,7 +30,6 @@ Fine when the setting governs one thing. Worth a look when its hint promises mor
 | Captor Conversations (`CaptorConversations`) | `CaptiveEncounterService.TryCaptorAudience` |
 | Characters Set The Scene (`CharactersSetTheScene`) | `LlmDialogFlow.SceneFacts` |
 | Characters can add news to the world (`EnableNpcWorldClaims`) | `ConversationSummaryService.HarvestWorldClaimsAsync` |
-| Chat Composition (`ChatCompositionModeSetting`) | `LlmServices.SeedModelModeFromSettings` |
 | Chat Window Style (`ChatSkin`) | `ChatManager.MenuSkinPrefab` |
 | Clan standing warms first meetings (`ClanStandingWarmsFirstMeetings`) | `ClanStandingSeedService.Apply` |
 | Composed opening scene (`ComposedOpening`) | `ChatViewModel.ComposedOpeningFactsFor` |
@@ -40,11 +40,13 @@ Fine when the setting governs one thing. Worth a look when its hint promises mor
 | Council Voices (`CouncilVoices`) | `ChatViewModel.ActivateCouncil` |
 | Custom Folder Path (`CustomFolderPath`) | `NarrativeLoader.CustomBaseFolder` |
 | Dark Leather Size (%) (`DarkLeatherZoomPercent`) | `ChatManager.ArbitrateFocus` |
+| Dramaturge provider (`DramaturgeProvider`) | `LlmServices.ResolveKindForRole` |
 | Edicts of the world's lords (`EnableNpcEdicts`) | `EdictBehavior.Daily` |
 | Enable Council (`EnableCouncil`) | `CouncilEntry.CanConveneNow` |
 | Enable File Logging (`EnableLogging`) | `ModLog.FileLoggingEnabled` |
 | Enable On-Screen Logging (`EnableScreenLogging`) | `ModLog.ScreenLoggingEnabled` |
 | Endpoint URL (Background) (`CustomEndpointUrlHousekeeping`) | `LlmServices.CustomEndpointOverrideFor` |
+| Endpoint URL (Dramaturge) (`CustomEndpointUrlDramaturge`) | `LlmServices.CustomEndpointOverrideFor` |
 | Endpoint URL (Interpret) (`CustomEndpointUrlInterpret`) | `LlmServices.CustomEndpointOverrideFor` |
 | Endpoint URL (NSFW) (`CustomEndpointUrlNsfw`) | `LlmServices.CustomEndpointOverrideFor` |
 | Hidden Affairs Among Lords (`HiddenAffairs`) | `HiddenAffairBehavior.Enabled` |
@@ -174,7 +176,9 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 |---|---|---|
 | Background model (`HousekeepingModel`) | `LlmServices.ResolveHousekeepingModel` | 3 |
 | Background provider (`HousekeepingProvider`) | `LlmServices.ResolveKindForRole` | 2 |
-| Chat Composition (`ChatCompositionModeSetting`) | `LlmServices.SeedModelModeFromSettings` | 4 |
+| Chat Composition (`ChatCompositionModeSetting`) | `ChatViewModel.ExecuteToggleModelMode`, `ChatViewModel.ModelModeText`, `ChatViewModel.StartConversationLog`, `LlmServices.SeedModelModeFromSettings` | 6 |
+| Dramaturge model (`DramaturgeModel`) | `LlmServices.ResolveDramaturgeModel`, `LlmServices.ResolveProviderPinFor` | 1 |
+| Dramaturge provider (`DramaturgeProvider`) | `LlmServices.ResolveKindForRole` | 1 |
 | Interpret model (`ActionInterpreterModel`) | `LlmServices.DebugDescribeRoleRouting`, `LlmServices.ResolveInterpreterModel`, `LlmServices.ResolveModel` | 3 |
 | Interpret provider (`ActionInterpreterProvider`) | `LlmServices.ResolveKindForRole` | 1 |
 | NSFW model (`CncModel`) | `ApiKeyTester.TestConfiguredModelsAsync`, `LlmServices.DebugDescribeRoleRouting`, `LlmServices.ResolveModel`, `LlmServices.ResolveNsfwModel`, `LlmServices.ResolveProseFallbackModel` | 5 |
@@ -193,10 +197,12 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Setting | Readers in play | cr.test / console |
 |---|---|---|
 | API Key (Background) (`CustomApiKeyHousekeeping`) | `LlmServices.CustomApiKeyOverrideFor` | 0 |
+| API Key (Dramaturge) (`CustomApiKeyDramaturge`) | `LlmServices.CustomApiKeyOverrideFor` | 1 |
 | API Key (Interpret) (`CustomApiKeyInterpret`) | `LlmServices.CustomApiKeyOverrideFor` | 1 |
 | API Key (NSFW) (`CustomApiKeyNsfw`) | `LlmServices.CustomApiKeyOverrideFor` | 1 |
 | API Key (optional) (`CustomApiKey`) | `ApiKeyTester.RunCustomAsync`, `LlmServices.ApiKeyFor` | 1 |
 | Endpoint URL (Background) (`CustomEndpointUrlHousekeeping`) | `LlmServices.CustomEndpointOverrideFor` | 0 |
+| Endpoint URL (Dramaturge) (`CustomEndpointUrlDramaturge`) | `LlmServices.CustomEndpointOverrideFor` | 1 |
 | Endpoint URL (Interpret) (`CustomEndpointUrlInterpret`) | `LlmServices.CustomEndpointOverrideFor` | 1 |
 | Endpoint URL (NSFW) (`CustomEndpointUrlNsfw`) | `LlmServices.CustomEndpointOverrideFor` | 1 |
 | Endpoint URL (Prose / shared) (`CustomEndpointUrl`) | `ApiKeyTester.RunCustomAsync`, `LlmServices.BaseUrlFor` | 1 |

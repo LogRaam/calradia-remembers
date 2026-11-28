@@ -59,7 +59,15 @@ namespace CalradiaRemembers.Logic.Providers
         ///   </para>
         ///   Inherits everything it is not given: no model set means the Prose model, exactly as before.
         /// </summary>
-        Housekeeping
+        Housekeeping,
+
+        /// <summary>
+        ///   The DRAMATURGE of the Dramaturge chat mode (Gabriel, 28/11/2026: "le mode dramaturge avec
+        ///   DRAMA+PROSE+INTERPRET+NSFW"). Chosen apart from the prose model ("pour le dramaturge, je pourrais vouloir
+        ///   DeepSeek, et Mimo en PROSE"); blank means the PROSE model on the PROSE provider. Appended last so every
+        ///   earlier value keeps its number. Its client is built from stage 6; the group engine (stage 7) calls it.
+        /// </summary>
+        Dramaturge
     }
 
     /// <summary>Maps the per-role provider dropdown strings to a <see cref="ProviderKind" />, honouring the "(default)" inherit sentinel.</summary>

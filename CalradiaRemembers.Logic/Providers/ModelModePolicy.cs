@@ -99,6 +99,13 @@ namespace CalradiaRemembers.Logic.Providers
 
             /// <summary>The INTERPRET value. Blank means "same as prose".</summary>
             public string Interpret { get; set; }
+
+            /// <summary>
+            ///   The DRAMATURGE value. Blank means "same as prose". Its own field (28/11/2026): read through the
+            ///   Interpret fallthrough, the dramaturge would have inherited the interpreter's model, its reasoning
+            ///   pinned Off and its provider pin.
+            /// </summary>
+            public string Dramaturge { get; set; }
         }
 
         /// <summary>
@@ -122,6 +129,14 @@ namespace CalradiaRemembers.Logic.Providers
         ///   main role already fixes which model writes it, so Standard's own content-routing never triggers).
         /// </summary>
         public static ChatCompositionMode CompositionFor(ManualModelMode mode) => mode == ManualModelMode.Enhanced ? ChatCompositionMode.Enhanced : ChatCompositionMode.Standard;
+
+        /// <summary>
+        ///   The in-chat button label when the MCM mode is known: the Enhanced position reads "Dramaturge" while the MCM
+        ///   "Chat Composition" says Dramaturge (Gabriel, 28/11/2026: the switch keeps two positions, the mode chosen in
+        ///   the MCM or Roleplay). Every other state reads as <see cref="DisplayName(ManualModelMode)" />.
+        /// </summary>
+        public static string DisplayName(ManualModelMode mode, bool dramaturgeMode)
+            => dramaturgeMode && mode == ManualModelMode.Enhanced ? "Dramaturge" : DisplayName(mode);
 
         /// <summary>The in-chat button label for a state ("Model: Enhanced" / "Model: Roleplay" / "Model: NSFW").</summary>
         public static string DisplayName(ManualModelMode mode)
@@ -167,7 +182,9 @@ namespace CalradiaRemembers.Logic.Providers
 
             if (settings.Role == ServiceRole.Prose) return settings.Prose;
 
-            string configured = settings.Role == ServiceRole.Nsfw ? settings.Nsfw : settings.Interpret;
+            string configured = settings.Role == ServiceRole.Nsfw ? settings.Nsfw
+                              : settings.Role == ServiceRole.Dramaturge ? settings.Dramaturge
+                              : settings.Interpret;
 
             if (string.IsNullOrWhiteSpace(configured)) return settings.Prose;
             if (sentinel != null && string.Equals(configured.Trim(), sentinel, StringComparison.OrdinalIgnoreCase))

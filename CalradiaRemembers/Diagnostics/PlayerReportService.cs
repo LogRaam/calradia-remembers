@@ -118,7 +118,7 @@ namespace CalradiaRemembers.Diagnostics
             $"Date: {DateTime.Now:yyyy-MM-dd HH:mm}",
             $"Character spoken to: {characterName ?? "(none)"}",
             $"Conversation opened: {conversationOpened:HH:mm:ss}",
-            $"Model mode: {Safe(() => ModelModePolicy.DisplayName(Services.LlmServices.ActiveModelMode))}",
+            $"Model mode: {Safe(() => ModelModePolicy.DisplayName(Services.LlmServices.ActiveModelMode, Foundation.ModSettings.DramaturgeMode))}",
             $"Model: {Safe(() => Services.LlmServices.ActiveModelId)}",
             $"Interpreter model: {Safe(() => NpcMemoryCampaignBehavior.Instance?.LlmServices?.ResolveInterpreterModel())}",
             $"Compact prompt: {(ModSettings.LeanPrompt ? "on" : "off")}",

@@ -1167,7 +1167,7 @@ namespace CalradiaRemembers.Chat
       ///   it, got the same chaste writing the Mature prompt asks for, and concluded the button was broken.
       /// </summary>
       [DataSourceProperty]
-      public string ModelModeText => $"Model: {ModelModePolicy.DisplayName(LlmServices.ActiveModelMode)}";
+      public string ModelModeText => $"Model: {ModelModePolicy.DisplayName(LlmServices.ActiveModelMode, ModSettings.DramaturgeMode)}";
 
       public Action OnCloseRequested { get; set; }
 
@@ -2955,7 +2955,7 @@ namespace CalradiaRemembers.Chat
       {
          LlmServices.ActiveModelMode = ModelModePolicy.Cycle(LlmServices.ActiveModelMode);
          OnPropertyChanged(nameof(ModelModeText));
-         ModLog.Info($"[chat] in-chat model switch cycled to {ModelModePolicy.DisplayName(LlmServices.ActiveModelMode)}.");
+         ModLog.Info($"[chat] in-chat model switch cycled to {ModelModePolicy.DisplayName(LlmServices.ActiveModelMode, ModSettings.DramaturgeMode)}.");
       }
 
       /// <summary>

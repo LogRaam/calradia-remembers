@@ -40,7 +40,7 @@ namespace CalradiaRemembers.Chat
             bool enhanced = LlmServices.ActiveComposition == ChatCompositionMode.Enhanced;
             LlmServices services = NpcMemoryCampaignBehavior.Instance?.LlmServices;
             _chatLog = new ChatLogCollector(new ChatLogModels {
-               Mode = ModelModePolicy.DisplayName(LlmServices.ActiveModelMode), Prose = LlmServices.ActiveModelId,
+               Mode = ModelModePolicy.DisplayName(LlmServices.ActiveModelMode, ModSettings.DramaturgeMode), Prose = LlmServices.ActiveModelId,
                Interpreter = enhanced ? services?.ResolveInterpreterModel() : null, Nsfw = services?.ResolveNsfwModel()
             }, _openedAt);
             ReportRecorder.Instance.Listener = _chatLog;

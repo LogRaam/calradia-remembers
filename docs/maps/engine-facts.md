@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-837 rules read 626 facts.
+840 rules read 623 facts.
 
 ## Facts read by more than one rule
 
@@ -211,13 +211,9 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MobileParty.MapFaction` (3) | `JointAttackProgressFacts`, `MeetingLeaveFacts`, `SightedForce` |
 | `MobileParty.Morale` (3) | `CompanionCounselPolicy.Select`, `PartyCounselFacts`, `PartyMoraleMood.DriverFor` |
 | `MobileParty.Position` (3) | `AuthoredQuestPrompt.Narrator`, `CouncilSceneImagePolicy.Resolve`, `SceneSurroundingsFacts` |
-| `ModSettings.ActionInterpreterProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.AllowKillingCharacters` (3) | `KillAttemptResult`, `ViolencePolicy.IsPermitted`, `ViolencePolicy.Resolve` |
-| `ModSettings.CncProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.CompanionAudienceCadence` (3) | `CompanionAudiencePacingRules.CooldownDays`, `CompanionAudiencePacingRules.DailyChancePercent`, `CompanionAudiencePacingRules.IsOff` |
-| `ModSettings.HousekeepingProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.LlmResponseTimeoutSeconds` (3) | `ComposedOpeningComposer.ComposeAsync`, `ComposedOpeningPolicy.ComposerTimeoutSeconds`, `GeneratedDepthGenerator.GenerateAsync` |
-| `ModSettings.RoleplayProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.SceneNarration` (3) | `ComposedOpeningPolicy.ShouldCompose`, `SceneNarrationFacts`, `SceneNarrationPolicy.Shows` |
 | `ModSettings.WarLevyScale` (3) | `StandingAim`, `SummonsFacts`, `WarLevyFacts` |
 | `ModSettings.YourDescriptionReplaces` (3) | `AppearanceComposer.Compose`, `AppearanceComposer.WithOutsideLines`, `CharacterTextComposer.Append` |
@@ -261,6 +257,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `CharacterObject.Race` (2) | `RaceLookPolicy.Find`, `RaceLookPolicy.KindNoun` |
 | `CharacterRelationManager.GetHeroRelation` (2) | `PairBondFacts`, `PairBondPolicy.Assess` |
 | `CharacterStates.Disabled` (2) | `PlayerChangeFacts`, `SuccessionTrigger.IsSuccession` |
+| `ChatCompositionModeSetting.Choice` (2) | `ChatCompositionModePolicy.IsDramaturge`, `ChatCompositionModePolicy.Parse` |
 | `Clan.IsBanditFaction` (2) | `AllegianceFacts`, `ReleaseFacts` |
 | `CompanionHiringPriceCalculationModel.GetCompanionHiringPrice` (2) | `HireAgreementPolicy.AgreedPrice`, `HireAgreementPolicy.CanAfford` |
 | `ConversationManager.IsConversationFlowActive` (2) | `LandfallFacts`, `StagingHostFacts` |
@@ -329,6 +326,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.AllowFiefAndMarriageQuestRewards` (2) | `FiefRewardFacts`, `MarriageRewardFacts` |
 | `ModSettings.AllowOpenRouterProviderFallbacks` (2) | `ProviderPinFailurePolicy.Explain`, `ProviderPinFailurePolicy.RoutingJson` |
 | `ModSettings.AllowOtherModsLlm` (2) | `ExternalLlmRequestFacts`, `ExternalLlmRequestPolicy.Explain` |
+| `ModSettings.DramaturgeMode` (2) | `ChatLogModels`, `ModelModePolicy.DisplayName` |
 | `ModSettings.EnableWarDuty` (2) | `LevyTroopFacts`, `TermsFacts` |
 | `ModSettings.GeneratedDepth` (2) | `GeneratedDepthFacts`, `GeneratedDepthPolicy.ShouldGenerate` |
 | `ModSettings.MarriageRegardThreshold` (2) | `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion` |
@@ -500,12 +498,14 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `CharacterVoiceFacts`: `Hero.Age`, `SocialStationReader.StationOf`
 - `ChaseFacts`: `Army.LeaderParty`, `GetPosition2D.Distance`, `Hero.CurrentSettlement`, `Hero.PartyBelongedTo`, `LeaderParty.SiegeEvent`, `MobileParty.Army`, `MobileParty.AttachedTo`, `MobileParty.BesiegedSettlement`, `MobileParty.GetPosition2D`, `MobileParty.IsCurrentlyAtSea`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`, `MobileParty.Speed`, `Settlement.IsUnderSiege`, `Settlement.SiegeEvent`
 - `ChatClosePlan.For`: `ActiveViewModel.IsExplorationScene`
+- `ChatCompositionModePolicy.IsDramaturge`: `ChatCompositionModeSetting.Choice`
 - `ChatCompositionModePolicy.Parse`: `ChatCompositionModeSetting.Choice`
 - `ChatCopyKeys`: `Input.IsKeyDown`, `Input.IsKeyPressed`, `InputKey.C`, `InputKey.LeftControl`, `InputKey.LeftShift`, `InputKey.RightControl`, `InputKey.RightShift`
 - `ChatEscapeFacts`: `ScreenManager.FocusedLayer`
 - `ChatFocusArbitrationPolicy.Decide`: `ScreenManager.TopScreen`
 - `ChatFocusArbitrationPolicy.ReasonFor`: `ScreenManager.TopScreen`
 - `ChatLogCall`: `Usage.CachedPromptTokens`, `Usage.CompletionTokens`, `Usage.Cost`, `Usage.PromptTokens`
+- `ChatLogModels`: `ModSettings.DramaturgeMode`
 - `ChildrenListText.Part`: `AgeModel.HeroComesOfAge`, `Hero.Age`, `Hero.Father`, `Hero.IsAlive`, `Hero.IsFemale`, `Hero.IsLord`, `Hero.IsPrisoner`, `Hero.Mother`, `Hero.Name`, `Hero.Spouse`
 - `ClaimantBackerFacts`: `Clan.Influence`, `Clan.Kingdom`, `Hero.Clan`, `Hero.GetRelation`, `Hero.IsAlive`, `Hero.IsLord`, `Hero.IsPrisoner`
 - `ClanRegardCandidate`: `Clan.Leader`, `DossierReader.WhyTowardThePlayer`, `FactionManager.IsAtWarAgainstFaction`, `Hero.MapFaction`, `PairBondReader.Points`, `PairRegardReader.Assess`
@@ -888,6 +888,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `MisdeedsPagePolicy.Line`: `HeartPageReader.When`
 - `MisdeedsPagePolicy.Of`: `ModSettings.AdultContentLevel`
 - `MisdeedsPagePolicy.RaidKind`: `Hero.MapFaction`, `IFaction.IsAtWarWith`, `Settlement.MapFaction`, `WarStartDate.ElapsedDaysUntilNow`
+- `ModelModePolicy.DisplayName`: `ModSettings.DramaturgeMode`
 - `MoneyTokenFacts`: `Hero.Gold`
 - `MotherDispositionFacts`: `Hero.GetRelation`, `Hero.GetTraitLevel`
 - `NaturePageFacts`: `Hero.IsFemale`
@@ -904,7 +905,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `OathOfferFacts`: `Clan.Kingdom`, `Clan.Leader`, `Hero.Clan`, `Hero.Gold`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Kingdom.Leader`, `PartyBelongedTo.LeaderHero`
 - `ObserverStakeFacts`: `Hero.Clan`
 - `OfferConfirmationFacts`: `Hero.IsFemale`
-- `OnOffReasoningPolicy.ForModel`: `ModSettings.ActionInterpreterProviderSelection`, `ModSettings.CncProviderSelection`, `ModSettings.CustomReasoningEffort`, `ModSettings.HousekeepingProviderSelection`, `ModSettings.NsfwReasoningEffort`, `ModSettings.ReasoningEffort`, `ModSettings.RoleplayProviderSelection`
+- `OnOffReasoningPolicy.ForModel`: `ModSettings.CustomReasoningEffort`, `ModSettings.NsfwReasoningEffort`, `ModSettings.ReasoningEffort`
 - `OpenRelationshipPolicy.SuppressesJealousy`: `Romantic.IsOpenArrangement`
 - `OtherRealm`: `Kingdom.IsAllyWith`, `Kingdom.IsAtWarWith`
 - `OutlawPolicy.BountyPrice`: `Hero.Clan`, `Hero.IsLord`, `Hero.IsPrisoner`, `Hero.MapFaction`, `Hero.Name`
@@ -1028,7 +1029,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `RealmCounterweightPolicy.Steps`: `Kingdom.CurrentTotalStrength`, `Kingdom.IsAllyWith`, `Kingdom.IsAtWarWith`
 - `RealmFaceFacts`: `StringComparer.OrdinalIgnoreCase`, `Value.Realm`
 - `RealmTidingsRelevancePolicy.TouchesThePlayer`: `GetPosition2D.Distance`, `Hero.Spouse`, `MobileParty.GetPosition2D`, `Settlement.Find`
-- `ReasoningWirePolicy.UsesEffortString`: `ModSettings.ActionInterpreterProviderSelection`, `ModSettings.CncProviderSelection`, `ModSettings.HousekeepingProviderSelection`, `ModSettings.RoleplayProviderSelection`, `Provider.SelectedValue`
+- `ReasoningWirePolicy.UsesEffortString`: `Provider.SelectedValue`
 - `RecentMatterSelector.GossipAlreadyRaisedByAnyone`: `Array.Empty`
 - `RecruitTroopsPolicy.TroopsToAsk`: `MemberRoster.TotalManCount`, `Party.PartySizeLimit`
 - `RegardProposal`: `Clan.IsUnderMercenaryService`, `Clan.Kingdom`, `Hero.Clan`, `Hero.IsFemale`, `Hero.IsPrisoner`, `Hero.Spouse`, `Kingdom.Leader`, `ModSettings.AdultContentLevel`, `ModSettings.RegardDecayDays`, `ModSettings.RelationWarmth`, `PartyBelongedToAsPrisoner.LeaderHero`, `Profile.Romantic`, `Status.IsCuriousOrDeeper`, `Status.IsIntimateOrDeeper`
@@ -1055,7 +1056,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `RiderChaseFacts`: `GetPosition2D.Distance`, `MobileParty.GetPosition2D`, `Target.Distance`
 - `RivalCandidate`: `Clan.Kingdom`, `Hero.Clan`
 - `RoadAudienceFacts`: `Current.CurrentMenuContext`, `Hero.CurrentSettlement`, `Hero.IsPrisoner`, `Hero.OneToOneConversationHero`, `MobileParty.IsCurrentlyAtSea`, `MobileParty.MapEvent`, `MobileParty.SiegeEvent`
-- `RoleSettings`: `ModSettings.ActionInterpreterModel`, `ModSettings.ActionInterpreterProviderSelection`, `ModSettings.CncModel`, `ModSettings.CncProviderSelection`, `ModSettings.HousekeepingProviderSelection`, `ModSettings.NsfwReasoningEffort`, `ModSettings.OpenRouterNsfwProviderPin`, `ModSettings.OpenRouterProviderPin`, `ModSettings.ReasoningEffort`, `ModSettings.RoleplayProviderSelection`, `Provider.SelectedValue`
+- `RoleSettings`: `ModSettings.ActionInterpreterModel`, `ModSettings.CncModel`, `ModSettings.NsfwReasoningEffort`, `ModSettings.OpenRouterNsfwProviderPin`, `ModSettings.OpenRouterProviderPin`, `ModSettings.ReasoningEffort`, `Provider.SelectedValue`
 - `RomanceBondPolicy.Read`: `BirthDay.GetYear`, `Hero.Children`, `Hero.IsFemale`, `Hero.Spouse`
 - `RomanticProfilePolicy.DetermineKinks`: `Hero.GetTraitLevel`, `StringId.GetHashCode`
 - `RomanticProfilePolicy.DetermineOrientation`: `StringId.GetHashCode`

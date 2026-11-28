@@ -98,6 +98,11 @@ namespace CalradiaRemembers.Services
       private ProviderKind _builtNsfwKind;
       private string _builtNsfwModel;
 
+      // The Dramaturge role's own client (28/11/2026), rebuilt like the others when its provider or model changes.
+      private ILlmClient _dramaturgeClient;
+      private ProviderKind _builtDramaturgeKind;
+      private string _builtDramaturgeModel;
+
       /// <summary>
       ///   Test-only override for the player's gender used when building the prompt.
       ///   Set by the cr.crc_scene console command to exercise the female/male captive
@@ -558,6 +563,10 @@ namespace CalradiaRemembers.Services
                selection = ModSettings.HousekeepingProviderSelection;
 
                break;
+            case ServiceRole.Dramaturge:
+               selection = ModSettings.DramaturgeProviderSelection;
+
+               break;
             default:
                selection = ModSettings.RoleplayProviderSelection;
 
@@ -648,6 +657,9 @@ namespace CalradiaRemembers.Services
 
       private static string ResolveProviderPinFor(ServiceRole role)
          => ResolveKindForRole(role) == ProviderKind.OpenRouter
+            // A Dramaturge model of its own may not be served by the provider pinned for the prose model: it then goes
+            // unpinned. Left blank, it IS the prose model and keeps the prose pin.
+            && !(role == ServiceRole.Dramaturge && !string.IsNullOrWhiteSpace(ConfiguredModelFor(ModSettings.DramaturgeModel, ProviderKind.OpenRouter)))
             ? ModelModePolicy.ResolveProviderPin(new ModelModePolicy.RoleSettings {Role = role, Prose = ModSettings.OpenRouterProviderPin, Nsfw = ModSettings.OpenRouterNsfwProviderPin, Interpret = ""})
             : "";
 
@@ -676,6 +688,7 @@ namespace CalradiaRemembers.Services
             case ServiceRole.Nsfw: return s?.CustomEndpointUrlNsfw;
             case ServiceRole.Interpret: return s?.CustomEndpointUrlInterpret;
             case ServiceRole.Housekeeping: return s?.CustomEndpointUrlHousekeeping;
+            case ServiceRole.Dramaturge: return s?.CustomEndpointUrlDramaturge;
             default: return null;
          }
       }
@@ -690,6 +703,7 @@ namespace CalradiaRemembers.Services
             case ServiceRole.Nsfw: return s?.CustomApiKeyNsfw;
             case ServiceRole.Interpret: return s?.CustomApiKeyInterpret;
             case ServiceRole.Housekeeping: return s?.CustomApiKeyHousekeeping;
+            case ServiceRole.Dramaturge: return s?.CustomApiKeyDramaturge;
             default: return null;
          }
       }
@@ -927,6 +941,55 @@ namespace CalradiaRemembers.Services
          }
       }
 
+      /// <summary>
+      ///   The Dramaturge model (28/11/2026): the field as typed, read against its own provider, or the PROSE role's model
+      ///   when blank (not <see cref="ResolveModel" />, which follows the in-chat switch and can be the NSFW model).
+      /// </summary>
+      private static string ResolveDramaturgeModel()
+      {
+         string configured = ConfiguredModelFor(ModSettings.DramaturgeModel, ResolveKindForRole(ServiceRole.Dramaturge));
+
+         return string.IsNullOrWhiteSpace(configured)
+            ? ResolveRoleplayModelForKind(ResolveKindForRole(ServiceRole.Prose))
+            : configured.Trim();
+      }
+
+      /// <summary>
+      ///   The DRAMATURGE role's own client (Gabriel, 28/11/2026: "le mode dramaturge avec DRAMA+PROSE+INTERPRET+NSFW"):
+      ///   its model, provider, key, URL, the prose reasoning effort, and the prose pin only while it runs the prose model.
+      ///   Built lazily and rebuilt when its provider or model changes, falling back to the main client on any fault, like
+      ///   <see cref="HousekeepingClient" />. Stage 6 builds it and calls nothing on it; the group engine (stage 7) does.
+      /// </summary>
+      public ILlmClient DramaturgeClient
+      {
+         get
+         {
+            try
+            {
+               if (_httpClient == null) return LlmClient;
+
+               ProviderKind kind = ResolveKindForRole(ServiceRole.Dramaturge);
+               string model = ResolveDramaturgeModel();
+
+               if (_dramaturgeClient != null && _builtDramaturgeKind == kind && _builtDramaturgeModel == model)
+                  return _dramaturgeClient;
+
+               _dramaturgeClient = BuildRoleClient(ServiceRole.Dramaturge, kind, model);
+               _builtDramaturgeKind = kind;
+               _builtDramaturgeModel = model;
+               ModLog.Info($"[LLM] dramaturge client: provider={kind}, model={(string.IsNullOrWhiteSpace(model) ? "(none)" : model)}, address={BaseUrlFor(ServiceRole.Dramaturge, kind)}");
+
+               return _dramaturgeClient;
+            }
+            catch (Exception ex)
+            {
+               ModLog.Error($"Failed to build the dramaturge client; falling back to the main client: {ex.Message}");
+
+               return LlmClient;
+            }
+         }
+      }
+
       private ILlmClient BuildHousekeepingClient(ProviderKind kind, string model)
       {
          var config = new OpenRouterConfig {
@@ -1027,6 +1090,10 @@ namespace CalradiaRemembers.Services
                break;
             case ServiceRole.Housekeeping:
                model = ResolveHousekeepingModel();
+
+               break;
+            case ServiceRole.Dramaturge:
+               model = ResolveDramaturgeModel();
 
                break;
             case ServiceRole.Nsfw:

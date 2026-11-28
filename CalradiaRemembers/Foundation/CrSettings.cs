@@ -237,6 +237,12 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 4)]
       public string CustomEndpointUrlInterpret { get; set; } = "";
 
+      [SettingPropertyText("{=CR_MCM_CustomEndpointUrlDramaturge}Endpoint URL (Dramaturge)", RequireRestart = false, Order = 3,
+         HintText = "{=CR_MCM_CustomEndpointUrlDramaturge_Hint}Dramaturge mode only. Optional. A separate OpenAI-Compatible server URL for the " +
+                    "Dramaturge role. Blank = use the shared Endpoint URL above. Applies immediately.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 4)]
+      public string CustomEndpointUrlDramaturge { get; set; } = "";
+
       [SettingPropertyDropdown("{=CR_MCM_CustomParameterCompatibility}Parameter Compatibility", RequireRestart = false, Order = 4,
          HintText = "{=CR_MCM_CustomParameterCompatibility_Hint}Which sampling parameters to send. Auto detects OpenAI reasoning models (gpt-5, o1/o3/o4), which " +
                     "reject the classic max_tokens. Leave on Auto unless your endpoint rejects a field.")]
@@ -269,6 +275,12 @@ namespace CalradiaRemembers.Foundation
                     "against its own OpenAI-Compatible server. Blank = use the API Key above. Applies immediately.")]
       [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 4)]
       public string CustomApiKeyInterpret { get; set; } = "";
+
+      [SettingPropertyText("{=CR_MCM_CustomApiKeyDramaturge}API Key (Dramaturge)", RequireRestart = false, Order = 6,
+         HintText = "{=CR_MCM_CustomApiKeyDramaturge_Hint}Dramaturge mode only. Optional. A separate API key for the Dramaturge role. Blank = " +
+                    "use the API Key above. Applies immediately.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_OpenAICompatible}OpenAI-Compatible", GroupOrder = 4)]
+      public string CustomApiKeyDramaturge { get; set; } = "";
 
       public override string DisplayName => "Calradia Remembers";
 
@@ -518,12 +530,12 @@ namespace CalradiaRemembers.Foundation
       public string NanoGptApiKey { get; set; } = "";
 
       [SettingPropertyDropdown("{=CR_MCM_ChatCompositionModeSetting}Chat Composition", RequireRestart = false, Order = 0,
-         HintText = "{=CR_MCM_ChatCompositionModeSetting_Hint}Where a fresh session's in-chat Enhanced/Roleplay switch starts. Enhanced (default): the prose model " +
-                    "writes and the interpret model tags, richest but slower. Standard: one call, cheapest and fastest. The " +
-                    "in-chat switch overrides it for the session.")]
+         HintText = "{=CR_MCM_ChatCompositionModeSetting_Hint}Standard: one call, cheapest. Enhanced (default): the prose model writes, the " +
+                    "interpret model tags. Dramaturge: Enhanced plus an inner life and a keeper each turn (experimental, " +
+                    "2-3 cheap calls more). The in-chat switch overrides it.")]
       [SettingPropertyGroup("{=CR_MCM_Group_ModeModels}Mode & Models", GroupOrder = 0)]
       public Dropdown<McmChoice> ChatCompositionModeSetting { get; set; } =
-         McmChoice.List(1, "{=CR_MCM_ChatCompositionModeSetting_Standard}Standard", "{=CR_MCM_ChatCompositionModeSetting_Enhanced}Enhanced"); // default: Enhanced
+         McmChoice.List(1, "{=CR_MCM_ChatCompositionModeSetting_Standard}Standard", "{=CR_MCM_ChatCompositionModeSetting_Enhanced}Enhanced", "{=CR_MCM_ChatCompositionModeSetting_Dramaturge}Dramaturge"); // default: Enhanced; Dramaturge appended (28/11/2026) so 0 and 1 keep their meaning
 
       // Phase 2: consensual scenes are now "chat" (the PROSE model), so this separate consensual model and its
       // provider are no longer shown in MCM or read anywhere. Kept as plain (un-attributed) properties, still named
@@ -533,14 +545,14 @@ namespace CalradiaRemembers.Foundation
       public Dropdown<string> ConsensualProvider { get; set; } =
          new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
 
-      [SettingPropertyText("{=CR_MCM_CncModel}NSFW model", RequireRestart = false, Order = 5,
+      [SettingPropertyText("{=CR_MCM_CncModel}NSFW model", RequireRestart = false, Order = 7,
          HintText = "{=CR_MCM_CncModel_Hint}Model id for explicit content: captivity in Standard mode, the fallback in Enhanced. Blank " +
                     "uses the PROSE model - and so does the shipped OpenRouter id if you point this role at your " +
                     "own server without naming ITS model.")]
       [SettingPropertyGroup("{=CR_MCM_Group_ModeModels}Mode & Models", GroupOrder = 0)]
       public string CncModel { get; set; } = "x-ai/grok-4.20";
 
-      [SettingPropertyDropdown("{=CR_MCM_CncProvider}NSFW provider", RequireRestart = false, Order = 6,
+      [SettingPropertyDropdown("{=CR_MCM_CncProvider}NSFW provider", RequireRestart = false, Order = 8,
          HintText = "{=CR_MCM_CncProvider_Hint}Which provider the NSFW model above is sent to. (default) uses the PROSE provider. Applies immediately.")]
       [SettingPropertyGroup("{=CR_MCM_Group_ModeModels}Mode & Models", GroupOrder = 0)]
       public Dropdown<string> CncProvider { get; set; } =
@@ -553,14 +565,14 @@ namespace CalradiaRemembers.Foundation
       //
       // Blank means what it has always meant: the same model as the prose reply, so nobody who does not go
       // looking for this is affected by it.
-      [SettingPropertyText("{=CR_MCM_HousekeepingModel}Background model", RequireRestart = false, Order = 7,
+      [SettingPropertyText("{=CR_MCM_HousekeepingModel}Background model", RequireRestart = false, Order = 9,
          HintText = "{=CR_MCM_HousekeepingModel_Hint}Optional. A cheaper or smaller chat model (not an embedding model) for the mod's background " +
                     "work: summaries, memory compression, claim extraction. Blank uses the roleplay model. Useful " +
                     "on a local server, where two prompts share one cache.")]
       [SettingPropertyGroup("{=CR_MCM_Group_ModeModels}Mode & Models", GroupOrder = 0)]
       public string HousekeepingModel { get; set; } = "";
 
-      [SettingPropertyDropdown("{=CR_MCM_HousekeepingProvider}Background provider", RequireRestart = false, Order = 8,
+      [SettingPropertyDropdown("{=CR_MCM_HousekeepingProvider}Background provider", RequireRestart = false, Order = 10,
          HintText = "{=CR_MCM_HousekeepingProvider_Hint}Which provider the Background model above is sent to. (default) uses the PROSE provider.")]
       [SettingPropertyGroup("{=CR_MCM_Group_ModeModels}Mode & Models", GroupOrder = 0)]
       public Dropdown<string> HousekeepingProvider { get; set; } =
@@ -578,6 +590,23 @@ namespace CalradiaRemembers.Foundation
                     "to a local OpenAI-Compatible endpoint to run the interpreter locally). Applies immediately.")]
       [SettingPropertyGroup("{=CR_MCM_Group_ModeModels}Mode & Models", GroupOrder = 0)]
       public Dropdown<string> ActionInterpreterProvider { get; set; } =
+         new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
+
+      // Gabriel (28/11/2026): "le mode dramaturge avec DRAMA+PROSE+INTERPRET+NSFW", and the two chosen apart: "pour le
+      // dramaturge, je pourrais vouloir DeepSeek, et Mimo en PROSE". The cheap dramaturge failed measurably in the simulator
+      // (5.40 against 6.61), so blank means the PROSE model. Ordered after Interpret (the NSFW and Background rows moved down
+      // two places; a setting is found by its property name, so nothing stored moves).
+      [SettingPropertyText("{=CR_MCM_DramaturgeModel}Dramaturge model", RequireRestart = false, Order = 5,
+         HintText = "{=CR_MCM_DramaturgeModel_Hint}Dramaturge mode only: the model that will direct group scenes. Blank uses the PROSE model, " +
+                    "which the tests favour. Can differ from the prose model.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_ModeModels}Mode & Models", GroupOrder = 0)]
+      public string DramaturgeModel { get; set; } = "";
+
+      [SettingPropertyDropdown("{=CR_MCM_DramaturgeProvider}Dramaturge provider", RequireRestart = false, Order = 6,
+         HintText = "{=CR_MCM_DramaturgeProvider_Hint}Dramaturge mode only: which provider the Dramaturge model above is sent to. (default) uses " +
+                    "the PROSE provider. Applies immediately.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_ModeModels}Mode & Models", GroupOrder = 0)]
+      public Dropdown<string> DramaturgeProvider { get; set; } =
          new(new[] {ProviderRolePolicy.DefaultSelection, ProviderRolePolicy.OpenRouterValue, ProviderRolePolicy.NanoGptValue, ProviderRolePolicy.OpenAiCompatibleValue}, 0);
 
       [SettingPropertyDropdown("{=CR_MCM_NsfwReasoningEffort}Reasoning Effort (NSFW)", RequireRestart = false, Order = 2,

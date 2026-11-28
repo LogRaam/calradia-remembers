@@ -24,6 +24,20 @@ namespace CalradiaRemembers.Logic.Chat
         public const string EnhancedLabel = "Enhanced";
 
         /// <summary>
+        ///   The dropdown label for the Dramaturge mode (Gabriel, 28/11/2026: "le mode dramaturge avec
+        ///   DRAMA+PROSE+INTERPRET+NSFW"). It composes as Enhanced, plus the per-turn machinery only it runs.
+        /// </summary>
+        public const string DramaturgeLabel = "Dramaturge";
+
+        /// <summary>
+        ///   Whether a dropdown value is the Dramaturge mode. The one reader of the third mode: the composition stays
+        ///   Enhanced (<see cref="Parse" />), so every test of Enhanced already holds for it, and only the machinery that
+        ///   belongs to Dramaturge asks this. Blank, legacy or unknown values are not Dramaturge.
+        /// </summary>
+        public static bool IsDramaturge(string dropdownValue)
+            => !string.IsNullOrWhiteSpace(dropdownValue) && string.Equals(dropdownValue.Trim(), DramaturgeLabel, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
         ///   The composition mode a dropdown value resolves to. ENHANCED is the default, so anything blank or
         ///   unrecognised degrades to it. The legacy labels "Integrated" -> Standard and "Prose + Interpreter" ->
         ///   Enhanced keep an upgraded config's original intent.
@@ -36,6 +50,8 @@ namespace CalradiaRemembers.Logic.Chat
 
             if (string.Equals(v, StandardLabel, StringComparison.OrdinalIgnoreCase)) return ChatCompositionMode.Standard;
             if (string.Equals(v, EnhancedLabel, StringComparison.OrdinalIgnoreCase)) return ChatCompositionMode.Enhanced;
+            // Dramaturge composes as Enhanced (PROSE + INTERPRET + NSFW); its own machinery asks IsDramaturge.
+            if (string.Equals(v, DramaturgeLabel, StringComparison.OrdinalIgnoreCase)) return ChatCompositionMode.Enhanced;
 
             // Legacy migration from the old two-mode dropdown.
             if (string.Equals(v, "Integrated", StringComparison.OrdinalIgnoreCase)) return ChatCompositionMode.Standard;

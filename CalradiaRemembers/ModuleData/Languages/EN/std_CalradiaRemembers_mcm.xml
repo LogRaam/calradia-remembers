@@ -85,6 +85,8 @@
     <string id="CR_MCM_CustomEndpointUrlHousekeeping_Hint" text="Optional. A separate OpenAI-Compatible server URL for the mod's background work only (summaries, memory compression). Leave blank to use the same server as everything else." />
     <string id="CR_MCM_CustomEndpointUrlInterpret" text="Endpoint URL (Interpret)" />
     <string id="CR_MCM_CustomEndpointUrlInterpret_Hint" text="Optional. A separate OpenAI-Compatible server URL for the Interpret role only, so the interpreter can run on its own local machine. Blank = use the shared Endpoint URL above. Applies immediately." />
+    <string id="CR_MCM_CustomEndpointUrlDramaturge" text="Endpoint URL (Dramaturge)" />
+    <string id="CR_MCM_CustomEndpointUrlDramaturge_Hint" text="Dramaturge mode only. Optional. A separate OpenAI-Compatible server URL for the Dramaturge role. Blank = use the shared Endpoint URL above. Applies immediately." />
     <string id="CR_MCM_CustomParameterCompatibility" text="Parameter Compatibility" />
     <string id="CR_MCM_CustomParameterCompatibility_Hint" text="Which sampling parameters to send. Auto detects OpenAI reasoning models (gpt-5, o1/o3/o4), which reject the classic max_tokens. Leave on Auto unless your endpoint rejects a field." />
     <string id="CR_MCM_CustomParameterCompatibility_Auto" text="Auto" />
@@ -104,6 +106,8 @@
     <string id="CR_MCM_CustomApiKeyHousekeeping_Hint" text="Optional. A separate API key for the mod's background work only. Leave blank to use the same key as everything else." />
     <string id="CR_MCM_CustomApiKeyInterpret" text="API Key (Interpret)" />
     <string id="CR_MCM_CustomApiKeyInterpret_Hint" text="Optional. A separate API key for the Interpret role only, so the interpreter can authenticate against its own OpenAI-Compatible server. Blank = use the API Key above. Applies immediately." />
+    <string id="CR_MCM_CustomApiKeyDramaturge" text="API Key (Dramaturge)" />
+    <string id="CR_MCM_CustomApiKeyDramaturge_Hint" text="Dramaturge mode only. Optional. A separate API key for the Dramaturge role. Blank = use the API Key above. Applies immediately." />
     <string id="CR_MCM_EnableLogging" text="Enable File Logging" />
     <string id="CR_MCM_EnableLogging_Hint" text="Writes the mod's diagnostics to CalradiaRemembers.log (only the last two sessions are kept, so the file never grows without bound). Off by default; turn on to capture a bug report." />
     <string id="CR_MCM_Group_Diagnostics" text="Diagnostics" />
@@ -175,9 +179,10 @@
     <string id="CR_MCM_NanoGptApiKey_Hint" text="Paste your key from nano-gpt.com. Stored locally on this machine only. NEVER share your config file or a screenshot of this field." />
     <string id="CR_MCM_Group_NanoGPT" text="NanoGPT" />
     <string id="CR_MCM_ChatCompositionModeSetting" text="Chat Composition" />
-    <string id="CR_MCM_ChatCompositionModeSetting_Hint" text="Where a fresh session's in-chat Enhanced/Roleplay switch starts. Enhanced (default): the prose model writes and the interpret model tags, richest but slower. Standard: one call, cheapest and fastest. The in-chat switch overrides it for the session." />
+    <string id="CR_MCM_ChatCompositionModeSetting_Hint" text="Standard: one call, cheapest. Enhanced (default): the prose model writes, the interpret model tags. Dramaturge: Enhanced plus an inner life and a keeper each turn (experimental, 2-3 cheap calls more). The in-chat switch overrides it." />
     <string id="CR_MCM_ChatCompositionModeSetting_Standard" text="Standard" />
     <string id="CR_MCM_ChatCompositionModeSetting_Enhanced" text="Enhanced" />
+    <string id="CR_MCM_ChatCompositionModeSetting_Dramaturge" text="Dramaturge" />
     <string id="CR_MCM_CncModel" text="NSFW model" />
     <string id="CR_MCM_CncModel_Hint" text="Model id for explicit content: captivity in Standard mode, the fallback in Enhanced. Blank uses the PROSE model - and so does the shipped OpenRouter id if you point this role at your own server without naming ITS model." />
     <string id="CR_MCM_CncProvider" text="NSFW provider" />
@@ -190,6 +195,10 @@
     <string id="CR_MCM_ActionInterpreterModel_Hint" text="Enhanced mode only: the model that reads the structured actions out of the prose. Blank uses the PROSE model - and so does the shipped OpenRouter id if you point this role at your own server without naming ITS model." />
     <string id="CR_MCM_ActionInterpreterProvider" text="Interpret provider" />
     <string id="CR_MCM_ActionInterpreterProvider_Hint" text="Which provider the Interpret model above is sent to. (default) uses the PROSE provider (set it to a local OpenAI-Compatible endpoint to run the interpreter locally). Applies immediately." />
+    <string id="CR_MCM_DramaturgeModel" text="Dramaturge model" />
+    <string id="CR_MCM_DramaturgeModel_Hint" text="Dramaturge mode only: the model that will direct group scenes. Blank uses the PROSE model, which the tests favour. Can differ from the prose model." />
+    <string id="CR_MCM_DramaturgeProvider" text="Dramaturge provider" />
+    <string id="CR_MCM_DramaturgeProvider_Hint" text="Dramaturge mode only: which provider the Dramaturge model above is sent to. (default) uses the PROSE provider. Applies immediately." />
     <string id="CR_MCM_NsfwReasoningEffort" text="Reasoning Effort (NSFW)" />
     <string id="CR_MCM_NsfwReasoningEffort_Hint" text="Reasoning effort while the chat is in NSFW mode. Lower or Off makes a reasoning model far less prone to moralizing refusals, and speeds up scenes. OpenRouter and NanoGPT." />
     <string id="CR_MCM_NsfwReasoningEffort_SameAsProse" text="Same as prose" />
