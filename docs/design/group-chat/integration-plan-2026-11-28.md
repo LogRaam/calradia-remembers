@@ -183,7 +183,7 @@ What was measured in the simulator:
 
 | Stage | State | Commit | Notes |
 |---|---|---|---|
-| 0 MCM regroup | to do | | |
+| 0 MCM regroup | done | fdf427f | Mode & Models (GroupOrder 0) + Prompt & Memory (1); other groups +1; properties and defaults unchanged; not play-verified |
 | 1 Conversation log | to do | | |
 | 2 What a meeting leaves | to do | | |
 | 3 Composed intro | to do | | |
