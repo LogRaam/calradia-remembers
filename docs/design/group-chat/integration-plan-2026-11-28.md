@@ -140,7 +140,8 @@ What was measured in the simulator:
 ## The models in the MCM (Gabriel: "on va aussi ajouter un modèle dramaturge j'imagine?")
 
 - **No new setting before stage 7:** nothing needs a dramaturge until the group engine.
-- **When it comes:** "Dramaturge model", blank = the PROSE model. The cheap dramaturge failed measurably (5.40 against
+- **When it comes:** "Dramaturge model", its own field, blank = the PROSE model. Gabriel (28/11/2026): "je pourrais vouloir
+  DeepSeek, et Mimo en PROSE", so the two must be chosen independently. The cheap dramaturge failed measurably (5.40 against
   6.61, no event in five runs), so its default must be the prose model. It would ride the prose connection with a model
   override per request (`CrLlmRequest.Model` already exists), not a new provider, key and URL.
 - **The cheap readers ride existing clients:**
