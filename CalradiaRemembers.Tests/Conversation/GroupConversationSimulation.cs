@@ -58,6 +58,11 @@ namespace CalradiaRemembers.Tests.Conversation
          public string Name = "";
          public string Persona = "";
          public string Secret = "";
+         // The canonical state (Gabriel, 27/11/2026, "le point 2 me semble le plus fort"): a secret told is a fact about the secret, and
+         // what a character alone has read is kept apart from the sheet's own words; every reader goes through Hidden().
+         public bool SecretTold;
+         public List<string> Knows = new();
+         public string StartBond = "";
          public string Objective = "";
          public string Tactic = "";
          // From the review of 27/11/2026 ("the model respects his desire, not his strategy"; "the voices are too similar"): how
@@ -104,6 +109,11 @@ namespace CalradiaRemembers.Tests.Conversation
          public List<string> SharedRecently = new();
          // What the scene has made true for everyone present, kept by the scene keeper (a run builds its scenario fresh).
          public List<string> Record = new();
+         // Where each thing is and how it stands now, one line a thing, replaced when it changes (the letter the prose kept "unopened"
+         // after the narration broke its seal: a list of facts held both lines, a state holds one).
+         public Dictionary<string, string> Objects = new(StringComparer.OrdinalIgnoreCase);
+         // What the game holds as true: the talk of the realm, memories, what was just lived. Never contradicted, never added to.
+         public List<string> GameFacts = new();
          // The events the world brought, and how many the inner lives have been told of. Only these are news: the record grows with
          // every line, and feeding all of it as news made a leak of nearly every line (graded 4.5 against 6.1, repetition 2.2).
          public List<string> Events = new();
@@ -156,6 +166,21 @@ namespace CalradiaRemembers.Tests.Conversation
          public string PrivateNews = "";
       }
 
+      // What one character carries away from a scene (Gabriel, 27/11/2026, "le point 3 est intéressant": the story lives between the
+      // scenes). Events in the mod's own form (first person, past tense), the lasting change consolidated into one, the bond, what
+      // is left unsettled, and what is still kept from the other.
+      private sealed class Memory
+      {
+         public List<string> Events = new();
+         public string Changed = "", Bond = "", Open = "", Hidden = "";
+      }
+
+      private sealed class Outcome
+      {
+         public Dictionary<string, Memory> Memories = new();
+         public string Path = "";
+      }
+
       private sealed class Models
       {
          public OpenRouterClient Judge, Prose, Nsfw, Interpreter, Dramaturge;
@@ -175,6 +200,8 @@ namespace CalradiaRemembers.Tests.Conversation
       private static bool HonestyOn => Environment.GetEnvironmentVariable("CR_SIM_HONESTY") != "off";
       // CR_SIM_BOND=off drops the four-part bond (understands, forgives, loves, trusts) from the inner lives, for comparison.
       private static bool BondOn => Environment.GetEnvironmentVariable("CR_SIM_BOND") != "off";
+      // CR_SIM_REACTIONS=off narrates no reaction at all (Gabriel, 27/11/2026, wondered what cutting them would do: measured, not assumed).
+      private static bool ReactionsOn => Environment.GetEnvironmentVariable("CR_SIM_REACTIONS") != "off";
 
       // ── the scenarios ──
 
@@ -206,6 +233,18 @@ namespace CalradiaRemembers.Tests.Conversation
       // player, no letter, no prepared secret, no event. Does a story come out of it? (Gabriel: "oui, lance".)
       [Test]
       public Task GIVEN_an_ordinary_visit_from_game_data_WHEN_two_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(OrdinaryVisit());
+
+      // Two scenes in a row: "The east window", then the same two people three days later with only what the first left them.
+      [Test]
+      public async Task GIVEN_a_second_meeting_three_days_later_WHEN_two_people_talk_THEN_the_transcript_is_written_to_read()
+      {
+         Scenario first = Intimate();
+         first.EndFrom = 3;
+         first.Beats = 10;
+         Outcome night = await RunAsync(first);
+
+         await RunAsync(SecondMeeting(night));
+      }
 
       // The same visit with the scene composer: world events, the NPC's memories and the encounter as it stands (Gabriel, 27/11/2026).
       [Test]
@@ -532,6 +571,53 @@ namespace CalradiaRemembers.Tests.Conversation
          return sc;
       }
 
+      // The second meeting, three days later: the same two people, carrying only what the first scene left them (events, the lasting
+      // change, the bond, what is unsettled, what is still hidden). Nothing is set for either; the world has moved: the truce is over
+      // and Lord Ferran has come. Does the psychology hold from one scene to the next?
+      private static Scenario SecondMeeting(Outcome first)
+      {
+         Scenario old = Intimate();
+         Character corvan = Who("Corvan", PlayerStanding, "a knight of Vlandia, here as the marshal's herald", "his own lance and a herald's white flag", false,
+            "Sir Corvan, thirty-six, a Vlandian knight. Seven years ago he and Rhian were lovers, the summer he was a hostage at her father's fort; he was"
+            + " exchanged in the autumn. Three nights ago, during the truce, he came to her chamber.",
+            "You asked to be the one who carries the marshal's terms, to see her once more. What you want of it is yours to find.", "",
+            new[] {"Corvan", "Sir"});
+         Character rhian = Who("Rhian", 3, "the lady of Dun Ceana, a Battanian hill fort", "the fort and its eighty spears", true,
+            "Lady Rhian, thirty-four, holds her dead father's fort. Proud, quick, warm with the few she trusts. Seven years ago she and Corvan were lovers."
+            + " Lord Ferran of Seonon arrived this morning; the marriage contract between them is to be signed tomorrow at noon, for the alliance her fort needs.",
+            "Nothing is set for this scene; respond as who you are.", "",
+            new[] {"Rhian", "my lady", "lady"});
+         Inner(corvan, old.Player.Voice, old.Player.Mask, old.Player.Fear, old.Player.Limit);
+         Inner(rhian, old.Cast[0].Voice, old.Cast[0].Mask, old.Cast[0].Fear, old.Cast[0].Limit);
+         foreach ((Character c, Character other) in new[] {(corvan, rhian), (rhian, corvan)})
+         {
+            if (!first.Memories.TryGetValue(c.Name, out Memory mem)) continue;
+            c.Persona += $"\nYOUR HISTORY WITH {other.Name.ToUpperInvariant()}:\n" + string.Join("\n", mem.Events.Select(e => "- 3 days ago: " + e))
+                         + (mem.Changed.Length == 0 ? "" : $"\nWhat that night changed in you: {mem.Changed}")
+                         + (mem.Open.Length == 0 ? "" : $"\nLeft unsettled between you: {mem.Open}");
+            c.Secret = mem.Hidden;
+            c.StartBond = mem.Bond;
+            if (mem.Bond.Length > 0) c.Ties.Add($"Where you stand with {other.Name}: {mem.Bond}");
+         }
+
+         return new Scenario {
+            Id = "second", Title = "The herald's hour (three days after the east window)", Adult = true, Tone = "intimate, restrained, with danger close",
+            Setting = "Rhian's chamber in the tower of Dun Ceana, at dusk, three days after the truce. No candle stands in the east window. Lord Ferran's banners"
+                      + " hang in the yard below. Corvan has come up under a herald's white flag, and Rhian receives him alone.",
+            GameFacts = new List<string> {
+               "The truce ended two days ago; the Vlandian camp still sits below the hill.",
+               "Lord Ferran of Seonon rode into Dun Ceana this morning with forty riders.",
+               "Corvan carries the marshal's terms for the fort: open the gates within two days and keep your lands under Vlandia, or be besieged."
+            },
+            Player = corvan, FirstLine = "Rhian|I carry the marshal's terms. I asked to be the one who brought them.",
+            Cast = new List<Character> {rhian}, Beats = 8,
+            Complications = new List<string> {
+               "*Lord Ferran's voice carries up the stair: he asks the guard whether the lady is still closeted with the Vlandian herald.*",
+               "*A horn sounds from the Vlandian camp: the herald's hour is nearly spent.*"
+            }
+         };
+      }
+
       private static Scenario Theft()
       {
          Character arwa = Who("Arwa", PlayerStanding, "a commander of the realm", "a rising house, 120 men", true,
@@ -568,7 +654,7 @@ namespace CalradiaRemembers.Tests.Conversation
 
       // ── the run ──
 
-      private async Task RunAsync(Scenario sc)
+      private async Task<Outcome> RunAsync(Scenario sc)
       {
          JsonElement settings = LoadSettingsOrIgnore(out string key);
          using var http = new HttpClient {Timeout = TimeSpan.FromSeconds(120)};
@@ -605,8 +691,9 @@ namespace CalradiaRemembers.Tests.Conversation
          if (sc.GenerateDepth) await Task.WhenAll(sc.Cast.Select(c => GenerateDepth(m, c, cost, calls, debug)));
          if (sc.Compose) await ComposeScene(m, sc, cost, calls, debug);
          var states = sc.Cast.ToDictionary(c => c.Name, c => new InnerState {
-            Feeling = "as the scene opens", Aim = c.Objective, FirstAim = c.Objective, Tactic = c.Tactic, Showing = c.Mask, Hiding = c.Secret
+            Feeling = "as the scene opens", Aim = c.Objective, FirstAim = c.Objective, Tactic = c.Tactic, Showing = c.Mask, Hiding = c.Secret, Bond = c.StartBond
          });
+         sc.GameFacts = sc.GameFacts.Concat(sc.WorldEvents).Concat(sc.NpcMemories).Concat(sc.SharedRecently).Distinct().ToList();
          string cutOff = null;
          var clock = System.Diagnostics.Stopwatch.StartNew();
          var waits = new List<double>();
@@ -639,13 +726,14 @@ namespace CalradiaRemembers.Tests.Conversation
                      sc.Record.Add(parts[0].Trim('*', ' '));
                      sc.Events.Add(parts[0].Trim('*', ' '));
                   }
+                  if (HonestyOn) await Absorb(m, sc, parts[0], cost, calls);
                   if (parts.Length == 3)
                   {
                      Character reader = sc.Cast.FirstOrDefault(c => c.Name == parts[1]);
                      scene.Add(new SceneLine {Text = $"*(Only {parts[1]} sees: {parts[2]})*", IsNarration = true, Only = parts[1]});
                      if (reader != null)
                      {
-                        reader.Secret = (reader.Secret + $" You alone have read: {parts[2]}").Trim();
+                        reader.Knows.Add(parts[2]);
                         states[reader.Name].PrivateNews = parts[2];
                      }
                   }
@@ -703,7 +791,7 @@ namespace CalradiaRemembers.Tests.Conversation
                Task<FloorJudgeVerdict[]> judging = Task.WhenAll(listeners.Select(async c =>
                {
                   LlmResponse r = await m.Judge.CompleteAsync(new LlmRequest {
-                     SystemPrompt = FloorJudge.StablePrompt(new FloorJudgeListener {Name = c.Name, Persona = (c.Persona + " " + c.Secret
+                     SystemPrompt = FloorJudge.StablePrompt(new FloorJudgeListener {Name = c.Name, Persona = (c.Persona + " " + Hidden(c)
                         + (InnerOn ? $" Right now {c.Name} feels {states[c.Name].Feeling} and wants: {states[c.Name].Aim}." : "")
                         + (InnerOn && !states[c.Name].Urge.StartsWith("none") ? $" {c.Name} feels a pull to speak: {states[c.Name].Urge}." : "")).Trim(), Ties = c.Ties, Room = room}),
                      Messages = new[] {new LlmMessage(MessageRole.User, FloorJudge.TurnPrompt(c.Name, JudgeScene(scene)))},
@@ -763,7 +851,7 @@ namespace CalradiaRemembers.Tests.Conversation
                List<string> leaks = !InnerOn ? new List<string>() : sc.Cast.Where(c => states[c.Name].Leak && c.Name != d.SpeakerId && !away.Contains(c.Name)).Select(c => c.Name).ToList();
                List<string> shown = d.ReactorIds.Where(id => id != d.SpeakerId)
                   .Where(id => !InnerOn || (!states[id].Visible.StartsWith("nothing") && (!shownThisBeat.ContainsKey(id) || states[id].Shift != "none")))
-                  .Concat(leaks).Distinct().Take(2).ToList();
+                  .Concat(leaks).Distinct().Take(ReactionsOn ? 2 : 0).ToList();
                foreach (string id in leaks) states[id].Leak = false;
                Task<(string Text, string Model)> narrating = null;
                if (shown.Count > 0)
@@ -816,6 +904,21 @@ namespace CalradiaRemembers.Tests.Conversation
             foreach (string lasting in s.Lasting) debug.AppendLine($"  - FOR MEMORY (lasting): {lasting}");
          }
 
+         var outcome = new Outcome();
+         if (InnerOn)
+         {
+            List<Character> everyone = sc.Cast.Append(sc.Player).ToList();
+            Memory[] memories = await Task.WhenAll(everyone.Select(c => Remember(m, sc, c, states.TryGetValue(c.Name, out InnerState st) ? st : null, scene, cost, calls)));
+            debug.AppendLine("\n**What each would remember (for the next meeting)**");
+            for (var i = 0; i < everyone.Count; i++)
+            {
+               outcome.Memories[everyone[i].Name] = memories[i];
+               debug.AppendLine($"- {everyone[i].Name}:");
+               foreach (string e in memories[i].Events) debug.AppendLine($"  - event: {e}");
+               debug.AppendLine($"  - changed: {memories[i].Changed}\n  - bond: {memories[i].Bond}\n  - left unsettled: {memories[i].Open}\n  - still hidden: {memories[i].Hidden}");
+            }
+         }
+
          if (Fallbacks.Count > 0) debug.AppendLine("\n**Why lines went to the NSFW model**\n" + string.Join("\n", Fallbacks.Select(f => "- " + f)));
          Fallbacks.Clear();
          string timing = waits.Count == 0 ? "" : $" Wait before each NPC line: mean {waits.Average():0.0} s, longest {waits.Max():0.0} s.";
@@ -824,6 +927,42 @@ namespace CalradiaRemembers.Tests.Conversation
          File.WriteAllText(path, transcript);
          TestContext.Out.WriteLine($"[GROUP SIM] written to {path}");
          TestContext.Out.WriteLine(transcript);
+         outcome.Path = path;
+
+         return outcome;
+      }
+
+      private static async Task<Memory> Remember(Models m, Scenario sc, Character c, InnerState s, List<SceneLine> scene, double[] cost, Dictionary<string, int> calls)
+      {
+         string others = string.Join(", ", sc.Cast.Append(sc.Player).Where(o => o != c).Select(o => o.Name));
+         string system = $"You write what {c.Name} carries away from a scene, as {c.Name}'s own memory, for the next time these people meet. Use only what"
+                       + " happened in the scene and what is given; invent nothing. Answer exactly these lines:"
+                       + "\nevent: <one sentence, first person, past tense: what happened, as I would recount it> (one to three such lines, the ones that matter)"
+                       + "\nchanged: <what this meeting changed in me that will last, consolidated into one or two sentences; or nothing>"
+                       + $"\nbond: <toward {others}: understands yes/partly/no, forgives yes/partly/no, loves yes/partly/no, trusts yes/partly/no>"
+                       + "\nopen: <what is left unsettled between us: a promise made, a question not answered, a thing asked and not given; separated by ' | '; or nothing>"
+                       + "\nhidden: <what I still keep from them after this scene, exactly as it now stands; or nothing>";
+         string mine = string.Join("\n", scene.Where(l => l.Only == null || l.Only == c.Name).Select(l => l.IsNarration ? l.Text : $"{l.Speaker}: {l.Text}"));
+         string user = $"{c.Name.ToUpperInvariant()}: {c.Persona}" + (Hidden(c).Length == 0 ? "" : $"\nHeld back as the scene ends: {Hidden(c)}")
+                     + (s == null ? "" : $"\nAs the scene ends: feels {s.Feeling}; wants {s.Aim}; hides {s.Hiding}; bond: {s.Bond}"
+                                         + (s.Shifts.Count == 0 ? "" : "\nWhat changed in them during the scene:\n" + string.Join("\n", s.Shifts.Select(x => "- " + x))))
+                     + $"\n\nWHAT WAS ESTABLISHED:\n{RecordText(sc)}\n\nTHE SCENE:\n{mine}";
+         LlmResponse r = await m.Prose.CompleteAsync(new LlmRequest {
+            SystemPrompt = system, Messages = new[] {new LlmMessage(MessageRole.User, user)},
+            Parameters = new LlmParameters {MaxTokens = 600, Creativity = 0.3f, AllowTruncationRetry = false}
+         });
+         lock (cost) { cost[1] += r.Usage?.Cost ?? 0; calls["prose"]++; }
+         string content = r.Content ?? "";
+         string Field(string name)
+         {
+            string v = Clean(Regex.Match(content, $@"(?im)^\s*{name}\s*:\s*(.+)$").Groups[1].Value);
+            return v.StartsWith("nothing", StringComparison.OrdinalIgnoreCase) || v.StartsWith("none", StringComparison.OrdinalIgnoreCase) ? "" : v;
+         }
+
+         return new Memory {
+            Events = Regex.Matches(content, @"(?im)^\s*event\s*:\s*(.+)$").Select(x => Clean(x.Groups[1].Value)).Where(e => e.Length > 0).Take(3).ToList(),
+            Changed = Field("changed"), Bond = Field("bond"), Open = Field("open"), Hidden = Field("hidden")
+         };
       }
 
       // The prose model first; the NSFW model only when it refuses, by the chat's own Enhanced rule.
@@ -878,38 +1017,76 @@ namespace CalradiaRemembers.Tests.Conversation
       private static async Task<(string Text, string Model)> Keep(Models m, Scenario sc, Character c, InnerState s, List<FloorJudgePresence> room, List<SceneLine> scene,
                                                                   string cutOff, string reply, string model, double[] cost, Dictionary<string, int> calls, StringBuilder debug)
       {
-         (string problem, string detail, List<string> facts) = await Inspect(m, sc, c, s, scene, reply, cost, calls);
+         (string problem, string detail, List<string> facts, string objects) = await Inspect(m, sc, c, s, scene, reply, cost, calls);
          // The protagonist is checked too: in the game a person writes those lines, and in the protocol of 27/11/2026 most of the
          // worst flaws the blind grader named were the model-played commander's (a lie to the boy, a sword drawn that Ilsa held).
          if (problem == "none")
          {
-            lock (sc.Record) sc.Record.AddRange(facts);
+            Establish(sc, facts, objects);
             return (reply, model);
          }
 
          debug.AppendLine($"  - keeper: {c.Name}'s line, {problem}: {detail}; written again");
          string why = problem == "lie" ? $"said something you know is false: \"{detail}\". Do not say it: evade, deflect, go silent, or tell the truth."
                     : problem == "repeat" ? $"repeated a gesture, an image or a demand already made in this scene ({detail}). Do something different."
+                    : problem == "invention" ? $"stated as fact something the world does not hold ({detail}). Never invent a marriage, a kinship, a death, a battle, a"
+                                               + " plan of war, a sum or a count: keep to what is known, or keep your inventions to private life."
                     : $"contradicted what is established ({detail}). Keep to what is established.";
          (string System, string User) prompt = LinePrompt(sc, c, room, scene, cutOff, s);
          (string text2, string model2) = await Write(m, (prompt.System + "\nYour first draft " + why, prompt.User), 1500, calls, cost);
-         (_, _, List<string> facts2) = await Inspect(m, sc, c, s, scene, text2, cost, calls);
-         lock (sc.Record) sc.Record.AddRange(facts2);
+         (string problem2, string detail2, List<string> facts2, string objects2) = await Inspect(m, sc, c, s, scene, text2, cost, calls);
+         // The rewrite is read again (two reviews of 27/11/2026: a rewrite still misstated the letter, and nothing had read it).
+         if (problem2 == "lie" || problem2 == "contradiction" || problem2 == "invention")
+         {
+            debug.AppendLine($"  - keeper: the rewrite still has a {problem2}: {detail2}; written once more");
+            (text2, model2) = await Write(m, (prompt.System + "\nYour first draft " + why + $"\nYour second draft was also refused ({problem2}): \"{detail2}\". Avoid both.", prompt.User), 1500, calls, cost);
+            (_, _, facts2, objects2) = await Inspect(m, sc, c, s, scene, text2, cost, calls);
+         }
+         Establish(sc, facts2, objects2);
 
          return (text2, model2);
       }
 
-      private static async Task<(string Problem, string Detail, List<string> Facts)> Inspect(Models m, Scenario sc, Character c, InnerState s, List<SceneLine> scene, string reply,
+      private static void Establish(Scenario sc, List<string> facts, string objects)
+      {
+         lock (sc.Record)
+         {
+            sc.Record.AddRange(facts);
+            foreach (string part in (objects ?? "").Split('|'))
+            {
+               int colon = part.IndexOf(':');
+               if (colon <= 0) continue;
+               string name = Regex.Replace(part.Substring(0, colon).Trim().ToLowerInvariant(), @"^(the|a|an|his|her|their)\s+", "");
+               if (name.Length > 0 && name != "none") sc.Objects[name] = part.Substring(colon + 1).Trim();
+            }
+         }
+      }
+
+      // An event the world brings is read for the state of things it sets (a seal broken, a banner carried in).
+      private static async Task Absorb(Models m, Scenario sc, string narration, double[] cost, Dictionary<string, int> calls)
+      {
+         LlmResponse r = await m.Judge.CompleteAsync(new LlmRequest {
+            SystemPrompt = "You keep the state of the things in a scene. Read the new line of narration and answer exactly one line:"
+                           + "\nobjects: <each thing it moves or changes, as 'thing: where it is and how it stands now', separated by ' | '; or none>",
+            Messages = new[] {new LlmMessage(MessageRole.User, $"WHERE THINGS STOOD:\n{RecordText(sc)}\n\nTHE NEW LINE:\n{narration}")},
+            Parameters = new LlmParameters {MaxTokens = 150, Creativity = 0.1f, AllowTruncationRetry = false}
+         });
+         lock (cost) { cost[0] += r.Usage?.Cost ?? 0; calls["keeper"]++; }
+         Establish(sc, new List<string>(), Clean(Regex.Match(r.Content ?? "", @"(?im)^\s*objects\s*:\s*(.+)$").Groups[1].Value));
+      }
+
+      private static async Task<(string Problem, string Detail, List<string> Facts, string Objects)> Inspect(Models m, Scenario sc, Character c, InnerState s, List<SceneLine> scene, string reply,
                                                                                             double[] cost, Dictionary<string, int> calls)
       {
-         string system = "You keep the record of a scene. You never write the story. A NEW LINE has just been written. Answer exactly four lines, in this order;"
+         string system = "You keep the record of a scene. You never write the story. A NEW LINE has just been written. Answer exactly five lines, in this order;"
                        // A review of 27/11/2026: the keeper wrote "problem: lie" first, then reasoned "this is not shown false... no established
                        // fact contradicts it", and the line was rewritten all the same. The verdict now comes last, after the reasoning.
                        + " decide the problem LAST, after weighing the detail:"
                        + "\ndetail: <the false statement, the repeated gesture or image, or the record it contradicts, with your reasoning; or none>"
                        + "\nfacts: <what this line makes true for everyone present: objects moved, who holds what, what was shown, admitted or revealed; separated by ' | '; or none>"
+                       + "\nobjects: <each thing this line moves or changes, as 'thing: where it is and how it stands now', separated by ' | '; or none>"
                        + $"\nrevealed: <yes | no> (does this line tell those present the secret in WHAT {c.Name.ToUpperInvariant()} KNOWS, in whole or in part?)"
-                       + "\nproblem: <none | lie | repeat | contradiction> (your final verdict on the detail above; if your reasoning cleared the line, none)"
+                       + "\nproblem: <none | lie | repeat | contradiction | invention> (your final verdict on the detail above; if your reasoning cleared the line, none)"
                        + $"\nA LIE: a statement of fact that WHAT {c.Name.ToUpperInvariant()} KNOWS shows to be false, or an excuse {c.Name} invents and knows is untrue."
                        // The third review of 27/11/2026: the keeper read the absence of proof as a lie ("Tomas cannot have seen Berold fight,
                        // since he fled") and had Tomas rewrite that his sword's notches were old, which the scenario makes true.
@@ -919,9 +1096,16 @@ namespace CalradiaRemembers.Tests.Conversation
                        + $"\nA REPEAT: a gesture, a way of handling an object, or an image that {c.Name} already used in this scene, or an image someone else already used,"
                        + " or an order or demand someone else already made in this scene and that this line only makes again (a second voice sending the same person away)."
                        + " Answering a question again is not a repeat."
-                       + "\nA CONTRADICTION: the line conflicts with the record (an object that is elsewhere, a fact established otherwise)."
+                       + "\nA CONTRADICTION: the line conflicts with the record, with where things are now, or with the world's facts."
+                       // Gabriel, 27/11/2026: "le problème arrive lorsque le LLM invente quelque chose que le jeu peut contredire" (Corvan
+                       // "married where my father told me"; a marshal's plan of assault; a raid the facts did not hold).
+                       + "\nAN INVENTION: the line states as fact something a game of lords and wars keeps track of, and that is in none of the world's facts,"
+                       + $" WHAT {c.Name.ToUpperInvariant()} KNOWS, or the record: a marriage or betrothal, a child or kinship, the death or capture of a lord, a battle or raid,"
+                       + " a war, peace or alliance, a fief changing hands, a plan of attack, a sum of money, a count of troops. Private life is free and is NOT"
+                       + " an invention: a memory, a feeling, a habit, a small deed between people, a detail of an event already known."
                        + "\nRecord a claim as a claim ('Tomas says he held the left'), never as a fact. Record only what everyone present could see or hear.";
-         string user = $"WHAT {c.Name.ToUpperInvariant()} KNOWS: {c.Persona} {c.Secret}" + (s == null ? "" : $" Hidden right now: {s.Hiding}.")
+         string user = $"WHAT {c.Name.ToUpperInvariant()} KNOWS: {c.Persona} {Hidden(c)}" + (s == null ? "" : $" Hidden right now: {s.Hiding}.")
+                     + (sc.GameFacts.Count == 0 ? "" : "\n\nTHE WORLD'S FACTS (true):\n" + string.Join("\n", sc.GameFacts.Select(f => "- " + f)))
                      + $"\n\nTHE RECORD (established in this scene):\n{RecordText(sc)}\n\nTHE SCENE SO FAR:\n{SceneText(scene)}\n\nTHE NEW LINE ({c.Name}):\n{reply}";
          LlmResponse r = await m.Judge.CompleteAsync(new LlmRequest {
             SystemPrompt = system, Messages = new[] {new LlmMessage(MessageRole.User, user)},
@@ -933,15 +1117,15 @@ namespace CalradiaRemembers.Tests.Conversation
          string Line(string name) => Clean(Regex.Match(content, $@"(?im)^\s*{name}\s*:\s*(.+)$").Groups[1].Value);
          string problem = Line("problem").ToLowerInvariant();
          if (problem.Length == 0) lock (sc.Record) Fallbacks.Add($"keeper gave no verdict on {c.Name}'s line (finish {r.FinishReason})");
-         problem = problem.StartsWith("lie") ? "lie" : problem.StartsWith("repeat") ? "repeat" : problem.StartsWith("contradiction") ? "contradiction" : "none";
+         problem = problem.StartsWith("lie") ? "lie" : problem.StartsWith("repeat") ? "repeat" : problem.StartsWith("contradiction") ? "contradiction"
+            : problem.StartsWith("invention") ? "invention" : "none";
          List<string> facts = Line("facts").Split('|').Select(f => f.Trim()).Where(f => f.Length > 0 && !f.StartsWith("none", StringComparison.OrdinalIgnoreCase)).ToList();
 
          // A review of 27/11/2026: Rhian told Corvan of the marriage at beat 5, and at beats 10 to 12 the dramaturge still read "You have
          // not told Corvan" in her sheet. A secret told is marked as told wherever the sheet is read; the sheet's own words stay.
-         if (problem == "none" && Line("revealed").ToLowerInvariant().StartsWith("yes") && !string.IsNullOrWhiteSpace(c.Secret) && !c.Secret.Contains(TOLD))
-            c.Secret += $" ({c.Name}{TOLD})";
+         if (problem == "none" && Line("revealed").ToLowerInvariant().StartsWith("yes") && !string.IsNullOrWhiteSpace(c.Secret)) c.SecretTold = true;
 
-         return (problem, Line("detail"), facts);
+         return (problem, Line("detail"), facts, Line("objects"));
       }
 
       // The depth the game lacks, generated once from the character's game sheet (Gabriel, 27/11/2026: the floor scene was direct and
@@ -1006,6 +1190,23 @@ namespace CalradiaRemembers.Tests.Conversation
          string doing = Field("doing"), concern = Field("concern"), tension = Field("tension");
          List<string> events = Regex.Matches(content, @"(?im)^\s*event\s*:\s*(.+)$").Select(x => Clean(x.Groups[1].Value)).Where(e => e.Length > 0 && !e.StartsWith("none", StringComparison.OrdinalIgnoreCase))
             .Select(e => e.StartsWith("*") ? e : $"*{e.Trim('*')}*").Take(3).ToList();
+         // The composer once brought a raid the facts did not hold: each event is read against the facts, and one that invents is dropped.
+         LlmResponse check = await m.Judge.CompleteAsync(new LlmRequest {
+            SystemPrompt = "You check the events proposed for a scene against the facts. For each event answer one line, 'N: ok' or 'N: invents <what>'."
+                           + " An event INVENTS when it brings a battle, raid, death, capture, marriage, war, alliance, fief, sum of money or troop count that is"
+                           + " not in the facts. Bringing news of a fact given, a person or thing the facts place nearby, or an ordinary happening of the place"
+                           + " (a servant, a clerk, a wounded man where the facts hold wounded) is ok.",
+            Messages = new[] {new LlmMessage(MessageRole.User, user + "\n\nTHE EVENTS PROPOSED:\n" + string.Join("\n", events.Select((e, i) => $"{i + 1}. {e}")))},
+            Parameters = new LlmParameters {MaxTokens = 200, Creativity = 0.1f, AllowTruncationRetry = false}
+         });
+         lock (cost) { cost[0] += check.Usage?.Cost ?? 0; calls["keeper"]++; }
+         for (int i = events.Count - 1; i >= 0; i--)
+         {
+            Match verdict = Regex.Match(check.Content ?? "", $@"(?im)^\s*{i + 1}\s*[:.]\s*invents\s*(.*)$");
+            if (!verdict.Success) continue;
+            debug.AppendLine($"- composer: event dropped, it invents {Clean(verdict.Groups[1].Value)}: {events[i]}");
+            events.RemoveAt(i);
+         }
          sc.Setting = $"{sc.Encounter} {doing}";
          if (concern.Length > 0) c.Objective = concern;
          if (tension.Length > 0) c.Ties.Add($"{sc.Player.Name}: {tension}");
@@ -1013,11 +1214,24 @@ namespace CalradiaRemembers.Tests.Conversation
          debug.AppendLine($"- composer: doing: {doing} | concern: {concern} | tension: {tension} | events: {string.Join(" / ", events)}");
       }
 
-      private const string TOLD = " has now told this to everyone present in the scene; they all know it";
+      // What a character holds that the others do not, as it stands NOW: the sheet's secret (marked once told, so no reader takes a
+      // told secret for a kept one) and what they alone have read or seen during the scene.
+      private static string Hidden(Character c)
+      {
+         string secret = string.IsNullOrWhiteSpace(c.Secret) ? "" : c.SecretTold ? $"{c.Secret} (No longer hidden: {c.Name} has told this to those present, and they know it.)" : c.Secret;
+
+         return (secret + string.Concat(c.Knows.Select(k => $" {c.Name} alone has read or seen: {k}"))).Trim();
+      }
 
       private static string RecordText(Scenario sc)
       {
-         lock (sc.Record) return sc.Record.Count == 0 ? "(nothing yet)" : string.Join("\n", sc.Record.TakeLast(25).Select(f => "- " + f));
+         lock (sc.Record)
+         {
+            if (sc.Record.Count == 0 && sc.Objects.Count == 0) return "(nothing yet)";
+
+            return (sc.Objects.Count == 0 ? "" : "Where things are now:\n" + string.Join("\n", sc.Objects.Select(o => $"- {o.Key}: {o.Value}")) + "\nEstablished:\n")
+                   + string.Join("\n", sc.Record.TakeLast(25).Select(f => "- " + f));
+         }
       }
 
       // The inner life of one character after the last line. People change, but only for a cause in the scene.
@@ -1029,7 +1243,7 @@ namespace CalradiaRemembers.Tests.Conversation
                        + " A tactic that has failed twice is abandoned for another. A tactic never includes a lie or an invented excuse: when they will"
                        + " not tell the truth they evade, deflect, stay silent or confess."
                        + $"\n\n{c.Name}: {c.Persona}"
-                       + (string.IsNullOrWhiteSpace(c.Secret) ? "" : $"\nKnown only to {c.Name}: {c.Secret}"
+                       + (Hidden(c).Length == 0 ? "" : $"\nKnown only to {c.Name}: {Hidden(c)}"
                           + $"\nA secret is the last thing {c.Name} gives up. Before giving it up they try at least two different ways of keeping it (evade, deflect,"
                           + " a true half-answer, silence, turning the question back, an offer that hides it). They give it up only when proof is established in the"
                           + " record, or when those ways have failed under repeated pressure; a single question, however painful, is not enough. Once pressed four times"
@@ -1120,8 +1334,8 @@ namespace CalradiaRemembers.Tests.Conversation
                        + " Choose 'end' only when the scene's question has been answered and any further line would only echo it.";
          string user = $"SCENE: {sc.Title}. {sc.Setting}\n\n{SceneText(scene)}\n\nINNER LIVES (hidden from the others):\n"
                      + string.Join("\n", sc.Cast.Select(c => $"- {c.Name}: feels {states[c.Name].Feeling}; wants {states[c.Name].Aim}; shows {states[c.Name].Showing}; hides {states[c.Name].Hiding}"
-                                                            + (string.IsNullOrWhiteSpace(c.Secret) ? "" : $"; secret: {c.Secret}")))
-                     + $"\n- {sc.Player.Name} (the protagonist): wants {sc.Player.Objective}" + (string.IsNullOrWhiteSpace(sc.Player.Secret) ? "" : $"; secret: {sc.Player.Secret}")
+                                                            + (Hidden(c).Length == 0 ? "" : $"; secret: {Hidden(c)}")))
+                     + $"\n- {sc.Player.Name} (the protagonist): wants {sc.Player.Objective}" + (Hidden(sc.Player).Length == 0 ? "" : $"; secret: {Hidden(sc.Player)}")
                      + $"\n\nTHE RECORD (established in this scene):\n{RecordText(sc)}"
                      + "\n\nEVENTS THE WORLD CAN BRING (already true, waiting to surface):\n"
                      + (options.Count == 0 ? "(none left)" : string.Join("\n", options.Select(o => $"{o.i + 1}. {EventText(o.c)}")))
@@ -1218,10 +1432,11 @@ namespace CalradiaRemembers.Tests.Conversation
          var sb = new StringBuilder();
          sb.AppendLine($"You are {me.Name}. {me.Persona}");
          sb.AppendLine($"Where you are: {sc.Setting}");
-         if (!string.IsNullOrWhiteSpace(me.Secret)) sb.AppendLine($"Known only to you: {me.Secret}");
+         if (Hidden(me).Length > 0) sb.AppendLine($"Known only to you: {Hidden(me)}");
+         if (sc.GameFacts.Count > 0) sb.AppendLine("What is true in the world, as you know it (never contradict it, never add to it):\n" + string.Join("\n", sc.GameFacts.Select(f => "- " + f)));
          sb.AppendLine("Who is here: " + string.Join("; ", room.Select(p => $"{p.Name} ({(p.IsFemale ? "a woman" : "a man")}, {p.Station})")));
          lock (sc.Record)
-            if (sc.Record.Count > 0)
+            if (sc.Record.Count > 0 || sc.Objects.Count > 0)
                sb.AppendLine("What is established in this scene, true for everyone (keep to it; objects are where it says):\n" + RecordText(sc));
          foreach (string tie in me.Ties) sb.AppendLine("- " + tie);
          if (now == null)
