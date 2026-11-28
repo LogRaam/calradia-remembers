@@ -350,7 +350,9 @@ namespace CalradiaRemembers.Chat
       internal async Task<(FloorDecision Decision, List<FloorBid> Bids, bool Judged)> DecideFirstRoundForDiagnosticsAsync(string playerLine)
       {
          ChatSpeaker primary = ResolveAddressedSpeaker(playerLine);
-         var result = await DecideGroupRoundAsync(playerLine, null, playerLine, primary?.Hero?.StringId, null, 0, new Dictionary<string, string>());
+         // Without ConfigureAwait(false) this await resumes through the game thread's synchronization context, which only the game loop
+         // drains: cr.test group_floor, waiting on this task while it pumps the dispatcher, then waited on itself (Gabriel's run, 28/11/2026).
+         var result = await DecideGroupRoundAsync(playerLine, null, playerLine, primary?.Hero?.StringId, null, 0, new Dictionary<string, string>()).ConfigureAwait(false);
          await MainThreadDispatcher.SwitchToMainThread();
 
          return result;

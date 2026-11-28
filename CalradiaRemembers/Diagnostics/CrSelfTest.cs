@@ -18602,7 +18602,8 @@ namespace CalradiaRemembers.Diagnostics
             GeneratedDepth kept = behavior.Store.Get(lord.StringId)?.GeneratedDepth;
             t.Expect("theDepthIsKept", kept?.Mask, mask);
             t.Expect("theSecretPassedTheCheck", kept?.Secret, secret);
-            t.Expect("theGeneratorWasGivenHisSheet", generator.LastUser?.Contains(lord.Name.ToString()) == true, true);
+            // The sheet names him in capitals ("YOU ARE LUCON"), and a lived character's sheet is cut before any other mention.
+            t.Expect("theGeneratorWasGivenHisSheet", generator.LastUser?.IndexOf(lord.Name.ToString(), StringComparison.OrdinalIgnoreCase) >= 0, true);
             t.Expect("theSecretIsSeededAsStillKept", profile.MeetingMemory?.UntoldTo(player).Contains(secret) == true, true);
 
             var facts = new Logic.Character.GeneratedDepthFacts {SwitchOn = true, OrdinaryConversation = true, HasCharacter = true, HasDepth = profile.GeneratedDepth != null};
@@ -19833,7 +19834,9 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("itFitsOrThePlayerIsTold", fits || reports.Any(r => r.WindowTokens == 8192 && !r.Fits), true);
             t.Expect("itStillTeachesTheActions", small.SystemPrompt.Contains("GAME ACTIONS:"), true);
             t.Expect("theRecapStays", small.Messages.First().Content.Contains(ConversationTranscript.SummaryLabel), true);
-            t.Expect("theRawLinesOpenOnThePlayer", small.Messages.Count < 2 || small.Messages[1].Role == MessageRole.User, true);
+            // Down at the floor (the last exchange, SDK 8776eed, hype 23/11/2026) the walk to a player's line stops: no kept line is given up for it.
+            t.Expect("theRawLinesOpenOnThePlayer", small.Messages.Count < 2 || small.Messages[1].Role == MessageRole.User
+                                                    || small.Messages.Count - 1 <= ContextFitPolicy.KeepWithCompactPrompt, true);
             t.Expect("theNewLineStays", small.Messages.Last().Content, newLine);
             t.Expect("theCompactReplyBudget", small.Parameters.MaxTokens <= LeanReplyBudget.Tokens, true);
 
