@@ -69,16 +69,24 @@ namespace CalradiaRemembers.Logic.Extension
         /// </summary>
         public const string KeptFromThePlayer = "meeting_memory";
 
+        /// <summary>
+        ///   Who the character is beneath the sheet (Stage 4 of the group-scene plan, 28/11/2026): it holds a secret known to the
+        ///   character alone, so it is never handed to a mod either (the conservative choice, Gabriel's to revisit). New with
+        ///   2.8.22, so no bridge already shipped loses anything.
+        /// </summary>
+        public const string KnownOnlyToThem = "generated_depth";
+
         /// <summary>Whether a prompt section belongs in a character's persona.</summary>
         public static bool IsPersona(string sectionKey)
             => !string.IsNullOrWhiteSpace(sectionKey) && Keys.Contains(sectionKey.Trim());
 
         /// <summary>
-        ///   Whether a section's text may be handed to a mod at all (every section but <see cref="ConfidedByAnotherMod" /> and
-        ///   <see cref="KeptFromThePlayer" />).
+        ///   Whether a section's text may be handed to a mod at all (every section but <see cref="ConfidedByAnotherMod" />,
+        ///   <see cref="KeptFromThePlayer" /> and <see cref="KnownOnlyToThem" />).
         /// </summary>
         public static bool MayLeaveCr(string sectionKey)
             => !string.Equals(sectionKey?.Trim(), ConfidedByAnotherMod, StringComparison.OrdinalIgnoreCase)
-               && !string.Equals(sectionKey?.Trim(), KeptFromThePlayer, StringComparison.OrdinalIgnoreCase);
+               && !string.Equals(sectionKey?.Trim(), KeptFromThePlayer, StringComparison.OrdinalIgnoreCase)
+               && !string.Equals(sectionKey?.Trim(), KnownOnlyToThem, StringComparison.OrdinalIgnoreCase);
     }
 }

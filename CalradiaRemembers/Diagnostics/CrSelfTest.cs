@@ -486,6 +486,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("memory_pictures", Severity.Light, "Bhelogan (Discord, 20/11/2026) asked for pictures painted by his mod in the Memories panel; Gabriel: protect the memories that carry one. Through the PUBLIC API on a real lord: AddMemory must announce the memory (MemoryWritten, with an id), GetMemories must give the same id, SetImage must copy a picture into CR's campaign folder and put it on the memory, the REAL compressor with a stand-in model that drops everything must keep that memory, a second SetImage must replace the copy, a paint request must reach ImageRequested and stay busy until ImageFailed, and SetImage(null) must take the picture away and delete the copy. No model is called. Removes every test memory and file after", TestMemoryPictures),
          new SelfTest("composed_intro", Severity.Light, "Stage 3 of the group-scene plan (Gabriel, 28/11/2026: \"au debut de chaque CHAT on ajoute l'intro\"; the composer \"chooses among true facts and stages them; it invents nothing the game tracks\"). With \"Composed opening scene\", Characters Set The Scene and Scene Narration forced on and a battle beside the player staged on a lord's record today, opens a REAL conversation and starts its opening on a test greeting, with stand-ins for the composer and the check (no model is called): the composer was given the encounter and the staged battle, the purple setting shows above the greeting, the greeting is the line remembered, the concern and the tension reach the live prompt builder's prompt. Then with Scene Narration off nothing would be composed, and with a check that answers 'invents a raid' the opening falls back: no setting shown, nothing hidden in the prompt, and the reason written. Restores the switches and the record, closes the conversation", TestComposedIntro),
          new SelfTest("meeting_memory", Severity.Light, "Stage 2 of the group-scene plan (Gabriel, 28/11/2026: \"go pour tout le système ... je testerai demain\"): what a meeting leaves. With \"Lasting memory of meetings\" forced off, a closed chat's summary job makes no call. Forced on, the same job runs the REAL update path with a stand-in model giving a fixed reply (no model is called): the lord's record holds the lasting change, the bond and the unsettled matters; the same meeting replayed adds nothing twice; a witness job makes no call; the record survives the save format; the next prompt, built by the live prompt builder, shows the change with days counted, where they stand and what is unsettled, and shows none of it with the switch off or frozen at an opening that held nothing; memory compression keeps the record. Restores the record and the switch, removes the temporary profile", TestMeetingMemory),
+         new SelfTest("generated_depth", Severity.Light, "Stage 4 of the group-scene plan (Gabriel, 28/11/2026: \"go pour tout le système ... je testerai demain\"; on the secret, 27/11/2026: private life \"si ça ne touche pas à une mécanique du jeu\"). On a real lord with no depth: reads his sheet through the REAL sheet reader (his own prompt sections, his voice habit among them), then runs the REAL generate-and-keep path with stand-ins for the Background model and the check giving fixed replies (no model is called): the depth is kept on his profile, the generator was given his sheet, the secret passed and was seeded in the meeting record as still kept from the player; the policy will not generate for him again and a second run keeps the first depth; it survives the save format unchanged; the live prompt builder's prompt shows the mask, the limit and the manner of speech inside YOUR VOICE, the secret once (the meeting record owns it), and none of it in a conversation that opened without it or with the switch off. On a temporary profile, a secret the check flags and one that names a marriage are dropped while the rest of the depth stays. Restores the switches and the lord, removes the temporary profile", TestGeneratedDepth),
          new SelfTest("player_memory_kept", Severity.Light, "Icezera (Discord, 15/11/2026): memories added with cr.memory_add were gone some days later; memory compression had folded them away. Sends cr.memory_add, through the engine's own console dispatch, a memory dated 30 days back to a real lord (padded with test memories to the size compression works on), then runs the REAL compressor on that profile with a stand-in model that drops everything: the memory the player wrote must be kept, and an ordinary test memory of the same age must not be. No model is called. Removes every test memory after", TestPlayerMemoryKept),
          new SelfTest("console_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026): accents typed into cr.memory_add / cr.memory_set came out as mojibake (the console reads UTF-8 back as Windows-1252). Sends cr.memory_add, through the engine's own console dispatch, a line mangled exactly as the console mangles it: the stored memory must read exactly as typed. Removes the memory after.", TestConsoleAccents),
          new SelfTest("extreme_trait_persona", Severity.Light, "A trait at +-2 (the game's strongest) met no persona archetype and got the generic 'figure of contradictions' line. Takes a real hero with such a trait and builds the persona the real way: the extreme must be said in it, never as relish. Stores nothing.", TestExtremeTraitPersona),
@@ -18506,6 +18507,120 @@ namespace CalradiaRemembers.Diagnostics
          return t.Line();
       }
 
+      private static string TestGeneratedDepth(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("generated_depth");
+         CrSettings settings = CrSettings.Instance;
+         if (t.Skip(behavior.Store == null || Hero.MainHero == null || settings == null || behavior.LlmServices == null || behavior.GameStateBridge == null, "no campaign, no MCM or no services")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && Mapping.HeroPresence.IsInTheWorld(h) && !h.IsPrisoner);
+         if (t.Skip(lord == null, "no lord in the world")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, lord);
+         GeneratedDepth depthBefore = profile.GeneratedDepth;
+         MeetingMemory meetingBefore = profile.MeetingMemory?.Clone();
+         Fear fearBefore = profile.Fear;
+         string backstoryBefore = profile.AuthoredBackstory;
+         bool switchBefore = settings.GeneratedDepth, meetingSwitchBefore = settings.MeetingMemory;
+         bool? holdBefore = BackgroundCallHold.DebugConversationOpen;
+         const string tempId = "cr_selftest_generated_depth";
+         string player = Hero.MainHero.Name?.ToString() ?? "the player";
+         int today = behavior.GameStateBridge.GetCurrentGameDay();
+         const string mask = "[SELFTEST] a lord who forgets no debt";
+         const string secret = "[SELFTEST] Once a young knight asked him to carry a letter to a lady of his court, and he burned it unread. The lady never knew.";
+         string reply = "voice: [SELFTEST] slow and exact, short sentences, never a flourish\nmask: " + mask + "\nfear: [SELFTEST] being thought a fool by the young"
+                        + "\nlimit: [SELFTEST] will not beg a favour twice\nsecret: " + secret;
+         var generator = new CannedDepthClient(reply);
+         var checkOk = new CannedDepthClient("ok");
+
+         try
+         {
+            // Run from the chat with a local model, the hold would wait for the chat to close: the stand-ins are no server.
+            BackgroundCallHold.DebugConversationOpen = false;
+            profile.GeneratedDepth = null;
+            profile.Fear = Fear.None;
+            profile.AuthoredBackstory = null;
+            settings.MeetingMemory = true;
+            settings.GeneratedDepth = true;
+
+            Logic.Character.GeneratedDepthSheet sheet = GeneratedDepthService.ReadSheet(behavior, lord, profile);
+            t.Expect("theSheetIsHisOwnPrompt", sheet.Sheet.Contains(lord.Name.ToString()), true);
+            t.Expect("theSheetCarriesHisVoiceHabit", sheet.Sheet.Contains("YOUR VOICE"), true);
+            t.Expect("aVoiceAndAFearAreAsked", sheet.AskVoice && sheet.AskFear, true);
+
+            Logic.Character.GeneratedDepthResult result = GeneratedDepthService.GenerateAndKeepAsync(behavior, profile, sheet, generator, checkOk, today, player).GetAwaiter().GetResult();
+            t.Note(result.Why);
+            GeneratedDepth kept = behavior.Store.Get(lord.StringId)?.GeneratedDepth;
+            t.Expect("theDepthIsKept", kept?.Mask, mask);
+            t.Expect("theSecretPassedTheCheck", kept?.Secret, secret);
+            t.Expect("theGeneratorWasGivenHisSheet", generator.LastUser?.Contains(lord.Name.ToString()) == true, true);
+            t.Expect("theSecretIsSeededAsStillKept", profile.MeetingMemory?.UntoldTo(player).Contains(secret) == true, true);
+
+            var facts = new Logic.Character.GeneratedDepthFacts {SwitchOn = true, OrdinaryConversation = true, HasCharacter = true, HasDepth = profile.GeneratedDepth != null};
+            t.Expect("neverGeneratedAgain", Logic.Character.GeneratedDepthPolicy.ShouldGenerate(facts), false);
+            var other = new CannedDepthClient(reply.Replace(mask, "[SELFTEST] someone else entirely"));
+            GeneratedDepthService.GenerateAndKeepAsync(behavior, profile, sheet, other, checkOk, today, player).GetAwaiter().GetResult();
+            t.Expect("aSecondRunKeepsTheFirstDepth", behavior.Store.Get(lord.StringId)?.GeneratedDepth?.Mask, mask);
+
+            NpcProfile reloaded = NpcMemoryService.Core.Storage.ResilientProfileBundle.Deserialize(
+               NpcMemoryService.Core.Storage.ResilientProfileBundle.Serialize(new Dictionary<string, NpcProfile> {[lord.StringId] = behavior.Store.Get(lord.StringId)}))
+                                                  .TryGetValue(lord.StringId, out NpcProfile back) ? back : null;
+            GeneratedDepth r = reloaded?.GeneratedDepth;
+            t.Expect("theDepthSurvivesTheSaveUnchanged", r != null && r.Voice == kept?.Voice && r.Mask == kept.Mask && r.Fear == kept.Fear && r.Limit == kept.Limit
+                                                         && r.Secret == kept.Secret && r.GeneratedOnDay == kept.GeneratedOnDay, true);
+
+            var world = new WorldState {CurrentDay = today};
+            NpcProfile shown = reloaded ?? profile;
+            EncounterContext ctx = EncounterContextBuilder.Build(lord, shown, behavior.GameStateBridge);
+            // The builder the chat itself runs on: flipping the switch must rebuild it (LlmServices' fingerprint).
+            string prompt = behavior.LlmServices.ChatService?.PromptBuilder?.BuildSystemPrompt(shown, world, ctx) ?? "";
+            t.Expect("thePromptShowsTheMask", prompt.Contains("- How you want to be seen: " + mask + "."), true);
+            t.Expect("thePromptShowsTheLimit", prompt.Contains("- What you will never do: [SELFTEST] will not beg a favour twice."), true);
+            t.Expect("theVoiceJoinsTheOneVoiceBlock", prompt.Contains("your manner of speech: [SELFTEST] slow and exact") && prompt.Split(new[] {"YOUR VOICE ("}, StringSplitOptions.None).Length == 2, true);
+            t.Expect("theSecretIsShownOnce", prompt.Split(new[] {"burned it unread"}, StringSplitOptions.None).Length - 1, 1);
+
+            EncounterContext hidden = EncounterContextBuilder.Build(lord, shown, behavior.GameStateBridge, hideGeneratedDepth: true);
+            t.Expect("aTalkOpenedWithoutItDoesNotSeeIt", (behavior.LlmServices.ChatService?.PromptBuilder?.BuildSystemPrompt(shown, world, hidden) ?? "").Contains(mask), false);
+
+            settings.GeneratedDepth = false;
+            t.Expect("switchOffThePromptIsSilent", (behavior.LlmServices.ChatService?.PromptBuilder?.BuildSystemPrompt(shown, world, ctx) ?? "").Contains(mask), false);
+            settings.GeneratedDepth = true;
+
+            // A secret the check flags is dropped; the rest of the depth stays.
+            var temp = new NpcProfile {Id = tempId, Name = "[SELFTEST] Depth", Faction = "", Clan = ""};
+            behavior.Store.Set(temp);
+            Logic.Character.GeneratedDepthResult flagged = GeneratedDepthService.GenerateAndKeepAsync(behavior, temp, sheet, generator, new CannedDepthClient("touches a betrothal"), today, player)
+                                                                .GetAwaiter().GetResult();
+            t.Expect("aFlaggedSecretIsDropped", temp.GeneratedDepth != null && temp.GeneratedDepth.Secret.Length == 0 && flagged.SecretDropped, true);
+            t.Expect("theRestOfTheDepthStays", temp.GeneratedDepth?.Mask, mask);
+
+            temp.GeneratedDepth = null;
+            var married = new CannedDepthClient(reply.Replace(secret, "[SELFTEST] He was married in secret before he swore to his liege."));
+            var unasked = new CannedDepthClient("ok");
+            GeneratedDepthService.GenerateAndKeepAsync(behavior, temp, sheet, married, unasked, today, player).GetAwaiter().GetResult();
+            t.Expect("aSecretNamingAMarriageIsDroppedUnasked", temp.GeneratedDepth != null && temp.GeneratedDepth.Secret.Length == 0 && unasked.Calls == 0, true);
+         }
+         finally
+         {
+            settings.GeneratedDepth = switchBefore;
+            settings.MeetingMemory = meetingSwitchBefore;
+            BackgroundCallHold.DebugConversationOpen = holdBefore;
+            NpcProfile now = behavior.Store.Get(lord.StringId);
+            if (now != null)
+            {
+               now.GeneratedDepth = depthBefore;
+               now.MeetingMemory = meetingBefore;
+               now.Fear = fearBefore;
+               now.AuthoredBackstory = backstoryBefore;
+               behavior.Store.Set(now);
+            }
+            GeneratedDepthService.ForgetFailure(lord.StringId);
+            behavior.Store.Remove(tempId);
+         }
+
+         return t.Line();
+      }
+
       private static string TestComposedIntro(NpcMemoryCampaignBehavior behavior)
       {
          var t = new TestRun("composed_intro");
@@ -18643,6 +18758,24 @@ namespace CalradiaRemembers.Diagnostics
 
          public System.Threading.Tasks.Task<NpcMemoryService.Core.Models.LlmResponse> CompleteAsync(NpcMemoryService.Core.Models.LlmRequest request, System.Threading.CancellationToken ct = default)
          {
+            LastUser = request?.Messages?.Count > 0 ? request.Messages[0].Content : null;
+
+            return System.Threading.Tasks.Task.FromResult(new NpcMemoryService.Core.Models.LlmResponse {IsSuccess = true, Content = _content});
+         }
+      }
+
+      // The fixed reply of cr.test generated_depth; keeps what it was given and counts how often it was asked.
+      private sealed class CannedDepthClient : NpcMemoryService.Core.LlmClient.ILlmClient
+      {
+         private readonly string _content;
+         public int Calls;
+         public string LastUser;
+
+         public CannedDepthClient(string content) => _content = content;
+
+         public System.Threading.Tasks.Task<NpcMemoryService.Core.Models.LlmResponse> CompleteAsync(NpcMemoryService.Core.Models.LlmRequest request, System.Threading.CancellationToken ct = default)
+         {
+            Interlocked.Increment(ref Calls);
             LastUser = request?.Messages?.Count > 0 ? request.Messages[0].Content : null;
 
             return System.Threading.Tasks.Task.FromResult(new NpcMemoryService.Core.Models.LlmResponse {IsSuccess = true, Content = _content});

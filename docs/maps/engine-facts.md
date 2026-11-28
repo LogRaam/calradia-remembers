@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-832 rules read 622 facts.
+836 rules read 625 facts.
 
 ## Facts read by more than one rule
 
@@ -216,6 +216,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.CncProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.CompanionAudienceCadence` (3) | `CompanionAudiencePacingRules.CooldownDays`, `CompanionAudiencePacingRules.DailyChancePercent`, `CompanionAudiencePacingRules.IsOff` |
 | `ModSettings.HousekeepingProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
+| `ModSettings.LlmResponseTimeoutSeconds` (3) | `ComposedOpeningComposer.ComposeAsync`, `ComposedOpeningPolicy.ComposerTimeoutSeconds`, `GeneratedDepthGenerator.GenerateAsync` |
 | `ModSettings.RoleplayProviderSelection` (3) | `OnOffReasoningPolicy.ForModel`, `ReasoningWirePolicy.UsesEffortString`, `RoleSettings` |
 | `ModSettings.SceneNarration` (3) | `ComposedOpeningPolicy.ShouldCompose`, `SceneNarrationFacts`, `SceneNarrationPolicy.Shows` |
 | `ModSettings.WarLevyScale` (3) | `StandingAim`, `SummonsFacts`, `WarLevyFacts` |
@@ -240,6 +241,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Store.Set` (3) | `KillAttemptResult`, `SkirmishLine`, `SkirmishMemoryText.CountIn` |
 | `StringId.GetHashCode` (3) | `RomanticProfilePolicy.DetermineKinks`, `RomanticProfilePolicy.DetermineOrientation`, `RomanticProfilePolicy.DeterminePreferences` |
 | `TestCalledToMuster.Invoke` (3) | `RetainerLeavePolicy.CalledToMuster`, `RetainerLeavePolicy.MustLeave`, `RetainerStandingFacts` |
+| `TimeSpan.FromSeconds` (3) | `ComposedOpeningComposer.ComposeAsync`, `ContextLengthPolicy.ExplainOverflow`, `GeneratedDepthGenerator.GenerateAsync` |
 | `Town.Loyalty` (3) | `EdictCounselPolicy.Answer`, `EdictGrievanceFacts`, `EdictTownFacts` |
 | `Value.Distance` (3) | `CouncilAttendanceFacts`, `CouncilAttendancePolicy.Decide`, `JealousyHearingPolicy.WithinEarshot` |
 | `Vec2.x` (3) | `CardinalDirectionPolicy.Describe`, `GeographyDescriber.Bearing`, `QuestMenuEntry` |
@@ -328,7 +330,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.AllowOpenRouterProviderFallbacks` (2) | `ProviderPinFailurePolicy.Explain`, `ProviderPinFailurePolicy.RoutingJson` |
 | `ModSettings.AllowOtherModsLlm` (2) | `ExternalLlmRequestFacts`, `ExternalLlmRequestPolicy.Explain` |
 | `ModSettings.EnableWarDuty` (2) | `LevyTroopFacts`, `TermsFacts` |
-| `ModSettings.LlmResponseTimeoutSeconds` (2) | `ComposedOpeningComposer.ComposeAsync`, `ComposedOpeningPolicy.ComposerTimeoutSeconds` |
+| `ModSettings.GeneratedDepth` (2) | `GeneratedDepthFacts`, `GeneratedDepthPolicy.ShouldGenerate` |
 | `ModSettings.MarriageRegardThreshold` (2) | `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion` |
 | `ModSettings.NpcsRaiseWorldNews` (2) | `CompanionRumourFreshnessFacts`, `CompanionRumourFreshnessPolicy.WhyNotNews` |
 | `ModSettings.NsfwReasoningEffort` (2) | `OnOffReasoningPolicy.ForModel`, `RoleSettings` |
@@ -372,7 +374,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `Status.IsCourtingOrDeeper` (2) | `DivorceEligibilityFacts`, `DivorcePolicy.IsEligible` |
 | `Store.MostRecentMatching` (2) | `HardshipPolicy.ShouldRecord`, `WarLoomingPolicy.ShouldRecord` |
 | `Summary.IndexOf` (2) | `SpouseDivorceDemandFacts`, `SpouseDivorceDemandPolicy.ShouldDemand` |
-| `TimeSpan.FromSeconds` (2) | `ComposedOpeningComposer.ComposeAsync`, `ContextLengthPolicy.ExplainOverflow` |
 | `Town.GetWallLevel` (2) | `ScoutPlacePolicy.Report`, `ScoutPlaceSighting` |
 | `Town.Militia` (2) | `EdictCounselPolicy.Answer`, `EdictTownFacts` |
 | `Town.Security` (2) | `EdictCounselPolicy.Answer`, `EdictTownFacts` |
@@ -673,6 +674,10 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `ForcesInSight.SpeakerSeesWhatThePlayerSees`: `GetPosition2D.Distance`, `Hero.PartyBelongedTo`, `Hero.PartyBelongedToAsPrisoner`, `MobileParty.Army`, `MobileParty.GetPosition2D`, `MobileParty.Party`
 - `GameRelationFacts`: `Clan.Leader`, `Hero.Clan`, `Hero.GetRelationWithPlayer`
 - `GarrisonStrength.BandOf`: `Party.NumberOfHealthyMembers`, `Party.PartySizeLimit`, `PartyBase.NumberOfHealthyMembers`, `PartyBase.PartySizeLimit`
+- `GeneratedDepthFacts`: `ModSettings.GeneratedDepth`
+- `GeneratedDepthGenerator.GenerateAsync`: `CancellationToken.None`, `ModSettings.LlmResponseTimeoutSeconds`, `TimeSpan.FromSeconds`
+- `GeneratedDepthPolicy.SeedSecret`: `Depth.Secret`
+- `GeneratedDepthPolicy.ShouldGenerate`: `ModSettings.GeneratedDepth`
 - `GeographyDescriber.Bearing`: `GetPosition2D.x`, `GetPosition2D.y`, `MobileParty.GetPosition2D`, `Settlement.GetPosition2D`, `Vec2.Distance`, `Vec2.X`, `Vec2.Y`, `Vec2.x`, `Vec2.y`
 - `GiftBundlePolicy.Amount`: `MobileParty.ItemRoster`
 - `GiftBundlePolicy.Describe`: `EquipmentElement.Item`, `Found.EquipmentElement`

@@ -206,7 +206,8 @@ namespace CalradiaRemembers.Chat
             questsKnownThrough: QuestsKnownThrough(profile),
             memoriesDiscussedAtOpening: MemoriesDiscussedAtOpening(profile),
             freezeMeetingMemory: true,
-            meetingMemoryAtOpening: MeetingMemoryAtOpening(profile));
+            meetingMemoryAtOpening: MeetingMemoryAtOpening(profile),
+            hideGeneratedDepth: GeneratedDepthHidden(profile));
          int today = behavior.GameStateBridge.GetCurrentGameDay();
          var world = new WorldState {
             CurrentDay = today,

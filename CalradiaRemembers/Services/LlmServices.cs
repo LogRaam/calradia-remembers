@@ -75,6 +75,7 @@ namespace CalradiaRemembers.Services
       private float _builtPresencePenalty;
       private bool _builtSceneNarration;
       private bool _builtMeetingMemory;
+      private bool _builtGeneratedDepth;
       private NpcChatService _chatService;
 
       private HttpClient _httpClient;
@@ -141,6 +142,7 @@ namespace CalradiaRemembers.Services
             float presencePenalty = ModSettings.PresencePenalty;
             bool sceneNarration = ModSettings.SceneNarration;
             bool meetingMemory = ModSettings.MeetingMemory;
+            bool generatedDepth = ModSettings.GeneratedDepth;
 
             string playerFaction = Hero.MainHero?.MapFaction?.Name?.ToString() ?? "";
             string playerClan = Hero.MainHero?.Clan?.Name?.ToString() ?? "";
@@ -151,7 +153,8 @@ namespace CalradiaRemembers.Services
                                       && _builtPlayerFaction == playerFaction && _builtPlayerClan == playerClan
                                       && _builtTemperature == temperature && _builtReplyBudget == replyBudget
                                       && _builtPresencePenalty == presencePenalty && _builtPlayerIdentity == playerIdentity
-                                      && _builtSceneNarration == sceneNarration && _builtMeetingMemory == meetingMemory)
+                                      && _builtSceneNarration == sceneNarration && _builtMeetingMemory == meetingMemory
+                                      && _builtGeneratedDepth == generatedDepth)
                return _chatService;
             _chatService = BuildChatService();
             _builtAdultLevel = current;
@@ -165,6 +168,7 @@ namespace CalradiaRemembers.Services
             _builtPresencePenalty = presencePenalty;
             _builtSceneNarration = sceneNarration;
             _builtMeetingMemory = meetingMemory;
+            _builtGeneratedDepth = generatedDepth;
             _builtPlayerIdentity = playerIdentity;
 
             return _chatService;
@@ -1111,7 +1115,9 @@ namespace CalradiaRemembers.Services
             EnableMeetingMemory = ModSettings.MeetingMemory,
             // Stage 3 (28/11/2026): the composed opening's hidden concern and tension. The data is the gate: the chat hands
             // one only on a conversation "Composed opening scene" composed, so every other prompt is unchanged.
-            EnableComposedOpening = true
+            EnableComposedOpening = true,
+            // Stage 4 (28/11/2026): who a character is beneath the sheet shows only while "Deeper characters" is on.
+            EnableGeneratedDepth = ModSettings.GeneratedDepth
          };
       }
 

@@ -204,6 +204,9 @@ namespace CalradiaRemembers.Mapping
          MeetingMemory meetingMemoryAtOpening = null,
          // What a composed opening left the main character for this conversation (Stage 3, 28/11/2026); null elsewhere.
          ComposedOpening composedOpening = null,
+         // True when the character had no generated depth as THIS conversation opened (Stage 4, 28/11/2026): one that lands
+         // meanwhile stays hidden until the next conversation. Set by a conversation only.
+         bool hideGeneratedDepth = false,
          // True on the live chat, the one road that fills tokens in the raw reply (NpcChatService).
          bool offerMoneyTokens = false,
          bool isCollectiveCaptiveScene = false,
@@ -471,6 +474,7 @@ namespace CalradiaRemembers.Mapping
             MeetingMemoryFrozen = freezeMeetingMemory,
             MeetingMemoryAtOpening = meetingMemoryAtOpening,
             ComposedOpening = composedOpening,
+            GeneratedDepthHidden = hideGeneratedDepth,
             QuestsKnownThrough = questsKnownThrough,
             IsLastWitnessExchange = isLastWitnessExchange,
             // IsRoundTableTurn is the one council flag the chat prompt path still carries: it is armed ONLY by the

@@ -476,6 +476,15 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_PromptMemory}Prompt & Memory", GroupOrder = 1)]
       public bool MeetingMemory { get; set; } = false;
 
+      // Stage 4 of the group-scene plan (Gabriel, 28/11/2026: "go pour tout le système ... je testerai demain"): in the simulator a
+      // character known only from its game sheet spoke flat until one call gave it a voice, a mask, a fear, a limit and a secret.
+      // Off by default: one call per character, once. Beside "Lasting memory of meetings": the same kind of setting (what a
+      // character carries, kept on its profile, shown in its prompt, written by the Background model).
+      [SettingPropertyBool("{=CR_MCM_GeneratedDepth}Deeper characters", RequireRestart = false, Order = 11,
+         HintText = "{=CR_MCM_GeneratedDepth_Hint}Off (default): as before. On: the first time you talk with a character, one background call (Background model) gives them a voice, a mask, a fear, a limit and a private secret, kept for good. It shows from your next talk.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_PromptMemory}Prompt & Memory", GroupOrder = 1)]
+      public bool GeneratedDepth { get; set; } = false;
+
       [SettingPropertyText("{=CR_MCM_Model}PROSE model", RequireRestart = false, Order = 1,
          HintText = "{=CR_MCM_Model_Hint}Model id in the ACTIVE provider's own format (OpenRouter: x-ai/grok-4.20; NanoGPT: " +
                     "deepseek-ai/DeepSeek-V3; Ollama: llama3.1:8b). Writes ordinary chat, and in Enhanced mode " +

@@ -391,6 +391,12 @@ namespace CalradiaRemembers.Foundation
       /// </summary>
       public static bool MeetingMemory => CrSettings.Instance?.MeetingMemory ?? false;
 
+      /// <summary>
+      ///   MCM "Deeper characters" (Stage 4 of the group-scene plan, 28/11/2026): a character with no depth is given one, once,
+      ///   in the background, and the prompt shows it. Off by default; with no MCM, off.
+      /// </summary>
+      public static bool GeneratedDepth => CrSettings.Instance?.GeneratedDepth ?? false;
+
       /// <summary>The most characters of earlier words one reply may recall (LongMemoryRecall budget).</summary>
       public static int LongMemoryBudget => CrSettings.Instance?.LongMemoryBudget ?? 4000;
 

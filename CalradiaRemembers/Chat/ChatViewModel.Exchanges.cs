@@ -172,7 +172,8 @@ namespace CalradiaRemembers.Chat
                aggressorKind: _director?.CurrentAggressor ?? CaptiveAggressorKind.Lead,
                captiveVictimName: _captiveVictimName,
                playerCoercedAgainstCompanion: _captivePlayerCoerced,
-               captiveVictimIsFemale: _captiveVictimIsFemale);
+               captiveVictimIsFemale: _captiveVictimIsFemale,
+               hideGeneratedDepth: GeneratedDepthHidden(profile));
 
             ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
             _messages.Add(placeholder);
@@ -471,7 +472,8 @@ namespace CalradiaRemembers.Chat
                sceneStage: CaptiveSceneStage.Conclude, // the escape beat is the scene's end
                captiveVictimName: _captiveVictimName,
                playerCoercedAgainstCompanion: _captivePlayerCoerced,
-               captiveVictimIsFemale: _captiveVictimIsFemale);
+               captiveVictimIsFemale: _captiveVictimIsFemale,
+               hideGeneratedDepth: GeneratedDepthHidden(profile));
 
             ChatMessageViewModel placeholder = MakeSpeakerMessage(speaker, PlaceholderText);
             _messages.Add(placeholder);
@@ -846,6 +848,10 @@ namespace CalradiaRemembers.Chat
             };
             bool proseInterpretEligible = ActionReaderPolicy.IsInterpreterTurn(readingFacts);
 
+            // Stage 4 (28/11/2026): the first model turn gives a character with no depth one, in the background; the chat never
+            // waits, and what lands shows from the next conversation on (the turn below hides it).
+            StartGeneratedDepthIfDue(speaker);
+
             // Rebuild context each turn so it reflects events added during this session
             // (avoids stale "never met" after the first exchange adds a FirstMeeting event).
             // The witness list is everyone EXCEPT the current speaker (main NPC included
@@ -905,6 +911,7 @@ namespace CalradiaRemembers.Chat
                freezeMeetingMemory: true,
                meetingMemoryAtOpening: MeetingMemoryAtOpening(profile),
                composedOpening: ComposedOpeningFor(speaker),
+               hideGeneratedDepth: GeneratedDepthHidden(profile),
                offerMoneyTokens: true,
                // The only council flag the chat prompt path still carries: the cr.council_test spike's whole-table
                // framing (RoundTableController.CouncilTurnsForced), so that single call yields the anchor's reply
@@ -2600,6 +2607,7 @@ namespace CalradiaRemembers.Chat
                   isCompanionBriefingScene: IsCompanionBriefingChat,
                   // The main character answering a witness keeps what the composed opening left them (Stage 3).
                   composedOpening: ComposedOpeningFor(mainSpeaker),
+                  hideGeneratedDepth: GeneratedDepthHidden(profile),
                   companionBriefingTargetName: _companionBriefingTargetName);
                // (15C witness exchange is gated off for captive scenes, so no stage is fed here.)
 

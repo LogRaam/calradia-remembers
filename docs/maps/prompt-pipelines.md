@@ -10,7 +10,7 @@ other than `NarrativeLoader` (tales, scenarios, styles, prompt profiles) is not 
 
 ## Where the model is called
 
-27 methods call the model. `tool` marks a developer command or bench (`Diagnostics`, `ModCheats`, a `*Bench*` file), never run in play.
+28 methods call the model. `tool` marks a developer command or bench (`Diagnostics`, `ModCheats`, a `*Bench*` file), never run in play.
 
 | Pipeline | Layer | Use | Prompt from | What it is |
 |---|---|---|---|---|
@@ -25,6 +25,7 @@ other than `NarrativeLoader` (tales, scenarios, styles, prompt profiles) is not 
 | `CouncilEngagementExtractor.ExtractAsync` | Sdk | play | `BuildSystemPrompt()`, `BuildUserPrompt()` | Returns the raw LLM content for conversationText, expected to be a JSON array of flat decision objects (see BuildSystemPrompt). |
 | `CourierSecretBehavior.JudgeAndReactAsync` | Mod | play |  | Courier Inc 4b (Gabriel, 26/09/2026: an action "in proportion to the secret"). |
 | `FixedLetterTranslator.TranslateAsync` | Sdk | play | `BuildSystemPrompt()` | The translated letter, or null when the model did not answer. |
+| `GeneratedDepthGenerator.GenerateAsync` | Logic | play |  | Generates a depth from sheet on generator and checks its secret on checker (null: the secret is dropped). |
 | `LetterMemorySummarizer.SummarizeAsync` | Sdk | play | `BuildSystemPrompt()` | Returns a concise first-person, past-tense memory line, or null on failure / empty content (the caller then keeps the base summary it already stored). npcIsSender selects whether the NPC wrote or received the letter, so... |
 | `LlmMemoryCompressor.CompressAsync` | Sdk | play | `BuildSystemPrompt()`, `BuildUserPrompt()` | LLM-driven memory compression. |
 | `MeetingMemoryUpdater.UpdateAsync` | Sdk | play | `BuildSystemPrompt()`, `BuildUserMessage()` | Asks the model what this meeting left and applies it to npc's record. |

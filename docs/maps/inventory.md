@@ -6,9 +6,9 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 702 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1789 types in 62 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 305 types in 17 namespaces, 9 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 703 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1797 types in 62 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 306 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -132,7 +132,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryWriteWatchBehavior` | internal class | Looks at the memories at session start and every hour, for CrNpcMemory.MemoryWritten. |
 | `MissionBoard` | public static class | The public, one-way inbound API for missions: a third-party mod Registers a mission, then Completes it when its own deed is truly done (or Abandons it). |
 | `MissionBoardResult` | public enum | The outcome of registering or signalling a mission through MissionBoard. |
-| `ModCheats` | public static class, partial over 73 files | Exposes diagnostic commands to the Bannerlord cheat console. |
+| `ModCheats` | public static class, partial over 74 files | Exposes diagnostic commands to the Bannerlord cheat console. |
 | `NpcMemoryServiceSubmodule` | public class | Entry point for the NPC Memory Service mod. |
 | `ProseInterpretTestRunner` | internal static class | The runner behind cr.prose_interpret_test. |
 | `RomanceBondWatchBehavior` | internal class | Reads the bonds with the player at session start and every hour, for CrRomance.StatusChanged. |
@@ -230,7 +230,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StoryArchiveWriter` | public static class | Writes letters and the mod's notices into the campaign's story archive. |
 | `WorkshopSaleMemoryBehavior` | public class | Gives a character who sold the player a workshop the memory of the sale. |
 
-### CalradiaRemembers.Chat (52)
+### CalradiaRemembers.Chat (53)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -252,7 +252,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatScreen` | internal class | A minimal screen that carries the pre-built chat layer and takes focus when pushed. |
 | `ChatScrollablePanel` | public class | Custom ScrollablePanel that supports a deferred "scroll to bottom" request. |
 | `ChatSpeaker` | internal class | One participant of a chat exchange: the main NPC or a present witness, with the hero, stored profile and display colour used to route the turn and render the line. |
-| `ChatViewModel` | public class, partial over 15 files | (no summary) |
+| `ChatViewModel` | public class, partial over 16 files | (no summary) |
 | `CompanionAudiencePayload` | public class | The companion-audience specifics. |
 | `ComposeScrollablePanel` | public class | A plain ScrollablePanel for the composer's multi-line input. |
 | `ConversationMood` | public static class | How far the player has moved each character's mood in the current conversation. |
@@ -269,6 +269,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ExplorationBackdrop` | internal static class | The suspended-map backdrop an exploration scene's chat window sits on. |
 | `ExplorationSession` | public class | What an exploration scene is, supplied by whoever opens it. |
 | `GameMenuOpener` | internal static class | Opens the vanilla escape/options menu over the chat, exactly as ESC does on the map. |
+| `GeneratedDepthService` | public static class | Generates and keeps a character's depth, once, in the background. |
 | `IActionConfirmationHost` | internal interface | The exact set of view-model operations the action-confirmation flow (ActionConfirmationController) drives, so the controller depends on this seam rather than the whole ChatViewModel. |
 | `IManualActionMenuHost` | internal interface | The exact set of view-model operations the manual action-injection menu (ManualActionMenuController) drives, so the controller depends on this seam rather than the whole ChatViewModel, mirroring IOfferHost and IActionCon... |
 | `IOfferHost` | internal interface | The exact set of view-model operations the offer ("give") flow (OfferController) drives, so the controller depends on this seam rather than the whole ChatViewModel, mirroring IRoundTableHost and IActionConfirmationHost. |
@@ -2039,7 +2040,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ReprieveWay` | public enum | How a condemned lord was spared. |
 | `SceneArc` | public enum | Which named dramatic arc the lead captor's opening act follows this scene: NOT just varied content, but a varied STRUCTURE, so the same captor does not run the identical pacing every time (replayability). |
 
-### CalradiaRemembers.Logic.Character (34)
+### CalradiaRemembers.Logic.Character (42)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2054,6 +2055,14 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `Credulity` | public enum | How readily a character believes the player. |
 | `CredulityFacts` | public class | Who is judged. |
 | `CredulityPolicy` | public static class | Judges and words how readily a character believes the player. |
+| `GeneratedDepthFacts` | public class | What a chat turn knows when it decides whether to give its character a depth. |
+| `GeneratedDepthGenerator` | public static class | Runs the generator and the secret's check over one sheet. |
+| `GeneratedDepthPolicy` | public static class | Whether to generate a character's depth now. |
+| `GeneratedDepthPrompt` | public static class | The two prompts of a generated depth and the reading of their replies. |
+| `GeneratedDepthReply` | public class | What the generator answered, read. |
+| `GeneratedDepthResult` | public class | How a generation ended. |
+| `GeneratedDepthSheet` | public class | The character's sheet as the two calls read it, and what the generator is asked for. |
+| `GeneratedDepthVerdict` | public class | The checker's verdict on the secret. |
 | `GiftBundlePolicy` | public static class | Reads the amount typed for each good, names the bundle, and weighs how welcome it is. |
 | `GiftLine` | public class | One kind of good in a bundle: its name and how many. |
 | `GiftPageFacts` | public class | What the encyclopedia says of a character's gift tastes. |
@@ -3344,7 +3353,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryRecall` | public static class | Which memories carry a short code, and which of them a character has already discussed with the player. |
 | `SharedRecall` | public class | What a character may be shown to REMEMBER in front of others: their own memories, minus anything held in confidence, folded to a bounded recall. |
 
-### NpcMemoryService.Core.Models (90)
+### NpcMemoryService.Core.Models (91)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -3369,6 +3378,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `EncounterContext` | public class | Captures the volatile, per-encounter state that the LLM needs to react appropriately: where the conversation takes place, the diplomatic situation, the player's standing with respect to the NPC, and how much time has pas... |
 | `Fear` | public enum | What a character fears (Gabriel, 27/10/2026: "nous pourrions aussi ajouter certaines superstitions et phobies"). |
 | `GameAction` | public class | A directive emitted by the LLM via the [ACTION] section, requesting the consumer (game mod, etc.) to effect a change in the game world. |
+| `GeneratedDepth` | public class | Who a character is beneath their game sheet: how they speak, how they want to be seen, what they fear, what they will never do, and one private secret. |
 | `GiftKind` | public enum | A kind of gift a character may love or find cold (Gabriel, 27/10/2026: "un NPC pourrait [...] preferer certains cadeaux [...] Une Dame pourrait aimer les fourrures"). |
 | `HeldSecretDisposition` | public enum | How an NPC who knows the player's secret-lover identity is disposed to carry it. |
 | `HeldSecretPolicy` | public static class | Decides how an NPC who holds the player's secret-lover identity is disposed to use it, from regard and hostility. |
