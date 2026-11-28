@@ -193,6 +193,11 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public Task GIVEN_the_intimate_scene_from_game_data_only_WHEN_two_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(IntimateFromGameData());
 
+      // A review of 27/11/2026, "level 5": any NPC of the game, only its game data and its generated depth, an ordinary visit opened by the
+      // player, no letter, no prepared secret, no event. Does a story come out of it? (Gabriel: "oui, lance".)
+      [Test]
+      public Task GIVEN_an_ordinary_visit_from_game_data_WHEN_two_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(OrdinaryVisit());
+
       // The floor enriched: the same game-data Rhian, with a voice, mask, fear, limit and private secret generated from her sheet first.
       [Test]
       public Task GIVEN_the_intimate_scene_from_game_data_with_generated_depth_WHEN_two_people_talk_THEN_the_transcript_is_written_to_read()
@@ -422,6 +427,45 @@ namespace CalradiaRemembers.Tests.Conversation
          sc.Player = corvan;
 
          return sc;
+      }
+
+      // Alympia as the game describes her (her own prompt dump of 12/09/2026: the mod's archetype, romance and consent texts, house,
+      // holdings, relationships), with a short ordinary history with the player. Nothing set for the scene, no events.
+      private static Scenario OrdinaryVisit()
+      {
+         Character arwa = Who("Arwa", PlayerStanding, "a commander of the realm", "a rising house, 120 men", true,
+            "Arwa, a commander of the realm, passing through Poros with her company.",
+            "Pay a courtesy call on the lady who governs Poros, and see what comes of it.", "",
+            new[] {"Arwa", "commander"}, "Alympia: a lady of the Southern Empire who governs Poros; you met her once, a year ago");
+         Character alympia = Who("Alympia", 3, "a lady of the Southern Empire, who governs Poros", "a respected house", true,
+            "Lady Alympia of the Southern Empire."
+            + "\nYour own house's means: its coffers are sound, it keeps a respectable force in the field, and at court its word carries real weight."
+            + "\nYou govern Poros, a town, day to day. It is among the poorer places of its kind in Calradia, its granaries will see it through, its garrison is under"
+            + " strength, its people are content enough and the roads around it are no longer certain."
+            + "\nPERSONALITY: Thanks to Empress Rhagaea's strong rule and progressive vision, the Southern Empire has become significantly more permissive and open to"
+            + " female authority than the Northern and Western Empires. Women of noble birth can hold real power, influence politics and command troops."
+            + "\nCHARACTER: Kind-Hearted. Extends compassion where others would not, believes in second chances. Can be mistaken for weakness by those who prey on it."
+            + "\nYOUR OWN APPEARANCE: You are a fair-skinned woman in your prime, with red hair and blue-grey eyes. You wear fine attire and ride a fine horse."
+            + "\nRELATIONSHIPS: Liege: Rhagaea, ruler of Southern Empire. Friends: Ergene, Hashan, Luichan, Zlatka, Bortu, Esachei. Enemies: Vasilia, Romund, Jarminja,"
+            + " Aphanys of the Embers, Hajara, Ospir. Family: Spouse: Joron; Children: Anea (female, age 10), Nonesos (female, age 12)."
+            + "\nROMANTIC NATURE: Archetype: Kind-Hearted. Orientation: Drawn primarily to men, though not exclusively. Relational patterns: Submissive - yields,"
+            + " follows the partner's lead. Devoted - pours self into the partner. Falls gradually and deeply, drawn by small moments rather than grand gestures."
+            + "\nHOW FAR YOU MAY GO IN WHAT YOU SAY: there is nothing romantic between you. Be as warm, as loyal, or as close a friend as your history deserves."
+            + "\nRELATIONSHIP STATUS & CONSENT: You are married to Joron. Your vows bind you to fidelity."
+            + "\nYOUR HISTORY WITH THIS PLAYER:"
+            + "\n- Day 91131 (FirstMeeting, about 1 year(s) ago): Arwa introduced herself in Poros and complimented my beauty during our first meeting; I acknowledged"
+            + " receipt of her earlier test letter."
+            + "\n- Day 91190 (Collaboration, about 10 month(s) ago): Arwa's company cleared the bandits on the Poros road; I sent her my thanks and a cask of wine."
+            + "\nCURRENT STANCE: Your own personal regard for this player (12): friendly regard.",
+            "Nothing is set for this scene; respond as who you are.", "",
+            new[] {"Alympia", "my lady", "lady"});
+
+         return new Scenario {
+            Id = "ordinary", Title = "An ordinary visit", Tone = "everyday, courteous, unhurried", GenerateDepth = true,
+            Setting = "The governor's hall in Poros, a grey afternoon. Petitioners have just been sent away; a clerk gathers ledgers at a side table.",
+            Player = arwa, FirstLine = "Alympia|Lady Alympia. My company is passing through Poros, and I thought I owed you a visit.",
+            Cast = new List<Character> {alympia}, Beats = 8, Complications = new List<string>()
+         };
       }
 
       private static Scenario Theft()
