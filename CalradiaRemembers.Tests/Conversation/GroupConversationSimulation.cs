@@ -62,6 +62,10 @@ namespace CalradiaRemembers.Tests.Conversation
          // what a character alone has read is kept apart from the sheet's own words; every reader goes through Hidden().
          public bool SecretTold;
          public List<string> Knows = new();
+         // The secrets one by one, each with its own state (Gabriel, 28/11/2026, "règle les points 1 et 2": Rhian's marriage stayed
+         // "hidden" after she spoke of it, since two secrets overlapped and one flag covered both; and with three people present, a
+         // secret is told to someone, not to the room). The same list as the character's dossier, so a scene's telling lasts.
+         public List<Kept> Secrets = new();
          public string StartBond = "";
          public string Objective = "";
          public string Tactic = "";
@@ -91,6 +95,8 @@ namespace CalradiaRemembers.Tests.Conversation
          public List<Character> Cast = new();
          public List<string> Complications = new();
          public int Beats = 5;
+         // The day of the world this scene is played on: memories carry their day, and "three days ago" is computed, never remembered.
+         public int Day = 100;
          // The dramaturge may end the scene only once this many beats are played, and bring events only up to this beat (Gabriel,
          // 27/11/2026, the intimate scene at 12 beats: it ended at beat 8, just before the intimacy, and events kept breaking its rise).
          public int EndFrom = 3;
@@ -166,18 +172,37 @@ namespace CalradiaRemembers.Tests.Conversation
          public string PrivateNews = "";
       }
 
-      // What one character carries away from a scene (Gabriel, 27/11/2026, "le point 3 est intéressant": the story lives between the
-      // scenes). Events in the mod's own form (first person, past tense), the lasting change consolidated into one, the bond, what
-      // is left unsettled, and what is still kept from the other.
-      private sealed class Memory
+      // What one character carries from meeting to meeting (Gabriel, 27/11/2026, "le point 3 est intéressant": the story lives between
+      // the scenes). A review of the first two-meeting run found the memory rewritten whole after each scene: Corvan's burned letters,
+      // never told, were gone from what he hid after the second meeting; "in three days" was still said three days later; and what
+      // was left unsettled came back empty. So the dossier is cumulative: events and lasting changes are appended with their day, a
+      // secret stays until it is told (and then says to whom it is no longer one), an unsettled matter stays until a scene settles it.
+      private sealed class Dated
       {
-         public List<string> Events = new();
-         public string Changed = "", Bond = "", Open = "", Hidden = "";
+         public int Day;
+         public string Text = "";
+      }
+
+      private sealed class Kept
+      {
+         public string Text = "";
+         public int Since;
+         public int ToldOn = -1;
+         public List<string> ToldTo = new();
+      }
+
+      private sealed class Dossier
+      {
+         public List<Dated> Events = new();
+         public List<Dated> Changes = new();
+         public List<Kept> Secrets = new();
+         public List<string> Open = new();
+         public string Bond = "";
       }
 
       private sealed class Outcome
       {
-         public Dictionary<string, Memory> Memories = new();
+         public Dictionary<string, Dossier> Dossiers = new();
          public string Path = "";
       }
 
@@ -234,16 +259,33 @@ namespace CalradiaRemembers.Tests.Conversation
       [Test]
       public Task GIVEN_an_ordinary_visit_from_game_data_WHEN_two_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(OrdinaryVisit());
 
-      // Two scenes in a row: "The east window", then the same two people three days later with only what the first left them.
+      private static readonly JsonSerializerOptions DossierJson = new() {IncludeFields = true, WriteIndented = true};
+      private static string DossierPath => Path.Combine(Path.GetTempPath(), "cr_group_dossiers_after_first.json");
+
+      // Three scenes in a row: "The east window" (day 100), the herald's hour (day 103), the unsigned contract (day 104). The two carry
+      // only their dossiers from one to the next. The dossiers after the first night are saved, so the second meeting can be replayed.
       [Test]
-      public async Task GIVEN_a_second_meeting_three_days_later_WHEN_two_people_talk_THEN_the_transcript_is_written_to_read()
+      public async Task GIVEN_three_meetings_over_five_days_WHEN_two_people_talk_THEN_the_transcripts_are_written_to_read()
       {
          Scenario first = Intimate();
          first.EndFrom = 3;
          first.Beats = 10;
-         Outcome night = await RunAsync(first);
+         Outcome o = await RunAsync(first, SeedDossiers());
+         File.WriteAllText(DossierPath, JsonSerializer.Serialize(o.Dossiers, DossierJson));
+         File.WriteAllText(DossierPath + ".scene.txt", o.Path);
+         o = await RunAsync(LaterMeeting(o.Dossiers, 2), o.Dossiers);
+         await RunAsync(LaterMeeting(o.Dossiers, 3), o.Dossiers);
+      }
 
-         await RunAsync(SecondMeeting(night));
+      // The second meeting alone, from the saved dossiers of the first night: with CR_SIM_MEMORY=none|events|changes|full it measures
+      // what each layer of memory brings.
+      [Test]
+      public async Task GIVEN_the_second_meeting_replayed_from_the_saved_first_night_WHEN_two_people_talk_THEN_the_transcript_is_written_to_read()
+      {
+         if (!File.Exists(DossierPath)) Assert.Ignore("Run the three meetings once first: they save the dossiers of the first night.");
+         var dossiers = JsonSerializer.Deserialize<Dictionary<string, Dossier>>(File.ReadAllText(DossierPath), DossierJson);
+
+         await RunAsync(LaterMeeting(dossiers, 2), dossiers);
       }
 
       // The same visit with the scene composer: world events, the NPC's memories and the encounter as it stands (Gabriel, 27/11/2026).
@@ -571,49 +613,97 @@ namespace CalradiaRemembers.Tests.Conversation
          return sc;
       }
 
-      // The second meeting, three days later: the same two people, carrying only what the first scene left them (events, the lasting
-      // change, the bond, what is unsettled, what is still hidden). Nothing is set for either; the world has moved: the truce is over
-      // and Lord Ferran has come. Does the psychology hold from one scene to the next?
-      private static Scenario SecondMeeting(Outcome first)
+      // CR_SIM_MEMORY: none | events | changes | full (a review's ablation: what does each layer of memory bring to the next meeting?).
+      private static string MemoryLevel => Environment.GetEnvironmentVariable("CR_SIM_MEMORY") ?? "full";
+
+      // The dossier as the character's sheet holds it on the day of the scene. Days are counted here, at reading.
+      private static void Carry(Character c, Character other, Dossier d, int today)
+      {
+         string level = MemoryLevel;
+         if (level != "none" && d.Events.Count > 0)
+            c.Persona += $"\nYOUR HISTORY WITH {other.Name.ToUpperInvariant()} (today is day {today}):\n"
+                         + string.Join("\n", d.Events.Select(e => $"- day {e.Day} ({Ago(e.Day, today)}): {e.Text}"));
+         if (level is "changes" or "full")
+         {
+            if (d.Changes.Count > 0) c.Persona += "\nWhat those meetings changed in you:\n" + string.Join("\n", d.Changes.Select(e => $"- day {e.Day} ({Ago(e.Day, today)}): {e.Text}"));
+            c.StartBond = d.Bond;
+            if (d.Bond.Length > 0) c.Ties.Add($"Where you stand with {other.Name}: {d.Bond}");
+         }
+
+         if (level == "full")
+         {
+            if (d.Open.Count > 0) c.Persona += "\nStill unsettled between you:\n" + string.Join("\n", d.Open.Select(o => "- " + o));
+         }
+
+         // Without the full dossier nothing says which secret was told: all of them stand as kept.
+         c.Secrets = level == "full" ? d.Secrets : d.Secrets.Select(k => new Kept {Text = k.Text, Since = k.Since}).ToList();
+         c.Secret = string.Join(" ", c.Secrets.Where(k => !k.ToldTo.Contains(other.Name)).Select(k => k.Text));
+      }
+
+      private static Dictionary<string, Dossier> SeedDossiers() => new() {
+         ["Corvan"] = new Dossier {Secrets = {
+            new Kept {Text = "The marshal ordered me to count the spears on her walls. I have not, and I will not.", Since = 100},
+            new Kept {Text = "I wrote her three letters, the summer after I left; my father burned them before they were sent.", Since = 100}
+         }},
+         ["Rhian"] = new Dossier {Secrets = {new Kept {Text = "I am to marry Lord Ferran of Seonon, a match for the alliance my fort needs.", Since = 100}}}
+      };
+
+      // The later meetings of the same two people, carrying only their dossiers. Nothing is set for Rhian; the world has moved.
+      // Does the psychology hold from one scene to the next, and does an old secret survive two scenes untold?
+      private static Scenario LaterMeeting(Dictionary<string, Dossier> dossiers, int which)
       {
          Scenario old = Intimate();
+         int day = which == 2 ? 103 : 104;
          Character corvan = Who("Corvan", PlayerStanding, "a knight of Vlandia, here as the marshal's herald", "his own lance and a herald's white flag", false,
             "Sir Corvan, thirty-six, a Vlandian knight. Seven years ago he and Rhian were lovers, the summer he was a hostage at her father's fort; he was"
-            + " exchanged in the autumn. Three nights ago, during the truce, he came to her chamber.",
-            "You asked to be the one who carries the marshal's terms, to see her once more. What you want of it is yours to find.", "",
+            + " exchanged in the autumn.",
+            which == 2 ? "You asked to be the one who carries the marshal's terms, to see her once more. What you want of it is yours to find."
+               : "Take her answer back to the marshal. What else you want of this hour is yours to find.", "",
             new[] {"Corvan", "Sir"});
          Character rhian = Who("Rhian", 3, "the lady of Dun Ceana, a Battanian hill fort", "the fort and its eighty spears", true,
             "Lady Rhian, thirty-four, holds her dead father's fort. Proud, quick, warm with the few she trusts. Seven years ago she and Corvan were lovers."
-            + " Lord Ferran of Seonon arrived this morning; the marriage contract between them is to be signed tomorrow at noon, for the alliance her fort needs.",
+            + (which == 2 ? " Lord Ferran of Seonon arrived this morning; the marriage contract between them is to be signed tomorrow, day 104, at noon."
+               : " Lord Ferran of Seonon has been here since yesterday; the marriage contract between them is to be signed today at noon."),
             "Nothing is set for this scene; respond as who you are.", "",
             new[] {"Rhian", "my lady", "lady"});
          Inner(corvan, old.Player.Voice, old.Player.Mask, old.Player.Fear, old.Player.Limit);
          Inner(rhian, old.Cast[0].Voice, old.Cast[0].Mask, old.Cast[0].Fear, old.Cast[0].Limit);
-         foreach ((Character c, Character other) in new[] {(corvan, rhian), (rhian, corvan)})
-         {
-            if (!first.Memories.TryGetValue(c.Name, out Memory mem)) continue;
-            c.Persona += $"\nYOUR HISTORY WITH {other.Name.ToUpperInvariant()}:\n" + string.Join("\n", mem.Events.Select(e => "- 3 days ago: " + e))
-                         + (mem.Changed.Length == 0 ? "" : $"\nWhat that night changed in you: {mem.Changed}")
-                         + (mem.Open.Length == 0 ? "" : $"\nLeft unsettled between you: {mem.Open}");
-            c.Secret = mem.Hidden;
-            c.StartBond = mem.Bond;
-            if (mem.Bond.Length > 0) c.Ties.Add($"Where you stand with {other.Name}: {mem.Bond}");
-         }
+         if (dossiers.TryGetValue("Corvan", out Dossier dc)) Carry(corvan, rhian, dc, day);
+         if (dossiers.TryGetValue("Rhian", out Dossier dr)) Carry(rhian, corvan, dr, day);
+         string suffix = MemoryLevel == "full" ? "" : "_" + MemoryLevel;
+
+         if (which == 2)
+            return new Scenario {
+               Id = "second" + suffix, Day = day, Title = "The herald's hour (day 103, three days after the east window)", Adult = true,
+               Tone = "intimate, restrained, with danger close",
+               Setting = "Rhian's chamber in the tower of Dun Ceana, at dusk, three days after the night of the east window. No candle stands in the window. Lord"
+                         + " Ferran's banners hang in the yard below. Corvan has come up under a herald's white flag, and Rhian receives him alone.",
+               GameFacts = new List<string> {
+                  "The truce ended on day 101; the Vlandian camp still sits below the hill.",
+                  "Lord Ferran of Seonon rode into Dun Ceana this morning, day 103, with forty riders.",
+                  "Corvan carries the marshal's terms for the fort: open the gates by noon of day 105 and keep your lands under Vlandia, or be besieged."
+               },
+               Player = corvan, FirstLine = "Rhian|I carry the marshal's terms. I asked to be the one who brought them.",
+               Cast = new List<Character> {rhian}, Beats = 8,
+               Complications = new List<string> {
+                  "*Lord Ferran's voice carries up the stair: he asks the guard whether the lady is still closeted with the Vlandian herald.*",
+                  "*A horn sounds from the Vlandian camp: the herald's hour is nearly spent.*"
+               }
+            };
 
          return new Scenario {
-            Id = "second", Title = "The herald's hour (three days after the east window)", Adult = true, Tone = "intimate, restrained, with danger close",
-            Setting = "Rhian's chamber in the tower of Dun Ceana, at dusk, three days after the truce. No candle stands in the east window. Lord Ferran's banners"
-                      + " hang in the yard below. Corvan has come up under a herald's white flag, and Rhian receives him alone.",
+            Id = "third" + suffix, Day = day, Title = "The unsigned contract (day 104)", Adult = true, Tone = "intimate, restrained, a decision closing in",
+            Setting = "The solar of Dun Ceana, the morning of day 104. The marriage contract lies unsigned on the table, ink and seal beside it; Lord Ferran and the"
+                      + " witnesses wait in the hall below for noon. Corvan has been let in once more under the white flag, for the lady's answer to the marshal.",
             GameFacts = new List<string> {
-               "The truce ended two days ago; the Vlandian camp still sits below the hill.",
-               "Lord Ferran of Seonon rode into Dun Ceana this morning with forty riders.",
-               "Corvan carries the marshal's terms for the fort: open the gates within two days and keep your lands under Vlandia, or be besieged."
+               "The truce ended on day 101; the Vlandian camp still sits below the hill.",
+               "Lord Ferran of Seonon has been at Dun Ceana since day 103 with forty riders.",
+               "The marshal's terms run out at noon of day 105: open the gates and keep the lands under Vlandia, or be besieged."
             },
-            Player = corvan, FirstLine = "Rhian|I carry the marshal's terms. I asked to be the one who brought them.",
+            Player = corvan, FirstLine = "Rhian|I've come for your answer to the marshal. He gives you until noon tomorrow.",
             Cast = new List<Character> {rhian}, Beats = 8,
             Complications = new List<string> {
-               "*Lord Ferran's voice carries up the stair: he asks the guard whether the lady is still closeted with the Vlandian herald.*",
-               "*A horn sounds from the Vlandian camp: the herald's hour is nearly spent.*"
+               "*A steward knocks and speaks through the door: Lord Ferran and the witnesses are assembled in the hall, and the contract awaits the lady's hand.*"
             }
          };
       }
@@ -654,7 +744,7 @@ namespace CalradiaRemembers.Tests.Conversation
 
       // ── the run ──
 
-      private async Task<Outcome> RunAsync(Scenario sc)
+      private async Task<Outcome> RunAsync(Scenario sc, Dictionary<string, Dossier> dossiers = null)
       {
          JsonElement settings = LoadSettingsOrIgnore(out string key);
          using var http = new HttpClient {Timeout = TimeSpan.FromSeconds(120)};
@@ -685,13 +775,29 @@ namespace CalradiaRemembers.Tests.Conversation
          var cost = new double[2];
          var calls = new Dictionary<string, int> {["judge"] = 0, ["prose"] = 0, ["nsfw"] = 0, ["interpret"] = 0, ["director"] = 0, ["mind"] = 0, ["keeper"] = 0};
          var shownThisBeat = new Dictionary<string, string>();
+         var shownEver = new HashSet<string>();
+         var sinceReaction = 1;
          var away = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
          var usedComplications = new HashSet<int>();
          var interpreting = new List<(SceneLine Line, Task<string> Task)>();
          if (sc.GenerateDepth) await Task.WhenAll(sc.Cast.Select(c => GenerateDepth(m, c, cost, calls, debug)));
          if (sc.Compose) await ComposeScene(m, sc, cost, calls, debug);
+         // Each character's secrets are their dossier's, one by one: what a scene tells is told for good.
+         dossiers ??= new Dictionary<string, Dossier>();
+         foreach (Character c in sc.Cast.Append(sc.Player))
+         {
+            if (!dossiers.TryGetValue(c.Name, out Dossier own))
+            {
+               own = new Dossier();
+               if (c.Secrets.Count > 0) own.Secrets.AddRange(c.Secrets);
+               else if (!string.IsNullOrWhiteSpace(c.Secret)) own.Secrets.Add(new Kept {Text = c.Secret, Since = sc.Day});
+               dossiers[c.Name] = own;
+            }
+
+            if (c.Secrets.Count == 0) c.Secrets = own.Secrets;
+         }
          var states = sc.Cast.ToDictionary(c => c.Name, c => new InnerState {
-            Feeling = "as the scene opens", Aim = c.Objective, FirstAim = c.Objective, Tactic = c.Tactic, Showing = c.Mask, Hiding = c.Secret, Bond = c.StartBond
+            Feeling = "as the scene opens", Aim = c.Objective, FirstAim = c.Objective, Tactic = c.Tactic, Showing = c.Mask, Hiding = string.Join(" ", c.Secrets.Where(k => k.ToldTo.Count == 0).Select(k => k.Text)), Bond = c.StartBond
          });
          sc.GameFacts = sc.GameFacts.Concat(sc.WorldEvents).Concat(sc.NpcMemories).Concat(sc.SharedRecently).Distinct().ToList();
          string cutOff = null;
@@ -734,6 +840,7 @@ namespace CalradiaRemembers.Tests.Conversation
                      if (reader != null)
                      {
                         reader.Knows.Add(parts[2]);
+                        reader.Secrets.Add(new Kept {Text = "I alone read or saw: " + parts[2], Since = sc.Day});
                         states[reader.Name].PrivateNews = parts[2];
                      }
                   }
@@ -849,9 +956,17 @@ namespace CalradiaRemembers.Tests.Conversation
                // A reaction shows when the referee lets it AND it is news: the first this beat, or the character just changed inside.
                // Run 2 showed Kael's jealousy nine times ("jealous", "jealous fury"...): the label varied, the feeling did not.
                List<string> leaks = !InnerOn ? new List<string>() : sc.Cast.Where(c => states[c.Name].Leak && c.Name != d.SpeakerId && !away.Contains(c.Name)).Select(c => c.Name).ToList();
-               List<string> shown = d.ReactorIds.Where(id => id != d.SpeakerId)
-                  .Where(id => !InnerOn || (!states[id].Visible.StartsWith("nothing") && (!shownThisBeat.ContainsKey(id) || states[id].Shift != "none")))
-                  .Concat(leaks).Distinct().Take(ReactionsOn ? 2 : 0).ToList();
+               // Which reaction is worth telling is chosen here (measured on 28/11/2026, five drama runs each way: with every reaction the
+               // referee let through, subtext 6.9 and repetition 4.0; with none, subtext 5.8 and repetition 6.7; the prose model, offered
+               // "nothing", never took it). One at most a line, never on two lines running, and only one that tells the reader something:
+               // a blow that leaks through a mask, a change of tactic, of aim or a lasting one, or the first sign a character gives in the scene.
+               List<string> shown = !InnerOn
+                  ? d.ReactorIds.Where(id => id != d.SpeakerId).Take(ReactionsOn ? 2 : 0).ToList()
+                  : leaks.Concat(d.ReactorIds.Where(id => id != d.SpeakerId && !states[id].Visible.StartsWith("nothing") && sinceReaction >= 1
+                                                          && (Telling(states[id]) || shownEver.Add(id))))
+                     .Distinct().Take(ReactionsOn ? 1 : 0).ToList();
+               foreach (string id in shown) shownEver.Add(id);
+               sinceReaction = shown.Count > 0 ? 0 : sinceReaction + 1;
                foreach (string id in leaks) states[id].Leak = false;
                Task<(string Text, string Model)> narrating = null;
                if (shown.Count > 0)
@@ -904,18 +1019,28 @@ namespace CalradiaRemembers.Tests.Conversation
             foreach (string lasting in s.Lasting) debug.AppendLine($"  - FOR MEMORY (lasting): {lasting}");
          }
 
-         var outcome = new Outcome();
+         var outcome = new Outcome {Dossiers = dossiers ?? new Dictionary<string, Dossier>()};
          if (InnerOn)
          {
             List<Character> everyone = sc.Cast.Append(sc.Player).ToList();
-            Memory[] memories = await Task.WhenAll(everyone.Select(c => Remember(m, sc, c, states.TryGetValue(c.Name, out InnerState st) ? st : null, scene, cost, calls)));
-            debug.AppendLine("\n**What each would remember (for the next meeting)**");
-            for (var i = 0; i < everyone.Count; i++)
+            foreach (Character c in everyone.Where(c => !outcome.Dossiers.ContainsKey(c.Name)))
             {
-               outcome.Memories[everyone[i].Name] = memories[i];
-               debug.AppendLine($"- {everyone[i].Name}:");
-               foreach (string e in memories[i].Events) debug.AppendLine($"  - event: {e}");
-               debug.AppendLine($"  - changed: {memories[i].Changed}\n  - bond: {memories[i].Bond}\n  - left unsettled: {memories[i].Open}\n  - still hidden: {memories[i].Hidden}");
+               var fresh = new Dossier();
+               if (!string.IsNullOrWhiteSpace(c.Secret)) fresh.Secrets.Add(new Kept {Text = c.Secret, Since = sc.Day});
+               outcome.Dossiers[c.Name] = fresh;
+            }
+
+            await Task.WhenAll(everyone.Select(c => Remember(m, sc, c, states.TryGetValue(c.Name, out InnerState st) ? st : null, scene, outcome.Dossiers[c.Name], cost, calls)));
+            debug.AppendLine($"\n**What each carries away (day {sc.Day}; the dossier grows from meeting to meeting)**");
+            foreach (Character c in everyone)
+            {
+               Dossier d = outcome.Dossiers[c.Name];
+               debug.AppendLine($"- {c.Name}:");
+               foreach (Dated e in d.Events) debug.AppendLine($"  - event, day {e.Day}: {e.Text}");
+               foreach (Dated e in d.Changes) debug.AppendLine($"  - changed, day {e.Day}: {e.Text}");
+               debug.AppendLine($"  - bond: {d.Bond}");
+               foreach (string o in d.Open) debug.AppendLine($"  - unsettled: {o}");
+               foreach (Kept k in d.Secrets) debug.AppendLine($"  - {(k.ToldTo.Count == 0 ? "still hidden" : $"told to {string.Join(" and ", k.ToldTo)} on day {k.ToldOn}")}: {k.Text}");
             }
          }
 
@@ -932,24 +1057,40 @@ namespace CalradiaRemembers.Tests.Conversation
          return outcome;
       }
 
-      private static async Task<Memory> Remember(Models m, Scenario sc, Character c, InnerState s, List<SceneLine> scene, double[] cost, Dictionary<string, int> calls)
+      private static string Ago(int day, int today) => today - day <= 0 ? "today" : today - day == 1 ? "yesterday" : $"{today - day} days ago";
+
+      // One call at a scene's end UPDATES the character's dossier: it appends, marks a secret told, settles a matter; it never rewrites.
+      private static async Task Remember(Models m, Scenario sc, Character c, InnerState s, List<SceneLine> scene, Dossier d, double[] cost, Dictionary<string, int> calls)
       {
+         List<string> present = sc.Cast.Append(sc.Player).Where(o => o != c).Select(o => o.Name).ToList();
+         List<Kept> untold = d.Secrets.Where(k => present.Any(p => !k.ToldTo.Contains(p))).ToList();
+         List<string> open = d.Open.ToList();
          string others = string.Join(", ", sc.Cast.Append(sc.Player).Where(o => o != c).Select(o => o.Name));
          string system = $"You write what {c.Name} carries away from a scene, as {c.Name}'s own memory, for the next time these people meet. Use only what"
-                       + " happened in the scene and what is given; invent nothing. Answer exactly these lines:"
+                       + $" happened in the scene and what is given; invent nothing. Today is day {sc.Day}: when you mention a time, name its day ('on day {sc.Day + 3}'),"
+                       + " never 'tomorrow' or 'in three days', which will be false when this is read again. Answer exactly these lines:"
                        + "\nevent: <one sentence, first person, past tense: what happened, as I would recount it> (one to three such lines, the ones that matter)"
                        + "\nchanged: <what this meeting changed in me that will last, consolidated into one or two sentences; or nothing>"
-                       + $"\nbond: <toward {others}: understands yes/partly/no, forgives yes/partly/no, loves yes/partly/no, trusts yes/partly/no>"
-                       + "\nopen: <what is left unsettled between us: a promise made, a question not answered, a thing asked and not given; separated by ' | '; or nothing>"
-                       + "\nhidden: <what I still keep from them after this scene, exactly as it now stands; or nothing>";
+                       + $"\nbond: <toward {others}: understands yes/partly/no, forgives yes/partly/no, loves yes/partly/no, trusts yes/partly/no> (each moves only"
+                       + " for a cause in this scene; otherwise keep it as it was)"
+                       // The first three-meeting run: Rhian's list held the same matter three times and Corvan's ten, none ever settled.
+                       + "\nopen: <the WHOLE list of what stands unsettled between us now: every matter from UNSETTLED BEFORE THIS SCENE that this scene"
+                       + " did not truly settle, the same matter written once, plus what this scene left open (a question I still carry, a thing asked and"
+                       + " not given, a promise, what I must still decide about them); at most six, separated by ' | '; or nothing>"
+                       + "\ntold: <each of MY SECRETS below that I told in this scene, in words or made plain by what I said, as 'number to Name'; a secret"
+                       + " contained in another one I told counts too; separated by ' | '; or none>"
+                       + "\nsecret: <a new thing this scene gave me that I now keep from them; or nothing>";
          string mine = string.Join("\n", scene.Where(l => l.Only == null || l.Only == c.Name).Select(l => l.IsNarration ? l.Text : $"{l.Speaker}: {l.Text}"));
-         string user = $"{c.Name.ToUpperInvariant()}: {c.Persona}" + (Hidden(c).Length == 0 ? "" : $"\nHeld back as the scene ends: {Hidden(c)}")
+         string user = $"{c.Name.ToUpperInvariant()}: {c.Persona}"
                      + (s == null ? "" : $"\nAs the scene ends: feels {s.Feeling}; wants {s.Aim}; hides {s.Hiding}; bond: {s.Bond}"
                                          + (s.Shifts.Count == 0 ? "" : "\nWhat changed in them during the scene:\n" + string.Join("\n", s.Shifts.Select(x => "- " + x))))
-                     + $"\n\nWHAT WAS ESTABLISHED:\n{RecordText(sc)}\n\nTHE SCENE:\n{mine}";
+                     + (d.Bond.Length == 0 ? "" : $"\nTheir bond before this scene: {d.Bond}")
+                     + "\n\nMY SECRETS, STILL KEPT BEFORE THIS SCENE:\n" + (untold.Count == 0 ? "(none)" : string.Join("\n", untold.Select((k, i) => $"{i + 1}. {k.Text}")))
+                     + "\n\nUNSETTLED BEFORE THIS SCENE:\n" + (open.Count == 0 ? "(nothing)" : string.Join("\n", open.Select((o, i) => $"{i + 1}. {o}")))
+                     + $"\n\nWHAT WAS ESTABLISHED:\n{RecordText(sc)}\n\nTHE SCENE (day {sc.Day}):\n{mine}";
          LlmResponse r = await m.Prose.CompleteAsync(new LlmRequest {
             SystemPrompt = system, Messages = new[] {new LlmMessage(MessageRole.User, user)},
-            Parameters = new LlmParameters {MaxTokens = 600, Creativity = 0.3f, AllowTruncationRetry = false}
+            Parameters = new LlmParameters {MaxTokens = 700, Creativity = 0.3f, AllowTruncationRetry = false}
          });
          lock (cost) { cost[1] += r.Usage?.Cost ?? 0; calls["prose"]++; }
          string content = r.Content ?? "";
@@ -958,11 +1099,24 @@ namespace CalradiaRemembers.Tests.Conversation
             string v = Clean(Regex.Match(content, $@"(?im)^\s*{name}\s*:\s*(.+)$").Groups[1].Value);
             return v.StartsWith("nothing", StringComparison.OrdinalIgnoreCase) || v.StartsWith("none", StringComparison.OrdinalIgnoreCase) ? "" : v;
          }
+         List<int> Numbers(string name) => Regex.Matches(Field(name), @"\d+").Select(x => int.Parse(x.Value) - 1).Distinct().ToList();
 
-         return new Memory {
-            Events = Regex.Matches(content, @"(?im)^\s*event\s*:\s*(.+)$").Select(x => Clean(x.Groups[1].Value)).Where(e => e.Length > 0).Take(3).ToList(),
-            Changed = Field("changed"), Bond = Field("bond"), Open = Field("open"), Hidden = Field("hidden")
-         };
+         foreach (string e in Regex.Matches(content, @"(?im)^\s*event\s*:\s*(.+)$").Select(x => Clean(x.Groups[1].Value)).Where(e => e.Length > 0).Take(3))
+            d.Events.Add(new Dated {Day = sc.Day, Text = e});
+         if (Field("changed").Length > 0) d.Changes.Add(new Dated {Day = sc.Day, Text = Field("changed")});
+         if (Field("bond").Length > 0) d.Bond = Field("bond");
+         // The list of unsettled matters is the one thing consolidated whole; a reply with no such line keeps the old list.
+         if (Regex.IsMatch(content, @"(?im)^\s*open\s*:")) d.Open = Field("open").Split('|').Select(o => o.Trim()).Where(o => o.Length > 0).Take(6).ToList();
+         foreach (string part in Field("told").Split('|'))
+         {
+            Match n = Regex.Match(part, @"\d+");
+            if (!n.Success || int.Parse(n.Value) < 1 || int.Parse(n.Value) > untold.Count) continue;
+            Kept k = untold[int.Parse(n.Value) - 1];
+            List<string> to = present.Where(p => part.IndexOf(p, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+            k.ToldOn = sc.Day;
+            foreach (string p in (to.Count > 0 ? to : present).Where(p => !k.ToldTo.Contains(p))) k.ToldTo.Add(p);
+         }
+         if (Field("secret").Length > 0) d.Secrets.Add(new Kept {Text = Field("secret"), Since = sc.Day});
       }
 
       // The prose model first; the NSFW model only when it refuses, by the chat's own Enhanced rule.
@@ -1085,7 +1239,8 @@ namespace CalradiaRemembers.Tests.Conversation
                        + "\ndetail: <the false statement, the repeated gesture or image, or the record it contradicts, with your reasoning; or none>"
                        + "\nfacts: <what this line makes true for everyone present: objects moved, who holds what, what was shown, admitted or revealed; separated by ' | '; or none>"
                        + "\nobjects: <each thing this line moves or changes, as 'thing: where it is and how it stands now', separated by ' | '; or none>"
-                       + $"\nrevealed: <yes | no> (does this line tell those present the secret in WHAT {c.Name.ToUpperInvariant()} KNOWS, in whole or in part?)"
+                       + $"\nrevealed: <the numbers of the numbered secrets in WHAT {c.Name.ToUpperInvariant()} KNOWS that this line tells those present, in words or made plain"
+                       + " by what is said (a secret contained in another one told counts too); or none>"
                        + "\nproblem: <none | lie | repeat | contradiction | invention> (your final verdict on the detail above; if your reasoning cleared the line, none)"
                        + $"\nA LIE: a statement of fact that WHAT {c.Name.ToUpperInvariant()} KNOWS shows to be false, or an excuse {c.Name} invents and knows is untrue."
                        // The third review of 27/11/2026: the keeper read the absence of proof as a lie ("Tomas cannot have seen Berold fight,
@@ -1096,6 +1251,9 @@ namespace CalradiaRemembers.Tests.Conversation
                        + $"\nA REPEAT: a gesture, a way of handling an object, or an image that {c.Name} already used in this scene, or an image someone else already used,"
                        + " or an order or demand someone else already made in this scene and that this line only makes again (a second voice sending the same person away)."
                        + " Answering a question again is not a repeat."
+                       // The second meeting of 27/11/2026: Rhian pouring a cup was refused as a repeat of the cup she poured three nights before.
+                       + " Only THE SCENE SO FAR counts: a gesture from an earlier meeting, told in someone's history or memories, is not a repeat,"
+                       + " and echoing it on purpose is a callback, which is welcome."
                        + "\nA CONTRADICTION: the line conflicts with the record, with where things are now, or with the world's facts."
                        // Gabriel, 27/11/2026: "le problème arrive lorsque le LLM invente quelque chose que le jeu peut contredire" (Corvan
                        // "married where my father told me"; a marshal's plan of assault; a raid the facts did not hold).
@@ -1123,7 +1281,12 @@ namespace CalradiaRemembers.Tests.Conversation
 
          // A review of 27/11/2026: Rhian told Corvan of the marriage at beat 5, and at beats 10 to 12 the dramaturge still read "You have
          // not told Corvan" in her sheet. A secret told is marked as told wherever the sheet is read; the sheet's own words stay.
-         if (problem == "none" && Line("revealed").ToLowerInvariant().StartsWith("yes") && !string.IsNullOrWhiteSpace(c.Secret)) c.SecretTold = true;
+         if (problem == "none")
+            foreach (int i in Regex.Matches(Line("revealed"), @"\d+").Select(x => int.Parse(x.Value) - 1).Where(i => i >= 0 && i < c.Secrets.Count))
+            {
+               c.Secrets[i].ToldOn = sc.Day;
+               foreach (Character o in sc.Cast.Append(sc.Player).Where(o => o != c && !c.Secrets[i].ToldTo.Contains(o.Name))) c.Secrets[i].ToldTo.Add(o.Name);
+            }
 
          return (problem, Line("detail"), facts, Line("objects"));
       }
@@ -1218,9 +1381,10 @@ namespace CalradiaRemembers.Tests.Conversation
       // told secret for a kept one) and what they alone have read or seen during the scene.
       private static string Hidden(Character c)
       {
-         string secret = string.IsNullOrWhiteSpace(c.Secret) ? "" : c.SecretTold ? $"{c.Secret} (No longer hidden: {c.Name} has told this to those present, and they know it.)" : c.Secret;
+         if (c.Secrets.Count == 0) return (c.Secret ?? "").Trim();
 
-         return (secret + string.Concat(c.Knows.Select(k => $" {c.Name} alone has read or seen: {k}"))).Trim();
+         return string.Join(" ", c.Secrets.Select((k, i) => $"({i + 1}) {k.Text}"
+                                                           + (k.ToldTo.Count == 0 ? "" : $" [told to {string.Join(" and ", k.ToldTo)} on day {k.ToldOn}: no longer hidden from them, they know it]")));
       }
 
       private static string RecordText(Scenario sc)
@@ -1402,6 +1566,8 @@ namespace CalradiaRemembers.Tests.Conversation
 
       #region private
 
+      private static bool Telling(InnerState s) => s.Shift != "none" && (s.Level.StartsWith("tactic") || s.Level.StartsWith("aim") || s.Level.StartsWith("lasting"));
+
       private static string EventText(string complication)
       {
          string[] parts = complication.Split('|');
@@ -1433,6 +1599,8 @@ namespace CalradiaRemembers.Tests.Conversation
          sb.AppendLine($"You are {me.Name}. {me.Persona}");
          sb.AppendLine($"Where you are: {sc.Setting}");
          if (Hidden(me).Length > 0) sb.AppendLine($"Known only to you: {Hidden(me)}");
+         // The memory ablation of 28/11/2026: "the stray 'day 105' breaks the fiction". Days are numbered for the reader of the sheet only.
+         sb.AppendLine($"Today is day {sc.Day}. The day numbers are yours alone: aloud, say 'tomorrow', 'three nights ago', 'at noon', never 'day {sc.Day + 1}'.");
          if (sc.GameFacts.Count > 0) sb.AppendLine("What is true in the world, as you know it (never contradict it, never add to it):\n" + string.Join("\n", sc.GameFacts.Select(f => "- " + f)));
          sb.AppendLine("Who is here: " + string.Join("; ", room.Select(p => $"{p.Name} ({(p.IsFemale ? "a woman" : "a man")}, {p.Station})")));
          lock (sc.Record)
@@ -1511,6 +1679,7 @@ namespace CalradiaRemembers.Tests.Conversation
       {
          string system = $"You write ONE short line of narration for a scene ({sc.Tone}), present tense, third person, in asterisks, no dialogue. "
                        + "Show each named reaction as a small, specific gesture of that person, different from any gesture already in the scene. "
+                       + "A different gesture that says what an earlier one said is still a repetition; a thing already in the scene used with a NEW meaning is welcome. "
                        + "Show what the person LETS SHOW, their mask: a feeling they hide leaks only through one small detail, or not at all. "
                        + "A deliberate act (pouring wine, turning away, a smile) often says more than a clenched jaw. "
                        + "Show only what is listed: no other character, no thoughts, no explanation of what the reaction means. "
