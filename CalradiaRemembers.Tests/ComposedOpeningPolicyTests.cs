@@ -118,6 +118,7 @@ namespace CalradiaRemembers.Tests
       [TestCase("ok")]
       [TestCase("OK.")]
       [TestCase("ok: nothing is invented")]
+      [TestCase("ok, it invents nothing")]
       public void GIVEN_an_ok_verdict_WHEN_read_THEN_it_passes(string verdict)
       {
          ComposedOpeningPrompt.ReadVerdict(verdict).Passes.Should().BeTrue();
@@ -137,6 +138,7 @@ namespace CalradiaRemembers.Tests
       [TestCase("")]
       [TestCase("The opening looks fine to me overall, mostly.")]
       [TestCase("okay so let me think")]
+      [TestCase("Ok, but it invents a raid on Varcheg")]
       public void GIVEN_an_empty_or_unreadable_verdict_WHEN_read_THEN_it_fails(string verdict)
       {
          ComposedOpeningPrompt.ReadVerdict(verdict).Passes.Should().BeFalse();
@@ -172,6 +174,16 @@ namespace CalradiaRemembers.Tests
 
          system.Should().Contain("Write the setting, the concern and the tension in French; keep the four labels in English.");
          ComposedOpeningPrompt.ComposerSystem(new ComposedOpeningSheet {NpcName = "Alympia"}).Should().NotContain("keep the four labels");
+      }
+
+      // STAKE: the paragraph is shown to the player; a secret the character keeps (stage 2's record, a private memory)
+      // must not be staged in it, and the check fails a setting that shows one.
+      [Test]
+      public void GIVEN_the_composer_and_the_check_WHEN_their_rules_are_read_THEN_a_kept_secret_never_shows_in_the_setting()
+      {
+         ComposedOpeningPrompt.ComposerSystem(new ComposedOpeningSheet {NpcName = "Alympia", PlayerName = "Arwa"})
+                              .Should().Contain("The doing and the setting are what Arwa sees and hears: what Alympia keeps from Arwa (a secret, a private memory) never shows in them");
+         ComposedOpeningPrompt.CheckSystem.Should().Contain("FAILS when it shows what the facts say the character keeps from the visitor");
       }
 
       // STAKE: the checker reads the very paragraph and concern the player and the character will get.

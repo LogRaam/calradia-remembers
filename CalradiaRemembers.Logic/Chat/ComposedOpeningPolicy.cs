@@ -206,6 +206,8 @@ namespace CalradiaRemembers.Logic.Chat
                 + " servants, guards and the ordinary happenings of the place are yours to choose, as long as they fit the facts. When the facts hold"
                 + $" something {npc} and {player} have just lived together, above all a battle, it colours everything: let the setting show it. The concern"
                 + " may be private (a feeling, a fear) as long as it touches no game fact that is not given."
+                + $" The doing and the setting are what {player} sees and hears: what {npc} keeps from {player} (a secret, a private memory)"
+                + " never shows in them; it may go only in the concern."
                 + (language.Length == 0 ? "" : $"\nWrite the setting, the concern and the tension in {language}; keep the four labels in English.");
       }
 
@@ -244,7 +246,8 @@ namespace CalradiaRemembers.Logic.Chat
          "You check the opening of a scene against the facts the game gave. The opening may choose and stage those facts, and add the weather,"
          + " the light, smells, sounds, servants, guards, clerks, food, gestures, feelings and the ordinary happenings of the place. It INVENTS when"
          + " it states as true a battle, raid, death, capture, marriage, war, alliance, fief, sum of money or troop count that is not in the facts."
-         + " Answer one line only: 'ok', or 'invents <what>'.";
+         + " The setting also FAILS when it shows what the facts say the character keeps from the visitor (a secret, a private memory)."
+         + " Answer one line only: 'ok', or 'invents <what>' (for a secret shown: 'invents a shown secret').";
 
       /// <summary>What the checker reads: the facts, then the composed paragraph and the hidden lines.</summary>
       public static string CheckUser(ComposedOpeningSheet sheet, ComposedOpeningReply reply)
@@ -297,12 +300,16 @@ namespace CalradiaRemembers.Logic.Chat
       {
          string line = (content ?? "").Replace("\r\n", "\n").Split('\n').Select(l => l.Trim().Trim('*', '"', '\'', '`', '.', ' ')).FirstOrDefault(l => l.Length > 0) ?? "";
          bool startsInvents = line.StartsWith("invent", StringComparison.OrdinalIgnoreCase);
+         // "invents" anywhere fails ("ok, but it invents a raid"), unless it invents nothing; "invented" ("ok: nothing is
+         // invented") is not the verdict word.
+         int invents = line.IndexOf("invents", StringComparison.OrdinalIgnoreCase);
+         bool inventsNothing = invents >= 0 && line.Substring(invents + "invents".Length).TrimStart().StartsWith("nothing", StringComparison.OrdinalIgnoreCase);
+         if (invents >= 0 && inventsNothing) invents = -1;
          // "ok", "ok.", "ok: nothing invented": the verdict is its first word.
-         if (!startsInvents && (line.Equals("ok", StringComparison.OrdinalIgnoreCase) || (line.Length > 2 && line.StartsWith("ok", StringComparison.OrdinalIgnoreCase) && !char.IsLetter(line[2]))))
+         if (!startsInvents && invents < 0 && (line.Equals("ok", StringComparison.OrdinalIgnoreCase) || (line.Length > 2 && line.StartsWith("ok", StringComparison.OrdinalIgnoreCase) && !char.IsLetter(line[2]))))
             return new ComposedOpeningVerdict {Passes = true};
 
-         int invents = line.IndexOf("invents", StringComparison.OrdinalIgnoreCase);
-         if (startsInvents || invents >= 0)
+         if ((startsInvents && !inventsNothing) || invents >= 0)
          {
             string what = line.Substring(Math.Max(0, invents)).Split(new[] {' '}, 2).Skip(1).FirstOrDefault()?.Trim() ?? "";
 
