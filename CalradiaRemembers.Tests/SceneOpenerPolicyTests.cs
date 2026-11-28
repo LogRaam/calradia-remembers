@@ -75,15 +75,23 @@ namespace CalradiaRemembers.Tests
          SceneOpenerPolicy.IntroReplacesGameLines(new SceneOpenerFacts {SettingOn = true, OpenedByGreeting = true, ModelAvailable = true}).Should().BeFalse();
       }
 
-      // STAKE: a sitting put back from earlier today, or a tale meeting, keeps its own lines: the intro never wipes a talk under way.
-      [TestCase(true, true)]
-      [TestCase(false, false)]
-      public void GIVEN_the_composed_intro_WHEN_the_talk_is_under_way_or_staged_THEN_no_intro_and_the_lines_stay(bool resumed, bool openedByGreeting)
+      // STAKE: a tale meeting or any staged scene keeps its own opening and lines: the intro never stands in for them.
+      [Test]
+      public void GIVEN_the_composed_intro_WHEN_the_scene_is_staged_THEN_no_intro_and_the_lines_stay()
       {
-         var facts = new SceneOpenerFacts {OpenedByGreeting = openedByGreeting, ResumedSitting = resumed, ModelAvailable = true, ComposedIntro = true};
+         var facts = new SceneOpenerFacts {OpenedByGreeting = false, ModelAvailable = true, ComposedIntro = true};
 
          SceneOpenerPolicy.ShouldOpen(facts).Should().BeFalse();
          SceneOpenerPolicy.IntroReplacesGameLines(facts).Should().BeFalse();
+      }
+
+      // STAKE: Gabriel 28/11/2026, "je pourrais rencontrer le lord sur la MAP et ensuite dans sa ville": a sitting put back from
+      // earlier today opens on an intro of where they meet now; without the composed intro it goes on where it stopped, as before.
+      [Test]
+      public void GIVEN_a_sitting_put_back_from_earlier_today_WHEN_the_composed_intro_is_on_THEN_it_opens_on_the_intro()
+      {
+         SceneOpenerPolicy.ShouldOpen(new SceneOpenerFacts {OpenedByGreeting = true, ResumedSitting = true, ModelAvailable = true, ComposedIntro = true}).Should().BeTrue();
+         SceneOpenerPolicy.ShouldOpen(new SceneOpenerFacts {SettingOn = true, OpenedByGreeting = true, ResumedSitting = true, ModelAvailable = true}).Should().BeFalse();
       }
 
       // STAKE: with no model to call, an error line would greet the player instead of the character.

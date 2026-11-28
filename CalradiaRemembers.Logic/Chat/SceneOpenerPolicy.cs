@@ -73,16 +73,17 @@ namespace CalradiaRemembers.Logic.Chat
       public static bool ShouldOpen(SceneOpenerFacts facts)
          => facts != null
             && facts.OpenedByGreeting
-            && !facts.ResumedSitting
             && facts.ModelAvailable
-            && (facts.ComposedIntro || (facts.SettingOn && !facts.VanillaLinesCarried));
+            // A sitting put back from earlier today gets the intro too (Gabriel, 28/11/2026: "je pourrais rencontrer le lord sur la
+            // MAP et ensuite dans sa ville"): the place may have changed, and the composer reads the talk so far.
+            && (facts.ComposedIntro || (facts.SettingOn && !facts.ResumedSitting && !facts.VanillaLinesCarried));
 
       /// <summary>
       ///   True when the game's own dialogue lines are kept off the screen: the composed intro opens the chat in their place. The
       ///   model still reads them as what was said before (the prior exchange); only the window no longer shows them.
       /// </summary>
       public static bool IntroReplacesGameLines(SceneOpenerFacts facts)
-         => facts != null && facts.ComposedIntro && facts.OpenedByGreeting && !facts.ResumedSitting && facts.ModelAvailable;
+         => facts != null && facts.ComposedIntro && facts.OpenedByGreeting && facts.ModelAvailable;
 
       /// <summary>
       ///   Whether the canned greeting is kept as said (and remembered as said). It is replaced only by a scene that
