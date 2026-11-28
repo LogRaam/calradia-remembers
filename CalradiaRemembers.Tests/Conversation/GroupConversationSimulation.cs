@@ -93,6 +93,15 @@ namespace CalradiaRemembers.Tests.Conversation
          // Give each cast member a voice, mask, fear, limit and secret generated from their game sheet before the scene (the floor,
          // enriched: what the game could add to its characters).
          public bool GenerateDepth;
+         // The scene composer (Gabriel, 27/11/2026: "un compositeur de scène, j'aime ça", fed with "le contexte de la rencontre avec le
+         // joueur"): what the game knows, which the composer turns into the NPC's concern, a tension with the player and true events.
+         public bool Compose;
+         public List<string> WorldEvents = new();
+         public List<string> NpcMemories = new();
+         public string Encounter = "";
+         // What the player and the NPC have just lived together, a battle side by side above all (Gabriel, 27/11/2026: "si le joueur et le NPC
+         // viennent de partager une bataille, ce serait important de l'ajouter au contexte").
+         public List<string> SharedRecently = new();
          // What the scene has made true for everyone present, kept by the scene keeper (a run builds its scenario fresh).
          public List<string> Record = new();
          // The events the world brought, and how many the inner lives have been told of. Only these are news: the record grows with
@@ -197,6 +206,14 @@ namespace CalradiaRemembers.Tests.Conversation
       // player, no letter, no prepared secret, no event. Does a story come out of it? (Gabriel: "oui, lance".)
       [Test]
       public Task GIVEN_an_ordinary_visit_from_game_data_WHEN_two_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(OrdinaryVisit());
+
+      // The same visit with the scene composer: world events, the NPC's memories and the encounter as it stands (Gabriel, 27/11/2026).
+      [Test]
+      public Task GIVEN_the_visit_composed_from_game_facts_WHEN_two_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(ComposedVisit());
+
+      // The same, the morning after a battle the two fought side by side.
+      [Test]
+      public Task GIVEN_the_visit_after_a_shared_battle_WHEN_two_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(ComposedAfterBattle());
 
       // The floor enriched: the same game-data Rhian, with a voice, mask, fear, limit and private secret generated from her sheet first.
       [Test]
@@ -468,6 +485,53 @@ namespace CalradiaRemembers.Tests.Conversation
          };
       }
 
+      // The ordinary visit, composed: the same Alympia and the same opening line, with the talk of the realm, her memories and the encounter
+      // as the game would hold them (composed for the test: Gabriel does not play).
+      private static Scenario ComposedVisit()
+      {
+         Scenario sc = OrdinaryVisit();
+         sc.Id = "composed";
+         sc.Title = "A visit, composed from the game";
+         sc.Compose = true;
+         sc.WorldEvents = new List<string> {
+            "12 days ago: the Aserai Sultanate declared war on the Southern Empire.",
+            "6 days ago: Lord Hashan of the Southern Empire was defeated by Sultan Unqid's army near Husn Fulq and taken prisoner.",
+            "4 days ago: Aserai raiders burned the village of Ataconia, a day's ride from Poros.",
+            "2 days ago: Empress Rhagaea summoned her vassals to muster at Lycaron.",
+            "this season: caravans on the road between Poros and Sanala have been robbed twice."
+         };
+         sc.NpcMemories = new List<string> {
+            "Day 91320 (about 5 days ago): I wrote to Hashan's wife that I would do what I could for his ransom.",
+            "Day 91318 (about a week ago): I asked the Empress for more men for the garrison of Poros; no answer has come.",
+            "Day 91190 (about 10 months ago): Arwa's company cleared the bandits on the Poros road; I sent her my thanks and a cask of wine."
+         };
+         sc.Encounter = "The governor's hall in the keep of Poros, mid-morning, late spring (the first harvest is weeks away and the roads are dry). Arwa comes in from the road in her mail, dust on her cloak and her sword at her"
+                        + " hip; two of her companions follow her, Ira, a mercenary captain, and Bryn, a young squire, who stay by the door. Alympia's clerk is at a"
+                        + " side table with the garrison rolls.";
+
+         return sc;
+      }
+
+      // The composed visit the day after a battle fought side by side, with the battle given to the composer (Gabriel, 27/11/2026).
+      private static Scenario ComposedAfterBattle()
+      {
+         Scenario sc = ComposedVisit();
+         sc.Id = "composed_battle";
+         sc.Title = "A visit after a shared battle, composed from the game";
+         sc.SharedRecently = new List<string> {
+            "Yesterday: Arwa's company and the garrison of Poros, with Alympia riding at its head, drove off Aserai raiders at the ford below the town."
+            + " Arwa's riders broke the raiders' flank; 14 men of the garrison died and 30 were wounded. Alympia's own horse was killed under her.",
+            "Yesterday, after the fight: Alympia and Arwa walked the field together among the wounded."
+         };
+         sc.Encounter = "The governor's hall in the keep of Poros, the morning after the battle, late spring. The hall smells of smoke and vinegar; wounded men"
+                        + " lie on pallets along the far wall and a surgeon moves among them. Arwa comes in with her arm bound, still in her dented mail; Ira and Bryn"
+                        + " follow her and stay by the door. Alympia's clerk is at a side table with the garrison rolls.";
+         sc.Player.Objective = "See how Alympia fares after yesterday's fight, and what comes next for Poros.";
+         sc.FirstLine = "Alympia|Lady Alympia. I came to see how you fare, after yesterday.";
+
+         return sc;
+      }
+
       private static Scenario Theft()
       {
          Character arwa = Who("Arwa", PlayerStanding, "a commander of the realm", "a rising house, 120 men", true,
@@ -539,6 +603,7 @@ namespace CalradiaRemembers.Tests.Conversation
          var usedComplications = new HashSet<int>();
          var interpreting = new List<(SceneLine Line, Task<string> Task)>();
          if (sc.GenerateDepth) await Task.WhenAll(sc.Cast.Select(c => GenerateDepth(m, c, cost, calls, debug)));
+         if (sc.Compose) await ComposeScene(m, sc, cost, calls, debug);
          var states = sc.Cast.ToDictionary(c => c.Name, c => new InnerState {
             Feeling = "as the scene opens", Aim = c.Objective, FirstAim = c.Objective, Tactic = c.Tactic, Showing = c.Mask, Hiding = c.Secret
          });
@@ -904,6 +969,48 @@ namespace CalradiaRemembers.Tests.Conversation
          string Field(string name) => Clean(Regex.Match(r.Content ?? "", $@"(?im)^\s*{name}\s*:\s*(.+)$").Groups[1].Value);
          Inner(c, Field("voice"), Field("mask"), Field("fear"), Field("limit"), Field("secret"));
          debug.AppendLine($"- depth generated for {c.Name}: voice: {c.Voice} | mask: {c.Mask} | fear: {c.Fear} | limit: {c.Limit} | secret: {c.Secret}");
+      }
+
+      // The scene composer: one call before the scene reads what the game knows (the NPC's sheet and depth, its history with the player,
+      // the world's events, its memories, the encounter as it stands: place, hour, season, how the player comes and with whom) and gives the NPC a concern for today, a tension with the player
+      // and up to three events. The rule is Gabriel's: it chooses among true facts and stages them; it invents nothing the game tracks.
+      private static async Task ComposeScene(Models m, Scenario sc, double[] cost, Dictionary<string, int> calls, StringBuilder debug)
+      {
+         Character c = sc.Cast[0];
+         string system = "You compose the situation of a scene in a medieval world, for a novelist, from what the game knows. You never write dialogue."
+                       + " Answer exactly these lines:"
+                       + $"\ndoing: <what {c.Name} is doing as the visitor arrives, one sentence>"
+                       + $"\nconcern: <what weighs on {c.Name} today and what they want from this meeting without saying it, drawn from the world events and"
+                       + " their memories; one or two sentences>"
+                       + $"\ntension: <what in {c.Name}'s true history with the visitor, or in how the visitor arrives, could rub; one sentence>"
+                       + "\nevent: <something the world may bring during the scene, as one line of narration in asterisks>"
+                       + "\nevent: <another>\nevent: <another, optional>"
+                       + "\nRULES: choose among the facts given and stage them; never invent a battle, death, capture, marriage, fief, war, alliance, sum"
+                       + " of money or troop count that is not in the facts. An event may only bring news of a fact given, or a person or thing the facts"
+                       + " place nearby. Prefer an event that forces a choice on both of them over one that only informs. The concern must come from the"
+                       + " facts and the character's nature, and it may be private (a feeling, a fear) as long as it touches no game fact that is not given.";
+         string user = $"THE CHARACTER, AS THE GAME KNOWS THEM:\n{c.Persona}"
+                     + (string.IsNullOrWhiteSpace(c.Mask) ? "" : $"\nBeneath it: mask: {c.Mask}; fear: {c.Fear}; limit: {c.Limit}; private secret: {c.Secret}; voice: {c.Voice}")
+                     + "\n\nTHE WORLD'S EVENTS (the talk of the realm, true):\n" + string.Join("\n", sc.WorldEvents.Select(e => "- " + e))
+                     + $"\n\n{c.Name.ToUpperInvariant()}'S OWN MEMORIES (true):\n" + string.Join("\n", sc.NpcMemories.Select(e => "- " + e))
+                     + (sc.SharedRecently.Count == 0 ? "" : "\n\nWHAT THEY HAVE JUST LIVED TOGETHER (true, and it colours everything between them now):\n"
+                                                           + string.Join("\n", sc.SharedRecently.Select(e => "- " + e)))
+                     + $"\n\nTHE ENCOUNTER AS IT STANDS:\n{sc.Encounter}\n\nThe visitor: {sc.Player.Persona}";
+         LlmResponse r = await m.Prose.CompleteAsync(new LlmRequest {
+            SystemPrompt = system, Messages = new[] {new LlmMessage(MessageRole.User, user)},
+            Parameters = new LlmParameters {MaxTokens = 700, Creativity = 0.7f, AllowTruncationRetry = false}
+         });
+         lock (cost) { cost[1] += r.Usage?.Cost ?? 0; calls["prose"]++; }
+         string content = r.Content ?? "";
+         string Field(string name) => Clean(Regex.Match(content, $@"(?im)^\s*{name}\s*:\s*(.+)$").Groups[1].Value);
+         string doing = Field("doing"), concern = Field("concern"), tension = Field("tension");
+         List<string> events = Regex.Matches(content, @"(?im)^\s*event\s*:\s*(.+)$").Select(x => Clean(x.Groups[1].Value)).Where(e => e.Length > 0 && !e.StartsWith("none", StringComparison.OrdinalIgnoreCase))
+            .Select(e => e.StartsWith("*") ? e : $"*{e.Trim('*')}*").Take(3).ToList();
+         sc.Setting = $"{sc.Encounter} {doing}";
+         if (concern.Length > 0) c.Objective = concern;
+         if (tension.Length > 0) c.Ties.Add($"{sc.Player.Name}: {tension}");
+         sc.Complications = events;
+         debug.AppendLine($"- composer: doing: {doing} | concern: {concern} | tension: {tension} | events: {string.Join(" / ", events)}");
       }
 
       private const string TOLD = " has now told this to everyone present in the scene; they all know it";
