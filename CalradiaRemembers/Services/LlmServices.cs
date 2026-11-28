@@ -1103,7 +1103,9 @@ namespace CalradiaRemembers.Services
             // NPC is allowed to offer and resolve informal quests.
             EnableQuests = true,
             // 1Enfant (Nexus, 16/11/2026): the player may turn the purple scene narration off.
-            EnableSceneNarration = ModSettings.SceneNarration
+            EnableSceneNarration = ModSettings.SceneNarration,
+            // Stage 2 (28/11/2026): what the meetings left shows only while "Lasting memory of meetings" is on.
+            EnableMeetingMemory = ModSettings.MeetingMemory
          };
       }
 

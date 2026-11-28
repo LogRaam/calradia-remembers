@@ -417,6 +417,26 @@ namespace CalradiaRemembers.Chat
       /// </summary>
       private readonly Dictionary<string, IReadOnlyCollection<string>> _memoriesDiscussedAtOpening = new();
 
+      /// <summary>
+      ///   What the speaker's meetings with the player had left when the conversation opened (Stage 2, 28/11/2026), a copy
+      ///   captured once per speaker as the history cut is. The record is updated in the background when a chat closes; a
+      ///   talk opened before that update lands must not see it change mid-way, nor have the sitting it resumes described
+      ///   back to it.
+      /// </summary>
+      private readonly Dictionary<string, MeetingMemory> _meetingMemoryAtOpening = new();
+
+      internal MeetingMemory MeetingMemoryAtOpening(NpcProfile profile)
+      {
+         if (profile?.Id == null) return null;
+
+         if (_meetingMemoryAtOpening.TryGetValue(profile.Id, out MeetingMemory known)) return known;
+
+         known = profile.MeetingMemory?.Clone();
+         _meetingMemoryAtOpening[profile.Id] = known;
+
+         return known;
+      }
+
       internal IReadOnlyCollection<string> MemoriesDiscussedAtOpening(NpcProfile profile)
       {
          if (profile?.Id == null) return null;

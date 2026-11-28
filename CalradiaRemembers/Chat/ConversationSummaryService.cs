@@ -243,6 +243,11 @@ namespace CalradiaRemembers.Chat
             // successful memory into a retry.
             await HarvestWorldClaimsAsync(behavior, job.ProfileId, job.Transcript).ConfigureAwait(false);
 
+            // What the meeting left (Stage 2, 28/11/2026), beside the summary rather than competing with it: the summary
+            // writes the meeting as an event, this updates the lasting changes, the bond and what is unsettled. Same reasons
+            // as the harvest above: once per conversation, awaited, and its failures never turn the memory into a retry.
+            await MeetingMemoryService.UpdateAsync(behavior, job, behavior.LlmServices.HousekeepingClient).ConfigureAwait(false);
+
             return true;
          }
          catch (Exception ex)

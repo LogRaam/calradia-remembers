@@ -6,9 +6,9 @@ no longer matches the code; see `docs/maps/README.md`.
 Read it to answer "does this concept already exist, and where does it live" BEFORE adding a type. The
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
-- **Mod (engine-bound, `CalradiaRemembers`)**: 701 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1779 types in 62 namespaces, 14 without a summary
-- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 297 types in 17 namespaces, 9 without a summary
+- **Mod (engine-bound, `CalradiaRemembers`)**: 702 types in 66 namespaces, 4 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1781 types in 62 namespaces, 14 without a summary
+- **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 304 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
 
@@ -230,7 +230,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `StoryArchiveWriter` | public static class | Writes letters and the mod's notices into the campaign's story archive. |
 | `WorkshopSaleMemoryBehavior` | public class | Gives a character who sold the player a workshop the memory of the sale. |
 
-### CalradiaRemembers.Chat (51)
+### CalradiaRemembers.Chat (52)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -276,6 +276,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ItemBargainText` | public static class | Builds the goods list and acceptance stimulus for an item-bargain settlement. |
 | `MBRandomSource` | public class | Engine-backed IRandomSource for the mod: the real game RNG. The pure logic in CalradiaRemembers.Logic depends only on the interface, so tests inject a deterministic source. |
 | `ManualActionMenuController` | internal class | Owns the manual action-injection menu so it does not thread through the shared ChatViewModel partials, mirroring OfferController and ActionConfirmationController. |
+| `MeetingMemoryService` | public static class | Updates what a character carries away from a chat with the player, when "Lasting memory of meetings" is on. |
 | `MemoryEntryViewModel` | public class | One row in the in-chat "shared memories" panel: a muted meta line (the dated day, and the event type when it is not a plain remark) above the memory's summary. |
 | `MemoryScrollablePanel` | public class | A plain ScrollablePanel for the shared-memories list. |
 | `OfferController` | internal class | Owns the offer ("give") flow so it no longer threads through the shared ChatViewModel partials (which forced a surgical-commit dance every release), mirroring RoundTableController and ActionConfirmationController. |
@@ -2184,7 +2185,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ConditionBands` | public static class | How a seat and a company are faring, on the engine's own scales. |
 | `PlayerImportancePolicy` | public static class | Whether the player looks important to a captor. |
 
-### CalradiaRemembers.Logic.Conversation (41)
+### CalradiaRemembers.Logic.Conversation (43)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2221,6 +2222,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MapEncounterClosePolicy` | public static class | Whether the close may finish the encounter. |
 | `MapEventSighting` | public class | A map event as the close saw it, for one of the three places a battle can hide (the encounter itself, the player's own party, or the party met). |
 | `MeetingLeaveFacts` | public class | What the close knows when it ends the conversation, to tell the game whether the meeting is over (Wallace1067, 17/10/2026, see MapEncounterClosePolicy.LeavesTheMeeting). |
+| `MeetingMemoryFacts` | public class | What decides whether a closed chat's summary job also updates the character's meeting memory. |
+| `MeetingMemoryPolicy` | public static class | Whether a closed chat updates the character's meeting memory. |
 | `PendingSummaryJob` | public class | One pending "write the rich summary and replace the base event" job, captured as plain data so it can be persisted (a later increment wires it into SyncData) and replayed after a game reload. |
 | `ReturnMove` | public enum | What the pending briefing return should do on this tick. |
 | `SilenceOrderContext` | public class | Everything SilenceOrderPolicy.Resolve weighs to decide whether a silence order lands. |
@@ -3333,7 +3336,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryRecall` | public static class | Which memories carry a short code, and which of them a character has already discussed with the player. |
 | `SharedRecall` | public class | What a character may be shown to REMEMBER in front of others: their own memories, minus anything held in confidence, folded to a bounded recall. |
 
-### NpcMemoryService.Core.Models (85)
+### NpcMemoryService.Core.Models (89)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -3382,6 +3385,10 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MarriedSeductionStance` | public enum | Stolen Love pillar: how a THIRD-PARTY-married NPC stands toward the player's advances. |
 | `MattersMost` | public enum | What matters most to a character, above everything else (Gabriel, 27/10/2026: "qu'est-ce qui compte le plus pour un NPC. Ses enfants? |
 | `MattersMostDiscovery` | public static class | How the player learns what matters most to a character. |
+| `MeetingBond` | public class | Where the character stands with the player, four ways, each "yes", "partly" or "no" (empty when never said). |
+| `MeetingChange` | public class | One lasting change, with the campaign day it came from. |
+| `MeetingMemory` | public class | What a character carries away from its meetings with the player: lasting changes, the bond, unsettled matters and the secrets this record holds. |
+| `MeetingSecret` | public class | A secret the character keeps, with whom it was told to. |
 | `MemoryStrand` | public enum | What a memory is to the character's history with the player. |
 | `MessageAlternationPolicy` | public static class | Turns the conversation as CR models it into the shape every chat template can accept: a strictly alternating user/assistant sequence that begins with the user. |
 | `MessageRole` | public enum | (no summary) |
@@ -3512,7 +3519,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `WornPhrasePolicy` | public static class | Finds the openings and phrases a character has worn out. |
 | `WornPhrases` | public class | What a character has already worn out in this conversation. |
 
-### NpcMemoryService.Core.Services (11)
+### NpcMemoryService.Core.Services (14)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -3521,6 +3528,9 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `FixedLetterTranslation` | public class | One fixed letter to translate, and what its grammar needs to know. |
 | `FixedLetterTranslator` | public class | Translates a letter the mod wrote from a fixed text into the player's reply language, via a single LLM call. |
 | `LetterMemorySummarizer` | public class | Generates a first-person memory line summarizing a LETTER's actual substance from the NPC's point of view (what it proposed, agreed, reported), for storage on the sender's own profile. |
+| `MeetingMemoryApplyFacts` | public class | The facts an update is applied with. |
+| `MeetingMemoryReply` | public class | What the update call answered, read from its reply (MeetingMemoryUpdater.Parse). |
+| `MeetingMemoryUpdater` | public class | Builds, sends, reads and applies the one background call that updates what a character carries away from a meeting with the player (MeetingMemory). |
 | `MemoryLanguagePolicy` | public static class | The ONE rule deciding what language a private memory is written in, asked by every summarizer instead of each carrying its own sentence. |
 | `NpcChatResult` | public class | The result of a single NPC chat turn. |
 | `NpcChatService` | public class | Orchestrates a single NPC dialogue turn: builds the prompt → calls the LLM → parses the response → updates the session. |

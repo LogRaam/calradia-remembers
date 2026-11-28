@@ -902,6 +902,8 @@ namespace CalradiaRemembers.Chat
                historyKnownThrough: HistoryKnownThrough(profile),
                questsKnownThrough: QuestsKnownThrough(profile),
                memoriesDiscussedAtOpening: MemoriesDiscussedAtOpening(profile),
+               freezeMeetingMemory: true,
+               meetingMemoryAtOpening: MeetingMemoryAtOpening(profile),
                offerMoneyTokens: true,
                // The only council flag the chat prompt path still carries: the cr.council_test spike's whole-table
                // framing (RoundTableController.CouncilTurnsForced), so that single call yields the anchor's reply

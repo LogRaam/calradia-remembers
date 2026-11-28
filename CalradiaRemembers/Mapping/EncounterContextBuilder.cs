@@ -198,6 +198,10 @@ namespace CalradiaRemembers.Mapping
          int? historyKnownThrough = null,
          int? questsKnownThrough = null,
          IReadOnlyCollection<string> memoriesDiscussedAtOpening = null,
+         // What the character's meetings with the player had left when THIS conversation opened (Stage 2, 28/11/2026),
+         // frozen for the same reason as the history cut. Set by a conversation only; unset shows the profile's own record.
+         bool freezeMeetingMemory = false,
+         MeetingMemory meetingMemoryAtOpening = null,
          // True on the live chat, the one road that fills tokens in the raw reply (NpcChatService).
          bool offerMoneyTokens = false,
          bool isCollectiveCaptiveScene = false,
@@ -462,6 +466,8 @@ namespace CalradiaRemembers.Mapping
             HistoryKnownThrough = historyKnownThrough,
             HistoryMemoryCap = ModSettings.PromptMemoryLimit > 0 ? ModSettings.PromptMemoryLimit : null,
             MemoriesDiscussedAtOpening = memoriesDiscussedAtOpening,
+            MeetingMemoryFrozen = freezeMeetingMemory,
+            MeetingMemoryAtOpening = meetingMemoryAtOpening,
             QuestsKnownThrough = questsKnownThrough,
             IsLastWitnessExchange = isLastWitnessExchange,
             // IsRoundTableTurn is the one council flag the chat prompt path still carries: it is armed ONLY by the

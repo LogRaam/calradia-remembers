@@ -468,6 +468,14 @@ namespace CalradiaRemembers.Foundation
       [SettingPropertyGroup("{=CR_MCM_Group_PromptMemory}Prompt & Memory", GroupOrder = 1)]
       public int LlmTimeoutSeconds { get; set; } = 120;
 
+      // Stage 2 of the group-scene plan (Gabriel, 28/11/2026: "go pour tout le système ... je testerai demain"): in the simulator
+      // a second meeting scored 4.2 blind with no memory and 6.8 with lasting changes and the bond. Off by default: one call a chat.
+      [SettingPropertyBool("{=CR_MCM_MeetingMemory}Lasting memory of meetings", RequireRestart = false, Order = 10,
+         HintText = "{=CR_MCM_MeetingMemory_Hint}Off (default): as before. On: when a chat closes, one background call (Background model) notes what " +
+                    "changed in the character toward you, where you stand and what is left unsettled, and the next chat remembers it.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_PromptMemory}Prompt & Memory", GroupOrder = 1)]
+      public bool MeetingMemory { get; set; } = false;
+
       [SettingPropertyText("{=CR_MCM_Model}PROSE model", RequireRestart = false, Order = 1,
          HintText = "{=CR_MCM_Model_Hint}Model id in the ACTIVE provider's own format (OpenRouter: x-ai/grok-4.20; NanoGPT: " +
                     "deepseek-ai/DeepSeek-V3; Ollama: llama3.1:8b). Writes ordinary chat, and in Enhanced mode " +

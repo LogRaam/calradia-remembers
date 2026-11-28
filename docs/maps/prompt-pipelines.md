@@ -10,7 +10,7 @@ other than `NarrativeLoader` (tales, scenarios, styles, prompt profiles) is not 
 
 ## Where the model is called
 
-25 methods call the model. `tool` marks a developer command or bench (`Diagnostics`, `ModCheats`, a `*Bench*` file), never run in play.
+26 methods call the model. `tool` marks a developer command or bench (`Diagnostics`, `ModCheats`, a `*Bench*` file), never run in play.
 
 | Pipeline | Layer | Use | Prompt from | What it is |
 |---|---|---|---|---|
@@ -26,6 +26,7 @@ other than `NarrativeLoader` (tales, scenarios, styles, prompt profiles) is not 
 | `FixedLetterTranslator.TranslateAsync` | Sdk | play | `BuildSystemPrompt()` | The translated letter, or null when the model did not answer. |
 | `LetterMemorySummarizer.SummarizeAsync` | Sdk | play | `BuildSystemPrompt()` | Returns a concise first-person, past-tense memory line, or null on failure / empty content (the caller then keeps the base summary it already stored). npcIsSender selects whether the NPC wrote or received the letter, so... |
 | `LlmMemoryCompressor.CompressAsync` | Sdk | play | `BuildSystemPrompt()`, `BuildUserPrompt()` | LLM-driven memory compression. |
+| `MeetingMemoryUpdater.UpdateAsync` | Sdk | play | `BuildSystemPrompt()`, `BuildUserMessage()` | Asks the model what this meeting left and applies it to npc's record. |
 | `NpcChatService.ChatAsync` | Sdk | play | `BuildSystemPrompt()`, `PromptBuilder` | Sends the player's message to the NPC and returns a structured response. |
 | `NpcChatService.ChatCommonerAsync` | Sdk | play | `BuildCommonerSystemPrompt()`, `PromptBuilder` | Sends the player's message to a transient commoner NPC and returns a structured response. |
 | `StrategicAssessmentService.FireAsync` | Mod | play | `StrategicAssessmentPromptBuilder` | Populates a Balance of Power view model's Strategic Assessment: offline summary, cached counsel, or a fresh async LLM call. |

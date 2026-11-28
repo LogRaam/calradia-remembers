@@ -484,6 +484,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("rumour_no_acquaintance", Severity.Light, "VonLemberg (Discord, 15/11/2026, source audit of 2.8.10): 'the player met a lord 40 days ago, but the lord received an unrelated memory yesterday. The system may treat yesterday as their last meeting', and injected memories made a stranger read as known. On a throwaway profile of a real lord (the save is untouched), through the REAL EncounterContextBuilder and FirstImpressionResolver: with only rumours heard and a memory of his own life, he has never met the player (no last meeting, a stranger when free, not already known by his memories); with a meeting 40 days old added, the last meeting is 40 days ago whatever he heard today", TestRumourNoAcquaintance),
          new SelfTest("compression_takeback", Severity.Light, "VonLemberg (Discord, 15/11/2026, source audit of 2.8.10): a memory a mod takes back with CrNpcMemory.RemoveMemory while a compression pass is in flight came back when the pass was applied, and could linger in the background summary. On a real lord: adds a memory through the REAL AddMemory, takes the snapshot a pass would read, takes the memory back through the REAL RemoveMemory, then applies through the REAL write-back (1) a pass that kept it: it must stay gone, and a memory added meanwhile must stay; (2) a pass that folded it into its summary: nothing is applied and the background is left as it was. No model is called. Leaves the lord as found", TestCompressionTakeback),
          new SelfTest("memory_pictures", Severity.Light, "Bhelogan (Discord, 20/11/2026) asked for pictures painted by his mod in the Memories panel; Gabriel: protect the memories that carry one. Through the PUBLIC API on a real lord: AddMemory must announce the memory (MemoryWritten, with an id), GetMemories must give the same id, SetImage must copy a picture into CR's campaign folder and put it on the memory, the REAL compressor with a stand-in model that drops everything must keep that memory, a second SetImage must replace the copy, a paint request must reach ImageRequested and stay busy until ImageFailed, and SetImage(null) must take the picture away and delete the copy. No model is called. Removes every test memory and file after", TestMemoryPictures),
+         new SelfTest("meeting_memory", Severity.Light, "Stage 2 of the group-scene plan (Gabriel, 28/11/2026: \"go pour tout le système ... je testerai demain\"): what a meeting leaves. With \"Lasting memory of meetings\" forced off, a closed chat's summary job makes no call. Forced on, the same job runs the REAL update path with a stand-in model giving a fixed reply (no model is called): the lord's record holds the lasting change, the bond and the unsettled matters; the same meeting replayed adds nothing twice; a witness job makes no call; the record survives the save format; the next prompt, built by the live prompt builder, shows the change with days counted, where they stand and what is unsettled, and shows none of it with the switch off or frozen at an opening that held nothing; memory compression keeps the record. Restores the record and the switch, removes the temporary profile", TestMeetingMemory),
          new SelfTest("player_memory_kept", Severity.Light, "Icezera (Discord, 15/11/2026): memories added with cr.memory_add were gone some days later; memory compression had folded them away. Sends cr.memory_add, through the engine's own console dispatch, a memory dated 30 days back to a real lord (padded with test memories to the size compression works on), then runs the REAL compressor on that profile with a stand-in model that drops everything: the memory the player wrote must be kept, and an ordinary test memory of the same age must not be. No model is called. Removes every test memory after", TestPlayerMemoryKept),
          new SelfTest("console_accents", Severity.Light, "Shinelegacy (Nexus, 03/10/2026): accents typed into cr.memory_add / cr.memory_set came out as mojibake (the console reads UTF-8 back as Windows-1252). Sends cr.memory_add, through the engine's own console dispatch, a line mangled exactly as the console mangles it: the stored memory must read exactly as typed. Removes the memory after.", TestConsoleAccents),
          new SelfTest("extreme_trait_persona", Severity.Light, "A trait at +-2 (the game's strongest) met no persona archetype and got the generic 'figure of contradictions' line. Takes a real hero with such a trait and builds the persona the real way: the extreme must be said in it, never as relish. Stores nothing.", TestExtremeTraitPersona),
@@ -18409,6 +18410,118 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          return t.Line();
+      }
+
+      private static string TestMeetingMemory(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("meeting_memory");
+         if (t.Skip(behavior.Store == null || Hero.MainHero == null || CrSettings.Instance == null || behavior.LlmServices == null, "no campaign, no MCM or no services")) return t.Line();
+
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && Mapping.HeroPresence.IsInTheWorld(h));
+         if (t.Skip(lord == null, "no lord in the world")) return t.Line();
+
+         NpcProfile profile = GetOrCreate(behavior, lord);
+         MeetingMemory before = profile.MeetingMemory?.Clone();
+         bool switchBefore = CrSettings.Instance.MeetingMemory;
+         bool? holdBefore = BackgroundCallHold.DebugConversationOpen;
+         const string tempId = "cr_selftest_meeting_memory";
+         string player = Hero.MainHero.Name?.ToString() ?? "the player";
+         int today = behavior.GameStateBridge?.GetCurrentGameDay() ?? (int) CampaignTime.Now.ToDays;
+         var model = new CannedMeetingClient();
+         var job = new PendingSummaryJob {
+            ProfileId = lord.StringId, AnchorDay = Math.Max(1, today - 3), AnchorId = "selftest_meeting", PlayerName = player,
+            Transcript = $"{player}: [SELFTEST] I brought the grain I promised.\n{lord.Name}: Then you keep your word. My brother still waits on yours."
+         };
+
+         try
+         {
+            // Run from the chat with a local model, the hold would wait for the chat to close: the stand-in model is no server.
+            BackgroundCallHold.DebugConversationOpen = false;
+            profile.MeetingMemory = null;
+
+            CrSettings.Instance.MeetingMemory = false;
+            t.Expect("switchOffNoUpdate", MeetingMemoryService.UpdateAsync(behavior, job, model).GetAwaiter().GetResult(), false);
+            t.Expect("switchOffNoCall", model.Calls, 0);
+
+            CrSettings.Instance.MeetingMemory = true;
+            t.Expect("theUpdateIsApplied", MeetingMemoryService.UpdateAsync(behavior, job, model).GetAwaiter().GetResult(), true);
+            MeetingMemory m = behavior.Store.Get(lord.StringId)?.MeetingMemory;
+            t.Expect("theLastingChangeIsWritten", m?.Changes?.Count(c => c.AnchorId == job.AnchorId && c.Text.Contains("keeps his word")) ?? 0, 1);
+            t.Expect("theBondIsWritten", m?.Bond == null ? "" : MeetingMemoryUpdater.BondLine(m.Bond), "understands partly, forgives yes, loves no, trusts partly");
+            t.Expect("theMattersAreWritten", m?.Unsettled?.Count ?? 0, 2);
+
+            MeetingMemoryService.UpdateAsync(behavior, job, model).GetAwaiter().GetResult();
+            t.Expect("theSameMeetingReplayedAddsNothingTwice", behavior.Store.Get(lord.StringId)?.MeetingMemory?.Changes?.Count(c => c.AnchorId == job.AnchorId) ?? 0, 1);
+
+            int calls = model.Calls;
+            var witness = new PendingSummaryJob {ProfileId = job.ProfileId, AnchorDay = job.AnchorDay, AnchorId = "selftest_witness", PlayerName = player, Transcript = job.Transcript, HostName = "someone else"};
+            t.Expect("aWitnessJobMakesNoCall", MeetingMemoryService.UpdateAsync(behavior, witness, model).GetAwaiter().GetResult() == false && model.Calls == calls, true);
+
+            // The reload: the save format the profile store writes, read back.
+            NpcProfile reloaded = NpcMemoryService.Core.Storage.ResilientProfileBundle.Deserialize(
+               NpcMemoryService.Core.Storage.ResilientProfileBundle.Serialize(new Dictionary<string, NpcProfile> {[lord.StringId] = behavior.Store.Get(lord.StringId)}))
+                                                  .TryGetValue(lord.StringId, out NpcProfile back) ? back : null;
+            t.Expect("theRecordSurvivesTheSave", reloaded?.MeetingMemory?.Bond?.Trusts, "partly");
+
+            var world = new WorldState {CurrentDay = today};
+            EncounterContext ctx = EncounterContextBuilder.Build(lord, reloaded ?? profile, behavior.GameStateBridge);
+            string prompt = behavior.LlmServices.DebugBuildPromptBuilder().BuildSystemPrompt(reloaded ?? profile, world, ctx) ?? "";
+            t.Expect("thePromptShowsTheChange", prompt.Contains("3 days ago: I no longer take him for a mere sellsword"), true);
+            t.Expect("thePromptShowsWhereTheyStand", prompt.Contains($"Where you stand with {player}:"), true);
+            t.Expect("thePromptShowsWhatIsUnsettled", prompt.Contains("Still unsettled between you:") && prompt.Contains("whether he will speak for my brother"), true);
+
+            EncounterContext frozen = EncounterContextBuilder.Build(lord, reloaded ?? profile, behavior.GameStateBridge, freezeMeetingMemory: true, meetingMemoryAtOpening: null);
+            t.Expect("aTalkOpenedBeforeTheUpdateDoesNotSeeIt", (behavior.LlmServices.DebugBuildPromptBuilder().BuildSystemPrompt(reloaded ?? profile, world, frozen) ?? "").Contains("Still unsettled between you:"), false);
+
+            CrSettings.Instance.MeetingMemory = false;
+            t.Expect("switchOffThePromptIsSilent", (behavior.LlmServices.DebugBuildPromptBuilder().BuildSystemPrompt(reloaded ?? profile, world, ctx) ?? "").Contains("Still unsettled between you:"), false);
+
+            // Compression on a temporary profile holding the same record: it folds the events and keeps the record.
+            var temp = new NpcProfile {Id = tempId, Name = "[SELFTEST] Meeting", Faction = "", Clan = "", MeetingMemory = m?.Clone()};
+            for (var i = 0; i < 20; i++) temp.Events.Add(new NotableEvent(Math.Max(1, today - 40 + i), NotableEventType.Other, $"[SELFTEST] filler {i}"));
+            behavior.Store.Set(temp);
+            List<NotableEvent> read = temp.Events.ToList();
+            var compressor = new NpcMemoryService.Core.Compression.LlmMemoryCompressor(new DropEverythingClient());
+            NpcMemoryService.Core.Compression.CompressionResult result = compressor.CompressAsync(temp).GetAwaiter().GetResult();
+            bool applied = result is {IsSuccess: true} && Memory.MemoryCompressionService.Apply(behavior, tempId, read, result);
+            NpcProfile folded = behavior.Store.Get(tempId);
+            t.Note($"compression {(applied ? "applied" : "not applied")}: {read.Count} -> {folded?.Events?.Count} events");
+            t.Expect("compressionKeepsTheRecord", folded?.MeetingMemory?.Bond?.Forgives == "yes" && folded.MeetingMemory.Unsettled?.Count == 2, true);
+         }
+         finally
+         {
+            CrSettings.Instance.MeetingMemory = switchBefore;
+            BackgroundCallHold.DebugConversationOpen = holdBefore;
+            NpcProfile now = behavior.Store.Get(lord.StringId);
+            if (now != null)
+            {
+               now.MeetingMemory = before;
+               behavior.Store.Set(now);
+            }
+            behavior.Store.Remove(tempId);
+         }
+
+         return t.Line();
+      }
+
+      // The fixed reply of cr.test meeting_memory, in the shape the update call asks for; counts how often it was asked.
+      private sealed class CannedMeetingClient : NpcMemoryService.Core.LlmClient.ILlmClient
+      {
+         public int Calls;
+
+         public System.Threading.Tasks.Task<NpcMemoryService.Core.Models.LlmResponse> CompleteAsync(NpcMemoryService.Core.Models.LlmRequest request, System.Threading.CancellationToken ct = default)
+         {
+            Interlocked.Increment(ref Calls);
+
+            return System.Threading.Tasks.Task.FromResult(new NpcMemoryService.Core.Models.LlmResponse {
+               IsSuccess = true,
+               Content = "changed: I no longer take him for a mere sellsword; he keeps his word.\n"
+                       + "bond: understands partly, forgives yes, loves no, trusts partly\n"
+                       + "open: whether he will speak for my brother at court | the price of the grain\n"
+                       + "told: none\n"
+                       + "secret: nothing"
+            });
+         }
       }
 
       private static string TestMemoryPictures(NpcMemoryCampaignBehavior behavior)

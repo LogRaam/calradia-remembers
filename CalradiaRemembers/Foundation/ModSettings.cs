@@ -379,6 +379,12 @@ namespace CalradiaRemembers.Foundation
       /// <summary>Whether a reply recalls the words of earlier talks (Goeth, 17/11/2026). Off by default; with no MCM, off.</summary>
       public static bool LongMemory => CrSettings.Instance?.LongMemory ?? false;
 
+      /// <summary>
+      ///   MCM "Lasting memory of meetings" (Stage 2 of the group-scene plan, 28/11/2026): a chat's close updates what the
+      ///   character carries away from the player, and the prompt shows it. Off by default; with no MCM, off.
+      /// </summary>
+      public static bool MeetingMemory => CrSettings.Instance?.MeetingMemory ?? false;
+
       /// <summary>The most characters of earlier words one reply may recall (LongMemoryRecall budget).</summary>
       public static int LongMemoryBudget => CrSettings.Instance?.LongMemoryBudget ?? 4000;
 

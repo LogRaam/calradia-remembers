@@ -158,6 +158,8 @@
     <string id="CR_MCM_AllowOtherModsLlm_Hint" text="On (default): a mod built on Calradia Remembers (a diplomacy mod, say) may send its own requests through your model and key; each is logged with its name. Off: none can, and they are told so." />
     <string id="CR_MCM_LlmTimeoutSeconds" text="LLM Response Timeout (s)" />
     <string id="CR_MCM_LlmTimeoutSeconds_Hint" text="How long to wait for a reply, in seconds (default 120), in conversations and for letters and summaries (never under 60). Raise it for a slow local or reasoning model; lower it to fail fast. Applies immediately." />
+    <string id="CR_MCM_MeetingMemory" text="Lasting memory of meetings" />
+    <string id="CR_MCM_MeetingMemory_Hint" text="Off (default): as before. On: when a chat closes, one background call (Background model) notes what changed in the character toward you, where you stand and what is left unsettled, and the next chat remembers it." />
     <string id="CR_MCM_Model" text="PROSE model" />
     <string id="CR_MCM_Model_Hint" text="Model id in the ACTIVE provider's own format (OpenRouter: x-ai/grok-4.20; NanoGPT: deepseek-ai/DeepSeek-V3; Ollama: llama3.1:8b). Writes ordinary chat, and in Enhanced mode the prose of every scene. Applies immediately." />
     <string id="CR_MCM_Group_ModeModels" text="Mode &amp; Models" />
