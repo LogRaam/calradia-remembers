@@ -131,6 +131,9 @@ namespace CalradiaRemembers.Tests.Conversation
          public string Visible = "nothing";
          public string Urge = "none";
          public List<string> Lasting = new();
+         // A review of 27/11/2026 on the intimate scene: "understanding someone, forgiving them, loving them and trusting them are four
+         // different states"; Rhian's distrust melted the moment Corvan showed his weakness. Toward the person who matters most here.
+         public string Bond = "";
          // The protocol of 27/11/2026: Tomas confessed "almost before any pressure had been applied". A secret now has a price: the
          // times the character was pressed (addressed or named) and the ways of keeping it already tried are counted.
          public int Pressed;
@@ -158,6 +161,8 @@ namespace CalradiaRemembers.Tests.Conversation
       private static bool InnerOn => Environment.GetEnvironmentVariable("CR_SIM_INNER") != "off";
       private static bool DramaturgeOn => Environment.GetEnvironmentVariable("CR_SIM_DRAMATURGE") != "off";
       private static bool HonestyOn => Environment.GetEnvironmentVariable("CR_SIM_HONESTY") != "off";
+      // CR_SIM_BOND=off drops the four-part bond (understands, forgives, loves, trusts) from the inner lives, for comparison.
+      private static bool BondOn => Environment.GetEnvironmentVariable("CR_SIM_BOND") != "off";
 
       // ── the scenarios ──
 
@@ -625,7 +630,7 @@ namespace CalradiaRemembers.Tests.Conversation
          foreach (Character c in sc.Cast)
          {
             InnerState s = states[c.Name];
-            debug.AppendLine($"- {c.Name}: came wanting \"{s.FirstAim}\"; leaves feeling {s.Feeling}, wanting \"{s.Aim}\", hiding \"{s.Hiding}\".");
+            debug.AppendLine($"- {c.Name}: came wanting \"{s.FirstAim}\"; leaves feeling {s.Feeling}, wanting \"{s.Aim}\", hiding \"{s.Hiding}\".{(s.Bond.Length > 0 ? " Bond: " + s.Bond + "." : "")}");
             foreach (string shift in s.Shifts) debug.AppendLine($"  - {shift}");
             foreach (string lasting in s.Lasting) debug.AppendLine($"  - FOR MEMORY (lasting): {lasting}");
          }
@@ -716,10 +721,11 @@ namespace CalradiaRemembers.Tests.Conversation
       private static async Task<(string Problem, string Detail, List<string> Facts)> Inspect(Models m, Scenario sc, Character c, InnerState s, List<SceneLine> scene, string reply,
                                                                                             double[] cost, Dictionary<string, int> calls)
       {
-         string system = "You keep the record of a scene. You never write the story. A NEW LINE has just been written. Answer exactly three lines:"
+         string system = "You keep the record of a scene. You never write the story. A NEW LINE has just been written. Answer exactly four lines:"
                        + "\nproblem: <none | lie | repeat | contradiction>"
                        + "\ndetail: <the false statement, the repeated gesture or image, or the record it contradicts; or none>"
                        + "\nfacts: <what this line makes true for everyone present: objects moved, who holds what, what was shown, admitted or revealed; separated by ' | '; or none>"
+                       + $"\nrevealed: <yes | no> (does this line tell those present the secret in WHAT {c.Name.ToUpperInvariant()} KNOWS, in whole or in part?)"
                        + $"\nA LIE: a statement of fact that WHAT {c.Name.ToUpperInvariant()} KNOWS shows to be false, or an excuse {c.Name} invents and knows is untrue."
                        // The third review of 27/11/2026: the keeper read the absence of proof as a lie ("Tomas cannot have seen Berold fight,
                        // since he fled") and had Tomas rewrite that his sword's notches were old, which the scenario makes true.
@@ -744,8 +750,15 @@ namespace CalradiaRemembers.Tests.Conversation
          problem = problem.StartsWith("lie") ? "lie" : problem.StartsWith("repeat") ? "repeat" : problem.StartsWith("contradiction") ? "contradiction" : "none";
          List<string> facts = Line("facts").Split('|').Select(f => f.Trim()).Where(f => f.Length > 0 && !f.StartsWith("none", StringComparison.OrdinalIgnoreCase)).ToList();
 
+         // A review of 27/11/2026: Rhian told Corvan of the marriage at beat 5, and at beats 10 to 12 the dramaturge still read "You have
+         // not told Corvan" in her sheet. A secret told is marked as told wherever the sheet is read; the sheet's own words stay.
+         if (problem == "none" && Line("revealed").ToLowerInvariant().StartsWith("yes") && !string.IsNullOrWhiteSpace(c.Secret) && !c.Secret.Contains(TOLD))
+            c.Secret += $" ({c.Name}{TOLD})";
+
          return (problem, Line("detail"), facts);
       }
+
+      private const string TOLD = " has now told this to everyone present in the scene; they all know it";
 
       private static string RecordText(Scenario sc)
       {
@@ -769,7 +782,7 @@ namespace CalradiaRemembers.Tests.Conversation
                           + " silence or the truth, never a false account. Giving it up is an"
                           + " 'aim' change, and it costs them.")
                        + $"\nWanted when the scene began: {c.Objective}\nWants to appear: {c.Mask}\nFears: {c.Fear}\nWill never: {c.Limit}"
-                       + "\n\nAnswer exactly nine lines:\nfeeling: <their feeling now, 1 to 4 words>"
+                       + $"\n\nAnswer exactly {(BondOn ? "ten" : "nine")} lines:\nfeeling: <their feeling now, 1 to 4 words>"
                        + "\nlevel: <none | fluctuation | reevaluation | tactic | aim | lasting> (fluctuation: a passing mood; reevaluation: they now understand the situation"
                        + " differently; tactic: they change how they go about it; aim: they want something else; lasting: it changes how they see themselves or someone, beyond"
                        + " tonight. Most lines are none or fluctuation.)"
@@ -779,13 +792,17 @@ namespace CalradiaRemembers.Tests.Conversation
                        + "\nvisible: <nothing | a detail | words> (does anything show outside? someone holding a mask shows nothing; nothing is usual. But a mask"
                        + " hides moods, not blows: news that strikes at their secret or their fear leaks at least a detail, a pause, a hand, a word that comes wrong)"
                        + "\nurge: <none, or low or high followed by why: answer, interest, emotion, duty, morality, opportunity> (how strongly they feel they must speak now: a"
-                       + " priest's duty, an injustice they cannot let pass, a threat to what they want; someone bound to silence on one matter may still speak on another)";
+                       + " priest's duty, an injustice they cannot let pass, a threat to what they want; someone bound to silence on one matter may still speak on another)"
+                       + (!BondOn ? "" : "\nbond: <toward the person who matters most to them here: Name: understands yes/partly/no, forgives yes/partly/no, loves"
+                                          + " yes/partly/no, trusts yes/partly/no> (four different things: one can love without trusting, understand without forgiving,"
+                                          + " forgive without forgetting; each moves only for its own cause, and a confession of weakness earns understanding, not trust)");
          string user = $"HOW {c.Name.ToUpperInvariant()} STOOD BEFORE THE LAST LINE:\nfeeling: {s.Feeling}\naim: {s.Aim}\ntactic: {s.Tactic}\nshowing: {s.Showing}\nhiding: {s.Hiding}"
                      + (string.IsNullOrWhiteSpace(c.Secret) ? "" : $"\nPressed so far (addressed or named): {s.Pressed} times. Ways of keeping the secret already tried: "
                                                                      + (s.Tried.Count == 0 ? "none" : string.Join("; ", s.Tried)))
                      + $"\n\nTHE RECORD (established in this scene, true for everyone):\n{RecordText(sc)}\n\nTHE SCENE SO FAR:\n{SceneText(scene)}"
                      + (string.IsNullOrWhiteSpace(news) ? "" : $"\n\nJUST HAPPENED (an event, new since the last line): {news}\nSay what {c.Name} makes of it. Only news that"
                                                               + $" touches {c.Name}'s own secret or what they want changes them; the rest is 'none' or a passing mood.")
+                     + (BondOn && s.Bond.Length > 0 ? $"\n\nTheir bond before the last line: {s.Bond}" : "")
                      + $"\n\nHow {c.Name} stands now:";
          LlmResponse r = await m.Judge.CompleteAsync(new LlmRequest {
             SystemPrompt = system, Messages = new[] {new LlmMessage(MessageRole.User, user)},
@@ -814,6 +831,7 @@ namespace CalradiaRemembers.Tests.Conversation
          s.Tactic = Field("tactic", s.Tactic);
          s.Showing = Field("showing", s.Showing);
          s.Hiding = Field("hiding", s.Hiding);
+         if (BondOn) s.Bond = Field("bond", s.Bond);
          if (s.Shift != "none") s.Shifts.Add($"beat {beat + 1} ({s.Level}): {s.Shift}");
          if (s.Tactic != tacticBefore && !s.Tried.Contains(tacticBefore)) s.Tried.Add(tacticBefore);
          // A blow shows at least a detail, whatever the mask (the leak is shown once, by the reaction writer): news read alone, or news
@@ -830,7 +848,8 @@ namespace CalradiaRemembers.Tests.Conversation
       private static async Task<(string Complication, bool End)> Dramaturge(Models m, Scenario sc, List<SceneLine> scene, Dictionary<string, InnerState> states, HashSet<int> used,
                                                                             int beat, double[] cost, Dictionary<string, int> calls, StringBuilder debug)
       {
-         var options = sc.Complications.Select((c, i) => (c, i)).Where(x => !used.Contains(x.i)).ToList();
+         // Event 3 of the intimate scene was asked for five times after beat 6 and refused each time, unseen by the dramaturge.
+         var options = sc.Complications.Select((c, i) => (c, i)).Where(x => !used.Contains(x.i) && beat + 1 <= sc.EventsUntil).ToList();
          string system = "You are the dramaturge of a scene in progress. You never write dialogue and never speak for anyone. You read the scene and the hidden inner life"
                        + " of every character, and decide whether the circumstances must change. A scene is alive when what the characters know, want or risk is shifting."
                        + " Emotion repeated is not tension; a calm line that changes who holds power is. Do nothing when the characters are already turning the scene."
@@ -966,6 +985,7 @@ namespace CalradiaRemembers.Tests.Conversation
             sb.AppendLine($"- how you go about it now: {now.Tactic}");
             sb.AppendLine($"- what you let the others see: {now.Showing}");
             sb.AppendLine($"- what you keep hidden: {now.Hiding}");
+            if (BondOn && now.Bond.Length > 0) sb.AppendLine($"- where you stand with them: {now.Bond}");
             if (!string.IsNullOrWhiteSpace(now.Repeating)) sb.AppendLine($"- what is no longer working: {now.Repeating}. Change your approach.");
             if (!now.Urge.StartsWith("none")) sb.AppendLine($"- your pull to speak: {now.Urge}");
          }
@@ -973,7 +993,13 @@ namespace CalradiaRemembers.Tests.Conversation
          if (!string.IsNullOrWhiteSpace(me.Voice)) sb.AppendLine($"Your voice, yours alone: {me.Voice}.");
          sb.AppendLine($"The tone of the scene: {sc.Tone}.");
          if (sc.Adult)
+         {
             sb.AppendLine("Adult content is allowed: everyone here is a consenting adult; desire, seduction and explicit intimacy may be written frankly when the moment earns it.");
+            // Gabriel, 27/11/2026: the intimate scene stayed at the threshold for four beats, with DeepSeek and with Grok alike, so the
+            // restraint is ours (say less than you feel). A general rule, as it would be in the game's prompt, not a scene's.
+            sb.AppendLine("Once both have clearly chosen each other, subtext yields to the body: move into the physical and show it, with the same");
+            sb.AppendLine("care for the specific detail as the words. Do not stop at the threshold, and do not ask again what has been answered.");
+         }
          sb.AppendLine();
          sb.AppendLine("Write ONLY your next line in this group conversation, in character: one to three sentences of speech, an *action* in");
          sb.AppendLine("asterisks allowed, always in the third person (*She sets down the cup*, never *I*). Speak only for yourself. You never lie outright: when you will");
