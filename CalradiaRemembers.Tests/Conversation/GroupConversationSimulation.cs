@@ -90,6 +90,9 @@ namespace CalradiaRemembers.Tests.Conversation
          // 27/11/2026, the intimate scene at 12 beats: it ended at beat 8, just before the intimacy, and events kept breaking its rise).
          public int EndFrom = 3;
          public int EventsUntil = 99;
+         // Give each cast member a voice, mask, fear, limit and secret generated from their game sheet before the scene (the floor,
+         // enriched: what the game could add to its characters).
+         public bool GenerateDepth;
          // What the scene has made true for everyone present, kept by the scene keeper (a run builds its scenario fresh).
          public List<string> Record = new();
          // The events the world brought, and how many the inner lives have been told of. Only these are news: the record grows with
@@ -189,6 +192,18 @@ namespace CalradiaRemembers.Tests.Conversation
       // unchanged, since he stands for the player, who brings his own intent.
       [Test]
       public Task GIVEN_the_intimate_scene_from_game_data_only_WHEN_two_people_talk_THEN_the_transcript_is_written_to_read() => RunAsync(IntimateFromGameData());
+
+      // The floor enriched: the same game-data Rhian, with a voice, mask, fear, limit and private secret generated from her sheet first.
+      [Test]
+      public Task GIVEN_the_intimate_scene_from_game_data_with_generated_depth_WHEN_two_people_talk_THEN_the_transcript_is_written_to_read()
+      {
+         Scenario sc = IntimateFromGameData();
+         sc.Id = "intimate_depth";
+         sc.Title = "The east window (game data, generated depth)";
+         sc.GenerateDepth = true;
+
+         return RunAsync(sc);
+      }
 
       private static Character Who(string name, int standing, string station, string power, bool female, string persona, string objective, string tactic,
                                    string[] aliases, params string[] ties)
@@ -479,6 +494,7 @@ namespace CalradiaRemembers.Tests.Conversation
          var away = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
          var usedComplications = new HashSet<int>();
          var interpreting = new List<(SceneLine Line, Task<string> Task)>();
+         if (sc.GenerateDepth) await Task.WhenAll(sc.Cast.Select(c => GenerateDepth(m, c, cost, calls, debug)));
          var states = sc.Cast.ToDictionary(c => c.Name, c => new InnerState {
             Feeling = "as the scene opens", Aim = c.Objective, FirstAim = c.Objective, Tactic = c.Tactic, Showing = c.Mask, Hiding = c.Secret
          });
@@ -817,6 +833,33 @@ namespace CalradiaRemembers.Tests.Conversation
             c.Secret += $" ({c.Name}{TOLD})";
 
          return (problem, Line("detail"), facts);
+      }
+
+      // The depth the game lacks, generated once from the character's game sheet (Gabriel, 27/11/2026: the floor scene was direct and
+      // flat beside the hand-written one; "il peut y avoir des secrets personnels complémentaires au jeu, si ça ne touche pas à une
+      // mécanique du jeu ... le problème arrive lorsque le LLM invente quelque chose que le jeu peut contredire").
+      private static async Task GenerateDepth(Models m, Character c, double[] cost, Dictionary<string, int> calls, StringBuilder debug)
+      {
+         string system = "You deepen a character of a medieval world for a novelist. From their sheet, write who they are beneath it, consistent with every"
+                       + " line of the sheet. Answer exactly five lines:"
+                       + "\nvoice: <how they speak: rhythm, words they favour, what they never say; one sentence>"
+                       + "\nmask: <how they want to be seen by others, a few words>"
+                       + "\nfear: <what they fear most about themselves or others, a few words>"
+                       + "\nlimit: <one thing they will never do, a few words>"
+                       + "\nsecret: <one personal secret nobody knows, two sentences>"
+                       + "\nTHE SECRET MUST BE PRIVATE LIFE THE GAME CANNOT CHECK: a feeling, a choice, a small deed, a thing seen or said, between people"
+                       + " (example: once a lover wanted to be with her friend Cindy, and she talked him out of it; Cindy never knew)."
+                       + " It must NEVER touch what the game tracks: no marriage, betrothal, child, kinship, death, killing, fief, battle, war, alliance,"
+                       + " treason, money, troops or prisoners, and nothing that contradicts the sheet. Mask, fear and limit grow out of the sheet's nature"
+                       + " and history, not against it.";
+         LlmResponse r = await m.Prose.CompleteAsync(new LlmRequest {
+            SystemPrompt = system, Messages = new[] {new LlmMessage(MessageRole.User, $"THE SHEET OF {c.Name.ToUpperInvariant()}:\n{c.Persona}")},
+            Parameters = new LlmParameters {MaxTokens = 600, Creativity = 0.8f, AllowTruncationRetry = false}
+         });
+         lock (cost) { cost[1] += r.Usage?.Cost ?? 0; calls["prose"]++; }
+         string Field(string name) => Clean(Regex.Match(r.Content ?? "", $@"(?im)^\s*{name}\s*:\s*(.+)$").Groups[1].Value);
+         Inner(c, Field("voice"), Field("mask"), Field("fear"), Field("limit"), Field("secret"));
+         debug.AppendLine($"- depth generated for {c.Name}: voice: {c.Voice} | mask: {c.Mask} | fear: {c.Fear} | limit: {c.Limit} | secret: {c.Secret}");
       }
 
       private const string TOLD = " has now told this to everyone present in the scene; they all know it";
