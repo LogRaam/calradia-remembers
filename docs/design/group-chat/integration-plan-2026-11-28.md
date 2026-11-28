@@ -154,3 +154,40 @@ What was measured in the simulator:
 - A human player's side (short, off topic, testing limits) was never simulated; Corvan and Arwa were played by the
   model.
 - How these stages behave on a small local model.
+
+## Decided with Gabriel before the build (28/11/2026)
+
+- **Three modes** in the existing "Chat Composition" list: Standard (one model plus NSFW), Enhanced (PROSE, INTERPRET,
+  NSFW), and **Dramaturge** (DRAMATURGE, PROSE, INTERPRET, NSFW). The values 0 and 1 keep their meaning, so old settings
+  load as they are. "Novel" was set aside: it names the presentation style of stage 5. The Dramaturge mode and its model
+  appear only when they do something (stages 6 and 7).
+- **The dramaturge is a role like the others:** its own model (blank = the PROSE model) and provider ("(default)" = the
+  PROSE provider), plus its URL and key for an OpenAI-compatible server. Gabriel wants to be able to run Mimo in PROSE and
+  DeepSeek as the dramaturge.
+- **Stage 0, the MCM regroup:** "LLM Provider" splits into "Mode & Models" (the mode, then each role in the order it
+  serves) and "Prompt & Memory" (the rest). A setting is found by its property name, so moving it breaks nothing.
+- **The in-chat switch keeps two positions:** the mode chosen in the MCM, or Roleplay.
+- Gabriel, before the night's build: "go pour tout le système ... je testerai demain".
+
+## Rules for the night's build
+
+- With every new switch off, the game behaves exactly as today. `GoldenPromptTests` (SDK) pins the default prompt
+  character for character; a golden that moves is a stage that leaked into the default.
+- Stages 6 and 7 cannot meet their A/B gate tonight (the only cost-bench capture is from 24/10, and only Gabriel can
+  take a new one). They live ONLY under the Dramaturge mode. Standard and Enhanced do not change, and council stays on
+  `EnsembleFloorPolicy` outside it. They are marked "not A/B-validated".
+- No prefab or XML change for stage 5.
+- Live model runs are capped; the night's total is reported.
+
+## Status ledger
+
+| Stage | State | Commit | Notes |
+|---|---|---|---|
+| 0 MCM regroup | to do | | |
+| 1 Conversation log | to do | | |
+| 2 What a meeting leaves | to do | | |
+| 3 Composed intro | to do | | |
+| 4 Generated depth | to do | | |
+| 5 Novel style | to do | | |
+| 6 Per-turn machinery (Dramaturge mode) | to do | | |
+| 7 Group engine (Dramaturge mode) | to do | | |
