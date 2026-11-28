@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-840 rules read 623 facts.
+842 rules read 624 facts.
 
 ## Facts read by more than one rule
 
@@ -182,6 +182,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `DefaultItemCategories.Horse` (3) | `PriceFacts`, `PriceReference.Compact`, `PriceReference.Full` |
 | `DefaultItemCategories.MeleeWeapons3` (3) | `PriceFacts`, `PriceReference.Compact`, `PriceReference.Full` |
 | `DefaultItemCategories.WarHorse` (3) | `PriceFacts`, `PriceReference.Compact`, `PriceReference.Full` |
+| `DialogFlow.Profile` (3) | `ComposedOpeningPolicy.ShouldCompose`, `DramaturgeModePolicy.Runs`, `SpeakerProfileSelector.Select` |
 | `Directory.Exists` (3) | `PromptProfileFolders.List`, `PromptProfileReader.Read`, `StyleCatalogPolicy.MergeStyleNames` |
 | `EndCaptivityDetail.Ransom` (3) | `EnvoyReleaseFacts`, `PrisonerMemoryText.Released`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
 | `EndCaptivityDetail.ReleasedAfterEscape` (3) | `EnvoyReleaseFacts`, `PrisonerMemoryText.Released`, `QuestRescueCreditPolicy.CreditsPlayerRescue` |
@@ -213,6 +214,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `MobileParty.Position` (3) | `AuthoredQuestPrompt.Narrator`, `CouncilSceneImagePolicy.Resolve`, `SceneSurroundingsFacts` |
 | `ModSettings.AllowKillingCharacters` (3) | `KillAttemptResult`, `ViolencePolicy.IsPermitted`, `ViolencePolicy.Resolve` |
 | `ModSettings.CompanionAudienceCadence` (3) | `CompanionAudiencePacingRules.CooldownDays`, `CompanionAudiencePacingRules.DailyChancePercent`, `CompanionAudiencePacingRules.IsOff` |
+| `ModSettings.DramaturgeMode` (3) | `ChatLogModels`, `DramaturgeModePolicy.Runs`, `ModelModePolicy.DisplayName` |
 | `ModSettings.LlmResponseTimeoutSeconds` (3) | `ComposedOpeningComposer.ComposeAsync`, `ComposedOpeningPolicy.ComposerTimeoutSeconds`, `GeneratedDepthGenerator.GenerateAsync` |
 | `ModSettings.SceneNarration` (3) | `ComposedOpeningPolicy.ShouldCompose`, `SceneNarrationFacts`, `SceneNarrationPolicy.Shows` |
 | `ModSettings.WarLevyScale` (3) | `StandingAim`, `SummonsFacts`, `WarLevyFacts` |
@@ -265,7 +267,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `CultureObject.VillageWoman` (2) | `RankSoldierFacts`, `WomenInRanksPolicy.IsWoman` |
 | `Current.ActiveState` (2) | `LandfallFacts`, `StagingHostFacts` |
 | `Current.UniqueGameId` (2) | `AuthoredHistoryDocument`, `MemoryPictureFacts` |
-| `DialogFlow.Profile` (2) | `ComposedOpeningPolicy.ShouldCompose`, `SpeakerProfileSelector.Select` |
 | `DiplomacyModel.GetInfluenceCostOfProposingWar` (2) | `PressForWarFacts`, `PressForWarPolicy.WhyNot` |
 | `DossierReader.WhyTowardThePlayer` (2) | `ClanRegardCandidate`, `NpcDossierText.RegardLine` |
 | `Encoding.UTF8` (2) | `StoryArchiveBranch.Index`, `StoryArchiveBranch.Walk` |
@@ -326,7 +327,6 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 | `ModSettings.AllowFiefAndMarriageQuestRewards` (2) | `FiefRewardFacts`, `MarriageRewardFacts` |
 | `ModSettings.AllowOpenRouterProviderFallbacks` (2) | `ProviderPinFailurePolicy.Explain`, `ProviderPinFailurePolicy.RoutingJson` |
 | `ModSettings.AllowOtherModsLlm` (2) | `ExternalLlmRequestFacts`, `ExternalLlmRequestPolicy.Explain` |
-| `ModSettings.DramaturgeMode` (2) | `ChatLogModels`, `ModelModePolicy.DisplayName` |
 | `ModSettings.EnableWarDuty` (2) | `LevyTroopFacts`, `TermsFacts` |
 | `ModSettings.GeneratedDepth` (2) | `GeneratedDepthFacts`, `GeneratedDepthPolicy.ShouldGenerate` |
 | `ModSettings.MarriageRegardThreshold` (2) | `ForcedMarriagePolicy.GrudgeMagnitude`, `ForcedMarriagePolicy.IsForcedUnion` |
@@ -602,6 +602,8 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `DivorcePolicy.IsEligible`: `Hero.GetRelation`, `Hero.GovernorOf`, `Hero.IsClanLeader`, `Hero.IsPregnant`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Spouse`, `PairBondReader.Points`, `PartyBelongedTo.LeaderHero`, `Romantic.IsConsort`, `Status.IsCourtingOrDeeper`
 - `DivorcePolicy.IsMutualConsent`: `Hero.GetRelation`
 - `DivorcedSpouseFacts`: `Hero.GovernorOf`, `Hero.IsClanLeader`, `Hero.PartyBelongedTo`, `PartyBelongedTo.LeaderHero`
+- `DramaturgeModePolicy.Runs`: `DialogFlow.Profile`, `ModSettings.DramaturgeMode`
+- `DramaturgeSheet`: `Profile.Name`
 - `DuelAcceptanceContext`: `StatureReader.Of`, `StatureReader.Player`
 - `DuelBystanderFacts`: `Mission.MainAgent`, `Mission.PlayerTeam`
 - `DuelChallengeContext`: `Hero.Children`, `Hero.Father`, `Hero.IsAlive`, `Hero.IsChild`, `Hero.IsPrisoner`, `Hero.IsWounded`, `Hero.Mother`, `Hero.Spouse`, `PartyBelongedToAsPrisoner.LeaderHero`, `SocialStationReader.StationOf`

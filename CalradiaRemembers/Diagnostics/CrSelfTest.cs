@@ -485,6 +485,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("rumour_no_acquaintance", Severity.Light, "VonLemberg (Discord, 15/11/2026, source audit of 2.8.10): 'the player met a lord 40 days ago, but the lord received an unrelated memory yesterday. The system may treat yesterday as their last meeting', and injected memories made a stranger read as known. On a throwaway profile of a real lord (the save is untouched), through the REAL EncounterContextBuilder and FirstImpressionResolver: with only rumours heard and a memory of his own life, he has never met the player (no last meeting, a stranger when free, not already known by his memories); with a meeting 40 days old added, the last meeting is 40 days ago whatever he heard today", TestRumourNoAcquaintance),
          new SelfTest("compression_takeback", Severity.Light, "VonLemberg (Discord, 15/11/2026, source audit of 2.8.10): a memory a mod takes back with CrNpcMemory.RemoveMemory while a compression pass is in flight came back when the pass was applied, and could linger in the background summary. On a real lord: adds a memory through the REAL AddMemory, takes the snapshot a pass would read, takes the memory back through the REAL RemoveMemory, then applies through the REAL write-back (1) a pass that kept it: it must stay gone, and a memory added meanwhile must stay; (2) a pass that folded it into its summary: nothing is applied and the background is left as it was. No model is called. Leaves the lord as found", TestCompressionTakeback),
          new SelfTest("memory_pictures", Severity.Light, "Bhelogan (Discord, 20/11/2026) asked for pictures painted by his mod in the Memories panel; Gabriel: protect the memories that carry one. Through the PUBLIC API on a real lord: AddMemory must announce the memory (MemoryWritten, with an id), GetMemories must give the same id, SetImage must copy a picture into CR's campaign folder and put it on the memory, the REAL compressor with a stand-in model that drops everything must keep that memory, a second SetImage must replace the copy, a paint request must reach ImageRequested and stay busy until ImageFailed, and SetImage(null) must take the picture away and delete the copy. No model is called. Removes every test memory and file after", TestMemoryPictures),
+         new SelfTest("dramaturge_mode", Severity.Light, "Stage 6 of the group-scene plan (Gabriel, 28/11/2026: \"le mode dramaturge avec DRAMA+PROSE+INTERPRET+NSFW\"; NOT A/B-validated, so only in that mode). Sets Chat Composition to Dramaturge and the in-chat switch on it (both restored after), opens a REAL conversation with a lord and, with stand-ins for the interpreter client and the prose rewrite (no model is called): the machinery would run on the main character's turn; a keeper reply that flags a lie leads to exactly one rewrite through the chat's real keeper method, read once more, and the rewrite is what is shown and what the session holds; the inner-life update reads the stand-in's state and the live prompt builder shows it as WHERE YOU STAND NOW. Then with Chat Composition on Enhanced, or the switch on Roleplay, nothing would run. Closes the conversation", TestDramaturgeMode),
          new SelfTest("composed_intro", Severity.Light, "Stage 3 of the group-scene plan (Gabriel, 28/11/2026: \"au debut de chaque CHAT on ajoute l'intro\"; the composer \"chooses among true facts and stages them; it invents nothing the game tracks\"). With \"Composed opening scene\", Characters Set The Scene and Scene Narration forced on and a battle beside the player staged on a lord's record today, opens a REAL conversation and starts its opening on a test greeting, with stand-ins for the composer and the check (no model is called): the composer was given the encounter and the staged battle, the purple setting shows above the greeting, the greeting is the line remembered, the concern and the tension reach the live prompt builder's prompt. Then with Scene Narration off nothing would be composed, and with a check that answers 'invents a raid' the opening falls back: no setting shown, nothing hidden in the prompt, and the reason written. Restores the switches and the record, closes the conversation", TestComposedIntro),
          new SelfTest("meeting_memory", Severity.Light, "Stage 2 of the group-scene plan (Gabriel, 28/11/2026: \"go pour tout le système ... je testerai demain\"): what a meeting leaves. With \"Lasting memory of meetings\" forced off, a closed chat's summary job makes no call. Forced on, the same job runs the REAL update path with a stand-in model giving a fixed reply (no model is called): the lord's record holds the lasting change, the bond and the unsettled matters; the same meeting replayed adds nothing twice; a witness job makes no call; the record survives the save format; the next prompt, built by the live prompt builder, shows the change with days counted, where they stand and what is unsettled, and shows none of it with the switch off or frozen at an opening that held nothing; memory compression keeps the record. Restores the record and the switch, removes the temporary profile", TestMeetingMemory),
          new SelfTest("generated_depth", Severity.Light, "Stage 4 of the group-scene plan (Gabriel, 28/11/2026: \"go pour tout le système ... je testerai demain\"; on the secret, 27/11/2026: private life \"si ça ne touche pas à une mécanique du jeu\"). On a real lord with no depth: reads his sheet through the REAL sheet reader (his own prompt sections, his voice habit among them), then runs the REAL generate-and-keep path with stand-ins for the Background model and the check giving fixed replies (no model is called): the depth is kept on his profile, the generator was given his sheet, the secret passed and was seeded in the meeting record as still kept from the player; the policy will not generate for him again and a second run keeps the first depth; it survives the save format unchanged; the live prompt builder's prompt shows the mask, the limit and the manner of speech inside YOUR VOICE, the secret once (the meeting record owns it), and none of it in a conversation that opened without it or with the switch off. On a temporary profile, a secret the check flags and one that names a marriage are dropped while the rest of the depth stays. Restores the switches and the lord, removes the temporary profile", TestGeneratedDepth),
@@ -18792,6 +18793,142 @@ namespace CalradiaRemembers.Diagnostics
          }
 
          return t.Line();
+      }
+
+      private static string TestDramaturgeMode(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("dramaturge_mode");
+         CrSettings settings = CrSettings.Instance;
+         if (t.Abort(settings?.ChatCompositionModeSetting == null, "no MCM settings instance")) return t.Line();
+         if (t.Skip(Chat.ChatManager.IsOpen || Chat.ExplorationBackdrop.IsOpen || UI.CrPanelHost.AnyPanelOwnsScreen, "a window or panel already owns the screen")) return t.Line();
+         Hero lord = Hero.AllAliveHeroes.FirstOrDefault(h => h != Hero.MainHero && h.IsLord && Mapping.HeroPresence.IsInTheWorld(h) && !h.IsPrisoner);
+         if (t.Skip(lord == null, "no lord to speak with")) return t.Line();
+
+         const string lie = "detail: [SELFTEST] says she was never in Lageta, which her memories contradict\nfacts: none\nobjects: none\nrevealed: none\nproblem: lie";
+         const string pass = "detail: none\nfacts: none\nobjects: none\nrevealed: none\nproblem: none";
+         const string rewrite = "[SELFTEST] I will not speak of Lageta.";
+         int compositionBefore = settings.ChatCompositionModeSetting.SelectedIndex;
+         ManualModelMode? switchBefore = LlmServices.ActiveModelModeRawForDiagnostics;
+         CampaignTimeControlMode timeBefore = Campaign.Current.TimeControlMode;
+         var reader = new DramaturgeStandIn(lie, pass, "feeling: [SELFTEST] wary\nlevel: fluctuation\naim: keep her counsel\nhiding: the road through Lageta");
+         int rewrites = 0;
+         string reason = null;
+
+         void Pump(System.Threading.Tasks.Task task)
+         {
+            var clock = Stopwatch.StartNew();
+            while (!task.IsCompleted && clock.ElapsedMilliseconds < 5000)
+            {
+               Thread.Sleep(5);
+               MainThreadDispatcher.Pump();
+            }
+         }
+
+         try
+         {
+            settings.ChatCompositionModeSetting.Pick(Logic.Chat.ChatCompositionModePolicy.DramaturgeLabel);
+            LlmServices.ActiveModelMode = ManualModelMode.Enhanced;
+            Chat.ChatViewModel.DramaturgeReaderForDiagnostics = reader;
+            Chat.ChatViewModel.DramaturgeRewriterForDiagnostics = r =>
+            {
+               Interlocked.Increment(ref rewrites);
+               reason = r;
+
+               return System.Threading.Tasks.Task.FromResult(rewrite);
+            };
+
+            Chat.ChatManager.Open(lord.Name.ToString(), opening: Chat.ChatOpening.Staged);
+            Chat.ChatViewModel vm = Chat.ChatManager.ActiveViewModel;
+            vm?.SetNpcHero(lord);
+            if (t.Skip(vm == null, "the conversation did not open")) return t.Line();
+
+            // STAKE: Gabriel's third mode: with Dramaturge chosen and the switch on it, the main character's turn runs the machinery.
+            t.Expect("theMachineryRunsInDramaturge", vm.DramaturgeRunsForMainForDiagnostics, true);
+            t.Expect("itStillComposesAsEnhanced", LlmServices.ActiveComposition, ChatCompositionMode.Enhanced);
+
+            var keeping = vm.KeepReplyForDiagnosticsAsync("[SELFTEST] Were you in Lageta?", "[SELFTEST] I was never in Lageta.");
+            Pump(keeping);
+            if (t.Skip(!keeping.IsCompleted, "the keeper did not finish in time")) return t.Line();
+            var kept = keeping.Result;
+            // STAKE: the mod's rule, NPCs never lie: a lie caught is written once more with the reason, read again, and shown.
+            t.Expect("oneRewrite", rewrites, 1);
+            t.Expect("theRewriteWasToldWhy", reason?.Contains("You said something you know is false") == true, true);
+            t.Expect("theKeeperReadTwice", reader.KeeperCalls, 2);
+            t.Expect("theRewriteIsShown", kept.Shown, rewrite);
+            NpcMemoryService.Core.Models.LlmMessage last = kept.Session?.Messages?.LastOrDefault();
+            t.Expect("theSessionHoldsTheRewrite", last?.Content, rewrite);
+
+            vm.StartMindUpdateForDiagnostics("[SELFTEST] You rode through Lageta, did you not?");
+            Pump(vm.DramaturgeMindForDiagnostics);
+            // STAKE: the inner life is read after the player's line, and the next reply is written from it.
+            t.Expect("theInnerLifeIsRead", vm.DramaturgeStateForDiagnostics?.Feeling, "[SELFTEST] wary");
+            string note = Logic.Chat.DramaturgeInnerLife.Note(vm.DramaturgeStateForDiagnostics, Hero.MainHero?.Name?.ToString());
+            IPromptBuilder builder = behavior.LlmServices?.ChatService?.PromptBuilder;
+            if (builder != null)
+            {
+               NpcProfile profile = GetOrCreate(behavior, lord);
+               EncounterContext ctx = EncounterContextBuilder.Build(lord, profile, behavior.GameStateBridge);
+               ctx.InnerLifeNote = note;
+               string prompt = builder.BuildSystemPrompt(profile, new WorldState {CurrentDay = behavior.GameStateBridge?.GetCurrentGameDay() ?? 0}, ctx) ?? "";
+               t.Expect("thePromptCarriesWhereYouStand", prompt.Contains("WHERE YOU STAND NOW") && prompt.Contains("[SELFTEST] wary"), true);
+            }
+            else t.Note("no prompt builder (no model configured): the prompt half was not read");
+
+            // STAKE: Gabriel's rule for the night's build: Standard and Enhanced do not change at all, and the switch on Roleplay
+            // is a one-call mode.
+            LlmServices.ActiveModelMode = ManualModelMode.Roleplay;
+            t.Expect("roleplayRunsNothing", vm.DramaturgeRunsForMainForDiagnostics, false);
+            LlmServices.ActiveModelMode = ManualModelMode.Enhanced;
+            settings.ChatCompositionModeSetting.Pick(Logic.Chat.ChatCompositionModePolicy.EnhancedLabel);
+            int callsBefore = reader.KeeperCalls + reader.MindCalls;
+            t.Expect("enhancedRunsNothing", vm.DramaturgeRunsForMainForDiagnostics, false);
+            t.Expect("enhancedCallsNoReader", reader.KeeperCalls + reader.MindCalls, callsBefore);
+         }
+         finally
+         {
+            Chat.ChatViewModel.DramaturgeReaderForDiagnostics = null;
+            Chat.ChatViewModel.DramaturgeRewriterForDiagnostics = null;
+            settings.ChatCompositionModeSetting.SelectedIndex = compositionBefore;
+            LlmServices.ActiveModelModeRawForDiagnostics = switchBefore;
+            if (Chat.ChatManager.IsOpen) Chat.ChatManager.Close();
+            MainThreadDispatcher.Pump();
+            Campaign.Current.TimeControlMode = timeBefore;
+         }
+
+         return t.Line();
+      }
+
+      // The stand-in interpreter of cr.test dramaturge_mode: the keeper's verdicts in order, a fixed inner-life reading; counts both.
+      private sealed class DramaturgeStandIn : NpcMemoryService.Core.LlmClient.ILlmClient
+      {
+         private readonly System.Collections.Concurrent.ConcurrentQueue<string> _verdicts = new();
+         private readonly string _mind;
+         public int KeeperCalls;
+         public int MindCalls;
+
+         public DramaturgeStandIn(string first, string second, string mind)
+         {
+            _verdicts.Enqueue(first);
+            _verdicts.Enqueue(second);
+            _mind = mind;
+         }
+
+         public System.Threading.Tasks.Task<NpcMemoryService.Core.Models.LlmResponse> CompleteAsync(NpcMemoryService.Core.Models.LlmRequest request, System.Threading.CancellationToken ct = default)
+         {
+            string content;
+            if (request?.Subject == "keeper")
+            {
+               Interlocked.Increment(ref KeeperCalls);
+               content = _verdicts.TryDequeue(out string v) ? v : "problem: none";
+            }
+            else
+            {
+               Interlocked.Increment(ref MindCalls);
+               content = _mind;
+            }
+
+            return System.Threading.Tasks.Task.FromResult(new NpcMemoryService.Core.Models.LlmResponse {IsSuccess = true, Content = content});
+         }
       }
 
       // The stand-in model of cr.test composed_intro: a fixed reply, and what it was last asked.

@@ -161,7 +161,7 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Report button in the chat (`ShowReportButton`) | `ChatViewModel.ShowReportButton` | 0 |
 | Report unsupported actions (`ReportUnsupportedActions`) | `ChatViewModel.RunLlmExchangeAsync` | 0 |
 | Story Log (`StoryLogging`) | `StoryLog.IsEnabled` | 0 |
-| Verbose Logging (`VerboseLogging`) | `ChatViewModel.RunEnvoyTurnAsync`, `ChatViewModel.RunLlmExchangeAsync`, `LetterTriggerEvaluator.EvaluateDaily`, `LlmServices.ResolveReasoningFor` | 0 |
+| Verbose Logging (`VerboseLogging`) | `ChatViewModel.RunEnvoyTurnAsync`, `ChatViewModel.RunLlmExchangeAsync`, `ChatViewModel.StartDramaturgeMindUpdate`, `LetterTriggerEvaluator.EvaluateDaily`, `LlmServices.ResolveReasoningFor` | 0 |
 | Write a conversation log (`WriteConversationLog`) | `ChatViewModel.StartConversationLog` | 1 |
 
 ### Duels
@@ -176,7 +176,7 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 |---|---|---|
 | Background model (`HousekeepingModel`) | `LlmServices.ResolveHousekeepingModel` | 3 |
 | Background provider (`HousekeepingProvider`) | `LlmServices.ResolveKindForRole` | 2 |
-| Chat Composition (`ChatCompositionModeSetting`) | `ChatViewModel.ExecuteToggleModelMode`, `ChatViewModel.ModelModeText`, `ChatViewModel.StartConversationLog`, `LlmServices.SeedModelModeFromSettings` | 6 |
+| Chat Composition (`ChatCompositionModeSetting`) | `ChatViewModel.DramaturgeFactsFor`, `ChatViewModel.ExecuteToggleModelMode`, `ChatViewModel.ModelModeText`, `ChatViewModel.StartConversationLog`, `LlmServices.SeedModelModeFromSettings` | 7 |
 | Dramaturge model (`DramaturgeModel`) | `LlmServices.ResolveDramaturgeModel`, `LlmServices.ResolveProviderPinFor` | 1 |
 | Dramaturge provider (`DramaturgeProvider`) | `LlmServices.ResolveKindForRole` | 1 |
 | Interpret model (`ActionInterpreterModel`) | `LlmServices.DebugDescribeRoleRouting`, `LlmServices.ResolveInterpreterModel`, `LlmServices.ResolveModel` | 3 |

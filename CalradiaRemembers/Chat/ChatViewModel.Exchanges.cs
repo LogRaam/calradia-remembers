@@ -847,6 +847,9 @@ namespace CalradiaRemembers.Chat
                IsCaptiveEncounter = IsCaptiveEncounter, IsCaptorScene = _captorScene
             };
             bool proseInterpretEligible = ActionReaderPolicy.IsInterpreterTurn(readingFacts);
+            // Stage 6 (28/11/2026): the Dramaturge mode's inner life and keeper, NOT A/B-validated, so only in that mode
+            // (DramaturgeModePolicy); on every other turn this is false and nothing below changes (ChatViewModel.Dramaturge.cs).
+            bool dramaturgeTurn = !isSceneOpener && DramaturgeModePolicy.Runs(DramaturgeFactsFor(speaker, suppressPlayerLine, suppressGroupTail));
 
             // Stage 4 (28/11/2026): the first model turn gives a character with no depth one, in the background; the chat never
             // waits, and what lands shows from the next conversation on (the turn below hides it).
@@ -1028,6 +1031,16 @@ namespace CalradiaRemembers.Chat
                   ModLog.Info($"(prompt logging failed: {ex.Message})");
                }
 
+            // Dramaturge mode: the reply is written from where the character stands now (the update from its last reply, waited
+            // for a few seconds at most), and the update from the player's line runs beside the prose call.
+            if (dramaturgeTurn)
+            {
+               context.InnerLifeNote = await DramaturgeNoteForTurnAsync();
+               await MainThreadDispatcher.SwitchToMainThread();
+               if (!ReferenceEquals(ChatManager.ActiveViewModel, this)) return;
+               StartDramaturgeMindUpdate(speaker, playerMessage, "the player's line");
+            }
+
             long startMs = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
 
             // PROSE FALLBACK eligibility (same gate ComposeByInterpretationAsync's call site checks below): only
@@ -1158,6 +1171,18 @@ namespace CalradiaRemembers.Chat
             }
             // ─────────────────────────────────────────────────────────────────────────────────────
 
+            // Dramaturge mode: the keeper reads the reply before it is shown; a lie, a repeat, a contradiction or an invention
+            // gets one rewrite. A beat the fallback redid (an integrated call on another model, its tags already read) is left.
+            if (dramaturgeTurn && !usedProseFallback && result.IsSuccess
+                && (!string.IsNullOrWhiteSpace(result.Response?.Dialogue) || !string.IsNullOrWhiteSpace(result.Response?.Narration)))
+            {
+               var kept = await KeepDramaturgeReplyAsync(speaker, profile, world, session, playerMessage, context, result, !proseInterpretEligible);
+               await MainThreadDispatcher.SwitchToMainThread();
+               if (!ReferenceEquals(ChatManager.ActiveViewModel, this)) return;
+               result = kept.Result;
+               NoteDramaturgeKeeper(kept.Kept);
+            }
+
             ParsedResponse response = TakeBackTheOtherPeoplesLines(result.Response, speaker);
             // Empty when the model produced no spoken line; RenderNpcTurn below turns that into
             // a narration-only turn (no "(silence...)" bubble) when [NARRATION] is present.
@@ -1268,6 +1293,8 @@ namespace CalradiaRemembers.Chat
                RecordTranscript(true, "You", Hero.MainHero?.StringId, playerMessage);
             if (!string.IsNullOrEmpty(npcLine))
                RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
+            // Dramaturge mode: the inner life after the reply, in the background, for the next turn.
+            if (dramaturgeTurn && !string.IsNullOrEmpty(npcLine)) StartDramaturgeMindUpdate(speaker, null, $"{speaker.Name}'s reply");
 
             // Fallback-memory bookkeeping: a completed exchange counts as a turn, and the player's text
             // length feeds the one-substantial-turn rule (a single meaningful exchange deserves a memory;

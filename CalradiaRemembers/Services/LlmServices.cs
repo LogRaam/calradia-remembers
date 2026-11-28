@@ -357,6 +357,16 @@ namespace CalradiaRemembers.Services
 
       private static ManualModelMode? _activeModelMode;
 
+      /// <summary>
+      ///   cr.test dramaturge_mode: the switch's raw state, null while not yet seeded from the MCM. Read and put back whole, so
+      ///   a test that forces a position leaves an unseeded switch unseeded.
+      /// </summary>
+      internal static ManualModelMode? ActiveModelModeRawForDiagnostics
+      {
+         get => _activeModelMode;
+         set => _activeModelMode = value;
+      }
+
       private static ManualModelMode SeedModelModeFromSettings()
          => ModSettings.ChatCompositionMode == ChatCompositionMode.Enhanced ? ManualModelMode.Enhanced : ManualModelMode.Roleplay;
 
@@ -1189,7 +1199,10 @@ namespace CalradiaRemembers.Services
             // Stage 4 (28/11/2026): who a character is beneath the sheet shows only while "Deeper characters" is on.
             EnableGeneratedDepth = ModSettings.GeneratedDepth,
             // Stage 5 (28/11/2026): the novel's presentation, only while "Narrative style" is Novel (Roleplay by default).
-            EnableNovelStyle = ModSettings.NovelStyle
+            EnableNovelStyle = ModSettings.NovelStyle,
+            // Stage 6 (28/11/2026): the Dramaturge mode's inner life and the keeper's refused draft. The data is the gate: the
+            // chat hands them only on a Dramaturge turn, so every other prompt is unchanged.
+            EnableDramaturgeNotes = true
          };
       }
 

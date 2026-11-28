@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 703 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1799 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1813 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 306 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -17,8 +17,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 
 | Lines | Layer | File |
 |---|---|---|
-| 30500+ | Mod | `Diagnostics/CrSelfTest.cs` |
-| 9500+ | Sdk | `Prompts/PromptBuilder.cs` |
+| 31000+ | Mod | `Diagnostics/CrSelfTest.cs` |
+| 10000+ | Sdk | `Prompts/PromptBuilder.cs` |
 | 6000+ | Mod | `GameState/BannerlordGameStateBridge.cs` |
 | 4500+ | Mod | `Mapping/EncounterContextBuilder.cs` |
 | 4000+ | Mod | `Chat/ChatViewModel.cs` |
@@ -252,7 +252,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ChatScreen` | internal class | A minimal screen that carries the pre-built chat layer and takes focus when pushed. |
 | `ChatScrollablePanel` | public class | Custom ScrollablePanel that supports a deferred "scroll to bottom" request. |
 | `ChatSpeaker` | internal class | One participant of a chat exchange: the main NPC or a present witness, with the hero, stored profile and display colour used to route the turn and render the line. |
-| `ChatViewModel` | public class, partial over 16 files | (no summary) |
+| `ChatViewModel` | public class, partial over 17 files | (no summary) |
 | `CompanionAudiencePayload` | public class | The companion-audience specifics. |
 | `ComposeScrollablePanel` | public class | A plain ScrollablePanel for the composer's multi-line input. |
 | `ConversationMood` | public static class | How far the player has moved each character's mood in the current conversation. |
@@ -2087,7 +2087,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RosterItemKey` | public static class | Names one stack of goods by item and quality, and finds it again among what the party holds. |
 | `ScoreToSettle` | public class | Whether a character has a score to settle, and whether the player may be told so. |
 
-### CalradiaRemembers.Logic.Chat (45)
+### CalradiaRemembers.Logic.Chat (59)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2117,9 +2117,23 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `ComposedOpeningResult` | public class | How a composed opening ended. |
 | `ComposedOpeningSheet` | public class | What the game knows, as the composer and the checker read it. |
 | `ComposedOpeningVerdict` | public class | The checker's verdict on a composition. |
+| `DramaturgeInnerLife` | public static class | The inner-life reader's prompt, its parser and the note the next reply is written from. |
+| `DramaturgeInnerState` | public class | Where a character stands inside, now. |
+| `DramaturgeKeeper` | public static class | The keeper's prompt, its parser and the reason handed to a rewrite. |
+| `DramaturgeKeeperResult` | public class | How the keeper's reading of one reply ended. |
+| `DramaturgeMindResult` | public class | How one inner-life update ended. |
+| `DramaturgeModePolicy` | public static class | Whether the Dramaturge machinery runs on a turn, and how long its cheap calls may take. |
+| `DramaturgeRecord` | public class | The record of one chat: what was established and where things stand. |
+| `DramaturgeRewritePolicy` | public static class | When the keeper asks for a rewrite, and which reply is shown after it. |
+| `DramaturgeSheet` | public class | What the cheap readers are told about the character: who they are and what they know, read once per chat. |
+| `DramaturgeTurnComposer` | public static class | Runs the inner-life reader and the keeper. |
+| `DramaturgeTurnFacts` | public class | The facts the Dramaturge machinery is decided on, for one turn. |
 | `EscapeCloseLatch` | public class | Holds an Escape close until it is safe (philip0105, 11/10/2026: Escape out of a conversation crashed the game, the close button did not). |
 | `InterpreterAttemptOutcome` | public enum | What one interpreter call brought back. |
 | `InterpreterRetryPolicy` | public static class | Whether the interpreter is asked again after an attempt. |
+| `KeeperProblem` | public enum | What the keeper found in a reply. |
+| `KeeperRewriteFacts` | public class | The facts the keeper's rewrite is judged on, once it came back. |
+| `KeeperVerdict` | public class | The keeper's reading of one reply. |
 | `MemoryPanelFacts` | public class | What decides whether one memory is listed. |
 | `MemoryPanelPolicy` | public static class | Decides how a memory appears in the Memories panel. |
 | `MemoryPanelShow` | public enum | How one memory appears in the chat's Memories panel. |

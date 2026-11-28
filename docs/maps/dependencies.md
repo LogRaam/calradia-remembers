@@ -398,7 +398,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 #### `CalradiaRemembers.Chat` and `CalradiaRemembers.Services`
 
-- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Services` in 10 files: `Chat/ActionInterpreterComposer.cs`, `Chat/ChatManager.cs`, `Chat/ChatViewModel.ConversationLog.cs`, and 7 more
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Services` in 11 files: `Chat/ActionInterpreterComposer.cs`, `Chat/ChatManager.cs`, `Chat/ChatViewModel.ConversationLog.cs`, and 8 more
 - `CalradiaRemembers.Services` uses `CalradiaRemembers.Chat` in 1 file(s): `Services/BackgroundCallHold.cs`
 
 #### `CalradiaRemembers.Chat` and `CalradiaRemembers.Standing`
@@ -599,7 +599,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 #### `CalradiaRemembers.Behaviors` and `CalradiaRemembers.Chat`
 
 - `CalradiaRemembers.Behaviors` uses `CalradiaRemembers.Chat` in 2 file(s): `Behaviors/LongMemoryRecaller.cs`, `Behaviors/NpcMemoryCampaignBehavior.cs`
-- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Behaviors` in 25 files: `Chat/ActionConfirmationController.cs`, `Chat/ChatManager.cs`, `Chat/ChatSceneStager.cs`, and 22 more
+- `CalradiaRemembers.Chat` uses `CalradiaRemembers.Behaviors` in 26 files: `Chat/ActionConfirmationController.cs`, `Chat/ChatManager.cs`, `Chat/ChatSceneStager.cs`, and 23 more
 
 #### `CalradiaRemembers.Chat` and `CalradiaRemembers.Duels`
 
