@@ -74,7 +74,7 @@
     <string id="CR_MCM_CustomApiKey_Hint" text="Leave blank for keyless local servers like LM Studio or Ollama. Fill it in only if your server requires one. Applies immediately." />
     <string id="CR_MCM_Group_OpenAICompatible" text="OpenAI-Compatible" />
     <string id="CR_MCM_CustomEndpointUrl" text="Endpoint URL (Prose / shared)" />
-    <string id="CR_MCM_CustomEndpointUrl_Hint" text="Base URL of your local server, with /v1 (e.g. http://localhost:1234/v1). Serves the Prose role, and any role whose own Endpoint below is blank. Set that role's model under LLM Provider too, or it sends an OpenRouter id to your server." />
+    <string id="CR_MCM_CustomEndpointUrl_Hint" text="Base URL of your local server, with /v1 (e.g. http://localhost:1234/v1). Serves the Prose role, and any role whose own Endpoint below is blank. Set that role's model under Mode &amp; Models too, or it sends an OpenRouter id to your server." />
     <string id="CR_MCM_CustomEndpointUrlNsfw" text="Endpoint URL (NSFW)" />
     <string id="CR_MCM_CustomEndpointUrlNsfw_Hint" text="Optional. A separate OpenAI-Compatible server URL for the NSFW role only, so you can split roles across two local machines. Blank = use the shared Endpoint URL above. Applies immediately." />
     <string id="CR_MCM_CustomEndpointUrlHousekeeping" text="Endpoint URL (Background)" />
@@ -137,7 +137,7 @@
     <string id="CR_MCM_Group_Duels" text="Duels" />
     <string id="CR_MCM_LeanPrompt" text="Compact prompt for small models" />
     <string id="CR_MCM_LeanPrompt_Hint" text="Trims the prompt to fit a SMALL, short-context model (4k to 8k). Turn ON if the AI stays silent: the full prompt is overflowing it. Replies grow less richly grounded, and fewer tasks are offered. Leave OFF for cloud models." />
-    <string id="CR_MCM_Group_LLMProvider" text="LLM Provider" />
+    <string id="CR_MCM_Group_PromptMemory" text="Prompt &amp; Memory" />
     <string id="CR_MCM_LocalContextTokens" text="Local model context (tokens)" />
     <string id="CR_MCM_LocalContextTokens_Hint" text="0 = off (cloud models). For a local/custom server: the context length set there, per request. CR then trims each request to fit it (oldest lines first, then the compact prompt) instead of the server cutting it blind." />
     <string id="CR_MCM_MemoryCompression" text="Compress old memories" />
@@ -158,6 +158,7 @@
     <string id="CR_MCM_LlmTimeoutSeconds_Hint" text="How long to wait for a reply, in seconds (default 120), in conversations and for letters and summaries (never under 60). Raise it for a slow local or reasoning model; lower it to fail fast. Applies immediately." />
     <string id="CR_MCM_Model" text="PROSE model" />
     <string id="CR_MCM_Model_Hint" text="Model id in the ACTIVE provider's own format (OpenRouter: x-ai/grok-4.20; NanoGPT: deepseek-ai/DeepSeek-V3; Ollama: llama3.1:8b). Writes ordinary chat, and in Enhanced mode the prose of every scene. Applies immediately." />
+    <string id="CR_MCM_Group_ModeModels" text="Mode &amp; Models" />
     <string id="CR_MCM_Provider" text="Roleplay / Prose provider" />
     <string id="CR_MCM_Provider_Hint" text="Which provider the roleplay and prose model above is sent to. It is also the base every other role inherits when left on (default). Each provider keeps its own key further down. Applies immediately." />
     <string id="CR_MCM_NanoGptApiKey" text="NanoGPT API Key" />

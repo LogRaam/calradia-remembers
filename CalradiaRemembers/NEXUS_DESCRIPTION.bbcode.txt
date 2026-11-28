@@ -600,7 +600,7 @@ The guard added in v1.31.7 catches the clearest cases, but it is deliberately ca
 
 [size=5]How to configure[/size]
 
-[b]CHOOSE A BACKEND[/b]. The mod supports three backends: [b]OpenRouter[/b] (default, broadest cloud model catalog), [b]NanoGPT[/b] (alternative cloud provider), and [b]OpenAI-Compatible[/b] (any local server on your machine.. LM Studio, Ollama, vLLM). You only need one. Each keeps its own API key/endpoint, and you switch between them in one click with the "LLM Provider" dropdown.. the Model field itself is shared across all three, so you only set it once.
+[b]CHOOSE A BACKEND[/b]. The mod supports three backends: [b]OpenRouter[/b] (default, broadest cloud model catalog), [b]NanoGPT[/b] (alternative cloud provider), and [b]OpenAI-Compatible[/b] (any local server on your machine.. LM Studio, Ollama, vLLM). You only need one. Each keeps its own API key/endpoint, and you switch between them in one click with the "Roleplay / Prose provider" dropdown (Mode & Models).. the Model field itself is shared across all three, so you only set it once.
 
 OPTION A.. SET UP OPENROUTER (CLOUD, ONE TIME)
 
@@ -645,7 +645,7 @@ Popular options:
 
 [b]Cloud (OpenRouter or NanoGPT):[/b]
   1. Launch Bannerlord with the mod enabled, then open Options → Mod Options → Calradia Remembers.
-  2. Set `LLM Provider` to OpenRouter or NanoGPT.. whichever you set up.
+  2. In Mode & Models, set `Roleplay / Prose provider` to OpenRouter or NanoGPT.. whichever you set up.
   3. Paste your key into that provider's API Key field.
   4. Set the [b]PROSE model[/b] field.. the model that writes ordinary conversation (OpenRouter has a default, x-ai/grok-4.20; NanoGPT needs an id you paste from its catalog). That is all you need to start: on the default [b]Enhanced[/b] composition the [b]NSFW model[/b] (a reliable fallback for explicit beats) defaults to Grok 4.20 and the [b]Interpret model[/b] (which reads actions) to DeepSeek V4.1 Flash, and both simply work. Point any of the three at a different model, or its own provider, only if you want to. [i](Upgrading? Your provider, key and models carry over, your Interpret model included; to take the new interpreter, type deepseek/deepseek-v4.1-flash in Interpret model.)[/i]
   5. Click that provider's `Test Connection` button.. it validates your key and tests your configured models with a one-token prompt, so a mistyped model id is caught before you play.
@@ -654,7 +654,7 @@ Popular options:
 [b]Local server (OpenAI-Compatible):[/b]
   1. Start your local server (LM Studio server panel, ollama serve, etc.) and load a model.
   2. Open Options → Mod Options → Calradia Remembers.
-  3. Set `LLM Provider` to [b]OpenAI-Compatible[/b].
+  3. In Mode & Models, set `Roleplay / Prose provider` to [b]OpenAI-Compatible[/b].
   4. Paste the server URL into [b]Endpoint URL[/b] (e.g. http://localhost:1234/v1 for LM Studio, http://localhost:11434/v1 for Ollama). Include the /v1 path.. the mod appends /chat/completions automatically.
   5. Paste the model id into the [b]PROSE model[/b] field (LM Studio shows it in its server panel; Ollama uses the name you pulled, e.g. llama3.1:8b). The NSFW, Interpret and Background roles follow it on their own: a field left blank, or still holding its shipped OpenRouter id, uses the PROSE model on your server. Name a model there only if you want a different one. Running a small short-context model? Turn on [b]Compact prompt for small models[/b] if the AI stays silent.
   6. Leave [b]API Key[/b] blank unless your server is configured to require one.
@@ -663,9 +663,9 @@ Popular options:
 
 3. THE SETTINGS MENU, OPTION BY OPTION
 
-Everything lives in Options → Mod Options → Calradia Remembers, in ten groups. Unless a line says otherwise, a change applies at once.. no restart, no save reload. Every option also carries its own tooltip in the menu.
+Everything lives in Options → Mod Options → Calradia Remembers, in twelve groups. Unless a line says otherwise, a change applies at once.. no restart, no save reload. Every option also carries its own tooltip in the menu.
 
-[b][color=#b6d7a8]LLM Provider[/color][/b] (models and how a reply is made):
+[b][color=#b6d7a8]Mode & Models[/color][/b] (how a reply is made, and which model plays each role):
 [list]
 [*][b]Chat Composition[/b].. how each reply is made. [b]Enhanced[/b] (default): your PROSE model writes, a separate INTERPRET model reads the actions out of the prose, and the NSFW model finishes any beat the writer cuts short, leaves empty or refuses. Richest, at the cost of a second call and a little more time. [b]Standard[/b]: one call, cheapest and fastest. The chat window also has its own switch (Enhanced, Roleplay or NSFW) to change it for one session; this option sets where it starts.[/*]
 [*][b]PROSE model[/b].. the model that writes ordinary conversation, and in Enhanced mode the prose of every scene. Default on OpenRouter: x-ai/grok-4.20; NanoGPT and OpenAI-Compatible need an id you paste, in that provider's own format. See "Which model should I use?" below.[/*]
@@ -673,11 +673,15 @@ Everything lives in Options → Mod Options → Calradia Remembers, in ten group
 [*][b]NSFW model[/b] and [b]NSFW provider[/b].. the more permissive model for explicit content: captivity scenes in Standard mode, the fallback in Enhanced mode. Default x-ai/grok-4.20; blank reuses the PROSE model.[/*]
 [*][b]Interpret model[/b] and [b]Interpret provider[/b].. Enhanced mode only: the model whose one job is to read the actions (regard, gold, quests, duels..) out of the prose, so they fire whatever writer you run. Default deepseek/deepseek-v4.1-flash (the most accurate measured, and among the cheapest); blank reuses the PROSE model. Point it at a local server to run the interpreter on your own machine.[/*]
 [*][b]Background model[/b] and [b]Background provider[/b].. optional. A cheaper or smaller chat model for the mod's background work: summaries, memory compression, reading claims out of letters. Blank uses the PROSE model. Useful on a local server, where two prompts would otherwise share one cache.[/*]
-[*][b]LLM Response Timeout[/b] (120 s).. how long to wait for a reply. Raise it for a slow local or reasoning model; lower it to fail fast.[/*]
+[/list]
+
+[b][color=#b6d7a8]Prompt & Memory[/color][/b] (what each request carries, and how it is sampled):
+[list]
 [*][b]Compact prompt for small models[/b] (off).. trims the prompt to fit a small, short-context model (4k to 8k). Turn it on if the AI stays silent on a local model. Leave it off for cloud models. Console: [i]cr.prompt_size[/i].[/*]
 [*][b]Local model context (tokens)[/b] (0 = off).. for a local server, the context length you set there. The mod then trims each request to fit it (oldest lines first, then the compact prompt) instead of letting the server cut it blind.[/*]
 [*][b]Compress old memories[/b] (on).. folds old, superseded memories into a short outline, so a long campaign stops inflating every prompt (the usual cause of slow replies on a local model). First meetings, recent events and grave moments are never dropped.[/*]
 [*][b]Chat Temperature[/b] (0.70).. how varied replies are. Lower is steadier, higher more surprising; above 1.0 a local model may lose its character. Reasoning models ignore it.[/*]
+[*][b]LLM Response Timeout[/b] (120 s).. how long to wait for a reply. Raise it for a slow local or reasoning model; lower it to fail fast.[/*]
 [/list]
 
 [b][color=#b6d7a8]OpenRouter[/color][/b]:

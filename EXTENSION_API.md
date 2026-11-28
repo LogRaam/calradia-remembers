@@ -778,7 +778,7 @@ if (CrLlm.IsReady)   // else CrLlm.Unavailable() says why
   before touching game objects. If the campaign was unloaded or replaced meanwhile, `CampaignChanged` is true and
   `Succeeded` false: do not apply it.
 - It never throws. Refusals cost nothing and say why: the player turned off "Other mods may use my connection" (MCM,
-  LLM Provider, on by default), no connection is ready, no `SourceMod`, or nothing to answer.
+  Prompt & Memory, on by default), no connection is ready, no `SourceMod`, or nothing to answer.
 - It spends the player's credit and counts in CR's usage figures; every call is logged (`[EXT LLM]`) with your mod's name.
   CR never calls on its own because you registered: only your `CompleteAsync` spends.
 - `Turns` alternate: `FromModel = false` for a line put to the character, `true` for one it said before.

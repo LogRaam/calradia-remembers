@@ -96,7 +96,7 @@ namespace CalradiaRemembers.Logic.Providers
             return $"Your server refused the request: it is longer than the model's context{theirs}. Load the model with a " +
                    "larger context length in your server (LM Studio: Context Length, when loading the model; Ollama: num_ctx), " +
                    "16384 or more if your memory allows, then set 'Local model context (tokens)' in Mod Options -> Calradia " +
-                   $"Remembers -> LLM Provider to that same number{declared}. CR then fits every request to it.";
+                   $"Remembers -> Prompt & Memory to that same number{declared}. CR then fits every request to it.";
         }
 
         private static bool IsOverflow(string error)

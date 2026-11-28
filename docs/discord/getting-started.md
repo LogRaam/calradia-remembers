@@ -18,7 +18,7 @@ Calradia Remembers does not run an AI by itself: it sends each conversation to a
 ===== MESSAGE 2 =====
 ## The roles: why several models?
 
-MCM → Calradia Remembers → **LLM Provider**. Each role has a **model** and a **provider** (`(default)` = the same provider as PROSE):
+MCM → Calradia Remembers → **Mode & Models**. Each role has a **model** and a **provider** (`(default)` = the same provider as PROSE):
 - **PROSE model**: writes what the characters say. The one that matters most for the quality of the roleplay. Default: `x-ai/grok-4.20`.
 - **Interpret model**: reads each reply once more to find what was really **done** (a gift, a promise kept, a quest given, a duel accepted) so the game can carry it out. Default: `deepseek/deepseek-v4.1-flash`, cheap and very accurate.
 - **NSFW model**: for explicit content when the prose model will not write it. Default: `x-ai/grok-4.20`; blank = the prose model.
@@ -53,11 +53,11 @@ A guide, not a quote: one evening, one lord, prices of the day. OpenRouter's **A
 ## A model on your own PC
 
 1. Run your local server (LM Studio, Ollama...) with a model loaded, and note its address.
-2. MCM → **LLM Provider** → **Roleplay / Prose provider**: **OpenAI-Compatible**. Leave the other roles on `(default)`.
+2. MCM → **Mode & Models** → **Roleplay / Prose provider**: **OpenAI-Compatible**. Leave the other roles on `(default)`.
 3. MCM → **OpenAI-Compatible** → **Endpoint URL (Prose / shared)**: the address **with `/v1`**, e.g. `http://localhost:1234/v1` (LM Studio) or `http://localhost:11434/v1` (Ollama). API Key: usually blank.
 4. **PROSE model**: the model's name as your server knows it (e.g. `llama3.1:8b`).
 
-**Then fit the mod to your model** (LLM Provider):
+**Then fit the mod to your model** (Prompt & Memory):
 - **Local model context (tokens)**: the context length set in your server. The mod trims its prompt to fit.
 - **Compact prompt for small models**: on for a 4k to 8k model, or if the AI stays **silent**. Characters then offer fewer tasks, so leave it off when the full prompt fits.
 - **Reply Token Budget**: raise it if a thinking model is **cut off mid-thought**.

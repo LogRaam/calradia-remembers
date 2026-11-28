@@ -163,28 +163,18 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 |---|---|---|
 | Post-duel conversation (`EnablePostDuelConversation`) | `DuelCoordinator.OnTick` | 0 |
 
-### LLM Provider
+### Mode & Models
 
 | Setting | Readers in play | cr.test / console |
 |---|---|---|
 | Background model (`HousekeepingModel`) | `LlmServices.ResolveHousekeepingModel` | 3 |
 | Background provider (`HousekeepingProvider`) | `LlmServices.ResolveKindForRole` | 2 |
 | Chat Composition (`ChatCompositionModeSetting`) | `LlmServices.SeedModelModeFromSettings` | 4 |
-| Chat Temperature (`ChatTemperature`) | `ChatViewModel.RunEnvoyTurnAsync`, `LlmServices.BuildChatService`, `LlmServices.ChatService` | 1 |
-| Compact prompt for small models (`LeanPrompt`) | `ActionInterpreterComposer.InterpretAsync`, `BuyPrisonerVerb.TeachingText`, `ChatViewModel.EnsureTranscriptCompressedAsync`, `CouncilSeatNoteResolver.Resolve`, `CrCharacterText.PiecesFor`, `EncounterContextBuilder.Build`, `EncounterContextBuilder.ComposeAppearance`, `EncounterContextBuilder.ModTextFor`, `EncounterContextBuilder.StandingContextFor`, `ExchangeService.MoneyTokensFor` | 7 |
-| Compress after (memories) (`MemoryCompressionThreshold`) | `MemoryCompressionService.CompressAsync`, `MemoryCompressionService.PickCandidate` | 2 |
-| Compress old memories (`MemoryCompression`) | `MemoryCompressionBehavior.OnDailyTick`, `MemoryCompressionBehavior.RunNow`, `MemoryCompressionService.CompressAsync` | 1 |
 | Interpret model (`ActionInterpreterModel`) | `LlmServices.DebugDescribeRoleRouting`, `LlmServices.ResolveInterpreterModel`, `LlmServices.ResolveModel` | 3 |
 | Interpret provider (`ActionInterpreterProvider`) | `LlmServices.ResolveKindForRole` | 1 |
-| LLM Response Timeout (s) (`LlmTimeoutSeconds`) | `ActionInterpreterComposer.AttemptAsync`, `ApiKeyTester.ProbeContextAsync`, `ChatViewModel.CallNarratorAsync`, `ChatViewModel.RunCouncilTurnAsync`, `ChatViewModel.RunEnvoyTurnAsync`, `ConversationSummaryService.GenerateAndApplyCaptiveSummaryAsync`, `ConversationSummaryService.GenerateAndApplyConversationSummaryAsync`, `ConversationSummaryService.HarvestWorldClaimsAsync`, `ConversationSummaryService.ProcessConversationJobAsync`, `CourierSecretBehavior.JudgeAndReactAsync`, `LetterGenerationService.LetterLlmTimeoutSeconds`, `LetterMemoryFinalizer.GenerateAndApplyAsync`, `LlmServices.BuildHousekeepingClient`, `LlmServices.BuildInterpreterClient`, `LlmServices.BuildRoleClient`, `LlmServices.Initialize`, `ProseFallbackComposer.RunIntegratedFallbackAsync` | 11 |
-| Local model context (tokens) (`LocalContextTokens`) | `ApiKeyTester.RunCustomAsync`, `ChatViewModel.NotifyLlmFailure`, `LlmServices.ContextWindowFor`, `LocalContextState.CompactThisSession` | 1 |
-| Memories in the prompt (`PromptMemoryLimit`) | `EncounterContextBuilder.Build`, `EncounterContextBuilder.StandingContextFor` | 1 |
 | NSFW model (`CncModel`) | `ApiKeyTester.TestConfiguredModelsAsync`, `LlmServices.DebugDescribeRoleRouting`, `LlmServices.ResolveModel`, `LlmServices.ResolveNsfwModel`, `LlmServices.ResolveProseFallbackModel` | 5 |
 | NSFW provider (`CncProvider`) | `LlmServices.ResolveKindForRole` | 1 |
-| Other mods may use my connection (`AllowOtherModsLlm`) | `CrLlm.CompleteAsync`, `CrLlm.Unavailable` | 0 |
 | PROSE model (`Model`) | `ApiKeyTester.RunCustomAsync`, `ApiKeyTester.RunOpenRouterAsync`, `LlmServices.ResolveRoleplayModelForKind` | 0 |
-| Presence Penalty (`PresencePenalty`) | `LlmServices.BuildChatService`, `LlmServices.ChatService` | 1 |
-| Reply Token Budget (`ReplyTokenBudget`) | `LlmServices.BuildChatService`, `LlmServices.ChatService` | 2 |
 | Roleplay / Prose provider (`Provider`) | `LlmServices.DefaultKind`, `LlmServices.ResolveKindForRole`, `LlmServices.ResolveProvider` | 2 |
 
 ### NanoGPT
@@ -218,6 +208,21 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | Pin Providers (advanced) (`ProviderPin`) | `ApiKeyTester.RunOpenRouterAsync`, `LlmServices.BuildInterpreterClient`, `LlmServices.ResolveProviderPinFor` | 0 |
 | Reasoning Effort (NSFW) (`NsfwReasoningEffort`) | `LlmServices.ResolveReasoningFor` | 0 |
 | Reasoning Effort (PROSE) (`ReasoningEffort`) | `LlmServices.ResolveReasoningFor` | 1 |
+
+### Prompt & Memory
+
+| Setting | Readers in play | cr.test / console |
+|---|---|---|
+| Chat Temperature (`ChatTemperature`) | `ChatViewModel.RunEnvoyTurnAsync`, `LlmServices.BuildChatService`, `LlmServices.ChatService` | 1 |
+| Compact prompt for small models (`LeanPrompt`) | `ActionInterpreterComposer.InterpretAsync`, `BuyPrisonerVerb.TeachingText`, `ChatViewModel.EnsureTranscriptCompressedAsync`, `CouncilSeatNoteResolver.Resolve`, `CrCharacterText.PiecesFor`, `EncounterContextBuilder.Build`, `EncounterContextBuilder.ComposeAppearance`, `EncounterContextBuilder.ModTextFor`, `EncounterContextBuilder.StandingContextFor`, `ExchangeService.MoneyTokensFor` | 7 |
+| Compress after (memories) (`MemoryCompressionThreshold`) | `MemoryCompressionService.CompressAsync`, `MemoryCompressionService.PickCandidate` | 2 |
+| Compress old memories (`MemoryCompression`) | `MemoryCompressionBehavior.OnDailyTick`, `MemoryCompressionBehavior.RunNow`, `MemoryCompressionService.CompressAsync` | 1 |
+| LLM Response Timeout (s) (`LlmTimeoutSeconds`) | `ActionInterpreterComposer.AttemptAsync`, `ApiKeyTester.ProbeContextAsync`, `ChatViewModel.CallNarratorAsync`, `ChatViewModel.RunCouncilTurnAsync`, `ChatViewModel.RunEnvoyTurnAsync`, `ConversationSummaryService.GenerateAndApplyCaptiveSummaryAsync`, `ConversationSummaryService.GenerateAndApplyConversationSummaryAsync`, `ConversationSummaryService.HarvestWorldClaimsAsync`, `ConversationSummaryService.ProcessConversationJobAsync`, `CourierSecretBehavior.JudgeAndReactAsync`, `LetterGenerationService.LetterLlmTimeoutSeconds`, `LetterMemoryFinalizer.GenerateAndApplyAsync`, `LlmServices.BuildHousekeepingClient`, `LlmServices.BuildInterpreterClient`, `LlmServices.BuildRoleClient`, `LlmServices.Initialize`, `ProseFallbackComposer.RunIntegratedFallbackAsync` | 11 |
+| Local model context (tokens) (`LocalContextTokens`) | `ApiKeyTester.RunCustomAsync`, `ChatViewModel.NotifyLlmFailure`, `LlmServices.ContextWindowFor`, `LocalContextState.CompactThisSession` | 1 |
+| Memories in the prompt (`PromptMemoryLimit`) | `EncounterContextBuilder.Build`, `EncounterContextBuilder.StandingContextFor` | 1 |
+| Other mods may use my connection (`AllowOtherModsLlm`) | `CrLlm.CompleteAsync`, `CrLlm.Unavailable` | 0 |
+| Presence Penalty (`PresencePenalty`) | `LlmServices.BuildChatService`, `LlmServices.ChatService` | 1 |
+| Reply Token Budget (`ReplyTokenBudget`) | `LlmServices.BuildChatService`, `LlmServices.ChatService` | 2 |
 
 ### Relationships
 

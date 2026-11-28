@@ -336,7 +336,7 @@ namespace CalradiaRemembers
 
          return $"{hero.Name}: system prompt = {prompt.Length} chars (~{prompt.Length / 4} tokens), " +
                 $"mode = {(ModSettings.LeanPrompt ? "Lean (compact)" : "Full")}. Toggle 'Compact prompt for small " +
-                "models' (Mod Options -> LLM Provider) and re-run to compare.";
+                "models' (Mod Options -> Prompt & Memory) and re-run to compare.";
       }
 
       /// <summary>

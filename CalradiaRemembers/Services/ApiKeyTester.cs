@@ -142,7 +142,7 @@ namespace CalradiaRemembers.Services
          string model = CrSettings.Instance?.Model?.Trim();
          if (string.IsNullOrWhiteSpace(model) || model == Services.LlmServices.DefaultModel)
          {
-            ShowResult("No model", "Enter your server's model id in the Model (roleplay) field of the LLM Provider section first.");
+            ShowResult("No model", "Enter your server's model id in the PROSE model field of the Mode & Models section first.");
 
             return;
          }
