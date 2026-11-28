@@ -7,7 +7,7 @@ Read it to answer "does this concept already exist, and where does it live" BEFO
 sentence beside each type is the first sentence of its own doc comment; `(no summary)` is a gap worth closing.
 
 - **Mod (engine-bound, `CalradiaRemembers`)**: 703 types in 66 namespaces, 4 without a summary
-- **Logic (pure, `CalradiaRemembers.Logic`)**: 1797 types in 62 namespaces, 14 without a summary
+- **Logic (pure, `CalradiaRemembers.Logic`)**: 1799 types in 62 namespaces, 14 without a summary
 - **SDK (engine-agnostic, `NpcMemoryService.Core`)**: 306 types in 17 namespaces, 9 without a summary
 
 ## Files of 1000 lines or more
@@ -2087,7 +2087,7 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `RosterItemKey` | public static class | Names one stack of goods by item and quality, and finds it again among what the party holds. |
 | `ScoreToSettle` | public class | Whether a character has a score to settle, and whether the player may be told so. |
 
-### CalradiaRemembers.Logic.Chat (43)
+### CalradiaRemembers.Logic.Chat (45)
 
 | Type | Kind | What it is |
 |---|---|---|
@@ -2123,6 +2123,8 @@ this long is where the overall picture is hardest to hold, whatever else is true
 | `MemoryPanelFacts` | public class | What decides whether one memory is listed. |
 | `MemoryPanelPolicy` | public static class | Decides how a memory appears in the Memories panel. |
 | `MemoryPanelShow` | public enum | How one memory appears in the chat's Memories panel. |
+| `NovelStyleFacts` | public class | What the chat knows when it decides whether the novel style applies. |
+| `NovelStylePolicy` | public static class | Decides how a reply in the novel style is shown and read. |
 | `NpcDossierText` | public static class | Formats the lines of the NPC dossier. |
 | `OverlayNeighbour` | public class | One layer beside the chat, as the arbiter needs to see it. |
 | `PresencePenaltyPolicy` | public static class | Pure: the presence penalty a conversation turn is sent with. |

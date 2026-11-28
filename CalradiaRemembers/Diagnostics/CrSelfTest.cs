@@ -459,6 +459,7 @@ namespace CalradiaRemembers.Diagnostics
          new SelfTest("long_memory", Severity.Light, "Goeth (Discord, 17/11/2026): recall the actual words of earlier talks; Gabriel: off by default, Full prompt only. On a throwaway story archive: a player line said to a lord in one conversation is recalled, labelled [PLAYER], when a later conversation mentions its subject, and the LIVE PromptBuilder writes it under WORDS FROM EARLIER TALKS; the compact prompt and the switch off recall nothing. Restores the switch, deletes its file", TestLongMemory),
          new SelfTest("story_archive", Severity.Light, "Gabriel (17/11/2026): the Story Log replaced by a story archive written always, outside the save, the long memory's source. On a throwaway archive: a real ChatViewModel's player line enters it word for word after an episode opening, with the lord in its audience; a save head taken, a line written, the head re-attached as a reload does, another line written: walking the branch reads the new line and never the abandoned one. Asserts the player's own archive is paused while self-tests run. Deletes its file", TestStoryArchive),
          new SelfTest("scene_narration_switch", Severity.Light, "1Enfant (Nexus, 16/11/2026): \"How do I disable the description of the surrounding environment? (purple section)\". Sets the MCM switch Scene Narration off then on (restored after) and asserts, on the LIVE PromptBuilder the chat runs on (LlmServices.DebugBuildPromptBuilder), that off means an ordinary opening turn neither teaches the [NARRATION] block nor asks for the opening tableau, and on brings both back; and that SceneNarrationPolicy hides an ordinary turn's narration when off, but keeps a captive scene's and a reply made only of narration", TestSceneNarrationSwitch),
+         new SelfTest("novel_style", Severity.Light, "Stage 5 of the group-scene plan (Gabriel, 28/11/2026, the novel's presentation: \"oui ok j'aime ça\"). Sets the MCM Narrative style to Novel (restored after) and asserts, on the LIVE PromptBuilder the chat runs on (LlmServices.DebugBuildPromptBuilder), that an ordinary prompt, Full and Compact, asks for quoted speech and third-person gestures, forbids writing the player, and still teaches the player's *asterisks* as acts; that Roleplay brings back the first-person teaching; and that NovelStylePolicy shows a fixed starred reply without asterisks and still finds a question that ends on a gesture", TestNovelStyle),
          new SelfTest("scene_opener", Severity.Light, "Lordfadooboo (Nexus, 21/10/2026): a conversation opened cold; Gabriel (22/10/2026): the character sets the scene by default, as captive scenes do. Reads the LIVE opening facts (LlmDialogFlow.SceneFacts) and asserts a conversation opened by the greeting gets a scene while one opened any other way (an interception, a tale meeting) does not, nor one put back from earlier today, nor one carrying the game's own dialogue, nor any with the MCM switch off (set off for a moment, restored). Then, with a model available and nothing on screen, opens a REAL conversation with a lord, starts the scene on a test greeting and plays the player speaking first: the scene is set aside, the greeting stays on screen and is the line remembered, and the call is aborted. Closes the conversation", TestSceneOpener),
          new SelfTest("scene_image_shown", Severity.Light, "Gabriel (08/10/2026): a tale's stage may carry a picture, opening by itself beside the chat when its scene opens. Writes a small picture to a temporary file, opens a scene with it through the real door (its narration refused before any model call), checks the left panel shows that very file and, in Dark Leather, that it steps aside when the chat yields to the pause menu, then closes the scene and deletes the file.", TestSceneImageShown),
          new SelfTest("intimate_acts", Severity.Light, "Gabriel (26/10/2026): 'chaque NPC avait des preferences pour certains gestes sexuels, et meme parfois des gestes qu'il n'aime pas', and 'un geste impose que le NPC n'aime pas devrait reduire le personal regard'. At Hardcore, with a lord arranged as the player's lover (regard 60, intimate; put back after) who loves oral given and dislikes anal received: the turn's reader is taught both from the real EncounterContextBuilder seam; the disliked gesture only asked for costs nothing and is learned; performed, it costs 4 personal regard and leaves a memory; performed again the same day, nothing more; the loved gesture found warms them by 1; one they are less fond of costs nothing; the Heart section names a taste only once it is learned; a profile rolled before the list widened (27/10/2026: 'd'en mettre beaucoup') is completed through the real load path, keeping what she loved and what the player learned. Skips below Hardcore", TestIntimateActs),
@@ -17233,6 +17234,51 @@ namespace CalradiaRemembers.Diagnostics
             t.Expect("onOpeningTableau", onPrompt.Contains("THIS TURN OPENS THE SCENE"), true);
          }
          finally { settings.SceneNarration = before; }
+
+         return t.Line();
+      }
+
+      private static string TestNovelStyle(NpcMemoryCampaignBehavior behavior)
+      {
+         var t = new TestRun("novel_style");
+         CrSettings settings = CrSettings.Instance;
+         if (t.Abort(settings?.NarrativeStyle == null, "no MCM settings instance")) return t.Line();
+         if (t.Skip(behavior?.LlmServices == null, "no LLM services to build the live prompt")) return t.Line();
+
+         int before = settings.NarrativeStyle.SelectedIndex;
+         var npc = new NpcProfile {Id = "cr_selftest_novel", Name = "Selftest", Faction = "Vlandia", Clan = "Selftest", IsFemale = true};
+         try
+         {
+            t.Expect("novelChoiceExists", settings.NarrativeStyle.Pick("Novel (third person, quoted speech)"), true);
+            t.Expect("settingReadsNovel", ModSettings.NovelStyle, true);
+            PromptBuilder novel = behavior.LlmServices.DebugBuildPromptBuilder();
+            t.Expect("theBuilderIsTold", novel.EnableNovelStyle, true);
+            string full = novel.BuildSystemPrompt(npc, new WorldState {CurrentDay = 1}, new EncounterContext {LeanLevel = LeanPromptLevel.Full});
+            string compact = novel.BuildSystemPrompt(npc, new WorldState {CurrentDay = 1}, new EncounterContext {LeanLevel = LeanPromptLevel.Lean});
+            // STAKE: a Novel player is still taught "*I narrow my eyes*".
+            t.Expect("fullAsksQuotedSpeech", full.Contains("your spoken words inside double quotation"), true);
+            t.Expect("fullAsksThirdPerson", full.Contains("plain prose in the THIRD person"), true);
+            t.Expect("fullNoFirstPersonTeaching", full.Contains("\"*I narrow my eyes*\""), false);
+            t.Expect("compactAsksNovel", compact.Contains("speech in double quotes, your own gestures in plain third-person prose"), true);
+            // STAKE: the style invites the model to write the player's part.
+            t.Expect("fullForbidsWritingThePlayer", full.Contains("Never write the player's words, thoughts or actions"), true);
+            // STAKE: the player's *asterisks* stop being read as their acts.
+            t.Expect("fullPlayerAsterisksTaught", full.Contains("text wrapped in asterisks, e.g. *I take you by the wrist*"), true);
+            t.Expect("compactPlayerAsterisksTaught", compact.Contains("WHAT THE PLAYER DOES: *asterisks*"), true);
+            // STAKE: a model that still stars a gesture shows the asterisks the player turned away from.
+            t.Expect("starredReplyShownPlain", Logic.Chat.NovelStylePolicy.ForDisplay("*She sets down the cup.* \"Sit.\""), "She sets down the cup. \"Sit.\"");
+            // STAKE: a question ending on a gesture is lost and the bystanders re-ask it (Lordfadooboo, 20/10/2026).
+            t.Expect("questionFoundBeforeGesture", Logic.Conversation.EnsembleFloorPolicy.EndsOnAQuestion(Logic.Chat.NovelStylePolicy.SpokenPart("\"Where were you?\" She sets down the cup.")), true);
+
+            settings.NarrativeStyle.SelectedIndex = 0;
+            PromptBuilder roleplay = behavior.LlmServices.DebugBuildPromptBuilder();
+            string roleplayFull = roleplay.BuildSystemPrompt(npc, new WorldState {CurrentDay = 1}, new EncounterContext {LeanLevel = LeanPromptLevel.Full});
+            // STAKE: a player who kept the default reads a changed prompt.
+            t.Expect("roleplayBuilderIsTold", roleplay.EnableNovelStyle, false);
+            t.Expect("roleplayFirstPersonTeaching", roleplayFull.Contains("\"*I narrow my eyes*\""), true);
+            t.Expect("roleplayNoNovelTeaching", roleplayFull.Contains("with NO asterisks"), false);
+         }
+         finally { settings.NarrativeStyle.SelectedIndex = before; }
 
          return t.Line();
       }

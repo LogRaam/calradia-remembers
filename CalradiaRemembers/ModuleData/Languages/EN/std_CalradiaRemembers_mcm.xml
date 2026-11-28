@@ -21,6 +21,10 @@
     <string id="CR_MCM_ChatSkin_Hint" text="The look of the conversation window. Origin is the original panel; Dark Leather is the illuminated leather book. Both are the same conversation, only the look differs. Applies on your next conversation." />
     <string id="CR_MCM_ChatSkin_Origin" text="Origin" />
     <string id="CR_MCM_ChatSkin_DarkLeather" text="Dark Leather" />
+    <string id="CR_MCM_NarrativeStyle" text="Narrative style" />
+    <string id="CR_MCM_NarrativeStyle_Hint" text="Roleplay (default): as before, gestures in *asterisks*, first person. Novel: speech in quotes, gestures as plain third-person prose. You write either way; your *asterisks* stay your acts. Captive scenes keep their own style." />
+    <string id="CR_MCM_NarrativeStyle_Roleplay" text="Roleplay (asterisks, first person)" />
+    <string id="CR_MCM_NarrativeStyle_Novel" text="Novel (third person, quoted speech)" />
     <string id="CR_MCM_ChatTextSizePercent" text="Chat Text Size (%)" />
     <string id="CR_MCM_ChatTextSizePercent_Hint" text="Scales ONLY the dialogue text in the chat window, not the window itself: a smaller value fits more words per line, a larger one reads easier. 100 is the shipped size. Applies on your next conversation." />
     <string id="CR_MCM_DarkLeatherZoomPercent" text="Dark Leather Size (%)" />

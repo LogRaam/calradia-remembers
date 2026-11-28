@@ -11,7 +11,7 @@ player says "I turned it off and it still happens", the readers listed here are 
 it is missing from the list. Read from syntax; blind spots in the header of `SettingsReadersMap.cs` (a value handed
 on to the SDK or a helper shows only where it is read).
 
-124 settings; a reader is `Type.Member`. Console and cr.test reads are counted apart (they exercise a switch, they do not obey it).
+125 settings; a reader is `Type.Member`. Console and cr.test reads are counted apart (they exercise a switch, they do not obey it).
 
 ## Read by one member only
 
@@ -137,6 +137,7 @@ on at load, read by reflection). Each one is either a dead switch or a blind spo
 | NPC Cross-Talk (`NpcCrossTalkRounds`) | `ChatViewModel.WitnessExchangeCap` | 0 |
 | NPCs Raise World News (`NpcsRaiseWorldNews`) | `CompanionAudienceTopicResolver.FreshnessFacts`, `InterceptionBehavior.BuildRecentMatters` | 2 |
 | NPCs can end conversations (`NpcCanEndConversation`) | `ChatViewModel.NpcEndLocksConversation` | 0 |
+| Narrative style (`NarrativeStyle`) | `ChatViewModel.NovelStyleOn`, `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService` | 1 |
 | Prompt Profile (`PromptProfile`) | `PromptProfileService.DebugUse`, `PromptProfileService.LayoutFor`, `PromptProfileService.Refresh` | 0 |
 | Regard Warmth Cooldown (days) (`RegardDecayDays`) | `BannerlordGameStateBridge.ExecuteChangeRelation` | 1 |
 | Relationship Pacing (`RelationshipWarmth`) | `BannerlordGameStateBridge.BuildConsentFacts`, `BannerlordGameStateBridge.ExecuteChangeRelation`, `CompanionAffectionBehavior.EligibilityOf`, `CompanionAffectionBehavior.OnWeeklyTick`, `EncounterContextBuilder.SecretBondFactsFor`, `LetterRegardService.Apply`, `LetterTriggerEvaluator.CollectLoveConfessions`, `LlmServices.BuildChatService`, `LlmServices.BuildPromptBuilder`, `LlmServices.ChatService`, `LoveConfessionReader.RegisterOf` | 5 |

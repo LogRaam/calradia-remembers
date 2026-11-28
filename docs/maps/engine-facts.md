@@ -8,7 +8,7 @@ it reads the same fact. This map follows the value from the game into every pure
 groups the rules by what they read. **Look here before adding a rule: if the fact it reads is already read by
 others, read theirs first.** Keys are read from syntax, not types (see the header of `EngineFactsMap.cs`).
 
-836 rules read 625 facts.
+837 rules read 626 facts.
 
 ## Facts read by more than one rule
 
@@ -898,6 +898,7 @@ others, read theirs first.** Keys are read from syntax, not types (see the heade
 - `NotHisToSellFacts`: `Hero.Clan`
 - `NotableRecruitmentFacts`: `Hero.Clan`, `Hero.CurrentSettlement`, `Hero.IsAlive`, `Hero.IsChild`, `Hero.IsLord`, `Hero.IsNotable`, `Hero.IsPlayerCompanion`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Hero.Power`
 - `NotableTradeFacts`: `Hero.Children`, `Hero.Clan`, `Hero.CurrentSettlement`, `Hero.Father`, `Hero.HomeSettlement`, `Hero.MapFaction`, `Hero.Mother`, `Hero.Spouse`, `PairBondReader.Points`
+- `NovelStyleFacts`: `ModSettings.NovelStyle`
 - `NpcActionGate.Check`: `Hero.Age`, `Hero.IsAlive`, `Hero.IsChild`, `Hero.IsPrisoner`
 - `NpcDossierText.RegardLine`: `DossierReader.WhyTowardThePlayer`
 - `OathOfferFacts`: `Clan.Kingdom`, `Clan.Leader`, `Hero.Clan`, `Hero.Gold`, `Hero.IsPrisoner`, `Hero.PartyBelongedTo`, `Kingdom.Leader`, `PartyBelongedTo.LeaderHero`

@@ -1986,6 +1986,21 @@ namespace CalradiaRemembers.Chat
          => AppendNarrationLine(text, insertBefore);
 
       /// <summary>
+      ///   True when this conversation is written in the novel style (stage 5, Gabriel 28/11/2026: "Narrative style" set to
+      ///   Novel, and not a captive scene, which keeps its own voice contract). Roleplay by default.
+      /// </summary>
+      private bool NovelStyleOn => NovelStylePolicy.Applies(new NovelStyleFacts {
+         NovelChosen = ModSettings.NovelStyle,
+         CaptiveScene = IsCaptiveEncounter || _captorScene
+      });
+
+      /// <summary>A character's line as shown: in the novel style, a leftover *third-person gesture* becomes plain prose.</summary>
+      private string NovelShown(string reply) => NovelStyleOn ? NovelStylePolicy.ForDisplay(reply) : reply;
+
+      /// <summary>The part of a line the turn-taking tests read: in the novel style, its quoted speech (the gestures carry no asterisks).</summary>
+      private string NovelSpoken(string line) => NovelStyleOn ? NovelStylePolicy.SpokenPart(line) : line;
+
+      /// <summary>
       ///   A narration the MODEL wrote in an ordinary turn: shown (and recorded) only when SceneNarrationPolicy allows,
       ///   so a player who turned "Scene Narration" off does not see one a model wrote anyway (1Enfant, Nexus,
       ///   16/11/2026). <paramref name="spoken" /> is the same reply's dialogue: a narration that is the whole reply stays.

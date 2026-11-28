@@ -76,6 +76,7 @@ namespace CalradiaRemembers.Services
       private bool _builtSceneNarration;
       private bool _builtMeetingMemory;
       private bool _builtGeneratedDepth;
+      private bool _builtNovelStyle;
       private NpcChatService _chatService;
 
       private HttpClient _httpClient;
@@ -143,6 +144,7 @@ namespace CalradiaRemembers.Services
             bool sceneNarration = ModSettings.SceneNarration;
             bool meetingMemory = ModSettings.MeetingMemory;
             bool generatedDepth = ModSettings.GeneratedDepth;
+            bool novelStyle = ModSettings.NovelStyle;
 
             string playerFaction = Hero.MainHero?.MapFaction?.Name?.ToString() ?? "";
             string playerClan = Hero.MainHero?.Clan?.Name?.ToString() ?? "";
@@ -154,7 +156,7 @@ namespace CalradiaRemembers.Services
                                       && _builtTemperature == temperature && _builtReplyBudget == replyBudget
                                       && _builtPresencePenalty == presencePenalty && _builtPlayerIdentity == playerIdentity
                                       && _builtSceneNarration == sceneNarration && _builtMeetingMemory == meetingMemory
-                                      && _builtGeneratedDepth == generatedDepth)
+                                      && _builtGeneratedDepth == generatedDepth && _builtNovelStyle == novelStyle)
                return _chatService;
             _chatService = BuildChatService();
             _builtAdultLevel = current;
@@ -169,6 +171,7 @@ namespace CalradiaRemembers.Services
             _builtSceneNarration = sceneNarration;
             _builtMeetingMemory = meetingMemory;
             _builtGeneratedDepth = generatedDepth;
+            _builtNovelStyle = novelStyle;
             _builtPlayerIdentity = playerIdentity;
 
             return _chatService;
@@ -1117,7 +1120,9 @@ namespace CalradiaRemembers.Services
             // one only on a conversation "Composed opening scene" composed, so every other prompt is unchanged.
             EnableComposedOpening = true,
             // Stage 4 (28/11/2026): who a character is beneath the sheet shows only while "Deeper characters" is on.
-            EnableGeneratedDepth = ModSettings.GeneratedDepth
+            EnableGeneratedDepth = ModSettings.GeneratedDepth,
+            // Stage 5 (28/11/2026): the novel's presentation, only while "Narrative style" is Novel (Roleplay by default).
+            EnableNovelStyle = ModSettings.NovelStyle
          };
       }
 

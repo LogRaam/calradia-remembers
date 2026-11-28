@@ -85,13 +85,16 @@ namespace CalradiaRemembers.Logic.Conversation
       ///     included (they are skipped). <paramref name="activeIds" /> is the cast that has a voice;
       ///     <paramref name="anchorId" /> the conversation's own NPC, used only to break a tie in a room of
       ///     three or more. <paramref name="repliesAlready" /> is how many answering turns this beat has
-      ///     already spent.
+      ///     already spent. <paramref name="novelSpeech" /> is true when the lines are written in the novel style
+      ///     (speech in quotes, gestures as plain prose): the question is then looked for in the quoted speech
+      ///     (<see cref="Chat.NovelStylePolicy.SpokenPart" />), since the closing gesture carries no asterisks to strip.
       ///   </para>
       /// </summary>
       public static string WhoAnswers(IReadOnlyList<TranscriptLine> beatLines,
                                       IReadOnlyList<string> activeIds,
                                       string anchorId,
-                                      int repliesAlready)
+                                      int repliesAlready,
+                                      bool novelSpeech = false)
       {
          if (beatLines == null || activeIds == null) return null;
          if (repliesAlready >= RepliesPerBeat) return null;
@@ -110,7 +113,7 @@ namespace CalradiaRemembers.Logic.Conversation
             break;
          }
 
-         if (last == null || !EndsOnAQuestion(last.Text)) return null;
+         if (last == null || !EndsOnAQuestion(novelSpeech ? Chat.NovelStylePolicy.SpokenPart(last.Text) : last.Text)) return null;
 
          // Everyone with a voice except the one who just asked. A speaker cannot answer their own question.
          var candidates = new List<string>();

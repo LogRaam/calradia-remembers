@@ -135,12 +135,12 @@ Used by the most: `CalradiaRemembers.Logic` (80), `NpcMemoryService.Core.Models`
 | `CalradiaRemembers.Logic.Battles` | 1 | 9 |
 | `CalradiaRemembers.Logic.Captivity` | 4 | 13 |
 | `CalradiaRemembers.Logic.Character` | 7 | 7 |
-| `CalradiaRemembers.Logic.Chat` | 4 | 7 |
+| `CalradiaRemembers.Logic.Chat` | 4 | 8 |
 | `CalradiaRemembers.Logic.Chronicle` | 0 | 1 |
 | `CalradiaRemembers.Logic.Companions` | 4 | 14 |
 | `CalradiaRemembers.Logic.Companions.MissionResult` | 0 | 2 |
 | `CalradiaRemembers.Logic.Conditions` | 2 | 4 |
-| `CalradiaRemembers.Logic.Conversation` | 3 | 5 |
+| `CalradiaRemembers.Logic.Conversation` | 4 | 5 |
 | `CalradiaRemembers.Logic.Diagnostics` | 5 | 9 |
 | `CalradiaRemembers.Logic.Diplomacy` | 0 | 7 |
 | `CalradiaRemembers.Logic.Duels` | 4 | 5 |
@@ -926,7 +926,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 ### CalradiaRemembers.Logic.Chat
 
 - uses: `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Providers`, `NpcMemoryService.Core.LlmClient`, `NpcMemoryService.Core.Models`
-- used by: `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Portraits`, `CalradiaRemembers.Services`
+- used by: `CalradiaRemembers.Chat`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Dialogue`, `CalradiaRemembers.Foundation`, `CalradiaRemembers.Logic.Conversation`, `CalradiaRemembers.Mapping`, `CalradiaRemembers.Portraits`, `CalradiaRemembers.Services`
 
 ### CalradiaRemembers.Logic.Chronicle
 
@@ -950,7 +950,7 @@ files first: a side resting on ONE file is one file away from untangling the pai
 
 ### CalradiaRemembers.Logic.Conversation
 
-- uses: `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Grudges`, `NpcMemoryService.Core.Prompts`
+- uses: `CalradiaRemembers.Logic`, `CalradiaRemembers.Logic.Chat`, `CalradiaRemembers.Logic.Grudges`, `NpcMemoryService.Core.Prompts`
 - used by: `CalradiaRemembers`, `CalradiaRemembers.Chat`, `CalradiaRemembers.Companions`, `CalradiaRemembers.Diagnostics`, `CalradiaRemembers.Duels`
 
 ### CalradiaRemembers.Logic.Diagnostics

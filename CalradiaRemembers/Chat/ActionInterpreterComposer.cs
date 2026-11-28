@@ -71,6 +71,10 @@ namespace CalradiaRemembers.Chat
             string contextFacts = ActionInterpreterContextBuilder.Project(context, profile, playerLabel, conversationInProgress);
             // On a turn about captives only: the names a buy_prisoner target is one of, and the exchange before this reply.
             if (!string.IsNullOrWhiteSpace(tradeBackground)) contextFacts += Environment.NewLine + Environment.NewLine + tradeBackground;
+            // Stage 5 (28/11/2026): a reply in the novel style names the NPC in the third person; the interpreter is told who
+            // that is. In the facts, not the cached prefix, so the default prompt is unchanged.
+            if (services?.ChatService?.PromptBuilder is NpcMemoryService.Core.Prompts.PromptBuilder builder && builder.NovelStyleApplies(context))
+               contextFacts += Environment.NewLine + Environment.NewLine + NovelStylePolicy.InterpreterNote;
             // Compact reaches the interpreter too, at last. This prompt had no notion of a prompt level: at
             // ~17.6k tokens it is more than twice the whole context of the 8,192-token models the setting is
             // named for, so for those players this call could never once succeed - and the failure below is

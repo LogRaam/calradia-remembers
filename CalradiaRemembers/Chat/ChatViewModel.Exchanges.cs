@@ -507,7 +507,7 @@ namespace CalradiaRemembers.Chat
 
             if (usable)
             {
-               ReplacePlaceholder(placeholder, npcLine, speaker);
+               ReplacePlaceholder(placeholder, NovelShown(npcLine), speaker);
                RecordTranscript(false, speaker.Name, speaker.Hero?.StringId, npcLine);
                if (!string.IsNullOrWhiteSpace(result.Response?.Narration))
                   AppendNarration(result.Response.Narration);
@@ -2094,7 +2094,7 @@ namespace CalradiaRemembers.Chat
 
             // Lordfadooboo (20/10/2026): a line that ends on a question to the player hands the floor to the player;
             // answering the bystander from there only re-asks it. The bystander's line stands and the player answers.
-            bool waitsForThePlayer = WitnessExchangePolicy.WaitsForThePlayer(npcLine, _witnesses.Select(w => w.Name));
+            bool waitsForThePlayer = WitnessExchangePolicy.WaitsForThePlayer(NovelSpoken(npcLine), _witnesses.Select(w => w.Name));
             if (waitsForThePlayer && anyWitnessSpoke && speaker.IsMain)
                ModLog.Info($"[15C] {speaker.Name} asked the player a question; the bystander exchange waits for the answer.");
 
@@ -2387,7 +2387,7 @@ namespace CalradiaRemembers.Chat
             for (int i = beatStart; i < _transcript.Count; i++) beatLines.Add(_transcript.Lines[i]);
 
             string answererId = EnsembleFloorPolicy.WhoAnswers(
-               beatLines, _cast.ActiveIds, _cast.AnchorId, _hangingAnswersThisBeat);
+               beatLines, _cast.ActiveIds, _cast.AnchorId, _hangingAnswersThisBeat, novelSpeech: NovelStyleOn);
 
             if (answererId == null) return;
 
@@ -2653,7 +2653,7 @@ namespace CalradiaRemembers.Chat
                   ? result.Response.Dialogue
                   : "(silence...)";
 
-               ReplacePlaceholder(placeholder, npcReply, mainSpeaker);
+               ReplacePlaceholder(placeholder, NovelShown(npcReply), mainSpeaker);
                RecordTranscript(false, mainSpeaker.Name, mainSpeaker.Hero?.StringId, npcReply);
 
                if (!string.IsNullOrWhiteSpace(result.Response?.Narration))
@@ -2696,7 +2696,7 @@ namespace CalradiaRemembers.Chat
                if (_conversationEnded || isLast) break;
 
                // The reply asked the player something: stop here, or the next round re-asks it (Lordfadooboo, 20/10/2026).
-               if (WitnessExchangePolicy.WaitsForThePlayer(npcReply, _witnesses.Select(w => w.Name)))
+               if (WitnessExchangePolicy.WaitsForThePlayer(NovelSpoken(npcReply), _witnesses.Select(w => w.Name)))
                {
                   ModLog.Info($"[15C] {mainSpeaker.Name} asked the player a question; the bystander exchange waits for the answer.");
 

@@ -1003,7 +1003,7 @@ namespace CalradiaRemembers.Chat
       {
          if (!string.IsNullOrWhiteSpace(response?.Dialogue))
          {
-            ReplacePlaceholder(placeholder, response.Dialogue, speaker);
+            ReplacePlaceholder(placeholder, NovelShown(response.Dialogue), speaker);
 
             return response.Dialogue;
          }

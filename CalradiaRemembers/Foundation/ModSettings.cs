@@ -114,6 +114,13 @@ namespace CalradiaRemembers.Foundation
       public static string ChatSkinChoice => CrSettings.Instance?.ChatSkin?.Choice();
 
       /// <summary>
+      ///   True when the MCM "Narrative style" is Novel (stage 5, Gabriel 28/11/2026): characters are taught quoted speech
+      ///   and third-person gestures (PromptBuilder.EnableNovelStyle) and the chat reads and shows their lines that way
+      ///   (NovelStylePolicy). Roleplay by default; with no MCM, Roleplay.
+      /// </summary>
+      public static bool NovelStyle => CrSettings.Instance?.NarrativeStyle?.Choice()?.StartsWith("Novel", System.StringComparison.Ordinal) == true;
+
+      /// <summary>
       ///   When true, the companion-contentment loop runs (restlessness, audiences, farewell-letter
       ///   departures). When false the whole system is inert. Read live from the MCM menu; on by default.
       /// </summary>

@@ -66,6 +66,14 @@ namespace CalradiaRemembers.Foundation
       public Dropdown<McmChoice> ChatSkin { get; set; } =
          McmChoice.List(1, "{=CR_MCM_ChatSkin_Origin}Origin", "{=CR_MCM_ChatSkin_DarkLeather}Dark Leather"); // default: Dark Leather (the illuminated book)
 
+      // Stage 5 of the group-scene plan (Gabriel, 28/11/2026, on the novel's presentation: "oui ok j'aime ça"). Roleplay by
+      // default: the prompt and the chat exactly as before. Novel teaches quoted speech and third-person gestures.
+      [SettingPropertyDropdown("{=CR_MCM_NarrativeStyle}Narrative style", RequireRestart = false, Order = 5,
+         HintText = "{=CR_MCM_NarrativeStyle_Hint}Roleplay (default): as before, gestures in *asterisks*, first person. Novel: speech in quotes, gestures as plain third-person prose. You write either way; your *asterisks* stay your acts. Captive scenes keep their own style.")]
+      [SettingPropertyGroup("{=CR_MCM_Group_Content}Content", GroupOrder = 5)]
+      public Dropdown<McmChoice> NarrativeStyle { get; set; } =
+         McmChoice.List(0, "{=CR_MCM_NarrativeStyle_Roleplay}Roleplay (asterisks, first person)", "{=CR_MCM_NarrativeStyle_Novel}Novel (third person, quoted speech)"); // default: Roleplay
+
       [SettingPropertyInteger("{=CR_MCM_ChatTextSizePercent}Chat Text Size (%)", 70, 130, "0 '%'", RequireRestart = false, Order = 6,
          HintText = "{=CR_MCM_ChatTextSizePercent_Hint}Scales ONLY the dialogue text in the chat window, not the window itself: a smaller value fits " +
                     "more words per line, a larger one reads easier. 100 is the shipped size. Applies on your next conversation.")]
